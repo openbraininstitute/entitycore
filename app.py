@@ -74,7 +74,7 @@ class SpeciesRead(SpeciesCreate):
 class ReconstructionMorphologyBase(BaseModel):
     name: str
     description: str
-    brain_location: BrainLocationCreate
+    brain_location: Optional[BrainLocationCreate]
     class Config:
         orm_mode = True
 
@@ -102,7 +102,7 @@ class ReconstructionMorphologyRead(ReconstructionMorphologyBase):
     creation_date: datetime 
     update_date: datetime
     species: SpeciesCreate
-    strain: StrainCreate
+    strain: Optional[StrainCreate]
     brain_region: BrainRegionCreate
     def dict(self, **kwargs):
         result = super().dict(**kwargs)
@@ -126,7 +126,6 @@ def create_reconstruction_morphology(recontruction: ReconstructionMorphologyCrea
     db.add(db_reconstruction_morphology)
     db.commit()
     db.refresh(db_reconstruction_morphology)
-    print(db_reconstruction_morphology)
     return db_reconstruction_morphology
 
 
@@ -144,10 +143,8 @@ async def read_reconstruction_morphology(rm_id: int, expand:Optional[str] = Quer
         res = db.query(model.MorphologyFeatureAnnotation).filter(model.MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id).all()
         if res:
             rm.morphology_feature_annotation = res[0]
-        print(f'annotations: {rm.morphology_feature_annotation}')
 
         ret = ReconstructionMorphologyExpand.from_orm(rm).dict()
-        print(ret)
         return ret
     else:
         ret = ReconstructionMorphologyRead.from_orm(rm).dict()

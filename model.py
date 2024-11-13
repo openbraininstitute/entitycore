@@ -36,7 +36,7 @@ class ReconstructionMorphology(TimestampMixin, Base):
     brain_region = relationship("BrainRegion", uselist=False)
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
     species = relationship("Species", uselist=False)
-    strain_id = Column(Integer, ForeignKey("strain.id"), nullable=False)
+    strain_id = Column(Integer, ForeignKey("strain.id"), nullable=True)
     strain = relationship("Strain", uselist=False)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 

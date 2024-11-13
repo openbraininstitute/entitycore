@@ -85,10 +85,12 @@ def import_morphologies(data_list, db):
                 print("Skipping reconstruction morphology due to missing species.")
             species_id = get_or_create_species(species, db)
             strain = data.get("subject", {}).get("strain", {})
-            if not strain:
-                print("Skipping reconstruction morphology due to missing strain.")
-                continue
-            strain_id = get_or_create_strain(strain, species_id, db)
+            # if not strain:
+            #     print("Skipping reconstruction morphology due to missing strain.")
+            #     continue
+            strain_id = None
+            if strain:
+                strain_id = get_or_create_strain(strain, species_id, db)
             brain_location = None
             coordinates = data.get("subject", {}).get("coordinatesInBrainAtlas", {})
             if coordinates:

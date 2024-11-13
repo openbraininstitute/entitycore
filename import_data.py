@@ -92,13 +92,13 @@ def import_morphologies(data_list, db):
             if strain:
                 strain_id = get_or_create_strain(strain, species_id, db)
             brain_location = None
-            coordinates = data.get("subject", {}).get("coordinatesInBrainAtlas", {})
+            coordinates = data.get("brainLocation", {}).get("coordinatesInBrainAtlas", {})
             if coordinates:
                 x = coordinates.get("valueX", None)
                 y = coordinates.get("valueY", None)
                 z = coordinates.get("valueZ", None)
-                if x and y and z:
-                    brain_location = model.BrainLocation(x, y, z)
+                if x is not None and y is not None and z is not None:
+                    brain_location = model.BrainLocation(x=x,y=y, z=z)
                 
             db_reconstruction_morphology = model.ReconstructionMorphology(
                 name=name,

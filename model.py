@@ -19,7 +19,7 @@ class BrainLocation(Base):
     y = Column(Float, unique=False, index=False, nullable=True)
     z = Column(Float, unique=False, index=False, nullable=True)
 
-class BrainRegion(Base):
+class BrainRegion(TimestampMixin, Base):
     __tablename__ = "brain_region"
     id = Column(Integer, primary_key=True, index=True)
     ontology_id = Column(String, unique=True, index=True, nullable=False)
@@ -34,6 +34,11 @@ class ReconstructionMorphology(TimestampMixin, Base):
     brain_location = relationship("BrainLocation", uselist=False)
     brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=True)
     brain_region = relationship("BrainRegion", uselist=False)
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    species = relationship("Species", uselist=False)
+    strain_id = Column(Integer, ForeignKey("strain.id"), nullable=False)
+    strain = relationship("Strain", uselist=False)
+    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
 class Species(TimestampMixin, Base):
     __tablename__ = "species"
@@ -60,7 +65,7 @@ class MorphologyFeatureAnnotation(TimestampMixin, Base):
     # name = Column(String, unique=True, index=True, nullable=False)
     # description = Column(String, unique=False, index=False, nullable=False)
     reconstruction_morphology_id = Column(Integer, ForeignKey("reconstruction_morphology.id"), nullable=False)
-    reconstruction_morphology = relationship("ReconstructionMorphology", uselist=False)
+    reconstruction_morphology = relationship("ReconstructionMorphology", uselist=False, back_populates="morphology_feature_annotation")
     measurements = relationship("MorphologyMeasurement", uselist=True)
 
 class MorphologyMeasurement(Base):

@@ -2,11 +2,13 @@ import os
 import sys
 import argparse
 import glob
-import model
+import models.model as model
+import models.morphology as morphology
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
+import sqlalchemy
 
 
 def get_or_create_brain_region(brain_region, db):
@@ -67,7 +69,7 @@ def import_morphologies(data_list, db):
     
     for data in tqdm(possible_data):
         legacy_id = data['@id']
-        rm = db.query(model.ReconstructionMorphology).filter(model.ReconstructionMorphology.legacy_id == legacy_id).first()
+        rm = db.query(morphology.ReconstructionMorphology).filter(morphology.ReconstructionMorphology.legacy_id == legacy_id).first()
         if not rm:
             brain_location = data.get("brainLocation", None)
             if not brain_location:
@@ -102,7 +104,7 @@ def import_morphologies(data_list, db):
                 if x is not None and y is not None and z is not None:
                     brain_location = model.BrainLocation(x=x,y=y, z=z)
                 
-            db_reconstruction_morphology = model.ReconstructionMorphology(
+            db_reconstruction_morphology = morphology.ReconstructionMorphology(
                 legacy_id=data.get("@id", None),
                 name=name,
                 description=description,
@@ -124,7 +126,7 @@ def import_morphology_feature_annotations(data_list, db):
             if not legacy_id:
                 print("Skipping morphology feature annotation due to missing legacy id.")
                 continue
-            rm = db.query(model.ReconstructionMorphology).filter(model.ReconstructionMorphology.legacy_id == legacy_id).first()
+            rm = db.query(morphology.ReconstructionMorphology).filter(morphology.ReconstructionMorphology.legacy_id == legacy_id).first()
             if not rm:
                 print("skipping morphology that is not imported")
                 continue
@@ -134,7 +136,7 @@ def import_morphology_feature_annotations(data_list, db):
                 if type(serie) == dict:
                     serie = [serie]
                 measurement_serie = [
-                    model.MorphologyMeasurementSerieElement(
+                    morphology.MorphologyMeasurementSerieElement(
                         name=serie_elem.get('statistic', None),
                         value=serie_elem.get('value', None),
                         )
@@ -142,18 +144,22 @@ def import_morphology_feature_annotations(data_list, db):
                 ]
 
                 all_measurements.append(
-                    model.MorphologyMeasurement(
+                    morphology.MorphologyMeasurement(
                         measurement_of=measurement.get('isMeasurementOf', {}).get('label', None),
                         measurement_serie = measurement_serie)
                 )
                 
-            db_morphology_feature_annotation = model.MorphologyFeatureAnnotation(
+            db_morphology_feature_annotation = morphology.MorphologyFeatureAnnotation(
                 reconstruction_morphology_id=rm.id)
             db_morphology_feature_annotation.measurements = all_measurements
             db.add(db_morphology_feature_annotation)
             db.commit()
             db.refresh(db_morphology_feature_annotation)
-        
+        except sqlalchemy.exc.IntegrityError:
+            # todo: investigate if what is actually happening
+            print('2 annotations for a morphology ignoring')
+            db.rollback()
+            continue 
         except Exception as e:
             print(f"Error: {e}")
             import ipdb; ipdb.set_trace()

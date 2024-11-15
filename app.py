@@ -2,7 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional, Union
-import model
+import models.model as model
+import models.morphology as morphology
 from datetime import datetime
 
 app = FastAPI()
@@ -199,7 +200,7 @@ def create_reconstruction_morphology(
     brain_location = None
     if recontruction.brain_location:
         brain_location = model.BrainLocation(**recontruction.brain_location.dict())
-    db_reconstruction_morphology = model.ReconstructionMorphology(
+    db_reconstruction_morphology = morphology.ReconstructionMorphology(
         name=recontruction.name,
         description=recontruction.description,
         brain_location=brain_location,
@@ -219,7 +220,7 @@ def create_reconstruction_morphology(
 async def read_reconstruction_morphologies(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
-    users = db.query(model.ReconstructionMorphology).offset(skip).limit(limit).all()
+    users = db.query(morphology.ReconstructionMorphology).offset(skip).limit(limit).all()
     return users
 
 
@@ -229,7 +230,7 @@ async def read_reconstruction_morphologies(
 async def read_reconstruction_morphology(
     rm_id: int, expand: Optional[str] = Query(None), db: Session = Depends(get_db)
 ):
-    rm = db.query(model.ReconstructionMorphology).filter(model.ReconstructionMorphology.id == rm_id) .first()
+    rm = db.query(morphology.ReconstructionMorphology).filter(morphology.ReconstructionMorphology.id == rm_id) .first()
     
     if rm is None:
         raise HTTPException(
@@ -280,17 +281,17 @@ def create_morphology_feature_annotation(
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
     db: Session = Depends(get_db),
 ):
-    db_morphology_feature_annotation = model.MorphologyFeatureAnnotation(
+    db_morphology_feature_annotation = morphology.MorphologyFeatureAnnotation(
         reconstruction_morphology_id=morphology_feature_annotation.reconstruction_morphology_id
     )
     for measurement in morphology_feature_annotation.measurements:
-        db_measurement = model.MorphologyMeasurement()
+        db_measurement = morphology.MorphologyMeasurement()
         db_morphology_feature_annotation.measurements.append(db_measurement)
         db_measurement.measurement_of = measurement.measurement_of
 
         for serie in measurement.measurement_serie:
             db_measurement.measurement_serie.append(
-                model.MorphologyMeasurementSerieElement(**serie.dict())
+                morphology.MorphologyMeasurementSerieElement(**serie.dict())
             )
 
     db.add(db_morphology_feature_annotation)

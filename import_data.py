@@ -36,7 +36,7 @@ def get_or_create_species(species, db):
     if not sp:
         # If not, create a new one
         sp = model.Species(
-            Name=species["label"], taxonomy_id=species["@id"]
+            name=species["label"], taxonomy_id=species["@id"]
         )
         db.add(sp)
         db.commit()
@@ -52,7 +52,7 @@ def get_or_create_strain(strain, species_id, db):
     if not st:
         # If not, create a new one
         st = model.Strain(
-            Name=strain["label"],
+            name=strain["label"],
             taxonomy_id=strain["@id"],
             species_id=species_id,
         )
@@ -133,7 +133,7 @@ def import_morphology_feature_annotations(data_list, db):
                 serie = measurement.get('value', {}).get('series', [])
                 if type(serie) == dict:
                     serie = [serie]
-                morphology_measurement_serie = [
+                measurement_serie = [
                     model.MorphologyMeasurementSerieElement(
                         name=serie_elem.get('statistic', None),
                         value=serie_elem.get('value', None),
@@ -144,7 +144,7 @@ def import_morphology_feature_annotations(data_list, db):
                 all_measurements.append(
                     model.MorphologyMeasurement(
                         measurement_of=measurement.get('isMeasurementOf', {}).get('label', None),
-                        morphology_measurement_serie = morphology_measurement_serie)
+                        measurement_serie = measurement_serie)
                 )
                 
             db_morphology_feature_annotation = model.MorphologyFeatureAnnotation(

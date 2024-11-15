@@ -12,6 +12,9 @@ class TimestampMixin:
     creation_date = Column(DateTime, server_default=func.now())
     update_date = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
+class LegacyMixin:
+    legacy_id = Column(String, unique=False, index=True, nullable=True)
+
 class BrainLocation(Base):
     __tablename__ = "brain_location"
     id = Column(Integer, primary_key=True, index=True)
@@ -25,7 +28,7 @@ class BrainRegion(TimestampMixin, Base):
     ontology_id = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, unique=True, index=True, nullable=False)
 
-class ReconstructionMorphology(TimestampMixin, Base):
+class ReconstructionMorphology(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "reconstruction_morphology"
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String, unique=False, index=False, nullable=False)
@@ -43,13 +46,13 @@ class ReconstructionMorphology(TimestampMixin, Base):
 class Species(TimestampMixin, Base):
     __tablename__ = "species"
     id = Column(Integer, primary_key=True, index=True)
-    Name = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, unique=True, index=True, nullable=False)
     taxonomy_id = Column(String, unique=True, index=True, nullable=False)
 
 class Strain(TimestampMixin, Base):
     __tablename__ = "strain"
     id = Column(Integer, primary_key=True, index=True)
-    Name = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, unique=True, index=True, nullable=False)
     taxonomy_id = Column(String, unique=True, index=True, nullable=False)
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
     species = relationship("Species", uselist=False)
@@ -57,7 +60,7 @@ class Strain(TimestampMixin, Base):
 class Subject(TimestampMixin, Base):
     __tablename__ = "subject"
     id = Column(Integer, primary_key=True, index=True)
-    Name = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, unique=True, index=True, nullable=False)
                   
 class MorphologyFeatureAnnotation(TimestampMixin, Base):
     __tablename__ = "morphology_feature_annotation"
@@ -72,9 +75,14 @@ class MorphologyMeasurement(Base):
     __tablename__ = "measurement"
     id = Column(Integer, primary_key=True, index=True)
     measurement_of = Column(String, unique=False, index=True, nullable=False)
+    morphology_feature_annotation_id = Column(Integer, ForeignKey("morphology_feature_annotation.id"), nullable=False)
+    morphology_measurement_serie = relationship("MorphologyMeasurementSerieElement", uselist=True)
+
+class MorphologyMeasurementSerieElement(Base):
+    __tablename__ = "measurement_serie_element"
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=False, index=False, nullable=True)
     value = Column(Float, unique=False, index=False, nullable=True)
-    morphology_feature_annotation_id = Column(Integer, ForeignKey("morphology_feature_annotation.id"), nullable=False)
-
+    measurement_id = Column(Integer, ForeignKey("measurement.id"), nullable=False)
 
 Base.metadata.create_all(bind=engine)

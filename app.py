@@ -38,7 +38,7 @@ class BrainRegionRead(BrainRegionCreate):
         return result
 
 class StrainCreate(BaseModel):
-    Name: str
+    name: str
     taxonomy_id: str
     species_id: int
     class Config:
@@ -55,7 +55,7 @@ class StrainRead(StrainCreate):
         return result
 
 class SpeciesCreate(BaseModel):
-    Name: str
+    name: str
     taxonomy_id: str
     class Config:
         orm_mode = True
@@ -81,7 +81,8 @@ class ReconstructionMorphologyBase(BaseModel):
 class ReconstructionMorphologyCreate(ReconstructionMorphologyBase):
     species_id: int
     strain_id: int
-    brain_region_id: int 
+    brain_region_id: int
+    legacy_id: Optional[str]
 
 class MeasurementCreate(BaseModel):
     id: int
@@ -101,9 +102,9 @@ class ReconstructionMorphologyRead(ReconstructionMorphologyBase):
     id: int
     creation_date: datetime 
     update_date: datetime
-    species: SpeciesCreate
-    strain: Optional[StrainCreate]
-    brain_region: BrainRegionCreate
+    species: SpeciesRead
+    strain: Optional[StrainRead]
+    brain_region: BrainRegionRead
     def dict(self, **kwargs):
         result = super().dict(**kwargs)
         result['creation_date'] = result['creation_date'].isoformat() if result['creation_date'] else None
@@ -117,9 +118,12 @@ class ReconstructionMorphologyExpand(ReconstructionMorphologyRead):
 
 @app.post("/reconstruction_morphology/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(recontruction: ReconstructionMorphologyCreate, db: Session = Depends(get_db)):
+    brain_location = None
+    if recontruction.brain_location:
+        brain_location = model.BrainLocation(**recontruction.brain_location.dict())
     db_reconstruction_morphology = model.ReconstructionMorphology(name=recontruction.name,
                                             description=recontruction.description,
-                                            brain_location=model.BrainLocation(**recontruction.brain_location.dict()),
+                                            brain_location=brain_location,
                                             brain_region_id=recontruction.brain_region_id,
                                             species_id=recontruction.species_id,
                                             strain_id=recontruction.strain_id)
@@ -153,7 +157,7 @@ async def read_reconstruction_morphology(rm_id: int, expand:Optional[str] = Quer
 
 @app.post("/species/", response_model=SpeciesRead)
 def create_species(species: SpeciesCreate, db: Session = Depends(get_db)):
-    db_species = model.Species(Name=species.Name, taxonomy_id=species.taxonomy_id)
+    db_species = model.Species(name=species.name, taxonomy_id=species.taxonomy_id)
     db.add(db_species)
     db.commit()
     db.refresh(db_species)
@@ -161,7 +165,7 @@ def create_species(species: SpeciesCreate, db: Session = Depends(get_db)):
 
 @app.post("/strain/", response_model=StrainRead)
 def create_strain(strain: StrainCreate, db: Session = Depends(get_db)):
-    db_strain = model.Strain(Name=strain.Name, taxonomy_id=strain.taxonomy_id, species_id=strain.species_id)
+    db_strain = model.Strain(name=strain.name, taxonomy_id=strain.taxonomy_id, species_id=strain.species_id)
     db.add(db_strain)
     db.commit()
     db.refresh(db_strain)

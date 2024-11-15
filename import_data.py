@@ -66,7 +66,9 @@ def import_morphologies(data_list, db):
     possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
     
     for data in tqdm(possible_data):
-        if "ReconstructedNeuronMorphology" in data["@type"]:
+        legacy_id = data['@id']
+        rm = db.query(model.ReconstructionMorphology).filter(model.ReconstructionMorphology.legacy_id == legacy_id).first()
+        if not rm:
             brain_location = data.get("brainLocation", None)
             if not brain_location:
                 print(
@@ -101,6 +103,7 @@ def import_morphologies(data_list, db):
                     brain_location = model.BrainLocation(x=x,y=y, z=z)
                 
             db_reconstruction_morphology = model.ReconstructionMorphology(
+                legacy_id=data.get("@id", None),
                 name=name,
                 description=description,
                 brain_location=brain_location,
@@ -113,6 +116,49 @@ def import_morphologies(data_list, db):
             db.refresh(db_reconstruction_morphology)
 
 
+def import_morphology_feature_annotations(data_list, db):
+    possible_data = [data for data in data_list if "NeuronMorphologyFeatureAnnotation" in data["@type"]]
+    for data in tqdm(possible_data):
+        try:
+            legacy_id = data.get('hasTarget',{}).get('hasSource',{}).get('@id', None)
+            if not legacy_id:
+                print("Skipping morphology feature annotation due to missing legacy id.")
+                continue
+            rm = db.query(model.ReconstructionMorphology).filter(model.ReconstructionMorphology.legacy_id == legacy_id).first()
+            if not rm:
+                print("skipping morphology that is not imported")
+                continue
+            all_measurements = [] 
+            for measurement in data.get('hasBody', []):
+                serie = measurement.get('value', {}).get('series', [])
+                if type(serie) == dict:
+                    serie = [serie]
+                morphology_measurement_serie = [
+                    model.MorphologyMeasurementSerieElement(
+                        name=serie_elem.get('statistic', None),
+                        value=serie_elem.get('value', None),
+                        )
+                        for serie_elem in serie
+                ]
+
+                all_measurements.append(
+                    model.MorphologyMeasurement(
+                        measurement_of=measurement.get('isMeasurementOf', {}).get('label', None),
+                        morphology_measurement_serie = morphology_measurement_serie)
+                )
+                
+            db_morphology_feature_annotation = model.MorphologyFeatureAnnotation(
+                reconstruction_morphology_id=rm.id)
+            db_morphology_feature_annotation.measurements = all_measurements
+            db.add(db_morphology_feature_annotation)
+            db.commit()
+            db.refresh(db_morphology_feature_annotation)
+        
+        except Exception as e:
+            print(f"Error: {e}")
+            import ipdb; ipdb.set_trace()
+            print(data)
+            
 def main():
     parser = argparse.ArgumentParser(description="Import data script")
     parser.add_argument("--db", required=True, help="Database parameter")
@@ -140,6 +186,11 @@ def main():
         with open(file_path, "r") as f:
             data = json.load(f)
             import_morphologies(data, db)
+    for file_path in all_files:
+        print(file_path)
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_morphology_feature_annotations(data, db)
 
 
 

@@ -1,7 +1,7 @@
 # Install
 
 ```
-pip install tqdm fastapi uvicorn sqlalchemy
+pip install tqdm fastapi uvicorn sqlalchemy pytest httpx
 
 # create db & tables
 python3 model.py

@@ -1,10 +1,9 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 import model
 from datetime import datetime
-from config import DATABASE_URI
 
 app = FastAPI()
 
@@ -25,6 +24,7 @@ class BrainLocationCreate(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class BrainRegionCreate(BaseModel):
@@ -33,6 +33,7 @@ class BrainRegionCreate(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class BrainRegionRead(BrainRegionCreate):
@@ -74,6 +75,8 @@ class StrainRead(StrainCreate):
             result["update_date"].isoformat() if result["update_date"] else None
         )
         return result
+    class Config:
+        from_attributes = True
 
 
 class SpeciesCreate(BaseModel):
@@ -82,6 +85,7 @@ class SpeciesCreate(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class SpeciesRead(SpeciesCreate):
@@ -107,6 +111,7 @@ class ReconstructionMorphologyBase(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class ReconstructionMorphologyCreate(ReconstructionMorphologyBase):
@@ -122,6 +127,7 @@ class MorphologyMeasurementSerieBase(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class MeasurementCreate(BaseModel):
@@ -130,6 +136,7 @@ class MeasurementCreate(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class MeasurementRead(MeasurementCreate):
@@ -142,6 +149,7 @@ class MorphologyFeatureAnnotationCreate(BaseModel):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate):
@@ -216,35 +224,31 @@ async def read_reconstruction_morphologies(
 
 
 @app.get(
-    "/reconstruction_morphology/{rm_id}", response_model=ReconstructionMorphologyExpand
+    "/reconstruction_morphology/{rm_id}", response_model=Union[ReconstructionMorphologyExpand, ReconstructionMorphologyRead]
 )
 async def read_reconstruction_morphology(
     rm_id: int, expand: Optional[str] = Query(None), db: Session = Depends(get_db)
 ):
-    rm = (
-        db.query(model.ReconstructionMorphology)
-        .filter(model.ReconstructionMorphology.id == rm_id)
-        .first()
-    )
+    rm = db.query(model.ReconstructionMorphology).filter(model.ReconstructionMorphology.id == rm_id) .first()
+    
     if rm is None:
         raise HTTPException(
             status_code=404, detail="ReconstructionMorphology not found"
         )
     if expand and "morphology_feature_annotation" in expand:
-        res = (
-            db.query(model.MorphologyFeatureAnnotation)
-            .filter(
-                model.MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id
-            )
-            .all()
-        )
-        if res:
-            rm.morphology_feature_annotation = res[0]
-
+        # res = (
+        #     db.query(model.MorphologyFeatureAnnotation)
+        #     .filter(
+        #         model.MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id
+        #     )
+        #     .all()
+        # )
+        # if res:
+        #     rm.morphology_feature_annotation = res[0]
         ret = ReconstructionMorphologyExpand.from_orm(rm).dict()
         return ret
     else:
-        ret = ReconstructionMorphologyRead.from_orm(rm).dict()
+        ret = ReconstructionMorphologyRead.model_validate(rm)
         # added back with None by the response_model
         return ret
 

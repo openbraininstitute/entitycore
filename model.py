@@ -87,7 +87,8 @@ class MorphologyFeatureAnnotation(TimestampMixin, Base):
     # name = Column(String, unique=True, index=True, nullable=False)
     # description = Column(String, unique=False, index=False, nullable=False)
     reconstruction_morphology_id = Column(
-        Integer, ForeignKey("reconstruction_morphology.id"), nullable=False
+        Integer, ForeignKey("reconstruction_morphology.id"), nullable=False,
+        unique=True
     )
     reconstruction_morphology = relationship(
         "ReconstructionMorphology",

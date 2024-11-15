@@ -1,3 +1,7 @@
+import pytest
+import sqlalchemy
+
+
 def test_create_species(client):
     response = client.post(
         "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
@@ -203,3 +207,61 @@ def test_create_annotation(client):
     assert (
         len(data["measurements"]) == 2
     ), f"Failed to get correct number of measurements for morphology feature annotation: {data}"
+
+    response = client.get(
+        "/reconstruction_morphology/{}".format(reconstruction_morphology_id)
+    )
+    data = response.json()
+    assert response.status_code == 200
+    assert "morphology_feature_annotation" not in data
+
+    response = client.get(
+        "/reconstruction_morphology/{}?expand=morphology_feature_annotation".format(
+            reconstruction_morphology_id
+        )
+    )
+    data = response.json()
+    assert response.status_code == 200
+    assert "morphology_feature_annotation" in data
+    assert (
+        data["morphology_feature_annotation"]["measurements"][0]["measurement_serie"][
+            0
+        ]["name"]
+        == "Test Measurement Name"
+    )
+    with pytest.raises(sqlalchemy.exc.IntegrityError):
+
+        response = client.post(
+            "/morphology_feature_annotation/",
+            json={
+                "reconstruction_morphology_id": reconstruction_morphology_id,
+                "measurements": [
+                    {
+                        "measurement_of": measurement_of,
+                        "measurement_serie": [
+                            {
+                                "name": "Test Measurement Name second time",
+                                "value": 100,
+                            },
+                            {
+                                "name": "Test Measurement Name 2",
+                                "value": 200,
+                            },
+                        ],
+                    },
+                    {
+                        "measurement_of": measurement_of + " 2",
+                        "measurement_serie": [
+                            {
+                                "name": "Test Measurement Name second time",
+                                "value": 100,
+                            },
+                            {
+                                "name": "Test Measurement Name 2",
+                                "value": 200,
+                            },
+                        ],
+                    },
+                ],
+            },
+        )

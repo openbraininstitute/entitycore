@@ -17,6 +17,33 @@ def get_db():
     finally:
         db.close()
 
+class CreationMixin(BaseModel):
+    id: int
+    creation_date: datetime
+    update_date: datetime
+
+    def dict(self, **kwargs):
+        result = super().dict(**kwargs)
+        result["creation_date"] = (
+            result["creation_date"].isoformat() if result["creation_date"] else None
+        )
+        result["update_date"] = (
+            result["update_date"].isoformat() if result["update_date"] else None
+        )
+        return result
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class LicenseCreate(BaseModel):
+    name: str
+    description: str
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class LicenseRead(LicenseCreate, CreationMixin):
+    pass
 
 class BrainLocationCreate(BaseModel):
     x: float
@@ -320,3 +347,25 @@ def create_brain_region(brain_region: BrainRegionCreate, db: Session = Depends(g
     db.commit()
     db.refresh(db_brain_region)
     return db_brain_region
+
+@app.get("/license/", response_model=List[LicenseRead])
+async def read_licenses(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    users = db.query(model.License).offset(skip).limit(limit).all()
+    return users
+
+@app.get("/license/{license_id}", response_model=LicenseRead)
+async def read_license(license_id: int, db: Session = Depends(get_db)):
+    license = db.query(model.License).filter(model.License.id == license_id).first()
+    if license is None:
+        raise HTTPException(
+            status_code=404, detail="License not found"
+        )
+    return license
+
+@app.post("/license/", response_model=LicenseRead)
+def create_license(license: LicenseCreate, db: Session = Depends(get_db)):
+    db_license = model.License(name=license.name, description=license.description)
+    db.add(db_license)
+    db.commit()
+    db.refresh(db_license)
+    return db_license

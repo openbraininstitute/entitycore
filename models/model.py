@@ -62,5 +62,10 @@ class Subject(TimestampMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
 
+class License(TimestampMixin, Base):
+    __tablename__ = "license"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    description = Column(String, unique=False, index=False, nullable=False)
 
 Base.metadata.create_all(bind=engine)

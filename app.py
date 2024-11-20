@@ -64,21 +64,8 @@ class BrainRegionCreate(BaseModel):
         from_attributes = True
 
 
-class BrainRegionRead(BrainRegionCreate):
-    id: int
-    creation_date: datetime
-    update_date: datetime
-
-    def dict(self, **kwargs):
-        result = super().dict(**kwargs)
-        result["creation_date"] = (
-            result["creation_date"].isoformat() if result["creation_date"] else None
-        )
-        result["update_date"] = (
-            result["update_date"].isoformat() if result["update_date"] else None
-        )
-        return result
-
+class BrainRegionRead(BrainRegionCreate, CreationMixin):
+    pass
 
 class StrainCreate(BaseModel):
     name: str
@@ -89,23 +76,8 @@ class StrainCreate(BaseModel):
         orm_mode = True
 
 
-class StrainRead(StrainCreate):
-    id: int
-    creation_date: datetime
-    update_date: datetime
-
-    def dict(self, **kwargs):
-        result = super().dict(**kwargs)
-        result["creation_date"] = (
-            result["creation_date"].isoformat() if result["creation_date"] else None
-        )
-        result["update_date"] = (
-            result["update_date"].isoformat() if result["update_date"] else None
-        )
-        return result
-    class Config:
-        from_attributes = True
-
+class StrainRead(StrainCreate, CreationMixin):
+    pass
 
 class SpeciesCreate(BaseModel):
     name: str
@@ -116,21 +88,8 @@ class SpeciesCreate(BaseModel):
         from_attributes = True
 
 
-class SpeciesRead(SpeciesCreate):
-    id: int
-    creation_date: datetime
-    update_date: datetime
-
-    def dict(self, **kwargs):
-        result = super().dict(**kwargs)
-        result["creation_date"] = (
-            result["creation_date"].isoformat() if result["creation_date"] else None
-        )
-        result["update_date"] = (
-            result["update_date"].isoformat() if result["update_date"] else None
-        )
-        return result
-
+class SpeciesRead(SpeciesCreate, CreationMixin):
+    pass
 
 class ReconstructionMorphologyBase(BaseModel):
     name: str
@@ -180,41 +139,14 @@ class MorphologyFeatureAnnotationCreate(BaseModel):
         from_attributes = True
 
 
-class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate):
-    id: int
+class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, CreationMixin):
     measurements: List[MeasurementRead]
-    creation_date: datetime
-    update_date: datetime
-
-    def dict(self, **kwargs):
-        result = super().dict(**kwargs)
-        result["creation_date"] = (
-            result["creation_date"].isoformat() if result["creation_date"] else None
-        )
-        result["update_date"] = (
-            result["update_date"].isoformat() if result["update_date"] else None
-        )
-        return result
 
 
-class ReconstructionMorphologyRead(ReconstructionMorphologyBase):
-    id: int
-    creation_date: datetime
-    update_date: datetime
+class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin):
     species: SpeciesRead
     strain: Optional[StrainRead]
     brain_region: BrainRegionRead
-
-    def dict(self, **kwargs):
-        result = super().dict(**kwargs)
-        result["creation_date"] = (
-            result["creation_date"].isoformat() if result["creation_date"] else None
-        )
-        result["update_date"] = (
-            result["update_date"].isoformat() if result["update_date"] else None
-        )
-        return result
-
 
 class ReconstructionMorphologyExpand(ReconstructionMorphologyRead):
     morphology_feature_annotation: Optional[MorphologyFeatureAnnotationCreate]

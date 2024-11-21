@@ -10,6 +10,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.ext.declarative import declared_attr
+
 from config import DATABASE_URI
 
 engine = create_engine(DATABASE_URI, connect_args={"check_same_thread": False})
@@ -62,10 +64,19 @@ class Subject(TimestampMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
 
+
 class License(TimestampMixin, Base):
     __tablename__ = "license"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, unique=False, index=False, nullable=False)
+    description = Column(String, unique=False, index=False, nullable=True)
+
+
+class LicensedMixin:
+    license_id = Column(Integer, ForeignKey("license.id"), nullable=True)
+    @declared_attr
+    def license(cls):
+        return relationship("License", uselist=False)
+
 
 Base.metadata.create_all(bind=engine)

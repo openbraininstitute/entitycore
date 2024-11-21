@@ -68,6 +68,14 @@ def test_create_reconstruction_morphology(client):
     assert data["ontology_id"] == ontology_id
     assert "id" in data, f"Failed to get id for brain region: {data}"
     brain_region_id = data["id"]
+    response = client.post(
+        "/license/",
+        json={"name": "Test License", "description": "a license description"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    license_id = data["id"]
+    assert "id" in data, f"Failed to get id for license: {data}"
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
     response = client.post(
@@ -80,6 +88,7 @@ def test_create_reconstruction_morphology(client):
             "name": morph_name,
             "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
+            "license_id": license_id,
         },
     )
     assert (
@@ -102,6 +111,9 @@ def test_create_reconstruction_morphology(client):
     assert (
         data["name"] == morph_name
     ), f"Failed to get name for reconstruction morphology: {data}"
+    assert (
+        data["license"]["name"] == "Test License"
+    ), f"Failed to get license for reconstruction morphology: {data}"
 
 
 def test_create_annotation(client):

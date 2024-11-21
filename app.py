@@ -91,6 +91,18 @@ class SpeciesCreate(BaseModel):
 class SpeciesRead(SpeciesCreate, CreationMixin):
     pass
 
+class LicensedCreateMixin(BaseModel):
+    license_id: Optional[int] = None
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class LicensedReadMixin(BaseModel):
+    license: Optional[LicenseRead]
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
 class ReconstructionMorphologyBase(BaseModel):
     name: str
     description: str
@@ -101,7 +113,7 @@ class ReconstructionMorphologyBase(BaseModel):
         from_attributes = True
 
 
-class ReconstructionMorphologyCreate(ReconstructionMorphologyBase):
+class ReconstructionMorphologyCreate(ReconstructionMorphologyBase, LicensedCreateMixin):
     species_id: int
     strain_id: int
     brain_region_id: int
@@ -143,7 +155,7 @@ class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, Creatio
     measurements: List[MeasurementRead]
 
 
-class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin):
+class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin):
     species: SpeciesRead
     strain: Optional[StrainRead]
     brain_region: BrainRegionRead
@@ -166,6 +178,7 @@ def create_reconstruction_morphology(
         brain_region_id=recontruction.brain_region_id,
         species_id=recontruction.species_id,
         strain_id=recontruction.strain_id,
+        license_id=recontruction.license_id,
     )
     db.add(db_reconstruction_morphology)
     db.commit()

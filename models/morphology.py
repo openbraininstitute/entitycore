@@ -1,9 +1,9 @@
-from models.model import TimestampMixin, LegacyMixin, Base, engine
+from models.model import TimestampMixin, LegacyMixin, LicensedMixin, Base, engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import relationship
 
 
-class ReconstructionMorphology(LegacyMixin, TimestampMixin, Base):
+class ReconstructionMorphology(LegacyMixin, TimestampMixin, LicensedMixin, Base):
     __tablename__ = "reconstruction_morphology"
     id = Column(Integer, primary_key=True, index=True)
     description = Column(String, unique=False, index=False, nullable=False)

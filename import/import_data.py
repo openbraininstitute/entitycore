@@ -44,6 +44,19 @@ def get_or_create_species(species, db):
         db.commit()
     return sp.id
 
+def get_or_create_license(license, db):
+    # Check if the license already exists in the database
+    li = (
+        db.query(model.License)
+        .filter(model.License.name == license["@id"])
+        .first()
+    )
+    if not li:
+        # If not, create a new one
+        li = model.License(name=license["@id"])
+        db.add(li)
+        db.commit()
+    return li.id
 
 def get_or_create_strain(strain, species_id, db):
     # Check if the strain already exists in the database
@@ -103,7 +116,10 @@ def import_morphologies(data_list, db):
                 z = coordinates.get("valueZ", None)
                 if x is not None and y is not None and z is not None:
                     brain_location = model.BrainLocation(x=x,y=y, z=z)
-                
+            license = data.get("license", {})
+            license_id = None
+            if license:
+                license_id = get_or_create_license(license, db)
             db_reconstruction_morphology = morphology.ReconstructionMorphology(
                 legacy_id=data.get("@id", None),
                 name=name,
@@ -112,6 +128,7 @@ def import_morphologies(data_list, db):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
+                license_id=license_id,
             )
             db.add(db_reconstruction_morphology)
             db.commit()

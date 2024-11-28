@@ -1,4 +1,4 @@
-from models.model import TimestampMixin, LegacyMixin, LicensedMixin, Base, engine
+from models.base import TimestampMixin, LegacyMixin, LicensedMixin, Base, engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import relationship
 

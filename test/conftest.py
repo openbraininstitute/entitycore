@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from app import app, get_db
 from config import TEST_DATABASE_URI
 from sqlalchemy.pool import StaticPool
-from models.model import Base
+from models.base import Base
 from fastapi.testclient import TestClient
 
 @pytest.fixture(scope="function")

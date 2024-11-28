@@ -1,234 +1,37 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
-from typing import List, Optional, Union
-import models.model as model
-import models.morphology as morphology
-from datetime import datetime
+import routers.morphology
+from typing import List
+from dependencies.db import get_db
+from schemas.morphology import (
+    MorphologyFeatureAnnotationCreate,
+    MorphologyFeatureAnnotationRead,
+    SpeciesRead,
+    StrainRead,
+)
+from schemas.base import (
+    BrainRegionRead,
+    BrainRegionCreate,
+    SpeciesCreate,
+    StrainCreate,
+    LicenseRead,
+    LicenseCreate,
+)
+from models.morphology import (
+    MorphologyFeatureAnnotation,
+    MorphologyMeasurement,
+    MorphologyMeasurementSerieElement,
+)
+from models.base import Species, License, BrainRegion, Strain
 
 app = FastAPI()
+app.include_router(routers.morphology.router)
 
-
-# Dependency to get the database session
-def get_db():
-    db = model.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-class CreationMixin(BaseModel):
-    id: int
-    creation_date: datetime
-    update_date: datetime
-
-    def dict(self, **kwargs):
-        result = super().dict(**kwargs)
-        result["creation_date"] = (
-            result["creation_date"].isoformat() if result["creation_date"] else None
-        )
-        result["update_date"] = (
-            result["update_date"].isoformat() if result["update_date"] else None
-        )
-        return result
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-class LicenseCreate(BaseModel):
-    name: str
-    description: str
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-class LicenseRead(LicenseCreate, CreationMixin):
-    pass
-
-class BrainLocationCreate(BaseModel):
-    x: float
-    y: float
-    z: float
-
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-
-class BrainRegionCreate(BaseModel):
-    ontology_id: str
-    name: str
-
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-
-class BrainRegionRead(BrainRegionCreate, CreationMixin):
-    pass
-
-class StrainCreate(BaseModel):
-    name: str
-    taxonomy_id: str
-    species_id: int
-
-    class Config:
-        orm_mode = True
-
-
-class StrainRead(StrainCreate, CreationMixin):
-    pass
-
-class SpeciesCreate(BaseModel):
-    name: str
-    taxonomy_id: str
-
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-
-class SpeciesRead(SpeciesCreate, CreationMixin):
-    pass
-
-class LicensedCreateMixin(BaseModel):
-    license_id: Optional[int] = None
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-class LicensedReadMixin(BaseModel):
-    license: Optional[LicenseRead]
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-class ReconstructionMorphologyBase(BaseModel):
-    name: str
-    description: str
-    brain_location: Optional[BrainLocationCreate]
-
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-
-class ReconstructionMorphologyCreate(ReconstructionMorphologyBase, LicensedCreateMixin):
-    species_id: int
-    strain_id: int
-    brain_region_id: int
-    legacy_id: Optional[str]
-
-
-class MorphologyMeasurementSerieBase(BaseModel):
-    name: str
-    value: float
-
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-
-class MeasurementCreate(BaseModel):
-    measurement_of: str
-    measurement_serie: List[MorphologyMeasurementSerieBase]
-
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-
-class MeasurementRead(MeasurementCreate):
-    id: int
-
-
-class MorphologyFeatureAnnotationCreate(BaseModel):
-    reconstruction_morphology_id: int
-    measurements: List[MeasurementCreate]
-
-    class Config:
-        orm_mode = True
-        from_attributes = True
-
-
-class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, CreationMixin):
-    measurements: List[MeasurementRead]
-
-
-class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin):
-    species: SpeciesRead
-    strain: Optional[StrainRead]
-    brain_region: BrainRegionRead
-
-class ReconstructionMorphologyExpand(ReconstructionMorphologyRead):
-    morphology_feature_annotation: Optional[MorphologyFeatureAnnotationCreate]
-
-
-@app.post("/reconstruction_morphology/", response_model=ReconstructionMorphologyRead)
-def create_reconstruction_morphology(
-    recontruction: ReconstructionMorphologyCreate, db: Session = Depends(get_db)
-):
-    brain_location = None
-    if recontruction.brain_location:
-        brain_location = model.BrainLocation(**recontruction.brain_location.dict())
-    db_reconstruction_morphology = morphology.ReconstructionMorphology(
-        name=recontruction.name,
-        description=recontruction.description,
-        brain_location=brain_location,
-        brain_region_id=recontruction.brain_region_id,
-        species_id=recontruction.species_id,
-        strain_id=recontruction.strain_id,
-        license_id=recontruction.license_id,
-    )
-    db.add(db_reconstruction_morphology)
-    db.commit()
-    db.refresh(db_reconstruction_morphology)
-    return db_reconstruction_morphology
-
-
-@app.get(
-    "/reconstruction_morphology/", response_model=List[ReconstructionMorphologyRead]
-)
-async def read_reconstruction_morphologies(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
-):
-    users = db.query(morphology.ReconstructionMorphology).offset(skip).limit(limit).all()
-    return users
-
-
-@app.get(
-    "/reconstruction_morphology/{rm_id}", response_model=Union[ReconstructionMorphologyExpand, ReconstructionMorphologyRead]
-)
-async def read_reconstruction_morphology(
-    rm_id: int, expand: Optional[str] = Query(None), db: Session = Depends(get_db)
-):
-    rm = db.query(morphology.ReconstructionMorphology).filter(morphology.ReconstructionMorphology.id == rm_id) .first()
-    
-    if rm is None:
-        raise HTTPException(
-            status_code=404, detail="ReconstructionMorphology not found"
-        )
-    if expand and "morphology_feature_annotation" in expand:
-        # res = (
-        #     db.query(model.MorphologyFeatureAnnotation)
-        #     .filter(
-        #         model.MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id
-        #     )
-        #     .all()
-        # )
-        # if res:
-        #     rm.morphology_feature_annotation = res[0]
-        ret = ReconstructionMorphologyExpand.from_orm(rm).dict()
-        return ret
-    else:
-        ret = ReconstructionMorphologyRead.model_validate(rm)
-        # added back with None by the response_model
-        return ret
 
 
 @app.post("/species/", response_model=SpeciesRead)
 def create_species(species: SpeciesCreate, db: Session = Depends(get_db)):
-    db_species = model.Species(name=species.name, taxonomy_id=species.taxonomy_id)
+    db_species = Species(name=species.name, taxonomy_id=species.taxonomy_id)
     db.add(db_species)
     db.commit()
     db.refresh(db_species)
@@ -237,7 +40,7 @@ def create_species(species: SpeciesCreate, db: Session = Depends(get_db)):
 
 @app.post("/strain/", response_model=StrainRead)
 def create_strain(strain: StrainCreate, db: Session = Depends(get_db)):
-    db_strain = model.Strain(
+    db_strain = Strain(
         name=strain.name, taxonomy_id=strain.taxonomy_id, species_id=strain.species_id
     )
     db.add(db_strain)
@@ -253,17 +56,17 @@ def create_morphology_feature_annotation(
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
     db: Session = Depends(get_db),
 ):
-    db_morphology_feature_annotation = morphology.MorphologyFeatureAnnotation(
+    db_morphology_feature_annotation = MorphologyFeatureAnnotation(
         reconstruction_morphology_id=morphology_feature_annotation.reconstruction_morphology_id
     )
     for measurement in morphology_feature_annotation.measurements:
-        db_measurement = morphology.MorphologyMeasurement()
+        db_measurement = MorphologyMeasurement()
         db_morphology_feature_annotation.measurements.append(db_measurement)
         db_measurement.measurement_of = measurement.measurement_of
 
         for serie in measurement.measurement_serie:
             db_measurement.measurement_serie.append(
-                morphology.MorphologyMeasurementSerieElement(**serie.dict())
+                MorphologyMeasurementSerieElement(**serie.dict())
             )
 
     db.add(db_morphology_feature_annotation)
@@ -279,13 +82,13 @@ def create_morphology_feature_annotation(
 async def read_morphology_feature_annotations(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
-    users = db.query(model.MorphologyFeatureAnnotation).offset(skip).limit(limit).all()
+    users = db.query(MorphologyFeatureAnnotation).offset(skip).limit(limit).all()
     return users
 
 
 @app.post("/brain_region/", response_model=BrainRegionRead)
 def create_brain_region(brain_region: BrainRegionCreate, db: Session = Depends(get_db)):
-    db_brain_region = model.BrainRegion(
+    db_brain_region = BrainRegion(
         ontology_id=brain_region.ontology_id, name=brain_region.name
     )
     db.add(db_brain_region)
@@ -293,23 +96,24 @@ def create_brain_region(brain_region: BrainRegionCreate, db: Session = Depends(g
     db.refresh(db_brain_region)
     return db_brain_region
 
+
 @app.get("/license/", response_model=List[LicenseRead])
 async def read_licenses(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    users = db.query(model.License).offset(skip).limit(limit).all()
+    users = db.query(License).offset(skip).limit(limit).all()
     return users
+
 
 @app.get("/license/{license_id}", response_model=LicenseRead)
 async def read_license(license_id: int, db: Session = Depends(get_db)):
-    license = db.query(model.License).filter(model.License.id == license_id).first()
+    license = db.query(License).filter(License.id == license_id).first()
     if license is None:
-        raise HTTPException(
-            status_code=404, detail="License not found"
-        )
+        raise HTTPException(status_code=404, detail="License not found")
     return license
+
 
 @app.post("/license/", response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: Session = Depends(get_db)):
-    db_license = model.License(name=license.name, description=license.description)
+    db_license = License(name=license.name, description=license.description)
     db.add(db_license)
     db.commit()
     db.refresh(db_license)

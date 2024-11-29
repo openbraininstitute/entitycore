@@ -84,5 +84,5 @@ def create_reconstruction_morphology(
 async def read_reconstruction_morphologies(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
-    users = db.query(ReconstructionMorphology).offset(skip).limit(limit).all()
-    return users
+    rm = db.query(ReconstructionMorphology).offset(skip).limit(limit).all()
+    return rm 

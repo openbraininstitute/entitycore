@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import routers.morphology
+import routers.agent
 from typing import List
 from dependencies.db import get_db
 from schemas.morphology import (
@@ -26,6 +27,7 @@ from models.base import Species, License, BrainRegion, Strain
 
 app = FastAPI()
 app.include_router(routers.morphology.router)
+app.include_router(routers.agent.router)
 
 
 

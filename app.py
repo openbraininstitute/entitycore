@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import routers.morphology
 import routers.agent
 import routers.contribution
+import routers.role
 from typing import List
 from dependencies.db import get_db
 from schemas.morphology import (
@@ -30,6 +31,7 @@ app = FastAPI()
 app.include_router(routers.morphology.router)
 app.include_router(routers.agent.router)
 app.include_router(routers.contribution.router)
+app.include_router(routers.role.router)
 
 
 

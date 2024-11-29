@@ -40,6 +40,7 @@ def create_contribution(
 
     db_contribution = Contribution(
         agent_id=contribution.agent_id,
+        role_id=contribution.role_id,
     )
     db.add(db_contribution)
     db.commit()

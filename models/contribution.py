@@ -7,3 +7,5 @@ class Contribution(TimestampMixin, Base):
      id = Column(Integer, primary_key=True, index=True)
      agent_id = Column(Integer, ForeignKey("agent.id"), nullable=False)
      agent = relationship("Agent", uselist=False)
+     role_id = Column(Integer, ForeignKey("role.id"), nullable=False)
+     role = relationship("Role", uselist=False)

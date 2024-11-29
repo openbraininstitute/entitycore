@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from schemas.agent import PersonRead
+from schemas.morphology import ReconstructionMorphologyRead
 from schemas.role import RoleRead
 from typing import Union
 
@@ -22,7 +23,9 @@ class ContributionBase(BaseModel):
 class ContributionCreate(ContributionBase):
     agent_id: int
     role_id: int
+    entity_id: int
 
 class ContributionRead(ContributionBase, CreationMixin):
     agent: Union[PersonRead] 
     role: RoleRead
+    entity: Union[ReconstructionMorphologyRead]

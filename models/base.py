@@ -27,6 +27,11 @@ class TimestampMixin:
 class LegacyMixin:
     legacy_id = Column(String, unique=False, index=True, nullable=True)
 
+class Entity(Base):
+    __tablename__ = "entity"
+    id = Column(Integer, primary_key=True, index=True)
+    type = Column(String, unique=False, index=False, nullable=False)
+    __mapper_args__ = {"polymorphic_identity": "agent", "polymorphic_on": type}
 
 class BrainLocation(Base):
     __tablename__ = "brain_location"

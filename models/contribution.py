@@ -9,3 +9,5 @@ class Contribution(TimestampMixin, Base):
      agent = relationship("Agent", uselist=False)
      role_id = Column(Integer, ForeignKey("role.id"), nullable=False)
      role = relationship("Role", uselist=False)
+     entity_id = Column(Integer, ForeignKey("entity.id"), nullable=False)
+     entity = relationship("Entity", uselist=False)

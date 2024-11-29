@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+
 from typing import Optional
 
 from schemas.base import (
@@ -11,7 +12,6 @@ from schemas.base import (
 # LNMC/BBP,
 # EPFL, Switzerland
 
-
 class PersonBase(BaseModel):
     first_name: str
     last_name: str
@@ -23,5 +23,6 @@ class PersonBase(BaseModel):
 class PersonCreate(PersonBase):
     pass
 
-class PersonRead(PersonBase, CreationMixin):
+
+class PersonRead(PersonBase,CreationMixin):
     pass

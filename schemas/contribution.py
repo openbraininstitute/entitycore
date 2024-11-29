@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from schemas.agent import PersonRead
+from typing import Union
 
 from schemas.base import (
     CreationMixin,
@@ -21,4 +22,4 @@ class ContributionCreate(ContributionBase):
     agent_id: int
 
 class ContributionRead(ContributionBase, CreationMixin):
-    agent: PersonRead
+    agent: Union[PersonRead] 

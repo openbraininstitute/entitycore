@@ -44,7 +44,8 @@ def create_contribution(
     db.add(db_contribution)
     db.commit()
     db.refresh(db_contribution)
-    db_contribution = db.query(Contribution).options(joinedload(Contribution.agent)).get(db_contribution.id)
+    print(dir(db_contribution.agent))
+    # db_contribution = db.query(Contribution).options(joinedload(Contribution.agent)).get(db_contribution.id)
     return ContributionRead.model_validate(db_contribution)
 
 

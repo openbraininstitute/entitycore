@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 import glob
-import models.model as model
+import models.base as base
 import models.morphology as morphology
 import json
 from sqlalchemy import create_engine
@@ -14,13 +14,13 @@ import sqlalchemy
 def get_or_create_brain_region(brain_region, db):
     # Check if the brain region already exists in the database
     br = (
-        db.query(model.BrainRegion)
-        .filter(model.BrainRegion.ontology_id == brain_region["@id"])
+        db.query(base.BrainRegion)
+        .filter(base.BrainRegion.ontology_id == brain_region["@id"])
         .first()
     )
     if not br:
         # If not, create a new one
-        br = model.BrainRegion(
+        br = base.BrainRegion(
             ontology_id=brain_region["@id"], name=brain_region["label"]
         )
         db.add(br)
@@ -31,13 +31,13 @@ def get_or_create_brain_region(brain_region, db):
 def get_or_create_species(species, db):
     # Check if the species already exists in the database
     sp = (
-        db.query(model.Species)
-        .filter(model.Species.taxonomy_id == species["@id"])
+        db.query(base.Species)
+        .filter(base.Species.taxonomy_id == species["@id"])
         .first()
     )
     if not sp:
         # If not, create a new one
-        sp = model.Species(
+        sp = base.Species(
             name=species["label"], taxonomy_id=species["@id"]
         )
         db.add(sp)
@@ -47,26 +47,26 @@ def get_or_create_species(species, db):
 def get_or_create_license(license, db):
     # Check if the license already exists in the database
     li = (
-        db.query(model.License)
-        .filter(model.License.name == license["@id"])
+        db.query(base.License)
+        .filter(base.License.name == license["@id"])
         .first()
     )
     if not li:
         # If not, create a new one
-        li = model.License(name=license["@id"])
+        li = base.License(name=license["@id"])
         db.add(li)
         db.commit()
     return li.id
 
 def get_or_create_strain(strain, species_id, db):
     # Check if the strain already exists in the database
-    st = db.query(model.Strain).filter(model.Strain.taxonomy_id == strain["@id"]).first()
+    st = db.query(base.Strain).filter(base.Strain.taxonomy_id == strain["@id"]).first()
     if st:
         assert st.species_id == species_id
 
     if not st:
         # If not, create a new one
-        st = model.Strain(
+        st = base.Strain(
             name=strain["label"],
             taxonomy_id=strain["@id"],
             species_id=species_id,
@@ -74,6 +74,7 @@ def get_or_create_strain(strain, species_id, db):
         db.add(st)
         db.commit()
     return st.id
+
 
 
 def import_morphologies(data_list, db):
@@ -115,7 +116,7 @@ def import_morphologies(data_list, db):
                 y = coordinates.get("valueY", None)
                 z = coordinates.get("valueZ", None)
                 if x is not None and y is not None and z is not None:
-                    brain_location = model.BrainLocation(x=x,y=y, z=z)
+                    brain_location = base.BrainLocation(x=x,y=y, z=z)
             license = data.get("license", {})
             license_id = None
             if license:

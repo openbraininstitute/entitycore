@@ -16,7 +16,7 @@ from sqlalchemy import func
 import curate_data as curate
 
 def get_agent_from_legacy_id(legacy_id, db):
-    db_agent = db.query(agent.Person).filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0).first()
+    db_agent = db.query(agent.Agent).filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0).first()
     return db_agent
 
 
@@ -164,6 +164,32 @@ def import_agents(data_list, db):
                         db.commit()
                 except Exception as e:
                     print("Error importing person: ", data)
+                    print(e)
+        elif "Organization" in data["@type"]:
+            legacy_id = data["@id"]
+            db_agent = db.query(agent.Organization).filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0).first()
+            if not db_agent:
+                try:
+                    name=data["name"]
+                    db_agent = db.query(agent.Organization).filter(agent.Organization.name == name).first()
+                    if db_agent:
+                        l = db_agent.legacy_id.copy()
+                        l.append(legacy_id)
+                        db_agent.legacy_id = l
+
+                        db.commit()
+                    else:
+                        db_agent = agent.Organization(
+                            legacy_id=[legacy_id],
+                            name=data["name"],
+                            label=data.get("label",""),
+                            alternative_name=data.get("alternativeName",""),
+                            
+                        )
+                        db.add(db_agent)
+                        db.commit()
+                except Exception as e:
+                    print("Error importing organization: ", data)
                     print(e)
                        
 

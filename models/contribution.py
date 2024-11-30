@@ -1,7 +1,8 @@
 from models.base import TimestampMixin, Base, engine
-from sqlalchemy import Column, Integer, ForeignKey
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-
+import models.agent
+import models.role
 
 class Contribution(TimestampMixin, Base):
     __tablename__ = "contribution"
@@ -12,5 +13,6 @@ class Contribution(TimestampMixin, Base):
     role = relationship("Role", uselist=False)
     entity_id = Column(Integer, ForeignKey("entity.id"), nullable=False)
     entity = relationship("Entity", uselist=False)
+    __table_args__ = (UniqueConstraint('entity_id', 'role_id', 'agent_id', name='unique_contribution_1'),)
 
-
+Base.metadata.create_all(bind=engine)

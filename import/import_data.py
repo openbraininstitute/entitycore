@@ -5,33 +5,72 @@ import glob
 import models.base as base
 import models.morphology as morphology
 import models.agent as agent
+import models.role as role
+import models.contribution as contribution
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
 import sqlalchemy
 from sqlalchemy import func
+import curate_data as curate
+
+def get_agent_from_legacy_id(legacy_id, db):
+    db_agent = db.query(agent.Person).filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0).first()
+    return db_agent
 
 
-# def get_or_create_contribution(contribution, db):
-#     # Check if the contribution already exists in the database
-#     c = (
-#         db.query(base.Contribution)
-#         .filter(
-#             base.Contribution.agent_id == contribution["agent"]["@id"],
-#             base.Contribution.role_id == contribution["role"]["@id"],
-#             base.Contribution.entity_id == contribution["entity"]["@id"],
-#         ).first()
-#         )
-#     if not c:
-#     # If not, create a new one
-#         c = base.Contribution(
-#                 agent_id=contribution["agent"]["@id"],
-#                 role_id=contribution["role"]["@id"],
-#                 entity_id=contribution["entity"][" @id"])
-#         db.add(c)
-#         db.commit()
-#     return c.id
+def get_or_create_role(role_, db):
+    # Check if the role already exists in the database
+    role_ = curate.curate_role(role_)
+    r = (
+        db.query(role.Role)
+        .filter(role.Role.role_id == role_["@id"])
+        .first()
+    )
+    if not r:
+        # If not, create a new one
+        try:
+            r = role.Role(role_id=role_["@id"], name=role_["label"])
+            db.add(r)
+            db.commit()
+        except Exception as e:
+            print(e)
+            print(f'Error creating role {role_}')
+            raise e
+    return r.id
+
+def get_or_create_contribution(contribution_, entity_id, db):
+    # Check if the contribution already exists in the database
+    if type(contribution_) is list:
+        for c in contribution_:
+            get_or_create_contribution(c, entity_id, db)
+        return
+    agent_legacy_id = contribution_["agent"]["@id"]
+    db_agent = get_agent_from_legacy_id(agent_legacy_id, db)
+    if not db_agent:
+        print(f"Agent with legacy_id {agent_legacy_id} not found")
+        return
+    agent_id = db_agent.id
+    role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})
+    role_id = get_or_create_role(role_, db)
+    c = (
+        db.query(contribution.Contribution)
+        .filter(
+            contribution.Contribution.agent_id == agent_id,
+            contribution.Contribution.role_id == role_id,
+            contribution.Contribution.entity_id == entity_id,
+        ).first()
+        )
+    if not c:
+    # If not, create a new one
+        c = contribution.Contribution(
+                agent_id=agent_id,
+                role_id=role_id,
+                entity_id=entity_id)
+        db.add(c)
+        db.commit()
+    return c.id
 
 def get_or_create_brain_region(brain_region, db):
     # Check if the brain region already exists in the database
@@ -173,10 +212,6 @@ def import_morphologies(data_list, db):
             if license:
                 license_id = get_or_create_license(license, db)
 
-            # contribution_id = None
-            # contribution = data.get("contribution", {})
-            # if contribution:
-            #     contribution_id = get_or_create_contribution(contribution, db)
             db_reconstruction_morphology = morphology.ReconstructionMorphology(
                 legacy_id=data.get("@id", None),
                 name=name,
@@ -186,11 +221,15 @@ def import_morphologies(data_list, db):
                 species_id=species_id,
                 strain_id=strain_id,
                 license_id=license_id,
-                # contribution_id=contribution_id,
             )
             db.add(db_reconstruction_morphology)
             db.commit()
             db.refresh(db_reconstruction_morphology)
+            contribution = data.get("contribution", {})
+            if contribution:
+                get_or_create_contribution(contribution,db_reconstruction_morphology.id, db)
+
+                
 
 
 def import_morphology_feature_annotations(data_list, db):
@@ -267,11 +306,11 @@ def main():
             data = json.load(f)
             import_agents(data, db)
     
-    # for file_path in all_files:
-    #     print(file_path)
-    #     with open(file_path, "r") as f:
-    #         data = json.load(f)
-    #         import_morphologies(data, db)
+    for file_path in all_files:
+        print(file_path)
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_morphologies(data, db)
     # for file_path in all_files:
     #     print(file_path)
     #     with open(file_path, "r") as f:

@@ -11,6 +11,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.types import TypeDecorator, VARCHAR
 
 from config import DATABASE_URI
 
@@ -27,10 +28,17 @@ class TimestampMixin:
 class LegacyMixin:
     legacy_id = Column(String, unique=False, index=True, nullable=True)
 
+class StringList(TypeDecorator): 
+    impl = VARCHAR
+    def process_bind_param(self, value, dialect):
+         if value is not None: return ','.join(value)
+    def process_result_value(self, value, dialect):
+        if value is not None: return value.split(',')
 class Entity(Base):
     __tablename__ = "entity"
     id = Column(Integer, primary_key=True, index=True)
     type = Column(String, unique=False, index=False, nullable=False)
+    legacy_id = Column(StringList, nullable=True)
     __mapper_args__ = {"polymorphic_identity": "agent", "polymorphic_on": type}
 
 class BrainLocation(Base):

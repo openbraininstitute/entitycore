@@ -4,12 +4,34 @@ import argparse
 import glob
 import models.base as base
 import models.morphology as morphology
+import models.agent as agent
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
 import sqlalchemy
+from sqlalchemy import func
 
+
+# def get_or_create_contribution(contribution, db):
+#     # Check if the contribution already exists in the database
+#     c = (
+#         db.query(base.Contribution)
+#         .filter(
+#             base.Contribution.agent_id == contribution["agent"]["@id"],
+#             base.Contribution.role_id == contribution["role"]["@id"],
+#             base.Contribution.entity_id == contribution["entity"]["@id"],
+#         ).first()
+#         )
+#     if not c:
+#     # If not, create a new one
+#         c = base.Contribution(
+#                 agent_id=contribution["agent"]["@id"],
+#                 role_id=contribution["role"]["@id"],
+#                 entity_id=contribution["entity"][" @id"])
+#         db.add(c)
+#         db.commit()
+#     return c.id
 
 def get_or_create_brain_region(brain_region, db):
     # Check if the brain region already exists in the database
@@ -75,7 +97,36 @@ def get_or_create_strain(strain, species_id, db):
         db.commit()
     return st.id
 
-
+def import_agents(data_list, db):
+    for data in data_list:
+        if "Person" in data["@type"]:
+            legacy_id = data["@id"]
+            query_like = f'%{legacy_id}%'
+            db_agent = db.query(agent.Person).filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0).first()
+            if not db_agent:
+                try:
+                    first_name=data["givenName"]
+                    last_name=data["familyName"]
+                    db_agent = db.query(agent.Person).filter(agent.Person.first_name == first_name,
+                                                            agent.Person.last_name == last_name).first()
+                    if db_agent:
+                        l = db_agent.legacy_id.copy()
+                        l.append(legacy_id)
+                        db_agent.legacy_id = l
+                         
+                        db.commit()
+                    else:
+                        db_agent = agent.Person(
+                            legacy_id=[legacy_id],
+                            first_name=data["givenName"],
+                            last_name=data["familyName"],
+                        )
+                        db.add(db_agent)
+                        db.commit()
+                except Exception as e:
+                    print("Error importing person: ", data)
+                    print(e)
+                       
 
 def import_morphologies(data_list, db):
 
@@ -121,6 +172,11 @@ def import_morphologies(data_list, db):
             license_id = None
             if license:
                 license_id = get_or_create_license(license, db)
+
+            # contribution_id = None
+            # contribution = data.get("contribution", {})
+            # if contribution:
+            #     contribution_id = get_or_create_contribution(contribution, db)
             db_reconstruction_morphology = morphology.ReconstructionMorphology(
                 legacy_id=data.get("@id", None),
                 name=name,
@@ -130,6 +186,7 @@ def import_morphologies(data_list, db):
                 species_id=species_id,
                 strain_id=strain_id,
                 license_id=license_id,
+                # contribution_id=contribution_id,
             )
             db.add(db_reconstruction_morphology)
             db.commit()
@@ -206,15 +263,20 @@ def main():
 
     all_files = glob.glob(os.path.join(args.input_dir, "*", "*", "*.json"))
     for file_path in all_files:
-        print(file_path)
         with open(file_path, "r") as f:
             data = json.load(f)
-            import_morphologies(data, db)
-    for file_path in all_files:
-        print(file_path)
-        with open(file_path, "r") as f:
-            data = json.load(f)
-            import_morphology_feature_annotations(data, db)
+            import_agents(data, db)
+    
+    # for file_path in all_files:
+    #     print(file_path)
+    #     with open(file_path, "r") as f:
+    #         data = json.load(f)
+    #         import_morphologies(data, db)
+    # for file_path in all_files:
+    #     print(file_path)
+    #     with open(file_path, "r") as f:
+    #         data = json.load(f)
+    #         import_morphology_feature_annotations(data, db)
 
 
 

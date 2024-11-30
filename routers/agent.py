@@ -32,6 +32,7 @@ def create_person(person: PersonCreate, db: Session = Depends(get_db)):
     db_person = Person(
         first_name=person.first_name,
         last_name=person.last_name,
+        legacy_id=person.legacy_id,
     )
     db.add(db_person)
     db.commit()

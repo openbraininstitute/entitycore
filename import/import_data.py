@@ -170,7 +170,6 @@ def import_agents(data_list, db):
     for data in data_list:
         if "Person" in data["@type"]:
             legacy_id = data["@id"]
-            query_like = f"%{legacy_id}%"
             db_agent = (
                 db.query(agent.Person)
                 .filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0)
@@ -178,6 +177,7 @@ def import_agents(data_list, db):
             )
             if not db_agent:
                 try:
+                    data = curate.curate_person(data)
                     first_name = data["givenName"]
                     last_name = data["familyName"]
                     db_agent = (
@@ -423,15 +423,13 @@ def main():
             import_agents(data, db)
 
     for file_path in all_files:
-        print(file_path)
         with open(file_path, "r") as f:
             data = json.load(f)
             import_morphologies(data, db)
-    # for file_path in all_files:
-    #     print(file_path)
-    #     with open(file_path, "r") as f:
-    #         data = json.load(f)
-    #         import_morphology_feature_annotations(data, db)
+    for file_path in all_files:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_morphology_feature_annotations(data, db)
 
 
 if __name__ == "__main__":

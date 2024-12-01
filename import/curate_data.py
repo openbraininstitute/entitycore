@@ -25,3 +25,10 @@ def curate_annotation_body(annotation_body):
     if "Mtype" in annotation_body["@type"]:
         annotation_body["@type"] = ["MType", "AnnotationBody"]
     return annotation_body
+
+
+def curate_person(person):
+    if person.get("name", "") == "Weina Ji":
+        person["givenName"] = "Weina"
+        person["familyName"] = "Ji"
+    return person

@@ -16,30 +16,14 @@ class AnnotationBody(TimestampMixin, Base):
 class MTypeAnnotationBody(TimestampMixin, Base):
     __tablename__ = "mtype_annotation_body"
     id = mapped_column(Integer, primary_key=True, index=True)
-    label = Column(String, nullable=False)
-    __table_args__ = (
-        UniqueConstraint("label", name="unique_mtype_annotation_label_1"),
-    )
+    label = Column(String, unique=True, nullable=False)
     __mapper_args__ = {"polymorphic_identity": "mtype_annotation_body"}
-
-
-# class DataQualityAnnotationBody(TimestampMixin, Base):
-#     __tablename__ = "dataquality_annotation_body"
-#     id = mapped_column(Integer, primary_key=True, index=True)
-#     label = Column(String, nullable=False)
-#     __table_args__ = (
-#         UniqueConstraint("label", name="unique_dataquality_annotation_label_1"),
-#     )
-#     __mapper_args__ = {"polymorphic_identity": "dataquality_annotation_body"}
 
 
 class DataMaturityAnnotationBody(TimestampMixin, Base):
     __tablename__ = "datamaturity_annotation_body"
     id = mapped_column(Integer, primary_key=True, index=True)
-    label = Column(String, nullable=False)
-    __table_args__ = (
-        UniqueConstraint("label", name="unique_datamaturity_annotation_label_1"),
-    )
+    label = Column(String, nullable=False, unique=True)
     __mapper_args__ = {"polymorphic_identity": "datamaturity_annotation_body"}
 
 

@@ -7,10 +7,11 @@ class ReconstructionMorphology(LicensedMixin, Entity):
     __tablename__ = "reconstruction_morphology"
     id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
     description = Column(String, unique=False, index=False, nullable=False)
-    name = Column(String, unique=False, index=True, nullable=True)
+    # name is not unique
+    name = Column(String, unique=False, index=True, nullable=False)
     brain_location_id = Column(Integer, ForeignKey("brain_location.id"), nullable=True)
     brain_location = relationship("BrainLocation", uselist=False)
-    brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=True)
+    brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=False)
     brain_region = relationship("BrainRegion", uselist=False)
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
     species = relationship("Species", uselist=False)

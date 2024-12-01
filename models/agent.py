@@ -31,7 +31,8 @@ class Organization(Agent):
     __tablename__ = "organization"
     id = mapped_column(Integer, ForeignKey("agent.id"), primary_key=True)
     name = Column(String, unique=True, index=False, nullable=False)
-    label = Column(String, unique=False, index=False, nullable=False)
+    # what is the difference between name and label here ?
+    label = Column(String, unique=False, index=False, nullable=True)
     alternative_name = Column(String, unique=False, index=False, nullable=False)
     __mapper_args__ = {"polymorphic_identity": "organization"}
 

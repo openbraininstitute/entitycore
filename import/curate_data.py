@@ -5,7 +5,7 @@ def curate_role(role):
         "neuronmorphology:ReconstructionRole",
         "neuron:MorphologyReconstructionRole",
         "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/NeuronMorphologyReconstruction",
-        'https://bbp.epfl.ch/data/public/sscx/NeuronMorphologyReconstruction',
+        "https://bbp.epfl.ch/data/public/sscx/NeuronMorphologyReconstruction",
     ]:
         return {
             "@id": "Neuron:MorphologyReconstructionRole",
@@ -19,3 +19,9 @@ def curate_role(role):
             "label": "neuron electrophysiology recording role",
         }
     return role
+
+
+def curate_annotation_body(annotation_body):
+    if "Mtype" in annotation_body["@type"]:
+        annotation_body["@type"] = ["MType", "AnnotationBody"]
+    return annotation_body

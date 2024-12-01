@@ -7,6 +7,7 @@ import models.morphology as morphology
 import models.agent as agent
 import models.role as role
 import models.contribution as contribution
+import models.annotation as annotation
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -15,19 +16,20 @@ import sqlalchemy
 from sqlalchemy import func
 import curate_data as curate
 
+
 def get_agent_from_legacy_id(legacy_id, db):
-    db_agent = db.query(agent.Agent).filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0).first()
+    db_agent = (
+        db.query(agent.Agent)
+        .filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0)
+        .first()
+    )
     return db_agent
 
 
 def get_or_create_role(role_, db):
     # Check if the role already exists in the database
     role_ = curate.curate_role(role_)
-    r = (
-        db.query(role.Role)
-        .filter(role.Role.role_id == role_["@id"])
-        .first()
-    )
+    r = db.query(role.Role).filter(role.Role.role_id == role_["@id"]).first()
     if not r:
         # If not, create a new one
         try:
@@ -36,9 +38,46 @@ def get_or_create_role(role_, db):
             db.commit()
         except Exception as e:
             print(e)
-            print(f'Error creating role {role_}')
+            print(f"Error creating role {role_}")
             raise e
     return r.id
+
+
+def get_or_create_annotation_body(annotation_body, db):
+    annotation_body = curate.curate_annotation_body(annotation_body)
+    if "DataMaturity" in annotation_body["@type"]:
+        ab = (
+            db.query(annotation.DataMaturityAnnotationBody)
+            .filter(
+                annotation.DataMaturityAnnotationBody.label == annotation_body["label"]
+            )
+            .first()
+        )
+        if not ab:
+            ab = annotation.DataMaturityAnnotationBody(label=annotation_body["label"])
+            db.add(ab)
+            db.commit()
+        return ab.id
+    # if "DataQuality" in annotation_body['@type']:
+    #     ab = db.query(annotation.DataQualityAnnotationBody ).filter(annotation.DataQualityAnnotationBody.label == annotation_body['label']).first()
+    #     if not ab:
+    #         ab = annotation.DataQualityAnnotationBody(label=annotation_body['label'])
+    #         db.add(ab)
+    #         db.commit()
+    #     return ab.id
+    if "MType" in annotation_body["@type"]:
+        ab = (
+            db.query(annotation.MTypeAnnotationBody)
+            .filter(annotation.MTypeAnnotationBody.label == annotation_body["label"])
+            .first()
+        )
+        if not ab:
+            ab = annotation.MTypeAnnotationBody(label=annotation_body["label"])
+            db.add(ab)
+            db.commit()
+        return ab.id
+    assert False, f"Unknown annotation body type {annotation_body['@type']}"
+
 
 def get_or_create_contribution(contribution_, entity_id, db):
     # Check if the contribution already exists in the database
@@ -60,17 +99,18 @@ def get_or_create_contribution(contribution_, entity_id, db):
             contribution.Contribution.agent_id == agent_id,
             contribution.Contribution.role_id == role_id,
             contribution.Contribution.entity_id == entity_id,
-        ).first()
         )
+        .first()
+    )
     if not c:
-    # If not, create a new one
+        # If not, create a new one
         c = contribution.Contribution(
-                agent_id=agent_id,
-                role_id=role_id,
-                entity_id=entity_id)
+            agent_id=agent_id, role_id=role_id, entity_id=entity_id
+        )
         db.add(c)
         db.commit()
     return c.id
+
 
 def get_or_create_brain_region(brain_region, db):
     # Check if the brain region already exists in the database
@@ -98,26 +138,22 @@ def get_or_create_species(species, db):
     )
     if not sp:
         # If not, create a new one
-        sp = base.Species(
-            name=species["label"], taxonomy_id=species["@id"]
-        )
+        sp = base.Species(name=species["label"], taxonomy_id=species["@id"])
         db.add(sp)
         db.commit()
     return sp.id
 
+
 def get_or_create_license(license, db):
     # Check if the license already exists in the database
-    li = (
-        db.query(base.License)
-        .filter(base.License.name == license["@id"])
-        .first()
-    )
+    li = db.query(base.License).filter(base.License.name == license["@id"]).first()
     if not li:
         # If not, create a new one
         li = base.License(name=license["@id"])
         db.add(li)
         db.commit()
     return li.id
+
 
 def get_or_create_strain(strain, species_id, db):
     # Check if the strain already exists in the database
@@ -136,23 +172,34 @@ def get_or_create_strain(strain, species_id, db):
         db.commit()
     return st.id
 
+
 def import_agents(data_list, db):
     for data in data_list:
         if "Person" in data["@type"]:
             legacy_id = data["@id"]
-            query_like = f'%{legacy_id}%'
-            db_agent = db.query(agent.Person).filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0).first()
+            query_like = f"%{legacy_id}%"
+            db_agent = (
+                db.query(agent.Person)
+                .filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0)
+                .first()
+            )
             if not db_agent:
                 try:
-                    first_name=data["givenName"]
-                    last_name=data["familyName"]
-                    db_agent = db.query(agent.Person).filter(agent.Person.first_name == first_name,
-                                                            agent.Person.last_name == last_name).first()
+                    first_name = data["givenName"]
+                    last_name = data["familyName"]
+                    db_agent = (
+                        db.query(agent.Person)
+                        .filter(
+                            agent.Person.first_name == first_name,
+                            agent.Person.last_name == last_name,
+                        )
+                        .first()
+                    )
                     if db_agent:
                         l = db_agent.legacy_id.copy()
                         l.append(legacy_id)
                         db_agent.legacy_id = l
-                         
+
                         db.commit()
                     else:
                         db_agent = agent.Person(
@@ -167,11 +214,19 @@ def import_agents(data_list, db):
                     print(e)
         elif "Organization" in data["@type"]:
             legacy_id = data["@id"]
-            db_agent = db.query(agent.Organization).filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0).first()
+            db_agent = (
+                db.query(agent.Organization)
+                .filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0)
+                .first()
+            )
             if not db_agent:
                 try:
-                    name=data["name"]
-                    db_agent = db.query(agent.Organization).filter(agent.Organization.name == name).first()
+                    name = data["name"]
+                    db_agent = (
+                        db.query(agent.Organization)
+                        .filter(agent.Organization.name == name)
+                        .first()
+                    )
                     if db_agent:
                         l = db_agent.legacy_id.copy()
                         l.append(legacy_id)
@@ -182,24 +237,40 @@ def import_agents(data_list, db):
                         db_agent = agent.Organization(
                             legacy_id=[legacy_id],
                             name=data["name"],
-                            label=data.get("label",""),
-                            alternative_name=data.get("alternativeName",""),
-                            
+                            label=data.get("label", ""),
+                            alternative_name=data.get("alternativeName", ""),
                         )
                         db.add(db_agent)
                         db.commit()
                 except Exception as e:
                     print("Error importing organization: ", data)
                     print(e)
-                       
+
+
+def get_or_create_morphology_annotation(annotation_, reconstruction_morphology_id, db):
+    db_annotation = annotation.Annotation(
+        entity_id=reconstruction_morphology_id,
+        note=annotation_.get("note", None),
+        annotation_body_id=get_or_create_annotation_body(annotation_["hasBody"], db),
+    )
+    db.add(db_annotation)
+    db.commit()
+    return db_annotation.id
+
 
 def import_morphologies(data_list, db):
 
-    possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
-    
+    possible_data = [
+        data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]
+    ]
+
     for data in tqdm(possible_data):
-        legacy_id = data['@id']
-        rm = db.query(morphology.ReconstructionMorphology).filter(morphology.ReconstructionMorphology.legacy_id == legacy_id).first()
+        legacy_id = data["@id"]
+        rm = (
+            db.query(morphology.ReconstructionMorphology)
+            .filter(morphology.ReconstructionMorphology.legacy_id == legacy_id)
+            .first()
+        )
         if not rm:
             brain_location = data.get("brainLocation", None)
             if not brain_location:
@@ -226,13 +297,15 @@ def import_morphologies(data_list, db):
             if strain:
                 strain_id = get_or_create_strain(strain, species_id, db)
             brain_location = None
-            coordinates = data.get("brainLocation", {}).get("coordinatesInBrainAtlas", {})
+            coordinates = data.get("brainLocation", {}).get(
+                "coordinatesInBrainAtlas", {}
+            )
             if coordinates:
                 x = coordinates.get("valueX", None)
                 y = coordinates.get("valueY", None)
                 z = coordinates.get("valueZ", None)
                 if x is not None and y is not None and z is not None:
-                    brain_location = base.BrainLocation(x=x,y=y, z=z)
+                    brain_location = base.BrainLocation(x=x, y=y, z=z)
             license = data.get("license", {})
             license_id = None
             if license:
@@ -253,58 +326,82 @@ def import_morphologies(data_list, db):
             db.refresh(db_reconstruction_morphology)
             contribution = data.get("contribution", {})
             if contribution:
-                get_or_create_contribution(contribution,db_reconstruction_morphology.id, db)
-
-                
+                get_or_create_contribution(
+                    contribution, db_reconstruction_morphology.id, db
+                )
+            annotations = data.get("annotation", [])
+            if type(annotations) == dict:
+                annotations = [annotations]
+            for annotation in annotations:
+                get_or_create_morphology_annotation(
+                    annotation, db_reconstruction_morphology.id, db
+                )
 
 
 def import_morphology_feature_annotations(data_list, db):
-    possible_data = [data for data in data_list if "NeuronMorphologyFeatureAnnotation" in data["@type"]]
+    possible_data = [
+        data
+        for data in data_list
+        if "NeuronMorphologyFeatureAnnotation" in data["@type"]
+    ]
     for data in tqdm(possible_data):
         try:
-            legacy_id = data.get('hasTarget',{}).get('hasSource',{}).get('@id', None)
+            legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
             if not legacy_id:
-                print("Skipping morphology feature annotation due to missing legacy id.")
+                print(
+                    "Skipping morphology feature annotation due to missing legacy id."
+                )
                 continue
-            rm = db.query(morphology.ReconstructionMorphology).filter(morphology.ReconstructionMorphology.legacy_id == legacy_id).first()
+            rm = (
+                db.query(morphology.ReconstructionMorphology)
+                .filter(morphology.ReconstructionMorphology.legacy_id == legacy_id)
+                .first()
+            )
             if not rm:
                 print("skipping morphology that is not imported")
                 continue
-            all_measurements = [] 
-            for measurement in data.get('hasBody', []):
-                serie = measurement.get('value', {}).get('series', [])
+            all_measurements = []
+            for measurement in data.get("hasBody", []):
+                serie = measurement.get("value", {}).get("series", [])
                 if type(serie) == dict:
                     serie = [serie]
                 measurement_serie = [
                     morphology.MorphologyMeasurementSerieElement(
-                        name=serie_elem.get('statistic', None),
-                        value=serie_elem.get('value', None),
-                        )
-                        for serie_elem in serie
+                        name=serie_elem.get("statistic", None),
+                        value=serie_elem.get("value", None),
+                    )
+                    for serie_elem in serie
                 ]
 
                 all_measurements.append(
                     morphology.MorphologyMeasurement(
-                        measurement_of=measurement.get('isMeasurementOf', {}).get('label', None),
-                        measurement_serie = measurement_serie)
+                        measurement_of=measurement.get("isMeasurementOf", {}).get(
+                            "label", None
+                        ),
+                        measurement_serie=measurement_serie,
+                    )
                 )
-                
+
             db_morphology_feature_annotation = morphology.MorphologyFeatureAnnotation(
-                reconstruction_morphology_id=rm.id)
+                reconstruction_morphology_id=rm.id
+            )
             db_morphology_feature_annotation.measurements = all_measurements
             db.add(db_morphology_feature_annotation)
             db.commit()
             db.refresh(db_morphology_feature_annotation)
         except sqlalchemy.exc.IntegrityError:
             # todo: investigate if what is actually happening
-            print('2 annotations for a morphology ignoring')
+            print("2 annotations for a morphology ignoring")
             db.rollback()
-            continue 
+            continue
         except Exception as e:
             print(f"Error: {e}")
-            import ipdb; ipdb.set_trace()
+            import ipdb
+
+            ipdb.set_trace()
             print(data)
-            
+
+
 def main():
     parser = argparse.ArgumentParser(description="Import data script")
     parser.add_argument("--db", required=True, help="Database parameter")
@@ -331,7 +428,7 @@ def main():
         with open(file_path, "r") as f:
             data = json.load(f)
             import_agents(data, db)
-    
+
     for file_path in all_files:
         print(file_path)
         with open(file_path, "r") as f:
@@ -342,7 +439,6 @@ def main():
     #     with open(file_path, "r") as f:
     #         data = json.load(f)
     #         import_morphology_feature_annotations(data, db)
-
 
 
 if __name__ == "__main__":

@@ -34,11 +34,11 @@ class StringList(TypeDecorator):
          if value is not None: return ','.join(value)
     def process_result_value(self, value, dialect):
         if value is not None: return value.split(',')
-class Entity(Base):
+
+class Entity(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "entity"
     id = Column(Integer, primary_key=True, index=True)
     type = Column(String, unique=False, index=False, nullable=False)
-    legacy_id = Column(StringList, nullable=True)
     __mapper_args__ = {"polymorphic_identity": "agent", "polymorphic_on": type}
 
 class BrainLocation(Base):

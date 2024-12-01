@@ -1,9 +1,9 @@
-from models.base import TimestampMixin, LegacyMixin, LicensedMixin, Entity, Base, engine
+from models.base import TimestampMixin, LicensedMixin, Entity, Base, engine
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import relationship, mapped_column
 
 
-class ReconstructionMorphology(LegacyMixin, TimestampMixin, LicensedMixin, Entity):
+class ReconstructionMorphology(LicensedMixin, Entity):
     __tablename__ = "reconstruction_morphology"
     id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
     description = Column(String, unique=False, index=False, nullable=False)

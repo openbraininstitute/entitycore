@@ -58,13 +58,6 @@ def get_or_create_annotation_body(annotation_body, db):
             db.add(ab)
             db.commit()
         return ab.id
-    # if "DataQuality" in annotation_body['@type']:
-    #     ab = db.query(annotation.DataQualityAnnotationBody ).filter(annotation.DataQualityAnnotationBody.label == annotation_body['label']).first()
-    #     if not ab:
-    #         ab = annotation.DataQualityAnnotationBody(label=annotation_body['label'])
-    #         db.add(ab)
-    #         db.commit()
-    #     return ab.id
     if "MType" in annotation_body["@type"]:
         ab = (
             db.query(annotation.MTypeAnnotationBody)

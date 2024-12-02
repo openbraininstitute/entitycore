@@ -29,3 +29,22 @@ class PersonCreate(PersonBase):
 
 class PersonRead(PersonBase, CreationMixin):
     pass
+
+
+class OrganizationBase(BaseModel):
+    legacy_id: Optional[str] = None
+    name: str
+    label: str
+    alternative_name: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class OrganizationCreate(OrganizationBase):
+    pass
+
+
+class OrganizationRead(OrganizationBase, CreationMixin):
+    pass

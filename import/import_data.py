@@ -504,5 +504,10 @@ def main():
             data = json.load(f)
             import_experimental_synapses_per_connection(data, db)
 
+
+    # "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace",
+    # "https://bbp.epfl.ch/ontologies/core/bmo/SingleCellExperimentalTrace",
+    # "https://neuroshapes.org/Trace"
+
 if __name__ == "__main__":
     main()

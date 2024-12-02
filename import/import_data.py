@@ -416,7 +416,7 @@ def import_experimental_densities(data_list, db):
             license_id = get_license_mixin(data, db)
             species_id, strain_id = get_species_mixin(data, db)
             brain_location,brain_region_id = get_brain_location_mixin(data,db)
-            db_experimental_density = density.ExperimentalNeuronDensity(
+            db_element = density.ExperimentalNeuronDensity(
                 legacy_id=legacy_id,
                 name=data.get("name", None),
                 description=data.get("description", None),
@@ -426,8 +426,14 @@ def import_experimental_densities(data_list, db):
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
             )
-            db.add(db_experimental_density)
+            db.add(db_element)
             db.commit()
+            contribution = data.get("contribution", {})
+            if contribution:
+                contribution = curate.curate_contribution(contribution)
+                get_or_create_contribution(
+                    contribution, db_element.id, db
+                )
 
 
 def main():

@@ -7,6 +7,7 @@ import routers.contribution
 import routers.role
 import routers.experimental_bouton_density
 import routers.experimental_neuron_density
+import routers.experimental_synapses_per_connection
 from typing import List
 from dependencies.db import get_db
 from schemas.morphology import (
@@ -38,6 +39,7 @@ app.include_router(routers.contribution.router)
 app.include_router(routers.role.router)
 app.include_router(routers.experimental_bouton_density.router)
 app.include_router(routers.experimental_neuron_density.router)
+app.include_router(routers.experimental_synapses_per_connection.router)
 
 
 

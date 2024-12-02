@@ -29,11 +29,7 @@ async def read_person(person_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=PersonRead)
 def create_person(person: PersonCreate, db: Session = Depends(get_db)):
-    db_person = Person(
-        first_name=person.first_name,
-        last_name=person.last_name,
-        legacy_id=person.legacy_id,
-    )
+    db_person = Person( **person.model_dump())
     db.add(db_person)
     db.commit()
     db.refresh(db_person)

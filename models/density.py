@@ -20,5 +20,13 @@ class ExperimentalNeuronDensity(
     description = Column(String, unique=False, index=False, nullable=False)
     __mapper_args__ = {"polymorphic_identity": "experimental_neuron_density"}
 
+class ExperimentalBoutonDensity(
+    LocationMixin, SpeciesMixin, LicensedMixin, Entity
+):
+    __tablename__ = "experimental_bouton_density"
+    id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
+    name = Column(String, unique=False, index=True, nullable=False)
+    description = Column(String, unique=False, index=False, nullable=False)
+    __mapper_args__ = {"polymorphic_identity": "experimental_bouton_density"}
 
 Base.metadata.create_all(bind=engine)

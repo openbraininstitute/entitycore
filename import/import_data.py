@@ -397,26 +397,32 @@ def import_morphology_feature_annotations(data_list, db):
             ipdb.set_trace()
             print(data)
 
-def import_experimental_densities(data_list, db):
+def import_experimental_neuron_densities(data_list, db):
+    _import_experimental_densities(data_list, db, "ExperimentalNeuronDensity", density.ExperimentalNeuronDensity)
+
+def import_experimental_bouton_densities(data_list, db):
+    _import_experimental_densities(data_list, db, "ExperimentalBoutonDensity", density.ExperimentalBoutonDensity)
+
+def _import_experimental_densities(data_list, db, schema_type, model_type):
 
     possible_data = [
         data
         for data in data_list
-        if "ExperimentalNeuronDensity" in data["@type"]
+        if schema_type in data["@type"]
     ]
 
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
         db_element = (
-            db.query(density.ExperimentalNeuronDensity)
-            .filter(density.ExperimentalNeuronDensity.legacy_id == legacy_id)
+            db.query(model_type)
+            .filter(model_type.legacy_id == legacy_id)
             .first()
         )
         if not db_element:
             license_id = get_license_mixin(data, db)
             species_id, strain_id = get_species_mixin(data, db)
             brain_location,brain_region_id = get_brain_location_mixin(data,db)
-            db_element = density.ExperimentalNeuronDensity(
+            db_element = model_type(
                 legacy_id=legacy_id,
                 name=data.get("name", None),
                 description=data.get("description", None),
@@ -476,11 +482,17 @@ def main():
             data = json.load(f)
             import_morphology_feature_annotations(data, db)
     
-    print("importing experimental densities")
+    print("importing experimental neuron densities")
     for file_path in all_files:
         with open(file_path, "r") as f:
             data = json.load(f)
-            import_experimental_densities(data, db)
+            import_experimental_neuron_densities(data, db)
+    
+    print("importing experimental bouton densities")
+    for file_path in all_files:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_experimental_bouton_densities(data, db)
 
 
 if __name__ == "__main__":

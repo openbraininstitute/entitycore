@@ -49,3 +49,11 @@ def curate_contribution(contribution):
             "@id"
         ] = "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/mandge"
     return contribution
+
+def default_curate(obj):
+    return obj
+
+def curate_synapses_per_connections(data):
+    if not data.get('description', None):
+        data['description'] = "unspecified" 
+    return data

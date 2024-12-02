@@ -398,12 +398,15 @@ def import_morphology_feature_annotations(data_list, db):
             print(data)
 
 def import_experimental_neuron_densities(data_list, db):
-    _import_experimental_densities(data_list, db, "ExperimentalNeuronDensity", density.ExperimentalNeuronDensity)
+    _import_experimental_densities(data_list, db, "ExperimentalNeuronDensity", density.ExperimentalNeuronDensity, curate.default_curate)
 
 def import_experimental_bouton_densities(data_list, db):
-    _import_experimental_densities(data_list, db, "ExperimentalBoutonDensity", density.ExperimentalBoutonDensity)
+    _import_experimental_densities(data_list, db, "ExperimentalBoutonDensity", density.ExperimentalBoutonDensity, curate.default_curate)
 
-def _import_experimental_densities(data_list, db, schema_type, model_type):
+def import_experimental_synapses_per_connection(data_list, db):
+    _import_experimental_densities(data_list, db, "ExperimentalSynapsesPerConnection", density.ExperimentalSynapsesPerConnection, curate.curate_synapses_per_connections)
+
+def _import_experimental_densities(data_list, db, schema_type, model_type, curate_function):
 
     possible_data = [
         data
@@ -412,6 +415,7 @@ def _import_experimental_densities(data_list, db, schema_type, model_type):
     ]
 
     for data in tqdm(possible_data):
+        data = curate_function(data)
         legacy_id = data["@id"]
         db_element = (
             db.query(model_type)
@@ -470,17 +474,17 @@ def main():
             data = json.load(f)
             import_agents(data, db)
 
-    print("importing morphologies")
-    for file_path in all_files:
-        with open(file_path, "r") as f:
-            data = json.load(f)
-            import_morphologies(data, db)
+    # print("importing morphologies")
+    # for file_path in all_files:
+    #     with open(file_path, "r") as f:
+    #         data = json.load(f)
+    #         import_morphologies(data, db)
     
-    print("importing morphology feature annotations")
-    for file_path in all_files:
-        with open(file_path, "r") as f:
-            data = json.load(f)
-            import_morphology_feature_annotations(data, db)
+    # print("importing morphology feature annotations")
+    # for file_path in all_files:
+    #     with open(file_path, "r") as f:
+    #         data = json.load(f)
+    #         import_morphology_feature_annotations(data, db)
     
     print("importing experimental neuron densities")
     for file_path in all_files:
@@ -494,6 +498,11 @@ def main():
             data = json.load(f)
             import_experimental_bouton_densities(data, db)
 
+    print("importing synapses per connection")
+    for file_path in all_files:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_experimental_synapses_per_connection(data, db)
 
 if __name__ == "__main__":
     main()

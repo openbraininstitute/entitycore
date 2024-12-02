@@ -2,7 +2,7 @@ from models.base import (
     TimestampMixin,
     LicensedMixin,
     Entity,
-    LocalizationMixin,
+    LocationMixin,
     SpeciesMixin,
     Base,
     engine,
@@ -11,7 +11,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import relationship, mapped_column
 
 
-class ReconstructionMorphology(LicensedMixin, LocalizationMixin, SpeciesMixin, Entity):
+class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
     id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
     description = Column(String, unique=False, index=False, nullable=False)

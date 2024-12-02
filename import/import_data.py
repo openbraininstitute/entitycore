@@ -8,6 +8,7 @@ import models.agent as agent
 import models.role as role
 import models.contribution as contribution
 import models.annotation as annotation
+import models.density as density
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -250,6 +251,39 @@ def get_or_create_morphology_annotation(annotation_, reconstruction_morphology_i
     db.commit()
     return db_annotation.id
 
+def get_brain_location_mixin(data, db):
+    coordinates = data.get("brainLocation", {}).get(
+        "coordinatesInBrainAtlas", {}
+    )
+    assert coordinates is not None, "coordinates is None"
+    brain_location = None
+    if coordinates:
+        x = coordinates.get("valueX", None)
+        y = coordinates.get("valueY", None)
+        z = coordinates.get("valueZ", None)
+        if x is not None and y is not None and z is not None:
+            brain_location = base.BrainLocation(x=x, y=y, z=z)
+    brain_region = data.get("brainLocation", {}).get("brainRegion", None)
+    assert brain_region is not None, "brain_region is None"
+    brain_region_id = get_or_create_brain_region(brain_region, db)
+    return brain_location, brain_region_id 
+
+def get_species_mixin(data, db):
+    species = data.get("subject", {}).get("species", {})
+    assert species , "species is None"
+    species_id = get_or_create_species(species, db)
+    strain = data.get("subject", {}).get("strain", {})
+    strain_id = None
+    if strain:
+        strain_id = get_or_create_strain(strain, species_id, db)
+    return species_id, strain_id
+
+def get_license_mixin(data, db):
+    license_id = None
+    license = data.get("license", {})
+    if license:
+        license_id = get_or_create_license(license, db)
+    return license_id
 
 def import_morphologies(data_list, db):
 
@@ -265,45 +299,13 @@ def import_morphologies(data_list, db):
             .first()
         )
         if not rm:
-            brain_location = data.get("brainLocation", None)
-            if not brain_location:
-                print(
-                    "Skipping reconstruction morphology due to missing brain location."
-                )
-                continue
-            brain_region = brain_location.get("brainRegion", None)
-            if not brain_region:
-                print("Skipping reconstruction morphology due to missing brain region.")
-                continue
-            brain_region_id = get_or_create_brain_region(brain_region, db)
             description = data.get("description", None)
             name = data.get("name", None)
-            species = data.get("subject", {}).get("species", {})
-            if not species:
-                print("Skipping reconstruction morphology due to missing species.")
-            species_id = get_or_create_species(species, db)
-            strain = data.get("subject", {}).get("strain", {})
-            # if not strain:
-            #     print("Skipping reconstruction morphology due to missing strain.")
-            #     continue
-            strain_id = None
-            if strain:
-                strain_id = get_or_create_strain(strain, species_id, db)
-            brain_location = None
-            coordinates = data.get("brainLocation", {}).get(
-                "coordinatesInBrainAtlas", {}
+            brain_location, brain_region_id = get_brain_location_mixin(
+                data, db
             )
-            if coordinates:
-                x = coordinates.get("valueX", None)
-                y = coordinates.get("valueY", None)
-                z = coordinates.get("valueZ", None)
-                if x is not None and y is not None and z is not None:
-                    brain_location = base.BrainLocation(x=x, y=y, z=z)
-            license = data.get("license", {})
-            license_id = None
-            if license:
-                license_id = get_or_create_license(license, db)
-
+            license_id = get_license_mixin(data, db)
+            species_id, strain_id = get_species_mixin(data, db)
             db_reconstruction_morphology = morphology.ReconstructionMorphology(
                 legacy_id=data.get("@id", None),
                 name=name,
@@ -395,6 +397,38 @@ def import_morphology_feature_annotations(data_list, db):
             ipdb.set_trace()
             print(data)
 
+def import_experimental_densities(data_list, db):
+
+    possible_data = [
+        data
+        for data in data_list
+        if "ExperimentalNeuronDensity" in data["@type"]
+    ]
+
+    for data in tqdm(possible_data):
+        legacy_id = data["@id"]
+        db_element = (
+            db.query(density.ExperimentalNeuronDensity)
+            .filter(density.ExperimentalNeuronDensity.legacy_id == legacy_id)
+            .first()
+        )
+        if not db_element:
+            license_id = get_license_mixin(data, db)
+            species_id, strain_id = get_species_mixin(data, db)
+            brain_location,brain_region_id = get_brain_location_mixin(data,db)
+            db_experimental_density = density.ExperimentalNeuronDensity(
+                legacy_id=legacy_id,
+                name=data.get("name", None),
+                description=data.get("description", None),
+                species_id=species_id,
+                strain_id=strain_id,
+                license_id=license_id,
+                brain_location=brain_location,
+                brain_region_id=brain_region_id,
+            )
+            db.add(db_experimental_density)
+            db.commit()
+
 
 def main():
     parser = argparse.ArgumentParser(description="Import data script")
@@ -418,19 +452,29 @@ def main():
     db = SessionLocal()
 
     all_files = glob.glob(os.path.join(args.input_dir, "*", "*", "*.json"))
+    print("importing agents")
     for file_path in all_files:
         with open(file_path, "r") as f:
             data = json.load(f)
             import_agents(data, db)
 
+    print("importing morphologies")
     for file_path in all_files:
         with open(file_path, "r") as f:
             data = json.load(f)
             import_morphologies(data, db)
+    
+    print("importing morphology feature annotations")
     for file_path in all_files:
         with open(file_path, "r") as f:
             data = json.load(f)
             import_morphology_feature_annotations(data, db)
+    
+    print("importing experimental densities")
+    for file_path in all_files:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_experimental_densities(data, db)
 
 
 if __name__ == "__main__":

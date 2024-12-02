@@ -85,13 +85,13 @@ class License(TimestampMixin, Base):
     description = Column(String, unique=False, index=False, nullable=True)
 
 
-class LicensedMixin:
+class LicensedMixin():
     license_id = Column(Integer, ForeignKey("license.id"), nullable=True)
     @declared_attr
     def license(cls):
         return relationship("License", uselist=False)
 
-class LocalizationMixin():
+class LocationMixin():
     brain_location_id = Column(Integer, ForeignKey("brain_location.id"), nullable=True)
     @declared_attr
     def brain_location(cls):

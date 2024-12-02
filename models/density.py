@@ -1,7 +1,7 @@
 from models.base import (
     TimestampMixin,
     LicensedMixin,
-    LocalizationMixin,
+    LocationMixin,
     SpeciesMixin,
     Entity,
     Base,
@@ -12,7 +12,7 @@ from sqlalchemy.orm import mapped_column
 
 
 class ExperimentalNeuronDensity(
-    LocalizationMixin, SpeciesMixin, TimestampMixin, LicensedMixin, Entity
+    LocationMixin, SpeciesMixin, LicensedMixin, Entity
 ):
     __tablename__ = "experimental_neuron_density"
     id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)

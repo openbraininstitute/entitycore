@@ -1,4 +1,3 @@
-
 def test_create_contribution(client):
     response = client.post(
         "/person/", json={"first_name": "jd", "last_name": "courcol"}
@@ -82,6 +81,9 @@ def test_create_contribution(client):
     assert data["role"]["id"] == role_id
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
+    assert data["entity"]["id"] == entity_id
+    assert data["entity"]["name"] == morph_name
+    assert data["entity"]["description"] == morph_description
     assert data["creation_date"] is not None
     assert data["update_date"] is not None
 

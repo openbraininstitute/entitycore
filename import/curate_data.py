@@ -32,3 +32,20 @@ def curate_person(person):
         person["givenName"] = "Weina"
         person["familyName"] = "Ji"
     return person
+
+
+def curate_contribution(contribution):
+    if type(contribution) == list:
+        return [curate_contribution(c) for c in contribution]
+    if (
+        contribution["agent"]["@id"]
+        == "f:0fdadef7-b2b9-492b-af46-c65492d459c2:ajaquier"
+    ):
+        contribution["agent"][
+            "@id"
+        ] = "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ajaquier"
+    if contribution["agent"]["@id"] == "f:0fdadef7-b2b9-492b-af46-c65492d459c2:mandge":
+        contribution["agent"][
+            "@id"
+        ] = "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/mandge"
+    return contribution

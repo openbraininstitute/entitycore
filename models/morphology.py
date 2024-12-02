@@ -1,22 +1,22 @@
-from models.base import TimestampMixin, LicensedMixin, Entity, Base, engine
+from models.base import (
+    TimestampMixin,
+    LicensedMixin,
+    Entity,
+    LocalizationMixin,
+    SpeciesMixin,
+    Base,
+    engine,
+)
 from sqlalchemy import Column, Integer, String, ForeignKey, Float
 from sqlalchemy.orm import relationship, mapped_column
 
 
-class ReconstructionMorphology(LicensedMixin, Entity):
+class ReconstructionMorphology(LicensedMixin, LocalizationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
     id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
     description = Column(String, unique=False, index=False, nullable=False)
     # name is not unique
     name = Column(String, unique=False, index=True, nullable=False)
-    brain_location_id = Column(Integer, ForeignKey("brain_location.id"), nullable=True)
-    brain_location = relationship("BrainLocation", uselist=False)
-    brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=False)
-    brain_region = relationship("BrainRegion", uselist=False)
-    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
-    species = relationship("Species", uselist=False)
-    strain_id = Column(Integer, ForeignKey("strain.id"), nullable=True)
-    strain = relationship("Strain", uselist=False)
     morphology_feature_annotation = relationship(
         "MorphologyFeatureAnnotation", uselist=False
     )

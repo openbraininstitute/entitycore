@@ -1,10 +1,7 @@
-
 def test_create_person(client):
     name = "important role"
     role_id = "important role id"
-    response = client.post(
-        "/role/", json={"name": name, "role_id": role_id}
-    )
+    response = client.post("/role/", json={"name": name, "role_id": role_id})
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == name
@@ -20,6 +17,6 @@ def test_create_person(client):
     response = client.get("/role/")
     assert response.status_code == 200
     data = response.json()
-    assert data[0]["name"] == name 
+    assert data[0]["name"] == name
     assert data[0]["id"] == id_
     assert len(data) == 1

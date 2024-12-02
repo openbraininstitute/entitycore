@@ -4,7 +4,8 @@ import sqlalchemy
 
 def test_create_license(client):
     response = client.post(
-        "/license/", json={"name": "Test License", "description": "a license description"}
+        "/license/",
+        json={"name": "Test License", "description": "a license description"},
     )
     assert response.status_code == 200
     data = response.json()

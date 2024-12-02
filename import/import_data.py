@@ -318,6 +318,7 @@ def import_morphologies(data_list, db):
             db.commit()
             db.refresh(db_reconstruction_morphology)
             contribution = data.get("contribution", {})
+            contribution = curate.curate_contribution(contribution)
             if contribution:
                 get_or_create_contribution(
                     contribution, db_reconstruction_morphology.id, db

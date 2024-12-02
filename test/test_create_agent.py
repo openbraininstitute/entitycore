@@ -1,4 +1,3 @@
-
 def test_create_person(client):
     response = client.post(
         "/person/", json={"first_name": "jd", "last_name": "courcol"}

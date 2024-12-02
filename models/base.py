@@ -91,5 +91,25 @@ class LicensedMixin:
     def license(cls):
         return relationship("License", uselist=False)
 
+class LocalizationMixin():
+    brain_location_id = Column(Integer, ForeignKey("brain_location.id"), nullable=True)
+    @declared_attr
+    def brain_location(cls):
+        return relationship("BrainLocation", uselist=False)
+    brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=False)
+    @declared_attr
+    def brain_region(cls):
+        return relationship("BrainRegion", uselist=False)
+    
+class SpeciesMixin():
+    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    @declared_attr
+    def species(cls):
+        return relationship("Species", uselist=False)
+    strain_id = Column(Integer, ForeignKey("strain.id"), nullable=True)
+    @declared_attr
+    def strain(cls):
+        return relationship("Strain", uselist=False)
+
 
 Base.metadata.create_all(bind=engine)

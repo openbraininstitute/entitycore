@@ -57,3 +57,8 @@ def curate_synapses_per_connections(data):
     if not data.get('description', None):
         data['description'] = "unspecified" 
     return data
+
+def curate_trace(data):
+    if not data.get('description', None):
+        data['description'] = "unspecified" 
+    return data

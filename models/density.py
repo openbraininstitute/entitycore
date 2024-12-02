@@ -1,5 +1,4 @@
 from models.base import (
-    TimestampMixin,
     LicensedMixin,
     LocationMixin,
     SpeciesMixin,

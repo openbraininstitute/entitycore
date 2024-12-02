@@ -20,6 +20,12 @@ class MTypeAnnotationBody(TimestampMixin, Base):
     __mapper_args__ = {"polymorphic_identity": "mtype_annotation_body"}
 
 
+class ETypeAnnotationBody(TimestampMixin, Base):
+    __tablename__ = "etype_annotation_body"
+    id = mapped_column(Integer, primary_key=True, index=True)
+    label = Column(String, unique=True, nullable=False)
+    __mapper_args__ = {"polymorphic_identity": "etype_annotation_body"}
+
 class DataMaturityAnnotationBody(TimestampMixin, Base):
     __tablename__ = "datamaturity_annotation_body"
     id = mapped_column(Integer, primary_key=True, index=True)

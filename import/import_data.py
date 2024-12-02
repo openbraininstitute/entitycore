@@ -4,6 +4,7 @@ import argparse
 import glob
 import models.base as base
 import models.morphology as morphology
+import models.single_cell_experimental_trace as single_cell_experimental_trace
 import models.agent as agent
 import models.role as role
 import models.contribution as contribution
@@ -46,32 +47,26 @@ def get_or_create_role(role_, db):
 
 def get_or_create_annotation_body(annotation_body, db):
     annotation_body = curate.curate_annotation_body(annotation_body)
-    if "DataMaturity" in annotation_body["@type"]:
-        ab = (
-            db.query(annotation.DataMaturityAnnotationBody)
-            .filter(
-                annotation.DataMaturityAnnotationBody.label == annotation_body["label"]
-            )
-            .first()
-        )
-        if not ab:
-            ab = annotation.DataMaturityAnnotationBody(label=annotation_body["label"])
-            db.add(ab)
-            db.commit()
-        return ab.id
-    if "MType" in annotation_body["@type"]:
-        ab = (
-            db.query(annotation.MTypeAnnotationBody)
-            .filter(annotation.MTypeAnnotationBody.label == annotation_body["label"])
-            .first()
-        )
-        if not ab:
-            ab = annotation.MTypeAnnotationBody(label=annotation_body["label"])
-            db.add(ab)
-            db.commit()
-        return ab.id
-    assert False, f"Unknown annotation body type {annotation_body['@type']}"
+    annotation_types = {
+        "EType": annotation.ETypeAnnotationBody,
+        "MType": annotation.MTypeAnnotationBody,
+        "DataMaturity": annotation.DataMaturityAnnotationBody,
+    }
+    annotation_type_list = annotation_body["@type"]
+    intersection = [value for value in annotation_type_list if value in annotation_types.keys()]
 
+    assert len(intersection)==1, f"Unknown annotation body type {annotation_body['@type']}"
+    db_annotation = annotation_types[intersection[0]]
+    ab = (
+        db.query(db_annotation)
+        .filter(db_annotation.label == annotation_body["label"])
+        .first()
+    )
+    if not ab:
+        ab = db_annotation(label=annotation_body["label"])
+        db.add(ab)
+        db.commit()
+        return ab.id
 
 def get_or_create_contribution(contribution_, entity_id, db):
     # Check if the contribution already exists in the database
@@ -285,6 +280,55 @@ def get_license_mixin(data, db):
         license_id = get_or_create_license(license, db)
     return license_id
 
+def import_traces(data_list, db):
+    possible_data = [
+        data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]
+    ]
+
+    for data in tqdm(possible_data):
+        legacy_id = data["@id"]
+        
+        rm = (
+            db.query(single_cell_experimental_trace.SingleCellExperimentalTrace)
+            .filter(single_cell_experimental_trace.SingleCellExperimentalTrace.legacy_id == legacy_id)
+            .first()
+        )
+        if not rm:
+            data = curate.curate_trace(data)
+            description = data.get("description", None)
+            name = data.get("name", None)
+            brain_location, brain_region_id = get_brain_location_mixin(
+                data, db
+            )
+            license_id = get_license_mixin(data, db)
+            species_id, strain_id = get_species_mixin(data, db)
+            db_item = single_cell_experimental_trace.SingleCellExperimentalTrace(
+                legacy_id=data.get("@id", None),
+                name=name,
+                description=description,
+                brain_location=brain_location,
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=strain_id,
+                license_id=license_id,
+            )
+            db.add(db_item)
+            db.commit()
+            db.refresh(db_item)
+            contribution = data.get("contribution", {})
+            contribution = curate.curate_contribution(contribution)
+            if contribution:
+                get_or_create_contribution(
+                    contribution, db_item.id, db
+                )
+            annotations = data.get("annotation", [])
+            if type(annotations) == dict:
+                annotations = [annotations]
+            for annotation in annotations:
+                get_or_create_morphology_annotation(
+                    annotation, db_item.id, db
+                )
+
 def import_morphologies(data_list, db):
 
     possible_data = [
@@ -474,17 +518,17 @@ def main():
             data = json.load(f)
             import_agents(data, db)
 
-    # print("importing morphologies")
-    # for file_path in all_files:
-    #     with open(file_path, "r") as f:
-    #         data = json.load(f)
-    #         import_morphologies(data, db)
+    print("importing morphologies")
+    for file_path in all_files:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_morphologies(data, db)
     
-    # print("importing morphology feature annotations")
-    # for file_path in all_files:
-    #     with open(file_path, "r") as f:
-    #         data = json.load(f)
-    #         import_morphology_feature_annotations(data, db)
+    print("importing morphology feature annotations")
+    for file_path in all_files:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_morphology_feature_annotations(data, db)
     
     print("importing experimental neuron densities")
     for file_path in all_files:
@@ -508,6 +552,10 @@ def main():
     # "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace",
     # "https://bbp.epfl.ch/ontologies/core/bmo/SingleCellExperimentalTrace",
     # "https://neuroshapes.org/Trace"
+    for file_path in all_files:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_traces(data, db)
 
 if __name__ == "__main__":
     main()

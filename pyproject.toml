@@ -1,0 +1,130 @@
+[project]
+name = "test-db"
+version = "0.0.0"
+description = "test-db"
+authors = [
+    {name = "Blue Brain Project, EPFL"},
+]
+dependencies = [
+    "fastapi",
+    "pydantic>=2",
+    "sqlalchemy",
+    "uvicorn[standard]",
+]
+requires-python = "==3.12.*"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+
+[tool.uv]
+dev-dependencies = [
+    "coverage[toml]",
+    "httpx",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "types-PyYAML",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+preview = true
+select = ["ALL"]
+ignore = [
+    "A005",    # Module is shadowing a Python builtin module
+    "ANN002",  # Missing type annotation for `*args`
+    "ANN003",  # Missing type annotation for `**kwargs`
+    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
+    "COM812",  # Trailing comma (to have similar behavior to black)
+    "CPY001",  # Missing copyright notice at top of file
+    "ISC001",  # single line implicit string concatenation (disabling suggested by ruff formatter)
+    "N802",    # function name should be lowercase
+    "PLE1205", # Too many arguments for `logging` format string
+    "RUF029",  # Function is declared `async`, but doesn't `await` or use `async` features.
+    "S104",    # Possible binding to all interfaces
+    "FIX002",  # Line contains TODO, consider resolving the issue
+    "TD",      # TODOs
+    ### TODO: remove rules temporarily ignored
+    "DOC201",  # `return` is not documented in docstring
+    "DOC402",  # `yield` is not documented in docstring
+    "DOC501",  # Raised exception missing from docstring
+]
+
+[tool.ruff.lint.isort]
+known-local-folder = ["tests"]
+combine-as-imports = true
+
+[tool.ruff.lint.per-file-ignores]
+"alembic/*.py" = [
+    "D",       # pydocstyle
+    "ERA001",  # Found commented-out code
+    "INP001",  # Missing `__init__.py`
+    "S101",    # Use of `assert` detected
+]
+"tests/*.py" = [
+    "ANN",     # Missing type annotation
+    "D",       # pydocstyle
+    "ERA001",  # Found commented-out code
+    "INP001",  # Missing `__init__.py`
+    "PLC2701", # Private name import from external module
+    "PLR2004", # magic value (constant) used in comparison (i.e. expected == 3)
+    "S101",    # Use of `assert` detected
+    "SLF001",  # private member access
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pylint]
+# Maximum number of arguments for function / method
+max-args = 12
+# Maximum number of locals for function / method body
+max-locals = 15
+# Maximum number of return / yield for function / method body
+max-returns = 6
+# Maximum number of branch for function / method body
+max-branches = 12
+# Maximum number of statements in function / method body
+max-statements = 50
+# Maximum number of public methods for a class (see R0904).
+max-public-methods = 60
+
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "--import-mode=importlib",
+    "-vv",
+    "-ra",
+    "--cov=app",
+    "--durations=10",
+    "--durations-min=1.0",
+]
+asyncio_mode = "auto"
+testpaths = [
+    "test",
+]
+
+[tool.coverage.run]
+branch = true
+parallel = false
+source_pkgs = [
+    "app",
+]
+
+[tool.coverage.report]
+show_missing = true
+precision = 0
+fail_under = 80
+omit = [
+    "__main__.py",
+]
+
+[tool.mypy]
+show_error_codes = true
+ignore_missing_imports = true
+allow_redefinition = true
+enable_incomplete_feature = "NewGenericSyntax"  # Support Python 3.12 Syntax for Generics (PEP 695)

@@ -3,17 +3,17 @@ from fastapi import APIRouter
 from typing import List, Optional
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from dependencies.db import get_db
-from typing import Optional, Union
-from schemas.morphology import (
+from app.dependencies.db import get_db
+from typing import Union
+from app.schemas.morphology import (
     ReconstructionMorphologyRead,
     ReconstructionMorphologyExpand,
     ReconstructionMorphologyCreate,
 )
-from models.morphology import (
+from app.models.morphology import (
     ReconstructionMorphology,
 )
-from models.base import BrainLocation
+from app.models.base import BrainLocation
 
 router = APIRouter(
     prefix="/reconstruction_morphology",
@@ -85,4 +85,4 @@ async def read_reconstruction_morphologies(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     rm = db.query(ReconstructionMorphology).offset(skip).limit(limit).all()
-    return rm 
+    return rm

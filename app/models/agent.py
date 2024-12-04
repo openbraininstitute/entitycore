@@ -1,9 +1,9 @@
-from models.base import TimestampMixin, LegacyMixin, Base, engine
+from app.models.base import TimestampMixin, LegacyMixin, Base, engine
 from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
-class StringList(TypeDecorator): 
+class StringList(TypeDecorator):
     impl = VARCHAR
     def process_bind_param(self, value, dialect):
          if value is not None: return ','.join(value)

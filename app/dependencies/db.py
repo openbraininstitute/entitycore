@@ -1,7 +1,7 @@
-import models
+import app.models
 # Dependency to get the database session
 def get_db():
-    db = models.base.SessionLocal()
+    db = app.models.base.SessionLocal()
     try:
         yield db
     finally:

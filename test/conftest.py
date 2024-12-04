@@ -2,10 +2,11 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app import app, get_db
+from app import app
+from app.dependencies.db import get_db
 from config import TEST_DATABASE_URI
 from sqlalchemy.pool import StaticPool
-from models.base import Base
+from app.models.base import Base
 from fastapi.testclient import TestClient
 
 @pytest.fixture(scope="function")
@@ -17,12 +18,12 @@ def client():
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
-    
+
     def override_get_db():
         db = SessionLocal()
         yield db
         db.close()
-    
+
     app.dependency_overrides[get_db] = override_get_db
     client = TestClient(app)
     return client

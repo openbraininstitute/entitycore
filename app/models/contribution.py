@@ -1,8 +1,6 @@
-from models.base import TimestampMixin, Base, engine
+from app.models.base import TimestampMixin, Base, engine
 from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
-import models.agent
-import models.role
 
 class Contribution(TimestampMixin, Base):
     __tablename__ = "contribution"

@@ -1,11 +1,11 @@
 from fastapi import APIRouter
-from schemas.agent import PersonRead, PersonCreate
-from models.agent import Person
+from app.schemas.agent import PersonRead, PersonCreate
+from app.models.agent import Person
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from typing import List
-from dependencies.db import get_db
+from app.dependencies.db import get_db
 
 router = APIRouter(
     prefix="/person",

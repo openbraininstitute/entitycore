@@ -1,7 +1,7 @@
 
 from pydantic import BaseModel
 from typing import Optional
-from schemas.base import (
+from app.schemas.base import (
     CreationMixin,
     LicensedReadMixin,
     LicensedCreateMixin,

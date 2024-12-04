@@ -1,15 +1,15 @@
 from fastapi import APIRouter
-from schemas.density import (
+from app.schemas.density import (
     ExperimentalBoutonDensityRead,
     ExperimentalBoutonDensityCreate,
 )
-from models.density import ExperimentalBoutonDensity
-from models.base import BrainLocation
+from app.models.density import ExperimentalBoutonDensity
+from app.models.base import BrainLocation
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from typing import List
-from dependencies.db import get_db
+from app.dependencies.db import get_db
 
 router = APIRouter(
     prefix="/experimental_bouton_density",

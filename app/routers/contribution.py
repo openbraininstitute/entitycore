@@ -1,12 +1,12 @@
 from fastapi import APIRouter
-from schemas.contribution import ContributionRead, ContributionCreate
-from models.contribution import Contribution
+from app.schemas.contribution import ContributionRead, ContributionCreate
+from app.models.contribution import Contribution
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
-from models.agent import Agent
+from app.models.agent import Agent
 
 from typing import List
-from dependencies.db import get_db
+from app.dependencies.db import get_db
 
 router = APIRouter(
     prefix="/contribution",

@@ -1,22 +1,23 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-import routers.morphology
-import routers.person
-import routers.organization
-import routers.contribution
-import routers.role
-import routers.experimental_bouton_density
-import routers.experimental_neuron_density
-import routers.experimental_synapses_per_connection
+from app.routers import (morphology,
+                         person,
+                         organization,
+                         contribution,
+                         role,
+                         experimental_bouton_density,
+                         experimental_neuron_density,
+                         experimental_synapses_per_connection,
+                         )
 from typing import List
-from dependencies.db import get_db
-from schemas.morphology import (
+from app.dependencies.db import get_db
+from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
     MorphologyFeatureAnnotationRead,
     SpeciesRead,
     StrainRead,
 )
-from schemas.base import (
+from app.schemas.base import (
     BrainRegionRead,
     BrainRegionCreate,
     SpeciesCreate,
@@ -24,22 +25,22 @@ from schemas.base import (
     LicenseRead,
     LicenseCreate,
 )
-from models.morphology import (
+from app.models.morphology import (
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
     MorphologyMeasurementSerieElement,
 )
-from models.base import Species, License, BrainRegion, Strain
+from app.models.base import Species, License, BrainRegion, Strain
 
 app = FastAPI()
-app.include_router(routers.morphology.router)
-app.include_router(routers.person.router)
-app.include_router(routers.organization.router)
-app.include_router(routers.contribution.router)
-app.include_router(routers.role.router)
-app.include_router(routers.experimental_bouton_density.router)
-app.include_router(routers.experimental_neuron_density.router)
-app.include_router(routers.experimental_synapses_per_connection.router)
+app.include_router(morphology.router)
+app.include_router(person.router)
+app.include_router(organization.router)
+app.include_router(contribution.router)
+app.include_router(role.router)
+app.include_router(experimental_bouton_density.router)
+app.include_router(experimental_neuron_density.router)
+app.include_router(experimental_synapses_per_connection.router)
 
 
 

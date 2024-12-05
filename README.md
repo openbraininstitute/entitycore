@@ -1,14 +1,14 @@
 # Install
 
+Make sure you have `uv`: https://docs.astral.sh/uv/getting-started/installation/
+
 ```
-pip install tqdm fastapi uvicorn sqlalchemy pytest httpx
+# setup virtualenv:
+$ uv sync
 
-# create db & tables
-python3 model.py
-
-# import data
-python3 ./import_data.py --db test.db --input_dir nexus-dump/nexus_data/out/
+# import data:
+uv run -m app.cli.import-data --db test.db --input_dir
 
 #run server
-uvicorn app:app --reload
+uv run uvicorn app:app --reload
 ```

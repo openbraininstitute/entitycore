@@ -1,4 +1,4 @@
-from models.base import TimestampMixin, LegacyMixin, Base, engine
+from app.models.base import TimestampMixin, LegacyMixin, Base, engine
 from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column, relationship
 

@@ -9,6 +9,7 @@ dependencies = [
     "fastapi",
     "pydantic>=2",
     "sqlalchemy",
+    "tqdm>=4.67.1",
     "uvicorn[standard]",
 ]
 requires-python = "==3.12.*"

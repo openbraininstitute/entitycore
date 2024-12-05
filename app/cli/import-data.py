@@ -2,21 +2,22 @@ import os
 import sys
 import argparse
 import glob
-import models.base as base
-import models.morphology as morphology
-import models.single_cell_experimental_trace as single_cell_experimental_trace
-import models.agent as agent
-import models.role as role
-import models.contribution as contribution
-import models.annotation as annotation
-import models.density as density
+from app.models import (base,
+                        morphology,
+                        single_cell_experimental_trace,
+                        agent,
+                        role,
+                        contribution,
+                        annotation,
+                        density,
+                        )
 import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from tqdm import tqdm
 import sqlalchemy
 from sqlalchemy import func
-import curate_data as curate
+from app.cli import curate
 
 
 def get_agent_from_legacy_id(legacy_id, db):
@@ -261,7 +262,7 @@ def get_brain_location_mixin(data, db):
     brain_region = data.get("brainLocation", {}).get("brainRegion", None)
     assert brain_region is not None, "brain_region is None"
     brain_region_id = get_or_create_brain_region(brain_region, db)
-    return brain_location, brain_region_id 
+    return brain_location, brain_region_id
 
 def get_species_mixin(data, db):
     species = data.get("subject", {}).get("species", {})
@@ -287,7 +288,7 @@ def import_traces(data_list, db):
 
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
-        
+
         rm = (
             db.query(single_cell_experimental_trace.SingleCellExperimentalTrace)
             .filter(single_cell_experimental_trace.SingleCellExperimentalTrace.legacy_id == legacy_id)
@@ -523,19 +524,19 @@ def main():
         with open(file_path, "r") as f:
             data = json.load(f)
             import_morphologies(data, db)
-    
+
     print("importing morphology feature annotations")
     for file_path in all_files:
         with open(file_path, "r") as f:
             data = json.load(f)
             import_morphology_feature_annotations(data, db)
-    
+
     print("importing experimental neuron densities")
     for file_path in all_files:
         with open(file_path, "r") as f:
             data = json.load(f)
             import_experimental_neuron_densities(data, db)
-    
+
     print("importing experimental bouton densities")
     for file_path in all_files:
         with open(file_path, "r") as f:

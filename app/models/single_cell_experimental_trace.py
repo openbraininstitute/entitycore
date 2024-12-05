@@ -1,4 +1,4 @@
-from models.base import (
+from app.models.base import (
     LicensedMixin,
     LocationMixin,
     SpeciesMixin,

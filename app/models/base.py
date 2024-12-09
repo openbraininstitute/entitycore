@@ -13,7 +13,7 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
-from config import DATABASE_URI
+from app.config import DATABASE_URI
 
 engine = create_engine(DATABASE_URI, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

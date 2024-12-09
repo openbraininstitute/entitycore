@@ -2,12 +2,12 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app import app
 from app.dependencies.db import get_db
-from config import TEST_DATABASE_URI
+from app.config import TEST_DATABASE_URI
 from sqlalchemy.pool import StaticPool
 from app.models.base import Base
 from fastapi.testclient import TestClient
+from app import app
 
 @pytest.fixture(scope="function")
 def client():

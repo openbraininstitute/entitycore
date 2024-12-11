@@ -103,6 +103,7 @@ def get_or_create_contribution(contribution_, entity_id, db):
 
 
 def get_or_create_brain_region(brain_region, db):
+    brain_region = curate.curate_brain_region(brain_region)
     # Check if the brain region already exists in the database
     br = (
         db.query(base.BrainRegion)
@@ -261,7 +262,11 @@ def get_brain_location_mixin(data, db):
             brain_location = base.BrainLocation(x=x, y=y, z=z)
     brain_region = data.get("brainLocation", {}).get("brainRegion", None)
     assert brain_region is not None, "brain_region is None"
-    brain_region_id = get_or_create_brain_region(brain_region, db)
+    try:
+        brain_region_id = get_or_create_brain_region(brain_region, db)
+    except Exception as e:
+        print(data)
+        raise(e)
     return brain_location, brain_region_id
 
 def get_species_mixin(data, db):

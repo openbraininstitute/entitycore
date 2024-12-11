@@ -62,3 +62,8 @@ def curate_trace(data):
     if not data.get('description', None):
         data['description'] = "unspecified" 
     return data
+
+def curate_brain_region(data):
+    if data['@id'] == 'mba:977' and data['label'] == 'root':
+        data['@id'] = 'mba:997'
+    return data

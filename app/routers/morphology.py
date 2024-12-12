@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from fastapi_filter import FilterDepends
 
 from typing import List, Optional
 from fastapi import Depends, HTTPException, Query
@@ -14,6 +15,7 @@ from app.models.morphology import (
     ReconstructionMorphology,
 )
 from app.models.base import BrainLocation
+from app.filters.morphology import MorphologyFilter
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
@@ -42,15 +44,6 @@ async def read_reconstruction_morphology(
             status_code=404, detail="ReconstructionMorphology not found"
         )
     if expand and "morphology_feature_annotation" in expand:
-        # res = (
-        #     db.query(model.MorphologyFeatureAnnotation)
-        #     .filter(
-        #         model.MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id
-        #     )
-        #     .all()
-        # )
-        # if res:
-        #     rm.morphology_feature_annotation = res[0]
         ret = ReconstructionMorphologyExpand.model_validate(rm)
         return ret
     else:
@@ -61,7 +54,9 @@ async def read_reconstruction_morphology(
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
-    recontruction: ReconstructionMorphologyCreate, db: Session = Depends(get_db)
+    recontruction: ReconstructionMorphologyCreate,
+    morphology_filter: MorphologyFilter = FilterDepends(MorphologyFilter),
+    db: Session = Depends(get_db),
 ):
     brain_location = None
     if recontruction.brain_location:
@@ -83,11 +78,15 @@ def create_reconstruction_morphology(
 
 @router.get("/", response_model=List[ReconstructionMorphologyRead])
 async def read_reconstruction_morphologies(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+    skip: int = 0,
+    limit: int = 10,
+    morphology_filter: MorphologyFilter = FilterDepends(MorphologyFilter),
+    db: Session = Depends(get_db),
 ):
-    rm = db.query(ReconstructionMorphology).offset(skip).limit(limit).all()
-    return rm
-
+    query = db.query(ReconstructionMorphology)
+    query = morphology_filter.filter(query)
+    rms = morphology_filter.sort(query).offset(skip).limit(limit).all()
+    return rms
 
 # facet prototype
 from app.models.base import Species, Strain

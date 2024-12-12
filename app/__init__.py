@@ -81,7 +81,7 @@ def create_morphology_feature_annotation(
 
         for serie in measurement.measurement_serie:
             db_measurement.measurement_serie.append(
-                MorphologyMeasurementSerieElement(**serie.dict())
+                MorphologyMeasurementSerieElement(**serie.model_dump())
             )
 
     db.add(db_morphology_feature_annotation)

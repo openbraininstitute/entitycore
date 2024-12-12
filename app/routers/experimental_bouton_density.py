@@ -45,7 +45,7 @@ def create_experimental_bouton_density(
 ):
     dump = density.model_dump()
     if density.brain_location:
-        dump["brain_location"] = BrainLocation(**density.brain_location.dict())
+        dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
     db_experimental_bouton_density = ExperimentalBoutonDensity(**dump)
     db.add(db_experimental_bouton_density)

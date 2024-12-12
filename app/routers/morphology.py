@@ -51,7 +51,7 @@ async def read_reconstruction_morphology(
         # )
         # if res:
         #     rm.morphology_feature_annotation = res[0]
-        ret = ReconstructionMorphologyExpand.from_orm(rm).dict()
+        ret = ReconstructionMorphologyExpand.model_validate(rm)
         return ret
     else:
         ret = ReconstructionMorphologyRead.model_validate(rm)
@@ -65,7 +65,7 @@ def create_reconstruction_morphology(
 ):
     brain_location = None
     if recontruction.brain_location:
-        brain_location = BrainLocation(**recontruction.brain_location.dict())
+        brain_location = BrainLocation(**recontruction.brain_location.model_dump())
     db_reconstruction_morphology = ReconstructionMorphology(
         name=recontruction.name,
         description=recontruction.description,

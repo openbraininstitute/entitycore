@@ -15,7 +15,7 @@ class AnnotationBody(TimestampMixin, Base):
     }
 
 
-class MTypeAnnotationBody(TimestampMixin, Base):
+class MTypeAnnotationBody(AnnotationBody):
     __tablename__ = "mtype_annotation_body"
     id = Column(
         Integer,
@@ -32,7 +32,7 @@ class MTypeAnnotationBody(TimestampMixin, Base):
     }
 
 
-class ETypeAnnotationBody(TimestampMixin, Base):
+class ETypeAnnotationBody(AnnotationBody):
     __tablename__ = "etype_annotation_body"
     id = Column(
         Integer,
@@ -49,7 +49,7 @@ class ETypeAnnotationBody(TimestampMixin, Base):
     }
 
 
-class DataMaturityAnnotationBody(TimestampMixin, Base):
+class DataMaturityAnnotationBody(AnnotationBody):
     __tablename__ = "datamaturity_annotation_body"
     id = Column(
         Integer,

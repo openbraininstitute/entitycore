@@ -109,10 +109,11 @@ async def morphology_query(req: Request, term: Optional[str] = Query(None),sessi
             Species.name.label("species_name"),
             Strain.name.label("strain_name"),
         )
-        .join(Species, ReconstructionMorphology.species_id == Species.id)
-        .join(Strain, ReconstructionMorphology.strain_id == Strain.id)
+        .outerjoin(Species, ReconstructionMorphology.species_id == Species.id)
+        .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .filter(ReconstructionMorphology.morphology_description_vector.match(term))
     )
+    print(list(session.execute(data_q)))
     for ty in name_to_table:
         if value := args.get(ty, None):
             table = name_to_table[ty]

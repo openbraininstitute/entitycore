@@ -18,14 +18,12 @@ class CreationMixin(BaseModel):
         )
         return result
     class Config:
-        orm_mode = True
         from_attributes = True
 
 class LicenseCreate(BaseModel):
     name: str
-    description: str
+    description: Optional[str] = None
     class Config:
-        orm_mode = True
         from_attributes = True
 
 class LicenseRead(LicenseCreate, CreationMixin):
@@ -37,7 +35,6 @@ class BrainLocationCreate(BaseModel):
     z: float
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 
@@ -46,7 +43,6 @@ class BrainRegionCreate(BaseModel):
     name: str
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 
@@ -59,7 +55,7 @@ class StrainCreate(BaseModel):
     species_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class StrainRead(StrainCreate, CreationMixin):
@@ -70,7 +66,6 @@ class SpeciesCreate(BaseModel):
     taxonomy_id: str
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 
@@ -80,13 +75,11 @@ class SpeciesRead(SpeciesCreate, CreationMixin):
 class LicensedCreateMixin(BaseModel):
     license_id: Optional[int] = None
     class Config:
-        orm_mode = True
         from_attributes = True
 
 class LicensedReadMixin(BaseModel):
     license: Optional[LicenseRead]
     class Config:
-        orm_mode = True
         from_attributes = True
 
 
@@ -96,7 +89,6 @@ class MorphologyMeasurementSerieBase(BaseModel):
     value: float
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 
@@ -105,7 +97,6 @@ class MeasurementCreate(BaseModel):
     measurement_serie: List[MorphologyMeasurementSerieBase]
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 

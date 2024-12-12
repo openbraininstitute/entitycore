@@ -14,6 +14,8 @@ from app.models.morphology import (
     ReconstructionMorphology,
 )
 from app.models.base import BrainLocation
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 
 router = APIRouter(
     prefix="/reconstruction_morphology",
@@ -56,6 +58,7 @@ async def read_reconstruction_morphology(
         # added back with None by the response_model
         return ret
 
+
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
     recontruction: ReconstructionMorphologyCreate, db: Session = Depends(get_db)
@@ -78,11 +81,70 @@ def create_reconstruction_morphology(
     return db_reconstruction_morphology
 
 
-@router.get(
-    "/", response_model=List[ReconstructionMorphologyRead]
-)
+@router.get("/", response_model=List[ReconstructionMorphologyRead])
 async def read_reconstruction_morphologies(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     rm = db.query(ReconstructionMorphology).offset(skip).limit(limit).all()
     return rm
+
+# facet prototype
+from app.models.base import Species, Strain
+from sqlalchemy import func, select
+from fastapi import Request
+from sqlalchemy.orm import aliased
+
+
+@router.get("/q/")
+async def morphology_query(req: Request, session: Session = Depends(get_db)):
+    # brain_region_id, species_id, strain_id
+    args = req.query_params
+    name_to_table = {
+        "species": Species,
+        "strain": Strain,
+    }
+    term = args.get("q")
+    data_q = (
+        select(
+            ReconstructionMorphology.name,
+            Species.name.label("species_name"),
+            Strain.name.label("strain_name"),
+        )
+        .join(Species, ReconstructionMorphology.species_id == Species.id)
+        .join(Strain, ReconstructionMorphology.strain_id == Strain.id)
+        .filter(ReconstructionMorphology.morphology_description_vector.match(term))
+    )
+    for ty in name_to_table:
+        if value := args.get(ty, None):
+            table = name_to_table[ty]
+            data_q = data_q.where(getattr(table, "name") == value)
+    facets = {}
+    for ty in name_to_table:
+        types = aliased(name_to_table[ty])
+        facet_q = (
+            session.query(types.name, func.count().label("count"))
+            .join(
+                ReconstructionMorphology,
+                getattr(ReconstructionMorphology, ty + "_id") == types.id,
+            )
+            .filter(ReconstructionMorphology.morphology_description_vector.match(term))
+            .group_by(types.name)
+        )
+        for other_ty in name_to_table:
+            if value := args.get(other_ty, None):
+                other_table = name_to_table[other_ty]
+                other_types = aliased(other_table)
+                facet_q = facet_q.join(
+                    other_types,
+                    getattr(ReconstructionMorphology, other_ty + "_id")
+                    == other_types.id,
+                ).where(other_types.name == value)
+        facets[ty] = {r.name: r.count for r in facet_q.all()}
+    res = {
+        "data": [
+            {"name": r.name, "species": r.species_name, "strain": r.strain_name}
+            for r in session.execute(data_q)
+        ],
+        "facets": facets,
+    }
+    return JSONResponse(content=jsonable_encoder(res))

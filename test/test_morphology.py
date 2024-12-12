@@ -115,6 +115,11 @@ def test_create_reconstruction_morphology(client):
         data["license"]["name"] == "Test License"
     ), f"Failed to get license for reconstruction morphology: {data}"
 
+    response = client.get("/reconstruction_morphology/")
+    assert (
+        response.status_code == 200
+    ), f"Failed to get reconstruction morphologies: {response.text}"
+
 
 def test_create_annotation(client):
     response = client.post(

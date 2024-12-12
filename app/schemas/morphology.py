@@ -19,7 +19,6 @@ class ReconstructionMorphologyBase(BaseModel):
     brain_location: Optional[BrainLocationCreate]
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 
@@ -35,7 +34,6 @@ class MorphologyFeatureAnnotationCreate(BaseModel):
     measurements: List[MeasurementCreate]
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 

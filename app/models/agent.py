@@ -20,20 +20,22 @@ class Agent(LegacyMixin, TimestampMixin, Base):
 
 class Person(Agent):
     __tablename__ = "person"
-    id = mapped_column(Integer, ForeignKey("agent.id"), primary_key=True)
+    id = Column(Integer, ForeignKey("agent.id"), primary_key=True)
     first_name = Column(String, unique=False, index=False, nullable=False)
     last_name = Column(String, unique=False, index=False, nullable=False)
-    __mapper_args__ = {"polymorphic_identity": "person"}
+    __mapper_args__ = {"polymorphic_identity": "person",
+    'inherit_condition': id == Agent.id}
     __table_args__ = (UniqueConstraint('first_name', 'last_name', name='unique_person_name_1'),)
 
 
 class Organization(Agent):
     __tablename__ = "organization"
-    id = mapped_column(Integer, ForeignKey("agent.id"), primary_key=True)
+    id = Column(Integer, ForeignKey("agent.id"), primary_key=True)
     name = Column(String, unique=True, index=False, nullable=False)
     # what is the difference between name and label here ?
     label = Column(String, unique=False, index=False, nullable=True)
     alternative_name = Column(String, unique=False, index=False, nullable=False)
-    __mapper_args__ = {"polymorphic_identity": "organization"}
+    __mapper_args__ = {"polymorphic_identity": "organization",
+    'inherit_condition': id == Agent.id}
 
 Base.metadata.create_all(bind=engine)

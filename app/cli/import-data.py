@@ -18,12 +18,17 @@ from tqdm import tqdm
 import sqlalchemy
 from sqlalchemy import func
 from app.cli import curate
+from app.models.base import SessionLocal
 
 
 def get_agent_from_legacy_id(legacy_id, db):
+    use_func = func.instr
+    if db.bind.dialect.name == 'postgresql':
+        use_func = func.strpos
+
     db_agent = (
         db.query(agent.Agent)
-        .filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0)
+        .filter(use_func(agent.Agent.legacy_id, legacy_id) > 0)
         .first()
     )
     return db_agent
@@ -167,10 +172,13 @@ def get_or_create_strain(strain, species_id, db):
 def import_agents(data_list, db):
     for data in data_list:
         if "Person" in data["@type"]:
+            use_func = func.instr
+            if db.bind.dialect.name == 'postgresql':
+                use_func = func.strpos
             legacy_id = data["@id"]
             db_agent = (
                 db.query(agent.Person)
-                .filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0)
+                .filter(use_func(agent.Agent.legacy_id, legacy_id) > 0)
                 .first()
             )
             if not db_agent:
@@ -205,9 +213,13 @@ def import_agents(data_list, db):
                     print(e)
         elif "Organization" in data["@type"]:
             legacy_id = data["@id"]
+
+            use_func = func.instr
+            if db.bind.dialect.name == 'postgresql':
+                use_func = func.strpos
             db_agent = (
                 db.query(agent.Organization)
-                .filter(func.instr(agent.Agent.legacy_id, legacy_id) > 0)
+                .filter(use_func(agent.Agent.legacy_id, legacy_id) > 0)
                 .first()
             )
             if not db_agent:
@@ -511,10 +523,10 @@ def main():
         print(f"Error: Database file '{args.db}' does not exist")
         sys.exit(1)
 
-    engine = create_engine(
-        "sqlite:///" + args.db, connect_args={"check_same_thread": False}
-    )
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    # engine = create_engine(
+    #     "sqlite:///" + args.db, connect_args={"check_same_thread": False}
+    # )
+    # SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     db = SessionLocal()
 
     all_files = glob.glob(os.path.join(args.input_dir, "*", "*", "*.json"))

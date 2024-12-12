@@ -13,9 +13,9 @@ from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
-from app.config import DATABASE_URI
+from app.config import DATABASE_URI, DATABASE_CONNECT_ARGS
 
-engine = create_engine(DATABASE_URI, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URI, connect_args=DATABASE_CONNECT_ARGS)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

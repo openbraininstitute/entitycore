@@ -5,7 +5,9 @@ from sqlalchemy.orm import mapped_column, relationship
 
 class AnnotationBody(TimestampMixin, Base):
     __tablename__ = "annotation_body"
-    id = mapped_column(Integer, primary_key=True, index=True)
+    id = mapped_column(
+        Integer, primary_key=True, index=True, nullable=False, autoincrement=True
+    )
     type = Column(String, unique=False, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "annotation_body",
@@ -15,28 +17,59 @@ class AnnotationBody(TimestampMixin, Base):
 
 class MTypeAnnotationBody(TimestampMixin, Base):
     __tablename__ = "mtype_annotation_body"
-    id = mapped_column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        ForeignKey("annotation_body.id"),
+        primary_key=True,
+        index=True,
+        nullable=False,
+        autoincrement=True,
+    )
     label = Column(String, unique=True, nullable=False)
-    __mapper_args__ = {"polymorphic_identity": "mtype_annotation_body"}
+    __mapper_args__ = {
+        "polymorphic_identity": "mtype_annotation_body",
+        "inherit_condition": id == AnnotationBody.id,
+    }
 
 
 class ETypeAnnotationBody(TimestampMixin, Base):
     __tablename__ = "etype_annotation_body"
-    id = mapped_column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        ForeignKey("annotation_body.id"),
+        primary_key=True,
+        index=True,
+        nullable=False,
+        autoincrement=True,
+    )
     label = Column(String, unique=True, nullable=False)
-    __mapper_args__ = {"polymorphic_identity": "etype_annotation_body"}
+    __mapper_args__ = {
+        "polymorphic_identity": "etype_annotation_body",
+        "inherit_condition": id == AnnotationBody.id,
+    }
+
 
 class DataMaturityAnnotationBody(TimestampMixin, Base):
     __tablename__ = "datamaturity_annotation_body"
-    id = mapped_column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        ForeignKey("annotation_body.id"),
+        primary_key=True,
+        index=True,
+        nullable=False,
+        autoincrement=True,
+    )
     label = Column(String, nullable=False, unique=True)
-    __mapper_args__ = {"polymorphic_identity": "datamaturity_annotation_body"}
+    __mapper_args__ = {
+        "polymorphic_identity": "datamaturity_annotation_body",
+        "inherit_condition": id == AnnotationBody.id,
+    }
 
 
 class Annotation(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "annotation"
     id = Column(Integer, primary_key=True, index=True)
-    annotation_id = mapped_column(String, unique=True)
+    annotation_id = Column(String, unique=True)
     note = Column(String, nullable=True)
     entity = relationship("Entity")
     entity_id = Column(Integer, ForeignKey("entity.id"))

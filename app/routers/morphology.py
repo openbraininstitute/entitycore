@@ -132,7 +132,7 @@ async def morphology_query(
                     == other_types.id,
                 ).where(other_types.name == value)
         facets[ty] = {r.name: r.count for r in facet_q.all()}
-    rm = (
+    rms = (
         session.query(ReconstructionMorphology)
         .where(ReconstructionMorphology.morphology_description_vector.match(term))
         .offset(skip)
@@ -140,7 +140,7 @@ async def morphology_query(
         .all()
     )
     res = {
-        "data": rm,
+        "data": [ReconstructionMorphologyRead.model_validate(rm) for rm in rms],
         "facets": facets,
     }
     return JSONResponse(content=jsonable_encoder(res))

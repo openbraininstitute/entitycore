@@ -96,14 +96,13 @@ from sqlalchemy.orm import aliased
 
 
 @router.get("/q/")
-async def morphology_query(req: Request, session: Session = Depends(get_db)):
+async def morphology_query(req: Request, term: Optional[str] = Query(None),session: Session = Depends(get_db)):
     # brain_region_id, species_id, strain_id
     args = req.query_params
     name_to_table = {
         "species": Species,
         "strain": Strain,
     }
-    term = args.get("q")
     data_q = (
         select(
             ReconstructionMorphology.name,

@@ -88,6 +88,7 @@ async def read_reconstruction_morphologies(
     rm = db.query(ReconstructionMorphology).offset(skip).limit(limit).all()
     return rm
 
+
 # facet prototype
 from app.models.base import Species, Strain
 from sqlalchemy import func, select
@@ -96,28 +97,19 @@ from sqlalchemy.orm import aliased
 
 
 @router.get("/q/")
-async def morphology_query(req: Request, term: Optional[str] = Query(None),session: Session = Depends(get_db)):
+async def morphology_query(
+    req: Request,
+    term: Optional[str] = Query(None),
+    skip: int = 0,
+    limit: int = 10,
+    session: Session = Depends(get_db),
+):
     # brain_region_id, species_id, strain_id
     args = req.query_params
     name_to_table = {
         "species": Species,
         "strain": Strain,
     }
-    data_q = (
-        select(
-            ReconstructionMorphology.name,
-            Species.name.label("species_name"),
-            Strain.name.label("strain_name"),
-        )
-        .outerjoin(Species, ReconstructionMorphology.species_id == Species.id)
-        .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
-        .filter(ReconstructionMorphology.morphology_description_vector.match(term))
-    )
-    print(list(session.execute(data_q)))
-    for ty in name_to_table:
-        if value := args.get(ty, None):
-            table = name_to_table[ty]
-            data_q = data_q.where(getattr(table, "name") == value)
     facets = {}
     for ty in name_to_table:
         types = aliased(name_to_table[ty])
@@ -140,11 +132,15 @@ async def morphology_query(req: Request, term: Optional[str] = Query(None),sessi
                     == other_types.id,
                 ).where(other_types.name == value)
         facets[ty] = {r.name: r.count for r in facet_q.all()}
+    rm = (
+        session.query(ReconstructionMorphology)
+        .where(ReconstructionMorphology.morphology_description_vector.match(term))
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     res = {
-        "data": [
-            {"name": r.name, "species": r.species_name, "strain": r.strain_name}
-            for r in session.execute(data_q)
-        ],
+        "data": rm,
         "facets": facets,
     }
     return JSONResponse(content=jsonable_encoder(res))

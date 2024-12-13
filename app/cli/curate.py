@@ -67,3 +67,16 @@ def curate_brain_region(data):
     if data['@id'] == 'mba:977' and data['label'] == 'root':
         data['@id'] = 'mba:997'
     return data
+
+def curate_etype(data):
+    if data['label'] == 'TH_cAD_noscltb':
+        data['definition'] = 'Thalamus continuous adapting non-oscillatory low-threshold bursting electrical type'
+    if data['label'] == 'TH_cNAD_noscltb':
+        data['definition'] = 'Thalamus continuous non-adapting non-oscillatory low-threshold bursting electrical type'
+    if data['label'] == 'TH_dAD_ltb':
+        data['definition'] = 'Thalamus delayed adapting low-threshold bursting electrical type'
+        data['alt_label'] = 'Thalamus delayed adapting low-threshold bursting electrical type'
+    if data['label'] == 'TH_dNAD_ltb':
+        data['definition'] = 'Thalamus delayed non-adapting low-threshold bursting electrical type'
+        data['alt_label'] = 'Thalamus delayed non-adapting low-threshold bursting electrical type'
+    return data

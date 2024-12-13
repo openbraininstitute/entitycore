@@ -46,6 +46,8 @@ class ETypeAnnotationBody(AnnotationBody):
         autoincrement=True,
     )
     pref_label = Column(String, unique=True, nullable=False)
+    definition = Column(String, unique=False, nullable=True)
+    alt_label = Column(String, unique=False, nullable=True)
     __mapper_args__ = {
         "polymorphic_identity": "etype_annotation_body",
         "inherit_condition": id == AnnotationBody.id,

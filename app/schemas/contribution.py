@@ -17,13 +17,14 @@ from app.schemas.base import (
 
 class ContributionBase(BaseModel):
     class Config:
-        orm_mode = True
         from_attributes = True
+
 
 class ContributionCreate(ContributionBase):
     agent_id: int
     role_id: int
     entity_id: int
+
 
 class ContributionRead(ContributionBase, CreationMixin):
     agent: Union[PersonRead]

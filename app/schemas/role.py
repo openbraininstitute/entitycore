@@ -11,7 +11,6 @@ class RoleBase(BaseModel):
     role_id: str
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 

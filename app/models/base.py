@@ -78,12 +78,13 @@ class Subject(TimestampMixin, Base):
     name = Column(String, unique=True, index=True, nullable=False)
 
 
-class License(TimestampMixin, Base):
+class License(TimestampMixin, LegacyMixin, Base):
     __tablename__ = "license"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
     description = Column(String, unique=False, index=False, nullable=True)
-
+    label = Column(String, unique=False, index=False, nullable=False)
+    
 
 class LicensedMixin():
     license_id = Column(Integer, ForeignKey("license.id"), nullable=True)

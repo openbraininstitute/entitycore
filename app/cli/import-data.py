@@ -149,14 +149,11 @@ def get_or_create_species(species, db):
     return sp.id
 
 
-def get_or_create_license(license, db):
+def get_license_id(license, db):
     # Check if the license already exists in the database
     li = db.query(base.License).filter(base.License.name == license["@id"]).first()
     if not li:
-        # If not, create a new one
-        li = base.License(name=license["@id"])
-        db.add(li)
-        db.commit()
+        raise ValueError(f"License {license} not found")
     return li.id
 
 
@@ -176,6 +173,43 @@ def get_or_create_strain(strain, species_id, db):
         db.add(st)
         db.commit()
     return st.id
+
+
+def import_licenses(data, db):
+    data.append(
+        {
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30b",
+            "label": "undefined",
+            "description": "undefined",
+        }
+    )
+    data.append(
+        {
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+            "label": "undefined",
+            "description": "undefined",
+        }
+    )
+    for license in data:
+        db_license = (
+            db.query(base.License).filter(base.License.name == license["@id"]).first()
+        )
+        if db_license:
+            continue
+        try:
+            db_license = base.License(
+                name=license["@id"],
+                label=license["label"],
+                description=license["description"],
+                legacy_id=license["@id"],
+            )
+
+            db.add(db_license)
+            db.commit()
+        except Exception as e:
+            print(e)
+            print(license)
+            raise e
 
 
 def _import_annotation_body(data, db_type_, db):
@@ -351,7 +385,7 @@ def get_license_mixin(data, db):
     license_id = None
     license = data.get("license", {})
     if license:
-        license_id = get_or_create_license(license, db)
+        license_id = get_license_id(license, db)
     return license_id
 
 
@@ -604,7 +638,13 @@ def main():
         with open(file_path, "r") as f:
             data = json.load(f)
             import_agents(data, db)
-
+    print("import licenses")
+    with open(
+        os.path.join(args.input_dir, "bbp", "licenses", "provEntity.json"),
+        "r",
+    ) as f:
+        data = json.load(f)
+        import_licenses(data, db)
     print("import mtype annotations")
     with open(
         os.path.join(

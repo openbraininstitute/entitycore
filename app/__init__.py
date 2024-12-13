@@ -9,6 +9,7 @@ from app.routers import (morphology,
                          experimental_neuron_density,
                          experimental_synapses_per_connection,
                          )
+from app.routers.legacy import _search 
 from typing import List
 from app.dependencies.db import get_db
 from app.schemas.morphology import (
@@ -32,6 +33,7 @@ from app.models.morphology import (
 )
 from app.models.base import Species, License, BrainRegion, Strain
 
+
 app = FastAPI()
 app.include_router(morphology.router)
 app.include_router(person.router)
@@ -41,6 +43,8 @@ app.include_router(role.router)
 app.include_router(experimental_bouton_density.router)
 app.include_router(experimental_neuron_density.router)
 app.include_router(experimental_synapses_per_connection.router)
+# legacy routes
+app.include_router(_search.router)
 
 
 

@@ -32,6 +32,7 @@ async def read_contribution(contribution_id: int, db: Session = Depends(get_db))
 
 @router.post("/", response_model=ContributionRead)
 def create_contribution(
+    
     contribution: ContributionCreate, db: Session = Depends(get_db)
 ):
     # agent = db.query(Agent).filter(Agent.id == contribution.agent_id).first()

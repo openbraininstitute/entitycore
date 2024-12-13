@@ -41,7 +41,7 @@ def test_create_contribution(client):
     brain_region_id = data["id"]
     response = client.post(
         "/license/",
-        json={"name": "Test License", "description": "a license description"},
+        json={"name": "Test License", "description": "a license description", "label": "Test License Label"},
     )
     assert response.status_code == 200
     data = response.json()

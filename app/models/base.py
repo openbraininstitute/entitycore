@@ -82,7 +82,7 @@ class License(TimestampMixin, LegacyMixin, Base):
     __tablename__ = "license"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, unique=False, index=False, nullable=True)
+    description = Column(String, unique=False, index=False, nullable=False)
     label = Column(String, unique=False, index=False, nullable=False)
     
 

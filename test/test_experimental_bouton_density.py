@@ -40,7 +40,7 @@ def test_experimental_bouton_density(client):
     brain_region_id = data["id"]
     response = client.post(
         "/license/",
-        json={"name": "Test License", "description": "a license description"},
+        json={"name": "Test License", "description": "a license description", "label":"test label"},
     )
     assert response.status_code == 200
     data = response.json()

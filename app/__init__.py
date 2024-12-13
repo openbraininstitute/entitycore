@@ -1,15 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.routers import (morphology,
-                         person,
-                         organization,
-                         contribution,
-                         role,
-                         experimental_bouton_density,
-                         experimental_neuron_density,
-                         experimental_synapses_per_connection,
-                         )
-from app.routers.legacy import _search 
+from app.routers import (
+    morphology,
+    person,
+    organization,
+    contribution,
+    role,
+    experimental_bouton_density,
+    experimental_neuron_density,
+    experimental_synapses_per_connection,
+)
+from app.routers.legacy import _search, sbo
 from typing import List
 from app.dependencies.db import get_db
 from app.schemas.morphology import (
@@ -45,7 +46,7 @@ app.include_router(experimental_neuron_density.router)
 app.include_router(experimental_synapses_per_connection.router)
 # legacy routes
 app.include_router(_search.router)
-
+app.include_router(sbo.router)
 
 
 @app.post("/species/", response_model=SpeciesRead)
@@ -132,7 +133,7 @@ async def read_license(license_id: int, db: Session = Depends(get_db)):
 
 @app.post("/license/", response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: Session = Depends(get_db)):
-    db_license = License(name=license.name, description=license.description)
+    db_license = License(name=license.name, description=license.description, label=license.label)
     db.add(db_license)
     db.commit()
     db.refresh(db_license)

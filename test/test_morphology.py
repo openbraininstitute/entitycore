@@ -70,7 +70,7 @@ def test_create_reconstruction_morphology(client):
     brain_region_id = data["id"]
     response = client.post(
         "/license/",
-        json={"name": "Test License", "description": "a license description"},
+        json={"name": "Test License", "description": "a license description", "label":"test"},
     )
     assert response.status_code == 200
     data = response.json()

@@ -1,6 +1,6 @@
 def test_create_contribution(client):
     response = client.post(
-        "/person/", json={"first_name": "jd", "last_name": "courcol"}
+        "/person/", json={"givenName": "jd", "familyName": "courcol"}
     )
     assert response.status_code == 200
     data = response.json()
@@ -76,8 +76,8 @@ def test_create_contribution(client):
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == person_id
-    assert data["agent"]["first_name"] == "jd"
-    assert data["agent"]["last_name"] == "courcol"
+    assert data["agent"]["givenName"] == "jd"
+    assert data["agent"]["familyName"] == "courcol"
     assert data["role"]["id"] == role_id
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
@@ -92,8 +92,8 @@ def test_create_contribution(client):
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == person_id
-    assert data["agent"]["first_name"] == "jd"
-    assert data["agent"]["last_name"] == "courcol"
+    assert data["agent"]["givenName"] == "jd"
+    assert data["agent"]["familyName"] == "courcol"
     assert data["role"]["id"] == role_id
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"

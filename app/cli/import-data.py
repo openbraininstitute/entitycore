@@ -201,7 +201,7 @@ def import_licenses(data, db):
                 name=license["@id"],
                 label=license["label"],
                 description=license["description"],
-                legacy_id=license["@id"],
+                legacy_id=[license["@id"]],
             )
 
             db.add(db_license)
@@ -273,13 +273,13 @@ def import_agents(data_list, db):
             if not db_agent:
                 try:
                     data = curate.curate_person(data)
-                    first_name = data["givenName"]
-                    last_name = data["familyName"]
+                    givenName = data["givenName"]
+                    familyName = data["familyName"]
                     db_agent = (
                         db.query(agent.Person)
                         .filter(
-                            agent.Person.first_name == first_name,
-                            agent.Person.last_name == last_name,
+                            agent.Person.givenName == givenName,
+                            agent.Person.familyName == familyName,
                         )
                         .first()
                     )
@@ -292,8 +292,8 @@ def import_agents(data_list, db):
                     else:
                         db_agent = agent.Person(
                             legacy_id=[legacy_id],
-                            first_name=data["givenName"],
-                            last_name=data["familyName"],
+                            givenName=data["givenName"],
+                            familyName=data["familyName"],
                         )
                         db.add(db_agent)
                         db.commit()
@@ -413,7 +413,7 @@ def import_traces(data_list, db):
             license_id = get_license_mixin(data, db)
             species_id, strain_id = get_species_mixin(data, db)
             db_item = single_cell_experimental_trace.SingleCellExperimentalTrace(
-                legacy_id=data.get("@id", None),
+                legacy_id=[data.get("@id", None)],
                 name=name,
                 description=description,
                 brain_location=brain_location,
@@ -444,9 +444,12 @@ def import_morphologies(data_list, db):
 
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
+        use_func = func.instr
+        if db.bind.dialect.name == "postgresql":
+            use_func = func.strpos
         rm = (
             db.query(morphology.ReconstructionMorphology)
-            .filter(morphology.ReconstructionMorphology.legacy_id == legacy_id)
+            .filter(use_func(morphology.ReconstructionMorphology.legacy_id, legacy_id)>0)
             .first()
         )
         if not rm:
@@ -456,7 +459,7 @@ def import_morphologies(data_list, db):
             license_id = get_license_mixin(data, db)
             species_id, strain_id = get_species_mixin(data, db)
             db_reconstruction_morphology = morphology.ReconstructionMorphology(
-                legacy_id=data.get("@id", None),
+                legacy_id=[data.get("@id", None)],
                 name=name,
                 description=description,
                 brain_location=brain_location,
@@ -497,9 +500,12 @@ def import_morphology_feature_annotations(data_list, db):
                     "Skipping morphology feature annotation due to missing legacy id."
                 )
                 continue
+            use_func = func.instr
+            if db.bind.dialect.name == "postgresql":
+                use_func = func.strpos
             rm = (
                 db.query(morphology.ReconstructionMorphology)
-                .filter(morphology.ReconstructionMorphology.legacy_id == legacy_id)
+                .filter(use_func(morphology.ReconstructionMorphology.legacy_id,legacy_id)>0)
                 .first()
             )
             if not rm:
@@ -541,9 +547,6 @@ def import_morphology_feature_annotations(data_list, db):
             continue
         except Exception as e:
             print(f"Error: {e}")
-            import ipdb
-
-            ipdb.set_trace()
             print(data)
 
 
@@ -586,15 +589,18 @@ def _import_experimental_densities(
     for data in tqdm(possible_data):
         data = curate_function(data)
         legacy_id = data["@id"]
+        use_func = func.instr
+        if db.bind.dialect.name == "postgresql":
+            use_func = func.strpos
         db_element = (
-            db.query(model_type).filter(model_type.legacy_id == legacy_id).first()
+            db.query(model_type).filter(use_func(model_type.legacy_id,legacy_id)>0).first()
         )
         if not db_element:
             license_id = get_license_mixin(data, db)
             species_id, strain_id = get_species_mixin(data, db)
             brain_location, brain_region_id = get_brain_location_mixin(data, db)
             db_element = model_type(
-                legacy_id=legacy_id,
+                legacy_id=[legacy_id],
                 name=data.get("name", None),
                 description=data.get("description", None),
                 species_id=species_id,

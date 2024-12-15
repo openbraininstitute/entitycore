@@ -9,7 +9,7 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, mapped_column
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.types import TypeDecorator, VARCHAR
 
@@ -25,21 +25,38 @@ class TimestampMixin:
     update_date = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
 
-class LegacyMixin:
-    legacy_id = Column(String, unique=False, index=True, nullable=True)
-
-class StringList(TypeDecorator): 
+class StringList(TypeDecorator):
     impl = VARCHAR
-    def process_bind_param(self, value, dialect):
-         if value is not None: return ','.join(value)
-    def process_result_value(self, value, dialect):
-        if value is not None: return value.split(',')
 
-class Entity(LegacyMixin, TimestampMixin, Base):
-    __tablename__ = "entity"
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            return ",".join(value)
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            return value.split(",")
+
+class LegacyMixin:
+    legacy_id = Column(StringList, index=True, nullable=True)
+
+
+
+class Root(LegacyMixin, Base):
+    __tablename__ = "root"
     id = Column(Integer, primary_key=True, index=True)
     type = Column(String, unique=False, index=False, nullable=False)
-    __mapper_args__ = {"polymorphic_identity": "agent", "polymorphic_on": type}
+    __mapper_args__ = {"polymorphic_identity": "root", "polymorphic_on": type}
+
+
+class Entity(TimestampMixin, Root):
+    __tablename__ = "entity"
+    id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
+    # type = Column(String, unique=False, index=False, nullable=False)
+    __mapper_args__ = {
+        "polymorphic_identity": "entity",
+        "inherit_condition": id == Root.id,
+    }
+
 
 class BrainLocation(Base):
     __tablename__ = "brain_location"
@@ -84,30 +101,39 @@ class License(TimestampMixin, LegacyMixin, Base):
     name = Column(String, unique=True, index=True, nullable=False)
     description = Column(String, unique=False, index=False, nullable=False)
     label = Column(String, unique=False, index=False, nullable=False)
-    
 
-class LicensedMixin():
+
+class LicensedMixin:
     license_id = Column(Integer, ForeignKey("license.id"), nullable=True)
+
     @declared_attr
     def license(cls):
         return relationship("License", uselist=False)
 
-class LocationMixin():
+
+class LocationMixin:
     brain_location_id = Column(Integer, ForeignKey("brain_location.id"), nullable=True)
+
     @declared_attr
     def brain_location(cls):
         return relationship("BrainLocation", uselist=False)
+
     brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=False)
+
     @declared_attr
     def brain_region(cls):
         return relationship("BrainRegion", uselist=False)
-    
-class SpeciesMixin():
+
+
+class SpeciesMixin:
     species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+
     @declared_attr
     def species(cls):
         return relationship("Species", uselist=False)
+
     strain_id = Column(Integer, ForeignKey("strain.id"), nullable=True)
+
     @declared_attr
     def strain(cls):
         return relationship("Strain", uselist=False)

@@ -14,8 +14,8 @@ from app.schemas.base import (
 
 
 class PersonBase(BaseModel):
-    first_name: str
-    last_name: str
+    givenName: str
+    familyName: str
 
     class Config:
         from_attributes = True

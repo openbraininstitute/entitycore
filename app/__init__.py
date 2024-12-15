@@ -10,7 +10,7 @@ from app.routers import (
     experimental_neuron_density,
     experimental_synapses_per_connection,
 )
-from app.routers.legacy import _search, sbo
+from app.routers.legacy import _search, sbo, resources
 from typing import List
 from app.dependencies.db import get_db
 from app.schemas.morphology import (
@@ -47,6 +47,7 @@ app.include_router(experimental_synapses_per_connection.router)
 # legacy routes
 app.include_router(_search.router)
 app.include_router(sbo.router)
+app.include_router(resources.router)
 
 
 @app.post("/species/", response_model=SpeciesRead)
@@ -133,7 +134,9 @@ async def read_license(license_id: int, db: Session = Depends(get_db)):
 
 @app.post("/license/", response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: Session = Depends(get_db)):
-    db_license = License(name=license.name, description=license.description, label=license.label)
+    db_license = License(
+        name=license.name, description=license.description, label=license.label
+    )
     db.add(db_license)
     db.commit()
     db.refresh(db_license)

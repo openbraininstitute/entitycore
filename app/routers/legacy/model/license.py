@@ -22,7 +22,6 @@ def build_response_elem(elem):
 
     initial_dict = {
         "_constrainedBy": "https://bluebrain.github.io/nexus/schemas/unconstrained.json",
-        "_createdAt": "224-01-10T15:58:46.007611Z",
         "_deprecated": False,
         "_project": "https://openbluebrain.com/api/nexus/v1/projects/bbp/licenses",
         "_rev": 0,

@@ -230,6 +230,7 @@ def _import_annotation_body(data, db_type_, db):
             pref_label=class_elem["label"],
             definition=class_elem.get("definition", ""),
             alt_label=class_elem.get("prefLabel", ""),
+            legacy_id=[class_elem["@id"]],
         )
         db.add(db_elem)
         db.commit()
@@ -242,6 +243,7 @@ def import_mtype_annotation_body(data, db):
             "label": "Inhibitory neuron",
             "definition": "Inhibitory neuron",
             "prefLabel": "Inhibitory neuron",
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron"
         }
     )
     data.append(
@@ -249,6 +251,7 @@ def import_mtype_annotation_body(data, db):
             "label": "Excitatory neuron",
             "definition": "Excitatory neuron",
             "prefLabel": "Excitatory neuron",
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron"
         }
     )
     _import_annotation_body(data, annotation.MTypeAnnotationBody, db)

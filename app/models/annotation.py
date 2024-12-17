@@ -3,7 +3,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import mapped_column, relationship
 
 
-class AnnotationBody(TimestampMixin, Base):
+class AnnotationBody(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "annotation_body"
     id = mapped_column(
         Integer, primary_key=True, index=True, nullable=False, autoincrement=True

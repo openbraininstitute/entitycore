@@ -10,6 +10,8 @@ router = APIRouter(
 
 @router.post("/sbo")
 def legacy_search(query: dict, db: Session = Depends(get_db)):
+    track_total_hits = query.get('track_total_hits', True)
+                                  
     terms = query.get("query", {}).get("bool", {}).get("must", [])
     if not terms:
         raise HTTPException(status_code=400, detail="No search terms provided")

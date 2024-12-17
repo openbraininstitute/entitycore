@@ -1,0 +1,27 @@
+{
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "term": {
+                        "@type": "Class"
+                    }
+                },
+                {
+                    "term": {
+                        "_deprecated": false
+                    }
+                },
+                {
+                    "terms": {
+                        "subClassOf": [
+                            "https://neuroshapes.org/MType",
+                            "https://neuroshapes.org/EType"
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    "size": 10000
+}

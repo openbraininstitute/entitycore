@@ -20,7 +20,7 @@ router = APIRouter(
 )
 async def read_person(person_id: int, db: Session = Depends(get_db)):
     person = db.query(Person).filter(Person.id == person_id).first()
-
+ 
     if person is None:
         raise HTTPException(status_code=404, detail="person not found")
     ret = PersonRead.model_validate(person)

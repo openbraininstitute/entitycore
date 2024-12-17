@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.dependencies.db import get_db
 from app.schemas.agent import PersonRead
-
+import json
+import os
 router = APIRouter(
     prefix="/nexus/v1/resources",
     tags=["legacy_resources"],
@@ -31,6 +32,10 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
             extracted_url = unquote(path.split("_/")[1])
             # Return the extracted URL or process it further
             print(extracted_url)
+            if "ontologies/core/brainregion" in extracted_url:
+                with open(os.path.join(os.path.dirname(__file__), "data/atlas_ontology.json"), "r") as f:
+                    return json.load(f)
+                return 
             use_func = func.instr
             if db.bind.dialect.name == "postgresql":
                 use_func = func.strpos

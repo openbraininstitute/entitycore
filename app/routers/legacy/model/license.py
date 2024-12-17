@@ -1,6 +1,6 @@
 import app.models.base as models
 from sqlalchemy import and_
-
+import app.routers.legacy.model.utils as utils
 
 def build_filters(model, filter_dict):
     filters = []
@@ -10,44 +10,6 @@ def build_filters(model, filter_dict):
             filters.append(column == value)
     return filters
 
-
-def build_response_elem(elem):
-    MAPPING = {
-        "name": "@id",
-        "creation_date": "_createdAt",
-        "updated_date": "_updatedAt",
-        "description": "description",
-        "label": "label",
-    }
-
-    initial_dict = {
-        "_constrainedBy": "https://bluebrain.github.io/nexus/schemas/unconstrained.json",
-        "_deprecated": False,
-        "_project": "https://openbluebrain.com/api/nexus/v1/projects/bbp/licenses",
-        "_rev": 0,
-        "_schemaProject": "https://openbluebrain.com/api/nexus/v1/projects/bbp/licenses",
-        "_updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/cgonzale",
-    }
-    for key, value in MAPPING.items():
-        initial_dict[value] = getattr(elem, key, "")
-    initial_dict["@type"] = ["License"]
-    return {
-        "_id": getattr(elem, "name"),
-        "_index": "dummy",
-        "_score": 1.0,
-        "_source": initial_dict,
-    }
-
-
-def build_response_body(elems):
-    return {
-        "hits": {
-            "hits": [build_response_elem(elem) for elem in elems],
-            "timed_out": False,
-            "took": 2,
-            "_shards": {"failed": 0, "skipped": 0, "successful": 6, "total": 6},
-        }
-    }
 
 
 def search(body, db):
@@ -69,6 +31,6 @@ def search(body, db):
     )
     try:
         query = db.query(models.License).filter(and_(*filters))
-        return build_response_body(query.all())
+        return utils.build_response_body(query.all())
     finally:
         db.close()

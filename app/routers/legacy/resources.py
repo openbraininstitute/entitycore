@@ -41,7 +41,7 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
             print(extracted_url)
             if "ontologies/core/brainregion" in extracted_url:
                 with open(
-                    os.path.join(os.path.dirname(__file__), "data/atlas_ontology.json"),
+                    os.path.join(os.path.dirname(__file__), "resources_data/atlas_ontology.json"),
                     "r",
                 ) as f:
                     return json.load(f)

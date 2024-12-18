@@ -1,0 +1,58 @@
+{
+    "hits": {
+        "hits": [
+            {
+                "_id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/dcb0594b-8df6-4d66-8e5f-73472b371b67",
+                "_index": "nexus_2f921a01-2554-4cf3-86da-bc1fb0dd9ac7_23",
+                "_score": 11.2410965,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/dcb0594b-8df6-4d66-8e5f-73472b371b67",
+                    "@type": "GeneratorTaskActivity",
+                    "generated": {
+                        "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/2b29d249-6520-4a98-9586-27ec7803aed2",
+                        "@type": "DetailedCircuit"
+                    },
+                    "startedAtTime": "2024-07-05T07:28:44.197631",
+                    "status": "Done",
+                    "used_config": {
+                        "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/3eb1c62a-6714-4b97-8ed3-fe0a0605ba26",
+                        "@type": [
+                            "CellPositionConfig",
+                            "Entity"
+                        ]
+                    },
+                    "used_rev": 1,
+                    "wasInfluencedBy": {
+                        "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/2d12e464-c7de-4b5f-abfb-4fb8a18e2aab",
+                        "@type": "WorkflowExecution"
+                    },
+                    "_constrainedBy": "https://bluebrain.github.io/nexus/schemas/unconstrained.json",
+                    "_createdAt": "2024-07-05T07:28:44.315533Z",
+                    "_createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/zisis",
+                    "_deprecated": false,
+                    "_incoming": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2Fdcb0594b-8df6-4d66-8e5f-73472b371b67/incoming",
+                    "_outgoing": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2Fdcb0594b-8df6-4d66-8e5f-73472b371b67/outgoing",
+                    "_project": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                    "_rev": 1,
+                    "_schemaProject": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2Fdcb0594b-8df6-4d66-8e5f-73472b371b67",
+                    "_updatedAt": "2024-07-05T07:28:44.315533Z",
+                    "_updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/zisis"
+                }
+            }
+        ],
+        "max_score": 11.2410965,
+        "total": {
+            "relation": "eq",
+            "value": 1
+        }
+    },
+    "timed_out": false,
+    "took": 1,
+    "_shards": {
+        "failed": 0,
+        "skipped": 0,
+        "successful": 1,
+        "total": 1
+    }
+}

@@ -120,15 +120,18 @@ def get_or_create_contribution(contribution_, entity_id, db):
 def get_or_create_brain_region(brain_region, db):
     brain_region = curate.curate_brain_region(brain_region)
     # Check if the brain region already exists in the database
+    brain_region_at_id = brain_region["@id"].replace(
+        "mba:", "http://api.brain-map.org/api/v2/data/Structure/"
+    )
     br = (
         db.query(base.BrainRegion)
-        .filter(base.BrainRegion.ontology_id == brain_region["@id"])
+        .filter(base.BrainRegion.ontology_id == brain_region_at_id)
         .first()
     )
     if not br:
         # If not, create a new one
         br = base.BrainRegion(
-            ontology_id=brain_region["@id"], name=brain_region["label"]
+            ontology_id=brain_region_at_id, name=brain_region["label"]
         )
         db.add(br)
         db.commit()
@@ -395,7 +398,11 @@ def get_license_mixin(data, db):
 
 def import_brain_region_meshes(data, db):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
-    possible_data = [data for data in possible_data if data.get("atlasRelease").get("tag",None)=="v1.1.0"]
+    possible_data = [
+        data
+        for data in possible_data
+        if data.get("atlasRelease").get("tag", None) == "v1.1.0"
+    ]
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
 
@@ -411,7 +418,7 @@ def import_brain_region_meshes(data, db):
             _, brain_region_id = get_brain_location_mixin(data, db)
             content_url = data.get("distribution").get("contentUrl")
             db_item = mesh.Mesh(
-                legacy_id=legacy_id,
+                legacy_id=[legacy_id],
                 brain_region_id=brain_region_id,
                 content_url=content_url,
             )

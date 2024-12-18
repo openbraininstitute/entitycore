@@ -4,17 +4,17 @@ import app.routers.legacy.model.utils as utils
 
 def build_mesh_elem(elem):
     return {
-        "_id": elem.legacy_id,
+        "_id": elem.legacy_id[0],
         "_source": {
-            "@id": elem.legacy_id,
+            "@id": elem.legacy_id[0],
             "@type": ["Mesh"],
             "brainLocation": {
                 "brainRegion": {
-                    elem.brain_region.ontology_id,
+                    '@id':elem.brain_region.ontology_id,
                 }
             },
             "distribution": {
-                "content_url": elem.content_url,
+                "contentUrl": elem.content_url,
             },
         },
     }

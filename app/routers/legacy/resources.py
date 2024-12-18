@@ -25,6 +25,7 @@ RESOURCE_MAP = {
     "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/d28580b8-9fc8-4b04-8e67-11229b31726c": "ModelBuildingConfig.json",
     "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/f5c150ac-2678-4ae5-ae22-c5b43cad1906": "CellCompositionConfig.json",
     "https://bbp.epfl.ch/data/bbp/atlasdatasetrelease/ccc3a6c5-9f77-4917-bc2e-fc8d3879042c": "CellCompositionSummary.json",
+    "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/2b29d249-6520-4a98-9586-27ec7803aed2": "DetailedCircuit.json",
 }
 
 

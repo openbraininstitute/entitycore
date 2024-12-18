@@ -39,7 +39,8 @@ class StringList(TypeDecorator):
 class LegacyMixin:
     legacy_id = Column(StringList, index=True, nullable=True)
 
-
+class DistributionMixin:
+    content_url = Column(String, unique=False, index=False, nullable=True)
 
 class Root(LegacyMixin, Base):
     __tablename__ = "root"

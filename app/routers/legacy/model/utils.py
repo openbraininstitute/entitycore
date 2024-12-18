@@ -48,10 +48,10 @@ def build_response_elem(elem):
         "_source": initial_dict,
     }
 
-def build_response_body(elems):
+def build_response_body(elems, build_func=build_response_elem):
     return {
         "hits": {
-            "hits": [build_response_elem(elem) for elem in elems],
+            "hits": [build_func(elem) for elem in elems],
             "timed_out": False,
             "took": 2,
             "_shards": {"failed": 0, "skipped": 0, "successful": 6, "total": 6},

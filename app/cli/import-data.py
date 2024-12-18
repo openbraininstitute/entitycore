@@ -11,6 +11,7 @@ from app.models import (
     contribution,
     annotation,
     density,
+    mesh,
 )
 import json
 from sqlalchemy import create_engine
@@ -243,7 +244,7 @@ def import_mtype_annotation_body(data, db):
             "label": "Inhibitory neuron",
             "definition": "Inhibitory neuron",
             "prefLabel": "Inhibitory neuron",
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron"
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron",
         }
     )
     data.append(
@@ -251,7 +252,7 @@ def import_mtype_annotation_body(data, db):
             "label": "Excitatory neuron",
             "definition": "Excitatory neuron",
             "prefLabel": "Excitatory neuron",
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron"
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron",
         }
     )
     _import_annotation_body(data, annotation.MTypeAnnotationBody, db)
@@ -392,6 +393,32 @@ def get_license_mixin(data, db):
     return license_id
 
 
+def import_brain_region_meshes(data, db):
+    possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
+    possible_data = [data for data in possible_data if data.get("atlasRelease").get("tag",None)=="v1.1.0"]
+    for data in tqdm(possible_data):
+        legacy_id = data["@id"]
+
+        use_func = func.instr
+        if db.bind.dialect.name == "postgresql":
+            use_func = func.strpos
+        rm = (
+            db.query(mesh.Mesh)
+            .filter(use_func(mesh.Mesh.legacy_id, legacy_id) > 0)
+            .first()
+        )
+        if not rm:
+            _, brain_region_id = get_brain_location_mixin(data, db)
+            content_url = data.get("distribution").get("contentUrl")
+            db_item = mesh.Mesh(
+                legacy_id=legacy_id,
+                brain_region_id=brain_region_id,
+                content_url=content_url,
+            )
+            db.add(db_item)
+            db.commit()
+
+
 def import_traces(data_list, db):
     possible_data = [
         data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]
@@ -452,7 +479,9 @@ def import_morphologies(data_list, db):
             use_func = func.strpos
         rm = (
             db.query(morphology.ReconstructionMorphology)
-            .filter(use_func(morphology.ReconstructionMorphology.legacy_id, legacy_id)>0)
+            .filter(
+                use_func(morphology.ReconstructionMorphology.legacy_id, legacy_id) > 0
+            )
             .first()
         )
         if not rm:
@@ -508,7 +537,10 @@ def import_morphology_feature_annotations(data_list, db):
                 use_func = func.strpos
             rm = (
                 db.query(morphology.ReconstructionMorphology)
-                .filter(use_func(morphology.ReconstructionMorphology.legacy_id,legacy_id)>0)
+                .filter(
+                    use_func(morphology.ReconstructionMorphology.legacy_id, legacy_id)
+                    > 0
+                )
                 .first()
             )
             if not rm:
@@ -596,7 +628,9 @@ def _import_experimental_densities(
         if db.bind.dialect.name == "postgresql":
             use_func = func.strpos
         db_element = (
-            db.query(model_type).filter(use_func(model_type.legacy_id,legacy_id)>0).first()
+            db.query(model_type)
+            .filter(use_func(model_type.legacy_id, legacy_id) > 0)
+            .first()
         )
         if not db_element:
             license_id = get_license_mixin(data, db)
@@ -679,6 +713,11 @@ def main():
             data for data in data if "nsg:EType" in data.get("subClassOf", {})
         ]
         import_etype_annotation_body(possible_data, db)
+    print("importing brain region meshes")
+    for file_path in all_files:
+        with open(file_path, "r") as f:
+            data = json.load(f)
+            import_brain_region_meshes(data, db)
     print("importing morphologies")
     for file_path in all_files:
         with open(file_path, "r") as f:

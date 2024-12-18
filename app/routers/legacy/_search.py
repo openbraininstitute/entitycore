@@ -1,13 +1,14 @@
-
 from fastapi import APIRouter, Depends, HTTPException
-from app.routers.legacy.model import license, class_ontology
+from app.routers.legacy.model import license, class_ontology, mesh
 
 from sqlalchemy.orm import Session
 from app.dependencies.db import get_db
+
 router = APIRouter(
-    prefix='/nexus/v1/views/bbp/atlas/https://bbp.epfl.ch/data/bbp/atlas/es_aggregate_view_tags_v1.1.0_v2.2.4',
+    prefix="/nexus/v1/views/bbp/atlas/https://bbp.epfl.ch/data/bbp/atlas/es_aggregate_view_tags_v1.1.0_v2.2.4",
     tags=["legacy_search"],
 )
+
 
 @router.post("/_search")
 def legacy_search(query: dict, db: Session = Depends(get_db)):
@@ -24,4 +25,6 @@ def legacy_search(query: dict, db: Session = Depends(get_db)):
         return license.search(query, db)
     if type_term == "Class":
         return class_ontology.search(query, db)
+    if type_term == "Mesh":
+        return mesh.search(query, db)
     assert False, "unreachable"

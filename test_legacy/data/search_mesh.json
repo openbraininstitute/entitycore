@@ -1,0 +1,19 @@
+{
+    "size": 10000,
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "term": {
+                        "@type": "Mesh"
+                    }
+                },
+                {
+                    "term": {
+                        "atlasRelease.@id": "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
+                    }
+                }
+            ]
+        }
+    }
+}

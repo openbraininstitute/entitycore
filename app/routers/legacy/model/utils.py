@@ -57,3 +57,23 @@ def build_response_body(elems):
             "_shards": {"failed": 0, "skipped": 0, "successful": 6, "total": 6},
         }
     }
+
+def build_count_response_body(value):
+    return {
+    "hits": {
+        "hits": [],
+        "total": {
+            "relation": "eq",
+            "value": value
+        }
+    },
+    "terminated_early": False,
+    "timed_out": False,
+    "took": 13,
+    "_shards": {
+        "failed": 0,
+        "skipped": 4,
+        "successful": 15,
+        "total": 15
+    }
+}

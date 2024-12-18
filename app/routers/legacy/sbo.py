@@ -3,24 +3,44 @@ from app.routers.legacy.model import license
 
 from sqlalchemy.orm import Session
 from app.dependencies.db import get_db
+import app.models.morphology
+import app.models.single_cell_experimental_trace
+import app.models.density
+import app.routers.legacy.model.utils as utils
+
 router = APIRouter(
-    prefix='/nexus/v1/search/query/suite',
+    prefix="/nexus/v1/search/query/suite",
     tags=["legacy_sbo"],
 )
 
+MAP_KEYWORD = {
+    "https://neuroshapes.org/ReconstructedNeuronMorphology": app.models.morphology.ReconstructionMorphology,
+    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace": app.models.single_cell_experimental_trace.SingleCellExperimentalTrace,
+    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalNeuronDensity": app.models.density.ExperimentalNeuronDensity,
+    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity": app.models.density.ExperimentalBoutonDensity,
+    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection": app.models.density.ExperimentalSynapsesPerConnection,
+}
+
+
 @router.post("/sbo")
-def legacy_search(query: dict, db: Session = Depends(get_db)):
-    track_total_hits = query.get('track_total_hits', True)
-                                  
+def legacy_sbo(query: dict, db: Session = Depends(get_db)):
+
     terms = query.get("query", {}).get("bool", {}).get("must", [])
     if not terms:
         raise HTTPException(status_code=400, detail="No search terms provided")
+    track_total_hits = query.get("track_total_hits", False)
+    if track_total_hits:
+        type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
+        type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
+        return utils.build_count_response_body(db.query(MAP_KEYWORD[type_keyword]).count())
+
     type_term = [term for term in terms if "@type" in term.get("term", {})]
     if not type_term:
         raise HTTPException(status_code=400, detail="No @type term provided")
     type_term = type_term[0].get("term", {}).get("@type", "")
     if not type_term:
         raise HTTPException(status_code=400, detail="empty @type provided")
+
     assert type_term in ["neuronMorphology.@id.keyword"]
     # if type_term == "License":
-    #     return license.search(query, db) 
+    #     return license.search(query, db)

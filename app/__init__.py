@@ -10,7 +10,7 @@ from app.routers import (
     experimental_neuron_density,
     experimental_synapses_per_connection,
 )
-from app.routers.legacy import _search, sbo, resources
+from app.routers.legacy import _search, sbo, resources, files
 from typing import List
 from app.dependencies.db import get_db
 from app.schemas.morphology import (
@@ -48,6 +48,7 @@ app.include_router(experimental_synapses_per_connection.router)
 app.include_router(_search.router)
 app.include_router(sbo.router)
 app.include_router(resources.router)
+app.include_router(files.router)
 
 
 @app.post("/species/", response_model=SpeciesRead)

@@ -1,0 +1,29 @@
+{
+    "size": 0,
+    "sort": {
+        "createdAt": "desc"
+    },
+    "from": 0,
+    "track_total_hits": true,
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "term": {
+                        "@type.keyword": "https://neuroshapes.org/ReconstructedNeuronMorphology"
+                    }
+                },
+                {
+                    "term": {
+                        "curated": true
+                    }
+                },
+                {
+                    "term": {
+                        "deprecated": false
+                    }
+                }
+            ]
+        }
+    }
+}

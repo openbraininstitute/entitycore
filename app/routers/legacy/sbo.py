@@ -6,6 +6,7 @@ from app.dependencies.db import get_db
 import app.models.morphology
 import app.models.single_cell_experimental_trace
 import app.models.density
+import app.models.base as base
 import app.routers.legacy.model.utils as utils
 
 router = APIRouter(
@@ -32,7 +33,19 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
     if track_total_hits:
         type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
         type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
-        return utils.build_count_response_body(db.query(MAP_KEYWORD[type_keyword]).count())
+        br_terms = [
+            term for term in terms if "brainRegion.@id.keyword" in term.get("terms", {})
+        ]
+        db_type = MAP_KEYWORD.get(type_keyword)
+        query = db.query(db_type)
+        if br_terms:
+            regions = br_terms[0].get("terms", {}).get("brainRegion.@id.keyword", [])
+            query = (
+                query.join(db_type.brain_region)
+                .filter(base.BrainRegion.ontology_id.in_(regions))
+                .distinct()
+            )
+        return utils.build_count_response_body(query.count())
 
     type_term = [term for term in terms if "@type" in term.get("term", {})]
     if not type_term:

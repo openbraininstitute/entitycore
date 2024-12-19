@@ -1,0 +1,19 @@
+{
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "term": {
+                        "@type": "GeneratorTaskActivity"
+                    }
+                },
+                {
+                    "term": {}
+                },
+                {
+                    "term": {}
+                }
+            ]
+        }
+    }
+}

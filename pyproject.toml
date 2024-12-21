@@ -64,11 +64,14 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-local-folder = ["tests"]
+known-local-folder = ["test"]
 combine-as-imports = true
 
+#Note: for some reason ruff isn't picking this up, using ruff.toml does, so the rules are mirrored there
+# https://github.com/astral-sh/ruff/issues/12058
+# https://github.com/koxudaxi/ruff-pycharm-plugin/issues/359
 [tool.ruff.lint.per-file-ignores]
-"test/**/*.py" = [
+"test/**.py" = [
     "ANN",     # Missing type annotation
     "D",       # pydocstyle
     "ERA001",  # Found commented-out code

@@ -1,7 +1,11 @@
 def test_create_license(client):
     response = client.post(
         "/license/",
-        json={"name": "Test License", "description": "a license description", "label": "a label"},
+        json={
+            "name": "Test License",
+            "description": "a license description",
+            "label": "a label",
+        },
     )
     assert response.status_code == 200
     data = response.json()

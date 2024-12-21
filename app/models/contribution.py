@@ -14,5 +14,7 @@ class Contribution(TimestampMixin, Base):
     entity_id = Column(Integer, ForeignKey("entity.id"), nullable=False)
     entity = relationship("Entity", uselist=False)
     __table_args__ = (
-        UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
+        UniqueConstraint(
+            "entity_id", "role_id", "agent_id", name="unique_contribution_1"
+        ),
     )

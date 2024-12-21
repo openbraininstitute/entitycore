@@ -41,7 +41,9 @@ class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, Creatio
     measurements: list[MeasurementRead]
 
 
-class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin):
+class ReconstructionMorphologyRead(
+    ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin
+):
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead

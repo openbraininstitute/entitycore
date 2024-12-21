@@ -3,7 +3,8 @@ def test_create_organization(client):
     label = "test_organization label"
     alternative_name = "test organization alternative name"
     response = client.post(
-        "/organization/", json={"name": name, "label": label, "alternative_name": alternative_name}
+        "/organization/",
+        json={"name": name, "label": label, "alternative_name": alternative_name},
     )
     assert response.status_code == 200
     data = response.json()

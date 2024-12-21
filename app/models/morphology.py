@@ -22,7 +22,9 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     name = Column(String, unique=False, index=True, nullable=False)
     if engine.dialect.name == "postgresql":
         morphology_description_vector = Column(TSVECTOR)
-    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+    morphology_feature_annotation = relationship(
+        "MorphologyFeatureAnnotation", uselist=False
+    )
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}
 
 

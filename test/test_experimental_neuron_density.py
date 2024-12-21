@@ -1,5 +1,7 @@
 def test_experimental_neuron_density(client):
-    response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
+    response = client.post(
+        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
+    )
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     assert data["name"] == "Test Species"
@@ -22,7 +24,9 @@ def test_experimental_neuron_density(client):
     response = client.post(
         "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
     )
-    assert response.status_code == 200, f"Failed to create brain region: {response.text}"
+    assert (
+        response.status_code == 200
+    ), f"Failed to create brain region: {response.text}"
     data = response.json()
     assert data["name"] == "Test Brain Region"
     assert data["ontology_id"] == ontology_id

@@ -30,7 +30,9 @@ async def read_experimental_bouton_density(
     )
 
     if experimental_bouton_density is None:
-        raise HTTPException(status_code=404, detail="experimental_bouton_density not found")
+        raise HTTPException(
+            status_code=404, detail="experimental_bouton_density not found"
+        )
     ret = ExperimentalBoutonDensityRead.model_validate(experimental_bouton_density)
     return ret
 
@@ -51,7 +53,7 @@ def create_experimental_bouton_density(
 
 
 @router.get("/", response_model=list[ExperimentalBoutonDensityRead])
-async def read_experimental_bouton_density(
+async def read_experimental_bouton_densities(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     users = db.query(ExperimentalBoutonDensity).offset(skip).limit(limit).all()

@@ -3,7 +3,9 @@ import sqlalchemy
 
 
 def test_create_species(client):
-    response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
+    response = client.post(
+        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Test Species"
@@ -11,7 +13,9 @@ def test_create_species(client):
 
 
 def test_create_strain(client):
-    response = client.post("/species/", json={"name": "Test Strain", "taxonomy_id": "12345"})
+    response = client.post(
+        "/species/", json={"name": "Test Strain", "taxonomy_id": "12345"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Test Strain"
@@ -31,7 +35,9 @@ def test_create_strain(client):
 
 
 def test_create_reconstruction_morphology(client):
-    response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
+    response = client.post(
+        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
+    )
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     assert data["name"] == "Test Species"
@@ -54,7 +60,9 @@ def test_create_reconstruction_morphology(client):
     response = client.post(
         "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
     )
-    assert response.status_code == 200, f"Failed to create brain region: {response.text}"
+    assert (
+        response.status_code == 200
+    ), f"Failed to create brain region: {response.text}"
     data = response.json()
     assert data["name"] == "Test Brain Region"
     assert data["ontology_id"] == ontology_id
@@ -62,7 +70,11 @@ def test_create_reconstruction_morphology(client):
     brain_region_id = data["id"]
     response = client.post(
         "/license/",
-        json={"name": "Test License", "description": "a license description", "label": "test"},
+        json={
+            "name": "Test License",
+            "description": "a license description",
+            "label": "test",
+        },
     )
     assert response.status_code == 200
     data = response.json()
@@ -100,7 +112,9 @@ def test_create_reconstruction_morphology(client):
     assert (
         data["description"] == morph_description
     ), f"Failed to get description for reconstruction morphology: {data}"
-    assert data["name"] == morph_name, f"Failed to get name for reconstruction morphology: {data}"
+    assert (
+        data["name"] == morph_name
+    ), f"Failed to get name for reconstruction morphology: {data}"
     assert (
         data["license"]["name"] == "Test License"
     ), f"Failed to get license for reconstruction morphology: {data}"
@@ -112,7 +126,9 @@ def test_create_reconstruction_morphology(client):
 
 
 def test_create_annotation(client):
-    response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
+    response = client.post(
+        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
+    )
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     species_id = data["id"]
@@ -131,7 +147,9 @@ def test_create_annotation(client):
     response = client.post(
         "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
     )
-    assert response.status_code == 200, f"Failed to create brain region: {response.text}"
+    assert (
+        response.status_code == 200
+    ), f"Failed to create brain region: {response.text}"
     data = response.json()
     assert "id" in data, f"Failed to get id for brain region: {data}"
     brain_region_id = data["id"]
@@ -223,7 +241,9 @@ def test_create_annotation(client):
     assert response.status_code == 200
     assert "morphology_feature_annotation" in data
     assert (
-        data["morphology_feature_annotation"]["measurements"][0]["measurement_serie"][0]["name"]
+        data["morphology_feature_annotation"]["measurements"][0]["measurement_serie"][
+            0
+        ]["name"]
         == "Test Measurement Name"
     )
     with pytest.raises(sqlalchemy.exc.IntegrityError):

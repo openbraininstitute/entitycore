@@ -25,7 +25,10 @@ async def read_experimental_neuron_density(
 ):
     experimental_synapses_per_connection_id = (
         db.query(ExperimentalSynapsesPerConnection)
-        .filter(ExperimentalSynapsesPerConnection.id == experimental_synapses_per_connection_id)
+        .filter(
+            ExperimentalSynapsesPerConnection.id
+            == experimental_synapses_per_connection_id
+        )
         .first()
     )
 
@@ -55,7 +58,7 @@ def create_experimental_neuron_density(
 
 
 @router.get("/", response_model=list[ExperimentalSynapsesPerConnectionRead])
-async def read_experimental_neuron_density(
+async def read_experimental_neuron_densities(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     users = db.query(ExperimentalSynapsesPerConnection).offset(skip).limit(limit).all()

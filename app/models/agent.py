@@ -22,7 +22,9 @@ class Person(Agent):
         "polymorphic_identity": "person",
         "inherit_condition": id == Agent.id,
     }
-    __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
+    __table_args__ = (
+        UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),
+    )
 
 
 class Organization(Agent):

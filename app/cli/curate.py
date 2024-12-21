@@ -33,12 +33,19 @@ def curate_person(person):
 
 
 def curate_contribution(contribution):
-    if type(contribution) == list:
+    if isinstance(contribution, list):
         return [curate_contribution(c) for c in contribution]
-    if contribution["agent"]["@id"] == "f:0fdadef7-b2b9-492b-af46-c65492d459c2:ajaquier":
-        contribution["agent"]["@id"] = "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ajaquier"
+    if (
+        contribution["agent"]["@id"]
+        == "f:0fdadef7-b2b9-492b-af46-c65492d459c2:ajaquier"
+    ):
+        contribution["agent"]["@id"] = (
+            "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ajaquier"
+        )
     if contribution["agent"]["@id"] == "f:0fdadef7-b2b9-492b-af46-c65492d459c2:mandge":
-        contribution["agent"]["@id"] = "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/mandge"
+        contribution["agent"]["@id"] = (
+            "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/mandge"
+        )
     return contribution
 
 
@@ -74,9 +81,17 @@ def curate_etype(data):
             "Thalamus continuous non-adapting non-oscillatory low-threshold bursting electrical type"
         )
     if data["label"] == "TH_dAD_ltb":
-        data["definition"] = "Thalamus delayed adapting low-threshold bursting electrical type"
-        data["alt_label"] = "Thalamus delayed adapting low-threshold bursting electrical type"
+        data["definition"] = (
+            "Thalamus delayed adapting low-threshold bursting electrical type"
+        )
+        data["alt_label"] = (
+            "Thalamus delayed adapting low-threshold bursting electrical type"
+        )
     if data["label"] == "TH_dNAD_ltb":
-        data["definition"] = "Thalamus delayed non-adapting low-threshold bursting electrical type"
-        data["alt_label"] = "Thalamus delayed non-adapting low-threshold bursting electrical type"
+        data["definition"] = (
+            "Thalamus delayed non-adapting low-threshold bursting electrical type"
+        )
+        data["alt_label"] = (
+            "Thalamus delayed non-adapting low-threshold bursting electrical type"
+        )
     return data

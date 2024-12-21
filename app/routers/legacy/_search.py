@@ -32,7 +32,9 @@ def legacy_search(query: dict, db: Session = Depends(get_db)):
         return mesh.search(query, db)
     if type_term == "GeneratorTaskActivity":
         with open(
-            os.path.join(os.path.dirname(__file__), "search_data/GeneratorTaskActivity.json")
+            os.path.join(
+                os.path.dirname(__file__), "search_data/GeneratorTaskActivity.json"
+            )
         ) as f:
             return json.load(f)
     assert False, "unreachable"

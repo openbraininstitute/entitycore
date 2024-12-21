@@ -30,7 +30,9 @@ async def read_experimental_neuron_density(
     )
 
     if experimental_neuron_density is None:
-        raise HTTPException(status_code=404, detail="experimental_neuron_density not found")
+        raise HTTPException(
+            status_code=404, detail="experimental_neuron_density not found"
+        )
     ret = ExperimentalNeuronDensityRead.model_validate(experimental_neuron_density)
     return ret
 
@@ -51,7 +53,7 @@ def create_experimental_neuron_density(
 
 
 @router.get("/", response_model=list[ExperimentalNeuronDensityRead])
-async def read_experimental_neuron_density(
+async def read_experimental_neuron_densities(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     users = db.query(ExperimentalNeuronDensity).offset(skip).limit(limit).all()

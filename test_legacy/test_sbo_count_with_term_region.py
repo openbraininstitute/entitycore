@@ -8,6 +8,6 @@ def test_sbo_reconstruction_morphology(client):
     )
     assert response.status_code == 200
     data = response.json()
-    assert type(data["hits"]["total"]["value"]) == int
+    assert isinstance(data["hits"]["total"]["value"], int)
     assert data["hits"]["total"]["value"] < 450
     assert data["hits"]["total"]["value"] > 100

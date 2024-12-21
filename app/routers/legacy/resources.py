@@ -43,7 +43,9 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
             print(extracted_url)
             if "ontologies/core/brainregion" in extracted_url:
                 with open(
-                    os.path.join(os.path.dirname(__file__), "resources_data/atlas_ontology.json"),
+                    os.path.join(
+                        os.path.dirname(__file__), "resources_data/atlas_ontology.json"
+                    ),
                 ) as f:
                     return json.load(f)
                 return None
@@ -59,7 +61,11 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
             use_func = func.instr
             if db.bind.dialect.name == "postgresql":
                 use_func = func.strpos
-            db_element = db.query(Root).filter(use_func(Root.legacy_id, extracted_url) > 0).first()
+            db_element = (
+                db.query(Root)
+                .filter(use_func(Root.legacy_id, extracted_url) > 0)
+                .first()
+            )
             print(db_element)
             return create_legacy_resource_body(db_element, extracted_url)
         return {"error": "'_/' not found in URL"}

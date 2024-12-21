@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -80,7 +78,9 @@ def create_strain(strain: StrainCreate, db: Session = Depends(get_db)):
     return db_strain
 
 
-@app.post("/morphology_feature_annotation/", response_model=MorphologyFeatureAnnotationRead)
+@app.post(
+    "/morphology_feature_annotation/", response_model=MorphologyFeatureAnnotationRead
+)
 def create_morphology_feature_annotation(
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
     db: Session = Depends(get_db),
@@ -117,7 +117,9 @@ async def read_morphology_feature_annotations(
 
 @app.post("/brain_region/", response_model=BrainRegionRead)
 def create_brain_region(brain_region: BrainRegionCreate, db: Session = Depends(get_db)):
-    db_brain_region = BrainRegion(ontology_id=brain_region.ontology_id, name=brain_region.name)
+    db_brain_region = BrainRegion(
+        ontology_id=brain_region.ontology_id, name=brain_region.name
+    )
     db.add(db_brain_region)
     db.commit()
     db.refresh(db_brain_region)
@@ -140,7 +142,9 @@ async def read_license(license_id: int, db: Session = Depends(get_db)):
 
 @app.post("/license/", response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: Session = Depends(get_db)):
-    db_license = License(name=license.name, description=license.description, label=license.label)
+    db_license = License(
+        name=license.name, description=license.description, label=license.label
+    )
     db.add(db_license)
     db.commit()
     db.refresh(db_license)

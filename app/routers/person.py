@@ -35,6 +35,6 @@ def create_person(person: PersonCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[PersonRead])
-async def read_person(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+async def read_persons(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(Person).offset(skip).limit(limit).all()
     return users

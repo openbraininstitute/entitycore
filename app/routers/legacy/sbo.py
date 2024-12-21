@@ -31,7 +31,9 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
     if track_total_hits:
         type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
         type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
-        br_terms = [term for term in terms if "brainRegion.@id.keyword" in term.get("terms", {})]
+        br_terms = [
+            term for term in terms if "brainRegion.@id.keyword" in term.get("terms", {})
+        ]
         db_type = MAP_KEYWORD.get(type_keyword)
         query = db.query(db_type)
         if br_terms:

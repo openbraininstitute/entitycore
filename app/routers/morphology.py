@@ -1,14 +1,15 @@
 from typing import Union
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_filter import FilterDepends
-from sqlalchemy.orm import Session
+from sqlalchemy import func
+from sqlalchemy.orm import Session, aliased
 
 from app.dependencies.db import get_db
 from app.filters.morphology import MorphologyFilter
-from app.models.base import BrainLocation
+from app.models.base import BrainLocation, Species, Strain
 from app.models.morphology import (
     ReconstructionMorphology,
 )
@@ -32,10 +33,16 @@ router = APIRouter(
 async def read_reconstruction_morphology(
     rm_id: int, expand: str | None = Query(None), db: Session = Depends(get_db)
 ):
-    rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).first()
+    rm = (
+        db.query(ReconstructionMorphology)
+        .filter(ReconstructionMorphology.id == rm_id)
+        .first()
+    )
 
     if rm is None:
-        raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
+        raise HTTPException(
+            status_code=404, detail="ReconstructionMorphology not found"
+        )
     if expand and "morphology_feature_annotation" in expand:
         ret = ReconstructionMorphologyExpand.model_validate(rm)
         return ret
@@ -82,13 +89,6 @@ async def read_reconstruction_morphologies(
 
 
 # facet prototype
-from fastapi import Request
-from sqlalchemy import func
-from sqlalchemy.orm import aliased
-
-from app.models.base import Species, Strain
-
-
 @router.get("/q/")
 async def morphology_query(
     req: Request,
@@ -121,7 +121,8 @@ async def morphology_query(
                 other_types = aliased(other_table)
                 facet_q = facet_q.join(
                     other_types,
-                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,
+                    getattr(ReconstructionMorphology, other_ty + "_id")
+                    == other_types.id,
                 ).where(other_types.name == value)
         facets[ty] = {r.name: r.count for r in facet_q.all()}
     rms = (

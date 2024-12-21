@@ -34,7 +34,9 @@ def client():
 @pytest.fixture(scope="function")
 def db():
     engine = create_engine(
-        TEST_DATABASE_URI, connect_args={"check_same_thread": False}, poolclass=StaticPool
+        TEST_DATABASE_URI,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)

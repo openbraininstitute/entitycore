@@ -10,7 +10,6 @@ class Agent(Root, TimestampMixin):
     pref_label = Column(String, unique=True, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "agent",
-        "inherit_condition": id == Root.id,
     }
 
 
@@ -21,7 +20,6 @@ class Person(Agent):
     familyName = Column(String, unique=False, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "person",
-        "inherit_condition": id == Agent.id,
     }
     __table_args__ = (
         UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),
@@ -35,5 +33,4 @@ class Organization(Agent):
     alternative_name = Column(String, unique=False, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "organization",
-        "inherit_condition": id == Agent.id,
     }

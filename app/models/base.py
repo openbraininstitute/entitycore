@@ -34,7 +34,7 @@ class StringList(TypeDecorator):
         use_func = func.instr
         if engine.dialect.name == "postgresql":
             use_func = func.strpos
-        return use_func(column, value) > 0 
+        return use_func(column, value) > 0
     @staticmethod
     def in_(column, values):
         return or_(*[ StringList.is_equal(column, value)for value in values])
@@ -52,8 +52,6 @@ class Root(LegacyMixin, Base):
     id = Column(Integer, primary_key=True, index=True)
     type = Column(String, unique=False, index=False, nullable=False)
     __mapper_args__ = {"polymorphic_identity": "root", "polymorphic_on": type}
-
-
 
 
 class BrainLocation(Base):

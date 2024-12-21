@@ -32,7 +32,6 @@ class MTypeAnnotationBody(AnnotationBody):
     alt_label = Column(String, unique=False, nullable=True)
     __mapper_args__ = {
         "polymorphic_identity": "mtype_annotation_body",
-        "inherit_condition": id == AnnotationBody.id,
     }
 
 
@@ -51,7 +50,6 @@ class ETypeAnnotationBody(AnnotationBody):
     alt_label = Column(String, unique=False, nullable=True)
     __mapper_args__ = {
         "polymorphic_identity": "etype_annotation_body",
-        "inherit_condition": id == AnnotationBody.id,
     }
 
 
@@ -68,7 +66,6 @@ class DataMaturityAnnotationBody(AnnotationBody):
     pref_label = Column(String, nullable=False, unique=True)
     __mapper_args__ = {
         "polymorphic_identity": "datamaturity_annotation_body",
-        "inherit_condition": id == AnnotationBody.id,
     }
 
 

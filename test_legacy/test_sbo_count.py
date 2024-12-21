@@ -8,49 +8,43 @@ def test_sbo_reconstruction_morphology(client):
     )
     assert response.status_code == 200
     data = response.json()
-    assert type(data['hits']['total']['value']) == int
-    assert data['hits']['total']['value'] > 10
+    assert type(data["hits"]["total"]["value"]) == int
+    assert data["hits"]["total"]["value"] > 10
+
 
 def test_sbo_experimental_bouton_density(client):
     response = client.post(
-        TEST_SBO_END_POINT,
-        json=get_body("sbo_count_experimental_bouton_density")
+        TEST_SBO_END_POINT, json=get_body("sbo_count_experimental_bouton_density")
     )
     assert response.status_code == 200
     data = response.json()
-    assert type(data['hits']['total']['value']) == int
-    assert data['hits']['total']['value'] > 5 
+    assert type(data["hits"]["total"]["value"]) == int
+    assert data["hits"]["total"]["value"] > 5
 
 
 def test_sbo_experimental_neuron_density(client):
     response = client.post(
-        TEST_SBO_END_POINT,
-        json=get_body("sbo_count_experimental_neuron_density")
+        TEST_SBO_END_POINT, json=get_body("sbo_count_experimental_neuron_density")
     )
     assert response.status_code == 200
     data = response.json()
-    assert type(data['hits']['total']['value']) == int
-    assert data['hits']['total']['value'] > 10
+    assert type(data["hits"]["total"]["value"]) == int
+    assert data["hits"]["total"]["value"] > 10
+
 
 def test_sbo_experimental_synapses_per_connection(client):
     response = client.post(
-        TEST_SBO_END_POINT,
-        json=get_body("sbo_count_experimental_synapses_per_connection")
+        TEST_SBO_END_POINT, json=get_body("sbo_count_experimental_synapses_per_connection")
     )
     assert response.status_code == 200
     data = response.json()
-    assert type(data['hits']['total']['value']) == int
-    assert data['hits']['total']['value'] == 6 
+    assert type(data["hits"]["total"]["value"]) == int
+    assert data["hits"]["total"]["value"] == 6
+
 
 def test_sbo_experimental_trace(client):
-    response = client.post(
-        TEST_SBO_END_POINT,
-        json=get_body("sbo_count_experimental_trace")
-    )
+    response = client.post(TEST_SBO_END_POINT, json=get_body("sbo_count_experimental_trace"))
     assert response.status_code == 200
     data = response.json()
-    assert type(data['hits']['total']['value']) == int
-    assert data['hits']['total']['value'] > 10
-
-
-
+    assert type(data["hits"]["total"]["value"]) == int
+    assert data["hits"]["total"]["value"] > 10

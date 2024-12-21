@@ -1,12 +1,12 @@
-from pydantic import BaseModel
-from app.schemas.agent import PersonRead
-from app.schemas.morphology import ReconstructionMorphologyRead
-from app.schemas.role import RoleRead
-from typing import Union
 
+from pydantic import BaseModel
+
+from app.schemas.agent import PersonRead
 from app.schemas.base import (
     CreationMixin,
 )
+from app.schemas.morphology import ReconstructionMorphologyRead
+from app.schemas.role import RoleRead
 
 # LNMC contributions
 # Reconstructor full name,
@@ -27,6 +27,6 @@ class ContributionCreate(ContributionBase):
 
 
 class ContributionRead(ContributionBase, CreationMixin):
-    agent: Union[PersonRead]
+    agent: PersonRead
     role: RoleRead
-    entity: Union[ReconstructionMorphologyRead]
+    entity: ReconstructionMorphologyRead

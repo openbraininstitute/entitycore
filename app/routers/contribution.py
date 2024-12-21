@@ -1,12 +1,10 @@
-from fastapi import APIRouter
-from app.schemas.contribution import ContributionRead, ContributionCreate
-from app.models.contribution import Contribution
-from fastapi import Depends, HTTPException, Query
-from sqlalchemy.orm import Session, joinedload
-from app.models.agent import Agent
 
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
 from app.dependencies.db import get_db
+from app.models.contribution import Contribution
+from app.schemas.contribution import ContributionCreate, ContributionRead
 
 router = APIRouter(
     prefix="/contribution",
@@ -20,9 +18,7 @@ router = APIRouter(
     response_model=ContributionRead,
 )
 async def read_contribution(contribution_id: int, db: Session = Depends(get_db)):
-    contribution = (
-        db.query(Contribution).filter(Contribution.id == contribution_id).first()
-    )
+    contribution = db.query(Contribution).filter(Contribution.id == contribution_id).first()
 
     if contribution is None:
         raise HTTPException(status_code=404, detail="contribution not found")
@@ -31,10 +27,7 @@ async def read_contribution(contribution_id: int, db: Session = Depends(get_db))
 
 
 @router.post("/", response_model=ContributionRead)
-def create_contribution(
-    
-    contribution: ContributionCreate, db: Session = Depends(get_db)
-):
+def create_contribution(contribution: ContributionCreate, db: Session = Depends(get_db)):
     # agent = db.query(Agent).filter(Agent.id == contribution.agent_id).first()
     # if agent is None:
     #     raise HTTPException(status_code=404, detail="Agent not found")
@@ -50,9 +43,7 @@ def create_contribution(
     return ContributionRead.model_validate(db_contribution)
 
 
-@router.get("/", response_model=List[ContributionRead])
-async def read_contribution(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
-):
+@router.get("/", response_model=list[ContributionRead])
+async def read_contribution(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(Contribution).offset(skip).limit(limit).all()
     return users

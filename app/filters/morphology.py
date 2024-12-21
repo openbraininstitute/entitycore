@@ -1,19 +1,20 @@
-from pydantic import field_validator
-from typing import Optional
-from fastapi_filter.contrib.sqlalchemy import Filter
-from app.models.morphology import ReconstructionMorphology
 from datetime import datetime
+
+from fastapi_filter.contrib.sqlalchemy import Filter
+from pydantic import field_validator
+
+from app.models.morphology import ReconstructionMorphology
 
 
 class MorphologyFilter(Filter):
-    creation_date__lte: Optional[datetime] = None
-    creation_date__gte: Optional[datetime] = None
-    update_date__lte: Optional[datetime] = None
-    update_date__gte: Optional[datetime] = None
-    name__ilike: Optional[str] = None
-    brain_location_id: Optional[int] = None
-    brain_region_id: Optional[int] = None
-    species_id__in: Optional[list[int]] = None
+    creation_date__lte: datetime | None = None
+    creation_date__gte: datetime | None = None
+    update_date__lte: datetime | None = None
+    update_date__gte: datetime | None = None
+    name__ilike: str | None = None
+    brain_location_id: int | None = None
+    brain_region_id: int | None = None
+    species_id__in: list[int] | None = None
     order_by: list[str] = ["-creation_date"]
 
     class Constants(Filter.Constants):
@@ -27,8 +28,6 @@ class MorphologyFilter(Filter):
         for field_name in value:
             field_name = field_name.replace("+", "").replace("-", "")
             if field_name not in allowed_field_names:
-                raise ValueError(
-                    f"You may only sort by: {', '.join(allowed_field_names)}"
-                )
+                raise ValueError(f"You may only sort by: {', '.join(allowed_field_names)}")
 
         return value

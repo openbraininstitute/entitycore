@@ -7,7 +7,7 @@ def test_create_organization(client):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == name 
+    assert data["name"] == name
     assert data["label"] == label
     assert data["alternative_name"] == alternative_name
     assert "id" in data
@@ -15,7 +15,7 @@ def test_create_organization(client):
     response = client.get(f"/organization/{id_}")
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == name 
+    assert data["name"] == name
     assert data["label"] == label
     assert data["alternative_name"] == alternative_name
     assert data["id"] == id_

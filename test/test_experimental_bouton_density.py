@@ -1,13 +1,7 @@
 
-import pytest
-import sqlalchemy
-
-
 
 def test_experimental_bouton_density(client):
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
+    response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     assert data["name"] == "Test Species"
@@ -30,9 +24,7 @@ def test_experimental_bouton_density(client):
     response = client.post(
         "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
     )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create brain region: {response.text}"
+    assert response.status_code == 200, f"Failed to create brain region: {response.text}"
     data = response.json()
     assert data["name"] == "Test Brain Region"
     assert data["ontology_id"] == ontology_id
@@ -40,7 +32,11 @@ def test_experimental_bouton_density(client):
     brain_region_id = data["id"]
     response = client.post(
         "/license/",
-        json={"name": "Test License", "description": "a license description", "label":"test label"},
+        json={
+            "name": "Test License",
+            "description": "a license description",
+            "label": "test label",
+        },
     )
     assert response.status_code == 200
     data = response.json()
@@ -85,7 +81,7 @@ def test_experimental_bouton_density(client):
         data["license"]["name"] == "Test License"
     ), f"Failed to get license for  experimental bouton density: {data}"
 
-    response=client.get(f"/experimental_bouton_density/{data['id']}")
+    response = client.get(f"/experimental_bouton_density/{data['id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["brain_region"]["id"] == brain_region_id

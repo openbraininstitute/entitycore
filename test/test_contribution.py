@@ -1,7 +1,5 @@
 def test_create_contribution(client):
-    response = client.post(
-        "/person/", json={"givenName": "jd", "familyName": "courcol"}
-    )
+    response = client.post("/person/", json={"givenName": "jd", "familyName": "courcol"})
     assert response.status_code == 200
     data = response.json()
     person_id = data["id"]
@@ -13,9 +11,7 @@ def test_create_contribution(client):
     data = response.json()
     role_id = data["id"]
 
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
+    response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     species_id = data["id"]
@@ -34,14 +30,16 @@ def test_create_contribution(client):
     response = client.post(
         "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
     )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create brain region: {response.text}"
+    assert response.status_code == 200, f"Failed to create brain region: {response.text}"
     data = response.json()
     brain_region_id = data["id"]
     response = client.post(
         "/license/",
-        json={"name": "Test License", "description": "a license description", "label": "Test License Label"},
+        json={
+            "name": "Test License",
+            "description": "a license description",
+            "label": "Test License Label",
+        },
     )
     assert response.status_code == 200
     data = response.json()

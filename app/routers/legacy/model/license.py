@@ -1,6 +1,8 @@
-import app.models.base as models
 from sqlalchemy import and_
-import app.routers.legacy.model.utils as utils
+
+import app.models.base as models
+from app.routers.legacy.model import utils
+
 
 def build_filters(model, filter_dict):
     filters = []
@@ -11,14 +13,11 @@ def build_filters(model, filter_dict):
     return filters
 
 
-
 def search(body, db):
     terms = body.get("query", {}).get("bool", {}).get("must", [])
     WHITELIST_TERMS = {"@id": "name"}
     acceptable_terms = [
-        term
-        for term in terms
-        if list(term.get("term").keys())[0] in WHITELIST_TERMS.keys()
+        term for term in terms if list(term.get("term").keys())[0] in WHITELIST_TERMS
     ]
     filters = build_filters(
         models.License,

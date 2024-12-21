@@ -1,19 +1,18 @@
 from sqlalchemy import (
     Column,
-    Integer,
+    DateTime,
     Float,
+    ForeignKey,
+    Integer,
     String,
     create_engine,
-    DateTime,
     func,
-    ForeignKey,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, mapped_column
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.types import TypeDecorator, VARCHAR
+from sqlalchemy.ext.declarative import declarative_base, declared_attr
+from sqlalchemy.orm import mapped_column, relationship, sessionmaker
+from sqlalchemy.types import VARCHAR, TypeDecorator
 
-from app.config import DATABASE_URI, DATABASE_CONNECT_ARGS
+from app.config import DATABASE_CONNECT_ARGS, DATABASE_URI
 
 engine = create_engine(DATABASE_URI, connect_args=DATABASE_CONNECT_ARGS)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -36,11 +35,14 @@ class StringList(TypeDecorator):
         if value is not None:
             return value.split(",")
 
+
 class LegacyMixin:
     legacy_id = Column(StringList, index=True, nullable=True)
 
+
 class DistributionMixin:
     content_url = Column(String, unique=False, index=False, nullable=True)
+
 
 class Root(LegacyMixin, Base):
     __tablename__ = "root"

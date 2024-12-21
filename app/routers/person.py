@@ -1,11 +1,10 @@
-from fastapi import APIRouter
-from app.schemas.agent import PersonRead, PersonCreate
-from app.models.agent import Person
-from fastapi import Depends, HTTPException, Query
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from typing import List
 from app.dependencies.db import get_db
+from app.models.agent import Person
+from app.schemas.agent import PersonCreate, PersonRead
 
 router = APIRouter(
     prefix="/person",
@@ -20,7 +19,7 @@ router = APIRouter(
 )
 async def read_person(person_id: int, db: Session = Depends(get_db)):
     person = db.query(Person).filter(Person.id == person_id).first()
- 
+
     if person is None:
         raise HTTPException(status_code=404, detail="person not found")
     ret = PersonRead.model_validate(person)
@@ -29,14 +28,14 @@ async def read_person(person_id: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=PersonRead)
 def create_person(person: PersonCreate, db: Session = Depends(get_db)):
-    db_person = Person( **person.model_dump())
+    db_person = Person(**person.model_dump())
     db.add(db_person)
     db.commit()
     db.refresh(db_person)
     return db_person
 
 
-@router.get("/", response_model=List[PersonRead])
+@router.get("/", response_model=list[PersonRead])
 async def read_person(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(Person).offset(skip).limit(limit).all()
     return users

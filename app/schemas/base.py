@@ -1,7 +1,7 @@
+from datetime import datetime
 
 from pydantic import BaseModel
-from typing import List, Optional
-from datetime import datetime
+
 
 class CreationMixin(BaseModel):
     id: int
@@ -13,22 +13,25 @@ class CreationMixin(BaseModel):
         result["creation_date"] = (
             result["creation_date"].isoformat() if result["creation_date"] else None
         )
-        result["update_date"] = (
-            result["update_date"].isoformat() if result["update_date"] else None
-        )
+        result["update_date"] = result["update_date"].isoformat() if result["update_date"] else None
         return result
+
     class Config:
         from_attributes = True
+
 
 class LicenseCreate(BaseModel):
     name: str
     description: str
     label: str
+
     class Config:
         from_attributes = True
 
+
 class LicenseRead(LicenseCreate, CreationMixin):
     pass
+
 
 class BrainLocationCreate(BaseModel):
     x: float
@@ -50,6 +53,7 @@ class BrainRegionCreate(BaseModel):
 class BrainRegionRead(BrainRegionCreate, CreationMixin):
     pass
 
+
 class StrainCreate(BaseModel):
     name: str
     taxonomy_id: str
@@ -62,6 +66,7 @@ class StrainCreate(BaseModel):
 class StrainRead(StrainCreate, CreationMixin):
     pass
 
+
 class SpeciesCreate(BaseModel):
     name: str
     taxonomy_id: str
@@ -73,16 +78,19 @@ class SpeciesCreate(BaseModel):
 class SpeciesRead(SpeciesCreate, CreationMixin):
     pass
 
+
 class LicensedCreateMixin(BaseModel):
-    license_id: Optional[int] = None
+    license_id: int | None = None
+
     class Config:
         from_attributes = True
+
 
 class LicensedReadMixin(BaseModel):
-    license: Optional[LicenseRead]
+    license: LicenseRead | None
+
     class Config:
         from_attributes = True
-
 
 
 class MorphologyMeasurementSerieBase(BaseModel):
@@ -95,7 +103,7 @@ class MorphologyMeasurementSerieBase(BaseModel):
 
 class MeasurementCreate(BaseModel):
     measurement_of: str
-    measurement_serie: List[MorphologyMeasurementSerieBase]
+    measurement_serie: list[MorphologyMeasurementSerieBase]
 
     class Config:
         from_attributes = True
@@ -103,5 +111,3 @@ class MeasurementCreate(BaseModel):
 
 class MeasurementRead(MeasurementCreate):
     id: int
-
-

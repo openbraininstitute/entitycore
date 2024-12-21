@@ -1,11 +1,10 @@
-from fastapi import APIRouter
-from app.schemas.agent import OrganizationRead, OrganizationCreate
-from app.models.agent import Organization
-from fastapi import Depends, HTTPException, Query
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from typing import List
 from app.dependencies.db import get_db
+from app.models.agent import Organization
+from app.schemas.agent import OrganizationCreate, OrganizationRead
 
 router = APIRouter(
     prefix="/organization",
@@ -36,7 +35,7 @@ def create_organization(organization: OrganizationCreate, db: Session = Depends(
     return db_organization
 
 
-@router.get("/", response_model=List[OrganizationRead])
+@router.get("/", response_model=list[OrganizationRead])
 async def read_organization(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(Organization).offset(skip).limit(limit).all()
     return users

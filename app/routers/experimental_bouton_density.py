@@ -1,15 +1,14 @@
-from fastapi import APIRouter
-from app.schemas.density import (
-    ExperimentalBoutonDensityRead,
-    ExperimentalBoutonDensityCreate,
-)
-from app.models.density import ExperimentalBoutonDensity
-from app.models.base import BrainLocation
-from fastapi import Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from typing import List
 from app.dependencies.db import get_db
+from app.models.base import BrainLocation
+from app.models.density import ExperimentalBoutonDensity
+from app.schemas.density import (
+    ExperimentalBoutonDensityCreate,
+    ExperimentalBoutonDensityRead,
+)
 
 router = APIRouter(
     prefix="/experimental_bouton_density",
@@ -32,9 +31,7 @@ async def read_experimental_bouton_density(
     )
 
     if experimental_bouton_density is None:
-        raise HTTPException(
-            status_code=404, detail="experimental_bouton_density not found"
-        )
+        raise HTTPException(status_code=404, detail="experimental_bouton_density not found")
     ret = ExperimentalBoutonDensityRead.model_validate(experimental_bouton_density)
     return ret
 
@@ -54,7 +51,7 @@ def create_experimental_bouton_density(
     return db_experimental_bouton_density
 
 
-@router.get("/", response_model=List[ExperimentalBoutonDensityRead])
+@router.get("/", response_model=list[ExperimentalBoutonDensityRead])
 async def read_experimental_bouton_density(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):

@@ -1,11 +1,12 @@
+
 from pydantic import BaseModel
-from typing import Optional
+
 from app.schemas.base import (
-    CreationMixin,
-    LicensedReadMixin,
-    LicensedCreateMixin,
     BrainLocationCreate,
     BrainRegionRead,
+    CreationMixin,
+    LicensedCreateMixin,
+    LicensedReadMixin,
     SpeciesRead,
     StrainRead,
 )
@@ -14,7 +15,7 @@ from app.schemas.base import (
 class ExperimentalDensityBase(BaseModel):
     name: str
     description: str
-    brain_location: Optional[BrainLocationCreate]
+    brain_location: BrainLocationCreate | None
 
     class Config:
         from_attributes = True
@@ -24,14 +25,12 @@ class ExperimentalDensityCreate(ExperimentalDensityBase, LicensedCreateMixin):
     species_id: int
     strain_id: int
     brain_region_id: int
-    legacy_id: Optional[str]
+    legacy_id: str | None
 
 
-class ExperimentalDensityRead(
-    ExperimentalDensityBase, CreationMixin, LicensedReadMixin
-):
+class ExperimentalDensityRead(ExperimentalDensityBase, CreationMixin, LicensedReadMixin):
     species: SpeciesRead
-    strain: Optional[StrainRead]
+    strain: StrainRead | None
     brain_region: BrainRegionRead
 
 

@@ -1,11 +1,12 @@
+
 from pydantic import BaseModel
-from typing import List, Optional
+
 from app.schemas.base import (
-    CreationMixin,
-    LicensedReadMixin,
-    LicensedCreateMixin,
     BrainLocationCreate,
     BrainRegionRead,
+    CreationMixin,
+    LicensedCreateMixin,
+    LicensedReadMixin,
     MeasurementCreate,
     MeasurementRead,
     SpeciesRead,
@@ -16,7 +17,7 @@ from app.schemas.base import (
 class ReconstructionMorphologyBase(BaseModel):
     name: str
     description: str
-    brain_location: Optional[BrainLocationCreate]
+    brain_location: BrainLocationCreate | None
 
     class Config:
         from_attributes = True
@@ -26,28 +27,26 @@ class ReconstructionMorphologyCreate(ReconstructionMorphologyBase, LicensedCreat
     species_id: int
     strain_id: int
     brain_region_id: int
-    legacy_id: Optional[str]
+    legacy_id: str | None
 
 
 class MorphologyFeatureAnnotationCreate(BaseModel):
     reconstruction_morphology_id: int
-    measurements: List[MeasurementCreate]
+    measurements: list[MeasurementCreate]
 
     class Config:
         from_attributes = True
 
 
 class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, CreationMixin):
-    measurements: List[MeasurementRead]
+    measurements: list[MeasurementRead]
 
 
-class ReconstructionMorphologyRead(
-    ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin
-):
+class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin):
     species: SpeciesRead
-    strain: Optional[StrainRead]
+    strain: StrainRead | None
     brain_region: BrainRegionRead
 
 
 class ReconstructionMorphologyExpand(ReconstructionMorphologyRead):
-    morphology_feature_annotation: Optional[MorphologyFeatureAnnotationCreate]
+    morphology_feature_annotation: MorphologyFeatureAnnotationCreate | None

@@ -1,13 +1,15 @@
 # conftest.py
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.dependencies.db import get_db
-from app.config import TEST_DATABASE_URI
 from sqlalchemy.pool import StaticPool
-from app.models.base import Base
-from fastapi.testclient import TestClient
+
 from app import app
+from app.config import TEST_DATABASE_URI
+from app.dependencies.db import get_db
+from app.models.base import Base
+
 
 @pytest.fixture(scope="function")
 def client():
@@ -28,9 +30,12 @@ def client():
     client = TestClient(app)
     return client
 
+
 @pytest.fixture(scope="function")
 def db():
-    engine = create_engine(TEST_DATABASE_URI, connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    engine = create_engine(
+        TEST_DATABASE_URI, connect_args={"check_same_thread": False}, poolclass=StaticPool
+    )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()

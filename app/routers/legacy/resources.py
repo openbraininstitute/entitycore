@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends
-from app.models.base import Root
-from urllib.parse import unquote
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.dependencies.db import get_db
-from app.schemas.agent import PersonRead
 import json
 import os
+from urllib.parse import unquote
+
+from fastapi import APIRouter, Depends
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.dependencies.db import get_db
+from app.models.base import Root
+from app.schemas.agent import PersonRead
 
 router = APIRouter(
     prefix="/nexus/v1/resources",
@@ -33,7 +35,6 @@ RESOURCE_MAP = {
 def legacy_resources(path: str, db: Session = Depends(get_db)):
     # Extract the part after '_/'
     try:
-
         # Locate the `_` and the portion after `_/`
 
         if "_/" in path:
@@ -43,10 +44,9 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
             if "ontologies/core/brainregion" in extracted_url:
                 with open(
                     os.path.join(os.path.dirname(__file__), "resources_data/atlas_ontology.json"),
-                    "r",
                 ) as f:
                     return json.load(f)
-                return
+                return None
             if extracted_url in RESOURCE_MAP:
                 with open(
                     os.path.join(
@@ -54,20 +54,14 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
                         "resources_data",
                         RESOURCE_MAP[extracted_url],
                     ),
-                    "r",
                 ) as f:
                     return json.load(f)
             use_func = func.instr
             if db.bind.dialect.name == "postgresql":
                 use_func = func.strpos
-            db_element = (
-                db.query(Root)
-                .filter(use_func(Root.legacy_id, extracted_url) > 0)
-                .first()
-            )
+            db_element = db.query(Root).filter(use_func(Root.legacy_id, extracted_url) > 0).first()
             print(db_element)
             return create_legacy_resource_body(db_element, extracted_url)
-        else:
-            return {"error": "'_/' not found in URL"}
+        return {"error": "'_/' not found in URL"}
     except Exception as e:
         return {"error": str(e)}

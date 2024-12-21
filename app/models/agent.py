@@ -1,6 +1,7 @@
-from app.models.base import TimestampMixin, Base, engine, Root
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import mapped_column
+
+from app.models.base import Base, Root, TimestampMixin, engine
 
 
 class Agent(Root, TimestampMixin):
@@ -21,9 +22,7 @@ class Person(Agent):
         "polymorphic_identity": "person",
         "inherit_condition": id == Agent.id,
     }
-    __table_args__ = (
-        UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),
-    )
+    __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
 
 
 class Organization(Agent):

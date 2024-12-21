@@ -1,6 +1,7 @@
-from app.models.base import TimestampMixin, Base, engine
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.orm import relationship
+
+from app.models.base import Base, TimestampMixin
 
 
 class Contribution(TimestampMixin, Base):
@@ -13,7 +14,5 @@ class Contribution(TimestampMixin, Base):
     entity_id = Column(Integer, ForeignKey("entity.id"), nullable=False)
     entity = relationship("Entity", uselist=False)
     __table_args__ = (
-        UniqueConstraint(
-            "entity_id", "role_id", "agent_id", name="unique_contribution_1"
-        ),
+        UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
     )

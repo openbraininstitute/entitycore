@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
-from app.routers.legacy.model import license, class_ontology, mesh
-
-from sqlalchemy.orm import Session
-from app.dependencies.db import get_db
-import os
 import json
+import os
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app.dependencies.db import get_db
+from app.routers.legacy.model import class_ontology, license, mesh
 
 router = APIRouter(
     prefix="/nexus/v1/views",
@@ -30,6 +31,8 @@ def legacy_search(query: dict, db: Session = Depends(get_db)):
     if type_term == "Mesh":
         return mesh.search(query, db)
     if type_term == "GeneratorTaskActivity":
-        with open(os.path.join(os.path.dirname(__file__), "search_data/GeneratorTaskActivity.json"), "r") as f:
+        with open(
+            os.path.join(os.path.dirname(__file__), "search_data/GeneratorTaskActivity.json")
+        ) as f:
             return json.load(f)
     assert False, "unreachable"

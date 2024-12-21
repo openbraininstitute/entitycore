@@ -1,13 +1,12 @@
-from app.models.base import TimestampMixin, LegacyMixin, Base, engine
-from sqlalchemy import Column, Integer, String, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import mapped_column, relationship
+
+from app.models.base import Base, LegacyMixin, TimestampMixin, engine
 
 
 class AnnotationBody(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "annotation_body"
-    id = mapped_column(
-        Integer, primary_key=True, index=True, nullable=False, autoincrement=True
-    )
+    id = mapped_column(Integer, primary_key=True, index=True, nullable=False, autoincrement=True)
     type = Column(String, unique=False, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "annotation_body",

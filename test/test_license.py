@@ -1,5 +1,3 @@
-import pytest
-import sqlalchemy
 
 
 def test_create_license(client):
@@ -13,7 +11,7 @@ def test_create_license(client):
     assert "id" in data
     assert data["description"] == "a license description"
     id_ = data["id"]
-    response = client.get("/license/{}".format(id_))
+    response = client.get(f"/license/{id_}")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Test License"

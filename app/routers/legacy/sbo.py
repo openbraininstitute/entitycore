@@ -1,13 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from app.routers.legacy.model import license
-
 from sqlalchemy.orm import Session
-from app.dependencies.db import get_db
+
+import app.models.density
 import app.models.morphology
 import app.models.single_cell_experimental_trace
-import app.models.density
-import app.models.base as base
-import app.routers.legacy.model.utils as utils
+from app.dependencies.db import get_db
+from app.models import base
+from app.routers.legacy.model import utils
 
 router = APIRouter(
     prefix="/nexus/v1/search/query/suite",
@@ -25,7 +24,6 @@ MAP_KEYWORD = {
 
 @router.post("/sbo")
 def legacy_sbo(query: dict, db: Session = Depends(get_db)):
-
     terms = query.get("query", {}).get("bool", {}).get("must", [])
     if not terms:
         raise HTTPException(status_code=400, detail="No search terms provided")
@@ -33,9 +31,7 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
     if track_total_hits:
         type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
         type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
-        br_terms = [
-            term for term in terms if "brainRegion.@id.keyword" in term.get("terms", {})
-        ]
+        br_terms = [term for term in terms if "brainRegion.@id.keyword" in term.get("terms", {})]
         db_type = MAP_KEYWORD.get(type_keyword)
         query = db.query(db_type)
         if br_terms:
@@ -54,6 +50,6 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
     if not type_term:
         raise HTTPException(status_code=400, detail="empty @type provided")
 
-    assert type_term in ["neuronMorphology.@id.keyword"]
+    assert type_term == "neuronMorphology.@id.keyword"
     # if type_term == "License":
     #     return license.search(query, db)

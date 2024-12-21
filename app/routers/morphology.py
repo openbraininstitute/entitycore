@@ -1,23 +1,22 @@
-from fastapi import APIRouter
-from fastapi_filter import FilterDepends
-
-from typing import List, Optional
-from fastapi import Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from app.dependencies.db import get_db
 from typing import Union
-from app.schemas.morphology import (
-    ReconstructionMorphologyRead,
-    ReconstructionMorphologyExpand,
-    ReconstructionMorphologyCreate,
-)
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from fastapi_filter import FilterDepends
+from sqlalchemy.orm import Session
+
+from app.dependencies.db import get_db
+from app.filters.morphology import MorphologyFilter
+from app.models.base import BrainLocation
 from app.models.morphology import (
     ReconstructionMorphology,
 )
-from app.models.base import BrainLocation
-from app.filters.morphology import MorphologyFilter
-from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
+from app.schemas.morphology import (
+    ReconstructionMorphologyCreate,
+    ReconstructionMorphologyExpand,
+    ReconstructionMorphologyRead,
+)
 
 router = APIRouter(
     prefix="/reconstruction_morphology",
@@ -31,25 +30,18 @@ router = APIRouter(
     response_model=Union[ReconstructionMorphologyExpand, ReconstructionMorphologyRead],
 )
 async def read_reconstruction_morphology(
-    rm_id: int, expand: Optional[str] = Query(None), db: Session = Depends(get_db)
+    rm_id: int, expand: str | None = Query(None), db: Session = Depends(get_db)
 ):
-    rm = (
-        db.query(ReconstructionMorphology)
-        .filter(ReconstructionMorphology.id == rm_id)
-        .first()
-    )
+    rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).first()
 
     if rm is None:
-        raise HTTPException(
-            status_code=404, detail="ReconstructionMorphology not found"
-        )
+        raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
     if expand and "morphology_feature_annotation" in expand:
         ret = ReconstructionMorphologyExpand.model_validate(rm)
         return ret
-    else:
-        ret = ReconstructionMorphologyRead.model_validate(rm)
-        # added back with None by the response_model
-        return ret
+    ret = ReconstructionMorphologyRead.model_validate(rm)
+    # added back with None by the response_model
+    return ret
 
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
@@ -76,7 +68,7 @@ def create_reconstruction_morphology(
     return db_reconstruction_morphology
 
 
-@router.get("/", response_model=List[ReconstructionMorphologyRead])
+@router.get("/", response_model=list[ReconstructionMorphologyRead])
 async def read_reconstruction_morphologies(
     skip: int = 0,
     limit: int = 10,
@@ -90,16 +82,17 @@ async def read_reconstruction_morphologies(
 
 
 # facet prototype
-from app.models.base import Species, Strain
-from sqlalchemy import func, select
 from fastapi import Request
+from sqlalchemy import func
 from sqlalchemy.orm import aliased
+
+from app.models.base import Species, Strain
 
 
 @router.get("/q/")
 async def morphology_query(
     req: Request,
-    term: Optional[str] = Query(None),
+    term: str | None = Query(None),
     skip: int = 0,
     limit: int = 10,
     session: Session = Depends(get_db),
@@ -128,8 +121,7 @@ async def morphology_query(
                 other_types = aliased(other_table)
                 facet_q = facet_q.join(
                     other_types,
-                    getattr(ReconstructionMorphology, other_ty + "_id")
-                    == other_types.id,
+                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,
                 ).where(other_types.name == value)
         facets[ty] = {r.name: r.count for r in facet_q.all()}
     rms = (

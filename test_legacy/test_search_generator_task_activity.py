@@ -1,5 +1,6 @@
 from . import TEST_SEARCH_END_POINT, get_body
 
+
 def test_search_generator_task_activity(client):
     print(TEST_SEARCH_END_POINT + "/_search")
     response = client.post(

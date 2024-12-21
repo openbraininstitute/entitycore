@@ -1,40 +1,41 @@
-from fastapi import FastAPI, Depends, HTTPException
+from typing import List
+
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+
+from app.dependencies.db import get_db
+from app.models.base import BrainRegion, License, Species, Strain
+from app.models.morphology import (
+    MorphologyFeatureAnnotation,
+    MorphologyMeasurement,
+    MorphologyMeasurementSerieElement,
+)
 from app.routers import (
-    morphology,
-    person,
-    organization,
     contribution,
-    role,
     experimental_bouton_density,
     experimental_neuron_density,
     experimental_synapses_per_connection,
+    morphology,
+    organization,
+    person,
+    role,
 )
-from app.routers.legacy import _search, sbo, resources, files
-from typing import List
-from app.dependencies.db import get_db
+from app.routers.legacy import _search, files, resources, sbo
+from app.schemas.base import (
+    BrainRegionCreate,
+    BrainRegionRead,
+    LicenseCreate,
+    LicenseRead,
+    SpeciesCreate,
+    StrainCreate,
+)
 from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
     MorphologyFeatureAnnotationRead,
     SpeciesRead,
     StrainRead,
 )
-from app.schemas.base import (
-    BrainRegionRead,
-    BrainRegionCreate,
-    SpeciesCreate,
-    StrainCreate,
-    LicenseRead,
-    LicenseCreate,
-)
-from app.models.morphology import (
-    MorphologyFeatureAnnotation,
-    MorphologyMeasurement,
-    MorphologyMeasurementSerieElement,
-)
-from app.models.base import Species, License, BrainRegion, Strain
-
 
 app = FastAPI()
 app.add_middleware(
@@ -79,9 +80,7 @@ def create_strain(strain: StrainCreate, db: Session = Depends(get_db)):
     return db_strain
 
 
-@app.post(
-    "/morphology_feature_annotation/", response_model=MorphologyFeatureAnnotationRead
-)
+@app.post("/morphology_feature_annotation/", response_model=MorphologyFeatureAnnotationRead)
 def create_morphology_feature_annotation(
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
     db: Session = Depends(get_db),
@@ -107,7 +106,7 @@ def create_morphology_feature_annotation(
 
 @app.get(
     "/morphology_feature_annotation/",
-    response_model=List[MorphologyFeatureAnnotationCreate],
+    response_model=list[MorphologyFeatureAnnotationCreate],
 )
 async def read_morphology_feature_annotations(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
@@ -118,16 +117,14 @@ async def read_morphology_feature_annotations(
 
 @app.post("/brain_region/", response_model=BrainRegionRead)
 def create_brain_region(brain_region: BrainRegionCreate, db: Session = Depends(get_db)):
-    db_brain_region = BrainRegion(
-        ontology_id=brain_region.ontology_id, name=brain_region.name
-    )
+    db_brain_region = BrainRegion(ontology_id=brain_region.ontology_id, name=brain_region.name)
     db.add(db_brain_region)
     db.commit()
     db.refresh(db_brain_region)
     return db_brain_region
 
 
-@app.get("/license/", response_model=List[LicenseRead])
+@app.get("/license/", response_model=list[LicenseRead])
 async def read_licenses(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(License).offset(skip).limit(limit).all()
     return users
@@ -143,9 +140,7 @@ async def read_license(license_id: int, db: Session = Depends(get_db)):
 
 @app.post("/license/", response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: Session = Depends(get_db)):
-    db_license = License(
-        name=license.name, description=license.description, label=license.label
-    )
+    db_license = License(name=license.name, description=license.description, label=license.label)
     db.add(db_license)
     db.commit()
     db.refresh(db_license)

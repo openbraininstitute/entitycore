@@ -1,5 +1,7 @@
-import app.routers.legacy.model.utils as utils
-import app.models.annotation as annotation
+from app.models import annotation
+from app.routers.legacy.model import utils
+
+
 def search(body, db):
     # for the time being only 1 query
     try:

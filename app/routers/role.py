@@ -1,9 +1,10 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-from app.schemas.role import RoleRead, RoleCreate
+
 from app.dependencies.db import get_db
 from app.models.role import Role
+from app.schemas.role import RoleCreate, RoleRead
 
 router = APIRouter(
     prefix="/role",
@@ -36,7 +37,7 @@ def create_role(role: RoleCreate, db: Session = Depends(get_db)):
     return RoleRead.model_validate(db_role)
 
 
-@router.get("/", response_model=List[RoleRead])
+@router.get("/", response_model=list[RoleRead])
 async def read_role(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(Role).offset(skip).limit(limit).all()
     return users

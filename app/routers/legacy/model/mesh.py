@@ -1,5 +1,5 @@
-import app.models.mesh as mesh
-import app.routers.legacy.model.utils as utils
+from app.models import mesh
+from app.routers.legacy.model import utils
 
 
 def build_mesh_elem(elem):
@@ -10,7 +10,7 @@ def build_mesh_elem(elem):
             "@type": ["Mesh"],
             "brainLocation": {
                 "brainRegion": {
-                    '@id':elem.brain_region.ontology_id,
+                    "@id": elem.brain_region.ontology_id,
                 }
             },
             "distribution": {

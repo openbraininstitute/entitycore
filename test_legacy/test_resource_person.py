@@ -7,5 +7,3 @@ def test_query_person(client):
     assert data["familyName"] == "Kanari"
     assert data["givenName"] == "Lida"
     assert data["@id"] == "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/kanari"
-  
-  

@@ -1,5 +1,6 @@
 from . import TEST_SEARCH_END_POINT, get_body
 
+
 def test_search_mtype_type(client):
     print(TEST_SEARCH_END_POINT + "/_search")
     response = client.post(
@@ -14,6 +15,3 @@ def test_search_mtype_type(client):
     assert set(ids) == set(ids_source)
     labels = [d["_source"]["label"] for d in data]
     assert len(labels) == len(ids)
-
-
-

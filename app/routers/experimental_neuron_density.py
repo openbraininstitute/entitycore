@@ -1,15 +1,14 @@
-from fastapi import APIRouter
-from app.schemas.density import (
-    ExperimentalNeuronDensityRead,
-    ExperimentalNeuronDensityCreate,
-)
-from app.models.density import ExperimentalNeuronDensity
-from app.models.base import BrainLocation
-from fastapi import Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from typing import List
 from app.dependencies.db import get_db
+from app.models.base import BrainLocation
+from app.models.density import ExperimentalNeuronDensity
+from app.schemas.density import (
+    ExperimentalNeuronDensityCreate,
+    ExperimentalNeuronDensityRead,
+)
 
 router = APIRouter(
     prefix="/experimental_neuron_density",
@@ -32,9 +31,7 @@ async def read_experimental_neuron_density(
     )
 
     if experimental_neuron_density is None:
-        raise HTTPException(
-            status_code=404, detail="experimental_neuron_density not found"
-        )
+        raise HTTPException(status_code=404, detail="experimental_neuron_density not found")
     ret = ExperimentalNeuronDensityRead.model_validate(experimental_neuron_density)
     return ret
 
@@ -54,7 +51,7 @@ def create_experimental_neuron_density(
     return db_experimental_neuron_density
 
 
-@router.get("/", response_model=List[ExperimentalNeuronDensityRead])
+@router.get("/", response_model=list[ExperimentalNeuronDensityRead])
 async def read_experimental_neuron_density(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):

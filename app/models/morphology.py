@@ -1,16 +1,18 @@
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, event
+from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.schema import DDL
+
 from app.models.base import (
-    TimestampMixin,
-    LicensedMixin,
+    Base,
     Entity,
+    LicensedMixin,
     LocationMixin,
     SpeciesMixin,
-    Base,
+    TimestampMixin,
     engine,
 )
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, event
-from sqlalchemy.orm import relationship, mapped_column
-from sqlalchemy.dialects.postgresql import TSVECTOR
-from sqlalchemy.schema import DDL
+
 
 class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
@@ -18,25 +20,25 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     description = Column(String, unique=False, index=False, nullable=False)
     # name is not unique
     name = Column(String, unique=False, index=True, nullable=False)
-    if engine.dialect.name == 'postgresql':
+    if engine.dialect.name == "postgresql":
         morphology_description_vector = Column(TSVECTOR)
-    morphology_feature_annotation = relationship(
-        "MorphologyFeatureAnnotation", uselist=False
-    )
+    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}
 
-trigger_statement = DDL('''
+
+trigger_statement = DDL("""
 CREATE TRIGGER morphology_description_vector
   BEFORE INSERT OR UPDATE ON reconstruction_morphology
   FOR EACH ROW EXECUTE FUNCTION
     tsvector_update_trigger(morphology_description_vector, 'pg_catalog.english', description);
-''')
+""")
 # Associate the trigger with the table
 event.listen(
     ReconstructionMorphology.__table__,
-    'after_create',
-    trigger_statement.execute_if(dialect='postgresql')
+    "after_create",
+    trigger_statement.execute_if(dialect="postgresql"),
 )
+
 
 class MorphologyFeatureAnnotation(TimestampMixin, Base):
     __tablename__ = "morphology_feature_annotation"

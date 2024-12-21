@@ -1,6 +1,5 @@
-from pydantic import BaseModel
 
-from typing import Optional
+from pydantic import BaseModel
 
 from app.schemas.base import (
     CreationMixin,
@@ -22,8 +21,7 @@ class PersonBase(BaseModel):
 
 
 class PersonCreate(PersonBase):
-    legacy_id: Optional[str] = None
-    pass
+    legacy_id: str | None = None
 
 
 class PersonRead(PersonBase, CreationMixin):
@@ -33,15 +31,14 @@ class PersonRead(PersonBase, CreationMixin):
 class OrganizationBase(BaseModel):
     name: str
     label: str
-    alternative_name: Optional[str] = None
+    alternative_name: str | None = None
 
     class Config:
         from_attributes = True
 
 
 class OrganizationCreate(OrganizationBase):
-    legacy_id: Optional[str] = None
-    pass
+    legacy_id: str | None = None
 
 
 class OrganizationRead(OrganizationBase, CreationMixin):

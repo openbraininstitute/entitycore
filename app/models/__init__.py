@@ -1,0 +1,70 @@
+from app.models.agent import Agent, Organization, Person
+from app.models.annotation import (
+    Annotation,
+    DataMaturityAnnotationBody,
+    ETypeAnnotationBody,
+    MTypeAnnotationBody,
+)
+from app.models.base import (
+    Base,
+    BrainLocation,
+    BrainRegion,
+    Entity,
+    License,
+    Root,
+    Species,
+    Strain,
+    Subject,
+    engine,
+)
+from app.models.contribution import Contribution
+from app.models.density import (
+    ExperimentalBoutonDensity,
+    ExperimentalNeuronDensity,
+    ExperimentalSynapsesPerConnection,
+)
+from app.models.mesh import Mesh
+from app.models.morphology import (
+    MorphologyFeatureAnnotation,
+    MorphologyMeasurement,
+    MorphologyMeasurementSerieElement,
+    ReconstructionMorphology,
+)
+from app.models.role import Role
+from app.models.single_cell_experimental_trace import SingleCellExperimentalTrace
+
+__all__ = [
+    Role,
+    SingleCellExperimentalTrace,
+    MorphologyMeasurementSerieElement,
+    MorphologyMeasurement,
+    MorphologyMeasurementSerieElement,
+    ReconstructionMorphology,
+    Mesh,
+    MorphologyFeatureAnnotation,
+    Contribution,
+    ExperimentalBoutonDensity,
+    ExperimentalNeuronDensity,
+    ExperimentalSynapsesPerConnection,
+    Agent,
+    Organization,
+    Person,
+    Annotation,
+    DataMaturityAnnotationBody,
+    ETypeAnnotationBody,
+    MTypeAnnotationBody,
+    Base,
+    BrainLocation,
+    BrainRegion,
+    Entity,
+    License,
+    Root,
+    Species,
+    Strain,
+    Subject,
+    engine,
+]
+
+# Note: this is still not right; database initialization should be separate
+# to model definition
+Base.metadata.create_all(bind=engine)

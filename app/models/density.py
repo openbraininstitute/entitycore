@@ -2,12 +2,10 @@ from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import mapped_column
 
 from app.models.base import (
-    Base,
     Entity,
     LicensedMixin,
     LocationMixin,
     SpeciesMixin,
-    engine,
 )
 
 
@@ -33,6 +31,3 @@ class ExperimentalSynapsesPerConnection(LocationMixin, SpeciesMixin, LicensedMix
     name = Column(String, unique=False, index=True, nullable=False)
     description = Column(String, unique=False, index=False, nullable=False)
     __mapper_args__ = {"polymorphic_identity": "experimental_synapses_per_connection"}
-
-
-Base.metadata.create_all(bind=engine)

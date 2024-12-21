@@ -72,6 +72,3 @@ class MorphologyMeasurementSerieElement(Base):
     name = Column(String, unique=False, index=False, nullable=True)
     value = Column(Float, unique=False, index=False, nullable=True)
     measurement_id = Column(Integer, ForeignKey("measurement.id"), nullable=False)
-
-
-Base.metadata.create_all(bind=engine)

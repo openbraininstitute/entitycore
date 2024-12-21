@@ -1,5 +1,3 @@
-
-
 def test_create_license(client):
     response = client.post(
         "/license/",

@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import mapped_column, relationship
 
-from app.models.base import Base, LegacyMixin, TimestampMixin, engine
+from app.models.base import Base, LegacyMixin, TimestampMixin
 
 
 class AnnotationBody(LegacyMixin, TimestampMixin, Base):
@@ -79,6 +79,3 @@ class Annotation(LegacyMixin, TimestampMixin, Base):
     entity_id = Column(Integer, ForeignKey("entity.id"))
     annotation_body_id = Column(Integer, ForeignKey("annotation_body.id"))
     annotation_body = relationship("AnnotationBody", uselist=False)
-
-
-Base.metadata.create_all(bind=engine)

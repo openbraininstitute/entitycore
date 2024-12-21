@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import mapped_column
 
-from app.models.base import Base, Root, TimestampMixin, engine
+from app.models.base import Root, TimestampMixin
 
 
 class Agent(Root, TimestampMixin):
@@ -36,6 +36,3 @@ class Organization(Agent):
         "polymorphic_identity": "organization",
         "inherit_condition": id == Agent.id,
     }
-
-
-Base.metadata.create_all(bind=engine)

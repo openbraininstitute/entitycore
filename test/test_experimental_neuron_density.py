@@ -1,5 +1,3 @@
-
-
 def test_experimental_neuron_density(client):
     response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
     assert response.status_code == 200, f"Failed to create species: {response.text}"

@@ -140,6 +140,3 @@ class SpeciesMixin:
     @declared_attr
     def strain(cls):
         return relationship("Strain", uselist=False)
-
-
-Base.metadata.create_all(bind=engine)

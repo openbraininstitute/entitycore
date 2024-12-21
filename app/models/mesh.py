@@ -1,7 +1,7 @@
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import mapped_column, relationship
 
-from app.models.base import Base, DistributionMixin, Entity, engine
+from app.models.base import DistributionMixin, Entity
 
 
 class Mesh(DistributionMixin, Entity):
@@ -18,6 +18,3 @@ class Mesh(DistributionMixin, Entity):
     brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=False)
     brain_region = relationship("BrainRegion", uselist=False)
     __mapper_args__ = {"polymorphic_identity": "mesh"}
-
-
-Base.metadata.create_all(bind=engine)

@@ -1,17 +1,18 @@
+from datetime import datetime
+from typing import Annotated, ClassVar
+
 from sqlalchemy import (
-    Column,
     DateTime,
-    Float,
     ForeignKey,
-    Integer,
-    String,
     create_engine,
     func,
     or_,
 )
 from sqlalchemy.orm import (
-    declarative_base,
+    DeclarativeBase,
+    Mapped,
     declared_attr,
+    mapped_column,
     relationship,
     sessionmaker,
 )
@@ -21,16 +22,9 @@ from app.config import DATABASE_CONNECT_ARGS, DATABASE_URI
 
 engine = create_engine(DATABASE_URI, connect_args=DATABASE_CONNECT_ARGS)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
 
-class TimestampMixin:
-    creation_date = Column(DateTime(timezone=True), server_default=func.now())
-    update_date = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-
-
-
-class StringList(TypeDecorator):
+class StringListType(TypeDecorator):
     impl = VARCHAR
     cache_ok = True
 
@@ -52,68 +46,88 @@ class StringList(TypeDecorator):
     def in_(column, values):
         return or_(*[ StringList.is_equal(column, value)for value in values])
 
+StringList = Annotated[StringListType, "StringList"]
+
+
+class Base(DeclarativeBase):
+    type_annotation_map: ClassVar[dict] = {
+        datetime: DateTime(timezone=True),
+        StringList: StringListType,
+    }
+
+
+class TimestampMixin:
+    creation_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    update_date: Mapped[datetime] = mapped_column(DateTime(timezone=True),
+        server_default=func.now(), onupdate=func.now()
+    )
+
+
 class LegacyMixin:
-    legacy_id = Column(StringList, index=True, nullable=True)
+    legacy_id: Mapped[StringList] = mapped_column(index=True, nullable=True)
 
 
 class DistributionMixin:
-    content_url = Column(String, unique=False, index=False, nullable=True)
+    content_url: Mapped[str] = mapped_column(unique=False, index=False, nullable=True)
 
 
 class Root(LegacyMixin, Base):
     __tablename__ = "root"
-    id = Column(Integer, primary_key=True, index=True)
-    type = Column(String, unique=False, index=False, nullable=False)
-    __mapper_args__ = {"polymorphic_identity": "root", "polymorphic_on": type}
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    type: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+    __mapper_args__ = {
+        "polymorphic_identity": "root",
+        "polymorphic_on": type,
+    }
 
 
 class BrainLocation(Base):
     __tablename__ = "brain_location"
-    id = Column(Integer, primary_key=True, index=True)
-    x = Column(Float, unique=False, index=False, nullable=True)
-    y = Column(Float, unique=False, index=False, nullable=True)
-    z = Column(Float, unique=False, index=False, nullable=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    x: Mapped[float] = mapped_column(unique=False, index=False, nullable=True)
+    y: Mapped[float] = mapped_column(unique=False, index=False, nullable=True)
+    z: Mapped[float] = mapped_column(unique=False, index=False, nullable=True)
 
 
 class BrainRegion(TimestampMixin, Base):
     __tablename__ = "brain_region"
-    id = Column(Integer, primary_key=True, index=True)
-    ontology_id = Column(String, unique=True, index=True, nullable=False)
-    name = Column(String, unique=True, index=True, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    ontology_id: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
 
 
 class Species(TimestampMixin, Base):
     __tablename__ = "species"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    taxonomy_id = Column(String, unique=True, index=True, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
 
 
 class Strain(TimestampMixin, Base):
     __tablename__ = "strain"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    taxonomy_id = Column(String, unique=True, index=True, nullable=False)
-    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    species_id: Mapped[int] = mapped_column(ForeignKey("species.id"), nullable=False)
     species = relationship("Species", uselist=False)
 
 
 class Subject(TimestampMixin, Base):
     __tablename__ = "subject"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
 
 
 class License(TimestampMixin, LegacyMixin, Base):
     __tablename__ = "license"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    description = Column(String, unique=False, index=False, nullable=False)
-    label = Column(String, unique=False, index=False, nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+    label: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
 
 
 class LicensedMixin:
-    license_id = Column(Integer, ForeignKey("license.id"), nullable=True)
+    license_id: Mapped[int] = mapped_column(ForeignKey("license.id"), nullable=True)
 
     @declared_attr
     def license(cls):
@@ -121,13 +135,17 @@ class LicensedMixin:
 
 
 class LocationMixin:
-    brain_location_id = Column(Integer, ForeignKey("brain_location.id"), nullable=True)
+    brain_location_id: Mapped[int] = mapped_column(
+        ForeignKey("brain_location.id"), nullable=True
+    )
 
     @declared_attr
     def brain_location(cls):
         return relationship("BrainLocation", uselist=False)
 
-    brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=False)
+    brain_region_id: Mapped[int] = mapped_column(
+        ForeignKey("brain_region.id"), nullable=False
+    )
 
     @declared_attr
     def brain_region(cls):
@@ -135,13 +153,13 @@ class LocationMixin:
 
 
 class SpeciesMixin:
-    species_id = Column(Integer, ForeignKey("species.id"), nullable=False)
+    species_id: Mapped[int] = mapped_column(ForeignKey("species.id"), nullable=False)
 
     @declared_attr
     def species(cls):
         return relationship("Species", uselist=False)
 
-    strain_id = Column(Integer, ForeignKey("strain.id"), nullable=True)
+    strain_id = mapped_column(ForeignKey("strain.id"), nullable=True)
 
     @declared_attr
     def strain(cls):

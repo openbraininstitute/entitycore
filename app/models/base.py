@@ -1,7 +1,20 @@
-from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
-                        create_engine, func, or_)
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import relationship, sessionmaker, declarative_base
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    create_engine,
+    func,
+    or_,
+)
+from sqlalchemy.orm import (
+    declarative_base,
+    declared_attr,
+    relationship,
+    sessionmaker,
+)
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.config import DATABASE_CONNECT_ARGS, DATABASE_URI
@@ -133,4 +146,3 @@ class SpeciesMixin:
     @declared_attr
     def strain(cls):
         return relationship("Strain", uselist=False)
-

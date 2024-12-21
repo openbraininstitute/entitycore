@@ -1,5 +1,5 @@
 from sqlalchemy import Column, ForeignKey, Integer
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 from app.models.base import DistributionMixin
 from app.models.entity import Entity
@@ -7,8 +7,7 @@ from app.models.entity import Entity
 
 class Mesh(DistributionMixin, Entity):
     __tablename__ = "mesh"
-    id = mapped_column(
-        Integer,
+    id: Mapped[int] = mapped_column(
         ForeignKey("entity.id"),
         primary_key=True,
         index=True,

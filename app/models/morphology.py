@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Float, ForeignKey, Integer, String, event
 from sqlalchemy.dialects.postgresql import TSVECTOR
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm import mapped_column, relationship, Mapped
 from sqlalchemy.schema import DDL
 
 from app.models.base import (
@@ -15,7 +15,7 @@ from app.models.entity import Entity
 
 class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
-    id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
+    id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description = Column(String, unique=False, index=False, nullable=False)
     # name is not unique
     name = Column(String, unique=False, index=True, nullable=False)

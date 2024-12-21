@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, String, UniqueConstraint
+from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Root, TimestampMixin
@@ -7,7 +7,7 @@ from app.models.base import Root, TimestampMixin
 class Agent(Root, TimestampMixin):
     __tablename__ = "agent"
     id: Mapped[int] = mapped_column(ForeignKey("root.id"), primary_key=True, index=True)
-    pref_label = Column(String, unique=True, index=False, nullable=False)
+    pref_label: Mapped[str] = mapped_column(unique=True, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "agent",
     }
@@ -16,8 +16,8 @@ class Agent(Root, TimestampMixin):
 class Person(Agent):
     __tablename__ = "person"
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
-    givenName = Column(String, unique=False, index=False, nullable=False)
-    familyName = Column(String, unique=False, index=False, nullable=False)
+    givenName: Mapped[int] = mapped_column(unique=False, index=False, nullable=False)
+    familyName: Mapped[int] = mapped_column(unique=False, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "person",
     }
@@ -30,7 +30,9 @@ class Organization(Agent):
     __tablename__ = "organization"
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     # what is the difference between name and label here ?
-    alternative_name = Column(String, unique=False, index=False, nullable=False)
+    alternative_name: Mapped[int] = mapped_column(
+        unique=False, index=False, nullable=False
+    )
     __mapper_args__ = {
         "polymorphic_identity": "organization",
     }

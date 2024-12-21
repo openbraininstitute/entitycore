@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Float, ForeignKey, Integer, String, event
+from sqlalchemy import ForeignKey, event
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 from sqlalchemy.schema import DDL
@@ -16,11 +16,11 @@ from app.models.entity import Entity
 class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    description = Column(String, unique=False, index=False, nullable=False)
+    description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     # name is not unique
-    name = Column(String, unique=False, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     if engine.dialect.name == "postgresql":
-        morphology_description_vector = Column(TSVECTOR)
+        morphology_description_vector = mapped_column(TSVECTOR)
     morphology_feature_annotation = relationship(
         "MorphologyFeatureAnnotation", uselist=False
     )
@@ -43,11 +43,11 @@ event.listen(
 
 class MorphologyFeatureAnnotation(TimestampMixin, Base):
     __tablename__ = "morphology_feature_annotation"
-    id = Column(Integer, primary_key=True, index=True)
-    # name = Column(String, unique=True, index=True, nullable=False)
-    # description = Column(String, unique=False, index=False, nullable=False)
-    reconstruction_morphology_id = Column(
-        Integer, ForeignKey("reconstruction_morphology.id"), nullable=False, unique=True
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    # name = mapped_column(String, unique=True, index=True, nullable=False)
+    # description = mapped_column(String, unique=False, index=False, nullable=False)
+    reconstruction_morphology_id: Mapped[int] = mapped_column(
+        ForeignKey("reconstruction_morphology.id"), nullable=False, unique=True
     )
     reconstruction_morphology = relationship(
         "ReconstructionMorphology",
@@ -59,17 +59,21 @@ class MorphologyFeatureAnnotation(TimestampMixin, Base):
 
 class MorphologyMeasurement(Base):
     __tablename__ = "measurement"
-    id = Column(Integer, primary_key=True, index=True)
-    measurement_of = Column(String, unique=False, index=True, nullable=False)
-    morphology_feature_annotation_id = Column(
-        Integer, ForeignKey("morphology_feature_annotation.id"), nullable=False
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    measurement_of: Mapped[str] = mapped_column(
+        unique=False, index=True, nullable=False
+    )
+    morphology_feature_annotation_id: Mapped[int] = mapped_column(
+        ForeignKey("morphology_feature_annotation.id"), nullable=False
     )
     measurement_serie = relationship("MorphologyMeasurementSerieElement", uselist=True)
 
 
 class MorphologyMeasurementSerieElement(Base):
     __tablename__ = "measurement_serie_element"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=False, index=False, nullable=True)
-    value = Column(Float, unique=False, index=False, nullable=True)
-    measurement_id = Column(Integer, ForeignKey("measurement.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(unique=False, index=False, nullable=True)
+    value: Mapped[float] = mapped_column(unique=False, index=False, nullable=True)
+    measurement_id: Mapped[int] = mapped_column(
+        ForeignKey("measurement.id"), nullable=False
+    )

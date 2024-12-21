@@ -19,5 +19,4 @@ class Entity(TimestampMixin, Root):
     updatedBy_id = Column(Integer, ForeignKey("agent.id"), nullable=True)
     __mapper_args__ = {
         "polymorphic_identity": "entity",
-        "inherit_condition": id == Root.id,
     }

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 from app.models.base import DistributionMixin
@@ -15,6 +15,8 @@ class Mesh(DistributionMixin, Entity):
         nullable=False,
         autoincrement=True,
     )
-    brain_region_id = Column(Integer, ForeignKey("brain_region.id"), nullable=False)
+    brain_region_id: Mapped[int] = mapped_column(
+        ForeignKey("brain_region.id"), nullable=False
+    )
     brain_region = relationship("BrainRegion", uselist=False)
     __mapper_args__ = {"polymorphic_identity": "mesh"}

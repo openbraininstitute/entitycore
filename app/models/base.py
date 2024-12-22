@@ -20,8 +20,9 @@ Base = declarative_base()
 
 
 class TimestampMixin:
-    creation_date = Column(DateTime, server_default=func.utcnow())
-    update_date = Column(DateTime, server_default=func.utcnow(), onupdate=func.utcnow())
+    creation_date = Column(DateTime(timezone=True), server_default=func.now())
+    update_date = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
 
 
 class StringList(TypeDecorator):

@@ -1,13 +1,5 @@
-from sqlalchemy import (
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    create_engine,
-    func,
-)
+from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
+                        create_engine, func)
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import mapped_column, relationship, sessionmaker
 from sqlalchemy.types import VARCHAR, TypeDecorator
@@ -56,6 +48,7 @@ class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
     id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
     # type = Column(String, unique=False, index=False, nullable=False)
+    annotations = relationship("Annotation", back_populates="entity")
     __mapper_args__ = {
         "polymorphic_identity": "entity",
         "inherit_condition": id == Root.id,

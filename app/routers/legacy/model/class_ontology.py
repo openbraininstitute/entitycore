@@ -8,6 +8,6 @@ def search(body, db):
         query_mtype = db.query(annotation.MTypeAnnotationBody)
         query_etype = db.query(annotation.ETypeAnnotationBody)
         result = query_mtype.all() + (query_etype).all()
-        return utils.build_response_body(result)
+        return utils.build_response_body(hits=result, count=len(result))
     finally:
         db.close()

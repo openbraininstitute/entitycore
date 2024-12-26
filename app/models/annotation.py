@@ -72,12 +72,16 @@ class DataMaturityAnnotationBody(AnnotationBody):
     }
 
 
+# class AnnotatedMixin:
+#     annotations = relationship("Annotation", uselist=True, back_populates="entity")
+
+
 class Annotation(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "annotation"
     id = Column(Integer, primary_key=True, index=True)
     annotation_id = Column(String, unique=True)
     note = Column(String, nullable=True)
-    entity = relationship("Entity")
+    entity = relationship("Entity", back_populates="annotations")
     entity_id = Column(Integer, ForeignKey("entity.id"))
     annotation_body_id = Column(Integer, ForeignKey("annotation_body.id"))
     annotation_body = relationship("AnnotationBody", uselist=False)

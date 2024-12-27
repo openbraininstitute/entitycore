@@ -280,6 +280,7 @@ def import_agents(data_list, db):
                     data = curate.curate_person(data)
                     givenName = data["givenName"]
                     familyName = data["familyName"]
+                    label = f"{givenName} {familyName}"
                     db_agent = (
                         db.query(agent.Person)
                         .filter(
@@ -299,6 +300,7 @@ def import_agents(data_list, db):
                             legacy_id=[legacy_id],
                             givenName=data["givenName"],
                             familyName=data["familyName"],
+                            pref_label=label,
                         )
                         db.add(db_agent)
                         db.commit()
@@ -321,7 +323,7 @@ def import_agents(data_list, db):
                     name = data["name"]
                     db_agent = (
                         db.query(agent.Organization)
-                        .filter(agent.Organization.name == name)
+                        .filter(agent.Organization.pref_label == name)
                         .first()
                     )
                     if db_agent:
@@ -333,8 +335,7 @@ def import_agents(data_list, db):
                     else:
                         db_agent = agent.Organization(
                             legacy_id=[legacy_id],
-                            name=data["name"],
-                            label=data.get("label", ""),
+                            pref_label=data.get("name"),
                             alternative_name=data.get("alternativeName", ""),
                         )
                         db.add(db_agent)

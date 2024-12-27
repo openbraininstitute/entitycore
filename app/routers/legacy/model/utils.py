@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
@@ -34,6 +35,49 @@ MAPPING_PER_TYPE = {
         "pref_label": "label",
         "definition": "definition",
     },
+}
+
+MAP_KEYWORD = {
+    "https://neuroshapes.org/ReconstructedNeuronMorphology": app.models.morphology.ReconstructionMorphology,
+    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace": app.models.single_cell_experimental_trace.SingleCellExperimentalTrace,
+    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalNeuronDensity": app.models.density.ExperimentalNeuronDensity,
+    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity": app.models.density.ExperimentalBoutonDensity,
+    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection": app.models.density.ExperimentalSynapsesPerConnection,
+}
+
+
+def get_db_type(query):
+    try:
+        terms = query.get("query", {}).get("bool", {}).get("must", [])
+        type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
+        type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Bad request: query must contain a type",
+        )
+
+    db_type = MAP_KEYWORD.get(type_keyword)
+    return db_type
+
+
+QUERY_PATH = {
+    "mType": {
+        "models": [annotation.Annotation, annotation.MTypeAnnotationBody],
+        "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
+    },
+    "brainRegion": {"models": [base.BrainRegion], "joins": [("brain_region_id", "id")]},
+    "subjectSpecies": {"models": [base.Species], "joins": [("species_id", "id")]},
+    "contributors": {
+        "models": [contribution.Contribution, agent.Agent],
+        "joins": [("id", "entity_id"), ("agent_id", "id")],
+    },
+}
+PROPERTY_MAP = {
+    "mType.label": "pref_label",
+    "brainRegion.@id": "ontology_id",
+    "subjectSpecies.label": "name",
+    "contributors.label": "pref_label",
 }
 
 QUERY_MAP = {
@@ -76,13 +120,23 @@ QUERY_MAP = {
                 },
             ],
         },
+        "brainRegion.@id.keyword": {
+            "group_name": "ontology_id",
+            "table": base.BrainRegion,
+            "joins": [
+                {
+                    "join": ("id", "brain_region_id"),
+                    "table": morphology.ReconstructionMorphology,
+                }
+            ],
+        },
     }
 }
 
 
-def get_facets(aggs, db_type, db):
+def get_facets(aggs, musts, db_type, db):
     if not aggs:
-        return {}   
+        return {}
     facets = {}
     fields = [
         {"label": key, "field": aggs[key]["terms"]["field"]} for key in aggs.keys()
@@ -103,6 +157,8 @@ def get_facets(aggs, db_type, db):
                 getattr(prev_alias, join["join"][0])
                 == getattr(cur_alias, join["join"][1]),
             )
+        alias = cur_alias
+        facet_q = add_predicates_to_query(facet_q, musts, db_type, alias)
         facet_q = facet_q.group_by(getattr(initial_alias, group_name))
         facet_q = facet_q.order_by(func.count().desc())
         facets[ty["label"]] = facet_q.all()
@@ -129,6 +185,62 @@ def build_response_elem(elem):
         "_score": 1.0,
         "_source": initial_dict,
     }
+
+
+def add_predicates_to_query(query, must_terms, db_type, alias=None):
+    initial_alias = alias or db_type
+    for must_term in must_terms:
+        if "term" in must_term:
+            key_value = must_term["term"].items()
+            if len(key_value) != 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Bad request: query must contain only one term",
+                )
+
+            key, value = list(key_value)[0]
+            # deprecated & curated are not a field in the database
+            if key in ["@type.keyword", "deprecated", "curated"]:
+                continue
+            else:
+                query = query.filter(getattr(db_type, key) == value)
+        elif "terms" in must_term:
+            key_value = must_term["terms"].items()
+
+            if len(key_value) != 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Bad request: query must contain only one term",
+                )
+            key, value = list(key_value)[0]
+            target, property, _ = key.split(".")
+            query_map = QUERY_PATH.get(target, None)
+            property = PROPERTY_MAP.get(".".join([target, property]), None)
+            if not query_map or not property:
+                raise HTTPException(
+                    status_code=500,
+                    detail="not implemented",
+                )
+            prev_alias = initial_alias
+            cur_alias = None
+            for model, join in zip(query_map["models"], query_map["joins"]):
+                cur_alias = aliased(model)
+                query = query.join(
+                    cur_alias,
+                    getattr(cur_alias, join[1]) == getattr(prev_alias, join[0]),
+                )
+                prev_alias = cur_alias
+            if not cur_alias:
+                raise HTTPException(
+                    status_code=500,
+                    detail="unexpected error",
+                )
+            query = query.filter(getattr(cur_alias, property).in_(value))
+        else:
+            raise HTTPException(
+                status_code=400, detail="Bad request: query does not contain any term"
+            )
+    return query
 
 
 def build_aggregations(facets):

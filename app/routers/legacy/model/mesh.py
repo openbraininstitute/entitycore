@@ -23,6 +23,10 @@ def build_mesh_elem(elem):
 def search(body, db):
     try:
         query = db.query(mesh.Mesh)
-        return utils.build_response_body(query.all(), build_mesh_elem)
+        hits = query.all()
+        count = len(hits)
+        return utils.build_response_body(
+            hits=hits, count=count, build_func=build_mesh_elem
+        )
     finally:
         db.close()

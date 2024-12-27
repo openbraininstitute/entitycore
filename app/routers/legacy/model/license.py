@@ -30,6 +30,6 @@ def search(body, db):
     )
     try:
         query = db.query(models.License).filter(and_(*filters))
-        return utils.build_response_body(query.all())
+        return utils.build_response_body(hits=query.all(), count=len(query.all()))
     finally:
         db.close()

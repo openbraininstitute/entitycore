@@ -16,7 +16,6 @@ router = APIRouter(
 
 @router.get("/{path:path}")
 def legacy_files(path: str, request: Request, db: Session = Depends(get_db)):
-    print(f"files endpoint: {path}")
     directory = "/".join(path.split("/", 2)[:2])
     file_name = "/".join(path.split("/", 2)[2:])
     encoded_filename = urllib.parse.quote(file_name, safe=":")

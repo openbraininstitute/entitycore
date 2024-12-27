@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.dependencies.db import get_db
 from app.models.base import Root
 from app.schemas.agent import PersonRead
+from fastapi import HTTPException
 
 router = APIRouter(
     prefix="/nexus/v1/resources",
@@ -40,7 +41,6 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
         if "_/" in path:
             extracted_url = unquote(path.split("_/")[1])
             # Return the extracted URL or process it further
-            print(extracted_url)
             if "ontologies/core/brainregion" in extracted_url:
                 with open(
                     os.path.join(
@@ -66,7 +66,8 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
                 .filter(use_func(Root.legacy_id, extracted_url) > 0)
                 .first()
             )
-            print(db_element)
+            if not db_element:
+                return HTTPException(status_code=404, detail="Resource not found")
             return create_legacy_resource_body(db_element, extracted_url)
         return {"error": "'_/' not found in URL"}
     except Exception as e:

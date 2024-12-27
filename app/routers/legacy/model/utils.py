@@ -215,7 +215,6 @@ def build_response_body(
         response["aggregations"] = build_aggregations(facets)
     response["hits"] = build_hits(hits=hits, count=count, build_func=build_func)
     ret = JSONResponse(content=jsonable_encoder(response))
-    print(ret)
     return ret
 
 

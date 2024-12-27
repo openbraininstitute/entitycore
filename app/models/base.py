@@ -1,7 +1,7 @@
 from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
                         create_engine, func)
-from sqlalchemy.ext.declarative import declarative_base, declared_attr
-from sqlalchemy.orm import mapped_column, relationship, sessionmaker
+from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import mapped_column, relationship, sessionmaker, declarative_base
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.config import DATABASE_CONNECT_ARGS, DATABASE_URI
@@ -19,7 +19,7 @@ class TimestampMixin:
 
 class StringList(TypeDecorator):
     impl = VARCHAR
-
+    cache_ok = True
     def process_bind_param(self, value, dialect):
         if value is not None:
             return ",".join(value)
@@ -46,7 +46,7 @@ class Root(LegacyMixin, Base):
 
 class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
-    id = mapped_column(Integer, ForeignKey("entity.id"), primary_key=True)
+    id = mapped_column(Integer, ForeignKey("root.id"), primary_key=True)
     # type = Column(String, unique=False, index=False, nullable=False)
     annotations = relationship("Annotation", back_populates="entity")
     __mapper_args__ = {

@@ -2,7 +2,6 @@ from . import TEST_SEARCH_END_POINT, get_body
 
 
 def test_search_mesh(client):
-    print(TEST_SEARCH_END_POINT + "/_search")
     response = client.post(
         TEST_SEARCH_END_POINT + "/_search",
         json=get_body("search_mesh"),

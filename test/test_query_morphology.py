@@ -78,7 +78,6 @@ def test_query_reconstruction_morphology(client):
     prev_elem = None
     for elem in data:
         if prev_elem:
-            print(elem["creation_date"], prev_elem["creation_date"])
             assert elem["creation_date"] > prev_elem["creation_date"]
         prev_elem = elem
 
@@ -90,6 +89,5 @@ def test_query_reconstruction_morphology(client):
     prev_elem = None
     for elem in data:
         if prev_elem:
-            print(elem["creation_date"], prev_elem["creation_date"])
             assert elem["creation_date"] < prev_elem["creation_date"]
         prev_elem = elem

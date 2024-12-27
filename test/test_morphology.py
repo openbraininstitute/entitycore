@@ -99,7 +99,6 @@ def test_create_reconstruction_morphology(client):
         response.status_code == 200
     ), f"Failed to create reconstruction morphology: {response.text}"
     data = response.json()
-    print(data)
     assert (
         data["brain_region"]["id"] == brain_region_id
     ), f"Failed to get id for reconstruction morphology: {data}"

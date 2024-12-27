@@ -2,7 +2,6 @@ from . import TEST_SEARCH_END_POINT, get_body
 
 
 def test_create_license(client):
-    print(TEST_SEARCH_END_POINT + "/_search")
     response = client.post(
         TEST_SEARCH_END_POINT + "/_search",
         json=get_body("license_by_id"),

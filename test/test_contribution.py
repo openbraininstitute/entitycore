@@ -1,6 +1,6 @@
 def test_create_contribution(client):
     response = client.post(
-        "/person/", json={"givenName": "jd", "familyName": "courcol"}
+        "/person/", json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"}
     )
     assert response.status_code == 200
     data = response.json()

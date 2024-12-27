@@ -14,6 +14,7 @@ from app.schemas.base import (
 class PersonBase(BaseModel):
     givenName: str
     familyName: str
+    pref_label: str
 
     class Config:
         from_attributes = True
@@ -28,8 +29,7 @@ class PersonRead(PersonBase, CreationMixin):
 
 
 class OrganizationBase(BaseModel):
-    name: str
-    label: str
+    pref_label: str
     alternative_name: str | None = None
 
     class Config:

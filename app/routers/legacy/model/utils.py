@@ -7,7 +7,7 @@ from sqlalchemy.orm import aliased
 import app.models.annotation
 import app.models.base
 import app.models.morphology
-from app.models import agent, annotation, base, contribution, morphology
+from app.models import agent, annotation, base, contribution
 
 MAP_TYPES = {
     app.models.base.License: "License",
@@ -80,60 +80,6 @@ PROPERTY_MAP = {
     "contributors.label": "pref_label",
 }
 
-QUERY_MAP = {
-    morphology.ReconstructionMorphology: {
-        "mType.label.keyword": {
-            "group_name": "pref_label",
-            "table": annotation.MTypeAnnotationBody,
-            "joins": [
-                {
-                    "join": ("id", "annotation_body_id"),
-                    "table": annotation.Annotation,
-                },
-                {
-                    "join": ("entity_id", "id"),
-                    "table": morphology.ReconstructionMorphology,
-                },
-            ],
-        },
-        "subjectSpecies.label.keyword": {
-            "group_name": "name",
-            "table": base.Species,
-            "joins": [
-                {
-                    "join": ("id", "species_id"),
-                    "table": morphology.ReconstructionMorphology,
-                }
-            ],
-        },
-        "contributors.label.keyword": {
-            "group_name": "familyName",
-            "table": agent.Person,
-            "joins": [
-                {
-                    "join": ("id", "agent_id"),
-                    "table": contribution.Contribution,
-                },
-                {
-                    "join": ("entity_id", "id"),
-                    "table": morphology.ReconstructionMorphology,
-                },
-            ],
-        },
-        "brainRegion.@id.keyword": {
-            "group_name": "ontology_id",
-            "table": base.BrainRegion,
-            "joins": [
-                {
-                    "join": ("id", "brain_region_id"),
-                    "table": morphology.ReconstructionMorphology,
-                }
-            ],
-        },
-    }
-}
-
-
 def get_facets(aggs, musts, db_type, db):
     if not aggs:
         return {}
@@ -141,27 +87,31 @@ def get_facets(aggs, musts, db_type, db):
     fields = [
         {"label": key, "field": aggs[key]["terms"]["field"]} for key in aggs.keys()
     ]
-    query_map = QUERY_MAP.get(db_type)
-    for ty in fields:
-        field_query_map = query_map.get(ty["field"])
-        group_name = field_query_map["group_name"]
-        table = field_query_map["table"]
-        initial_alias = aliased(table)
-        cur_alias = initial_alias
-        facet_q = db.query(getattr(cur_alias, group_name), func.count().label("count"))
-        for join in field_query_map["joins"]:
+    for field in fields:
+        target,property,_= field["field"].split(".")
+        query_map = QUERY_PATH.get(target)
+        joins = list(reversed(query_map["joins"]))
+        models = list(reversed(query_map["models"]))
+
+        models.append(aliased(db_type))
+        cur_alias = aliased(list(models)[0])
+        initial_alias = cur_alias
+        property_group = PROPERTY_MAP.get(".".join([target, property]), None)        
+        facet_q = db.query(getattr(initial_alias, property_group), func.count().label("count"))
+        for model, join in zip(models[1:], joins):
             prev_alias = cur_alias
-            cur_alias = aliased(join["table"])
+            cur_alias = aliased(model)
             facet_q = facet_q.join(
                 cur_alias,
-                getattr(prev_alias, join["join"][0])
-                == getattr(cur_alias, join["join"][1]),
+                getattr(prev_alias, join[1])
+                == getattr(cur_alias, join[0]),
             )
+
         alias = cur_alias
         facet_q = add_predicates_to_query(facet_q, musts, db_type, alias)
-        facet_q = facet_q.group_by(getattr(initial_alias, group_name))
+        facet_q = facet_q.group_by(getattr(initial_alias, property_group))
         facet_q = facet_q.order_by(func.count().desc())
-        facets[ty["label"]] = facet_q.all()
+        facets[field["label"]] = facet_q.all()
     return facets
 
 

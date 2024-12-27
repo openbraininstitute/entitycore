@@ -17,7 +17,7 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
     aggs = query.get("aggs", None)
     musts = query.get("query", {}).get("bool", {}).get("must", [])
     facets = utils.get_facets(aggs, musts, db_type, db)
-    print(facets)
+
     db_query = db.query(db_type)
     db_query = utils.add_predicates_to_query(db_query, musts, db_type)
     db_query_hits = db_query

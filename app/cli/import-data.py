@@ -19,6 +19,7 @@ from app.models import (
     morphology,
     role,
     single_cell_experimental_trace,
+    memodel
 )
 from app.models.base import SessionLocal
 
@@ -394,6 +395,36 @@ def get_license_mixin(data, db):
         license_id = get_license_id(license, db)
     return license_id
 
+def import_me_models(data, db):
+    possible_data = [data for data in data if "https://neuroshapes.org/MEModel" in data["@type"]]
+    if not possible_data:
+        return
+    for data in tqdm(possible_data):
+        legacy_id = data["@id"]
+
+        use_func = func.instr
+        if db.bind.dialect.name == "postgresql":
+            use_func = func.strpos
+        rm = (
+            db.query(memodel.MEModel)
+            .filter(use_func(memodel.MEModel.legacy_id, legacy_id) > 0)
+            .first()
+        )
+        if not rm:
+            brain_location, brain_region_id = get_brain_location_mixin(data, db)
+            species_id, strain_id = get_species_mixin(data, db)
+            rm = memodel.MEModel(
+                legacy_id=[legacy_id],
+                name=data.get("name", None),
+                description=data.get("description", None),
+                validated = data.get("validated", None),
+                status = data.get("status", None),
+                brain_location=brain_location,
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=strain_id,
+            )
+
 
 def import_brain_region_meshes(data, db):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
@@ -402,6 +433,8 @@ def import_brain_region_meshes(data, db):
         for data in possible_data
         if data.get("atlasRelease").get("tag", None) == "v1.1.0"
     ]
+    if not possible_data:
+        return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
 
@@ -429,7 +462,8 @@ def import_traces(data_list, db):
     possible_data = [
         data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]
     ]
-
+    if not possible_data:
+        return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
 
@@ -476,7 +510,8 @@ def import_morphologies(data_list, db):
     possible_data = [
         data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]
     ]
-
+    if not possible_data:
+        return  
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
         use_func = func.instr
@@ -529,6 +564,8 @@ def import_morphology_feature_annotations(data_list, db):
         for data in data_list
         if "NeuronMorphologyFeatureAnnotation" in data["@type"]
     ]
+    if not possible_data:
+        return
     for data in tqdm(possible_data):
         try:
             legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
@@ -624,7 +661,8 @@ def _import_experimental_densities(
     data_list, db, schema_type, model_type, curate_function
 ):
     possible_data = [data for data in data_list if schema_type in data["@type"]]
-
+    if not possible_data:
+        return
     for data in tqdm(possible_data):
         data = curate_function(data)
         legacy_id = data["@id"]
@@ -756,6 +794,10 @@ def main():
         with open(file_path) as f:
             data = json.load(f)
             import_traces(data, db)
+    for file_path in all_files:
+        with open(file_path) as f:
+            data = json.load(f)
+            import_me_models(data, db)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@ import resource
 def test_dump(client, db):
     # find all query_path file in nexus_use_case_dump directory
     query_path_files = []
-    for root, dirs, files in os.walk('../nexus_use_case_dump'):
+    for root, dirs, files in os.walk(os.path.join(os.path.dirname(__file__), '../nexus_use_case_dump')):
         for file in files:
             if file.endswith('query_path'):
                 query_path_files.append(os.path.join(root, file))
@@ -20,6 +20,7 @@ def test_dump(client, db):
             if "resolver" in url:
                 continue
             urls.append({"file":file_path, "url":url.replace("https://openbluebrain.com/api","")})
+    print(f'Number of urls: {len(urls)}')
     total_elapsed_time = 0
     total_cpu_time = 0
     nb_calls = 0
@@ -51,7 +52,8 @@ def test_dump(client, db):
 
             start_time = time.time()
             start_resources = resource.getrusage(resource.RUSAGE_SELF)
-            client.post(url["url"], data=json_data)
+            # if "66abb025-39dc-4666-b398-535a1b96a95f_1729761379349.3362" in url["file"]:
+            ret = client.post(url["url"], json=json_data)
 
             end_time = time.time()
             end_resources = resource.getrusage(resource.RUSAGE_SELF)
@@ -61,6 +63,7 @@ def test_dump(client, db):
             total_elapsed_time += elapsed_time
             total_cpu_time += cpu_time
             if ret.status_code != 200:
+                print(f"Failed to call {url['file'] } {url['url']}")
                 nb_failures += 1
     print(f"Elapsed time: {total_elapsed_time} seconds")
     print(f"CPU time: {total_cpu_time} seconds")

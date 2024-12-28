@@ -16,6 +16,7 @@ from app.models.base import (
     Strain,
     Subject,
     engine,
+    
 )
 from app.models.contribution import Contribution
 from app.models.density import (
@@ -32,7 +33,7 @@ from app.models.morphology import (
 )
 from app.models.role import Role
 from app.models.single_cell_experimental_trace import SingleCellExperimentalTrace
-
+from app.models.memodel import MEModel
 __all__ = [
     Role,
     SingleCellExperimentalTrace,
@@ -63,6 +64,7 @@ __all__ = [
     Strain,
     Subject,
     engine,
+    MEModel
 ]
 
 # Note: this is still not right; database initialization should be separate

@@ -6,7 +6,10 @@ from sqlalchemy.orm import aliased
 
 import app.models.annotation
 import app.models.base
+import app.models.density
 import app.models.morphology
+import app.models.single_cell_experimental_trace
+import app.models.memodel
 from app.models import agent, annotation, base, contribution
 
 MAP_TYPES = {
@@ -15,6 +18,8 @@ MAP_TYPES = {
     app.models.annotation.ETypeAnnotationBody: "Class",
     app.models.base.Species: "Species",
     app.models.morphology.ReconstructionMorphology: "https://neuroshapes.org/ReconstructedNeuronMorphology",
+    app.models.ExperimentalBoutonDensity: "https://neuroshapes.org/ExperimentalBoutonDensity",
+    app.models.ExperimentalNeuronDensity: "https://neuroshapes.org/ExperimentalNeuronDensity",
 }
 
 MAPPING_GLOBAL = {
@@ -43,6 +48,7 @@ MAP_KEYWORD = {
     "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalNeuronDensity": app.models.density.ExperimentalNeuronDensity,
     "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity": app.models.density.ExperimentalBoutonDensity,
     "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection": app.models.density.ExperimentalSynapsesPerConnection,
+    "https://neuroshapes.org/MEModel": app.models.memodel.MEModel,
 }
 
 
@@ -84,8 +90,11 @@ def get_facets(aggs, musts, db_type, db):
     if not aggs:
         return {}
     facets = {}
+    # stats: only min and max matters.
+    # not used for createdAt and updatedAt in GUI
+
     fields = [
-        {"label": key, "field": aggs[key]["terms"]["field"]} for key in aggs.keys()
+        {"label": key, "field": aggs[key]["terms"]["field"]} for key in aggs.keys() if "terms" in aggs[key]
     ]
     for field in fields:
         target,property,_= field["field"].split(".")

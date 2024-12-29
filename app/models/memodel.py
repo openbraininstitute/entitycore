@@ -1,6 +1,6 @@
 
-from sqlalchemy import Column, ForeignKey, Integer, Boolean, String
-from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy.orm import mapped_column
 
 from app.models.base import DistributionMixin, Entity, LocationMixin
 

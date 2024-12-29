@@ -34,6 +34,7 @@ from app.models.morphology import (
 from app.models.role import Role
 from app.models.single_cell_experimental_trace import SingleCellExperimentalTrace
 from app.models.memodel import MEModel
+from app.models.emodel import EModel
 __all__ = [
     Role,
     SingleCellExperimentalTrace,
@@ -64,7 +65,8 @@ __all__ = [
     Strain,
     Subject,
     engine,
-    MEModel
+    MEModel,
+    EModel
 ]
 
 # Note: this is still not right; database initialization should be separate

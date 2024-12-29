@@ -3,3 +3,4 @@ schema/**
 **/__pycache__/**
 venv/**
 nexus_use_case_dump/**
+**/.coverage

@@ -290,6 +290,32 @@ def import_me_models(data, db):
                 strain_id=strain_id,
             )
 
+def import_e_models(data, db):
+    possible_data = [
+        data for data in data if "https://neuroshapes.org/EModel" in data["@type"]
+    ]
+    if not possible_data:
+        return
+    for data in tqdm(possible_data):
+        legacy_id = data["@id"]
+        rm = utils._find_by_legacy_id(legacy_id, memodel.EModel, db)
+        if not rm:
+            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            species_id, strain_id = utils.get_species_mixin(data, db)
+            rm = memodel.EModel(
+                legacy_id=[legacy_id],
+                name=data.get("name", None),
+                description=data.get("description", None),
+                score=data.get("score", None),
+                seed=data.get("seed", None),
+                iteration=data.get("iteration", None),
+                eModel=data.get("eModel", None),
+                eType=data.get("eType", None),
+                brain_location=brain_location,
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=strain_id,
+            )
 
 def import_brain_region_meshes(data, db):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
@@ -575,6 +601,7 @@ def main():
         import_etype_annotation_body(possible_data, db)
 
     l_imports = [
+        {"eModels": import_e_models},
         {"meshes": import_brain_region_meshes},
         {"morphologies": import_morphologies},
         {"morphologyFeatureAnnotations": import_morphology_feature_annotations},

@@ -1,6 +1,6 @@
 from sqlalchemy import func
 from app.models import (
-    base
+    base,
 )
 import app.cli.curate as curate
 def _find_by_legacy_id(legacy_id, db_type, db):

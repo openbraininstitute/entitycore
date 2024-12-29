@@ -17,7 +17,7 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
         db_type = utils.get_db_type(query)
 
         aggs = query.get("aggs", None)
-        musts = query.get("query", {}).get("bool", {}).get("must", [])
+        musts = utils.find_musts(query) 
         facets = utils.get_facets(aggs, musts, db_type, db)
 
         db_query = db.query(db_type)
@@ -31,6 +31,7 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
             db_query_hits = db_query_hits.limit(size)
         hits = db_query_hits.all()
         count = db_query.count()
+        print(db_query)
 
         response = utils.build_response_body(facets=facets, hits=hits, count=count)
     except HTTPException as e:

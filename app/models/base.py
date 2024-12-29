@@ -1,5 +1,5 @@
 from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
-                        create_engine, func)
+                        create_engine, func, or_)
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import mapped_column, relationship, sessionmaker, declarative_base
 from sqlalchemy.types import VARCHAR, TypeDecorator
@@ -20,6 +20,7 @@ class TimestampMixin:
 class StringList(TypeDecorator):
     impl = VARCHAR
     cache_ok = True
+
     def process_bind_param(self, value, dialect):
         if value is not None:
             return ",".join(value)
@@ -28,6 +29,15 @@ class StringList(TypeDecorator):
         if value is not None:
             return value.split(",")
 
+    @staticmethod
+    def is_equal(column, value):
+        use_func = func.instr
+        if engine.dialect.name == "postgresql":
+            use_func = func.strpos
+        return use_func(column, value) > 0 
+    @staticmethod
+    def in_(column, values):
+        return or_(*[ StringList.is_equal(column, value)for value in values])
 
 class LegacyMixin:
     legacy_id = Column(StringList, index=True, nullable=True)

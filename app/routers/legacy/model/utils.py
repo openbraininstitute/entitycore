@@ -7,9 +7,11 @@ from sqlalchemy.orm import aliased
 import app.models.annotation
 import app.models.base
 import app.models.density
+import app.models.mesh
 import app.models.morphology
 import app.models.single_cell_experimental_trace
 import app.models.memodel
+import app.models.emodel
 from app.models import agent, annotation, base, contribution
 
 MAP_TYPES = {
@@ -18,8 +20,14 @@ MAP_TYPES = {
     app.models.annotation.ETypeAnnotationBody: "Class",
     app.models.base.Species: "Species",
     app.models.morphology.ReconstructionMorphology: "https://neuroshapes.org/ReconstructedNeuronMorphology",
-    app.models.ExperimentalBoutonDensity: "https://neuroshapes.org/ExperimentalBoutonDensity",
-    app.models.ExperimentalNeuronDensity: "https://neuroshapes.org/ExperimentalNeuronDensity",
+    app.models.density.ExperimentalBoutonDensity: "https://neuroshapes.org/ExperimentalBoutonDensity",
+    app.models.density.ExperimentalNeuronDensity: "https://neuroshapes.org/ExperimentalNeuronDensity",
+    app.models.MEModel: "https://neuroshapes.org/MEModel",
+    app.models.EModel: "https://neuroshapes.org/EModel",
+    app.models.mesh.Mesh: "https://neuroshapes.org/Mesh",
+    app.models.single_cell_experimental_trace.SingleCellExperimentalTrace: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace",
+    app.models.density.ExperimentalSynapsesPerConnection: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection",
+    
 }
 
 MAPPING_GLOBAL = {
@@ -49,20 +57,16 @@ MAP_KEYWORD = {
     "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity": app.models.density.ExperimentalBoutonDensity,
     "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection": app.models.density.ExperimentalSynapsesPerConnection,
     "https://neuroshapes.org/MEModel": app.models.memodel.MEModel,
+    "https://neuroshapes.org/EModel": app.models.emodel.EModel,
 }
 
 
 def get_db_type(query):
-    try:
-        terms = query.get("query", {}).get("bool", {}).get("must", [])
-        type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
-        type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
-    except Exception:
-        raise HTTPException(
-            status_code=400,
-            detail="Bad request: query must contain a type",
-        )
-
+    terms = query.get("query", {}).get("bool", {}).get("must", [])
+    type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
+    if not type_term:
+        return base.Entity
+    type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
     db_type = MAP_KEYWORD.get(type_keyword)
     return db_type
 
@@ -84,6 +88,7 @@ PROPERTY_MAP = {
     "brainRegion.@id": "ontology_id",
     "subjectSpecies.label": "name",
     "contributors.label": "pref_label",
+    "@id": "legacy_id",
 }
 
 def get_facets(aggs, musts, db_type, db):
@@ -145,6 +150,26 @@ def build_response_elem(elem):
         "_source": initial_dict,
     }
 
+def find_musts(query):
+    def find_must_keys(data):
+        """
+        Recursively find all keys named "must" in the dictionary `data`,
+        :return: List of "must" keys found.
+        """
+        result = []
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if key == "must":
+                    result.append(value)
+                    continue
+                result.extend(find_must_keys(value))
+        elif isinstance(data, list):
+            for item in data:
+                result.extend(find_must_keys(item))
+        
+        return result
+    must_keys = find_must_keys(query)
+    return must_keys
 
 def add_predicates_to_query(query, must_terms, db_type, alias=None):
     initial_alias = alias or db_type
@@ -172,29 +197,37 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                     detail="Bad request: query must contain only one term",
                 )
             key, value = list(key_value)[0]
-            target, property, _ = key.split(".")
-            query_map = QUERY_PATH.get(target, None)
-            property = PROPERTY_MAP.get(".".join([target, property]), None)
-            if not query_map or not property:
-                raise HTTPException(
-                    status_code=500,
-                    detail="not implemented",
-                )
-            prev_alias = initial_alias
-            cur_alias = None
-            for model, join in zip(query_map["models"], query_map["joins"]):
-                cur_alias = aliased(model)
-                query = query.join(
-                    cur_alias,
-                    getattr(cur_alias, join[1]) == getattr(prev_alias, join[0]),
-                )
-                prev_alias = cur_alias
-            if not cur_alias:
-                raise HTTPException(
-                    status_code=500,
-                    detail="unexpected error",
-                )
-            query = query.filter(getattr(cur_alias, property).in_(value))
+            if "." in key:
+                target, property, _ = key.split(".")
+                query_map = QUERY_PATH.get(target, None)
+                property = PROPERTY_MAP.get(".".join([target, property]), None)
+                if not query_map or not property:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="not implemented",
+                    )
+                prev_alias = initial_alias
+                cur_alias = None
+                for model, join in zip(query_map["models"], query_map["joins"]):
+                    cur_alias = aliased(model)
+                    query = query.join(
+                        cur_alias,
+                        getattr(cur_alias, join[1]) == getattr(prev_alias, join[0]),
+                    )
+                    prev_alias = cur_alias
+                if not cur_alias:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="unexpected error")
+                    
+            else:
+                 cur_alias = initial_alias
+                 property = PROPERTY_MAP.get(key, None)
+            column = getattr(cur_alias, property)
+            if property=="legacy_id":
+                query = query.filter(base.StringList.in_(column,value))
+            else:
+                query = query.filter(column.in_(value))
         else:
             raise HTTPException(
                 status_code=400, detail="Bad request: query does not contain any term"

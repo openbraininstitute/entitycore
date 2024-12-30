@@ -57,7 +57,11 @@ def get_brain_location_mixin(data, db):
         z = coordinates.get("valueZ", None)
         if x is not None and y is not None and z is not None:
             brain_location = base.BrainLocation(x=x, y=y, z=z)
-    brain_region = data.get("brainLocation", {}).get("brainRegion", None)
+    root = {
+        "@id": "http://api.brain-map.org/api/v2/data/Structure/root",
+        "label": "root",
+    }
+    brain_region = data.get("brainLocation", {}).get("brainRegion", root)
     assert brain_region is not None, "brain_region is None"
     try:
         brain_region_id = get_or_create_brain_region(brain_region, db)
@@ -93,7 +97,7 @@ def get_or_create_strain(strain, species_id, db):
 
 def get_species_mixin(data, db):
     species = data.get("subject", {}).get("species", {})
-    assert species, "species is None"
+    assert species, "species is None: {}".format(data)
     species_id = get_or_create_species(species, db)
     strain = data.get("subject", {}).get("strain", {})
     strain_id = None

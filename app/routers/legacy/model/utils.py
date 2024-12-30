@@ -76,6 +76,10 @@ QUERY_PATH = {
         "models": [annotation.Annotation, annotation.MTypeAnnotationBody],
         "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
     },
+    "eType": {
+        "models": [annotation.Annotation, annotation.ETypeAnnotationBody],
+        "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
+    },
     "brainRegion": {"models": [base.BrainRegion], "joins": [("brain_region_id", "id")]},
     "subjectSpecies": {"models": [base.Species], "joins": [("species_id", "id")]},
     "contributors": {
@@ -85,6 +89,7 @@ QUERY_PATH = {
 }
 PROPERTY_MAP = {
     "mType.label": "pref_label",
+    "eType.label": "pref_label",
     "brainRegion.@id": "ontology_id",
     "subjectSpecies.label": "name",
     "contributors.label": "pref_label",
@@ -160,7 +165,10 @@ def find_musts(query):
         if isinstance(data, dict):
             for key, value in data.items():
                 if key == "must":
-                    result.append(value)
+                    if isinstance(value, dict):
+                        result.append(value)
+                    else:
+                        result.extend(value)
                     continue
                 result.extend(find_must_keys(value))
         elif isinstance(data, list):
@@ -222,7 +230,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                     
             else:
                  cur_alias = initial_alias
-                 property = PROPERTY_MAP.get(key, None)
+                 property = PROPERTY_MAP.get(key,key.replace(".label","")) 
             column = getattr(cur_alias, property)
             if property=="legacy_id":
                 query = query.filter(base.StringList.in_(column,value))

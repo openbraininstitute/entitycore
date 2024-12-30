@@ -15,6 +15,7 @@ from app.models import (
     contribution,
     density,
     memodel,
+    emodel,
     mesh,
     morphology,
     role,
@@ -267,8 +268,13 @@ def get_or_create_morphology_annotation(annotation_, reconstruction_morphology_i
 
 
 def import_me_models(data, db):
+    def is_memodel(data):
+        types =  data["@type"]
+        if isinstance(types, list):
+            return "MEModel" in types or "https://neuroshapes.org/MEModel" in types
+        return "MEModel" == types or "https://neuroshapes.org/MEModel" == types
     possible_data = [
-        data for data in data if "https://neuroshapes.org/MEModel" in data["@type"]
+        data for data in data if is_memodel(data) 
     ]
     if not possible_data:
         return
@@ -277,7 +283,8 @@ def import_me_models(data, db):
         rm = utils._find_by_legacy_id(legacy_id, memodel.MEModel, db)
         if not rm:
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            species_id, strain_id = utils.get_species_mixin(data, db)
+            # TO DO: add species and strain mixin ?
+            # species_id, strain_id = utils.get_species_mixin(data, db)
             rm = memodel.MEModel(
                 legacy_id=[legacy_id],
                 name=data.get("name", None),
@@ -286,23 +293,29 @@ def import_me_models(data, db):
                 status=data.get("status", None),
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
-                species_id=species_id,
-                strain_id=strain_id,
+                # species_id=species_id,
+                # strain_id=strain_id 
             )
+            db.add(rm)
+            db.commit()
 
 def import_e_models(data, db):
+    def is_emodel(data):
+        types =  data["@type"]
+        if isinstance(types, list):
+            return "EModel" in types
+        return "EModel" == types
     possible_data = [
-        data for data in data if "https://neuroshapes.org/EModel" in data["@type"]
-    ]
+        data for data in data if is_emodel(data)]
     if not possible_data:
         return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
-        rm = utils._find_by_legacy_id(legacy_id, memodel.EModel, db)
+        rm = utils._find_by_legacy_id(legacy_id, emodel.EModel, db)
         if not rm:
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
-            rm = memodel.EModel(
+            rm = emodel.EModel(
                 legacy_id=[legacy_id],
                 name=data.get("name", None),
                 description=data.get("description", None),
@@ -316,6 +329,9 @@ def import_e_models(data, db):
                 species_id=species_id,
                 strain_id=strain_id,
             )
+
+            db.add(rm)
+            db.commit()
 
 def import_brain_region_meshes(data, db):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
@@ -602,15 +618,15 @@ def main():
 
     l_imports = [
         {"eModels": import_e_models},
-        {"meshes": import_brain_region_meshes},
-        {"morphologies": import_morphologies},
-        {"morphologyFeatureAnnotations": import_morphology_feature_annotations},
-        {"experimentalNeuronDensities": import_experimental_neuron_densities},
-        {"experimentalBoutonDensities": import_experimental_bouton_densities},
-        {
-            "experimentalSynapsesPerConnections": import_experimental_synapses_per_connection
-        },
-        {"traces": import_traces},
+        # {"meshes": import_brain_region_meshes},
+        # {"morphologies": import_morphologies},
+        # {"morphologyFeatureAnnotations": import_morphology_feature_annotations},
+        # {"experimentalNeuronDensities": import_experimental_neuron_densities},
+        # {"experimentalBoutonDensities": import_experimental_bouton_densities},
+        # {
+        #     "experimentalSynapsesPerConnections": import_experimental_synapses_per_connection
+        # },
+        # {"traces": import_traces},
         {"meModels": import_me_models},
     ]
     for l_import in l_imports:

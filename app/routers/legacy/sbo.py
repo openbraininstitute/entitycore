@@ -31,7 +31,6 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
             db_query_hits = db_query_hits.limit(size)
         hits = db_query_hits.all()
         count = db_query.count()
-        print(db_query)
 
         response = utils.build_response_body(facets=facets, hits=hits, count=count)
     except HTTPException as e:

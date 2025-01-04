@@ -52,7 +52,6 @@ def test_dump(client, db):
 
             start_time = time.time()
             start_resources = resource.getrusage(resource.RUSAGE_SELF)
-            # if "66abb025-39dc-4666-b398-535a1b96a95f_1729761379349.3362" in url["file"]:
             ret = client.post(url["url"], json=json_data)
 
             end_time = time.time()
@@ -65,6 +64,7 @@ def test_dump(client, db):
             if ret.status_code != 200:
                 print(f"Failed to call {url['file'] } {url['url']}")
                 nb_failures += 1
+                ret = client.post(url["url"], json=json_data)
     print(f"Elapsed time: {total_elapsed_time} seconds")
     print(f"CPU time: {total_cpu_time} seconds")
     print(f"Number of calls: {nb_calls}")

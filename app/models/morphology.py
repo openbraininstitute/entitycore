@@ -5,14 +5,13 @@ from sqlalchemy.schema import DDL
 
 from app.models.base import (
     Base,
-    Entity,
     LicensedMixin,
     LocationMixin,
     SpeciesMixin,
     TimestampMixin,
     engine,
 )
-
+from app.models.entity import Entity
 
 class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"

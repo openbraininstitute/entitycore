@@ -1,9 +1,8 @@
-
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import mapped_column
 
-from app.models.base import DistributionMixin, Entity, LocationMixin
-
+from app.models.base import DistributionMixin,  LocationMixin
+from app.models.entity import Entity
 
 class MEModel(DistributionMixin, LocationMixin, Entity):
     __tablename__ = "memodel"
@@ -20,8 +19,5 @@ class MEModel(DistributionMixin, LocationMixin, Entity):
     name = Column(String, nullable=False, default="")
     status = Column(String, nullable=False, default="")
     validated = Column(Boolean, nullable=False, default=False)
-    
-    
+    #TODO: see how it relates to other created by properties
     __mapper_args__ = {"polymorphic_identity": "memodel"}
-
-

@@ -1,10 +1,10 @@
 from . import TEST_SBO_END_POINT, get_body
 
 
-def test_sbo_morphology_ids(client):
+def test_sbo_emodel_facet(client):
     response = client.post(
-        TEST_SBO_END_POINT + "/_search",
-        json=get_body("license_by_id"),
+        TEST_SBO_END_POINT ,
+        json=get_body("sbo_emodel_facet"),
     )
     assert response.status_code == 200
     data = response.json()

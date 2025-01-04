@@ -9,7 +9,6 @@ from app.models.base import (
     Base,
     BrainLocation,
     BrainRegion,
-    Entity,
     License,
     Root,
     Species,
@@ -18,6 +17,7 @@ from app.models.base import (
     engine,
     
 )
+from app.models.entity import Entity
 from app.models.contribution import Contribution
 from app.models.density import (
     ExperimentalBoutonDensity,
@@ -34,6 +34,7 @@ from app.models.morphology import (
 from app.models.role import Role
 from app.models.single_cell_experimental_trace import SingleCellExperimentalTrace
 from app.models.memodel import MEModel
+from app.models.code import AnalysisSoftwareSourceCode
 from app.models.emodel import EModel
 __all__ = [
     Role,
@@ -66,7 +67,8 @@ __all__ = [
     Subject,
     engine,
     MEModel,
-    EModel
+    EModel,
+    AnalysisSoftwareSourceCode,
 ]
 
 # Note: this is still not right; database initialization should be separate

@@ -1,7 +1,8 @@
 from sqlalchemy import Column, ForeignKey, Integer
 from sqlalchemy.orm import mapped_column, relationship
 
-from app.models.base import DistributionMixin, Entity
+from app.models.base import DistributionMixin
+from app.models.entity import Entity
 
 
 class Mesh(DistributionMixin, Entity):

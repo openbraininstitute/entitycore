@@ -12,7 +12,7 @@ import app.models.morphology
 import app.models.single_cell_experimental_trace
 import app.models.memodel
 import app.models.emodel
-from app.models import agent, annotation, base, contribution
+from app.models import agent, annotation, base, contribution, entity
 
 MAP_TYPES = {
     app.models.base.License: "License",
@@ -27,7 +27,6 @@ MAP_TYPES = {
     app.models.mesh.Mesh: "https://neuroshapes.org/Mesh",
     app.models.single_cell_experimental_trace.SingleCellExperimentalTrace: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace",
     app.models.density.ExperimentalSynapsesPerConnection: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection",
-    
 }
 
 MAPPING_GLOBAL = {
@@ -63,9 +62,13 @@ MAP_KEYWORD = {
 
 def get_db_type(query):
     terms = query.get("query", {}).get("bool", {}).get("must", [])
+    if not terms:
+        return entity.Entity
+    if type(terms) is not list:
+        terms = [terms]
     type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
     if not type_term:
-        return base.Entity
+        return entity.Entity
     type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
     db_type = MAP_KEYWORD.get(type_keyword)
     return db_type
@@ -86,6 +89,10 @@ QUERY_PATH = {
         "models": [contribution.Contribution, agent.Agent],
         "joins": [("id", "entity_id"), ("agent_id", "id")],
     },
+    "createdBy": {
+        "models": [ agent.Agent],
+        "joins": [("createdBy_id", "id")],
+    }
 }
 PROPERTY_MAP = {
     "mType.label": "pref_label",
@@ -94,7 +101,9 @@ PROPERTY_MAP = {
     "subjectSpecies.label": "name",
     "contributors.label": "pref_label",
     "@id": "legacy_id",
+    "createdBy.label": "pref_label",
 }
+
 
 def get_facets(aggs, musts, db_type, db):
     if not aggs:
@@ -104,10 +113,20 @@ def get_facets(aggs, musts, db_type, db):
     # not used for createdAt and updatedAt in GUI
 
     fields = [
-        {"label": key, "field": aggs[key]["terms"]["field"]} for key in aggs.keys() if "terms" in aggs[key]
+        {"label": key, "field": aggs[key]["terms"]["field"]}
+        for key in aggs.keys()
+        if "terms" in aggs[key]
     ]
     for field in fields:
-        target,property,_= field["field"].split(".")
+        # TODO understand how link is created
+        if "emodel.neuronMorphology" in field["field"]:
+            continue
+        split_field = field["field"].split(".")
+        target = split_field[0]
+        if len(split_field) > 2:
+            property_= split_field[1]
+        else:
+            property_ = "label"
         query_map = QUERY_PATH.get(target)
         joins = list(reversed(query_map["joins"]))
         models = list(reversed(query_map["models"]))
@@ -115,15 +134,16 @@ def get_facets(aggs, musts, db_type, db):
         models.append(aliased(db_type))
         cur_alias = aliased(list(models)[0])
         initial_alias = cur_alias
-        property_group = PROPERTY_MAP.get(".".join([target, property]), None)        
-        facet_q = db.query(getattr(initial_alias, property_group), func.count().label("count"))
+        property_group = PROPERTY_MAP.get(".".join([target, property_]), None)
+        facet_q = db.query(
+            getattr(initial_alias, property_group), func.count().label("count")
+        )
         for model, join in zip(models[1:], joins):
             prev_alias = cur_alias
             cur_alias = aliased(model)
             facet_q = facet_q.join(
                 cur_alias,
-                getattr(prev_alias, join[1])
-                == getattr(cur_alias, join[0]),
+                getattr(prev_alias, join[1]) == getattr(cur_alias, join[0]),
             )
 
         alias = cur_alias
@@ -155,6 +175,7 @@ def build_response_elem(elem):
         "_source": initial_dict,
     }
 
+
 def find_musts(query):
     def find_must_keys(data):
         """
@@ -174,10 +195,12 @@ def find_musts(query):
         elif isinstance(data, list):
             for item in data:
                 result.extend(find_must_keys(item))
-        
+
         return result
+
     must_keys = find_must_keys(query)
     return must_keys
+
 
 def add_predicates_to_query(query, must_terms, db_type, alias=None):
     initial_alias = alias or db_type
@@ -195,7 +218,10 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
             if key in ["@type.keyword", "deprecated", "curated"]:
                 continue
             else:
-                query = query.filter(getattr(db_type, key) == value)
+                if key == "@id":
+                    query = query.filter(base.StringList.in_(initial_alias.legacy_id, [value]))
+                else:
+                    query = query.filter(getattr(db_type, key) == value)
         elif "terms" in must_term:
             key_value = must_term["terms"].items()
 
@@ -224,16 +250,17 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                     )
                     prev_alias = cur_alias
                 if not cur_alias:
-                    raise HTTPException(
-                        status_code=500,
-                        detail="unexpected error")
-                    
+                    raise HTTPException(status_code=500, detail="unexpected error")
+
             else:
-                 cur_alias = initial_alias
-                 property = PROPERTY_MAP.get(key,key.replace(".label","")) 
+                cur_alias = initial_alias
+                property = PROPERTY_MAP.get(key, key.replace(".label", ""))
             column = getattr(cur_alias, property)
-            if property=="legacy_id":
-                query = query.filter(base.StringList.in_(column,value))
+
+            if type(value) is not list:
+                value = [value]
+            if property == "legacy_id":
+                query = query.filter(base.StringList.in_(column, value))
             else:
                 query = query.filter(column.in_(value))
         else:

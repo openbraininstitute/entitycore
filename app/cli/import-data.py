@@ -12,6 +12,7 @@ from app.models import (
     agent,
     annotation,
     base,
+    code,
     contribution,
     density,
     memodel,
@@ -190,6 +191,43 @@ def import_etype_annotation_body(data, db):
 
 
 def import_agents(data_list, db):
+    data_list.append({
+        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ikilic",
+        "@type": "Person",
+        "givenName": "Ilkan",
+        "familyName": "Kilic",
+    })
+    #TODO: find out who that is.
+    data_list.append({
+        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/harikris",
+        "@type": "Person",
+        "givenName": "h",
+        "familyName": "arikris",
+    })
+    data_list.append({
+        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ricardi",
+        "@type": "Person",
+        "givenName": "Nicolo",
+        "familyName": "Ricardi",
+    })
+    data_list.append({
+        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/akkaufma",
+        "@type": "Person",
+        "givenName": "Anna-Kristin",
+        "familyName": "Kaufmann",
+    })
+    data_list.append({
+        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gbarrios",
+        "@type": "Person",
+        "givenName": "Gil",
+        "familyName": "Barrios",
+    })
+    data_list.append({
+        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/okeeva",
+        "@type": "Person",
+        "givenName": "Ayima",
+        "familyName": "Okeeva",
+    })
     for data in data_list:
         if "Person" in data["@type"]:
             legacy_id = data["@id"]
@@ -266,7 +304,36 @@ def get_or_create_morphology_annotation(annotation_, reconstruction_morphology_i
     db.commit()
     return db_annotation.id
 
+def import_analysis_software_source_code(data, db):
 
+    possible_data = [
+        data for data in data if data["@type"] == "AnalysisSoftwareSourceCode"
+    ]
+    if not possible_data:
+        return
+    for data in tqdm(possible_data):
+        legacy_id = data["@id"]
+        rm = utils._find_by_legacy_id(legacy_id, code.AnalysisSoftwareSourceCode, db)
+        if not rm:
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            db_code = code.AnalysisSoftwareSourceCode(
+                legacy_id=[legacy_id],
+                name=data.get("name", ""),
+                description=data.get("description", ""),
+                createdBy_id=created_by_id,
+                updatedBy_id=updated_by_id,
+                branch=data.get("branch", ""),
+                commit=data.get("commit", ""),
+                codeRepository=data.get("codeRepository", ""),
+                command=data.get("command", ""),
+                subdirectory=data.get("subdirectory", ""),
+                targetEntity=data.get("targetEntity", ""),
+                programmingLanguage=data.get("programmingLanguage", ""),
+                runtimePlatform=data.get("runtimePlatform", ""),
+                version=data.get("version", ""),
+            )
+            db.add(db_code)
+            db.commit()
 def import_me_models(data, db):
     def is_memodel(data):
         types =  data["@type"]
@@ -283,6 +350,7 @@ def import_me_models(data, db):
         rm = utils._find_by_legacy_id(legacy_id, memodel.MEModel, db)
         if not rm:
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             # TO DO: add species and strain mixin ?
             # species_id, strain_id = utils.get_species_mixin(data, db)
             rm = memodel.MEModel(
@@ -293,6 +361,8 @@ def import_me_models(data, db):
                 status=data.get("status", None),
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
+                createdBy_id=created_by_id,
+                updatedBy_id=updated_by_id,
                 # species_id=species_id,
                 # strain_id=strain_id 
             )
@@ -315,6 +385,7 @@ def import_e_models(data, db):
         if not rm:
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             rm = emodel.EModel(
                 legacy_id=[legacy_id],
                 name=data.get("name", None),
@@ -328,6 +399,8 @@ def import_e_models(data, db):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
+                createdBy_id=created_by_id,
+                updatedBy_id=updated_by_id,
             )
 
             db.add(rm)
@@ -545,6 +618,7 @@ def _import_experimental_densities(
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            _createdBy_id, _updatedBy_id = utils.get_agent_mixin(data, db)
             db_element = model_type(
                 legacy_id=[legacy_id],
                 name=data.get("name", None),
@@ -554,6 +628,8 @@ def _import_experimental_densities(
                 license_id=license_id,
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
+                createdBy_id=_createdBy_id,
+                updatedBy_id=_updatedBy_id,
             )
             db.add(db_element)
             db.commit()
@@ -617,16 +693,17 @@ def main():
         import_etype_annotation_body(possible_data, db)
 
     l_imports = [
+        {"AnalysisSoftwareSourceCode": import_analysis_software_source_code},
         {"eModels": import_e_models},
-        # {"meshes": import_brain_region_meshes},
-        # {"morphologies": import_morphologies},
-        # {"morphologyFeatureAnnotations": import_morphology_feature_annotations},
-        # {"experimentalNeuronDensities": import_experimental_neuron_densities},
-        # {"experimentalBoutonDensities": import_experimental_bouton_densities},
-        # {
-        #     "experimentalSynapsesPerConnections": import_experimental_synapses_per_connection
-        # },
-        # {"traces": import_traces},
+        {"meshes": import_brain_region_meshes},
+        {"morphologies": import_morphologies},
+        {"morphologyFeatureAnnotations": import_morphology_feature_annotations},
+        {"experimentalNeuronDensities": import_experimental_neuron_densities},
+        {"experimentalBoutonDensities": import_experimental_bouton_densities},
+        {
+            "experimentalSynapsesPerConnections": import_experimental_synapses_per_connection
+        },
+        {"traces": import_traces},
         {"meModels": import_me_models},
     ]
     for l_import in l_imports:

@@ -1,7 +1,7 @@
 from sqlalchemy import (Column, DateTime, Float, ForeignKey, Integer, String,
                         create_engine, func, or_)
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import mapped_column, relationship, sessionmaker, declarative_base
+from sqlalchemy.orm import relationship, sessionmaker, declarative_base
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.config import DATABASE_CONNECT_ARGS, DATABASE_URI
@@ -54,15 +54,6 @@ class Root(LegacyMixin, Base):
     __mapper_args__ = {"polymorphic_identity": "root", "polymorphic_on": type}
 
 
-class Entity(TimestampMixin, Root):
-    __tablename__ = "entity"
-    id = mapped_column(Integer, ForeignKey("root.id"), primary_key=True)
-    # type = Column(String, unique=False, index=False, nullable=False)
-    annotations = relationship("Annotation", back_populates="entity")
-    __mapper_args__ = {
-        "polymorphic_identity": "entity",
-        "inherit_condition": id == Root.id,
-    }
 
 
 class BrainLocation(Base):
@@ -144,3 +135,4 @@ class SpeciesMixin:
     @declared_attr
     def strain(cls):
         return relationship("Strain", uselist=False)
+

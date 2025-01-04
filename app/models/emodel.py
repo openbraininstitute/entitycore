@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import mapped_column
 
-from app.models.base import DistributionMixin, Entity, LocationMixin, SpeciesMixin
-
+from app.models.base import DistributionMixin, LocationMixin, SpeciesMixin
+from  app.models.entity import Entity
 class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
     __tablename__ = "emodel"
     id = mapped_column(

@@ -2,12 +2,11 @@ from sqlalchemy import Column, ForeignKey, Integer, String
 from sqlalchemy.orm import mapped_column
 
 from app.models.base import (
-    Entity,
     LicensedMixin,
     LocationMixin,
     SpeciesMixin,
 )
-
+from app.models.entity import Entity
 
 class SingleCellExperimentalTrace(LocationMixin, SpeciesMixin, LicensedMixin, Entity):
     __tablename__ = "single_cell_experimental_trace"

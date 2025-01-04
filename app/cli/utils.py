@@ -3,6 +3,7 @@ from app.models import (
     base,
 )
 import app.cli.curate as curate
+import app.models.agent as agent
 def _find_by_legacy_id(legacy_id, db_type, db):
     use_func = func.instr
     if db.bind.dialect.name == "postgresql":
@@ -112,3 +113,13 @@ def get_license_mixin(data, db):
     if license:
         license_id = get_license_id(license, db)
     return license_id
+
+def get_agent_mixin(data, db):
+    result = []
+    for property  in ["_createdBy", "_updatedBy"]:
+        legacy_id = data.get(property, {})
+        assert legacy_id, "legacy_id is None: {}".format(data)
+        agent_db = _find_by_legacy_id(legacy_id, agent.Agent, db)
+        assert agent_db, "legacy_id not found: {}".format(legacy_id)
+        result.append( agent_db.id )
+    return result

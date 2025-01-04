@@ -1,0 +1,144 @@
+{
+    "aggregations": {
+        "createdBy": {
+            "buckets": [
+                {
+                    "doc_count": 2,
+                    "key": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/jdcourcol"
+                }
+            ],
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0
+        },
+        "creationDate": {
+            "avg": 1.7334765057515E12,
+            "avg_as_string": "2024-12-06T09:15:05.751Z",
+            "count": 2,
+            "max": 1.734082651548E12,
+            "max_as_string": "2024-12-13T09:37:31.548Z",
+            "min": 1.732870359955E12,
+            "min_as_string": "2024-11-29T08:52:39.955Z",
+            "sum": 3.466953011503E12,
+            "sum_as_string": "2079-11-11T18:30:11.503Z"
+        }
+    },
+    "hits": {
+        "hits": [
+            {
+                "sort": [
+                    1734082651548
+                ],
+                "_id": "https://openbluebrain.com/data/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/5fe5c992-dcf9-4ff1-b452-c778b681588a",
+                "_index": "nexus_search_80b33684-30a3-4bee-b789-9c1ac908adb0_ba4be211-4a90-4036-93a9-aba15c7455a3_2",
+                "_source": {
+                    "@id": "https://openbluebrain.com/data/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/5fe5c992-dcf9-4ff1-b452-c778b681588a",
+                    "@type": "https://bbp.epfl.ch/ontologies/core/bmo/SingleNeuronSynaptome",
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/315",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/315|Isocortex",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/315",
+                        "label": "Isocortex"
+                    },
+                    "createdAt": "2024-12-13T09:37:31.548Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/jdcourcol",
+                    "deprecated": false,
+                    "distribution": [
+                        {
+                            "contentSize": 584,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/https:%2F%2Fopenbluebrain.com%2Fdata%2F9653f336-964b-4012-84e6-6a730fee6b1f%2F076708be-30a2-4364-808e-be933a4096ab%2F396eddf9-ca18-4b94-adf1-fdf66fe6db34",
+                            "encodingFormat": "application/json",
+                            "label": "synaptome_config.json"
+                        }
+                    ],
+                    "name": "my-synaptome-model-tuft",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab",
+                        "label": "9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab"
+                    },
+                    "seed": 100,
+                    "singleNeuronSynaptome": {
+                        "memodel": {
+                            "@id": "https://openbluebrain.com/data/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/77ce26bc-9fe1-4859-8e7c-a6300af32cf6",
+                            "name": "jdc-demo-model"
+                        },
+                        "seed": 100
+                    },
+                    "updatedAt": "2024-12-13T09:37:31.548Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/jdcourcol",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/_/https:%2F%2Fopenbluebrain.com%2Fdata%2F9653f336-964b-4012-84e6-6a730fee6b1f%2F076708be-30a2-4364-808e-be933a4096ab%2F5fe5c992-dcf9-4ff1-b452-c778b681588a"
+                }
+            },
+            {
+                "sort": [
+                    1732870359955
+                ],
+                "_id": "https://openbluebrain.com/data/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/f391f067-b415-4d00-8bec-08ac278a4bad",
+                "_index": "nexus_search_80b33684-30a3-4bee-b789-9c1ac908adb0_ba4be211-4a90-4036-93a9-aba15c7455a3_2",
+                "_source": {
+                    "@id": "https://openbluebrain.com/data/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/f391f067-b415-4d00-8bec-08ac278a4bad",
+                    "@type": "https://bbp.epfl.ch/ontologies/core/bmo/SingleNeuronSynaptome",
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/315",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/315|Isocortex",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/315",
+                        "label": "Isocortex"
+                    },
+                    "createdAt": "2024-11-29T08:52:39.955Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/jdcourcol",
+                    "deprecated": false,
+                    "description": "description",
+                    "distribution": [
+                        {
+                            "contentSize": 727,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/https:%2F%2Fopenbluebrain.com%2Fdata%2F9653f336-964b-4012-84e6-6a730fee6b1f%2F076708be-30a2-4364-808e-be933a4096ab%2F6083f957-c935-4340-99d0-7f69940d35a2",
+                            "encodingFormat": "application/json",
+                            "label": "synaptome_config.json"
+                        }
+                    ],
+                    "name": "jdc-synaptome-demo",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab",
+                        "label": "9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab"
+                    },
+                    "seed": 100,
+                    "singleNeuronSynaptome": {
+                        "memodel": {
+                            "@id": "https://openbluebrain.com/data/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/77ce26bc-9fe1-4859-8e7c-a6300af32cf6",
+                            "name": "jdc-demo-model"
+                        },
+                        "seed": 100
+                    },
+                    "updatedAt": "2024-11-29T08:52:39.955Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/jdcourcol",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/9653f336-964b-4012-84e6-6a730fee6b1f/076708be-30a2-4364-808e-be933a4096ab/_/https:%2F%2Fopenbluebrain.com%2Fdata%2F9653f336-964b-4012-84e6-6a730fee6b1f%2F076708be-30a2-4364-808e-be933a4096ab%2Ff391f067-b415-4d00-8bec-08ac278a4bad"
+                }
+            }
+        ],
+        "total": {
+            "relation": "eq",
+            "value": 2
+        }
+    },
+    "timed_out": false,
+    "took": 4,
+    "_shards": {
+        "failed": 0,
+        "skipped": 4,
+        "successful": 16,
+        "total": 16
+    }
+}

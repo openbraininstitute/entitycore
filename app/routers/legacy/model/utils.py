@@ -3,31 +3,40 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
-
+from bidict import bidict as bdict
 import app.models.annotation
 import app.models.base
+import app.models.code
 import app.models.density
+import app.models.emodel
+import app.models.entity
+import app.models.memodel
 import app.models.mesh
 import app.models.morphology
 import app.models.single_cell_experimental_trace
-import app.models.memodel
-import app.models.emodel
 from app.models import agent, annotation, base, contribution, entity
+import app.models.single_neuron_synaptome
+import app.models.single_neuron_simulation
 
-MAP_TYPES = {
-    app.models.base.License: "License",
-    app.models.annotation.MTypeAnnotationBody: "Class",
-    app.models.annotation.ETypeAnnotationBody: "Class",
-    app.models.base.Species: "Species",
-    app.models.morphology.ReconstructionMorphology: "https://neuroshapes.org/ReconstructedNeuronMorphology",
-    app.models.density.ExperimentalBoutonDensity: "https://neuroshapes.org/ExperimentalBoutonDensity",
-    app.models.density.ExperimentalNeuronDensity: "https://neuroshapes.org/ExperimentalNeuronDensity",
-    app.models.MEModel: "https://neuroshapes.org/MEModel",
-    app.models.EModel: "https://neuroshapes.org/EModel",
-    app.models.mesh.Mesh: "https://neuroshapes.org/Mesh",
-    app.models.single_cell_experimental_trace.SingleCellExperimentalTrace: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace",
-    app.models.density.ExperimentalSynapsesPerConnection: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection",
-}
+MAP_TYPES = bdict(
+    {
+        app.models.base.License: "License",
+        # app.models.annotation.MTypeAnnotationBody: "Class",
+        # app.models.annotation.ETypeAnnotationBody: "Class",
+        app.models.base.Species: "Species",
+        app.models.morphology.ReconstructionMorphology: "https://neuroshapes.org/ReconstructedNeuronMorphology",
+        app.models.density.ExperimentalBoutonDensity: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity",
+        app.models.density.ExperimentalNeuronDensity: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalNeuronDensity",
+        app.models.MEModel: "https://neuroshapes.org/MEModel",
+        app.models.EModel: "https://neuroshapes.org/EModel",
+        app.models.mesh.Mesh: "Mesh",
+        app.models.single_cell_experimental_trace.SingleCellExperimentalTrace: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace",
+        app.models.density.ExperimentalSynapsesPerConnection: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection",
+        app.models.code.AnalysisSoftwareSourceCode: "AnalysisSoftwareSourceCode",
+        app.models.single_neuron_synaptome.SingleNeuronSynaptome: "https://bbp.epfl.ch/ontologies/core/bmo/SingleNeuronSynaptome",
+        app.models.single_neuron_simulation.SingleNeuronSimulation: "SingleNeuronSimulation",
+    }
+)
 
 MAPPING_GLOBAL = {
     "creation_date": "_createdAt",
@@ -49,16 +58,6 @@ MAPPING_PER_TYPE = {
     },
 }
 
-MAP_KEYWORD = {
-    "https://neuroshapes.org/ReconstructedNeuronMorphology": app.models.morphology.ReconstructionMorphology,
-    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace": app.models.single_cell_experimental_trace.SingleCellExperimentalTrace,
-    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalNeuronDensity": app.models.density.ExperimentalNeuronDensity,
-    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity": app.models.density.ExperimentalBoutonDensity,
-    "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection": app.models.density.ExperimentalSynapsesPerConnection,
-    "https://neuroshapes.org/MEModel": app.models.memodel.MEModel,
-    "https://neuroshapes.org/EModel": app.models.emodel.EModel,
-}
-
 
 def get_db_type(query):
     terms = query.get("query", {}).get("bool", {}).get("must", [])
@@ -68,9 +67,13 @@ def get_db_type(query):
         terms = [terms]
     type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
     if not type_term:
-        return entity.Entity
+        type_term = [term for term in terms if "@type" in term.get("term", {})]
+        if not type_term:
+            return entity.Entity
     type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
-    db_type = MAP_KEYWORD.get(type_keyword)
+    if not type_keyword:
+        type_keyword = type_term[0].get("term", {}).get("@type", "")
+    db_type = MAP_TYPES.inv[type_keyword]
     return db_type
 
 
@@ -90,9 +93,9 @@ QUERY_PATH = {
         "joins": [("id", "entity_id"), ("agent_id", "id")],
     },
     "createdBy": {
-        "models": [ agent.Agent],
+        "models": [agent.Agent],
         "joins": [("createdBy_id", "id")],
-    }
+    },
 }
 PROPERTY_MAP = {
     "mType.label": "pref_label",
@@ -124,7 +127,7 @@ def get_facets(aggs, musts, db_type, db):
         split_field = field["field"].split(".")
         target = split_field[0]
         if len(split_field) > 2:
-            property_= split_field[1]
+            property_ = split_field[1]
         else:
             property_ = "label"
         query_map = QUERY_PATH.get(target)
@@ -163,11 +166,20 @@ def build_response_elem(elem):
         "_schemaProject": "https://openbluebrain.com/api/nexus/v1/projects/bbp/licenses",
         "_updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/cgonzale",
     }
-    mapping = {**MAPPING_PER_TYPE.get(elem.__class__, {}), **MAPPING_GLOBAL}
-    for key, value in mapping.items():
-        initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
-    initial_dict["@type"] = [MAP_TYPES[elem.__class__]]
-    initial_dict["@id"] = elem.legacy_id[0]
+    try:
+        mapping = {**MAPPING_PER_TYPE.get(elem.__class__, {}), **MAPPING_GLOBAL}
+        for key, value in mapping.items():
+            initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
+        if elem.__class__ in [ app.models.annotation.MTypeAnnotationBody,
+                              app.models.annotation.ETypeAnnotationBody]:
+            initial_dict["@type"] = "Class"
+        else:
+            initial_dict["@type"] = [MAP_TYPES[elem.__class__]]
+        initial_dict["@id"] = elem.legacy_id[0]
+    except Exception as e:
+        print(e)
+        print(elem)
+        raise e
     return {
         "_id": elem.legacy_id[0],
         "_index": "dummy",
@@ -176,30 +188,22 @@ def build_response_elem(elem):
     }
 
 
-def find_musts(query):
-    def find_must_keys(data):
-        """
-        Recursively find all keys named "must" in the dictionary `data`,
-        :return: List of "must" keys found.
-        """
-        result = []
-        if isinstance(data, dict):
-            for key, value in data.items():
-                if key == "must":
-                    if isinstance(value, dict):
-                        result.append(value)
-                    else:
-                        result.extend(value)
-                    continue
-                result.extend(find_must_keys(value))
-        elif isinstance(data, list):
-            for item in data:
-                result.extend(find_must_keys(item))
-
-        return result
-
-    must_keys = find_must_keys(query)
-    return must_keys
+def find_term_keys(data):
+    """
+    Recursively find all keys named "term", "terms" or "wildcard" in the dictionary `data`,
+    :return: List of keys found.
+    """
+    result = []
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if key in ["term", "terms", "wildcard"]:
+                result.append({key: value})
+            else:
+                result.extend(find_term_keys(value))
+    elif isinstance(data, list):
+        for item in data:
+            result.extend(find_term_keys(item))
+    return result
 
 
 def add_predicates_to_query(query, must_terms, db_type, alias=None):
@@ -215,11 +219,20 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
 
             key, value = list(key_value)[0]
             # deprecated & curated are not a field in the database
-            if key in ["@type.keyword", "deprecated", "curated"]:
+            if key in [
+                "@type.keyword",
+                "deprecated",
+                "curated",
+                "@type",
+                "_deprecated",
+                "atlasRelease.@id",
+            ]:
                 continue
             else:
                 if key == "@id":
-                    query = query.filter(base.StringList.in_(initial_alias.legacy_id, [value]))
+                    query = query.filter(
+                        base.StringList.in_(initial_alias.legacy_id, [value])
+                    )
                 else:
                     query = query.filter(getattr(db_type, key) == value)
         elif "terms" in must_term:
@@ -232,37 +245,52 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                 )
             key, value = list(key_value)[0]
             if "." in key:
-                target, property, _ = key.split(".")
-                query_map = QUERY_PATH.get(target, None)
-                property = PROPERTY_MAP.get(".".join([target, property]), None)
-                if not query_map or not property:
-                    raise HTTPException(
-                        status_code=500,
-                        detail="not implemented",
-                    )
-                prev_alias = initial_alias
-                cur_alias = None
-                for model, join in zip(query_map["models"], query_map["joins"]):
-                    cur_alias = aliased(model)
-                    query = query.join(
-                        cur_alias,
-                        getattr(cur_alias, join[1]) == getattr(prev_alias, join[0]),
-                    )
-                    prev_alias = cur_alias
-                if not cur_alias:
-                    raise HTTPException(status_code=500, detail="unexpected error")
+                target, property_, _ = key.split(".")
+                if db_type == app.models.entity.Entity:
+                    if property_ == "@id":
+                        property_ = "legacy_id"
+                        cur_alias = initial_alias
+                else:
+                    query_map = QUERY_PATH.get(target, None)
+                    property_ = PROPERTY_MAP.get(".".join([target, property_]), None)
+                    if not query_map or not property_:
+                        raise HTTPException(
+                            status_code=500,
+                            detail="not implemented",
+                        )
+                    prev_alias = initial_alias
+                    cur_alias = None
+                    for model, join in zip(query_map["models"], query_map["joins"]):
+                        cur_alias = aliased(model)
+                        query = query.join(
+                            cur_alias,
+                            getattr(cur_alias, join[1]) == getattr(prev_alias, join[0]),
+                        )
+                        prev_alias = cur_alias
+                    if not cur_alias:
+                        raise HTTPException(status_code=500, detail="unexpected error")
 
             else:
                 cur_alias = initial_alias
-                property = PROPERTY_MAP.get(key, key.replace(".label", ""))
-            column = getattr(cur_alias, property)
+                if key == "_id":
+                    property_ = "legacy_id"
+                else:
+                    property_ = PROPERTY_MAP.get(key, key.replace(".label", ""))
+            column = getattr(cur_alias, property_)
 
             if type(value) is not list:
                 value = [value]
-            if property == "legacy_id":
+            if property_ == "legacy_id":
                 query = query.filter(base.StringList.in_(column, value))
             else:
                 query = query.filter(column.in_(value))
+        elif "wildcard" in must_term:
+
+            #TODO check if this is always hardcoded
+            value = must_term["wildcard"]["name.keyword"]["value"]
+            #TODO: remove hardcoded morphology_description_vector
+            query = query.filter(db_type.morphology_description_vector.match(value))
+
         else:
             raise HTTPException(
                 status_code=400, detail="Bad request: query does not contain any term"

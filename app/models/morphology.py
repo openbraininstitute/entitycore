@@ -29,9 +29,9 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
 
 trigger_statement = DDL("""
 CREATE TRIGGER morphology_description_vector
-  BEFORE INSERT OR UPDATE ON reconstruction_morphology
-  FOR EACH ROW EXECUTE FUNCTION
-    tsvector_update_trigger(morphology_description_vector, 'pg_catalog.english', description);
+    BEFORE INSERT OR UPDATE ON reconstruction_morphology
+    FOR EACH ROW EXECUTE FUNCTION
+        tsvector_update_trigger(morphology_description_vector, 'pg_catalog.english', description, name);
 """)
 # Associate the trigger with the table
 event.listen(

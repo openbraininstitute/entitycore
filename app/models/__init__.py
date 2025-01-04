@@ -36,6 +36,8 @@ from app.models.single_cell_experimental_trace import SingleCellExperimentalTrac
 from app.models.memodel import MEModel
 from app.models.code import AnalysisSoftwareSourceCode
 from app.models.emodel import EModel
+from app.models.single_neuron_synaptome import SingleNeuronSynaptome
+from app.models.single_neuron_simulation import SingleNeuronSimulation
 __all__ = [
     Role,
     SingleCellExperimentalTrace,
@@ -69,6 +71,9 @@ __all__ = [
     MEModel,
     EModel,
     AnalysisSoftwareSourceCode,
+    SingleNeuronSynaptome,
+    SingleNeuronSimulation,
+    
 ]
 
 # Note: this is still not right; database initialization should be separate

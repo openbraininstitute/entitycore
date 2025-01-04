@@ -21,6 +21,7 @@ from app.models import (
     morphology,
     role,
     single_cell_experimental_trace,
+    single_neuron_simulation,
 )
 from app.models.base import SessionLocal
 
@@ -294,6 +295,35 @@ def import_agents(data_list, db):
                     print(e)
 
 
+def import_single_neuron_simulation(data, db):
+    possible_data = [
+        elem for elem in data if "SingleNeuronSimulation" in elem["@type"]
+    ]
+    if not possible_data:
+        return
+    for data in tqdm(possible_data):
+        legacy_id = data["@id"]
+        rm = utils._find_by_legacy_id(legacy_id, single_neuron_simulation.SingleNeuronSimulation, db)
+        if not rm:
+            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            me_model_lid = data.get("used",{}).get("@id", None)
+            me_model = utils._find_by_legacy_id(me_model_lid, memodel.MEModel, db)
+            rm = single_neuron_simulation.SingleNeuronSimulation(
+                legacy_id=[legacy_id],
+                name=data.get("name", None),
+                description=data.get("description", None),
+                seed=data.get("seed", None),
+                injectionLocation=data.get("injectionLocation", None),
+                recordingLocation=data.get("recordingLocation", None),
+                me_model_id = me_model.id,
+
+                brain_region_id=brain_region_id,
+                createdBy_id=created_by_id,
+                updatedBy_id=updated_by_id,
+            )
+            db.add(rm)
+            db.commit()
 def get_or_create_morphology_annotation(annotation_, reconstruction_morphology_id, db):
     db_annotation = annotation.Annotation(
         entity_id=reconstruction_morphology_id,
@@ -705,6 +735,7 @@ def main():
         },
         {"traces": import_traces},
         {"meModels": import_me_models},
+        {"SingleNeuronSimulation": import_single_neuron_simulation},
     ]
     for l_import in l_imports:
         for label, action in l_import.items():

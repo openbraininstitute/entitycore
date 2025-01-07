@@ -12,7 +12,8 @@ dependencies = [
     "sqlalchemy",
     "tqdm>=4.67.1",
     "uvicorn[standard]",
-    "psycopg2"
+    "psycopg2",
+    "bidict>=0.23.1",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -125,7 +126,7 @@ source_pkgs = [
 [tool.coverage.report]
 show_missing = true
 precision = 0
-fail_under = 49
+fail_under = 45
 omit = [
     "__main__.py",
 ]

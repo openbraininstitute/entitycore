@@ -1,7 +1,5 @@
 import app.models.morphology as morphology
-import app.models.annotation as annotation
 from app.models.base import func
-from app.models import base
 from app.models import agent, contribution
 from sqlalchemy.orm import aliased
 

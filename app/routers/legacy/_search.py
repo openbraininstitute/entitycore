@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.dependencies.db import get_db
-from app.routers.legacy.model import class_ontology, license, mesh, utils
+from app.routers.legacy.model import class_ontology, utils
 
 router = APIRouter(
     prefix="/nexus/v1/views",
@@ -40,13 +40,14 @@ def legacy_search(query: dict, db: Session = Depends(get_db)):
             if type_term == "GeneratorTaskActivity":
                 with open(
                     os.path.join(
-                        os.path.dirname(__file__), "search_data/GeneratorTaskActivity.json"
+                        os.path.dirname(__file__),
+                        "search_data/GeneratorTaskActivity.json",
                     )
                 ) as f:
                     return json.load(f)
         db_type = utils.get_db_type(query)
         musts = utils.find_term_keys(query.get("query", {}))
-        db_query = db.query(db_type) 
+        db_query = db.query(db_type)
         db_query = utils.add_predicates_to_query(db_query, musts, db_type)
         from_ = query.get("from", None)
         size = query.get("size", None)

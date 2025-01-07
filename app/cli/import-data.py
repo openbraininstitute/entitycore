@@ -192,43 +192,55 @@ def import_etype_annotation_body(data, db):
 
 
 def import_agents(data_list, db):
-    data_list.append({
-        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ikilic",
-        "@type": "Person",
-        "givenName": "Ilkan",
-        "familyName": "Kilic",
-    })
-    #TODO: find out who that is.
-    data_list.append({
-        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/harikris",
-        "@type": "Person",
-        "givenName": "h",
-        "familyName": "arikris",
-    })
-    data_list.append({
-        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ricardi",
-        "@type": "Person",
-        "givenName": "Nicolo",
-        "familyName": "Ricardi",
-    })
-    data_list.append({
-        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/akkaufma",
-        "@type": "Person",
-        "givenName": "Anna-Kristin",
-        "familyName": "Kaufmann",
-    })
-    data_list.append({
-        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gbarrios",
-        "@type": "Person",
-        "givenName": "Gil",
-        "familyName": "Barrios",
-    })
-    data_list.append({
-        "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/okeeva",
-        "@type": "Person",
-        "givenName": "Ayima",
-        "familyName": "Okeeva",
-    })
+    data_list.append(
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ikilic",
+            "@type": "Person",
+            "givenName": "Ilkan",
+            "familyName": "Kilic",
+        }
+    )
+    # TODO: find out who that is.
+    data_list.append(
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/harikris",
+            "@type": "Person",
+            "givenName": "h",
+            "familyName": "arikris",
+        }
+    )
+    data_list.append(
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ricardi",
+            "@type": "Person",
+            "givenName": "Nicolo",
+            "familyName": "Ricardi",
+        }
+    )
+    data_list.append(
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/akkaufma",
+            "@type": "Person",
+            "givenName": "Anna-Kristin",
+            "familyName": "Kaufmann",
+        }
+    )
+    data_list.append(
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gbarrios",
+            "@type": "Person",
+            "givenName": "Gil",
+            "familyName": "Barrios",
+        }
+    )
+    data_list.append(
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/okeeva",
+            "@type": "Person",
+            "givenName": "Ayima",
+            "familyName": "Okeeva",
+        }
+    )
     for data in data_list:
         if "Person" in data["@type"]:
             legacy_id = data["@id"]
@@ -296,18 +308,18 @@ def import_agents(data_list, db):
 
 
 def import_single_neuron_simulation(data, db):
-    possible_data = [
-        elem for elem in data if "SingleNeuronSimulation" in elem["@type"]
-    ]
+    possible_data = [elem for elem in data if "SingleNeuronSimulation" in elem["@type"]]
     if not possible_data:
         return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
-        rm = utils._find_by_legacy_id(legacy_id, single_neuron_simulation.SingleNeuronSimulation, db)
+        rm = utils._find_by_legacy_id(
+            legacy_id, single_neuron_simulation.SingleNeuronSimulation, db
+        )
         if not rm:
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
-            me_model_lid = data.get("used",{}).get("@id", None)
+            me_model_lid = data.get("used", {}).get("@id", None)
             me_model = utils._find_by_legacy_id(me_model_lid, memodel.MEModel, db)
             rm = single_neuron_simulation.SingleNeuronSimulation(
                 legacy_id=[legacy_id],
@@ -316,14 +328,15 @@ def import_single_neuron_simulation(data, db):
                 seed=data.get("seed", None),
                 injectionLocation=data.get("injectionLocation", None),
                 recordingLocation=data.get("recordingLocation", None),
-                me_model_id = me_model.id,
-
+                me_model_id=me_model.id,
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
             )
             db.add(rm)
             db.commit()
+
+
 def get_or_create_morphology_annotation(annotation_, reconstruction_morphology_id, db):
     db_annotation = annotation.Annotation(
         entity_id=reconstruction_morphology_id,
@@ -334,8 +347,8 @@ def get_or_create_morphology_annotation(annotation_, reconstruction_morphology_i
     db.commit()
     return db_annotation.id
 
-def import_analysis_software_source_code(data, db):
 
+def import_analysis_software_source_code(data, db):
     possible_data = [
         data for data in data if data["@type"] == "AnalysisSoftwareSourceCode"
     ]
@@ -364,15 +377,16 @@ def import_analysis_software_source_code(data, db):
             )
             db.add(db_code)
             db.commit()
+
+
 def import_me_models(data, db):
     def is_memodel(data):
-        types =  data["@type"]
+        types = data["@type"]
         if isinstance(types, list):
             return "MEModel" in types or "https://neuroshapes.org/MEModel" in types
         return "MEModel" == types or "https://neuroshapes.org/MEModel" == types
-    possible_data = [
-        data for data in data if is_memodel(data) 
-    ]
+
+    possible_data = [data for data in data if is_memodel(data)]
     if not possible_data:
         return
     for data in tqdm(possible_data):
@@ -394,19 +408,20 @@ def import_me_models(data, db):
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
                 # species_id=species_id,
-                # strain_id=strain_id 
+                # strain_id=strain_id
             )
             db.add(rm)
             db.commit()
 
+
 def import_e_models(data, db):
     def is_emodel(data):
-        types =  data["@type"]
+        types = data["@type"]
         if isinstance(types, list):
             return "EModel" in types
         return "EModel" == types
-    possible_data = [
-        data for data in data if is_emodel(data)]
+
+    possible_data = [data for data in data if is_emodel(data)]
     if not possible_data:
         return
     for data in tqdm(possible_data):
@@ -435,6 +450,7 @@ def import_e_models(data, db):
 
             db.add(rm)
             db.commit()
+
 
 def import_brain_region_meshes(data, db):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
@@ -510,7 +526,9 @@ def import_morphologies(data_list, db):
         return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
-        rm = utils._find_by_legacy_id(legacy_id, morphology.ReconstructionMorphology, db)
+        rm = utils._find_by_legacy_id(
+            legacy_id, morphology.ReconstructionMorphology, db
+        )
         if not rm:
             description = data.get("description", None)
             name = data.get("name", None)
@@ -561,7 +579,9 @@ def import_morphology_feature_annotations(data_list, db):
                     "Skipping morphology feature annotation due to missing legacy id."
                 )
                 continue
-            rm = utils._find_by_legacy_id(legacy_id, morphology.ReconstructionMorphology, db)
+            rm = utils._find_by_legacy_id(
+                legacy_id, morphology.ReconstructionMorphology, db
+            )
             if not rm:
                 print("skipping morphology that is not imported")
                 continue

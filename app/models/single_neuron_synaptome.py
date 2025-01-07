@@ -1,4 +1,3 @@
-
 from sqlalchemy import Column, ForeignKey, Integer, String
 
 from app.models.base import DistributionMixin, LocationMixin
@@ -21,5 +20,5 @@ class SingleNeuronSynaptome(DistributionMixin, LocationMixin, Entity):
     name = Column(String, nullable=False, default="")
     seed = Column(Integer, nullable=False, default=-1)
     me_model_id = Column(Integer, ForeignKey("memodel.id"), nullable=False)
-    me_model = relationship("MEModel", uselist=False,foreign_keys=[me_model_id]) 
+    me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
     __mapper_args__ = {"polymorphic_identity": "single_neuron_synaptome"}

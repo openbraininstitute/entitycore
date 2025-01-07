@@ -19,4 +19,7 @@ def test_sbo_complex_query(client):
     assert len(data["aggregations"]["mType"]["buckets"]) == 1
     assert len(data["aggregations"]["subjectSpecies"]["buckets"]) == 1
     assert data["aggregations"]["mType"]["buckets"][0]["key"] == "SP_PC"
-    assert data["aggregations"]["subjectSpecies"]["buckets"][0]["key"] == "Rattus norvegicus"
+    assert (
+        data["aggregations"]["subjectSpecies"]["buckets"][0]["key"]
+        == "Rattus norvegicus"
+    )

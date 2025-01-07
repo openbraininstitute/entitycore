@@ -15,7 +15,6 @@ from app.models.base import (
     Strain,
     Subject,
     engine,
-    
 )
 from app.models.entity import Entity
 from app.models.contribution import Contribution
@@ -38,6 +37,7 @@ from app.models.code import AnalysisSoftwareSourceCode
 from app.models.emodel import EModel
 from app.models.single_neuron_synaptome import SingleNeuronSynaptome
 from app.models.single_neuron_simulation import SingleNeuronSimulation
+
 __all__ = [
     Role,
     SingleCellExperimentalTrace,
@@ -73,7 +73,6 @@ __all__ = [
     AnalysisSoftwareSourceCode,
     SingleNeuronSynaptome,
     SingleNeuronSimulation,
-    
 ]
 
 # Note: this is still not right; database initialization should be separate

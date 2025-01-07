@@ -8,6 +8,7 @@ from app.models.base import (
 )
 from app.models.entity import Entity
 
+
 class SingleCellExperimentalTrace(LocationMixin, SpeciesMixin, LicensedMixin, Entity):
     __tablename__ = "single_cell_experimental_trace"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True)

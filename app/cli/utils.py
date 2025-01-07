@@ -4,6 +4,8 @@ from app.models import (
 )
 import app.cli.curate as curate
 import app.models.agent as agent
+
+
 def _find_by_legacy_id(legacy_id, db_type, db):
     use_func = func.instr
     if db.bind.dialect.name == "postgresql":
@@ -12,6 +14,7 @@ def _find_by_legacy_id(legacy_id, db_type, db):
         db.query(db_type).filter(use_func(db_type.legacy_id, legacy_id) > 0).first()
     )
     return db_elem
+
 
 def get_or_create_brain_region(brain_region, db):
     brain_region = curate.curate_brain_region(brain_region)
@@ -48,6 +51,7 @@ def get_or_create_species(species, db):
         db.commit()
     return sp.id
 
+
 def get_brain_location_mixin(data, db):
     coordinates = data.get("brainLocation", {}).get("coordinatesInBrainAtlas", {})
     assert coordinates is not None, "coordinates is None"
@@ -70,6 +74,7 @@ def get_brain_location_mixin(data, db):
         print(data)
         raise (e)
     return brain_location, brain_region_id
+
 
 def get_license_id(license, db):
     # Check if the license already exists in the database
@@ -96,6 +101,7 @@ def get_or_create_strain(strain, species_id, db):
         db.commit()
     return st.id
 
+
 def get_species_mixin(data, db):
     species = data.get("subject", {}).get("species", {})
     assert species, "species is None: {}".format(data)
@@ -114,12 +120,13 @@ def get_license_mixin(data, db):
         license_id = get_license_id(license, db)
     return license_id
 
+
 def get_agent_mixin(data, db):
     result = []
-    for property  in ["_createdBy", "_updatedBy"]:
+    for property in ["_createdBy", "_updatedBy"]:
         legacy_id = data.get(property, {})
         assert legacy_id, "legacy_id is None: {}".format(data)
         agent_db = _find_by_legacy_id(legacy_id, agent.Agent, db)
         assert agent_db, "legacy_id not found: {}".format(legacy_id)
-        result.append( agent_db.id )
+        result.append(agent_db.id)
     return result

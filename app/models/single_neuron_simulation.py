@@ -20,8 +20,8 @@ class SingleNeuronSimulation(DistributionMixin, LocationMixin, Entity):
     name = Column(String, nullable=False, default="")
     seed = Column(Integer, nullable=False, default=-1)
     injectionLocation = Column(StringList, nullable=False, default="")
-    recordingLocation=Column(StringList, nullable=False, default=[])
-    #TODO: called used ?
+    recordingLocation = Column(StringList, nullable=False, default=[])
+    # TODO: called used ?
     me_model_id = Column(Integer, ForeignKey("memodel.id"), nullable=False)
-    me_model = relationship("MEModel", uselist=False,foreign_keys=[me_model_id]) 
+    me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
     __mapper_args__ = {"polymorphic_identity": "single_neuron_simulation"}

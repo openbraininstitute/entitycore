@@ -13,6 +13,7 @@ from app.models.base import (
 )
 from app.models.entity import Entity
 
+
 class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True)

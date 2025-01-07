@@ -36,7 +36,7 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
             # although it needs facets
             if db_type == app.models.entity.Entity:
                 db_type = hits[0].__class__
-        facets = utils.get_facets(aggs, musts, db_type,db)
+        facets = utils.get_facets(aggs, musts, db_type, db)
         response = utils.build_response_body(facets=facets, hits=hits, count=count)
     except HTTPException as e:
         raise e

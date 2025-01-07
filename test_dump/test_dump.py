@@ -3,24 +3,32 @@ import json
 import time
 import resource
 
+
 def test_dump(client, db):
     # find all query_path file in nexus_use_case_dump directory
     query_path_files = []
-    for root, dirs, files in os.walk(os.path.join(os.path.dirname(__file__), '../nexus_use_case_dump')):
+    for root, dirs, files in os.walk(
+        os.path.join(os.path.dirname(__file__), "../nexus_use_case_dump")
+    ):
         for file in files:
-            if file.endswith('query_path'):
+            if file.endswith("query_path"):
                 query_path_files.append(os.path.join(root, file))
-    
+
     urls = []
     for file_path in query_path_files:
-        with open(file_path, 'r') as file:
+        with open(file_path, "r") as file:
             url = file.read().strip()
             if "files" in url:
                 continue
             if "resolver" in url:
                 continue
-            urls.append({"file":file_path, "url":url.replace("https://openbluebrain.com/api","")})
-    print(f'Number of urls: {len(urls)}')
+            urls.append(
+                {
+                    "file": file_path,
+                    "url": url.replace("https://openbluebrain.com/api", ""),
+                }
+            )
+    print(f"Number of urls: {len(urls)}")
     total_elapsed_time = 0
     total_cpu_time = 0
     nb_calls = 0
@@ -32,7 +40,6 @@ def test_dump(client, db):
             start_resources = resource.getrusage(resource.RUSAGE_SELF)
 
             ret = client.get(url["url"])
-            
 
             end_time = time.time()
             end_resources = resource.getrusage(resource.RUSAGE_SELF)
@@ -46,8 +53,8 @@ def test_dump(client, db):
         else:
             nb_calls += 1
             json_data = {}
-            file_name =  url["file"].replace("query_path","query_body.json")
-            with open(file_name, 'r') as file:
+            file_name = url["file"].replace("query_path", "query_body.json")
+            with open(file_name, "r") as file:
                 json_data = json.load(file)
 
             start_time = time.time()

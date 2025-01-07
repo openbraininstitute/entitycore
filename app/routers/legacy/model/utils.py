@@ -170,8 +170,10 @@ def build_response_elem(elem):
         mapping = {**MAPPING_PER_TYPE.get(elem.__class__, {}), **MAPPING_GLOBAL}
         for key, value in mapping.items():
             initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
-        if elem.__class__ in [ app.models.annotation.MTypeAnnotationBody,
-                              app.models.annotation.ETypeAnnotationBody]:
+        if elem.__class__ in [
+            app.models.annotation.MTypeAnnotationBody,
+            app.models.annotation.ETypeAnnotationBody,
+        ]:
             initial_dict["@type"] = "Class"
         else:
             initial_dict["@type"] = [MAP_TYPES[elem.__class__]]
@@ -285,10 +287,9 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
             else:
                 query = query.filter(column.in_(value))
         elif "wildcard" in must_term:
-
-            #TODO check if this is always hardcoded
+            # TODO check if this is always hardcoded
             value = must_term["wildcard"]["name.keyword"]["value"]
-            #TODO: remove hardcoded morphology_description_vector
+            # TODO: remove hardcoded morphology_description_vector
             query = query.filter(db_type.morphology_description_vector.match(value))
 
         else:

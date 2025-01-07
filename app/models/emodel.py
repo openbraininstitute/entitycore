@@ -2,7 +2,9 @@ from sqlalchemy import Column, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import mapped_column
 
 from app.models.base import DistributionMixin, LocationMixin, SpeciesMixin
-from  app.models.entity import Entity
+from app.models.entity import Entity
+
+
 class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
     __tablename__ = "emodel"
     id = mapped_column(
@@ -22,8 +24,7 @@ class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
     eType = Column(String, nullable=False, default="")
     # what is this
     iteration = Column(String, nullable=False, default="")
-    score= Column(Float, nullable=False, default=-1)
+    score = Column(Float, nullable=False, default=-1)
     seed = Column(Integer, nullable=False, default=-1)
 
-    
     __mapper_args__ = {"polymorphic_identity": "emodel"}

@@ -42,9 +42,11 @@ class StringListType(TypeDecorator):
         if engine.dialect.name == "postgresql":
             use_func = func.strpos
         return use_func(column, value) > 0
+
     @staticmethod
     def in_(column, values):
-        return or_(*[ StringList.is_equal(column, value)for value in values])
+        return or_(*[StringList.is_equal(column, value) for value in values])
+
 
 StringList = Annotated[StringListType, "StringList"]
 
@@ -57,9 +59,11 @@ class Base(DeclarativeBase):
 
 
 class TimestampMixin:
-    creation_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    update_date: Mapped[datetime] = mapped_column(DateTime(timezone=True),
-        server_default=func.now(), onupdate=func.now()
+    creation_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    update_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
 

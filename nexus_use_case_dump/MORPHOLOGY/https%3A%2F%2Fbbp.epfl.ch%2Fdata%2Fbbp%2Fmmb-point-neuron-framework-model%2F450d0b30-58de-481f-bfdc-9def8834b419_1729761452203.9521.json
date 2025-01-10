@@ -1,0 +1,241 @@
+{
+    "@context": [
+        "https://bluebrain.github.io/nexus/contexts/metadata.json",
+        "https://bbp.neuroshapes.org"
+    ],
+    "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/450d0b30-58de-481f-bfdc-9def8834b419",
+    "@type": [
+        "Entity",
+        "ReconstructedCell",
+        "Dataset",
+        "NeuronMorphology",
+        "ReconstructedNeuronMorphology"
+    ],
+    "annotation": [
+        {
+            "@type": [
+                "Annotation",
+                "MTypeAnnotation"
+            ],
+            "hasBody": {
+                "@id": "ilx:0381365",
+                "@type": [
+                    "MType",
+                    "AnnotationBody"
+                ],
+                "label": "L5_TPC:A"
+            },
+            "name": "M-type Annotation"
+        },
+        {
+            "@type": [
+                "QualityAnnotation",
+                "Annotation"
+            ],
+            "hasBody": {
+                "@id": "nsg:Curated",
+                "@type": [
+                    "AnnotationBody",
+                    "DataMaturity"
+                ],
+                "label": "Curated"
+            },
+            "motivatedBy": {
+                "@id": "quality:Assessment",
+                "@type": "Motivation"
+            },
+            "name": "Data maturity annotation",
+            "note": "NeuronMorphology dataset contains complete minimal metadata."
+        }
+    ],
+    "brainLocation": {
+        "@type": "BrainLocation",
+        "brainRegion": {
+            "@id": "mba:322",
+            "label": "Primary somatosensory area"
+        },
+        "layer": {
+            "@id": "uberon:0005394",
+            "label": "layer 5"
+        }
+    },
+    "contribution": [
+        {
+            "@type": "Contribution",
+            "agent": {
+                "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert",
+                "@type": [
+                    "Person",
+                    "Agent"
+                ]
+            },
+            "hadRole": {
+                "@id": "obo:CRO_0000072",
+                "label": "data transformation role"
+            }
+        },
+        {
+            "@type": "Contribution",
+            "agent": {
+                "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                "@type": "Agent"
+            }
+        },
+        {
+            "@type": "Contribution",
+            "agent": {
+                "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/kanari",
+                "@type": [
+                    "Person",
+                    "Agent"
+                ]
+            }
+        }
+    ],
+    "derivation": {
+        "@type": "Derivation",
+        "entity": {
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/5cde6879-f606-4480-810a-45f11401a48c",
+            "@type": [
+                "PatchedCell",
+                "Entity"
+            ]
+        }
+    },
+    "description": "Translated to mouse from rat data. This dataset is about an in vitro-filled neuron morphology from layer 5 with m-type L5_TPC:A. The distribution contains the neuron morphology in ASC, h5, and SWC file format.",
+    "distribution": [
+        {
+            "@type": "DataDownload",
+            "atLocation": {
+                "@type": "Location",
+                "location": "/nexus/bbp/mmb-point-neuron-framework-model/files/c/8/f/2/b/b/6/5/C060109A2.h5",
+                "store": {
+                    "@id": "nxv:defaultS3Storage",
+                    "@type": "S3Storage",
+                    "_rev": 1
+                }
+            },
+            "contentSize": {
+                "unitCode": "bytes",
+                "value": 303352
+            },
+            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mmb-point-neuron-framework-model/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2Fdd2ab5c5-5ae5-4b60-b4d1-25a4d637c1cc",
+            "digest": {
+                "algorithm": "SHA-256",
+                "value": "8ffc2009b76bd985a566ff95f608b42ac7d9c1165558e2f1fa606ce8f8e383f0"
+            },
+            "encodingFormat": "application/x-hdf5",
+            "name": "C060109A2.h5"
+        },
+        {
+            "@type": "DataDownload",
+            "atLocation": {
+                "@type": "Location",
+                "location": "/nexus/bbp/mmb-point-neuron-framework-model/files/5/6/4/8/8/9/b/8/C060109A2.asc",
+                "store": {
+                    "@id": "nxv:defaultS3Storage",
+                    "@type": "S3Storage",
+                    "_rev": 1
+                }
+            },
+            "contentSize": {
+                "unitCode": "bytes",
+                "value": 685443
+            },
+            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mmb-point-neuron-framework-model/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2F11f196ab-1cef-4555-acb1-5c36b0d39787",
+            "digest": {
+                "algorithm": "SHA-256",
+                "value": "92c65ceffc3639180b3a4047a498252033e18ae8e3c27f18f9769118c19bdc6f"
+            },
+            "encodingFormat": "application/asc",
+            "name": "C060109A2.asc"
+        },
+        {
+            "@type": "DataDownload",
+            "atLocation": {
+                "@type": "Location",
+                "location": "/nexus/bbp/mmb-point-neuron-framework-model/files/5/6/1/1/8/1/7/7/C060109A2.swc",
+                "store": {
+                    "@id": "nxv:defaultS3Storage",
+                    "@type": "S3Storage",
+                    "_rev": 1
+                }
+            },
+            "contentSize": {
+                "unitCode": "bytes",
+                "value": 773228
+            },
+            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mmb-point-neuron-framework-model/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2F636c7720-cea3-4306-b558-f511df607c52",
+            "digest": {
+                "algorithm": "SHA-256",
+                "value": "865e270a878f03b613e9e73eddefb5fef747bd50460e2cd2a3579e6d77b1aebd"
+            },
+            "encodingFormat": "application/swc",
+            "name": "C060109A2.swc"
+        }
+    ],
+    "editorialNote": "Mapped original rat brain region 'http://purl.obolibrary.org/obo/UBERON_0008933' to new mouse brain region 'http://api.brain-map.org/api/v2/data/Structure/322'. ",
+    "generation": {
+        "@type": "Generation",
+        "activity": {
+            "@type": "Activity",
+            "description": "Translated to mouse from rat data",
+            "hadProtocol": {
+                "@id": "https://bbp.epfl.ch/data/bbp/protocols/f438e2cf-4988-4152-8a58-231e52224625",
+                "@type": [
+                    "Entity",
+                    "Protocol",
+                    "ExperimentalProtocol"
+                ]
+            },
+            "wasAssociatedWith": {
+                "@type": [
+                    "Agent",
+                    "SoftwareAgent"
+                ],
+                "description": "Set of tools to correct and curate morphologies.",
+                "name": "morpho_toolkit",
+                "softwareSourceCode": {
+                    "@type": "SoftwareSourceCode",
+                    "codeRepository": "https://github.com/lidakanari/morpho_toolkit",
+                    "programmingLanguage": "Python",
+                    "runtimePlatform": "3.8.16",
+                    "version": "0.0.1"
+                }
+            }
+        }
+    },
+    "isPartOf": {
+        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/7e66887d-dd36-4446-a33e-ec6a7aaaed9f",
+        "@type": "Entity"
+    },
+    "license": {
+        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+        "@type": "License"
+    },
+    "name": "C060109A2",
+    "objectOfStudy": {
+        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+        "@type": "ObjectOfStudy",
+        "label": "Single Cell"
+    },
+    "subject": {
+        "@type": "Subject",
+        "species": {
+            "@id": "NCBITaxon:10090",
+            "label": "Mus musculus"
+        }
+    },
+    "_constrainedBy": "https://neuroshapes.org/dash/neuronmorphology",
+    "_createdAt": "2024-03-13T10:41:59.286776Z",
+    "_createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/ricardi",
+    "_deprecated": false,
+    "_incoming": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2F450d0b30-58de-481f-bfdc-9def8834b419/incoming",
+    "_outgoing": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2F450d0b30-58de-481f-bfdc-9def8834b419/outgoing",
+    "_project": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+    "_rev": 7,
+    "_schemaProject": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2F450d0b30-58de-481f-bfdc-9def8834b419",
+    "_updatedAt": "2024-07-30T13:07:57.341532Z",
+    "_updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/mouffok"
+}

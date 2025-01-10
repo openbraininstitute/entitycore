@@ -1,0 +1,24 @@
+{
+    "size": 1,
+    "query": {
+        "bool": {
+            "must": [
+                {
+                    "term": {
+                        "@type": "License"
+                    }
+                },
+                {
+                    "term": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf"
+                    }
+                },
+                {
+                    "term": {
+                        "_deprecated": false
+                    }
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "size": 5,
+    "from": 0,
+    "track_total_hits": true,
+    "query": {
+        "bool": {
+            "must": {
+                "terms": {
+                    "neuronMorphology.@id.keyword": [
+                        "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/450d0b30-58de-481f-bfdc-9def8834b419"
+                    ]
+                }
+            }
+        }
+    }
+}

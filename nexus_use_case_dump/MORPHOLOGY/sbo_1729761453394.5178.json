@@ -1,0 +1,2925 @@
+{
+    "hits": {
+        "hits": [
+            {
+                "_id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/016885e5-d64b-4d87-b769-0462b18e10aa",
+                "_index": "nexus_search_711d6b8f-1285-42db-9259-b277dd687435_711d6b8f-1285-42db-9259-b277dd687435_21",
+                "_score": 1.0,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/016885e5-d64b-4d87-b769-0462b18e10aa",
+                    "@type": [
+                        "https://neuroshapes.org/Annotation",
+                        "https://bbp.epfl.ch/ontologies/core/bmo/NeuronMorphologyFeatureAnnotation"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "compartment": "Axon",
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ]
+                        }
+                    ],
+                    "createdAt": "2024-03-20T14:32:45.459Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/ricardi",
+                    "deprecated": false,
+                    "featureSeries": [
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 1.7068092098122836E-4
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Areas",
+                            "statistic": "standard deviation",
+                            "unit": "μm²",
+                            "value": 102.05068140556324
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Taper Rates",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": -1.803281169102736E-4
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Strahler Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Volumes",
+                            "statistic": "standard deviation",
+                            "unit": "μm³",
+                            "value": 21.181368500784046
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 283.26214599609375
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 2.0360080352796213
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Path Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 84.47716522216797
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "median",
+                            "unit": "radian",
+                            "value": 1.1653237171841344
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 152.72797393798828
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Total Length",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 6158.156072854996
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 38.04484558105469
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Path Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 118.70829564537156
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Total Area",
+                            "statistic": "raw",
+                            "unit": "μm²",
+                            "value": 8998.258118987382
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 35.30340385437012
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "minimum",
+                            "unit": "radian",
+                            "value": 0.3166965997784886
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.2823161016273704
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Diameter Power Relations",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.9989322182199172
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "mean",
+                            "unit": "radian",
+                            "value": 1.2185819244218365
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Path Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 252.03946018218994
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 84.66526880753675
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Path Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 548.5895209312439
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Tortuosity",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 1.159957074244088
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Number Of Leaves",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 56.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "maximum",
+                            "unit": "radian",
+                            "value": 2.6486804102729464
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 106.09619140625
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "median",
+                            "unit": "radian",
+                            "value": 1.3522639566140193
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Volumes",
+                            "statistic": "maximum",
+                            "unit": "μm³",
+                            "value": 163.62510874665992
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Sibling Ratios",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 0.8284313722568399
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 6.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 0.043984471145542395
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 47.53669357299805
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Number Of Sections",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 109.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 131.07395935058594
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 3.4222347736358643
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 56.4968447050917
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 318.2538754940033
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 402.19061279296875
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Neurite Max Radial Distance",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 402.19061279296875
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 5.0092387199401855
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Areas",
+                            "statistic": "median",
+                            "unit": "μm²",
+                            "value": 48.22863197811569
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 316.1685149541923
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 0.36408134562823513
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 173.43125377382552
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "standard deviation",
+                            "unit": "radian",
+                            "value": 0.5747932493174599
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Diameter Power Relations",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 8.841654926930948
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Areas",
+                            "statistic": "maximum",
+                            "unit": "μm²",
+                            "value": 669.2553302981595
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 32.76496887207031
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 0.39285714285714285
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Strahler Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 1.7064220183486238
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 298.1048889160156
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 61.18666454369444
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 0.016010963632248947
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 152.2342233657837
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Diameter Power Relations",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 1.4619391455593982
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 37.83339909865387
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 75.72427420470484
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "standard deviation",
+                            "unit": "radian",
+                            "value": 0.46295732730322664
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Volumes",
+                            "statistic": "mean",
+                            "unit": "μm³",
+                            "value": 12.039020413178577
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Tortuosity",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.1331100463867188
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Sibling Ratios",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 46.77183067564871
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Volumes",
+                            "statistic": "minimum",
+                            "unit": "μm³",
+                            "value": 0.23630442113663352
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Taper Rates",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 0.03430718183517456
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 1.8322507626258087
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Areas",
+                            "statistic": "mean",
+                            "unit": "μm²",
+                            "value": 82.55282677970077
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Tortuosity",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.13712202859467945
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Strahler Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 4.823529411764706
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 6.5
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 59.35412924000191
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Tortuosity",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 1.898693561553955
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Taper Rates",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": -0.0443212129175663
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 548.5895209312439
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 66.73706555366516
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Diameter Power Relations",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 2.5742729594732894
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "mean",
+                            "unit": "radian",
+                            "value": 1.3782712679913842
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 109.5339146737016
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Taper Rates",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 6.869312091164727E-19
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 10.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 0.06516690947909282
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 2.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Tortuosity",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Volumes",
+                            "statistic": "median",
+                            "unit": "μm³",
+                            "value": 4.484753770477869
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Number Of Bifurcations",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 51.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 5.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Sibling Ratios",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Path Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 266.25681389143705
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 29.498252868652344
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 29.498252868652344
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 2.139720189971759
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 131.11505500943053
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 6.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 0.9090909090909091
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 298.1048889160156
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 402.19061279296875
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Sibling Ratios",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.26084941901936676
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Total Volume",
+                            "statistic": "raw",
+                            "unit": "μm³",
+                            "value": 1312.2532250364645
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 151.9287240614585
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Sibling Ratios",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.1666666716337204
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 11.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "maximum",
+                            "unit": "radian",
+                            "value": 2.7591172363020062
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 76.58106075187985
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 5.6422018348623855
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Strahler Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.881020595554055
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 3.4222347736358643
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Partition Asymmetry",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 0.33151435135569896
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Strahler Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 5.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Bif Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 161.67532348632812
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "minimum",
+                            "unit": "radian",
+                            "value": 0.11165703394185622
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Areas",
+                            "statistic": "minimum",
+                            "unit": "μm²",
+                            "value": 3.1878344478699248
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 11.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Diameter Power Relations",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.0826929731700432
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "Axon",
+                            "label": "Section Taper Rates",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.006019129350688819
+                        }
+                    ],
+                    "generation": {
+                        "endedAt": "2024-07-24T08:55:54.000Z",
+                        "startedAt": "2024-07-24T08:55:54.000Z"
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "name": "Neuron Morphology Feature Annotation",
+                    "neuronMorphology": {
+                        "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/450d0b30-58de-481f-bfdc-9def8834b419",
+                        "name": "C060109A2"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "label": "bbp/mmb-point-neuron-framework-model"
+                    },
+                    "updatedAt": "2024-07-24T12:43:20.553Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2F016885e5-d64b-4d87-b769-0462b18e10aa"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/bef95a7b-3f50-4c41-9fea-41b2eee6eca2",
+                "_index": "nexus_search_711d6b8f-1285-42db-9259-b277dd687435_711d6b8f-1285-42db-9259-b277dd687435_21",
+                "_score": 1.0,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/bef95a7b-3f50-4c41-9fea-41b2eee6eca2",
+                    "@type": [
+                        "https://neuroshapes.org/Annotation",
+                        "https://bbp.epfl.ch/ontologies/core/bmo/NeuronMorphologyFeatureAnnotation"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "compartment": "ApicalDendrite",
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ]
+                        }
+                    ],
+                    "createdAt": "2024-03-20T14:32:45.461Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/ricardi",
+                    "deprecated": false,
+                    "featureSeries": [
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 14.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 186.95197296142578
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "minimum",
+                            "unit": "μm²",
+                            "value": 3.9489182565770897
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 0.018460677594208122
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 796.7641763687134
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 0.75
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 32.87507366684248
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 14.482142857142858
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Number Of Bifurcations",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 53.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "standard deviation",
+                            "unit": "μm³",
+                            "value": 40.1311449117038
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "maximum",
+                            "unit": "radian",
+                            "value": 2.3715522102821596
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 13.636363636363637
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.6012674010883416
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 37.08613109588623
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 2.577249396420258
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 148.0554656982422
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "minimum",
+                            "unit": "radian",
+                            "value": 0.11562226247779434
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Number Of Leaves",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 56.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 0.33498818276487047
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 2.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 214.19968128204346
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Total Length",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 4584.435120820999
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 711.1111450195312
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 148.0554656982422
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 41.541582188578545
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "maximum",
+                            "unit": "radian",
+                            "value": 2.864789327660978
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 3.866173907635468
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 306.5657425646512
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 347.76801422664096
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 176.1939468383789
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 796.7641763687134
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 158.6818389892578
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 14.677296846599504
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 0.9780759210195392
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.013359380075589206
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "mean",
+                            "unit": "μm²",
+                            "value": 96.51928218046773
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 32.26015853881836
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 7.126632644133456
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.19539131691953038
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 5.207025205277473E-4
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "minimum",
+                            "unit": "radian",
+                            "value": 0.4420989629501615
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 254.88177351577
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "mean",
+                            "unit": "radian",
+                            "value": 1.2797329686589183
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 0.23047763223707757
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": -1.988031217479147E-4
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Number Of Sections",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 110.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 1.8727272727272728
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 257.62023219020335
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 4.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "standard deviation",
+                            "unit": "μm²",
+                            "value": 111.49480320444995
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 24.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 674.79833984375
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 0.6736579796053329
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 32.26015853881836
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.379847113511621
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "standard deviation",
+                            "unit": "radian",
+                            "value": 0.47504608293674255
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 0.4803345091741955
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 7.068519423240959
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.27217707196191177
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 15.012571334838867
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "standard deviation",
+                            "unit": "radian",
+                            "value": 0.44901609088697747
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "mean",
+                            "unit": "radian",
+                            "value": 0.9055730175947903
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 7.116852308208981
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 240.03296875953674
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Total Volume",
+                            "statistic": "raw",
+                            "unit": "μm³",
+                            "value": 2553.766441663534
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 343.02399866147476
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 0.5
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 2.5284286667062963
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 2.2581610679626465
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.9999998807907104
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 13.248773574829102
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "median",
+                            "unit": "radian",
+                            "value": 1.1939543968917188
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.111510694026947
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "minimum",
+                            "unit": "μm³",
+                            "value": 0.5199647801151368
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 40.39520348087995
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.22772276401519775
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 41.67668291655454
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 37.082651807883074
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": -0.0035766403440820006
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 237.0760827392043
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Neurite Max Radial Distance",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 711.1111450195312
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 15.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 12.754716981132075
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 50.662138330084936
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "maximum",
+                            "unit": "μm³",
+                            "value": 300.7651220524395
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 23.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 326.1823191209273
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "maximum",
+                            "unit": "μm²",
+                            "value": 698.9743592680031
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "median",
+                            "unit": "radian",
+                            "value": 0.7964289312411611
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 246.64995972975473
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 2.8958041667938232
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "mean",
+                            "unit": "μm³",
+                            "value": 23.216058560577586
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 26.543214797973633
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 34.93476486206055
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Total Area",
+                            "statistic": "raw",
+                            "unit": "μm²",
+                            "value": 10617.121039851456
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "median",
+                            "unit": "μm³",
+                            "value": 9.131630929003377
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 24.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 261.54848867927586
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": -0.08948832005262375
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 711.1111450195312
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 14.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 2.2581610679626465
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 136.91165161132812
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 1.0963500677586422
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 39.88142395019531
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 1.1474368821490895
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 379.1369054019451
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 0.9809523809523809
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "median",
+                            "unit": "μm²",
+                            "value": 56.334399779583904
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 2.840928077697754
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "ApicalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 0.02268349565565586
+                        }
+                    ],
+                    "generation": {
+                        "endedAt": "2024-07-24T08:55:54.000Z",
+                        "startedAt": "2024-07-24T08:55:54.000Z"
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "name": "Neuron Morphology Feature Annotation",
+                    "neuronMorphology": {
+                        "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/450d0b30-58de-481f-bfdc-9def8834b419",
+                        "name": "C060109A2"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "label": "bbp/mmb-point-neuron-framework-model"
+                    },
+                    "updatedAt": "2024-07-24T12:43:20.555Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2Fbef95a7b-3f50-4c41-9fea-41b2eee6eca2"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/ba067773-b431-49f1-9d31-e17d1622ad4e",
+                "_index": "nexus_search_711d6b8f-1285-42db-9259-b277dd687435_711d6b8f-1285-42db-9259-b277dd687435_21",
+                "_score": 1.0,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/ba067773-b431-49f1-9d31-e17d1622ad4e",
+                    "@type": [
+                        "https://bbp.epfl.ch/ontologies/core/bmo/NeuronMorphologyFeatureAnnotation",
+                        "https://neuroshapes.org/Annotation"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "compartment": "BasalDendrite",
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ]
+                        }
+                    ],
+                    "createdAt": "2024-03-20T14:32:45.480Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/ricardi",
+                    "deprecated": false,
+                    "featureSeries": [
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.11879412347209922
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 149.3498992919922
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": -0.0036497199846983884
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 15.668614782785115
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 41.01875660445637
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 144.97280883789062
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "standard deviation",
+                            "unit": "radian",
+                            "value": 0.4279809254834807
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 2.225667131023932
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 90.48020935058594
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "median",
+                            "unit": "radian",
+                            "value": 0.904028480849493
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 3.2562990188598633
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 4.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 3.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 3.0125377981956776
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 5.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "minimum",
+                            "unit": "μm²",
+                            "value": 4.331962633250994
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 13.048961639404297
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "standard deviation",
+                            "unit": "μm³",
+                            "value": 9.745428831912061
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 1.1920791213585393
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 32.10255300371271
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "maximum",
+                            "unit": "radian",
+                            "value": 2.176553491477613
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 3.2562990188598633
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 8.18741226196289
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 66.8828901052475
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 2.755813953488372
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Total Area",
+                            "statistic": "raw",
+                            "unit": "μm²",
+                            "value": 6164.558969111713
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.014368115970938686
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 1.5813953488372092
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "minimum",
+                            "unit": "μm³",
+                            "value": 0.4586012595315528
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 2.125054516768543
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 13.139045359939358
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "maximum",
+                            "unit": "radian",
+                            "value": 1.7520228760183334
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 0.16696504239057627
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 103.11055826633535
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 0.8888888888888888
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "maximum",
+                            "unit": "μm²",
+                            "value": 281.56914339803023
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 4.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 40.31845696859582
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 83.79084820443012
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 25.655981063842773
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 0.1776679715138946
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 3.2562990188598633
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "median",
+                            "unit": "radian",
+                            "value": 1.2532348106342943
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 149.3498992919922
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "mean",
+                            "unit": "radian",
+                            "value": 1.2509574169964395
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 1.5047865886261746E-16
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.28687919593593003
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": -0.0011231311364099383
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "standard deviation",
+                            "unit": "μm²",
+                            "value": 65.10309645517572
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 0.7040562454447185
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.12790969756452034
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Number Of Bifurcations",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 38.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 72.04398621792016
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.6000000238418579
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 95.04734802246094
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 37.100634900090526
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 1.2300007176846497
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 144.97280883789062
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "mean",
+                            "unit": "μm²",
+                            "value": 71.68091824548502
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 0.26785714285714285
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Total Length",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 3467.38729929924
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Number Of Sections",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 86.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 33.38815577558145
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 3.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Number Of Leaves",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 47.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 38.107969413741884
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 172.87957239151
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "minimum",
+                            "unit": "radian",
+                            "value": 0.26292916222061136
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 3.382978723404255
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 10.788603782653809
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 0.885401018356022
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 55.67523956298828
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 37.87793284160526
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Total Volume",
+                            "statistic": "raw",
+                            "unit": "μm³",
+                            "value": 909.3102990923408
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 0.292040123619071
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.7065329084168983
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "median",
+                            "unit": "μm³",
+                            "value": 6.821528178649432
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 172.87957239151
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 54.7108268737793
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Local Bifurcation Angles",
+                            "statistic": "minimum",
+                            "unit": "radian",
+                            "value": 0.24245195869661856
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 28.661184310913086
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Taper Rates",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": -0.13290823996067047
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 9.883378028869629
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.1694892644882202
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 1.1952620425889657
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Areas",
+                            "statistic": "median",
+                            "unit": "μm²",
+                            "value": 49.291106222455156
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 19.11444168457633
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.032997561290866
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 1.8842949867248535
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Sibling Ratios",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 60.31833185706028
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Branch Orders",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 1.3887927374926314
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Neurite Max Radial Distance",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 144.97280883789062
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.005147933959961
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Tortuosity",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 1.4820592403411865
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Radial Distances",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 1.8842949867248535
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 0.0016625720984900863
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 55.01869201660156
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Strahler Orders",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Terminal Path Lengths",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 113.08027458190918
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Diameter Power Relations",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 0.43283475444738084
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "mean",
+                            "unit": "μm³",
+                            "value": 10.573375570841172
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "standard deviation",
+                            "unit": "radian",
+                            "value": 0.34865281144564664
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Path Distances",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 48.366492683221516
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry Length",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 0.11287376531685375
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Lengths",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 60.818752532309674
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Partition Asymmetry",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 0.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Remote Bifurcation Angles",
+                            "statistic": "mean",
+                            "unit": "radian",
+                            "value": 0.8930950559787924
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Volumes",
+                            "statistic": "maximum",
+                            "unit": "μm³",
+                            "value": 48.40256238739532
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 2.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Bif Branch Orders",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 2.0
+                        },
+                        {
+                            "compartment": "BasalDendrite",
+                            "label": "Section Term Branch Orders",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 5.0
+                        }
+                    ],
+                    "generation": {
+                        "endedAt": "2024-07-24T08:55:54.000Z",
+                        "startedAt": "2024-07-24T08:55:54.000Z"
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "name": "Neuron Morphology Feature Annotation",
+                    "neuronMorphology": {
+                        "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/450d0b30-58de-481f-bfdc-9def8834b419",
+                        "name": "C060109A2"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "label": "bbp/mmb-point-neuron-framework-model"
+                    },
+                    "updatedAt": "2024-07-24T12:43:20.565Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2Fba067773-b431-49f1-9d31-e17d1622ad4e"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/330b3ec7-2287-4bcb-97b8-1fb676e7efa5",
+                "_index": "nexus_search_711d6b8f-1285-42db-9259-b277dd687435_711d6b8f-1285-42db-9259-b277dd687435_21",
+                "_score": 1.0,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/330b3ec7-2287-4bcb-97b8-1fb676e7efa5",
+                    "@type": [
+                        "https://neuroshapes.org/Annotation",
+                        "https://bbp.epfl.ch/ontologies/core/bmo/NeuronMorphologyFeatureAnnotation"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "compartment": "NeuronMorphology",
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ]
+                        }
+                    ],
+                    "createdAt": "2024-03-20T14:32:45.452Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/ricardi",
+                    "deprecated": false,
+                    "featureSeries": [
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Area Per Neurite",
+                            "statistic": "minimum",
+                            "unit": "μm²",
+                            "value": 13.470108544700226
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Length Per Neurite",
+                            "statistic": "standard deviation",
+                            "unit": "μm",
+                            "value": 2078.494918992034
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Number Of Sections Per Neurite",
+                            "statistic": "minimum",
+                            "unit": "dimensionless",
+                            "value": 1.0
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Length Per Neurite",
+                            "statistic": "maximum",
+                            "unit": "μm",
+                            "value": 6158.156072854996
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Area Per Neurite",
+                            "statistic": "standard deviation",
+                            "unit": "μm²",
+                            "value": 3762.315267444883
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Height",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 1105.1455078125
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Area Per Neurite",
+                            "statistic": "median",
+                            "unit": "μm²",
+                            "value": 1222.6879114359917
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Area Per Neurite",
+                            "statistic": "maximum",
+                            "unit": "μm²",
+                            "value": 10617.121039851456
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Length Per Neurite",
+                            "statistic": "median",
+                            "unit": "μm",
+                            "value": 707.6008186340332
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Number Of Sections Per Neurite",
+                            "statistic": "mean",
+                            "unit": "dimensionless",
+                            "value": 33.888888888888886
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Length Per Neurite",
+                            "statistic": "mean",
+                            "unit": "μm",
+                            "value": 1578.8864992194706
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Number Of Sections Per Neurite",
+                            "statistic": "standard deviation",
+                            "unit": "dimensionless",
+                            "value": 40.932042445563745
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Area Per Neurite",
+                            "statistic": "mean",
+                            "unit": "μm²",
+                            "value": 2864.4375697722835
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Length Per Neurite",
+                            "statistic": "minimum",
+                            "unit": "μm",
+                            "value": 13.048961639404297
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Number Of Sections Per Neurite",
+                            "statistic": "median",
+                            "unit": "dimensionless",
+                            "value": 17.0
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Number Of Neurites",
+                            "statistic": "raw",
+                            "unit": "dimensionless",
+                            "value": 9.0
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Number Of Sections Per Neurite",
+                            "statistic": "maximum",
+                            "unit": "dimensionless",
+                            "value": 110.0
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Width",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 605.1845703125
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Morphology Max Radial Distance",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 711.1111450195312
+                        },
+                        {
+                            "compartment": "NeuronMorphology",
+                            "label": "Total Depth",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 156.0606689453125
+                        }
+                    ],
+                    "generation": {
+                        "endedAt": "2024-07-24T08:55:54.000Z",
+                        "startedAt": "2024-07-24T08:55:54.000Z"
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "name": "Neuron Morphology Feature Annotation",
+                    "neuronMorphology": {
+                        "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/450d0b30-58de-481f-bfdc-9def8834b419",
+                        "name": "C060109A2"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "label": "bbp/mmb-point-neuron-framework-model"
+                    },
+                    "updatedAt": "2024-07-24T12:43:20.582Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2F330b3ec7-2287-4bcb-97b8-1fb676e7efa5"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/ecb9c8c9-d3b7-4396-903b-b6e9da522ce9",
+                "_index": "nexus_search_711d6b8f-1285-42db-9259-b277dd687435_711d6b8f-1285-42db-9259-b277dd687435_21",
+                "_score": 1.0,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/ecb9c8c9-d3b7-4396-903b-b6e9da522ce9",
+                    "@type": [
+                        "https://neuroshapes.org/Annotation",
+                        "https://bbp.epfl.ch/ontologies/core/bmo/NeuronMorphologyFeatureAnnotation"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "compartment": "Soma",
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ]
+                        }
+                    ],
+                    "createdAt": "2024-03-20T14:32:45.488Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/ricardi",
+                    "deprecated": false,
+                    "featureSeries": [
+                        {
+                            "compartment": "Soma",
+                            "label": "Soma Radius",
+                            "statistic": "raw",
+                            "unit": "μm",
+                            "value": 7.150972456215262
+                        },
+                        {
+                            "compartment": "Soma",
+                            "label": "Soma Surface Area",
+                            "statistic": "raw",
+                            "unit": "μm²",
+                            "value": 642.5990431226935
+                        }
+                    ],
+                    "generation": {
+                        "endedAt": "2024-07-24T08:55:54.000Z",
+                        "startedAt": "2024-07-24T08:55:54.000Z"
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "name": "Neuron Morphology Feature Annotation",
+                    "neuronMorphology": {
+                        "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/450d0b30-58de-481f-bfdc-9def8834b419",
+                        "name": "C060109A2"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "label": "bbp/mmb-point-neuron-framework-model"
+                    },
+                    "updatedAt": "2024-07-24T12:43:20.608Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2Fecb9c8c9-d3b7-4396-903b-b6e9da522ce9"
+                }
+            }
+        ],
+        "max_score": 1.0,
+        "total": {
+            "relation": "eq",
+            "value": 5
+        }
+    },
+    "timed_out": false,
+    "took": 3,
+    "_shards": {
+        "failed": 0,
+        "skipped": 0,
+        "successful": 15,
+        "total": 15
+    }
+}

@@ -1,0 +1,198 @@
+{
+    "@context": [
+        "https://bluebrain.github.io/nexus/contexts/metadata.json",
+        "https://bbp.neuroshapes.org"
+    ],
+    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/4b95fbc0-ead2-4780-b27b-0280b6c1a761",
+    "@type": [
+        "Dataset",
+        "Entity",
+        "NeuronMorphology",
+        "ReconstructedCell",
+        "ReconstructedNeuronMorphology"
+    ],
+    "annotation": [
+        {
+            "@type": [
+                "MTypeAnnotation",
+                "Annotation"
+            ],
+            "hasBody": {
+                "@id": "ilx:0381365",
+                "@type": [
+                    "AnnotationBody",
+                    "MType",
+                    "AnnotationBody"
+                ],
+                "label": "L5_TPC:A"
+            },
+            "name": "M-type Annotation"
+        },
+        {
+            "@type": [
+                "QualityAnnotation",
+                "Annotation"
+            ],
+            "hasBody": {
+                "@id": "nsg:Curated",
+                "@type": [
+                    "AnnotationBody",
+                    "DataMaturity"
+                ],
+                "label": "Curated"
+            },
+            "motivatedBy": {
+                "@id": "quality:Assessment",
+                "@type": "Motivation"
+            },
+            "name": "Data maturity annotation",
+            "note": "NeuronMorphology dataset contains complete minimal metadata and it can be loaded using Morphio without warnings."
+        }
+    ],
+    "brainLocation": {
+        "@type": "BrainLocation",
+        "brainRegion": {
+            "@id": "mba:322",
+            "label": "Primary somatosensory area"
+        },
+        "layer": {
+            "@id": "uberon:0005394",
+            "label": "layer 5"
+        }
+    },
+    "contribution": {
+        "@type": "Contribution",
+        "agent": {
+            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+            "@type": "Agent"
+        }
+    },
+    "derivation": {
+        "@type": "Derivation",
+        "entity": {
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/d24b14e9-33a5-4f21-a71a-8f3e8a81e309",
+            "@type": [
+                "PatchedCell",
+                "Entity"
+            ]
+        }
+    },
+    "description": "This dataset is about an in vitro-filled neuron morphology from layer 5 with m-type L5_TPC:A. The distribution contains the neuron morphology in ASC and in SWC file format.",
+    "distribution": [
+        {
+            "@id": "https://bbp.epfl.ch/data/public/sscx/9761fcc7-998f-4b54-84a6-fb51e31be9ae",
+            "@type": "DataDownload",
+            "atLocation": {
+                "@type": "Location",
+                "location": "/nexus/public/sscx/files/0/c/e/d/e/9/8/e/C060109A3.asc",
+                "store": {
+                    "@id": "nxv:defaultS3Storage",
+                    "@type": "S3Storage",
+                    "_rev": 1
+                }
+            },
+            "contentSize": {
+                "unitCode": "bytes",
+                "value": 465397
+            },
+            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fpublic%2Fsscx%2F9761fcc7-998f-4b54-84a6-fb51e31be9ae",
+            "digest": {
+                "algorithm": "SHA-256",
+                "value": "830013cb395ed5b1c2aad2f3fb89463ba43ec4ceb8833bd8b3ce5537c01ab319"
+            },
+            "encodingFormat": "application/asc",
+            "name": "C060109A3.asc"
+        },
+        {
+            "@id": "https://bbp.epfl.ch/data/public/sscx/199a1ded-a784-4d33-8d24-c371f0294900",
+            "@type": "DataDownload",
+            "atLocation": {
+                "@type": "Location",
+                "location": "/nexus/public/sscx/files/0/4/8/4/4/a/7/7/C060109A3.swc",
+                "store": {
+                    "@id": "nxv:defaultS3Storage",
+                    "@type": "S3Storage",
+                    "_rev": 1
+                }
+            },
+            "contentSize": {
+                "unitCode": "bytes",
+                "value": 568187
+            },
+            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fpublic%2Fsscx%2F199a1ded-a784-4d33-8d24-c371f0294900",
+            "digest": {
+                "algorithm": "SHA-256",
+                "value": "812ceaf08d8e65e743ca8237ad576065a5b503cefc37891ecd9c8136f4dea592"
+            },
+            "encodingFormat": "application/swc",
+            "name": "C060109A3.swc"
+        }
+    ],
+    "editorialNote": "Mapped original rat brain region 'http://purl.obolibrary.org/obo/UBERON_0008933' to new mouse brain region 'http://api.brain-map.org/api/v2/data/Structure/322'. ",
+    "generation": {
+        "@type": "Generation",
+        "activity": {
+            "@type": "Activity",
+            "hadProtocol": [
+                {
+                    "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b",
+                    "@type": [
+                        "Entity",
+                        "Protocol",
+                        "ExperimentalProtocol"
+                    ]
+                },
+                {
+                    "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff",
+                    "@type": [
+                        "Entity",
+                        "Protocol",
+                        "ExperimentalProtocol"
+                    ]
+                },
+                {
+                    "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495",
+                    "@type": [
+                        "Entity",
+                        "Protocol",
+                        "ExperimentalProtocol"
+                    ]
+                }
+            ]
+        }
+    },
+    "isPartOf": {
+        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/7e66887d-dd36-4446-a33e-ec6a7aaaed9f",
+        "@type": "Entity"
+    },
+    "license": {
+        "@id": "https://creativecommons.org/licenses/by/4.0/",
+        "@type": "License"
+    },
+    "name": "C060109A3",
+    "objectOfStudy": {
+        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+        "@type": "ObjectOfStudy",
+        "label": "Single Cell"
+    },
+    "sameAs": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/89320cef-6965-4eb3-8990-a6a296fc7304",
+    "subject": {
+        "@type": "Subject",
+        "species": {
+            "@id": "NCBITaxon:10116",
+            "label": "Rattus norvegicus"
+        }
+    },
+    "_constrainedBy": "https://neuroshapes.org/dash/neuronmorphology",
+    "_createdAt": "2021-11-23T11:31:07.055Z",
+    "_createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+    "_deprecated": false,
+    "_incoming": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F4b95fbc0-ead2-4780-b27b-0280b6c1a761/incoming",
+    "_outgoing": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F4b95fbc0-ead2-4780-b27b-0280b6c1a761/outgoing",
+    "_project": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+    "_rev": 18,
+    "_schemaProject": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F4b95fbc0-ead2-4780-b27b-0280b6c1a761",
+    "_updatedAt": "2024-08-29T07:31:05.987962Z",
+    "_updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa"
+}

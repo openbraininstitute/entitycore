@@ -1,0 +1,114 @@
+{
+    "aggregations": {
+        "createdBy": {
+            "buckets": [
+                {
+                    "doc_count": 1,
+                    "key": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/cgonzale"
+                }
+            ],
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0
+        },
+        "creationDate": {
+            "avg": 1.727247968063E12,
+            "avg_as_string": "2024-09-25T07:06:08.063Z",
+            "count": 1,
+            "max": 1.727247968063E12,
+            "max_as_string": "2024-09-25T07:06:08.063Z",
+            "min": 1.727247968063E12,
+            "min_as_string": "2024-09-25T07:06:08.063Z",
+            "sum": 1.727247968063E12,
+            "sum_as_string": "2024-09-25T07:06:08.063Z"
+        },
+        "eType": {
+            "buckets": [
+                {
+                    "doc_count": 1,
+                    "key": "cADpyr"
+                }
+            ],
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0
+        },
+        "mType": {
+            "buckets": [
+                {
+                    "doc_count": 1,
+                    "key": "L5_TPC:A"
+                }
+            ],
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0
+        }
+    },
+    "hits": {
+        "hits": [
+            {
+                "sort": [
+                    1727247968063
+                ],
+                "_id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/1b89d6a2-3d6e-4530-a4af-6752412987ea",
+                "_index": "nexus_search_711d6b8f-1285-42db-9259-b277dd687435_711d6b8f-1285-42db-9259-b277dd687435_21",
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/1b89d6a2-3d6e-4530-a4af-6752412987ea",
+                    "@type": "https://neuroshapes.org/MEModel",
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "createdAt": "2024-09-25T07:06:08.063Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/cgonzale",
+                    "deprecated": false,
+                    "description": "MEModel example",
+                    "eType": {
+                        "@id": "_:b1",
+                        "identifier": "_:b1",
+                        "label": "cADpyr"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381365",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381365|L5_TPC:A",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381365",
+                        "label": "L5_TPC:A"
+                    },
+                    "memodel": {
+                        "emodelResource": {
+                            "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/e990f748-a856-4be0-a7d3-9f0bc336447c",
+                            "name": "EM__1372346__cADpyr__13"
+                        },
+                        "neuronMorphology": {
+                            "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/8325c79c-d0ff-4de6-aac5-a703a85785c9",
+                            "name": "C060114A5"
+                        },
+                        "validated": false
+                    },
+                    "name": "MEM__1372346-C060114A5__cADpyr_L5_TPCA",
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mmb-point-neuron-framework-model",
+                        "label": "bbp/mmb-point-neuron-framework-model"
+                    },
+                    "updatedAt": "2024-09-25T07:06:33.423Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/cgonzale",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mmb-point-neuron-framework-model/_/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fbbp%2Fmmb-point-neuron-framework-model%2F1b89d6a2-3d6e-4530-a4af-6752412987ea"
+                }
+            }
+        ],
+        "total": {
+            "relation": "eq",
+            "value": 1
+        }
+    },
+    "timed_out": false,
+    "took": 12,
+    "_shards": {
+        "failed": 0,
+        "skipped": 5,
+        "successful": 16,
+        "total": 16
+    }
+}

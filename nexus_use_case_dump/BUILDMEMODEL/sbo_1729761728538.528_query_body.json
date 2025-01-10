@@ -1,0 +1,1 @@
+{"query":{"bool":{"must":{"term":{"@id":"https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/774978e3-a493-4b80-972f-1b1ae72cba1e"}}}},"size":1}

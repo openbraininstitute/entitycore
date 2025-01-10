@@ -1,0 +1,46 @@
+{
+    "@context": "https://bluebrain.github.io/nexus/contexts/error.json",
+    "@type": "ResourceNotFound",
+    "rejections": [
+        {
+            "@type": "ResourceNotFound",
+            "reason": "File 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert' not found in project 'bbp/mmb-point-neuron-framework-model'.",
+            "status": 404
+        },
+        {
+            "@type": "ResourceNotFound",
+            "reason": "Resource 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert' not found in project 'bbp/mmb-point-neuron-framework-model'.",
+            "status": 404
+        },
+        {
+            "@type": "ResourceNotFound",
+            "reason": "Storage 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert' not found in project 'bbp/mmb-point-neuron-framework-model'.",
+            "status": 404
+        },
+        {
+            "@type": "ResourceNotFound",
+            "reason": "ElasticSearch view 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert' not found in project 'bbp/mmb-point-neuron-framework-model'.",
+            "status": 404
+        },
+        {
+            "@type": "ResourceNotFound",
+            "reason": "Blazegraph view 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert' not found in project 'bbp/mmb-point-neuron-framework-model'.",
+            "status": 404
+        },
+        {
+            "@type": "ResourceNotFound",
+            "reason": "Composite view 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert' not found in project 'bbp/mmb-point-neuron-framework-model'.",
+            "status": 404
+        },
+        {
+            "@type": "ResourceNotFound",
+            "reason": "Schema 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert' not found in project 'bbp/mmb-point-neuron-framework-model'.",
+            "status": 404
+        },
+        {
+            "@type": "ResourceNotFound",
+            "reason": "Resolver 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert' not found in project 'bbp/mmb-point-neuron-framework-model'.",
+            "status": 404
+        }
+    ]
+}

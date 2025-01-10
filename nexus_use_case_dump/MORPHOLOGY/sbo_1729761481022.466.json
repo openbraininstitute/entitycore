@@ -1,0 +1,1555 @@
+{
+    "aggregations": {
+        "contributors": {
+            "buckets": [
+                {
+                    "doc_count": 9,
+                    "key": "École Polytechnique Fédérale de Lausanne"
+                },
+                {
+                    "doc_count": 7,
+                    "key": "Michael Gevaert"
+                },
+                {
+                    "doc_count": 2,
+                    "key": "Janelia Research Campus"
+                },
+                {
+                    "doc_count": 2,
+                    "key": "Vincent Delattre"
+                },
+                {
+                    "doc_count": 1,
+                    "key": "Chandrashekarj Jayaram"
+                },
+                {
+                    "doc_count": 1,
+                    "key": "Howard Hughes Medical Institute"
+                },
+                {
+                    "doc_count": 1,
+                    "key": "Jean-Vincent Le Bé"
+                },
+                {
+                    "doc_count": 1,
+                    "key": "Ying Shi"
+                },
+                {
+                    "doc_count": 1,
+                    "key": "Yun Wang"
+                }
+            ],
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0
+        },
+        "createdAt": {
+            "avg": 1.6308481163380833E12,
+            "avg_as_string": "2021-09-05T13:21:56.338Z",
+            "count": 12,
+            "max": 1.655383923088E12,
+            "max_as_string": "2022-06-16T12:52:03.088Z",
+            "min": 1.617196795398E12,
+            "min_as_string": "2021-03-31T13:19:55.398Z",
+            "sum": 1.9570177396057E13,
+            "sum_as_string": "2590-02-25T16:23:16.057Z"
+        },
+        "mType": {
+            "buckets": [
+                {
+                    "doc_count": 4,
+                    "key": "L5_TPC:A"
+                },
+                {
+                    "doc_count": 3,
+                    "key": "L5_TPC:B"
+                },
+                {
+                    "doc_count": 2,
+                    "key": "VAL_TC"
+                },
+                {
+                    "doc_count": 1,
+                    "key": "Interneuron"
+                },
+                {
+                    "doc_count": 1,
+                    "key": "L4_UPC"
+                },
+                {
+                    "doc_count": 1,
+                    "key": "L6_TPC:A"
+                }
+            ],
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0
+        },
+        "subjectSpecies": {
+            "buckets": [
+                {
+                    "doc_count": 9,
+                    "key": "Rattus norvegicus"
+                },
+                {
+                    "doc_count": 3,
+                    "key": "Mus musculus"
+                }
+            ],
+            "doc_count_error_upper_bound": 0,
+            "sum_other_doc_count": 0
+        }
+    },
+    "hits": {
+        "hits": [
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/2f40ccd0-1b4a-482d-82dc-047095e052e2",
+                "_index": "nexus_search_fc436844-0216-45f0-93fa-b4bb27f4e46e_fc436844-0216-45f0-93fa-b4bb27f4e46e_24",
+                "_score": 1.000283,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/2f40ccd0-1b4a-482d-82dc-047095e052e2",
+                    "@type": [
+                        "https://neuroshapes.org/ReconstructedWholeBrainCell",
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology",
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/629",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/629|Ventral anterior-lateral complex of the thalamus",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/629",
+                        "label": "Ventral anterior-lateral complex of the thalamus"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.413575.1",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Organization"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.413575.1|Howard Hughes Medical Institute",
+                            "label": "Howard Hughes Medical Institute"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/7c47aa15-9fc6-42ec-9871-d233c9c29028",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ],
+                            "affiliation": "Howard Hughes Medical Institute",
+                            "idLabel": "https://bbp.epfl.ch/neurosciencegraph/data/7c47aa15-9fc6-42ec-9871-d233c9c29028|Chandrashekarj Jayaram",
+                            "label": "Chandrashekarj Jayaram"
+                        }
+                    ],
+                    "createdAt": "2021-03-31T13:19:55.398Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/harikris",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "https://neuroshapes.org/ImageStack",
+                                "http://www.w3.org/ns/prov#Entity"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/4576584f-1d05-42e1-be32-4f87ae01dd48"
+                        },
+                        {
+                            "@type": [
+                                "https://neuroshapes.org/Subject",
+                                "http://www.w3.org/ns/prov#Entity"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/e86882bc-a5b1-4d87-a9ec-b49d02d212bd"
+                        }
+                    ],
+                    "description": "This is a morphology reconstruction of a mouse thalamus cell that was obtained from the Janelia Mouselight project http://ml-neuronbrowser.janelia.org/ and was used in part or in whole to construct some of the cells used in the circuit of (Iavarone, et al., 2023) https://doi.org/10.1016/j.celrep.2023.112200 . This morphology is positioned in the Mouselight custom \"CCFv2.5\" reference space, instead of the Allen Institute CCFv3 reference space.",
+                    "distribution": [
+                        {
+                            "contentSize": 152719,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/thalamus/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F77021910-a92e-4fea-92fb-9592df1e97f4",
+                            "encodingFormat": "application/asc",
+                            "label": "AA0579.asc"
+                        },
+                        {
+                            "contentSize": 71228,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/thalamus/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F4f89f9ec-64c8-4196-a1cc-0d436672d019",
+                            "encodingFormat": "application/swc",
+                            "label": "AA0579.swc"
+                        }
+                    ],
+                    "generation": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/0002675f-88bb-4d4e-b4d2-88104935f9a3",
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/21974409-93f9-4114-9417-20cd60bba9d9"
+                            }
+                        ]
+                    },
+                    "license": {
+                        "@id": "https://creativecommons.org/licenses/by-nc/4.0/",
+                        "identifier": "https://creativecommons.org/licenses/by-nc/4.0/"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0738231",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0738231|VAL_TC",
+                        "identifier": "http://uri.interlex.org/base/ilx_0738231",
+                        "label": "VAL_TC"
+                    },
+                    "name": "AA0579 in CCFv2.5",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/thalamus",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/thalamus",
+                        "label": "public/thalamus"
+                    },
+                    "simulationReady": false,
+                    "subjectAge": {
+                        "label": "60 days Post-natal",
+                        "period": "Post-natal",
+                        "unit": "days",
+                        "value": 60
+                    },
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+                        "label": "Mus musculus"
+                    },
+                    "updatedAt": "2024-08-29T07:18:24.090Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/thalamus/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F2f40ccd0-1b4a-482d-82dc-047095e052e2"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/3c1685cc-bf47-4f22-aa67-99143458e940",
+                "_index": "nexus_search_b5db4c20-8200-47f9-98d9-0ca8fa3be422_b5db4c20-8200-47f9-98d9-0ca8fa3be422_21",
+                "_score": 1.0000681,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/3c1685cc-bf47-4f22-aa67-99143458e940",
+                    "@type": [
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/629",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/629|Ventral anterior-lateral complex of the thalamus",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/629",
+                        "label": "Ventral anterior-lateral complex of the thalamus"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.443970.d",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.443970.d|Janelia Research Campus",
+                            "label": "Janelia Research Campus"
+                        }
+                    ],
+                    "coordinatesInBrainAtlas": {
+                        "valueX": "6676.895",
+                        "valueY": "4579.91",
+                        "valueZ": "4820.9976"
+                    },
+                    "createdAt": "2022-06-16T12:52:03.088Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "description": "Annotation Space: CCFv3.0 Axes> X: Anterior-Posterior; Y: Inferior-Superior; Z:Left-Right",
+                    "distribution": [
+                        {
+                            "contentSize": 71335,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mouselight/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fd419fa1a-8de4-472f-9ef7-05275bfff5c1",
+                            "encodingFormat": "application/swc",
+                            "label": "AA0579.swc"
+                        },
+                        {
+                            "contentSize": 39712,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mouselight/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Ff40d95ce-a70f-4539-b065-0c916a1ea819",
+                            "encodingFormat": "application/x-hdf5",
+                            "label": "AA0579.h5"
+                        },
+                        {
+                            "contentSize": 152719,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mouselight/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fd7d2ff5b-a541-4702-ab00-9cb81ddbf6f8",
+                            "encodingFormat": "application/asc",
+                            "label": "AA0579.asc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/21974409-93f9-4114-9417-20cd60bba9d9"
+                            }
+                        ]
+                    },
+                    "license": {
+                        "@id": "https://creativecommons.org/licenses/by-nc/4.0/",
+                        "identifier": "https://creativecommons.org/licenses/by-nc/4.0/"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0738231",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0738231|VAL_TC",
+                        "identifier": "http://uri.interlex.org/base/ilx_0738231",
+                        "label": "VAL_TC"
+                    },
+                    "name": "AA0579",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mouselight",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mouselight",
+                        "label": "bbp/mouselight"
+                    },
+                    "simulationReady": false,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+                        "label": "Mus musculus"
+                    },
+                    "updatedAt": "2024-08-29T07:23:34.929Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mouselight/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F3c1685cc-bf47-4f22-aa67-99143458e940"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/74bfb70b-d1c2-4ea3-b217-0a321547957a",
+                "_index": "nexus_search_b5db4c20-8200-47f9-98d9-0ca8fa3be422_b5db4c20-8200-47f9-98d9-0ca8fa3be422_21",
+                "_score": 1.0000681,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/74bfb70b-d1c2-4ea3-b217-0a321547957a",
+                    "@type": [
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology",
+                        "https://neuroshapes.org/NeuronMorphology"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/656",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/656|Secondary motor area, layer 1",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/656",
+                        "label": "Secondary motor area, layer 1"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.443970.d",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.443970.d|Janelia Research Campus",
+                            "label": "Janelia Research Campus"
+                        }
+                    ],
+                    "coordinatesInBrainAtlas": {
+                        "valueX": "4917.9214",
+                        "valueY": "993.0779",
+                        "valueZ": "6079.287"
+                    },
+                    "createdAt": "2022-06-16T12:42:31.527Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "description": "Annotation Space: CCFv3.0 Axes> X: Anterior-Posterior; Y: Inferior-Superior; Z:Left-Right",
+                    "distribution": [
+                        {
+                            "contentSize": 69446,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mouselight/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F24cec566-1243-4d7c-97d2-9a6dd57e7d3b",
+                            "encodingFormat": "application/swc",
+                            "label": "AA0901.swc"
+                        },
+                        {
+                            "contentSize": 34728,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mouselight/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F37996946-33b1-4e99-9396-dba566506bd0",
+                            "encodingFormat": "application/x-hdf5",
+                            "label": "AA0901.h5"
+                        },
+                        {
+                            "contentSize": 112804,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/bbp/mouselight/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fbd921867-7655-4f6a-8d00-575eb0d2a11f",
+                            "encodingFormat": "application/asc",
+                            "label": "AA0901.asc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/21974409-93f9-4114-9417-20cd60bba9d9"
+                            }
+                        ]
+                    },
+                    "license": {
+                        "@id": "https://creativecommons.org/licenses/by-nc/4.0/",
+                        "identifier": "https://creativecommons.org/licenses/by-nc/4.0/"
+                    },
+                    "mType": {
+                        "@id": "https://neuroshapes.org/Interneuron",
+                        "idLabel": "https://neuroshapes.org/Interneuron|Interneuron",
+                        "identifier": "https://neuroshapes.org/Interneuron",
+                        "label": "Interneuron"
+                    },
+                    "name": "AA0901",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mouselight",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/bbp/mouselight",
+                        "label": "bbp/mouselight"
+                    },
+                    "simulationReady": false,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10090",
+                        "label": "Mus musculus"
+                    },
+                    "updatedAt": "2024-08-29T07:25:44.980Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/bbp/mouselight/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F74bfb70b-d1c2-4ea3-b217-0a321547957a"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/3c27e001-6a03-4680-b226-9fe934f4b2ed",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/3c27e001-6a03-4680-b226-9fe934f4b2ed",
+                    "@type": [
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell",
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        }
+                    ],
+                    "createdAt": "2021-11-23T11:30:54.771Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Entity",
+                                "https://neuroshapes.org/PatchedCell"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/4faa54dc-12ad-4469-b849-97c2b90d8e12",
+                            "label": "C060114A6-SR-C1"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 5 with m-type L5_TPC:A. The distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "@id": "https://bbp.epfl.ch/data/public/sscx/00b494db-c26c-4f83-b1e7-2a9ba184a38f",
+                            "contentSize": 794097,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fpublic%2Fsscx%2F00b494db-c26c-4f83-b1e7-2a9ba184a38f",
+                            "encodingFormat": "application/asc",
+                            "label": "C060114A6.asc"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/data/public/sscx/59b6af84-12d6-40ba-ab2f-f6c0d16479d3",
+                            "contentSize": 728891,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fpublic%2Fsscx%2F59b6af84-12d6-40ba-ab2f-f6c0d16479d3",
+                            "encodingFormat": "application/swc",
+                            "label": "C060114A6.swc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://creativecommons.org/licenses/by/4.0/",
+                        "identifier": "https://creativecommons.org/licenses/by/4.0/"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381365",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381365|L5_TPC:A",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381365",
+                        "label": "L5_TPC:A"
+                    },
+                    "name": "C060114A6",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": [
+                        false,
+                        true
+                    ],
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:31:02.391Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F3c27e001-6a03-4680-b226-9fe934f4b2ed"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/4254cb15-2590-4d64-a28b-6f3d148eb510",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/4254cb15-2590-4d64-a28b-6f3d148eb510",
+                    "@type": [
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell",
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/95e75e3e-6247-4bc2-a2f6-67b9ddb55543",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/neurosciencegraph/data/95e75e3e-6247-4bc2-a2f6-67b9ddb55543|Jean-Vincent Le Bé",
+                            "label": "Jean-Vincent Le Bé"
+                        },
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        }
+                    ],
+                    "createdAt": "2021-11-23T11:35:10.101Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Entity",
+                                "https://neuroshapes.org/PatchedCell"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/c6c01102-85ca-4f1a-8c6d-d1718c79aea5",
+                            "label": "Fluo41_left"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 6 with m-type L6_TPC:A. The distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "@id": "https://bbp.epfl.ch/data/public/sscx/b1860fc0-96d5-437f-b585-f44ae1ddd604",
+                            "contentSize": 508571,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fpublic%2Fsscx%2Fb1860fc0-96d5-437f-b585-f44ae1ddd604",
+                            "encodingFormat": "application/swc",
+                            "label": "Fluo41_left.swc"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/data/public/sscx/ef9590b2-8611-428a-8805-8b9401d417e3",
+                            "contentSize": 408484,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fdata%2Fpublic%2Fsscx%2Fef9590b2-8611-428a-8805-8b9401d417e3",
+                            "encodingFormat": "application/asc",
+                            "label": "Fluo41_left.asc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005395",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005395|layer 6",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005395",
+                            "label": "layer 6"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://creativecommons.org/licenses/by/4.0/",
+                        "identifier": "https://creativecommons.org/licenses/by/4.0/"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381375",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381375|L6_TPC:A",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381375",
+                        "label": "L6_TPC:A"
+                    },
+                    "name": "Fluo41_left",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": true,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:32:48.950Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F4254cb15-2590-4d64-a28b-6f3d148eb510"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/02ae1aec-7a87-418c-8803-35e9610db358",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/02ae1aec-7a87-418c-8803-35e9610db358",
+                    "@type": [
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert|Michael Gevaert",
+                            "label": "Michael Gevaert"
+                        },
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        }
+                    ],
+                    "createdAt": "2021-06-16T10:28:35.107Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Entity",
+                                "https://neuroshapes.org/PatchedCell"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/3863ff6d-aa70-4dc7-a472-6fbd32c97104",
+                            "label": "C060109A1-SR-C1"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 5 with m-type L5_TPC:B. The distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "contentSize": 760159,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F85768b03-8867-4e3c-bcfe-ce82aa42ca06",
+                            "encodingFormat": "application/swc",
+                            "label": "C060109A1.swc"
+                        },
+                        {
+                            "contentSize": 674467,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F45ba79cc-621d-4220-82c2-3a65f138a2af",
+                            "encodingFormat": "application/asc",
+                            "label": "C060109A1.asc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "label": "SSCX Portal Data Licence final v1.0"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381364",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381364|L5_TPC:B",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381364",
+                        "label": "L5_TPC:B"
+                    },
+                    "name": "C060109A1",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": true,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:33:36.042Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F02ae1aec-7a87-418c-8803-35e9610db358"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/1911cb57-fde1-43d2-b4e9-4fdd2ea96cd7",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/1911cb57-fde1-43d2-b4e9-4fdd2ea96cd7",
+                    "@type": [
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology",
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert|Michael Gevaert",
+                            "label": "Michael Gevaert"
+                        }
+                    ],
+                    "createdAt": "2021-06-16T10:28:12.539Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Entity",
+                                "https://neuroshapes.org/PatchedCell"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/7f81c46b-dcdd-4101-9ae3-7df409aa1310",
+                            "label": "C080501B2-SR-C1"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 5 with m-type L5_TPC:B. The distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "contentSize": 1202283,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F22405707-9123-4ec1-893c-1039a15525b8",
+                            "encodingFormat": "application/swc",
+                            "label": "C080501B2.swc"
+                        },
+                        {
+                            "contentSize": 1048455,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F1ff1f102-178c-4ad4-9339-e4d164c2446c",
+                            "encodingFormat": "application/asc",
+                            "label": "C080501B2.asc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "label": "SSCX Portal Data Licence final v1.0"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381364",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381364|L5_TPC:B",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381364",
+                        "label": "L5_TPC:B"
+                    },
+                    "name": "C080501B2",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": true,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:33:38.594Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F1911cb57-fde1-43d2-b4e9-4fdd2ea96cd7"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/4f1c1f18-a3ed-4996-a804-632b0db628a2",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/4f1c1f18-a3ed-4996-a804-632b0db628a2",
+                    "@type": [
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell",
+                        "https://neuroshapes.org/NeuronMorphology"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert|Michael Gevaert",
+                            "label": "Michael Gevaert"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/0d836455-193d-4a41-b36c-4025cc8757fd",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/neurosciencegraph/data/0d836455-193d-4a41-b36c-4025cc8757fd|Vincent Delattre",
+                            "label": "Vincent Delattre"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/9aa9776b-ebbc-4d11-a856-409fe1781c92",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/neurosciencegraph/data/9aa9776b-ebbc-4d11-a856-409fe1781c92|Yun Wang",
+                            "label": "Yun Wang"
+                        }
+                    ],
+                    "createdAt": "2021-06-16T11:07:49.916Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "https://neuroshapes.org/PatchedCell",
+                                "http://www.w3.org/ns/prov#Entity"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/8e097e40-58ce-4a83-ab62-429374d4a9b7",
+                            "label": "vd110611_idA"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 5 with m-type L5_TPC:B. The distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "contentSize": 340237,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F5238f81b-fcaa-4a84-9c5a-d1137225334e",
+                            "encodingFormat": "application/asc",
+                            "label": "vd110611_idA.asc"
+                        },
+                        {
+                            "contentSize": 371065,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F040a4e34-c7d6-49e1-a83b-ceab3748ef86",
+                            "encodingFormat": "application/swc",
+                            "label": "vd110611_idA.swc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "label": "SSCX Portal Data Licence final v1.0"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381364",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381364|L5_TPC:B",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381364",
+                        "label": "L5_TPC:B"
+                    },
+                    "name": "vd110611_idA",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": true,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:33:42.913Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F4f1c1f18-a3ed-4996-a804-632b0db628a2"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/5de88fb1-93a0-4904-a95b-29947c48e0d4",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/5de88fb1-93a0-4904-a95b-29947c48e0d4",
+                    "@type": [
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert|Michael Gevaert",
+                            "label": "Michael Gevaert"
+                        }
+                    ],
+                    "createdAt": "2021-06-16T10:24:31.587Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Entity",
+                                "https://neuroshapes.org/PatchedCell"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/8d1e4900-cda8-4ad2-a649-f55a65903499",
+                            "label": "C060114A4-SR-C1"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 5 with  m-type L5_TPC:A. The  distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "contentSize": 821780,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F4152de8b-de6c-42ed-ad59-bca600109fc3",
+                            "encodingFormat": "application/asc",
+                            "label": "C060114A4.asc"
+                        },
+                        {
+                            "contentSize": 938710,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F23dc6b17-510b-4d05-8058-3974be0ec541",
+                            "encodingFormat": "application/swc",
+                            "label": "C060114A4.swc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "label": "SSCX Portal Data Licence final v1.0"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381365",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381365|L5_TPC:A",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381365",
+                        "label": "L5_TPC:A"
+                    },
+                    "name": "C060114A4",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": true,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:39:59.666Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F5de88fb1-93a0-4904-a95b-29947c48e0d4"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/c8f15f6e-6b56-434e-ad8f-b04c09dc7fb7",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/c8f15f6e-6b56-434e-ad8f-b04c09dc7fb7",
+                    "@type": [
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology",
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert|Michael Gevaert",
+                            "label": "Michael Gevaert"
+                        },
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        }
+                    ],
+                    "createdAt": "2021-06-16T10:24:43.477Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Entity",
+                                "https://neuroshapes.org/PatchedCell"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/ee87e415-4096-4723-b847-a1bf77bd73df",
+                            "label": "C060110A3-SR-C1"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 5 with m-type L5_TPC:A. The distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "contentSize": 636205,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Ff4a8e7d4-df39-4e43-a8a8-64003a3fa864",
+                            "encodingFormat": "application/asc",
+                            "label": "C060110A3.asc"
+                        },
+                        {
+                            "contentSize": 703457,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fe3ea0c85-1201-4404-b300-e8047f94e79b",
+                            "encodingFormat": "application/swc",
+                            "label": "C060110A3.swc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "label": "SSCX Portal Data Licence final v1.0"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381365",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381365|L5_TPC:A",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381365",
+                        "label": "L5_TPC:A"
+                    },
+                    "name": "C060110A3",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": true,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:40:10.725Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2Fc8f15f6e-6b56-434e-ad8f-b04c09dc7fb7"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/d0b1355e-f201-4605-9a4b-4454c2090d92",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/d0b1355e-f201-4605-9a4b-4454c2090d92",
+                    "@type": [
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert|Michael Gevaert",
+                            "label": "Michael Gevaert"
+                        },
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        }
+                    ],
+                    "createdAt": "2021-06-16T10:52:55.459Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "https://neuroshapes.org/PatchedCell",
+                                "http://www.w3.org/ns/prov#Entity"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/cb2e97c6-4128-4020-9577-8db0ab738d33",
+                            "label": "C060114A5-SR-C1"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 5 with m-type L5_TPC:A. The distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "contentSize": 917507,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F2ea3d9af-41db-47be-be47-d8494388b5eb",
+                            "encodingFormat": "application/asc",
+                            "label": "C060114A5.asc"
+                        },
+                        {
+                            "contentSize": 1012081,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Ffe3ad3e7-baa4-42c4-9a24-838ba4029d70",
+                            "encodingFormat": "application/swc",
+                            "label": "C060114A5.swc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005394|layer 5",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005394",
+                            "label": "layer 5"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "label": "SSCX Portal Data Licence final v1.0"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0381365",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0381365|L5_TPC:A",
+                        "identifier": "http://uri.interlex.org/base/ilx_0381365",
+                        "label": "L5_TPC:A"
+                    },
+                    "name": "C060114A5",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": true,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:40:11.538Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2Fd0b1355e-f201-4605-9a4b-4454c2090d92"
+                }
+            },
+            {
+                "_id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/5673bc84-702b-4734-8e54-cda23f696c87",
+                "_index": "nexus_search_6e74c301-9983-40f7-a714-1d1eb39c7cc4_6e74c301-9983-40f7-a714-1d1eb39c7cc4_24",
+                "_score": 1.0000265,
+                "_source": {
+                    "@id": "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/5673bc84-702b-4734-8e54-cda23f696c87",
+                    "@type": [
+                        "https://neuroshapes.org/NeuronMorphology",
+                        "https://neuroshapes.org/ReconstructedCell",
+                        "https://neuroshapes.org/ReconstructedNeuronMorphology"
+                    ],
+                    "analysisSuitable": false,
+                    "brainRegion": {
+                        "@id": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "idLabel": "http://api.brain-map.org/api/v2/data/Structure/322|Primary somatosensory area",
+                        "identifier": "http://api.brain-map.org/api/v2/data/Structure/322",
+                        "label": "Primary somatosensory area"
+                    },
+                    "contributors": [
+                        {
+                            "@id": "https://www.grid.ac/institutes/grid.5333.6",
+                            "@type": [
+                                "http://schema.org/Organization",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://www.grid.ac/institutes/grid.5333.6|École Polytechnique Fédérale de Lausanne",
+                            "label": "École Polytechnique Fédérale de Lausanne"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/0d836455-193d-4a41-b36c-4025cc8757fd",
+                            "@type": [
+                                "http://www.w3.org/ns/prov#Agent",
+                                "http://schema.org/Person"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/neurosciencegraph/data/0d836455-193d-4a41-b36c-4025cc8757fd|Vincent Delattre",
+                            "label": "Vincent Delattre"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "idLabel": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gevaert|Michael Gevaert",
+                            "label": "Michael Gevaert"
+                        },
+                        {
+                            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/yshi",
+                            "@type": [
+                                "http://schema.org/Person",
+                                "http://www.w3.org/ns/prov#Agent"
+                            ],
+                            "affiliation": "École Polytechnique Fédérale de Lausanne",
+                            "idLabel": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/yshi|Ying Shi",
+                            "label": "Ying Shi"
+                        }
+                    ],
+                    "createdAt": "2021-06-16T10:35:53.087Z",
+                    "createdBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/akkaufma",
+                    "curated": true,
+                    "deprecated": false,
+                    "derivation": [
+                        {
+                            "@type": [
+                                "https://neuroshapes.org/PatchedCell",
+                                "http://www.w3.org/ns/prov#Entity"
+                            ],
+                            "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/2a5cf9cb-b39a-4b41-876f-f82d71c2b207",
+                            "label": "vd110518_idB"
+                        }
+                    ],
+                    "description": "This dataset is about an in vitro-filled neuron morphology from layer 4 with m-type L4_UPC. The distribution contains the neuron morphology in ASC and in SWC file format.",
+                    "distribution": [
+                        {
+                            "contentSize": 380490,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F583568f3-b182-498d-9e45-3759e4c21312",
+                            "encodingFormat": "application/asc",
+                            "label": "vd110518_idB.asc"
+                        },
+                        {
+                            "contentSize": 492525,
+                            "contentUrl": "https://openbluebrain.com/api/nexus/v1/files/public/sscx/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2F41fd7fcf-b2b5-499d-9956-104622f99b7f",
+                            "encodingFormat": "application/swc",
+                            "label": "vd110518_idB.swc"
+                        }
+                    ],
+                    "generation": {
+                        "protocol": [
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/c179e4d2-3f9a-4a01-b2f7-11acb3c44dff"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/517ce0e7-6438-4fee-b95c-d64b73208495"
+                            },
+                            {
+                                "@id": "https://bbp.epfl.ch/data/bbp/protocols/b64cd947-46d4-40e1-a594-d0c9e7a8dc4b"
+                            }
+                        ]
+                    },
+                    "layer": [
+                        {
+                            "@id": "http://purl.obolibrary.org/obo/UBERON_0005393",
+                            "idLabel": "http://purl.obolibrary.org/obo/UBERON_0005393|layer 4",
+                            "identifier": "http://purl.obolibrary.org/obo/UBERON_0005393",
+                            "label": "layer 4"
+                        }
+                    ],
+                    "license": {
+                        "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "identifier": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+                        "label": "SSCX Portal Data Licence final v1.0"
+                    },
+                    "mType": {
+                        "@id": "http://uri.interlex.org/base/ilx_0383220",
+                        "idLabel": "http://uri.interlex.org/base/ilx_0383220|L4_UPC",
+                        "identifier": "http://uri.interlex.org/base/ilx_0383220",
+                        "label": "L4_UPC"
+                    },
+                    "name": "vd110518_idB",
+                    "objectOfStudy": {
+                        "@id": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "identifier": "http://bbp.epfl.ch/neurosciencegraph/taxonomies/objectsofstudy/singlecells",
+                        "label": "Single Cell"
+                    },
+                    "project": {
+                        "@id": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "identifier": "https://openbluebrain.com/api/nexus/v1/projects/public/sscx",
+                        "label": "public/sscx"
+                    },
+                    "simulationReady": true,
+                    "subjectSpecies": {
+                        "@id": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "identifier": "http://purl.obolibrary.org/obo/NCBITaxon_10116",
+                        "label": "Rattus norvegicus"
+                    },
+                    "updatedAt": "2024-08-29T07:40:24.218Z",
+                    "updatedBy": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/service-account-bbp-dke-data-pipelines-sa",
+                    "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Fneuronmorphologies%2F5673bc84-702b-4734-8e54-cda23f696c87"
+                }
+            }
+        ],
+        "max_score": 1.000283,
+        "total": {
+            "relation": "eq",
+            "value": 12
+        }
+    },
+    "timed_out": false,
+    "took": 11,
+    "_shards": {
+        "failed": 0,
+        "skipped": 0,
+        "successful": 15,
+        "total": 15
+    }
+}

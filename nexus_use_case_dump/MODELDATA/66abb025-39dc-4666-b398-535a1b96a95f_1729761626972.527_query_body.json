@@ -1,0 +1,36 @@
+{
+    "size": 1000,
+    "query": {
+        "bool": {
+            "filter": [
+                {
+                    "bool": {
+                        "must": {
+                            "term": {
+                                "deprecated": false
+                            }
+                        }
+                    }
+                },
+                {
+                    "bool": {
+                        "must": {
+                            "terms": {
+                                "@id": [
+                                    "https://bbp.epfl.ch/neurosciencegraph/data/e593693a-65d2-49b2-8f3d-41a0b5230f93",
+                                    "https://bbp.epfl.ch/neurosciencegraph/data/c1469440-6ab4-4edd-a062-fb923b6d354b",
+                                    "https://bbp.epfl.ch/neurosciencegraph/data/8e44f0d7-e701-4080-ba2f-df258930341e",
+                                    "https://bbp.epfl.ch/neurosciencegraph/data/9a81f596-d986-495d-b2d1-61de91ee527f",
+                                    "https://bbp.epfl.ch/neurosciencegraph/data/1b606edb-992d-400e-8ff1-989e311cec4d",
+                                    "https://bbp.epfl.ch/neurosciencegraph/data/0a3df2a6-1480-479a-addb-9adcd184240c",
+                                    "https://bbp.epfl.ch/neurosciencegraph/data/108c96d1-cfaf-4c96-b873-e315f32e8f4f",
+                                    "https://bbp.epfl.ch/neurosciencegraph/data/e6140815-9bc6-4feb-a99f-8c7ca91e03e9"
+                                ]
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

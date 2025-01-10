@@ -1,0 +1,1 @@
+{"query":{"bool":{"must":{"term":{"@id":"https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/e990f748-a856-4be0-a7d3-9f0bc336447c"}}}},"size":1}

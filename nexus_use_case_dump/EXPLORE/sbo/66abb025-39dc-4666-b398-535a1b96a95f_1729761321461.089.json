@@ -1,0 +1,18 @@
+{
+    "hits": {
+        "hits": [],
+        "total": {
+            "relation": "eq",
+            "value": 42
+        }
+    },
+    "terminated_early": false,
+    "timed_out": false,
+    "took": 7,
+    "_shards": {
+        "failed": 0,
+        "skipped": 5,
+        "successful": 16,
+        "total": 16
+    }
+}

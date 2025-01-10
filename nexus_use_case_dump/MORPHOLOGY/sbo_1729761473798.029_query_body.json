@@ -1,0 +1,16 @@
+{
+    "size": 5,
+    "from": 0,
+    "track_total_hits": true,
+    "query": {
+        "bool": {
+            "must": {
+                "terms": {
+                    "neuronMorphology.@id.keyword": [
+                        "https://bbp.epfl.ch/neurosciencegraph/data/neuronmorphologies/4b95fbc0-ead2-4780-b27b-0280b6c1a761"
+                    ]
+                }
+            }
+        }
+    }
+}

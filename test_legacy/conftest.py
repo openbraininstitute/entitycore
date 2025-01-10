@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import app
-from app.config import LEGACY_TEST_DATABASE_URI
+from app.config import LEGACY_TEST_DATABASE_URI,LEGACY_DATABASE_CONNECT_ARGS
 from app.dependencies.db import get_db
 from app.models.base import Base
 
@@ -15,7 +15,7 @@ from app.models.base import Base
 def client():
     engine = create_engine(
         LEGACY_TEST_DATABASE_URI,
-        connect_args={"check_same_thread": False},
+        connect_args=LEGACY_DATABASE_CONNECT_ARGS,
         poolclass=StaticPool,
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -35,7 +35,7 @@ def client():
 def db():
     engine = create_engine(
         LEGACY_TEST_DATABASE_URI,
-        connect_args={"check_same_thread": False},
+        connect_args=LEGACY_DATABASE_CONNECT_ARGS,
         poolclass=StaticPool,
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

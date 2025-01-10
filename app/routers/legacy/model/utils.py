@@ -34,7 +34,7 @@ MAP_TYPES = bdict(
         app.models.density.ExperimentalSynapsesPerConnection: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection",
         app.models.code.AnalysisSoftwareSourceCode: "AnalysisSoftwareSourceCode",
         app.models.single_neuron_synaptome.SingleNeuronSynaptome: "https://bbp.epfl.ch/ontologies/core/bmo/SingleNeuronSynaptome",
-        app.models.single_neuron_simulation.SingleNeuronSimulation: "SingleNeuronSimulation",
+        app.models.single_neuron_simulation.SingleNeuronSimulation: "https://bbp.epfl.ch/ontologies/core/bmo/SynaptomeSimulation",
     }
 )
 
@@ -247,11 +247,16 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                 )
             key, value = list(key_value)[0]
             if "." in key:
-                target, property_, _ = key.split(".")
+                l_split = key.split(".")
+                target = l_split[0]
+                property_ = l_split[1]
                 if db_type == app.models.entity.Entity:
                     if property_ == "@id":
                         property_ = "legacy_id"
                         cur_alias = initial_alias
+                elif target == "@id":
+                    property_ = "legacy_id"
+                    cur_alias = initial_alias
                 else:
                     query_map = QUERY_PATH.get(target, None)
                     property_ = PROPERTY_MAP.get(".".join([target, property_]), None)

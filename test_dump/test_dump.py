@@ -2,7 +2,7 @@ import os
 import json
 import time
 import resource
-
+import test_dump.comparator as comparator
 
 def test_dump(client, db):
     # find all query_path file in nexus_use_case_dump directory
@@ -33,6 +33,7 @@ def test_dump(client, db):
     total_cpu_time = 0
     nb_calls = 0
     nb_failures = 0
+    nb_differences = 0
     for url in urls:
         if "resources" in url["url"]:
             nb_calls += 1
@@ -72,7 +73,13 @@ def test_dump(client, db):
                 print(f"Failed to call {url['file'] } {url['url']}")
                 nb_failures += 1
                 ret = client.post(url["url"], json=json_data)
+            else:
+                diff = comparator.compare_with_reference(url["file"], ret.json())
+                if diff:
+                    nb_differences += 1
+
     print(f"Elapsed time: {total_elapsed_time} seconds")
     print(f"CPU time: {total_cpu_time} seconds")
     print(f"Number of calls: {nb_calls}")
     print(f"Number of failures: {nb_failures}")
+    print(f"Number of differences: {nb_differences}")

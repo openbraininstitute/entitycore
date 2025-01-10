@@ -13,7 +13,8 @@ dependencies = [
     "tqdm>=4.67.1",
     "uvicorn[standard]",
     "psycopg2",
-    "bidict"
+    "bidict",
+    "deepdiff",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"

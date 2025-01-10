@@ -1,4 +1,4 @@
-from sqlalchemy import ForeignKey, event
+from sqlalchemy import ForeignKey, event, Column
 from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 from sqlalchemy.schema import DDL
@@ -21,7 +21,7 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     # name is not unique
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     if engine.dialect.name == "postgresql":
-        morphology_description_vector = mapped_column(TSVECTOR)
+        morphology_description_vector = Column(TSVECTOR)
     morphology_feature_annotation = relationship(
         "MorphologyFeatureAnnotation", uselist=False
     )

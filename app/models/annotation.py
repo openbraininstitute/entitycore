@@ -73,7 +73,6 @@ class DataMaturityAnnotationBody(AnnotationBody):
 class Annotation(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "annotation"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    annotation_id: Mapped[str] = mapped_column(unique=True)
     note: Mapped[str] = mapped_column(nullable=True)
     entity = relationship("Entity", back_populates="annotations")
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"))

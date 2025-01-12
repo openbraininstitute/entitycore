@@ -13,34 +13,15 @@ from app.models import (
     annotation,
     base,
     code,
-    contribution,
     density,
-    memodel,
     emodel,
+    memodel,
     mesh,
     morphology,
-    role,
     single_cell_experimental_trace,
     single_neuron_simulation,
 )
 from app.models.base import SessionLocal
-
-
-def get_or_create_role(role_, db):
-    # Check if the role already exists in the database
-    role_ = curate.curate_role(role_)
-    r = db.query(role.Role).filter(role.Role.role_id == role_["@id"]).first()
-    if not r:
-        # If not, create a new one
-        try:
-            r = role.Role(role_id=role_["@id"], name=role_["label"])
-            db.add(r)
-            db.commit()
-        except Exception as e:
-            print(e)
-            print(f"Error creating role {role_}")
-            raise e
-    return r.id
 
 
 def get_or_create_annotation_body(annotation_body, db):
@@ -49,6 +30,7 @@ def get_or_create_annotation_body(annotation_body, db):
         "EType": annotation.ETypeAnnotationBody,
         "MType": annotation.MTypeAnnotationBody,
         "DataMaturity": annotation.DataMaturityAnnotationBody,
+        "DataScope": None,
     }
     annotation_type_list = annotation_body["@type"]
     intersection = [
@@ -59,6 +41,9 @@ def get_or_create_annotation_body(annotation_body, db):
         len(intersection) == 1
     ), f"Unknown annotation body type {annotation_body['@type']}"
     db_annotation = annotation_types[intersection[0]]
+    # TODO manage datascope
+    if db_annotation is None:
+        return None
     ab = (
         db.query(db_annotation)
         .filter(db_annotation.pref_label == annotation_body["label"])
@@ -71,39 +56,6 @@ def get_or_create_annotation_body(annotation_body, db):
         db.add(ab)
         db.commit()
     return ab.id
-
-
-def get_or_create_contribution(contribution_, entity_id, db):
-    # Check if the contribution already exists in the database
-    if type(contribution_) is list:
-        for c in contribution_:
-            get_or_create_contribution(c, entity_id, db)
-        return None
-    agent_legacy_id = contribution_["agent"]["@id"]
-    db_agent = utils._find_by_legacy_id(agent_legacy_id, agent.Agent, db)
-    if not db_agent:
-        print(f"Agent with legacy_id {agent_legacy_id} not found")
-        return None
-    agent_id = db_agent.id
-    role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})
-    role_id = get_or_create_role(role_, db)
-    c = (
-        db.query(contribution.Contribution)
-        .filter(
-            contribution.Contribution.agent_id == agent_id,
-            contribution.Contribution.role_id == role_id,
-            contribution.Contribution.entity_id == entity_id,
-        )
-        .first()
-    )
-    if not c:
-        # If not, create a new one
-        c = contribution.Contribution(
-            agent_id=agent_id, role_id=role_id, entity_id=entity_id
-        )
-        db.add(c)
-        db.commit()
-    return c.id
 
 
 def import_licenses(data, db):
@@ -337,11 +289,14 @@ def import_single_neuron_simulation(data, db):
             db.commit()
 
 
-def get_or_create_morphology_annotation(annotation_, reconstruction_morphology_id, db):
+def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
+    annotation_body_id = get_or_create_annotation_body(annotation_["hasBody"], db)
+    if not annotation_body_id:
+        return None
     db_annotation = annotation.Annotation(
         entity_id=reconstruction_morphology_id,
         note=annotation_.get("note", None),
-        annotation_body_id=get_or_create_annotation_body(annotation_["hasBody"], db),
+        annotation_body_id=annotation_body_id,
     )
     db.add(db_annotation)
     db.commit()
@@ -412,6 +367,7 @@ def import_me_models(data, db):
             )
             db.add(rm)
             db.commit()
+            # get_or_create_annotation(data, rm.id, db)
 
 
 def import_e_models(data, db):
@@ -426,12 +382,12 @@ def import_e_models(data, db):
         return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
-        rm = utils._find_by_legacy_id(legacy_id, emodel.EModel, db)
-        if not rm:
+        db_item = utils._find_by_legacy_id(legacy_id, emodel.EModel, db)
+        if not db_item:
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
-            rm = emodel.EModel(
+            db_item = emodel.EModel(
                 legacy_id=[legacy_id],
                 name=data.get("name", None),
                 description=data.get("description", None),
@@ -448,8 +404,14 @@ def import_e_models(data, db):
                 updatedBy_id=updated_by_id,
             )
 
-            db.add(rm)
+            db.add(db_item)
             db.commit()
+            utils.import_contribution(data, db_item.id, db)
+            annotations = data.get("annotation", [])
+            if isinstance(annotations, dict):
+                annotations = [annotations]
+            for annotation in annotations:
+                get_or_create_annotation(annotation, db_item.id, db)
 
 
 def import_brain_region_meshes(data, db):
@@ -507,15 +469,12 @@ def import_traces(data_list, db):
             db.add(db_item)
             db.commit()
             db.refresh(db_item)
-            contribution = data.get("contribution", {})
-            contribution = curate.curate_contribution(contribution)
-            if contribution:
-                get_or_create_contribution(contribution, db_item.id, db)
+            utils.import_contribution(data, db_item.id, db)
             annotations = data.get("annotation", [])
             if isinstance(annotations, dict):
                 annotations = [annotations]
             for annotation in annotations:
-                get_or_create_morphology_annotation(annotation, db_item.id, db)
+                get_or_create_annotation(annotation, db_item.id, db)
 
 
 def import_morphologies(data_list, db):
@@ -548,17 +507,12 @@ def import_morphologies(data_list, db):
             db.add(db_reconstruction_morphology)
             db.commit()
             db.refresh(db_reconstruction_morphology)
-            contribution = data.get("contribution", {})
-            contribution = curate.curate_contribution(contribution)
-            if contribution:
-                get_or_create_contribution(
-                    contribution, db_reconstruction_morphology.id, db
-                )
+            utils.import_contribution(data, db_reconstruction_morphology.id, db)
             annotations = data.get("annotation", [])
             if isinstance(annotations, dict):
                 annotations = [annotations]
             for annotation in annotations:
-                get_or_create_morphology_annotation(
+                get_or_create_annotation(
                     annotation, db_reconstruction_morphology.id, db
                 )
 
@@ -615,7 +569,7 @@ def import_morphology_feature_annotations(data_list, db):
             db.commit()
             db.refresh(db_morphology_feature_annotation)
         except sqlalchemy.exc.IntegrityError:
-            # todo: investigate if what is actually happening
+            # TODO: investigate if what is actually happening
             print("2 annotations for a morphology ignoring")
             db.rollback()
             continue
@@ -683,10 +637,7 @@ def _import_experimental_densities(
             )
             db.add(db_element)
             db.commit()
-            contribution = data.get("contribution", {})
-            if contribution:
-                contribution = curate.curate_contribution(contribution)
-                get_or_create_contribution(contribution, db_element.id, db)
+            utils.import_contribution(data, db_element.id, db)
 
 
 def main():

@@ -16,8 +16,8 @@ class Agent(Root, TimestampMixin):
 class Person(Agent):
     __tablename__ = "person"
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
-    givenName: Mapped[int] = mapped_column(unique=False, index=False, nullable=False)
-    familyName: Mapped[int] = mapped_column(unique=False, index=False, nullable=False)
+    givenName: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+    familyName: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "person",
     }
@@ -30,7 +30,7 @@ class Organization(Agent):
     __tablename__ = "organization"
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     # what is the difference between name and label here ?
-    alternative_name: Mapped[int] = mapped_column(
+    alternative_name: Mapped[str] = mapped_column(
         unique=False, index=False, nullable=False
     )
     __mapper_args__ = {

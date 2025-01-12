@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 import app.models.entity
 from app.dependencies.db import get_db
 from app.routers.legacy.model import utils
-from fastapi import HTTPException
 
 router = APIRouter(
     prefix="/nexus/v1/search/query/suite",

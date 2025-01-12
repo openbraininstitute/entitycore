@@ -1,9 +1,12 @@
 from sqlalchemy import func
-from app.models import (
-    base,
-)
+
 import app.cli.curate as curate
 import app.models.agent as agent
+from app.models import (
+    base,
+    contribution,
+    role,
+)
 
 
 def _find_by_legacy_id(legacy_id, db_type, db):
@@ -130,3 +133,60 @@ def get_agent_mixin(data, db):
         assert agent_db, "legacy_id not found: {}".format(legacy_id)
         result.append(agent_db.id)
     return result
+
+
+def get_or_create_role(role_, db):
+    # Check if the role already exists in the database
+    role_ = curate.curate_role(role_)
+    r = db.query(role.Role).filter(role.Role.role_id == role_["@id"]).first()
+    if not r:
+        # If not, create a new one
+        try:
+            r = role.Role(role_id=role_["@id"], name=role_["label"])
+            db.add(r)
+            db.commit()
+        except Exception as e:
+            print(e)
+            print(f"Error creating role {role_}")
+            raise e
+    return r.id
+
+
+def get_or_create_contribution(contribution_, entity_id, db):
+    # Check if the contribution already exists in the database
+    if type(contribution_) is list:
+        for c in contribution_:
+            get_or_create_contribution(c, entity_id, db)
+        return None
+    agent_legacy_id = contribution_["agent"]["@id"]
+    db_agent = _find_by_legacy_id(agent_legacy_id, agent.Agent, db)
+    if not db_agent:
+        print(f"Agent with legacy_id {agent_legacy_id} not found")
+        return None
+    agent_id = db_agent.id
+    role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})
+    role_id = get_or_create_role(role_, db)
+    c = (
+        db.query(contribution.Contribution)
+        .filter(
+            contribution.Contribution.agent_id == agent_id,
+            contribution.Contribution.role_id == role_id,
+            contribution.Contribution.entity_id == entity_id,
+        )
+        .first()
+    )
+    if not c:
+        # If not, create a new one
+        c = contribution.Contribution(
+            agent_id=agent_id, role_id=role_id, entity_id=entity_id
+        )
+        db.add(c)
+        db.commit()
+    return c.id
+
+
+def import_contribution(data, db_item_id, db):
+    contribution = data.get("contribution", [])
+    contribution = curate.curate_contribution(contribution)
+    if contribution:
+        get_or_create_contribution(contribution, db_item_id, db)

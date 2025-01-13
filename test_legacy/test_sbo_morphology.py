@@ -7,4 +7,4 @@ def test_sbo_emodel_facet(client):
         json=get_body("sbo_morphology"),
     )
     assert response.status_code == 200
-    data = response.json()
+    # data = response.json()

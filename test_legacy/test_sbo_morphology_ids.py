@@ -7,4 +7,4 @@ def test_sbo_morphology_ids(client):
         json=get_body("sbo_morphology_ids"),
     )
     assert response.status_code == 200
-    data = response.json()
+    # data = response.json()

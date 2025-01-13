@@ -19,8 +19,8 @@ def test_sbo_faceted_search_with_term_region(client):
         assert len(elem["buckets"]) > 0
         prev_value = None
         for bucket in elem["buckets"]:
-            assert type(bucket["key"]) == str
-            assert type(bucket["doc_count"]) == int
+            assert isinstance(bucket["key"], str)
+            assert isinstance(bucket["doc_count"], int)
             if prev_value:
                 assert prev_value >= bucket["doc_count"]
             prev_value = bucket["doc_count"]

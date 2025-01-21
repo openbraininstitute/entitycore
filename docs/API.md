@@ -9,7 +9,6 @@
     /organization
     /person
     /reconstructed-neuron-morphology/
-    /reconstruction-morphology
     /role
 ```
 

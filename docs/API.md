@@ -3,19 +3,23 @@
 ```
     /bouton-density
     /contribution
-    /experimental_bouton_density
-    /experimental_neuron_density
-    /experimental_synapses_per_connection
+    /experimental-bouton-density
+    /experimental-neuron-density
+    /experimental-synapses-per-connection
     /organization
     /person
     /reconstructed-neuron-morphology/
-    /reconstruction_morphology
+    /reconstruction-morphology
     /role
 ```
 
 These have CRUD-able patterns:
     GET /contribution/{id} to get
     POST /contribution/ to create
+
+
+Note: the organizations will need to be filled in; they include ones that are not yet part of the OBI, so there isn't a one-to-one relationship with what is included virtual lab service.
+Future work may include auto-additing organizations when one joins the OBI; alternatively the first time data is created, they could be added.
 
 TODO:
     What are the ACLs on these operations?
@@ -25,51 +29,64 @@ TODO:
         role
 
 # List views
-The endpoint for returning the listing per type; including faceting
+The endpoint for returning the listing per type; including faceting; if no query parameter is passed, the traditional list view will be returned (ie: no filtering)
 ```
-    /bouton-density/list
-    /reconstructed-neuron-morphology/list
+    /bouton-density/
+    /reconstructed-neuron-morphology/
 ```
 
 Ex:
-    GET /reconstructed-neuron-morphology/list?q=foo&brain_region_id=997
+```
+GET /reconstructed-neuron-morphology/
+```
 
-Where q string searches across name/description?
+Would return:
+```
+{
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 100
+  }
+}
+```
+`data` would include the columns that are required for the current FE list view, for now would be hardcoded, but in the future could be part of the query param.
 
 Note:
 will need to decide how to handle expansion of brain_region_ids, something like how the sonata-position-service works
 
-List View:
-    {
-      "status": "success"
-      "data": [...],
-      "pagination": {
-        "page": 1,
-        "limit": 10,
-        "total": 100
-      },
-      "facets": {
-        <aggregation of "columns" in data>
-      }
-    }
+## Search and filtering
 
-`data` would include the columns that are required for the current FE list view, for now would be hardcoded, but in the future could be part of the query param.
+If there is a query param `search`, it searches across text fields within the results of the query, for instance the description.
+Furthermore, fields of the particular entity being searched for can be specified with their exact matching value.
 
-Ex: "data" for MEModel:
-      "data": [
-        {"name": "...", "description": "...", "mType": "L5TPC", "eType": "STUT"},
-        ...
-      ],
+Ex:
+```
+GET /reconstructed-neuron-morphology/search=foo&brain_region_id=997
+```
 
+The return payload is the same as above, except the `data` only includes matches with `foo` and the region being 997.
+Its pagination data reflects the result of the filters.
 
-`facets` would include the columns that are in data, for the cases that make sense (ie: not `name`, `description`, but "types", "regions", "contributors"
+## Faceting
 
-Ex: "facets" for MEModel:
-      "facets": {
-        "mType": {"L5_TPC": 10, "L6_BAC": 1},
-        "eType": {"cSTUT": 10, "bAC": 1},
-        ...
-      }
+Additional facet statistics can be included by using the `facets` keyword: `[...]&facets=mtype,etype`
+
+```
+"facets": {
+<aggregation of "columns" in data>
+}
+```
+
+"facets" for MEModel: `[...]&facets=mtype,etype`
+```
+"facets": {
+    "mType": {"L5_TPC": 10, "L6_BAC": 1},
+    "eType": {"cSTUT": 10, "bAC": 1},
+    ...
+}
+```
     
 # Special Cases:
 
@@ -96,6 +113,9 @@ GET /brain-regions/{id}: could do this, but not sure it's useful: the full
     frontend to work w/ this file would be much faster than having to hit the
     API each time to get 
 
+Future work would include using ltree from postgresql to make doing lookups and such easier: https://www.postgresql.org/docs/current/ltree.html 
+
+
 To be looked at more:
 ```
     files/
@@ -106,3 +126,7 @@ To be looked at more:
 # Authorization:
 Current model is to have things be either public, or private to a lab/project.
 As such, results returned will be gated by this, based on the logged in user.
+The frontend will have to supply the current user's Bearer token, as well as the current lab and project.
+The service will check that the user does indeed belong to this lab and project, and then filter the results to include only public ones, along with those in the lab and project.
+These will have to be passed as headers in the request.
+

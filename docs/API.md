@@ -17,7 +17,7 @@ These have CRUD-able patterns:
     GET /contribution/{id} to get
     POST /contribution/ to create
 
-TODO: 
+TODO:
     What are the ACLs on these operations?
         contribution
         organization

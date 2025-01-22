@@ -14,7 +14,6 @@ from app.models.base import (
     Species,
     Strain,
     Subject,
-    engine,
 )
 from app.models.entity import Entity
 from app.models.contribution import Contribution
@@ -67,7 +66,6 @@ __all__ = [
     Species,
     Strain,
     Subject,
-    engine,
     MEModel,
     EModel,
     AnalysisSoftwareSourceCode,
@@ -75,6 +73,23 @@ __all__ = [
     SingleNeuronSimulation,
 ]
 
-# Note: this is still not right; database initialization should be separate
-# to model definition
-Base.metadata.create_all(bind=engine)
+
+def init_db(uri):
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.schema import DDL
+
+    engine = create_engine(uri)
+    Base.metadata.create_all(bind=engine)
+
+    trigger_statement = DDL("""
+    CREATE TRIGGER morphology_description_vector
+        BEFORE INSERT OR UPDATE ON reconstruction_morphology
+        FOR EACH ROW EXECUTE FUNCTION
+            tsvector_update_trigger(morphology_description_vector, 'pg_catalog.english', description, name);
+    """)
+    # Associate the trigger with the table
+    event.listen(
+        ReconstructionMorphology.__table__,
+        "after_create",
+        trigger_statement,
+    )

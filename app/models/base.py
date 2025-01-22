@@ -4,7 +4,6 @@ from typing import Annotated, ClassVar
 from sqlalchemy import (
     DateTime,
     ForeignKey,
-    create_engine,
     func,
     or_,
 )
@@ -14,14 +13,8 @@ from sqlalchemy.orm import (
     declared_attr,
     mapped_column,
     relationship,
-    sessionmaker,
 )
 from sqlalchemy.types import VARCHAR, TypeDecorator
-
-from app.config import DATABASE_CONNECT_ARGS, DATABASE_URI
-
-engine = create_engine(DATABASE_URI, connect_args=DATABASE_CONNECT_ARGS)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 class StringListType(TypeDecorator):
@@ -38,10 +31,7 @@ class StringListType(TypeDecorator):
 
     @staticmethod
     def is_equal(column, value):
-        use_func = func.instr
-        if engine.dialect.name == "postgresql":
-            use_func = func.strpos
-        return use_func(column, value) > 0
+        return func.strpos(column, value) > 0
 
     @staticmethod
     def in_(column, values):

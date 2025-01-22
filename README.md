@@ -25,3 +25,29 @@ uv run -m app.cli.import-data --db test.db --input_dir ./out
 #run server in order to test the API
 uv run uvicorn app:app --reload
 ```
+
+## Local testing
+
+This requires docker compose to be installed: https://docs.docker.com/compose/install/
+
+Then one should be able to:
+```
+$ make test-docker
+```
+
+## Running against local database
+
+In one terminal, this will bring up a *non-persistent* database:
+```
+$ docker compose run -P --remove-orphans db-test
+```
+
+Initialize DB
+```
+$ DB_HOST=127.0.0.1 DB_PORT=5434 DB_USER=test DB_PASS=test DB_NAME=test uv run python -m app db init
+```
+
+Or run tests:
+```
+$ DB_HOST=127.0.0.1 DB_PORT=5434 DB_USER=test DB_PASS=test DB_NAME=test uv run python -m pytest -sv test/
+```

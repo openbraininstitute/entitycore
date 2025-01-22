@@ -1,0 +1,45 @@
+services:
+  test:
+    profiles: [test]
+    image: "${IMAGE_NAME}:${IMAGE_TAG}"
+    command:
+    - sh
+    - -cx
+    - |
+      python -m pytest &&
+      python -m coverage xml &&
+      python -m coverage html
+    environment:
+    - DB_USER=test
+    - DB_PASS=test
+    - DB_NAME=test
+    - DB_HOST=db-test
+    - DB_PORT=5432
+    volumes:
+    - ./test:/code/tests
+    depends_on:
+      db-test:
+        condition: service_healthy
+
+  db-test:
+    profiles: [test]
+    image: postgres:16-alpine
+    environment:
+    - POSTGRES_USER=test
+    - POSTGRES_PASSWORD=test
+    ports:
+    - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+      start_interval: 1s
+    restart: "no"
+    command:  # see https://www.postgresql.org/docs/current/non-durability.html
+    - postgres
+    - -cfsync=off
+    - -csynchronous_commit=off
+    - -cfull_page_writes=off
+    # - -clog_statement=all

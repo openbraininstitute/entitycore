@@ -10,11 +10,8 @@ from app.models import (
 
 
 def _find_by_legacy_id(legacy_id, db_type, db):
-    use_func = func.instr
-    if db.bind.dialect.name == "postgresql":
-        use_func = func.strpos
     db_elem = (
-        db.query(db_type).filter(use_func(db_type.legacy_id, legacy_id) > 0).first()
+        db.query(db_type).filter(func.strpos(db_type.legacy_id, legacy_id) > 0).first()
     )
     return db_elem
 

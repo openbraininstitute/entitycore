@@ -4,6 +4,7 @@ import time
 import resource
 import test_dump.comparator as comparator
 
+
 def test_dump(client, db):
     # find all query_path file in nexus_use_case_dump directory
     query_path_files = []

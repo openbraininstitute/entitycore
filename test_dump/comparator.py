@@ -1,6 +1,6 @@
 import json
 import deepdiff
-from pprint import pprint
+
 
 def compare_with_reference(request_path, response_json):
     reference_path = request_path.replace("_query_path", ".json")
@@ -11,5 +11,3 @@ def compare_with_reference(request_path, response_json):
     diff = deepdiff.DeepDiff(reference_json, response_json)
     # pprint(diff)
     return diff
-
-    

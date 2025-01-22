@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import app
-from app.config import LEGACY_TEST_DATABASE_URI,LEGACY_DATABASE_CONNECT_ARGS
+from app.config import LEGACY_TEST_DATABASE_URI, LEGACY_DATABASE_CONNECT_ARGS
 from app.dependencies.db import get_db
 from app.models.base import Base
 

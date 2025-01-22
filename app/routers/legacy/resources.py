@@ -58,12 +58,9 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
                     ),
                 ) as f:
                     return json.load(f)
-            use_func = func.instr
-            if db.bind.dialect.name == "postgresql":
-                use_func = func.strpos
             db_element = (
                 db.query(Root)
-                .filter(use_func(Root.legacy_id, extracted_url) > 0)
+                .filter(func.strpos(Root.legacy_id, extracted_url) > 0)
                 .first()
             )
             if not db_element:

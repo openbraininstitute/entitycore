@@ -6,6 +6,8 @@ authors = [
     {name = "Blue Brain Project, EPFL"},
 ]
 dependencies = [
+    "alembic>=1.14.1",
+    "alembic-postgresql-enum>=1.5.0",
     "fastapi",
     "fastapi-filter>=2.0.0",
     "pydantic>=2",

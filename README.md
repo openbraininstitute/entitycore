@@ -1,6 +1,68 @@
-# Install
+# Test DB
 
-Make sure you have `uv`: https://docs.astral.sh/uv/getting-started/installation/
+## Requirements
+
+- `uv`: https://docs.astral.sh/uv/getting-started/installation/
+- `docker` and `docker compose`: https://docs.docker.com/compose/install/
+
+
+## Setup the virtualenv
+
+```
+$ uv sync
+```
+
+## Run the server in Docker
+
+This will bring up a *persistent* database and run tests in Docker.
+The server is automatically reloaded whenever the source code changes.
+
+```
+make run-docker
+```
+
+## Alternatively, run the server locally from the source code
+
+This will bring up a *persistent* database and run tests locally:
+The server is automatically reloaded whenever the source code changes.
+
+```
+make run-local
+```
+
+## Run tests in Docker
+
+This will bring up a *non-persistent* database and run tests in Docker:
+
+```
+$ make test-docker
+```
+
+## Alternatively, run tests locally from the source code
+
+This will bring up a *non-persistent* database and run tests locally:
+
+```
+$ make test-local
+```
+
+## Available make targets
+
+```
+$ make
+help                    Show this help
+format                  Run formatters
+lint                    Run linters
+build                   Build the Docker image
+test-local              Run tests locally
+test-docker             Run tests in Docker
+run-local               Run the application locally
+run-docker              Run the application in Docker
+kill                    Take down the application and remove the volumes
+migration               Create or update the alembic migration
+```
+
+## Legacy instructions, needed to populate the database with sample data
 
 ```
 # setup virtualenv:
@@ -24,30 +86,4 @@ uv run -m app.cli.import-data --db test.db --input_dir ./out
 
 #run server in order to test the API
 uv run uvicorn app:app --reload
-```
-
-## Local testing
-
-This requires docker compose to be installed: https://docs.docker.com/compose/install/
-
-Then one should be able to:
-```
-$ make test-docker
-```
-
-## Running against local database
-
-In one terminal, this will bring up a *non-persistent* database:
-```
-$ docker compose run -P --remove-orphans db-test
-```
-
-Initialize DB
-```
-$ DB_HOST=127.0.0.1 DB_PORT=5434 DB_USER=test DB_PASS=test DB_NAME=test uv run python -m app db init
-```
-
-Or run tests:
-```
-$ DB_HOST=127.0.0.1 DB_PORT=5434 DB_USER=test DB_PASS=test DB_NAME=test uv run python -m pytest -sv test/
 ```

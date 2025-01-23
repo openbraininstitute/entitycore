@@ -57,7 +57,8 @@ WORKDIR /code
 ENV PATH="/code/.venv/bin:$PATH"
 ENV PYTHONPATH="/code:$PYTHONPATH"
 COPY --chown=app:app --from=builder /code/.venv/ .venv/
-COPY --chown=app:app docker-cmd.sh pyproject.toml ./
+COPY --chown=app:app alembic.ini docker-cmd.sh pyproject.toml ./
+COPY --chown=app:app alembic/ alembic/
 COPY --chown=app:app app/ app/
 
 RUN python -m compileall .  # compile app files

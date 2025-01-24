@@ -90,3 +90,14 @@ def test_experimental_neuron_density(client):
     assert data["species"]["id"] == species_id
     assert data["strain"]["id"] == strain_id
     assert data["description"] == neuron_description
+
+    response = client.get("/experimental_neuron_density/")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+def test_missing_experimental_neuron_density(client):
+    response = client.get("/experimental_neuron_density/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/experimental_neuron_density/notanumber")
+    assert response.status_code == 422

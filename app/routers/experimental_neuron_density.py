@@ -15,11 +15,19 @@ router = APIRouter(
 )
 
 
+@router.get("/", response_model=list[ExperimentalNeuronDensityRead])
+def read_experimental_neuron_densities(
+    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
+):
+    users = db.query(ExperimentalNeuronDensity).offset(skip).limit(limit).all()
+    return users
+
+
 @router.get(
     "/{experimental_neuron_density_id}",
     response_model=ExperimentalNeuronDensityRead,
 )
-async def read_experimental_neuron_density(
+def read_experimental_neuron_density(
     experimental_neuron_density_id: int, db: Session = Depends(get_db)
 ):
     experimental_neuron_density = (
@@ -41,6 +49,7 @@ def create_experimental_neuron_density(
     density: ExperimentalNeuronDensityCreate, db: Session = Depends(get_db)
 ):
     dump = density.model_dump()
+
     if density.brain_location:
         dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
@@ -49,11 +58,3 @@ def create_experimental_neuron_density(
     db.commit()
     db.refresh(db_experimental_neuron_density)
     return db_experimental_neuron_density
-
-
-@router.get("/", response_model=list[ExperimentalNeuronDensityRead])
-async def read_experimental_neuron_densities(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
-):
-    users = db.query(ExperimentalNeuronDensity).offset(skip).limit(limit).all()
-    return users

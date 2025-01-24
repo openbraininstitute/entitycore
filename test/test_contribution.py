@@ -108,3 +108,14 @@ def test_create_contribution(client):
     assert data["creation_date"] is not None
     assert data["update_date"] is not None
     assert data["id"] == contribution_id
+
+    response = client.get("/contribution/")
+    assert len(response.json()) == 1
+
+
+def test_missing_contribution(client):
+    response = client.get("/contribution/12345")
+    assert response.status_code == 404
+
+    response = client.get("/contribution/not_a_contribution_id")
+    assert response.status_code == 422

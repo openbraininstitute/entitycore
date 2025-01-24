@@ -1,12 +1,4 @@
-def test_experimental_bouton_density(client):
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
-    assert response.status_code == 200, f"Failed to create species: {response.text}"
-    data = response.json()
-    assert data["name"] == "Test Species"
-    assert "id" in data, f"Failed to get id for species: {data}"
-    species_id = data["id"]
+def test_experimental_bouton_density(client, species_id):
     response = client.post(
         "/strain/",
         json={
@@ -20,6 +12,7 @@ def test_experimental_bouton_density(client):
     assert data["taxonomy_id"] == "Taxonomy ID"
     assert "id" in data, f"Failed to get id for strain: {data}"
     strain_id = data["id"]
+
     ontology_id = "Test Ontology ID"
     response = client.post(
         "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}

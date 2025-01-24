@@ -37,3 +37,15 @@ def _db_cleanup(db):
     query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
     db.execute(query)
     db.commit()
+
+
+@pytest.fixture(scope="function")
+def species_id(client):
+    response = client.post(
+        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
+    )
+    assert response.status_code == 200, f"Failed to create species: {response.text}"
+    data = response.json()
+    assert data["name"] == "Test Species"
+    assert "id" in data, f"Failed to get id for species: {data}"
+    return data["id"]

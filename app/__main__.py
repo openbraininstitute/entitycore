@@ -17,19 +17,5 @@ def run(host, port):
     uvicorn.run("app:app", host=host, port=port)
 
 
-@cli.group()
-def db():
-    """Database operations"""
-
-
-@db.command()
-def init():
-    from app.db import init_db
-    from app.config import settings
-
-    click.secho(f"Connectiong to: {settings.DB_URI}", fg="green")
-    init_db(settings.DB_URI)
-
-
 if __name__ == "__main__":
     cli()

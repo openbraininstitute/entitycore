@@ -11,6 +11,13 @@ class Settings(BaseSettings):
         case_sensitive=True,
     )
 
+    APP_NAME: str = "entitycore"
+    APP_VERSION: str | None = None
+    APP_DEBUG: bool = False
+
+    ENVIRONMENT: str | None = None
+    ROOT_PATH: str = ""
+
     DB_ENGINE: str = "postgresql"
     DB_USER: str = "test_db"
     DB_PASS: str = "test_db"

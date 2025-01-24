@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db import Species
+from app.db.model import Species
 from app.dependencies.db import get_db
 from app.schemas.base import (
     SpeciesCreate,

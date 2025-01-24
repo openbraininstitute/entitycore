@@ -1,51 +1,39 @@
-# conftest.py
+from typing import Iterator
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app import app
-from app.db import init_db
-from app.config import settings
-from app.dependencies.db import get_db
-from app.db import Base
+from app.db.model import Base
+from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope="session")
 def client():
-    engine = create_engine(settings.DB_URI)
+    """Yield a web client instance.
 
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    The fixture is session-scoped so that the lifespan events are executed only once per session.
+    """
+    with TestClient(app) as client:
+        yield client
 
-    def override_get_db():
-        db = SessionLocal()
-        yield db
-        db.close()
 
-    app.dependency_overrides[get_db] = override_get_db
-    client = TestClient(app)
-    return client
+@pytest.fixture(scope="session")
+def database_session_manager() -> DatabaseSessionManager:
+    return configure_database_session_manager()
 
 
 @pytest.fixture(scope="function")
-def db():
-    engine = create_engine(settings.DB_URI, poolclass=StaticPool)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = SessionLocal()
-    return db
+def db(database_session_manager) -> Iterator[Session]:
+    with database_session_manager.session() as session:
+        yield session
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _db_init():
-    init_db(settings.DB_URI)
-
-
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def _db_cleanup(db):
     yield
-    query = text(
-        f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE"""
-    )
+    query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
     db.execute(query)
     db.commit()

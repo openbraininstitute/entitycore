@@ -7,7 +7,7 @@ export COMMIT_SHA := $(shell git rev-parse HEAD)
 export IMAGE_NAME ?= $(APP_NAME)
 export IMAGE_TAG ?= $(APP_VERSION)-$(ENVIRONMENT)
 
-.PHONY: help format lint build test-local test-docker run-local run-docker kill migration
+.PHONY: help format lint build test-local test-docker run-local run-docker destroy migration
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
@@ -50,8 +50,8 @@ run-local: build  ## Run the application locally
 run-docker: build  ## Run the application in Docker
 	docker compose up app --watch --remove-orphans
 
-kill: export COMPOSE_PROFILES=run,test
-kill:  ## Take down the application and remove the volumes
+destroy: export COMPOSE_PROFILES=run,test
+destroy:  ## Take down the application and remove the volumes
 	docker compose down --remove-orphans --volumes
 
 migration: export DB_HOST=127.0.0.1

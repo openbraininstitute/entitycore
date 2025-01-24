@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
-from app.db import (
+from app.db.model import (
     Agent,
     AnalysisSoftwareSourceCode,
     Annotation,

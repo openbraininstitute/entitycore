@@ -1,5 +1,5 @@
 from sqlalchemy import func
-from app.db import Person, Contribution, ReconstructionMorphology
+from app.db.model import Person, Contribution, ReconstructionMorphology
 from sqlalchemy.orm import aliased
 
 

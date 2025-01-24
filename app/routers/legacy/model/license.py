@@ -1,6 +1,6 @@
 from sqlalchemy import and_
 
-from app.db import License
+from app.db.model import License
 from app.routers.legacy.model import utils
 
 

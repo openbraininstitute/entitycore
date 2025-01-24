@@ -3,13 +3,15 @@ from collections.abc import Iterable
 from logging.config import fileConfig
 
 import alembic_postgresql_enum  # noqa: F401
+from alembic_utils.replaceable_entity import register_entities
 from sqlalchemy import engine_from_config, pool, text
 
 from alembic import context
 from alembic.environment import MigrationContext
 from alembic.operations import MigrationScript
 from app.config import settings
-from app.models import Base
+from app.db import triggers
+from app.db.model import Base
 
 L = logging.getLogger("alembic.env")
 
@@ -21,6 +23,8 @@ SERVER_SETTINGS = {
     # attempting to acquire a lock on a table, index, row, or other database object
     "lock_timeout": "4000",
 }
+
+register_entities(triggers.entities)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

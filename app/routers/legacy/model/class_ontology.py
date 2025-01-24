@@ -1,4 +1,4 @@
-from app.db import ETypeAnnotationBody, MTypeAnnotationBody
+from app.db.model import ETypeAnnotationBody, MTypeAnnotationBody
 from app.routers.legacy.model import utils
 
 

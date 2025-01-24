@@ -7,7 +7,7 @@ from fastapi_filter import FilterDepends
 from sqlalchemy import func
 from sqlalchemy.orm import Session, aliased
 
-from app.db import (
+from app.db.model import (
     BrainLocation,
     ReconstructionMorphology,
     Species,

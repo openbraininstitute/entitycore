@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.dependencies.db import get_db
-from app.db import BrainLocation, ExperimentalNeuronDensity
+from app.db.model import BrainLocation, ExperimentalNeuronDensity
 from app.schemas.density import (
     ExperimentalNeuronDensityCreate,
     ExperimentalNeuronDensityRead,

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 610706269554
+Revision ID: e2f8cd800db7
 Revises:
-Create Date: 2025-01-22 11:22:40.026994
+Create Date: 2025-01-24 10:48:35.351494
 
 """
 
@@ -11,11 +11,11 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
+import app.db.model
 from alembic import op
-from app.models.base import StringListType
 
 # revision identifiers, used by Alembic.
-revision: str = "610706269554"
+revision: str = "e2f8cd800db7"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -27,7 +27,7 @@ def upgrade() -> None:
         "annotation_body",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("type", sa.String(), nullable=False),
-        sa.Column("legacy_id", StringListType(), nullable=True),
+        sa.Column("legacy_id", app.db.model.StringListType(), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -40,7 +40,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_annotation_body")),
     )
     op.create_index(op.f("ix_annotation_body_id"), "annotation_body", ["id"], unique=False)
     op.create_index(
@@ -55,7 +55,7 @@ def upgrade() -> None:
         sa.Column("x", sa.Float(), nullable=True),
         sa.Column("y", sa.Float(), nullable=True),
         sa.Column("z", sa.Float(), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_brain_location")),
     )
     op.create_index(op.f("ix_brain_location_id"), "brain_location", ["id"], unique=False)
     op.create_table(
@@ -75,7 +75,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_brain_region")),
     )
     op.create_index(op.f("ix_brain_region_id"), "brain_region", ["id"], unique=False)
     op.create_index(op.f("ix_brain_region_name"), "brain_region", ["name"], unique=True)
@@ -103,8 +103,8 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column("legacy_id", StringListType(), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
+        sa.Column("legacy_id", app.db.model.StringListType(), nullable=True),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_license")),
     )
     op.create_index(op.f("ix_license_id"), "license", ["id"], unique=False)
     op.create_index(op.f("ix_license_legacy_id"), "license", ["legacy_id"], unique=False)
@@ -114,7 +114,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("role_id", sa.String(), nullable=False),
-        sa.Column("legacy_id", StringListType(), nullable=True),
+        sa.Column("legacy_id", app.db.model.StringListType(), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -127,7 +127,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_role")),
     )
     op.create_index(op.f("ix_role_id"), "role", ["id"], unique=False)
     op.create_index(op.f("ix_role_legacy_id"), "role", ["legacy_id"], unique=False)
@@ -137,8 +137,8 @@ def upgrade() -> None:
         "root",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("type", sa.String(), nullable=False),
-        sa.Column("legacy_id", StringListType(), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
+        sa.Column("legacy_id", app.db.model.StringListType(), nullable=True),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_root")),
     )
     op.create_index(op.f("ix_root_id"), "root", ["id"], unique=False)
     op.create_index(op.f("ix_root_legacy_id"), "root", ["legacy_id"], unique=False)
@@ -159,7 +159,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_species")),
     )
     op.create_index(op.f("ix_species_id"), "species", ["id"], unique=False)
     op.create_index(op.f("ix_species_name"), "species", ["name"], unique=True)
@@ -180,7 +180,7 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_subject")),
     )
     op.create_index(op.f("ix_subject_id"), "subject", ["id"], unique=False)
     op.create_index(op.f("ix_subject_name"), "subject", ["name"], unique=True)
@@ -200,12 +200,9 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["id"],
-            ["root.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("pref_label"),
+        sa.ForeignKeyConstraint(["id"], ["root.id"], name=op.f("fk_agent_id_root")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_agent")),
+        sa.UniqueConstraint("pref_label", name=op.f("uq_agent_pref_label")),
     )
     op.create_index(op.f("ix_agent_id"), "agent", ["id"], unique=False)
     op.create_table(
@@ -215,9 +212,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["id"],
             ["annotation_body.id"],
+            name=op.f("fk_datamaturity_annotation_body_id_annotation_body"),
         ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("pref_label"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_datamaturity_annotation_body")),
+        sa.UniqueConstraint("pref_label", name=op.f("uq_datamaturity_annotation_body_pref_label")),
     )
     op.create_index(
         op.f("ix_datamaturity_annotation_body_id"),
@@ -234,9 +232,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["id"],
             ["annotation_body.id"],
+            name=op.f("fk_etype_annotation_body_id_annotation_body"),
         ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("pref_label"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_etype_annotation_body")),
+        sa.UniqueConstraint("pref_label", name=op.f("uq_etype_annotation_body_pref_label")),
     )
     op.create_index(
         op.f("ix_etype_annotation_body_id"),
@@ -253,9 +252,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["id"],
             ["annotation_body.id"],
+            name=op.f("fk_mtype_annotation_body_id_annotation_body"),
         ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("pref_label"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_mtype_annotation_body")),
+        sa.UniqueConstraint("pref_label", name=op.f("uq_mtype_annotation_body_pref_label")),
     )
     op.create_index(
         op.f("ix_mtype_annotation_body_id"),
@@ -282,10 +282,9 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["species_id"],
-            ["species.id"],
+            ["species_id"], ["species.id"], name=op.f("fk_strain_species_id_species")
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_strain")),
     )
     op.create_index(op.f("ix_strain_id"), "strain", ["id"], unique=False)
     op.create_index(op.f("ix_strain_name"), "strain", ["name"], unique=True)
@@ -308,39 +307,28 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["createdBy_id"],
-            ["agent.id"],
+            ["createdBy_id"], ["agent.id"], name=op.f("fk_entity_createdBy_id_agent")
         ),
+        sa.ForeignKeyConstraint(["id"], ["root.id"], name=op.f("fk_entity_id_root")),
         sa.ForeignKeyConstraint(
-            ["id"],
-            ["root.id"],
+            ["updatedBy_id"], ["agent.id"], name=op.f("fk_entity_updatedBy_id_agent")
         ),
-        sa.ForeignKeyConstraint(
-            ["updatedBy_id"],
-            ["agent.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_entity")),
     )
     op.create_table(
         "organization",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("alternative_name", sa.String(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["id"],
-            ["agent.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["id"], ["agent.id"], name=op.f("fk_organization_id_agent")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_organization")),
     )
     op.create_table(
         "person",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("givenName", sa.String(), nullable=False),
         sa.Column("familyName", sa.String(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["id"],
-            ["agent.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["id"], ["agent.id"], name=op.f("fk_person_id_agent")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_person")),
         sa.UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),
     )
     op.create_table(
@@ -361,8 +349,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["id"],
             ["entity.id"],
+            name=op.f("fk_analysis_software_source_code_id_entity"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_analysis_software_source_code")),
     )
     op.create_index(
         op.f("ix_analysis_software_source_code_id"),
@@ -376,7 +365,7 @@ def upgrade() -> None:
         sa.Column("note", sa.String(), nullable=True),
         sa.Column("entity_id", sa.Integer(), nullable=False),
         sa.Column("annotation_body_id", sa.Integer(), nullable=False),
-        sa.Column("legacy_id", StringListType(), nullable=True),
+        sa.Column("legacy_id", app.db.model.StringListType(), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -392,12 +381,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["annotation_body_id"],
             ["annotation_body.id"],
+            name=op.f("fk_annotation_annotation_body_id_annotation_body"),
         ),
         sa.ForeignKeyConstraint(
-            ["entity_id"],
-            ["entity.id"],
+            ["entity_id"], ["entity.id"], name=op.f("fk_annotation_entity_id_entity")
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_annotation")),
     )
     op.create_index(op.f("ix_annotation_id"), "annotation", ["id"], unique=False)
     op.create_index(op.f("ix_annotation_legacy_id"), "annotation", ["legacy_id"], unique=False)
@@ -420,18 +409,15 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["agent_id"],
-            ["agent.id"],
+            ["agent_id"], ["agent.id"], name=op.f("fk_contribution_agent_id_agent")
         ),
         sa.ForeignKeyConstraint(
-            ["entity_id"],
-            ["entity.id"],
+            ["entity_id"], ["entity.id"], name=op.f("fk_contribution_entity_id_entity")
         ),
         sa.ForeignKeyConstraint(
-            ["role_id"],
-            ["role.id"],
+            ["role_id"], ["role.id"], name=op.f("fk_contribution_role_id_role")
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_contribution")),
         sa.UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
     )
     op.create_index(op.f("ix_contribution_id"), "contribution", ["id"], unique=False)
@@ -453,24 +439,21 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_location_id"],
             ["brain_location.id"],
+            name=op.f("fk_emodel_brain_location_id_brain_location"),
         ),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_emodel_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_emodel_id_entity")),
+        sa.ForeignKeyConstraint(
+            ["species_id"], ["species.id"], name=op.f("fk_emodel_species_id_species")
         ),
         sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
+            ["strain_id"], ["strain.id"], name=op.f("fk_emodel_strain_id_strain")
         ),
-        sa.ForeignKeyConstraint(
-            ["species_id"],
-            ["species.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["strain_id"],
-            ["strain.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_emodel")),
     )
     op.create_index(op.f("ix_emodel_id"), "emodel", ["id"], unique=True)
     op.create_table(
@@ -486,28 +469,32 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_location_id"],
             ["brain_location.id"],
+            name=op.f("fk_experimental_bouton_density_brain_location_id_brain_location"),
         ),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_experimental_bouton_density_brain_region_id_brain_region"),
         ),
         sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
+            ["id"], ["entity.id"], name=op.f("fk_experimental_bouton_density_id_entity")
         ),
         sa.ForeignKeyConstraint(
             ["license_id"],
             ["license.id"],
+            name=op.f("fk_experimental_bouton_density_license_id_license"),
         ),
         sa.ForeignKeyConstraint(
             ["species_id"],
             ["species.id"],
+            name=op.f("fk_experimental_bouton_density_species_id_species"),
         ),
         sa.ForeignKeyConstraint(
             ["strain_id"],
             ["strain.id"],
+            name=op.f("fk_experimental_bouton_density_strain_id_strain"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_experimental_bouton_density")),
     )
     op.create_index(
         op.f("ix_experimental_bouton_density_name"),
@@ -528,28 +515,32 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_location_id"],
             ["brain_location.id"],
+            name=op.f("fk_experimental_neuron_density_brain_location_id_brain_location"),
         ),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_experimental_neuron_density_brain_region_id_brain_region"),
         ),
         sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
+            ["id"], ["entity.id"], name=op.f("fk_experimental_neuron_density_id_entity")
         ),
         sa.ForeignKeyConstraint(
             ["license_id"],
             ["license.id"],
+            name=op.f("fk_experimental_neuron_density_license_id_license"),
         ),
         sa.ForeignKeyConstraint(
             ["species_id"],
             ["species.id"],
+            name=op.f("fk_experimental_neuron_density_species_id_species"),
         ),
         sa.ForeignKeyConstraint(
             ["strain_id"],
             ["strain.id"],
+            name=op.f("fk_experimental_neuron_density_strain_id_strain"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_experimental_neuron_density")),
     )
     op.create_index(
         op.f("ix_experimental_neuron_density_name"),
@@ -570,28 +561,34 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_location_id"],
             ["brain_location.id"],
+            name=op.f("fk_experimental_synapses_per_connection_brain_location_id_brain_location"),
         ),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_experimental_synapses_per_connection_brain_region_id_brain_region"),
         ),
         sa.ForeignKeyConstraint(
             ["id"],
             ["entity.id"],
+            name=op.f("fk_experimental_synapses_per_connection_id_entity"),
         ),
         sa.ForeignKeyConstraint(
             ["license_id"],
             ["license.id"],
+            name=op.f("fk_experimental_synapses_per_connection_license_id_license"),
         ),
         sa.ForeignKeyConstraint(
             ["species_id"],
             ["species.id"],
+            name=op.f("fk_experimental_synapses_per_connection_species_id_species"),
         ),
         sa.ForeignKeyConstraint(
             ["strain_id"],
             ["strain.id"],
+            name=op.f("fk_experimental_synapses_per_connection_strain_id_strain"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_experimental_synapses_per_connection")),
     )
     op.create_index(
         op.f("ix_experimental_synapses_per_connection_name"),
@@ -612,54 +609,17 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_location_id"],
             ["brain_location.id"],
+            name=op.f("fk_memodel_brain_location_id_brain_location"),
         ),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_memodel_brain_region_id_brain_region"),
         ),
-        sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_memodel_id_entity")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_memodel")),
     )
     op.create_index(op.f("ix_memodel_id"), "memodel", ["id"], unique=True)
-    op.create_table(
-        "single_cell_experimental_trace",
-        sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("brain_location_id", sa.Integer(), nullable=True),
-        sa.Column("brain_region_id", sa.Integer(), nullable=False),
-        sa.Column("species_id", sa.Integer(), nullable=False),
-        sa.Column("strain_id", sa.Integer(), nullable=True),
-        sa.Column("license_id", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["brain_location_id"],
-            ["brain_location.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["license_id"],
-            ["license.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["species_id"],
-            ["species.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["strain_id"],
-            ["strain.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
-    )
     op.create_table(
         "mesh",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -668,12 +628,10 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_mesh_brain_region_id_brain_region"),
         ),
-        sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_mesh_id_entity")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_mesh")),
     )
     op.create_index(op.f("ix_mesh_id"), "mesh", ["id"], unique=True)
     op.create_table(
@@ -690,34 +648,80 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_location_id"],
             ["brain_location.id"],
+            name=op.f("fk_reconstruction_morphology_brain_location_id_brain_location"),
         ),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_reconstruction_morphology_brain_region_id_brain_region"),
         ),
         sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
+            ["id"], ["entity.id"], name=op.f("fk_reconstruction_morphology_id_entity")
         ),
         sa.ForeignKeyConstraint(
             ["license_id"],
             ["license.id"],
+            name=op.f("fk_reconstruction_morphology_license_id_license"),
         ),
         sa.ForeignKeyConstraint(
             ["species_id"],
             ["species.id"],
+            name=op.f("fk_reconstruction_morphology_species_id_species"),
         ),
         sa.ForeignKeyConstraint(
             ["strain_id"],
             ["strain.id"],
+            name=op.f("fk_reconstruction_morphology_strain_id_strain"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_reconstruction_morphology")),
     )
     op.create_index(
         op.f("ix_reconstruction_morphology_name"),
         "reconstruction_morphology",
         ["name"],
         unique=False,
+    )
+    op.create_table(
+        "single_cell_experimental_trace",
+        sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("brain_location_id", sa.Integer(), nullable=True),
+        sa.Column("brain_region_id", sa.Integer(), nullable=False),
+        sa.Column("species_id", sa.Integer(), nullable=False),
+        sa.Column("strain_id", sa.Integer(), nullable=True),
+        sa.Column("license_id", sa.Integer(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["brain_location_id"],
+            ["brain_location.id"],
+            name=op.f("fk_single_cell_experimental_trace_brain_location_id_brain_location"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["brain_region_id"],
+            ["brain_region.id"],
+            name=op.f("fk_single_cell_experimental_trace_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["id"],
+            ["entity.id"],
+            name=op.f("fk_single_cell_experimental_trace_id_entity"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["license_id"],
+            ["license.id"],
+            name=op.f("fk_single_cell_experimental_trace_license_id_license"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["species_id"],
+            ["species.id"],
+            name=op.f("fk_single_cell_experimental_trace_species_id_species"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["strain_id"],
+            ["strain.id"],
+            name=op.f("fk_single_cell_experimental_trace_strain_id_strain"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_single_cell_experimental_trace")),
     )
     op.create_index(
         op.f("ix_single_cell_experimental_trace_name"),
@@ -744,9 +748,15 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["reconstruction_morphology_id"],
             ["reconstruction_morphology.id"],
+            name=op.f(
+                "fk_morphology_feature_annotation_reconstruction_morphology_id_reconstruction_morphology"
+            ),
         ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("reconstruction_morphology_id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_morphology_feature_annotation")),
+        sa.UniqueConstraint(
+            "reconstruction_morphology_id",
+            name=op.f("uq_morphology_feature_annotation_reconstruction_morphology_id"),
+        ),
     )
     op.create_index(
         op.f("ix_morphology_feature_annotation_id"),
@@ -760,8 +770,8 @@ def upgrade() -> None:
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
-        sa.Column("injectionLocation", StringListType(), nullable=False),
-        sa.Column("recordingLocation", StringListType(), nullable=False),
+        sa.Column("injectionLocation", app.db.model.StringListType(), nullable=False),
+        sa.Column("recordingLocation", app.db.model.StringListType(), nullable=False),
         sa.Column("me_model_id", sa.Integer(), nullable=False),
         sa.Column("content_url", sa.String(), nullable=True),
         sa.Column("brain_location_id", sa.Integer(), nullable=True),
@@ -769,20 +779,22 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_location_id"],
             ["brain_location.id"],
+            name=op.f("fk_single_neuron_simulation_brain_location_id_brain_location"),
         ),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_single_neuron_simulation_brain_region_id_brain_region"),
         ),
         sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
+            ["id"], ["entity.id"], name=op.f("fk_single_neuron_simulation_id_entity")
         ),
         sa.ForeignKeyConstraint(
             ["me_model_id"],
             ["memodel.id"],
+            name=op.f("fk_single_neuron_simulation_me_model_id_memodel"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_single_neuron_simulation")),
     )
     op.create_index(
         op.f("ix_single_neuron_simulation_id"),
@@ -803,20 +815,22 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_location_id"],
             ["brain_location.id"],
+            name=op.f("fk_single_neuron_synaptome_brain_location_id_brain_location"),
         ),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
+            name=op.f("fk_single_neuron_synaptome_brain_region_id_brain_region"),
         ),
         sa.ForeignKeyConstraint(
-            ["id"],
-            ["entity.id"],
+            ["id"], ["entity.id"], name=op.f("fk_single_neuron_synaptome_id_entity")
         ),
         sa.ForeignKeyConstraint(
             ["me_model_id"],
             ["memodel.id"],
+            name=op.f("fk_single_neuron_synaptome_me_model_id_memodel"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_single_neuron_synaptome")),
     )
     op.create_index(
         op.f("ix_single_neuron_synaptome_id"),
@@ -832,8 +846,11 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["morphology_feature_annotation_id"],
             ["morphology_feature_annotation.id"],
+            name=op.f(
+                "fk_measurement_morphology_feature_annotation_id_morphology_feature_annotation"
+            ),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_measurement")),
     )
     op.create_index(op.f("ix_measurement_id"), "measurement", ["id"], unique=False)
     op.create_index(
@@ -851,8 +868,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["measurement_id"],
             ["measurement.id"],
+            name=op.f("fk_measurement_serie_element_measurement_id_measurement"),
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_measurement_serie_element")),
     )
     op.create_index(
         op.f("ix_measurement_serie_element_id"),

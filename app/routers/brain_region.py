@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db import BrainRegion
+from app.db.model import BrainRegion
 from app.dependencies.db import get_db
 from app.schemas.base import (
     BrainRegionCreate,

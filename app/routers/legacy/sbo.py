@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.db import Entity
+from app.db.model import Entity
 from app.dependencies.db import get_db
 from app.routers.legacy.model import utils
 

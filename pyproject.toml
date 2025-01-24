@@ -8,6 +8,7 @@ authors = [
 dependencies = [
     "alembic>=1.14.1",
     "alembic-postgresql-enum>=1.5.0",
+    "alembic-utils>=0.8.6",
     "fastapi",
     "fastapi-filter>=2.0.0",
     "pydantic>=2",
@@ -116,7 +117,7 @@ addopts = [
     "--durations=10",
     "--durations-min=1.0",
 ]
-asyncio_mode = "auto"
+# asyncio_mode = "auto"
 testpaths = [
     "test",
 ]

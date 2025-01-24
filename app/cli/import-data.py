@@ -3,12 +3,14 @@ import glob
 import json
 import os
 import sys
+from contextlib import closing
 
 import sqlalchemy
 from tqdm import tqdm
 
+from app import configure_database_session_manager
 from app.cli import curate, utils
-from app.db import (
+from app.db.model import (
     Person,
     Organization,
     ETypeAnnotationBody,
@@ -29,7 +31,6 @@ from app.db import (
     MorphologyFeatureAnnotation,
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
-    get_db_sessionmaker,
 )
 
 
@@ -649,24 +650,8 @@ def _import_experimental_densities(
             utils.import_contribution(data, db_element.id, db)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Import data script")
-    parser.add_argument("--db", required=True, help="Database parameter")
-    parser.add_argument("--input_dir", required=True, help="Input directory path")
-
-    args = parser.parse_args()
-
-    if not os.path.exists(args.input_dir):
-        print(f"Error: Input directory '{args.input_dir}' does not exist")
-        sys.exit(1)
-
-    if not os.path.exists(args.db):
-        print(f"Error: Database file '{args.db}' does not exist")
-        sys.exit(1)
-
-    db = get_db_sessionmaker(args.db)
-
-    all_files = glob.glob(os.path.join(args.input_dir, "*", "*", "*.json"))
+def _do_import(db, input_dir):
+    all_files = glob.glob(os.path.join(input_dir, "*", "*", "*.json"))
     print("importing agents")
     for file_path in all_files:
         with open(file_path) as f:
@@ -674,15 +659,13 @@ def main():
             import_agents(data, db)
     print("import licenses")
     with open(
-        os.path.join(args.input_dir, "bbp", "licenses", "provEntity.json"),
+        os.path.join(input_dir, "bbp", "licenses", "provEntity.json")
     ) as f:
         data = json.load(f)
         import_licenses(data, db)
     print("import mtype annotations")
     with open(
-        os.path.join(
-            args.input_dir, "neurosciencegraph", "datamodels", "owlClass.json"
-        ),
+        os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")
     ) as f:
         data = json.load(f)
         possible_data = [
@@ -692,9 +675,7 @@ def main():
 
     print("import etype annotations")
     with open(
-        os.path.join(
-            args.input_dir, "neurosciencegraph", "datamodels", "owlClass.json"
-        ),
+        os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")
     ) as f:
         data = json.load(f)
         possible_data = [
@@ -724,6 +705,23 @@ def main():
                 with open(file_path) as f:
                     data = json.load(f)
                     action(data, db)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Import data script")
+    parser.add_argument("--input_dir", required=True, help="Input directory path")
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.input_dir):
+        print(f"Error: Input directory '{args.input_dir}' does not exist")
+        sys.exit(1)
+
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        _do_import(db, input_dir=args.input_dir)
 
 
 if __name__ == "__main__":

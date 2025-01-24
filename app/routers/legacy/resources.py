@@ -7,7 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.dependencies.db import get_db
-from app.db import Root
+from app.db.model import Root
 from app.schemas.agent import PersonRead
 from fastapi import HTTPException
 

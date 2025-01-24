@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.db import Strain
+from app.db.model import Strain
 from app.dependencies.db import get_db
 from app.schemas.base import (
     StrainCreate,

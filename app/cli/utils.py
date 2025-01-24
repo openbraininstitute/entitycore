@@ -1,7 +1,7 @@
 from sqlalchemy import func
 
 import app.cli.curate as curate
-from app.db import (
+from app.db.model import (
     Agent,
     BrainLocation,
     BrainRegion,

@@ -1,4 +1,4 @@
-from app.db import mesh
+from app.db.model import Mesh
 from app.routers.legacy.model import utils
 
 
@@ -22,7 +22,7 @@ def build_mesh_elem(elem):
 
 def search(body, db):
     try:
-        query = db.query(mesh.Mesh)
+        query = db.query(Mesh)
         hits = query.all()
         count = len(hits)
         return utils.build_response_body(

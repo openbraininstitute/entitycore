@@ -20,3 +20,11 @@ def test_create_person(client):
     assert data[0]["givenName"] == "jd"
     assert data[0]["id"] == id_
     assert len(data) == 1
+
+
+def test_missing_person(client):
+    response = client.get("/person/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/person/notanumber")
+    assert response.status_code == 422

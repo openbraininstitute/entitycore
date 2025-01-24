@@ -32,7 +32,7 @@ router = APIRouter(
     "/{rm_id}",
     response_model=Union[ReconstructionMorphologyExpand, ReconstructionMorphologyRead],
 )
-async def read_reconstruction_morphology(
+def read_reconstruction_morphology(
     rm_id: int, expand: str | None = Query(None), db: Session = Depends(get_db)
 ):
     rm = (
@@ -45,6 +45,7 @@ async def read_reconstruction_morphology(
         raise HTTPException(
             status_code=404, detail="ReconstructionMorphology not found"
         )
+
     if expand and "morphology_feature_annotation" in expand:
         ret = ReconstructionMorphologyExpand.model_validate(rm)
         return ret
@@ -60,8 +61,10 @@ def create_reconstruction_morphology(
     db: Session = Depends(get_db),
 ):
     brain_location = None
+
     if recontruction.brain_location:
         brain_location = BrainLocation(**recontruction.brain_location.model_dump())
+
     db_reconstruction_morphology = ReconstructionMorphology(
         name=recontruction.name,
         description=recontruction.description,
@@ -78,7 +81,7 @@ def create_reconstruction_morphology(
 
 
 @router.get("/", response_model=list[ReconstructionMorphologyRead])
-async def read_reconstruction_morphologies(
+def read_reconstruction_morphologies(
     skip: int = 0,
     limit: int = 10,
     morphology_filter: MorphologyFilter = FilterDepends(MorphologyFilter),
@@ -90,9 +93,8 @@ async def read_reconstruction_morphologies(
     return rms
 
 
-# facet prototype
 @router.get("/q/")
-async def morphology_query(
+def morphology_query(
     req: Request,
     term: str | None = Query(None),
     skip: int = 0,
@@ -117,6 +119,7 @@ async def morphology_query(
             .filter(ReconstructionMorphology.morphology_description_vector.match(term))
             .group_by(types.name)
         )
+
         for other_ty in name_to_table:
             if value := args.get(other_ty, None):
                 other_table = name_to_table[other_ty]

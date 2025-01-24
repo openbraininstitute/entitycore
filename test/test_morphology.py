@@ -2,38 +2,6 @@ import pytest
 import sqlalchemy
 
 
-def test_create_species(client):
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "Test Species"
-    assert "id" in data
-
-
-def test_create_strain(client):
-    response = client.post(
-        "/species/", json={"name": "Test Strain", "taxonomy_id": "12345"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "Test Strain"
-    assert "id" in data
-    response = client.post(
-        "/strain/",
-        json={
-            "name": "Test Strain",
-            "taxonomy_id": "Taxonomy ID",
-            "species_id": data["id"],
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["taxonomy_id"] == "Taxonomy ID"
-    assert "id" in data
-
-
 def test_create_reconstruction_morphology(client):
     response = client.post(
         "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
@@ -280,3 +248,23 @@ def test_create_annotation(client):
                 ],
             },
         )
+
+    response = client.get("/reconstruction_morphology/q/?term=test")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {"species": {"Test Species": 1}, "strain": {"Test Strain": 1}}
+
+    assert "data" in data
+    data = data["data"]
+    assert len(data) == 1
+
+
+def test_missing_reconstruction_morphology(client):
+    response = client.get("/reconstruction_morphology/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/reconstruction_morphology/notanumber")
+    assert response.status_code == 422

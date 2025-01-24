@@ -89,3 +89,15 @@ def test_experimental_synapses_per_connection(client):
     assert data["species"]["id"] == species_id
     assert data["strain"]["id"] == strain_id
     assert data["description"] == bouton_description
+
+    response = client.get("/experimental_synapses_per_connection/")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+
+def test_missing_experimental_synapses_per_connection(client):
+    response = client.get("/experimental_synapses_per_connection/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/experimental_synapses_per_connection/notanumber")
+    assert response.status_code == 422

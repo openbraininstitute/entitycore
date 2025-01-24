@@ -89,3 +89,16 @@ def test_experimental_bouton_density(client):
     assert data["species"]["id"] == species_id
     assert data["strain"]["id"] == strain_id
     assert data["description"] == bouton_description
+    assert data["brain_location"] == {'x': 10.0, 'y': 20.0, 'z': 30.0}
+
+    response = client.get("/experimental_bouton_density/")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+
+def test_missing_bouton_density(client):
+    response = client.get("/experimental_bouton_density/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/experimental_bouton_density/notanumber")
+    assert response.status_code == 422

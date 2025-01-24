@@ -22,3 +22,11 @@ def test_create_organization(client):
     data = response.json()
     assert data[0]["id"] == id_
     assert len(data) == 1
+
+
+def test_missing_organization(client):
+    response = client.get("/organization/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/organization/notanumber")
+    assert response.status_code == 422

@@ -11,11 +11,8 @@ router = APIRouter(
 )
 
 
-@router.get(
-    "/{role_id}",
-    response_model=RoleRead,
-)
-async def read_person(role_id: int, db: Session = Depends(get_db)):
+@router.get("/{role_id}", response_model=RoleRead)
+def read_person(role_id: int, db: Session = Depends(get_db)):
     role = db.query(Role).filter(Role.id == role_id).first()
 
     if role is None:
@@ -37,6 +34,6 @@ def create_role(role: RoleCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[RoleRead])
-async def read_role(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def read_role(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(Role).offset(skip).limit(limit).all()
     return users

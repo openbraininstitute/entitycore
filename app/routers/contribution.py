@@ -16,7 +16,7 @@ router = APIRouter(
     "/{contribution_id}",
     response_model=ContributionRead,
 )
-async def read_contribution(contribution_id: int, db: Session = Depends(get_db)):
+def read_contribution(contribution_id: int, db: Session = Depends(get_db)):
     contribution = (
         db.query(Contribution).filter(Contribution.id == contribution_id).first()
     )
@@ -47,7 +47,7 @@ def create_contribution(
 
 
 @router.get("/", response_model=list[ContributionRead])
-async def read_contributions(
+def read_contributions(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     users = db.query(Contribution).offset(skip).limit(limit).all()

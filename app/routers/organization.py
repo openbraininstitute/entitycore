@@ -12,11 +12,8 @@ router = APIRouter(
 )
 
 
-@router.get(
-    "/{organization_id}",
-    response_model=OrganizationRead,
-)
-async def read_organization(organization_id: int, db: Session = Depends(get_db)):
+@router.get("/{organization_id}", response_model=OrganizationRead)
+def read_organization(organization_id: int, db: Session = Depends(get_db)):
     organization = (
         db.query(Organization).filter(Organization.id == organization_id).first()
     )
@@ -39,7 +36,7 @@ def create_organization(
 
 
 @router.get("/", response_model=list[OrganizationRead])
-async def read_organizations(
+def read_organizations(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     users = db.query(Organization).offset(skip).limit(limit).all()

@@ -4,3 +4,7 @@ schema/**
 venv/**
 nexus_use_case_dump/**
 **/.coverage
+coverage.xml
+.idea
+*.egg-info
+tmp

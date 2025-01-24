@@ -19,11 +19,11 @@ class Settings(BaseSettings):
     ROOT_PATH: str = ""
 
     DB_ENGINE: str = "postgresql"
-    DB_USER: str = "test_db"
-    DB_PASS: str = "test_db"
+    DB_USER: str = "entitycore"
+    DB_PASS: str = "entitycore"
     DB_HOST: str = "db"
     DB_PORT: int = 5432
-    DB_NAME: str = "test_db"
+    DB_NAME: str = "entitycore"
     DB_URI: str = ""
 
     DB_POOL_SIZE: int = 30

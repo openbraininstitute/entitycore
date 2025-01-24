@@ -28,8 +28,8 @@ services:
     profiles: [run]
     image: postgres:16-alpine
     environment:
-    - POSTGRES_USER=test_db
-    - POSTGRES_PASSWORD=test_db
+    - POSTGRES_USER=entitycore
+    - POSTGRES_PASSWORD=entitycore
     ports:
     - "127.0.0.1:5433:5432"
     healthcheck:

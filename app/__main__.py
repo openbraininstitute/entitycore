@@ -24,7 +24,7 @@ def db():
 
 @db.command()
 def init():
-    from app.models import init_db
+    from app.db import init_db
     from app.config import settings
 
     click.secho(f"Connectiong to: {settings.DB_URI}", fg="green")

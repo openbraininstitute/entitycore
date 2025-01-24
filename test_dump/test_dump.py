@@ -71,7 +71,7 @@ def test_dump(client, db):
             total_elapsed_time += elapsed_time
             total_cpu_time += cpu_time
             if ret.status_code != 200:
-                print(f"Failed to call {url['file'] } {url['url']}")
+                print(f"Failed to call {url['file']} {url['url']}")
                 nb_failures += 1
                 ret = client.post(url["url"], json=json_data)
             else:

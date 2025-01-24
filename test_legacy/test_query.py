@@ -1,6 +1,5 @@
-import app.models.morphology as morphology
-from app.models.base import func
-from app.models import agent, contribution
+from sqlalchemy import func
+from app.db import Person, Contribution, ReconstructionMorphology
 from sqlalchemy.orm import aliased
 
 
@@ -47,11 +46,11 @@ def test_query(client, db):
     # print(res)
     # print("end test_query")
 
-    PersonAlias = aliased(agent.Person)
-    ContributionAlias = aliased(contribution.Contribution)
-    ReconstructionMorphologyAlias = aliased(morphology.ReconstructionMorphology)
+    PersonAlias = aliased(Person)
+    ContributionAlias = aliased(Contribution)
+    ReconstructionMorphologyAlias = aliased(ReconstructionMorphology)
 
-    res: List[morphology.ReconstructionMorphology] = (
+    res: List[ReconstructionMorphology] = (
         db.query(PersonAlias.familyName, func.count().label("count"))
         .join(ContributionAlias, PersonAlias.id == ContributionAlias.agent_id)
         # .join(ReconstructionMorphologyAlias, ContributionAlias.entity_id == ReconstructionMorphologyAlias.id)

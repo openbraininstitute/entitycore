@@ -1,4 +1,4 @@
-from app.models import mesh
+from app.db import mesh
 from app.routers.legacy.model import utils
 
 

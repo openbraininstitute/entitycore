@@ -1,11 +1,15 @@
 from sqlalchemy import func
 
 import app.cli.curate as curate
-import app.models.agent as agent
-from app.models import (
-    base,
-    contribution,
-    role,
+from app.db import (
+    Agent,
+    BrainLocation,
+    BrainRegion,
+    Contribution,
+    License,
+    Role,
+    Species,
+    Strain,
 )
 
 
@@ -23,13 +27,13 @@ def get_or_create_brain_region(brain_region, db):
         "mba:", "http://api.brain-map.org/api/v2/data/Structure/"
     )
     br = (
-        db.query(base.BrainRegion)
-        .filter(base.BrainRegion.ontology_id == brain_region_at_id)
+        db.query(BrainRegion)
+        .filter(BrainRegion.ontology_id == brain_region_at_id)
         .first()
     )
     if not br:
         # If not, create a new one
-        br = base.BrainRegion(
+        br = BrainRegion(
             ontology_id=brain_region_at_id, name=brain_region["label"]
         )
         db.add(br)
@@ -40,13 +44,13 @@ def get_or_create_brain_region(brain_region, db):
 def get_or_create_species(species, db):
     # Check if the species already exists in the database
     sp = (
-        db.query(base.Species)
-        .filter(base.Species.taxonomy_id == species["@id"])
+        db.query(Species)
+        .filter(Species.taxonomy_id == species["@id"])
         .first()
     )
     if not sp:
         # If not, create a new one
-        sp = base.Species(name=species["label"], taxonomy_id=species["@id"])
+        sp = Species(name=species["label"], taxonomy_id=species["@id"])
         db.add(sp)
         db.commit()
     return sp.id
@@ -61,7 +65,7 @@ def get_brain_location_mixin(data, db):
         y = coordinates.get("valueY", None)
         z = coordinates.get("valueZ", None)
         if x is not None and y is not None and z is not None:
-            brain_location = base.BrainLocation(x=x, y=y, z=z)
+            brain_location = BrainLocation(x=x, y=y, z=z)
     root = {
         "@id": "http://api.brain-map.org/api/v2/data/Structure/root",
         "label": "root",
@@ -78,7 +82,7 @@ def get_brain_location_mixin(data, db):
 
 def get_license_id(license, db):
     # Check if the license already exists in the database
-    li = db.query(base.License).filter(base.License.name == license["@id"]).first()
+    li = db.query(License).filter(License.name == license["@id"]).first()
     if not li:
         raise ValueError(f"License {license} not found")
     return li.id
@@ -86,13 +90,13 @@ def get_license_id(license, db):
 
 def get_or_create_strain(strain, species_id, db):
     # Check if the strain already exists in the database
-    st = db.query(base.Strain).filter(base.Strain.taxonomy_id == strain["@id"]).first()
+    st = db.query(Strain).filter(Strain.taxonomy_id == strain["@id"]).first()
     if st:
         assert st.species_id == species_id
 
     if not st:
         # If not, create a new one
-        st = base.Strain(
+        st = Strain(
             name=strain["label"],
             taxonomy_id=strain["@id"],
             species_id=species_id,
@@ -126,7 +130,7 @@ def get_agent_mixin(data, db):
     for property in ["_createdBy", "_updatedBy"]:
         legacy_id = data.get(property, {})
         assert legacy_id, "legacy_id is None: {}".format(data)
-        agent_db = _find_by_legacy_id(legacy_id, agent.Agent, db)
+        agent_db = _find_by_legacy_id(legacy_id, Agent, db)
         assert agent_db, "legacy_id not found: {}".format(legacy_id)
         result.append(agent_db.id)
     return result
@@ -135,11 +139,11 @@ def get_agent_mixin(data, db):
 def get_or_create_role(role_, db):
     # Check if the role already exists in the database
     role_ = curate.curate_role(role_)
-    r = db.query(role.Role).filter(role.Role.role_id == role_["@id"]).first()
+    r = db.query(Role).filter(Role.role_id == role_["@id"]).first()
     if not r:
         # If not, create a new one
         try:
-            r = role.Role(role_id=role_["@id"], name=role_["label"])
+            r = Role(role_id=role_["@id"], name=role_["label"])
             db.add(r)
             db.commit()
         except Exception as e:
@@ -150,13 +154,13 @@ def get_or_create_role(role_, db):
 
 
 def get_or_create_contribution(contribution_, entity_id, db):
-    # Check if the contribution already exists in the database
+    # Check if the Contribution already exists in the database
     if type(contribution_) is list:
         for c in contribution_:
             get_or_create_contribution(c, entity_id, db)
         return None
     agent_legacy_id = contribution_["agent"]["@id"]
-    db_agent = _find_by_legacy_id(agent_legacy_id, agent.Agent, db)
+    db_agent = _find_by_legacy_id(agent_legacy_id, Agent, db)
     if not db_agent:
         print(f"Agent with legacy_id {agent_legacy_id} not found")
         return None
@@ -164,17 +168,17 @@ def get_or_create_contribution(contribution_, entity_id, db):
     role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})
     role_id = get_or_create_role(role_, db)
     c = (
-        db.query(contribution.Contribution)
+        db.query(Contribution)
         .filter(
-            contribution.Contribution.agent_id == agent_id,
-            contribution.Contribution.role_id == role_id,
-            contribution.Contribution.entity_id == entity_id,
+            Contribution.agent_id == agent_id,
+            Contribution.role_id == role_id,
+            Contribution.entity_id == entity_id,
         )
         .first()
     )
     if not c:
         # If not, create a new one
-        c = contribution.Contribution(
+        c = Contribution(
             agent_id=agent_id, role_id=role_id, entity_id=entity_id
         )
         db.add(c)

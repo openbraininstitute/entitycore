@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import field_validator
 
-from app.models.morphology import ReconstructionMorphology
+from app.db import ReconstructionMorphology
 
 
 class MorphologyFilter(Filter):

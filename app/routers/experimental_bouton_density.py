@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.dependencies.db import get_db
-from app.models.base import BrainLocation
-from app.models.density import ExperimentalBoutonDensity
+from app.db import (
+    BrainLocation,
+    ExperimentalBoutonDensity,
+)
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,

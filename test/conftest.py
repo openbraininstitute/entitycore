@@ -6,10 +6,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import app
-from app import models
+from app.db import init_db
 from app.config import settings
 from app.dependencies.db import get_db
-from app.models.base import Base
+from app.db import Base
 
 
 @pytest.fixture(scope="function")
@@ -37,8 +37,8 @@ def db():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _db_int():
-    models.init_db(settings.DB_URI)
+def _db_init():
+    init_db(settings.DB_URI)
 
 
 @pytest.fixture(autouse=True)

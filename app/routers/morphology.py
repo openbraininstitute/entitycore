@@ -7,12 +7,14 @@ from fastapi_filter import FilterDepends
 from sqlalchemy import func
 from sqlalchemy.orm import Session, aliased
 
+from app.db import (
+    BrainLocation,
+    ReconstructionMorphology,
+    Species,
+    Strain,
+)
 from app.dependencies.db import get_db
 from app.filters.morphology import MorphologyFilter
-from app.models.base import BrainLocation, Species, Strain
-from app.models.morphology import (
-    ReconstructionMorphology,
-)
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyExpand,

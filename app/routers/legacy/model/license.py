@@ -1,6 +1,6 @@
 from sqlalchemy import and_
 
-import app.models.base as models
+from app.db import License
 from app.routers.legacy.model import utils
 
 
@@ -20,7 +20,7 @@ def search(body, db):
         term for term in terms if list(term.get("term").keys())[0] in WHITELIST_TERMS
     ]
     filters = build_filters(
-        models.License,
+        License,
         {
             WHITELIST_TERMS[list(term.get("term", {}).keys())[0]]: list(
                 term.get("term", {}).values()
@@ -29,7 +29,7 @@ def search(body, db):
         },
     )
     try:
-        query = db.query(models.License).filter(and_(*filters))
+        query = db.query(License).filter(and_(*filters))
         return utils.build_response_body(hits=query.all(), count=len(query.all()))
     finally:
         db.close()

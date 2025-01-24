@@ -1,10 +1,18 @@
-import app.models
+from app.config import settings
+from app.db import get_db_sessionmaker
+
+_SESSIONMAKER = None
 
 
-# Dependency to get the database session
 def get_db():
-    db = app.models.base.SessionLocal()
+    """Get a DB session."""
+    global _SESSIONMAKER
+    if _SESSIONMAKER is None:
+        _SESSIONMAKER = get_db_sessionmaker(settings.DB_URI)
+
+    db = _SESSIONMAKER()
+
     try:
-        yield db
+        yield db()
     finally:
         db.close()

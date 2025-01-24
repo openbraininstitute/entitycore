@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-import app.models.entity
+from app.db import Entity
 from app.dependencies.db import get_db
 from app.routers.legacy.model import utils
 
@@ -33,7 +33,7 @@ def legacy_sbo(query: dict, db: Session = Depends(get_db)):
         if hits:
             # sometimes there is no type given
             # although it needs facets
-            if db_type == app.models.entity.Entity:
+            if db_type == Entity:
                 db_type = hits[0].__class__
         facets = utils.get_facets(aggs, musts, db_type, db)
         response = utils.build_response_body(facets=facets, hits=hits, count=count)

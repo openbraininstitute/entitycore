@@ -1,40 +1,51 @@
+from bidict import bidict
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
-from bidict import bidict as bdict
-import app.models.annotation
-import app.models.base
-import app.models.code
-import app.models.density
-import app.models.emodel
-import app.models.entity
-import app.models.memodel
-import app.models.mesh
-import app.models.morphology
-import app.models.single_cell_experimental_trace
-from app.models import agent, annotation, base, contribution, entity
-import app.models.single_neuron_synaptome
-import app.models.single_neuron_simulation
 
-MAP_TYPES = bdict(
+from app.db import (
+    Agent,
+    AnalysisSoftwareSourceCode,
+    Annotation,
+    BrainRegion,
+    Contribution,
+    EModel,
+    Entity,
+    ETypeAnnotationBody,
+    ExperimentalBoutonDensity,
+    ExperimentalNeuronDensity,
+    ExperimentalSynapsesPerConnection,
+    License,
+    MEModel,
+    Mesh,
+    MTypeAnnotationBody,
+    ReconstructionMorphology,
+    SingleCellExperimentalTrace,
+    SingleNeuronSimulation,
+    SingleNeuronSynaptome,
+    Species,
+    StringList,
+)
+
+MAP_TYPES = bidict(
     {
-        app.models.base.License: "License",
+        License: "License",
         # app.models.annotation.MTypeAnnotationBody: "Class",
         # app.models.annotation.ETypeAnnotationBody: "Class",
-        app.models.base.Species: "Species",
-        app.models.morphology.ReconstructionMorphology: "https://neuroshapes.org/ReconstructedNeuronMorphology",
-        app.models.density.ExperimentalBoutonDensity: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity",
-        app.models.density.ExperimentalNeuronDensity: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalNeuronDensity",
-        app.models.MEModel: "https://neuroshapes.org/MEModel",
-        app.models.EModel: "https://neuroshapes.org/EModel",
-        app.models.mesh.Mesh: "Mesh",
-        app.models.single_cell_experimental_trace.SingleCellExperimentalTrace: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace",
-        app.models.density.ExperimentalSynapsesPerConnection: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection",
-        app.models.code.AnalysisSoftwareSourceCode: "AnalysisSoftwareSourceCode",
-        app.models.single_neuron_synaptome.SingleNeuronSynaptome: "https://bbp.epfl.ch/ontologies/core/bmo/SingleNeuronSynaptome",
-        app.models.single_neuron_simulation.SingleNeuronSimulation: "https://bbp.epfl.ch/ontologies/core/bmo/SynaptomeSimulation",
+        Species: "Species",
+        ReconstructionMorphology: "https://neuroshapes.org/ReconstructedNeuronMorphology",
+        ExperimentalBoutonDensity: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalBoutonDensity",
+        ExperimentalNeuronDensity: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalNeuronDensity",
+        MEModel: "https://neuroshapes.org/MEModel",
+        EModel: "https://neuroshapes.org/EModel",
+        Mesh: "Mesh",
+        SingleCellExperimentalTrace: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalTrace",
+        ExperimentalSynapsesPerConnection: "https://bbp.epfl.ch/ontologies/core/bmo/ExperimentalSynapsesPerConnection",
+        AnalysisSoftwareSourceCode: "AnalysisSoftwareSourceCode",
+        SingleNeuronSynaptome: "https://bbp.epfl.ch/ontologies/core/bmo/SingleNeuronSynaptome",
+        SingleNeuronSimulation: "https://bbp.epfl.ch/ontologies/core/bmo/SynaptomeSimulation",
     }
 )
 
@@ -43,16 +54,16 @@ MAPPING_GLOBAL = {
     "updated_date": "_updatedAt",
 }
 MAPPING_PER_TYPE = {
-    app.models.base.License: {
+    License: {
         "name": "@id",
         "description": "description",
         "label": "label",
     },
-    app.models.annotation.ETypeAnnotationBody: {
+    ETypeAnnotationBody: {
         "pref_label": "label",
         "definition": "definition",
     },
-    app.models.annotation.MTypeAnnotationBody: {
+    MTypeAnnotationBody: {
         "pref_label": "label",
         "definition": "definition",
     },
@@ -62,14 +73,14 @@ MAPPING_PER_TYPE = {
 def get_db_type(query):
     terms = query.get("query", {}).get("bool", {}).get("must", [])
     if not terms:
-        return entity.Entity
+        return Entity
     if type(terms) is not list:
         terms = [terms]
     type_term = [term for term in terms if "@type.keyword" in term.get("term", {})]
     if not type_term:
         type_term = [term for term in terms if "@type" in term.get("term", {})]
         if not type_term:
-            return entity.Entity
+            return Entity
     type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
     if not type_keyword:
         type_keyword = type_term[0].get("term", {}).get("@type", "")
@@ -79,21 +90,21 @@ def get_db_type(query):
 
 QUERY_PATH = {
     "mType": {
-        "models": [annotation.Annotation, annotation.MTypeAnnotationBody],
+        "models": [Annotation, MTypeAnnotationBody],
         "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
     },
     "eType": {
-        "models": [annotation.Annotation, annotation.ETypeAnnotationBody],
+        "models": [Annotation, ETypeAnnotationBody],
         "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
     },
-    "brainRegion": {"models": [base.BrainRegion], "joins": [("brain_region_id", "id")]},
-    "subjectSpecies": {"models": [base.Species], "joins": [("species_id", "id")]},
+    "brainRegion": {"models": [BrainRegion], "joins": [("brain_region_id", "id")]},
+    "subjectSpecies": {"models": [Species], "joins": [("species_id", "id")]},
     "contributors": {
-        "models": [contribution.Contribution, agent.Agent],
+        "models": [Contribution, Agent],
         "joins": [("id", "entity_id"), ("agent_id", "id")],
     },
     "createdBy": {
-        "models": [agent.Agent],
+        "models": [Agent],
         "joins": [("createdBy_id", "id")],
     },
 }
@@ -171,8 +182,8 @@ def build_response_elem(elem):
         for key, value in mapping.items():
             initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
         if elem.__class__ in [
-            app.models.annotation.MTypeAnnotationBody,
-            app.models.annotation.ETypeAnnotationBody,
+            MTypeAnnotationBody,
+            ETypeAnnotationBody,
         ]:
             initial_dict["@type"] = "Class"
         else:
@@ -233,7 +244,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
             else:
                 if key == "@id":
                     query = query.filter(
-                        base.StringList.in_(initial_alias.legacy_id, [value])
+                        StringList.in_(initial_alias.legacy_id, [value])
                     )
                 else:
                     query = query.filter(getattr(db_type, key) == value)
@@ -250,7 +261,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                 l_split = key.split(".")
                 target = l_split[0]
                 property_ = l_split[1]
-                if db_type == app.models.entity.Entity:
+                if db_type == Entity:
                     if property_ == "@id":
                         property_ = "legacy_id"
                         cur_alias = initial_alias
@@ -288,7 +299,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
             if type(value) is not list:
                 value = [value]
             if property_ == "legacy_id":
-                query = query.filter(base.StringList.in_(column, value))
+                query = query.filter(StringList.in_(column, value))
             else:
                 query = query.filter(column.in_(value))
         elif "wildcard" in must_term:

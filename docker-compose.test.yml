@@ -6,9 +6,9 @@ services:
     - sh
     - -cx
     - |
-      python -m pytest &&
-      python -m coverage xml &&
-      python -m coverage html
+      alembic downgrade base &&
+      alembic upgrade head &&
+      python -m pytest
     environment:
     - DB_USER=test
     - DB_PASS=test

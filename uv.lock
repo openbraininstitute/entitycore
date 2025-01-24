@@ -133,6 +133,67 @@ wheels = [
 ]
 
 [[package]]
+name = "entitycore"
+version = "0.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "alembic" },
+    { name = "alembic-postgresql-enum" },
+    { name = "alembic-utils" },
+    { name = "bidict" },
+    { name = "click" },
+    { name = "deepdiff" },
+    { name = "fastapi" },
+    { name = "fastapi-filter" },
+    { name = "psycopg2" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "sqlalchemy" },
+    { name = "tqdm" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "httpx" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "types-pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.14.1" },
+    { name = "alembic-postgresql-enum", specifier = ">=1.5.0" },
+    { name = "alembic-utils", specifier = ">=0.8.6" },
+    { name = "bidict" },
+    { name = "click", specifier = ">=8.1.7" },
+    { name = "deepdiff" },
+    { name = "fastapi" },
+    { name = "fastapi-filter", specifier = ">=2.0.0" },
+    { name = "psycopg2" },
+    { name = "pydantic", specifier = ">=2" },
+    { name = "pydantic-settings", specifier = ">=2.7.1" },
+    { name = "sqlalchemy" },
+    { name = "tqdm", specifier = ">=4.67.1" },
+    { name = "uvicorn", extras = ["standard"] },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage", extras = ["toml"] },
+    { name = "httpx" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "types-pyyaml" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.115.6"
 source = { registry = "https://pypi.org/simple" }
@@ -529,67 +590,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1a/4c/9b5764bd22eec91c4039ef4c55334e9187085da2d8a2df7bd570869aae18/starlette-0.41.3.tar.gz", hash = "sha256:0e4ab3d16522a255be6b28260b938eae2482f98ce5cc934cb08dce8dc3ba5835", size = 2574159 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/96/00/2b325970b3060c7cecebab6d295afe763365822b1306a12eeab198f74323/starlette-0.41.3-py3-none-any.whl", hash = "sha256:44cedb2b7c77a9de33a8b74b2b90e9f50d11fcf25d8270ea525ad71a25374ff7", size = 73225 },
-]
-
-[[package]]
-name = "test-db"
-version = "0.0.0"
-source = { editable = "." }
-dependencies = [
-    { name = "alembic" },
-    { name = "alembic-postgresql-enum" },
-    { name = "alembic-utils" },
-    { name = "bidict" },
-    { name = "click" },
-    { name = "deepdiff" },
-    { name = "fastapi" },
-    { name = "fastapi-filter" },
-    { name = "psycopg2" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "sqlalchemy" },
-    { name = "tqdm" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "coverage" },
-    { name = "httpx" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "types-pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "alembic", specifier = ">=1.14.1" },
-    { name = "alembic-postgresql-enum", specifier = ">=1.5.0" },
-    { name = "alembic-utils", specifier = ">=0.8.6" },
-    { name = "bidict" },
-    { name = "click", specifier = ">=8.1.7" },
-    { name = "deepdiff" },
-    { name = "fastapi" },
-    { name = "fastapi-filter", specifier = ">=2.0.0" },
-    { name = "psycopg2" },
-    { name = "pydantic", specifier = ">=2" },
-    { name = "pydantic-settings", specifier = ">=2.7.1" },
-    { name = "sqlalchemy" },
-    { name = "tqdm", specifier = ">=4.67.1" },
-    { name = "uvicorn", extras = ["standard"] },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "coverage", extras = ["toml"] },
-    { name = "httpx" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "types-pyyaml" },
 ]
 
 [[package]]

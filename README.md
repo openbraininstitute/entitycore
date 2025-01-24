@@ -86,3 +86,6 @@ DB_HOST=127.0.0.1 DB_PORT=5433 uv run -m app.cli.import-data --input_dir ./out
 # test_legacy / test_dump can be used to test legacy calls
 # test_dump is going through all the nexus rest calls in nexus_use_case_dump and executes these calls
 ```
+
+
+Copyright © 2025 Open Brain Institute

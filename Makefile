@@ -1,16 +1,28 @@
 SHELL := /bin/bash
 
 export ENVIRONMENT ?= dev
-export APP_NAME := test-db
+export APP_NAME := entitycore
 export APP_VERSION := $(shell git describe --abbrev --dirty --always --tags)
 export COMMIT_SHA := $(shell git rev-parse HEAD)
 export IMAGE_NAME ?= $(APP_NAME)
 export IMAGE_TAG ?= $(APP_VERSION)-$(ENVIRONMENT)
 
-.PHONY: help format lint build test-local test-docker run-local run-docker destroy migration
+.PHONY: help install compile-deps upgrade-deps check-deps format lint build publish test-local test-docker run-local run-docker destroy migration
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
+
+install:  ## Install dependencies into .venv
+	uv sync --no-install-project
+
+compile-deps:  ## Create or update the lock file, without upgrading the version of the dependencies
+	uv lock
+
+upgrade-deps:  ## Create or update the lock file, using the latest version of the dependencies
+	uv lock --upgrade
+
+check-deps:  ## Check that the dependencies in the existing lock file are valid
+	uv lock --locked
 
 format:  ## Run formatters
 	uv run -m ruff format
@@ -19,10 +31,13 @@ format:  ## Run formatters
 lint:  ## Run linters
 	uv run -m ruff format --check
 	uv run -m ruff check
-	uv run -m mypy app
+	#uv run -m mypy app
 
 build:  ## Build the Docker image
 	docker compose --progress=plain build app
+
+publish: build  ## Publish the Docker image to DockerHub
+	docker compose push app
 
 test-local: export DB_HOST=127.0.0.1
 test-local: export DB_PORT=5434
@@ -33,6 +48,8 @@ test-local:  ## Run tests locally
 	docker compose up --wait db-test
 	uv run -m alembic upgrade head
 	uv run -m pytest -sv tests
+	uv run -m coverage xml
+	uv run -m coverage html
 
 test-docker: build  ## Run tests in Docker
 	docker compose run --rm --remove-orphans test

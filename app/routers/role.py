@@ -16,8 +16,7 @@ def read_person(role_id: int, db: SessionDep):
 
     if role is None:
         raise HTTPException(status_code=404, detail="role not found")
-    ret = RoleRead.model_validate(role)
-    return ret
+    return RoleRead.model_validate(role)
 
 
 @router.post("/", response_model=RoleRead)
@@ -34,5 +33,4 @@ def create_role(role: RoleCreate, db: SessionDep):
 
 @router.get("/", response_model=list[RoleRead])
 def read_role(db: SessionDep, skip: int = 0, limit: int = 10):
-    users = db.query(Role).offset(skip).limit(limit).all()
-    return users
+    return db.query(Role).offset(skip).limit(limit).all()

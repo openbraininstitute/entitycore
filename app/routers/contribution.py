@@ -20,8 +20,7 @@ def read_contribution(contribution_id: int, db: SessionDep):
 
     if contribution is None:
         raise HTTPException(status_code=404, detail="contribution not found")
-    ret = ContributionRead.model_validate(contribution)
-    return ret
+    return ContributionRead.model_validate(contribution)
 
 
 @router.post("/", response_model=ContributionRead)
@@ -43,5 +42,4 @@ def create_contribution(contribution: ContributionCreate, db: SessionDep):
 
 @router.get("/", response_model=list[ContributionRead])
 def read_contributions(db: SessionDep, skip: int = 0, limit: int = 10):
-    users = db.query(Contribution).offset(skip).limit(limit).all()
-    return users
+    return db.query(Contribution).offset(skip).limit(limit).all()

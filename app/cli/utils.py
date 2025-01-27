@@ -14,8 +14,7 @@ from app.db.model import (
 
 
 def _find_by_legacy_id(legacy_id, db_type, db):
-    db_elem = db.query(db_type).filter(func.strpos(db_type.legacy_id, legacy_id) > 0).first()
-    return db_elem
+    return db.query(db_type).filter(func.strpos(db_type.legacy_id, legacy_id) > 0).first()
 
 
 def get_or_create_brain_region(brain_region, db):

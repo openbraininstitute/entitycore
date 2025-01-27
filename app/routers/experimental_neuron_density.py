@@ -16,8 +16,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[ExperimentalNeuronDensityRead])
 def read_experimental_neuron_densities(db: SessionDep, skip: int = 0, limit: int = 10):
-    users = db.query(ExperimentalNeuronDensity).offset(skip).limit(limit).all()
-    return users
+    return db.query(ExperimentalNeuronDensity).offset(skip).limit(limit).all()
 
 
 @router.get(
@@ -33,8 +32,7 @@ def read_experimental_neuron_density(experimental_neuron_density_id: int, db: Se
 
     if experimental_neuron_density is None:
         raise HTTPException(status_code=404, detail="experimental_neuron_density not found")
-    ret = ExperimentalNeuronDensityRead.model_validate(experimental_neuron_density)
-    return ret
+    return ExperimentalNeuronDensityRead.model_validate(experimental_neuron_density)
 
 
 @router.post("/", response_model=ExperimentalNeuronDensityRead)

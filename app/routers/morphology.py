@@ -41,11 +41,9 @@ def read_reconstruction_morphology(
         raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
 
     if expand and "morphology_feature_annotation" in expand:
-        ret = ReconstructionMorphologyExpand.model_validate(rm)
-        return ret
-    ret = ReconstructionMorphologyRead.model_validate(rm)
+        return ReconstructionMorphologyExpand.model_validate(rm)
     # added back with None by the response_model
-    return ret
+    return ReconstructionMorphologyRead.model_validate(rm)
 
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
@@ -82,8 +80,7 @@ def read_reconstruction_morphologies(
 ):
     query = db.query(ReconstructionMorphology)
     query = morphology_filter.filter(query)
-    rms = morphology_filter.sort(query).offset(skip).limit(limit).all()
-    return rms
+    return morphology_filter.sort(query).offset(skip).limit(limit).all()
 
 
 @router.get("/q/")

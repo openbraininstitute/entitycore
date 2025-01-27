@@ -84,8 +84,7 @@ def get_db_type(query):
     type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
     if not type_keyword:
         type_keyword = type_term[0].get("term", {}).get("@type", "")
-    db_type = MAP_TYPES.inv[type_keyword]
-    return db_type
+    return MAP_TYPES.inv[type_keyword]
 
 
 QUERY_PATH = {
@@ -324,8 +323,7 @@ def build_response_body(facets=None, hits=None, count=-1, build_func=build_respo
     if facets:
         response["aggregations"] = build_aggregations(facets)
     response["hits"] = build_hits(hits=hits, count=count, build_func=build_func)
-    ret = JSONResponse(content=jsonable_encoder(response))
-    return ret
+    return JSONResponse(content=jsonable_encoder(response))
 
 
 def build_count_response_body(value):

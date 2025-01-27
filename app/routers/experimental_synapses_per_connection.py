@@ -16,8 +16,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[ExperimentalSynapsesPerConnectionRead])
 def read_experimental_neuron_densities(db: SessionDep, skip: int = 0, limit: int = 10):
-    users = db.query(ExperimentalSynapsesPerConnection).offset(skip).limit(limit).all()
-    return users
+    return db.query(ExperimentalSynapsesPerConnection).offset(skip).limit(limit).all()
 
 
 @router.get(
@@ -35,10 +34,9 @@ def read_experimental_neuron_density(experimental_synapses_per_connection_id: in
         raise HTTPException(
             status_code=404, detail="experimental_synapses_per_connection not found"
         )
-    ret = ExperimentalSynapsesPerConnectionRead.model_validate(
+    return ExperimentalSynapsesPerConnectionRead.model_validate(
         experimental_synapses_per_connection_id
     )
-    return ret
 
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)

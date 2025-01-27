@@ -17,8 +17,7 @@ def read_organization(organization_id: int, db: SessionDep):
 
     if organization is None:
         raise HTTPException(status_code=404, detail="organization not found")
-    ret = OrganizationRead.model_validate(organization)
-    return ret
+    return OrganizationRead.model_validate(organization)
 
 
 @router.post("/", response_model=OrganizationRead)
@@ -32,5 +31,4 @@ def create_organization(organization: OrganizationCreate, db: SessionDep):
 
 @router.get("/", response_model=list[OrganizationRead])
 def read_organizations(db: SessionDep, skip: int = 0, limit: int = 10):
-    users = db.query(Organization).offset(skip).limit(limit).all()
-    return users
+    return db.query(Organization).offset(skip).limit(limit).all()

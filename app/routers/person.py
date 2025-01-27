@@ -17,8 +17,7 @@ def read_person(person_id: int, db: SessionDep):
 
     if person is None:
         raise HTTPException(status_code=404, detail="person not found")
-    ret = PersonRead.model_validate(person)
-    return ret
+    return PersonRead.model_validate(person)
 
 
 @router.post("/", response_model=PersonRead)
@@ -32,5 +31,4 @@ def create_person(person: PersonCreate, db: SessionDep):
 
 @router.get("/", response_model=list[PersonRead])
 def read_persons(db: SessionDep, skip: int = 0, limit: int = 10):
-    users = db.query(Person).offset(skip).limit(limit).all()
-    return users
+    return db.query(Person).offset(skip).limit(limit).all()

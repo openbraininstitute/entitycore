@@ -18,8 +18,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[LicenseRead])
 def read_licenses(db: SessionDep, skip: int = 0, limit: int = 10):
-    users = db.query(License).offset(skip).limit(limit).all()
-    return users
+    return db.query(License).offset(skip).limit(limit).all()
 
 
 @router.get("/{license_id}", response_model=LicenseRead)

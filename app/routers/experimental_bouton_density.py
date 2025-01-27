@@ -19,8 +19,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[ExperimentalBoutonDensityRead])
 def read_experimental_bouton_densities(db: SessionDep, skip: int = 0, limit: int = 10):
-    users = db.query(ExperimentalBoutonDensity).offset(skip).limit(limit).all()
-    return users
+    return db.query(ExperimentalBoutonDensity).offset(skip).limit(limit).all()
 
 
 @router.get(
@@ -36,8 +35,7 @@ def read_experimental_bouton_density(experimental_bouton_density_id: int, db: Se
 
     if experimental_bouton_density is None:
         raise HTTPException(status_code=404, detail="experimental_bouton_density not found")
-    ret = ExperimentalBoutonDensityRead.model_validate(experimental_bouton_density)
-    return ret
+    return ExperimentalBoutonDensityRead.model_validate(experimental_bouton_density)
 
 
 @router.post("/", response_model=ExperimentalBoutonDensityRead)

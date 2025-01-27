@@ -63,8 +63,7 @@ def strain_id(client, species_id):
     data = response.json()
     assert data["taxonomy_id"] == "Taxonomy ID"
     assert "id" in data, f"Failed to get id for strain: {data}"
-    strain_id = data["id"]
-    return strain_id
+    return data["id"]
 
 
 @pytest.fixture
@@ -80,8 +79,7 @@ def license_id(client):
     assert response.status_code == 200
     data = response.json()
     assert "id" in data, f"Failed to get id for license: {data}"
-    license_id = data["id"]
-    return license_id
+    return data["id"]
 
 
 @pytest.fixture
@@ -95,5 +93,4 @@ def brain_region_id(client):
     assert data["name"] == "Test Brain Region"
     assert data["ontology_id"] == ontology_id
     assert "id" in data, f"Failed to get id for brain region: {data}"
-    brain_region_id = data["id"]
-    return brain_region_id
+    return data["id"]

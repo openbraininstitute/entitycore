@@ -71,7 +71,7 @@ def curate_etype(data):
         )
     if data["label"] == "TH_cNAD_noscltb":
         data["definition"] = (
-            "Thalamus continuous non-adapting non-oscillatory low-threshold bursting electrical type"
+            "Thalamus continuous non-adapting non-oscillatory low-threshold bursting electrical type"  # noqa: E501
         )
     if data["label"] == "TH_dAD_ltb":
         data["definition"] = "Thalamus delayed adapting low-threshold bursting electrical type"

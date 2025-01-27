@@ -22,11 +22,11 @@ def create_legacy_resource_body(db_element, extracted_url):
 
 
 RESOURCE_MAP = {
-    "https://bbp.epfl.ch/neurosciencegraph/data/cellcompositions/54818e46-cf8c-4bd6-9b68-34dffbc8a68c": "CellComposition.json",
-    "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/d28580b8-9fc8-4b04-8e67-11229b31726c": "ModelBuildingConfig.json",
-    "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/f5c150ac-2678-4ae5-ae22-c5b43cad1906": "CellCompositionConfig.json",
-    "https://bbp.epfl.ch/data/bbp/atlasdatasetrelease/ccc3a6c5-9f77-4917-bc2e-fc8d3879042c": "CellCompositionSummary.json",
-    "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/2b29d249-6520-4a98-9586-27ec7803aed2": "DetailedCircuit.json",
+    "https://bbp.epfl.ch/neurosciencegraph/data/cellcompositions/54818e46-cf8c-4bd6-9b68-34dffbc8a68c": "CellComposition.json",  # noqa: E501
+    "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/d28580b8-9fc8-4b04-8e67-11229b31726c": "ModelBuildingConfig.json",  # noqa: E501
+    "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/f5c150ac-2678-4ae5-ae22-c5b43cad1906": "CellCompositionConfig.json",  # noqa: E501
+    "https://bbp.epfl.ch/data/bbp/atlasdatasetrelease/ccc3a6c5-9f77-4917-bc2e-fc8d3879042c": "CellCompositionSummary.json",  # noqa: E501
+    "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/2b29d249-6520-4a98-9586-27ec7803aed2": "DetailedCircuit.json",  # noqa: E501
 }
 
 

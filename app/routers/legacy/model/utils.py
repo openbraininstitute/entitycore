@@ -140,7 +140,7 @@ def get_facets(aggs, musts, db_type, db):
         models = list(reversed(query_map["models"]))
 
         models.append(aliased(db_type))
-        cur_alias = aliased(list(models)[0])
+        cur_alias = aliased(next(iter(models)))
         initial_alias = cur_alias
         property_group = PROPERTY_MAP.get(f"{target}.{property_}", None)
         facet_q = db.query(getattr(initial_alias, property_group), func.count().label("count"))
@@ -222,7 +222,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                     detail="Bad request: query must contain only one term",
                 )
 
-            key, value = list(key_value)[0]
+            key, value = next(iter(key_value))
             # deprecated & curated are not a field in the database
             if key in {
                 "@type.keyword",
@@ -245,7 +245,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                     status_code=400,
                     detail="Bad request: query must contain only one term",
                 )
-            key, value = list(key_value)[0]
+            key, value = next(iter(key_value))
             if "." in key:
                 l_split = key.split(".")
                 target = l_split[0]

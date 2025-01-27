@@ -23,12 +23,12 @@ class StringListType(TypeDecorator):
     impl = VARCHAR
     cache_ok = True
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(self, value, dialect):  # noqa: ARG002
         if value is not None:
             return ",".join(value)
         return None
 
-    def process_result_value(self, value, dialect):
+    def process_result_value(self, value, dialect):  # noqa: ARG002
         if value is not None:
             return value.split(",")
         return None

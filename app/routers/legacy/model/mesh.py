@@ -20,7 +20,7 @@ def build_mesh_elem(elem):
     }
 
 
-def search(body, db):
+def search(body, db):  # noqa: ARG001
     try:
         query = db.query(Mesh)
         hits = query.all()

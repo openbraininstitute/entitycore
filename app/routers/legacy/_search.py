@@ -14,7 +14,7 @@ router = APIRouter(
 
 
 @router.post("/{path:path}/_search")
-def legacy_search(query: dict, path, db: Session = Depends(get_db)):
+def legacy_search(query: dict, path: str, db: Session = Depends(get_db)):  # noqa: ARG001
     try:
         terms = query.get("query", {}).get("bool", {}).get("must", [])
         # if not terms:

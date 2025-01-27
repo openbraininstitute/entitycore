@@ -2,11 +2,8 @@ import json
 import os
 import urllib.parse
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-
-from app.dependencies.db import get_db
 
 router = APIRouter(
     prefix="/nexus/v1/files",
@@ -15,7 +12,7 @@ router = APIRouter(
 
 
 @router.get("/{path:path}")
-def legacy_files(path: str, request: Request, db: Session = Depends(get_db)):
+def legacy_files(path: str):
     directory = "/".join(path.split("/", 2)[:2])
     file_name = "/".join(path.split("/", 2)[2:])
     encoded_filename = urllib.parse.quote(file_name, safe=":")

@@ -116,8 +116,8 @@ def get_license_mixin(data, db):
 
 def get_agent_mixin(data, db):
     result = []
-    for property in ["_createdBy", "_updatedBy"]:
-        legacy_id = data.get(property, {})
+    for prop in ["_createdBy", "_updatedBy"]:
+        legacy_id = data.get(prop, {})
         assert legacy_id, f"legacy_id is None: {data}"
         agent_db = _find_by_legacy_id(legacy_id, Agent, db)
         assert agent_db, f"legacy_id not found: {legacy_id}"

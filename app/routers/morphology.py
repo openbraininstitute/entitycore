@@ -48,23 +48,22 @@ def read_reconstruction_morphology(
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
-    recontruction: ReconstructionMorphologyCreate,
-    morphology_filter: MorphologyFilter = FilterDepends(MorphologyFilter),
+    reconstruction: ReconstructionMorphologyCreate,
     db: Session = Depends(get_db),
 ):
     brain_location = None
 
-    if recontruction.brain_location:
-        brain_location = BrainLocation(**recontruction.brain_location.model_dump())
+    if reconstruction.brain_location:
+        brain_location = BrainLocation(**reconstruction.brain_location.model_dump())
 
     db_reconstruction_morphology = ReconstructionMorphology(
-        name=recontruction.name,
-        description=recontruction.description,
+        name=reconstruction.name,
+        description=reconstruction.description,
         brain_location=brain_location,
-        brain_region_id=recontruction.brain_region_id,
-        species_id=recontruction.species_id,
-        strain_id=recontruction.strain_id,
-        license_id=recontruction.license_id,
+        brain_region_id=reconstruction.brain_region_id,
+        species_id=reconstruction.species_id,
+        strain_id=reconstruction.strain_id,
+        license_id=reconstruction.license_id,
     )
     db.add(db_reconstruction_morphology)
     db.commit()

@@ -62,5 +62,5 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
                 return HTTPException(status_code=404, detail="Resource not found")
             return create_legacy_resource_body(db_element, extracted_url)
         return {"error": "'_/' not found in URL"}
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return {"error": str(e)}

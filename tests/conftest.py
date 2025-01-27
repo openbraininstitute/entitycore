@@ -68,7 +68,7 @@ def strain_id(client, species_id):
 
 
 @pytest.fixture(scope="function")
-def license_id(client, species_id):
+def license_id(client):
     response = client.post(
         "/license/",
         json={

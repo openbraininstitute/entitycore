@@ -174,10 +174,10 @@ def build_response_elem(elem):
         mapping = {**MAPPING_PER_TYPE.get(elem.__class__, {}), **MAPPING_GLOBAL}
         for key, value in mapping.items():
             initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
-        if elem.__class__ in [
+        if elem.__class__ in {
             MTypeAnnotationBody,
             ETypeAnnotationBody,
-        ]:
+        }:
             initial_dict["@type"] = "Class"
         else:
             initial_dict["@type"] = [MAP_TYPES[elem.__class__]]
@@ -202,7 +202,7 @@ def find_term_keys(data):
     result = []
     if isinstance(data, dict):
         for key, value in data.items():
-            if key in ["term", "terms", "wildcard"]:
+            if key in {"term", "terms", "wildcard"}:
                 result.append({key: value})
             else:
                 result.extend(find_term_keys(value))
@@ -225,14 +225,14 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
 
             key, value = list(key_value)[0]
             # deprecated & curated are not a field in the database
-            if key in [
+            if key in {
                 "@type.keyword",
                 "deprecated",
                 "curated",
                 "@type",
                 "_deprecated",
                 "atlasRelease.@id",
-            ]:
+            }:
                 continue
             if key == "@id":
                 query = query.filter(StringList.in_(initial_alias.legacy_id, [value]))

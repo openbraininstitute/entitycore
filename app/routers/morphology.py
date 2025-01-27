@@ -101,8 +101,8 @@ def morphology_query(
         "strain": Strain,
     }
     facets = {}
-    for ty in name_to_table:
-        types = aliased(name_to_table[ty])
+    for ty, table in name_to_table.items():
+        types = aliased(table)
         facet_q = (
             session.query(types.name, func.count().label("count"))
             .join(
@@ -113,9 +113,8 @@ def morphology_query(
             .group_by(types.name)
         )
 
-        for other_ty in name_to_table:
+        for other_ty, other_table in name_to_table.items():
             if value := args.get(other_ty, None):
-                other_table = name_to_table[other_ty]
                 other_types = aliased(other_table)
                 facet_q = facet_q.join(
                     other_types,

@@ -46,7 +46,9 @@ def get_or_create_species(species, db):
 
 def get_brain_location_mixin(data, db):
     coordinates = data.get("brainLocation", {}).get("coordinatesInBrainAtlas", {})
-    assert coordinates is not None, "coordinates is None"
+    if coordinates is None:
+        msg = "coordinates is None"
+        raise RuntimeError(msg)
     brain_location = None
     if coordinates:
         x = coordinates.get("valueX", None)
@@ -59,7 +61,9 @@ def get_brain_location_mixin(data, db):
         "label": "root",
     }
     brain_region = data.get("brainLocation", {}).get("brainRegion", root)
-    assert brain_region is not None, "brain_region is None"
+    if brain_region is None:
+        msg = "brain_region is None"
+        raise RuntimeError(msg)
     try:
         brain_region_id = get_or_create_brain_region(brain_region, db)
     except Exception:
@@ -80,8 +84,9 @@ def get_license_id(license, db):
 def get_or_create_strain(strain, species_id, db):
     # Check if the strain already exists in the database
     st = db.query(Strain).filter(Strain.taxonomy_id == strain["@id"]).first()
-    if st:
-        assert st.species_id == species_id
+    if st and st.species_id != species_id:
+        msg = "st.species_id != species_id"
+        raise RuntimeError(msg)
 
     if not st:
         # If not, create a new one
@@ -97,7 +102,9 @@ def get_or_create_strain(strain, species_id, db):
 
 def get_species_mixin(data, db):
     species = data.get("subject", {}).get("species", {})
-    assert species, f"species is None: {data}"
+    if not species:
+        msg = f"species is None: {data}"
+        raise RuntimeError(msg)
     species_id = get_or_create_species(species, db)
     strain = data.get("subject", {}).get("strain", {})
     strain_id = None
@@ -118,9 +125,13 @@ def get_agent_mixin(data, db):
     result = []
     for prop in ["_createdBy", "_updatedBy"]:
         legacy_id = data.get(prop, {})
-        assert legacy_id, f"legacy_id is None: {data}"
+        if not legacy_id:
+            msg = f"legacy_id is None: {data}"
+            raise RuntimeError(msg)
         agent_db = _find_by_legacy_id(legacy_id, Agent, db)
-        assert agent_db, f"legacy_id not found: {legacy_id}"
+        if not agent_db:
+            msg = f"legacy_id not found: {legacy_id}"
+            raise RuntimeError(msg)
         result.append(agent_db.id)
     return result
 

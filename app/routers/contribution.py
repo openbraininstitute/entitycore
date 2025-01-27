@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.dependencies.db import get_db
 from app.db.model import Contribution
+from app.dependencies.db import get_db
 from app.schemas.contribution import ContributionCreate, ContributionRead
 
 router = APIRouter(
@@ -17,9 +17,7 @@ router = APIRouter(
     response_model=ContributionRead,
 )
 def read_contribution(contribution_id: int, db: Session = Depends(get_db)):
-    contribution = (
-        db.query(Contribution).filter(Contribution.id == contribution_id).first()
-    )
+    contribution = db.query(Contribution).filter(Contribution.id == contribution_id).first()
 
     if contribution is None:
         raise HTTPException(status_code=404, detail="contribution not found")
@@ -28,9 +26,7 @@ def read_contribution(contribution_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=ContributionRead)
-def create_contribution(
-    contribution: ContributionCreate, db: Session = Depends(get_db)
-):
+def create_contribution(contribution: ContributionCreate, db: Session = Depends(get_db)):
     # agent = db.query(Agent).filter(Agent.id == contribution.agent_id).first()
     # if agent is None:
     #     raise HTTPException(status_code=404, detail="Agent not found")
@@ -47,8 +43,6 @@ def create_contribution(
 
 
 @router.get("/", response_model=list[ContributionRead])
-def read_contributions(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
-):
+def read_contributions(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(Contribution).offset(skip).limit(limit).all()
     return users

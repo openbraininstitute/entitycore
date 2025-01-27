@@ -44,7 +44,7 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
     assert data["species"]["id"] == species_id
     assert data["strain"]["id"] == strain_id
     assert data["description"] == bouton_description
-    assert data["brain_location"] == {'x': 10.0, 'y': 20.0, 'z': 30.0}
+    assert data["brain_location"] == {"x": 10.0, "y": 20.0, "z": 30.0}
 
     response = client.get("/experimental_bouton_density/")
     assert response.status_code == 200

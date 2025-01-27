@@ -4,7 +4,9 @@ import pytest
 import sqlalchemy
 
 
-def test_create_reconstruction_morphology(client, species_id, strain_id, license_id, brain_region_id):
+def test_create_reconstruction_morphology(
+    client, species_id, strain_id, license_id, brain_region_id
+):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
     response = client.post(
@@ -36,9 +38,7 @@ def test_create_reconstruction_morphology(client, species_id, strain_id, license
     assert (
         data["description"] == morph_description
     ), f"Failed to get description for reconstruction morphology: {data}"
-    assert (
-        data["name"] == morph_name
-    ), f"Failed to get name for reconstruction morphology: {data}"
+    assert data["name"] == morph_name, f"Failed to get name for reconstruction morphology: {data}"
     assert (
         data["license"]["name"] == "Test License"
     ), f"Failed to get license for reconstruction morphology: {data}"
@@ -138,9 +138,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     assert response.status_code == 200
     assert "morphology_feature_annotation" in data
     assert (
-        data["morphology_feature_annotation"]["measurements"][0]["measurement_serie"][
-            0
-        ]["name"]
+        data["morphology_feature_annotation"]["measurements"][0]["measurement_serie"][0]["name"]
         == "Test Measurement Name"
     )
     with pytest.raises(sqlalchemy.exc.IntegrityError):
@@ -200,7 +198,9 @@ def test_missing_reconstruction_morphology(client):
     assert response.status_code == 422
 
 
-def test_query_reconstruction_morphology(client, species_id, strain_id, brain_region_id, license_id):
+def test_query_reconstruction_morphology(
+    client, species_id, strain_id, brain_region_id, license_id
+):
     def create_morphologies(nb_morph):
         for i in range(nb_morph):
             morph_description = f"Test Morphology Description {i}"
@@ -230,19 +230,17 @@ def test_query_reconstruction_morphology(client, species_id, strain_id, brain_re
     data = response.json()
     assert len(data) == count
 
-    response = client.get(
-        "/reconstruction_morphology/", params={"order_by": "+creation_date"}
-    )
+    response = client.get("/reconstruction_morphology/", params={"order_by": "+creation_date"})
     assert response.status_code == 200
     data = response.json()
     assert len(data) == count
-    assert all(elem["creation_date"] > prev_elem["creation_date"]
-               for prev_elem, elem in it.pairwise(data))
-
-    response = client.get(
-        "/reconstruction_morphology/", params={"order_by": "-creation_date"}
+    assert all(
+        elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
+
+    response = client.get("/reconstruction_morphology/", params={"order_by": "-creation_date"})
     assert response.status_code == 200
     data = response.json()
-    assert all(elem["creation_date"] < prev_elem["creation_date"]
-               for prev_elem, elem in it.pairwise(data))
+    assert all(
+        elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
+    )

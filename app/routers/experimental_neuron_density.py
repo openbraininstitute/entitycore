@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.dependencies.db import get_db
 from app.db.model import BrainLocation, ExperimentalNeuronDensity
+from app.dependencies.db import get_db
 from app.schemas.density import (
     ExperimentalNeuronDensityCreate,
     ExperimentalNeuronDensityRead,
@@ -37,9 +37,7 @@ def read_experimental_neuron_density(
     )
 
     if experimental_neuron_density is None:
-        raise HTTPException(
-            status_code=404, detail="experimental_neuron_density not found"
-        )
+        raise HTTPException(status_code=404, detail="experimental_neuron_density not found")
     ret = ExperimentalNeuronDensityRead.model_validate(experimental_neuron_density)
     return ret
 

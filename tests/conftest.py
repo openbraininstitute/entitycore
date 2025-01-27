@@ -1,4 +1,4 @@
-from typing import Iterator
+from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -41,9 +41,7 @@ def _db_cleanup(db):
 
 @pytest.fixture(scope="function")
 def species_id(client):
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
+    response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     assert data["name"] == "Test Species"
@@ -92,14 +90,10 @@ def brain_region_id(client):
     response = client.post(
         "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
     )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create brain region: {response.text}"
+    assert response.status_code == 200, f"Failed to create brain region: {response.text}"
     data = response.json()
     assert data["name"] == "Test Brain Region"
     assert data["ontology_id"] == ontology_id
     assert "id" in data, f"Failed to get id for brain region: {data}"
     brain_region_id = data["id"]
     return brain_region_id
-
-

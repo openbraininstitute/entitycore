@@ -25,8 +25,6 @@ def search(body, db):
         query = db.query(Mesh)
         hits = query.all()
         count = len(hits)
-        return utils.build_response_body(
-            hits=hits, count=count, build_func=build_mesh_elem
-        )
+        return utils.build_response_body(hits=hits, count=count, build_func=build_mesh_elem)
     finally:
         db.close()

@@ -19,9 +19,7 @@ router = APIRouter(
 
 @router.post("/", response_model=BrainRegionRead)
 def create_brain_region(brain_region: BrainRegionCreate, db: Session = Depends(get_db)):
-    db_brain_region = BrainRegion(
-        ontology_id=brain_region.ontology_id, name=brain_region.name
-    )
+    db_brain_region = BrainRegion(ontology_id=brain_region.ontology_id, name=brain_region.name)
     db.add(db_brain_region)
     db.commit()
     db.refresh(db_brain_region)

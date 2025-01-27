@@ -27,9 +27,7 @@ class ExperimentalDensityCreate(ExperimentalDensityBase, LicensedCreateMixin):
     legacy_id: str | None
 
 
-class ExperimentalDensityRead(
-    ExperimentalDensityBase, CreationMixin, LicensedReadMixin
-):
+class ExperimentalDensityRead(ExperimentalDensityBase, CreationMixin, LicensedReadMixin):
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead

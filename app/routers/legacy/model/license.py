@@ -15,14 +15,14 @@ def build_filters(model, filter_dict):
 
 def search(body, db):
     terms = body.get("query", {}).get("bool", {}).get("must", [])
-    WHITELIST_TERMS = {"@id": "name"}
+    whitelist_terms = {"@id": "name"}
     acceptable_terms = [
-        term for term in terms if list(term.get("term").keys())[0] in WHITELIST_TERMS
+        term for term in terms if list(term.get("term").keys())[0] in whitelist_terms
     ]
     filters = build_filters(
         License,
         {
-            WHITELIST_TERMS[list(term.get("term", {}).keys())[0]]: list(
+            whitelist_terms[list(term.get("term", {}).keys())[0]]: list(
                 term.get("term", {}).values()
             )[0]
             for term in acceptable_terms

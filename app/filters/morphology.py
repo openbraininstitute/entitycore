@@ -22,14 +22,14 @@ class MorphologyFilter(Filter):
 
     # This logic could be in a base class
     @field_validator("order_by")
+    @classmethod
     def restrict_sortable_fields(cls, value: list[str]):
         allowed_field_names = ["creation_date", "update_date", "name"]
 
-        for field_name in value:
-            field_name = field_name.replace("+", "").replace("-", "")
+        for name in value:
+            field_name = name.replace("+", "").replace("-", "")
             if field_name not in allowed_field_names:
-                raise ValueError(
-                    f"You may only sort by: {', '.join(allowed_field_names)}"
-                )
+                msg = f"You may only sort by: {', '.join(allowed_field_names)}"
+                raise ValueError(msg)
 
         return value

@@ -2,14 +2,13 @@ import json
 import os
 from urllib.parse import unquote
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.dependencies.db import get_db
 from app.db.model import Root
+from app.dependencies.db import get_db
 from app.schemas.agent import PersonRead
-from fastapi import HTTPException
 
 router = APIRouter(
     prefix="/nexus/v1/resources",
@@ -43,9 +42,7 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
             # Return the extracted URL or process it further
             if "ontologies/core/brainregion" in extracted_url:
                 with open(
-                    os.path.join(
-                        os.path.dirname(__file__), "resources_data/atlas_ontology.json"
-                    ),
+                    os.path.join(os.path.dirname(__file__), "resources_data/atlas_ontology.json"),
                 ) as f:
                     return json.load(f)
                 return None
@@ -59,9 +56,7 @@ def legacy_resources(path: str, db: Session = Depends(get_db)):
                 ) as f:
                     return json.load(f)
             db_element = (
-                db.query(Root)
-                .filter(func.strpos(Root.legacy_id, extracted_url) > 0)
-                .first()
+                db.query(Root).filter(func.strpos(Root.legacy_id, extracted_url) > 0).first()
             )
             if not db_element:
                 return HTTPException(status_code=404, detail="Resource not found")

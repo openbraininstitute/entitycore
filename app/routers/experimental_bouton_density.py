@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.dependencies.db import get_db
 from app.db.model import (
     BrainLocation,
     ExperimentalBoutonDensity,
 )
+from app.dependencies.db import get_db
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
@@ -40,9 +40,7 @@ def read_experimental_bouton_density(
     )
 
     if experimental_bouton_density is None:
-        raise HTTPException(
-            status_code=404, detail="experimental_bouton_density not found"
-        )
+        raise HTTPException(status_code=404, detail="experimental_bouton_density not found")
     ret = ExperimentalBoutonDensityRead.model_validate(experimental_bouton_density)
     return ret
 

@@ -32,10 +32,7 @@ def read_experimental_neuron_density(
 ):
     experimental_synapses_per_connection_id = (
         db.query(ExperimentalSynapsesPerConnection)
-        .filter(
-            ExperimentalSynapsesPerConnection.id
-            == experimental_synapses_per_connection_id
-        )
+        .filter(ExperimentalSynapsesPerConnection.id == experimental_synapses_per_connection_id)
         .first()
     )
 

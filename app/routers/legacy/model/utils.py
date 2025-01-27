@@ -127,9 +127,7 @@ def get_facets(aggs, musts, db_type, db):
     # not used for createdAt and updatedAt in GUI
 
     fields = [
-        {"label": key, "field": aggs[key]["terms"]["field"]}
-        for key in aggs.keys()
-        if "terms" in aggs[key]
+        {"label": key, "field": aggs[key]["terms"]["field"]} for key in aggs if "terms" in aggs[key]
     ]
     for field in fields:
         # TODO understand how link is created
@@ -137,10 +135,7 @@ def get_facets(aggs, musts, db_type, db):
             continue
         split_field = field["field"].split(".")
         target = split_field[0]
-        if len(split_field) > 2:
-            property_ = split_field[1]
-        else:
-            property_ = "label"
+        property_ = split_field[1] if len(split_field) > 2 else "label"
         query_map = QUERY_PATH.get(target)
         joins = list(reversed(query_map["joins"]))
         models = list(reversed(query_map["models"]))
@@ -148,11 +143,9 @@ def get_facets(aggs, musts, db_type, db):
         models.append(aliased(db_type))
         cur_alias = aliased(list(models)[0])
         initial_alias = cur_alias
-        property_group = PROPERTY_MAP.get(".".join([target, property_]), None)
-        facet_q = db.query(
-            getattr(initial_alias, property_group), func.count().label("count")
-        )
-        for model, join in zip(models[1:], joins):
+        property_group = PROPERTY_MAP.get(f"{target}.{property_}", None)
+        facet_q = db.query(getattr(initial_alias, property_group), func.count().label("count"))
+        for model, join in zip(models[1:], joins, strict=False):
             prev_alias = cur_alias
             cur_alias = aliased(model)
             facet_q = facet_q.join(
@@ -192,7 +185,7 @@ def build_response_elem(elem):
     except Exception as e:
         print(e)
         print(elem)
-        raise e
+        raise
     return {
         "_id": elem.legacy_id[0],
         "_index": "dummy",
@@ -202,9 +195,9 @@ def build_response_elem(elem):
 
 
 def find_term_keys(data):
-    """
-    Recursively find all keys named "term", "terms" or "wildcard" in the dictionary `data`,
-    :return: List of keys found.
+    """Recursively find all keys named "term", "terms" or "wildcard" in the dictionary `data`.
+
+    Return: List of keys found.
     """
     result = []
     if isinstance(data, dict):
@@ -241,13 +234,10 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                 "atlasRelease.@id",
             ]:
                 continue
+            if key == "@id":
+                query = query.filter(StringList.in_(initial_alias.legacy_id, [value]))
             else:
-                if key == "@id":
-                    query = query.filter(
-                        StringList.in_(initial_alias.legacy_id, [value])
-                    )
-                else:
-                    query = query.filter(getattr(db_type, key) == value)
+                query = query.filter(getattr(db_type, key) == value)
         elif "terms" in must_term:
             key_value = must_term["terms"].items()
 
@@ -269,8 +259,8 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                     property_ = "legacy_id"
                     cur_alias = initial_alias
                 else:
-                    query_map = QUERY_PATH.get(target, None)
-                    property_ = PROPERTY_MAP.get(".".join([target, property_]), None)
+                    query_map = QUERY_PATH.get(target)
+                    property_ = PROPERTY_MAP.get(f"{target}.{property_}", None)
                     if not query_map or not property_:
                         raise HTTPException(
                             status_code=500,
@@ -278,7 +268,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                         )
                     prev_alias = initial_alias
                     cur_alias = None
-                    for model, join in zip(query_map["models"], query_map["joins"]):
+                    for model, join in zip(query_map["models"], query_map["joins"], strict=False):
                         cur_alias = aliased(model)
                         query = query.join(
                             cur_alias,
@@ -329,9 +319,7 @@ def build_hits(hits, count, build_func):
     }
 
 
-def build_response_body(
-    facets=None, hits=None, count=-1, build_func=build_response_elem
-):
+def build_response_body(facets=None, hits=None, count=-1, build_func=build_response_elem):
     response = {}
     if facets:
         response["aggregations"] = build_aggregations(facets)

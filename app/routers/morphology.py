@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_filter import FilterDepends
@@ -32,9 +32,7 @@ router = APIRouter(
     "/{rm_id}",
     response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
 )
-def read_reconstruction_morphology(
-    rm_id: int, expand: Annotated[str | None, Query(None)], db: SessionDep
-):
+def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
     rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).first()
 
     if rm is None:
@@ -87,7 +85,7 @@ def read_reconstruction_morphologies(
 def morphology_query(
     req: Request,
     session: SessionDep,
-    term: Annotated[str | None, Query(None)],
+    term: str | None = None,
     skip: int = 0,
     limit: int = 10,
 ):

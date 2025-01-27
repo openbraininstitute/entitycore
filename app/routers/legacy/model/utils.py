@@ -135,7 +135,7 @@ def get_facets(aggs, musts, db_type, db):
             continue
         split_field = field["field"].split(".")
         target = split_field[0]
-        property_ = split_field[1] if len(split_field) > 2 else "label"
+        property_ = split_field[1] if len(split_field) > 2 else "label"  # noqa: PLR2004
         query_map = QUERY_PATH.get(target)
         joins = list(reversed(query_map["joins"]))
         models = list(reversed(query_map["models"]))
@@ -211,7 +211,7 @@ def find_term_keys(data):
     return result
 
 
-def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: PLR0912
+def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: C901, PLR0912, PLR0915
     initial_alias = alias or db_type
     for must_term in must_terms:
         if "term" in must_term:

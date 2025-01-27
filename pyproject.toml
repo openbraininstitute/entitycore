@@ -97,11 +97,6 @@ builtins-ignorelist = ["license"]
     "E501",    # Line too long
 ]
 "app/cli/import-data.py" = ["ALL"]
-"app/routers/legacy/model/utils.py" = [
-    "C901",    # `add_predicates_to_query` is too complex
-    "PLR0915", # Too many statements
-    "PLR2004", # Magic value used in comparison
-]
 "test_dump/**.py" = ["ALL"]
 "test_legacy/**.py" = ["ALL"]
 "tests/**.py" = [

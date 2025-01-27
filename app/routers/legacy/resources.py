@@ -1,5 +1,5 @@
 import json
-import os
+from pathlib import Path
 from urllib.parse import unquote
 
 from fastapi import APIRouter, HTTPException
@@ -40,19 +40,12 @@ def legacy_resources(path: str, db: SessionDep):
             extracted_url = unquote(path.split("_/")[1])
             # Return the extracted URL or process it further
             if "ontologies/core/brainregion" in extracted_url:
-                with open(
-                    os.path.join(os.path.dirname(__file__), "resources_data/atlas_ontology.json"),
-                ) as f:
+                with (Path(__file__).parent / "resources_data" / "atlas_ontology.json").open() as f:
                     return json.load(f)
-                return None
             if extracted_url in RESOURCE_MAP:
-                with open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "resources_data",
-                        RESOURCE_MAP[extracted_url],
-                    ),
-                ) as f:
+                with (
+                    Path(__file__).parent / "resources_data" / RESOURCE_MAP[extracted_url]
+                ).open() as f:
                     return json.load(f)
             db_element = (
                 db.query(Root).filter(func.strpos(Root.legacy_id, extracted_url) > 0).first()

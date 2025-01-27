@@ -1,5 +1,5 @@
 import json
-import os
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
@@ -37,12 +37,9 @@ def legacy_search(query: dict, path: str, db: SessionDep):  # noqa: ARG001
             if type_term == "Class":
                 return class_ontology.search(query, db)
             if type_term == "GeneratorTaskActivity":
-                with open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "search_data/GeneratorTaskActivity.json",
-                    )
-                ) as f:
+                with (
+                    Path(__file__).parent / "search_data" / "GeneratorTaskActivity.json"
+                ).open() as f:
                     return json.load(f)
         db_type = utils.get_db_type(query)
         musts = utils.find_term_keys(query.get("query", {}))

@@ -1,5 +1,4 @@
 import itertools as it
-import time
 
 import pytest
 import sqlalchemy
@@ -222,8 +221,6 @@ def test_query_reconstruction_morphology(client, species_id, strain_id, brain_re
             assert (
                 response.status_code == 200
             ), f"Failed to create reconstruction morphology: {response.text}"
-            # for creation time to be after the prvevious one
-            time.sleep(.1)
 
     count = 3
     create_morphologies(count)

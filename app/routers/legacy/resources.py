@@ -36,23 +36,21 @@ def legacy_resources(path: str, db: SessionDep):
     try:
         # Locate the `_` and the portion after `_/`
 
-        if "_/" in path:
-            extracted_url = unquote(path.split("_/")[1])
-            # Return the extracted URL or process it further
-            if "ontologies/core/brainregion" in extracted_url:
-                with (Path(__file__).parent / "resources_data" / "atlas_ontology.json").open() as f:
-                    return json.load(f)
-            if extracted_url in RESOURCE_MAP:
-                with (
-                    Path(__file__).parent / "resources_data" / RESOURCE_MAP[extracted_url]
-                ).open() as f:
-                    return json.load(f)
-            db_element = (
-                db.query(Root).filter(func.strpos(Root.legacy_id, extracted_url) > 0).first()
-            )
-            if not db_element:
-                return HTTPException(status_code=404, detail="Resource not found")
-            return create_legacy_resource_body(db_element, extracted_url)
-        return {"error": "'_/' not found in URL"}
+        if "_/" not in path:
+            return {"error": "'_/' not found in URL"}
+        extracted_url = unquote(path.split("_/")[1])
+        # Return the extracted URL or process it further
+        if "ontologies/core/brainregion" in extracted_url:
+            with (Path(__file__).parent / "resources_data" / "atlas_ontology.json").open() as f:
+                return json.load(f)
+        if extracted_url in RESOURCE_MAP:
+            with (
+                Path(__file__).parent / "resources_data" / RESOURCE_MAP[extracted_url]
+            ).open() as f:
+                return json.load(f)
+        db_element = db.query(Root).filter(func.strpos(Root.legacy_id, extracted_url) > 0).first()
+        if not db_element:
+            return HTTPException(status_code=404, detail="Resource not found")
+        return create_legacy_resource_body(db_element, extracted_url)
     except Exception as e:  # noqa: BLE001
         return {"error": str(e)}

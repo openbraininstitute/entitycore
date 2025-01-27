@@ -78,7 +78,6 @@ ignore = [
     "D106",    # Missing docstring in public nested class
     "ERA001",  # Found commented-out code
     "N815",    # Variable in class scope should not be mixedCase
-    "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
 ]
 
 [tool.ruff.lint.isort]

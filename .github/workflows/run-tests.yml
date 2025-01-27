@@ -33,4 +33,3 @@ jobs:
         if: ${{ always() }}
         run: |
           make destroy
-#          docker system prune --force --volumes

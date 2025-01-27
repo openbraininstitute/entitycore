@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
+from app import L
 from app.db.model import (
     Agent,
     AnalysisSoftwareSourceCode,
@@ -181,9 +182,8 @@ def build_response_elem(elem):
         else:
             initial_dict["@type"] = [MAP_TYPES[elem.__class__]]
         initial_dict["@id"] = elem.legacy_id[0]
-    except Exception as e:
-        print(e)
-        print(elem)
+    except Exception:
+        L.exception("elem: %s", elem)
         raise
     return {
         "_id": elem.legacy_id[0],

@@ -18,7 +18,6 @@ def test_experimental_neuron_density(client, species_id, strain_id, brain_region
         response.status_code == 200
     ), f"Failed to create  experimental neuron density: {response.text}"
     data = response.json()
-    print(data)
     assert (
         data["brain_region"]["id"] == brain_region_id
     ), f"Failed to get id for  experimental neuron density: {data}"

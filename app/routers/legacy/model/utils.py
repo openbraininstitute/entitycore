@@ -211,7 +211,7 @@ def find_term_keys(data):
     return result
 
 
-def add_predicates_to_query(query, must_terms, db_type, alias=None):
+def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: PLR0912
     initial_alias = alias or db_type
     for must_term in must_terms:
         if "term" in must_term:

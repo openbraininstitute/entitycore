@@ -79,8 +79,6 @@ ignore = [
     "E501",    # Line too long
     "ERA001",  # Found commented-out code
     "N815",    # Variable in class scope should not be mixedCase
-    "PLR0911", # Too many return statements (7 > 6)
-    "PLR0912", # Too many branches (24 > 12)
     "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
 ]
 

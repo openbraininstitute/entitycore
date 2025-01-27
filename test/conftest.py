@@ -49,3 +49,57 @@ def species_id(client):
     assert data["name"] == "Test Species"
     assert "id" in data, f"Failed to get id for species: {data}"
     return data["id"]
+
+
+@pytest.fixture(scope="function")
+def strain_id(client, species_id):
+    response = client.post(
+        "/strain/",
+        json={
+            "name": "Test Strain",
+            "taxonomy_id": "Taxonomy ID",
+            "species_id": species_id,
+        },
+    )
+    assert response.status_code == 200, f"Failed to create strain: {response.text}"
+    data = response.json()
+    assert data["taxonomy_id"] == "Taxonomy ID"
+    assert "id" in data, f"Failed to get id for strain: {data}"
+    strain_id = data["id"]
+    return strain_id
+
+
+@pytest.fixture(scope="function")
+def license_id(client, species_id):
+    response = client.post(
+        "/license/",
+        json={
+            "name": "Test License",
+            "description": "a license description",
+            "label": "test label",
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "id" in data, f"Failed to get id for license: {data}"
+    license_id = data["id"]
+    return license_id
+
+
+@pytest.fixture(scope="function")
+def brain_region_id(client):
+    ontology_id = "Test Ontology ID"
+    response = client.post(
+        "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
+    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create brain region: {response.text}"
+    data = response.json()
+    assert data["name"] == "Test Brain Region"
+    assert data["ontology_id"] == ontology_id
+    assert "id" in data, f"Failed to get id for brain region: {data}"
+    brain_region_id = data["id"]
+    return brain_region_id
+
+

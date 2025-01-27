@@ -1,42 +1,4 @@
-def test_experimental_bouton_density(client, species_id):
-    response = client.post(
-        "/strain/",
-        json={
-            "name": "Test Strain",
-            "taxonomy_id": "Taxonomy ID",
-            "species_id": species_id,
-        },
-    )
-    assert response.status_code == 200, f"Failed to create strain: {response.text}"
-    data = response.json()
-    assert data["taxonomy_id"] == "Taxonomy ID"
-    assert "id" in data, f"Failed to get id for strain: {data}"
-    strain_id = data["id"]
-
-    ontology_id = "Test Ontology ID"
-    response = client.post(
-        "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
-    )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create brain region: {response.text}"
-    data = response.json()
-    assert data["name"] == "Test Brain Region"
-    assert data["ontology_id"] == ontology_id
-    assert "id" in data, f"Failed to get id for brain region: {data}"
-    brain_region_id = data["id"]
-    response = client.post(
-        "/license/",
-        json={
-            "name": "Test License",
-            "description": "a license description",
-            "label": "test label",
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
-    license_id = data["id"]
-    assert "id" in data, f"Failed to get id for license: {data}"
+def test_experimental_bouton_density(client, species_id, strain_id, license_id, brain_region_id):
     bouton_description = "Test bouton Description"
     bouton_name = "Test bouton Name"
     response = client.post(

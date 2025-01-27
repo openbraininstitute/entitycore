@@ -1,10 +1,9 @@
 import json
 import os
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
 
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.routers.legacy.model import class_ontology, utils
 
 router = APIRouter(
@@ -14,7 +13,7 @@ router = APIRouter(
 
 
 @router.post("/{path:path}/_search")
-def legacy_search(query: dict, path: str, db: Session = Depends(get_db)):  # noqa: ARG001
+def legacy_search(query: dict, path: str, db: SessionDep):  # noqa: ARG001
     try:
         terms = query.get("query", {}).get("bool", {}).get("must", [])
         # if not terms:

@@ -2,12 +2,11 @@ import json
 import os
 from urllib.parse import unquote
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from sqlalchemy import func
-from sqlalchemy.orm import Session
 
 from app.db.model import Root
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.schemas.agent import PersonRead
 
 router = APIRouter(
@@ -32,7 +31,7 @@ RESOURCE_MAP = {
 
 
 @router.get("/{path:path}")
-def legacy_resources(path: str, db: Session = Depends(get_db)):
+def legacy_resources(path: str, db: SessionDep):
     # Extract the part after '_/'
     try:
         # Locate the `_` and the portion after `_/`

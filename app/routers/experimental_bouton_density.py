@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
 
 from app.db.model import (
     BrainLocation,
     ExperimentalBoutonDensity,
 )
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
@@ -19,9 +18,7 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[ExperimentalBoutonDensityRead])
-def read_experimental_bouton_densities(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
-):
+def read_experimental_bouton_densities(db: SessionDep, skip: int = 0, limit: int = 10):
     users = db.query(ExperimentalBoutonDensity).offset(skip).limit(limit).all()
     return users
 
@@ -30,9 +27,7 @@ def read_experimental_bouton_densities(
     "/{experimental_bouton_density_id}",
     response_model=ExperimentalBoutonDensityRead,
 )
-def read_experimental_bouton_density(
-    experimental_bouton_density_id: int, db: Session = Depends(get_db)
-):
+def read_experimental_bouton_density(experimental_bouton_density_id: int, db: SessionDep):
     experimental_bouton_density = (
         db.query(ExperimentalBoutonDensity)
         .filter(ExperimentalBoutonDensity.id == experimental_bouton_density_id)
@@ -46,9 +41,7 @@ def read_experimental_bouton_density(
 
 
 @router.post("/", response_model=ExperimentalBoutonDensityRead)
-def create_experimental_bouton_density(
-    density: ExperimentalBoutonDensityCreate, db: Session = Depends(get_db)
-):
+def create_experimental_bouton_density(density: ExperimentalBoutonDensityCreate, db: SessionDep):
     dump = density.model_dump()
 
     if density.brain_location:

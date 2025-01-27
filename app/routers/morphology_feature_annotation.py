@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
 from app.db.model import (
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
     MorphologyMeasurementSerieElement,
 )
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
     MorphologyFeatureAnnotationRead,
@@ -22,7 +21,7 @@ router = APIRouter(
 @router.post("/", response_model=MorphologyFeatureAnnotationRead)
 def create_morphology_feature_annotation(
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
-    db: Session = Depends(get_db),
+    db: SessionDep,
 ):
     db_morphology_feature_annotation = MorphologyFeatureAnnotation(
         reconstruction_morphology_id=morphology_feature_annotation.reconstruction_morphology_id
@@ -44,8 +43,6 @@ def create_morphology_feature_annotation(
 
 
 @router.get("/", response_model=list[MorphologyFeatureAnnotationCreate])
-def read_morphology_feature_annotations(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
-):
+def read_morphology_feature_annotations(db: SessionDep, skip: int = 0, limit: int = 10):
     users = db.query(MorphologyFeatureAnnotation).offset(skip).limit(limit).all()
     return users

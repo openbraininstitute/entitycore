@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
 
 from app.db.model import BrainLocation, ExperimentalSynapsesPerConnection
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
@@ -16,9 +15,7 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[ExperimentalSynapsesPerConnectionRead])
-def read_experimental_neuron_densities(
-    skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
-):
+def read_experimental_neuron_densities(db: SessionDep, skip: int = 0, limit: int = 10):
     users = db.query(ExperimentalSynapsesPerConnection).offset(skip).limit(limit).all()
     return users
 
@@ -27,9 +24,7 @@ def read_experimental_neuron_densities(
     "/{experimental_synapses_per_connection_id}",
     response_model=ExperimentalSynapsesPerConnectionRead,
 )
-def read_experimental_neuron_density(
-    experimental_synapses_per_connection_id: int, db: Session = Depends(get_db)
-):
+def read_experimental_neuron_density(experimental_synapses_per_connection_id: int, db: SessionDep):
     experimental_synapses_per_connection_id = (
         db.query(ExperimentalSynapsesPerConnection)
         .filter(ExperimentalSynapsesPerConnection.id == experimental_synapses_per_connection_id)
@@ -48,7 +43,7 @@ def read_experimental_neuron_density(
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)
 def create_experimental_neuron_density(
-    density: ExperimentalSynapsesPerConnectionCreate, db: Session = Depends(get_db)
+    density: ExperimentalSynapsesPerConnectionCreate, db: SessionDep
 ):
     dump = density.model_dump()
     if density.brain_location:

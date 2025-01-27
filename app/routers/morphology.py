@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_filter import FilterDepends
 from sqlalchemy import func
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import aliased
 
 from app.db.model import (
     BrainLocation,
@@ -11,7 +13,7 @@ from app.db.model import (
     Species,
     Strain,
 )
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
@@ -31,7 +33,7 @@ router = APIRouter(
     response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
 )
 def read_reconstruction_morphology(
-    rm_id: int, expand: str | None = Query(None), db: Session = Depends(get_db)
+    rm_id: int, expand: Annotated[str | None, Query(None)], db: SessionDep
 ):
     rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).first()
 
@@ -49,7 +51,7 @@ def read_reconstruction_morphology(
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
     reconstruction: ReconstructionMorphologyCreate,
-    db: Session = Depends(get_db),
+    db: SessionDep,
 ):
     brain_location = None
 
@@ -73,10 +75,10 @@ def create_reconstruction_morphology(
 
 @router.get("/", response_model=list[ReconstructionMorphologyRead])
 def read_reconstruction_morphologies(
+    morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
+    db: SessionDep,
     skip: int = 0,
     limit: int = 10,
-    morphology_filter: MorphologyFilter = FilterDepends(MorphologyFilter),
-    db: Session = Depends(get_db),
 ):
     query = db.query(ReconstructionMorphology)
     query = morphology_filter.filter(query)
@@ -87,10 +89,10 @@ def read_reconstruction_morphologies(
 @router.get("/q/")
 def morphology_query(
     req: Request,
-    term: str | None = Query(None),
+    session: SessionDep,
+    term: Annotated[str | None, Query(None)],
     skip: int = 0,
     limit: int = 10,
-    session: Session = Depends(get_db),
 ):
     # brain_region_id, species_id, strain_id
     args = req.query_params

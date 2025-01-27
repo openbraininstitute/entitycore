@@ -69,14 +69,7 @@ ignore = [
     "DOC402",  # `yield` is not documented in docstring
     "DOC501",  # Raised exception missing from docstring
     ### TODO: remove additional rules temporarily ignored (higher priority)
-    "A001",    # Variable is shadowing a Python builtin
-    "A002",    # Function argument is shadowing a Python builtin
-    "A004",    # Import `license` is shadowing a Python builtin
     "ANN",     # All the annotations
-    "ARG001",  # Unused function argument
-    "ARG002",  # Unused method argument
-    "B008",    # Do not perform function call `Depends` in argument defaults
-    "BLE001",  # Do not catch blind exception: `Exception`
     "D100",    # Missing docstring in public module
     "D101",    # Missing docstring in public class
     "D102",    # Missing docstring in public method
@@ -85,7 +78,6 @@ ignore = [
     "D106",    # Missing docstring in public nested class
     "E501",    # Line too long
     "ERA001",  # Found commented-out code
-    "FAST002", # FastAPI dependency without `Annotated`
     "N815",    # Variable in class scope should not be mixedCase
     "PLC0206", # Extracting value from dictionary without calling `.items()`
     "PLR0911", # Too many return statements (7 > 6)
@@ -109,6 +101,9 @@ ignore = [
 [tool.ruff.lint.isort]
 known-local-folder = ["tests"]
 combine-as-imports = true
+
+[tool.ruff.lint.flake8-builtins]
+builtins-ignorelist = ["license"]
 
 [tool.ruff.lint.per-file-ignores]
 "alembic/**.py" = [

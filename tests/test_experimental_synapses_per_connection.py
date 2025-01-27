@@ -1,4 +1,6 @@
-def test_experimental_synapses_per_connection(client, species_id, strain_id, license_id, brain_region_id):
+def test_experimental_synapses_per_connection(
+    client, species_id, strain_id, license_id, brain_region_id
+):
     bouton_description = "Test bouton Description"
     bouton_name = "Test bouton Name"
     response = client.post(

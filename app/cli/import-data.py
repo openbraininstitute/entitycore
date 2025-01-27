@@ -11,24 +11,24 @@ from tqdm import tqdm
 from app import configure_database_session_manager
 from app.cli import curate, utils
 from app.db.model import (
-    Person,
-    Organization,
-    ETypeAnnotationBody,
-    MTypeAnnotationBody,
-    DataMaturityAnnotationBody,
-    Annotation,
-    License,
     AnalysisSoftwareSourceCode,
-    ExperimentalNeuronDensity,
-    ExperimentalBoutonDensity,
-    ExperimentalSynapsesPerConnection,
+    Annotation,
+    DataMaturityAnnotationBody,
     EModel,
+    ETypeAnnotationBody,
+    ExperimentalBoutonDensity,
+    ExperimentalNeuronDensity,
+    ExperimentalSynapsesPerConnection,
+    License,
     MEModel,
     Mesh,
-    ReconstructionMorphology,
-    MorphologyMeasurementSerieElement,
-    MorphologyMeasurement,
     MorphologyFeatureAnnotation,
+    MorphologyMeasurement,
+    MorphologyMeasurementSerieElement,
+    MTypeAnnotationBody,
+    Organization,
+    Person,
+    ReconstructionMorphology,
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
 )
@@ -43,25 +43,20 @@ def get_or_create_annotation_body(annotation_body, db):
         "DataScope": None,
     }
     annotation_type_list = annotation_body["@type"]
-    intersection = [
-        value for value in annotation_type_list if value in annotation_types
-    ]
+    intersection = [value for value in annotation_type_list if value in annotation_types]
 
-    assert (
-        len(intersection) == 1
-    ), f"Unknown annotation body type {annotation_body['@type']}"
+    assert len(intersection) == 1, f"Unknown annotation body type {annotation_body['@type']}"
     db_annotation = annotation_types[intersection[0]]
     # TODO manage datascope
     if db_annotation is None:
         return None
     ab = (
-        db.query(db_annotation)
-        .filter(db_annotation.pref_label == annotation_body["label"])
-        .first()
+        db.query(db_annotation).filter(db_annotation.pref_label == annotation_body["label"]).first()
     )
     if not ab:
         if db_annotation is MTypeAnnotationBody:
-            raise ValueError(f"Missing mtype in annotation body {annotation_body}")
+            msg = f"Missing mtype in annotation body {annotation_body}"
+            raise ValueError(msg)
         ab = db_annotation(pref_label=annotation_body["label"])
         db.add(ab)
         db.commit()
@@ -84,9 +79,7 @@ def import_licenses(data, db):
         }
     )
     for license in data:
-        db_license = (
-            db.query(License).filter(License.name == license["@id"]).first()
-        )
+        db_license = db.query(License).filter(License.name == license["@id"]).first()
         if db_license:
             continue
         try:
@@ -102,18 +95,14 @@ def import_licenses(data, db):
         except Exception as e:
             print(e)
             print(license)
-            raise e
+            raise
 
 
 def _import_annotation_body(data, db_type_, db):
     for class_elem in tqdm(data):
         if db_type_ == ETypeAnnotationBody:
             class_elem = curate.curate_etype(class_elem)
-        db_elem = (
-            db.query(db_type_)
-            .filter(db_type_.pref_label == class_elem["label"])
-            .first()
-        )
+        db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
         if db_elem:
             assert db_elem.definition == class_elem.get("definition", "")
             assert db_elem.alt_label == class_elem.get("prefLabel", "")
@@ -246,9 +235,7 @@ def import_agents(data_list, db):
                 try:
                     name = data["name"]
                     db_agent = (
-                        db.query(Organization)
-                        .filter(Organization.pref_label == name)
-                        .first()
+                        db.query(Organization).filter(Organization.pref_label == name).first()
                     )
                     if db_agent:
                         ll = db_agent.legacy_id.copy()
@@ -275,11 +262,9 @@ def import_single_neuron_simulation(data, db):
         return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
-        rm = utils._find_by_legacy_id(
-            legacy_id, SingleNeuronSimulation, db
-        )
+        rm = utils._find_by_legacy_id(legacy_id, SingleNeuronSimulation, db)
         if not rm:
-            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             me_model_lid = data.get("used", {}).get("@id", None)
             me_model = utils._find_by_legacy_id(me_model_lid, MEModel, db)
@@ -314,9 +299,7 @@ def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
 
 
 def import_analysis_software_source_code(data, db):
-    possible_data = [
-        data for data in data if data["@type"] == "AnalysisSoftwareSourceCode"
-    ]
+    possible_data = [data for data in data if data["@type"] == "AnalysisSoftwareSourceCode"]
     if not possible_data:
         return
     for data in tqdm(possible_data):
@@ -349,7 +332,7 @@ def import_me_models(data, db):
         types = data["@type"]
         if isinstance(types, list):
             return "MEModel" in types or "https://neuroshapes.org/MEModel" in types
-        return "MEModel" == types or "https://neuroshapes.org/MEModel" == types
+        return types in {"MEModel", "https://neuroshapes.org/MEModel"}
 
     possible_data = [data for data in data if is_memodel(data)]
     if not possible_data:
@@ -385,7 +368,7 @@ def import_e_models(data, db):
         types = data["@type"]
         if isinstance(types, list):
             return "EModel" in types
-        return "EModel" == types
+        return types == "EModel"
 
     possible_data = [data for data in data if is_emodel(data)]
     if not possible_data:
@@ -427,9 +410,7 @@ def import_e_models(data, db):
 def import_brain_region_meshes(data, db):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
     possible_data = [
-        data
-        for data in possible_data
-        if data.get("atlasRelease").get("tag", None) == "v1.1.0"
+        data for data in possible_data if data.get("atlasRelease").get("tag", None) == "v1.1.0"
     ]
     if not possible_data:
         return
@@ -449,16 +430,12 @@ def import_brain_region_meshes(data, db):
 
 
 def import_traces(data_list, db):
-    possible_data = [
-        data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]
-    ]
+    possible_data = [data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]]
     if not possible_data:
         return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
-        rm = utils._find_by_legacy_id(
-            legacy_id, SingleCellExperimentalTrace, db
-        )
+        rm = utils._find_by_legacy_id(legacy_id, SingleCellExperimentalTrace, db)
         if not rm:
             data = curate.curate_trace(data)
             description = data.get("description", None)
@@ -488,16 +465,12 @@ def import_traces(data_list, db):
 
 
 def import_morphologies(data_list, db):
-    possible_data = [
-        data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]
-    ]
+    possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
     if not possible_data:
         return
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
-        rm = utils._find_by_legacy_id(
-            legacy_id, ReconstructionMorphology, db
-        )
+        rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
         if not rm:
             description = data.get("description", None)
             name = data.get("name", None)
@@ -522,16 +495,12 @@ def import_morphologies(data_list, db):
             if isinstance(annotations, dict):
                 annotations = [annotations]
             for annotation in annotations:
-                get_or_create_annotation(
-                    annotation, db_reconstruction_morphology.id, db
-                )
+                get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
 
 
 def import_morphology_feature_annotations(data_list, db):
     possible_data = [
-        data
-        for data in data_list
-        if "NeuronMorphologyFeatureAnnotation" in data["@type"]
+        data for data in data_list if "NeuronMorphologyFeatureAnnotation" in data["@type"]
     ]
     if not possible_data:
         return
@@ -539,13 +508,9 @@ def import_morphology_feature_annotations(data_list, db):
         try:
             legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
             if not legacy_id:
-                print(
-                    "Skipping morphology feature annotation due to missing legacy id."
-                )
+                print("Skipping morphology feature annotation due to missing legacy id.")
                 continue
-            rm = utils._find_by_legacy_id(
-                legacy_id, ReconstructionMorphology, db
-            )
+            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
             if not rm:
                 print("skipping morphology that is not imported")
                 continue
@@ -564,9 +529,7 @@ def import_morphology_feature_annotations(data_list, db):
 
                 all_measurements.append(
                     MorphologyMeasurement(
-                        measurement_of=measurement.get("isMeasurementOf", {}).get(
-                            "label", None
-                        ),
+                        measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
                         measurement_serie=measurement_serie,
                     )
                 )
@@ -618,9 +581,7 @@ def import_experimental_synapses_per_connection(data_list, db):
     )
 
 
-def _import_experimental_densities(
-    data_list, db, schema_type, model_type, curate_function
-):
+def _import_experimental_densities(data_list, db, schema_type, model_type, curate_function):
     possible_data = [data for data in data_list if schema_type in data["@type"]]
     if not possible_data:
         return
@@ -658,29 +619,19 @@ def _do_import(db, input_dir):
             data = json.load(f)
             import_agents(data, db)
     print("import licenses")
-    with open(
-        os.path.join(input_dir, "bbp", "licenses", "provEntity.json")
-    ) as f:
+    with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
         data = json.load(f)
         import_licenses(data, db)
     print("import mtype annotations")
-    with open(
-        os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")
-    ) as f:
+    with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
         data = json.load(f)
-        possible_data = [
-            data for data in data if "nsg:MType" in data.get("subClassOf", {})
-        ]
+        possible_data = [data for data in data if "nsg:MType" in data.get("subClassOf", {})]
         import_mtype_annotation_body(possible_data, db)
 
     print("import etype annotations")
-    with open(
-        os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")
-    ) as f:
+    with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
         data = json.load(f)
-        possible_data = [
-            data for data in data if "nsg:EType" in data.get("subClassOf", {})
-        ]
+        possible_data = [data for data in data if "nsg:EType" in data.get("subClassOf", {})]
         import_etype_annotation_body(possible_data, db)
 
     l_imports = [
@@ -691,9 +642,7 @@ def _do_import(db, input_dir):
         {"morphologyFeatureAnnotations": import_morphology_feature_annotations},
         {"experimentalNeuronDensities": import_experimental_neuron_densities},
         {"experimentalBoutonDensities": import_experimental_bouton_densities},
-        {
-            "experimentalSynapsesPerConnections": import_experimental_synapses_per_connection
-        },
+        {"experimentalSynapsesPerConnections": import_experimental_synapses_per_connection},
         {"traces": import_traces},
         {"meModels": import_me_models},
         {"SingleNeuronSimulation": import_single_neuron_simulation},

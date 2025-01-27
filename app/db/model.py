@@ -26,10 +26,12 @@ class StringListType(TypeDecorator):
     def process_bind_param(self, value, dialect):
         if value is not None:
             return ",".join(value)
+        return None
 
     def process_result_value(self, value, dialect):
         if value is not None:
             return value.split(",")
+        return None
 
     @staticmethod
     def is_equal(column, value):
@@ -136,24 +138,23 @@ class LicensedMixin:
     license_id: Mapped[int] = mapped_column(ForeignKey("license.id"), nullable=True)
 
     @declared_attr
+    @classmethod
     def license(cls):
         return relationship("License", uselist=False)
 
 
 class LocationMixin:
-    brain_location_id: Mapped[int] = mapped_column(
-        ForeignKey("brain_location.id"), nullable=True
-    )
+    brain_location_id: Mapped[int] = mapped_column(ForeignKey("brain_location.id"), nullable=True)
 
     @declared_attr
+    @classmethod
     def brain_location(cls):
         return relationship("BrainLocation", uselist=False)
 
-    brain_region_id: Mapped[int] = mapped_column(
-        ForeignKey("brain_region.id"), nullable=False
-    )
+    brain_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), nullable=False)
 
     @declared_attr
+    @classmethod
     def brain_region(cls):
         return relationship("BrainRegion", uselist=False)
 
@@ -162,12 +163,14 @@ class SpeciesMixin:
     species_id: Mapped[int] = mapped_column(ForeignKey("species.id"), nullable=False)
 
     @declared_attr
+    @classmethod
     def species(cls):
         return relationship("Species", uselist=False)
 
     strain_id = mapped_column(ForeignKey("strain.id"), nullable=True)
 
     @declared_attr
+    @classmethod
     def strain(cls):
         return relationship("Strain", uselist=False)
 
@@ -189,18 +192,14 @@ class Person(Agent):
     __mapper_args__ = {
         "polymorphic_identity": "person",
     }
-    __table_args__ = (
-        UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),
-    )
+    __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
 
 
 class Organization(Agent):
     __tablename__ = "organization"
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     # what is the difference between name and label here ?
-    alternative_name: Mapped[str] = mapped_column(
-        unique=False, index=False, nullable=False
-    )
+    alternative_name: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     __mapper_args__ = {
         "polymorphic_identity": "organization",
     }
@@ -337,9 +336,7 @@ class Contribution(TimestampMixin, Base):
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), nullable=False)
     entity = relationship("Entity", uselist=False)
     __table_args__ = (
-        UniqueConstraint(
-            "entity_id", "role_id", "agent_id", name="unique_contribution_1"
-        ),
+        UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
     )
 
 
@@ -378,9 +375,7 @@ class Mesh(DistributionMixin, Entity):
         nullable=False,
         autoincrement=True,
     )
-    brain_region_id: Mapped[int] = mapped_column(
-        ForeignKey("brain_region.id"), nullable=False
-    )
+    brain_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), nullable=False)
     brain_region = relationship("BrainRegion", uselist=False)
     __mapper_args__ = {"polymorphic_identity": "mesh"}
 
@@ -411,9 +406,7 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     # name is not unique
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     morphology_description_vector = Column(TSVECTOR, nullable=True)
-    morphology_feature_annotation = relationship(
-        "MorphologyFeatureAnnotation", uselist=False
-    )
+    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}
 
 
@@ -436,9 +429,7 @@ class MorphologyFeatureAnnotation(TimestampMixin, Base):
 class MorphologyMeasurement(Base):
     __tablename__ = "measurement"
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    measurement_of: Mapped[str] = mapped_column(
-        unique=False, index=True, nullable=False
-    )
+    measurement_of: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     morphology_feature_annotation_id: Mapped[int] = mapped_column(
         ForeignKey("morphology_feature_annotation.id"), nullable=False
     )
@@ -450,9 +441,7 @@ class MorphologyMeasurementSerieElement(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(unique=False, index=False, nullable=True)
     value: Mapped[float] = mapped_column(unique=False, index=False, nullable=True)
-    measurement_id: Mapped[int] = mapped_column(
-        ForeignKey("measurement.id"), nullable=False
-    )
+    measurement_id: Mapped[int] = mapped_column(ForeignKey("measurement.id"), nullable=False)
 
 
 class Role(LegacyMixin, TimestampMixin, Base):
@@ -527,9 +516,7 @@ class ExperimentalBoutonDensity(LocationMixin, SpeciesMixin, LicensedMixin, Enti
     __mapper_args__ = {"polymorphic_identity": "experimental_bouton_density"}
 
 
-class ExperimentalSynapsesPerConnection(
-    LocationMixin, SpeciesMixin, LicensedMixin, Entity
-):
+class ExperimentalSynapsesPerConnection(LocationMixin, SpeciesMixin, LicensedMixin, Entity):
     __tablename__ = "experimental_synapses_per_connection"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)

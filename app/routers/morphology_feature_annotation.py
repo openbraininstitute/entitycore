@@ -6,9 +6,7 @@ from app.db.model import (
     MorphologyMeasurement,
     MorphologyMeasurementSerieElement,
 )
-
 from app.dependencies.db import get_db
-
 from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
     MorphologyFeatureAnnotationRead,

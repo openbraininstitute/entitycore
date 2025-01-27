@@ -44,9 +44,7 @@ def test_sbo_experimental_synapses_per_connection(client):
 
 
 def test_sbo_experimental_trace(client):
-    response = client.post(
-        TEST_SBO_END_POINT, json=get_body("sbo_count_experimental_trace")
-    )
+    response = client.post(TEST_SBO_END_POINT, json=get_body("sbo_count_experimental_trace"))
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data["hits"]["total"]["value"], int)

@@ -12,9 +12,5 @@ def test_search_mesh(client):
     assert data[0]["_id"] == data[0]["_source"]["@id"]
     source = data[0]["_source"]
     assert source["@type"] == ["Mesh"]
-    assert source.get("brainLocation", {}).get(
-        "brainRegion", None
-    ), "brainRegion not found"
-    assert source.get("distribution", {}).get(
-        "contentUrl", None
-    ), "contentUrl not found"
+    assert source.get("brainLocation", {}).get("brainRegion", None), "brainRegion not found"
+    assert source.get("distribution", {}).get("contentUrl", None), "contentUrl not found"

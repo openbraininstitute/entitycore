@@ -14,8 +14,7 @@ def test_sbo_facets(client):
         assert isinstance(item["doc_count"], int)
 
     assert (
-        data["aggregations"]["contributors"]["buckets"][0]["key"]
-        == "Aur\u00e9lien Tristan Jaquier"
+        data["aggregations"]["contributors"]["buckets"][0]["key"] == "Aur\u00e9lien Tristan Jaquier"
     )
     # TODO: fix Ilkan's name
     # assert data["aggregations"]["contributors"]["buckets"][1]["key"] == "Ilkan Fabrice Kili\u00e7"

@@ -14,7 +14,7 @@ router = APIRouter(
 
 
 @router.post("/{path:path}/_search")
-def legacy_search(query: dict, db: Session = Depends(get_db)):
+def legacy_search(query: dict, path, db: Session = Depends(get_db)):
     try:
         terms = query.get("query", {}).get("bool", {}).get("must", [])
         # if not terms:
@@ -49,8 +49,8 @@ def legacy_search(query: dict, db: Session = Depends(get_db)):
         musts = utils.find_term_keys(query.get("query", {}))
         db_query = db.query(db_type)
         db_query = utils.add_predicates_to_query(db_query, musts, db_type)
-        from_ = query.get("from", None)
-        size = query.get("size", None)
+        from_ = query.get("from")
+        size = query.get("size")
         if from_ is not None:
             db_query = db_query.offset(from_)
         if size is not None:
@@ -58,8 +58,8 @@ def legacy_search(query: dict, db: Session = Depends(get_db)):
         hits = db_query.all()
         count = db_query.count()
         response = utils.build_response_body(hits=hits, count=count)
-    except HTTPException as e:
-        raise e
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
     return response

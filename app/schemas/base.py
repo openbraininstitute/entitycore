@@ -13,9 +13,7 @@ class CreationMixin(BaseModel):
         result["creation_date"] = (
             result["creation_date"].isoformat() if result["creation_date"] else None
         )
-        result["update_date"] = (
-            result["update_date"].isoformat() if result["update_date"] else None
-        )
+        result["update_date"] = result["update_date"].isoformat() if result["update_date"] else None
         return result
 
     class Config:

@@ -20,9 +20,7 @@ def legacy_files(path: str, request: Request, db: Session = Depends(get_db)):
     file_name = "/".join(path.split("/", 2)[2:])
     encoded_filename = urllib.parse.quote(file_name, safe=":")
     with open(
-        os.path.join(
-            os.path.dirname(__file__), "files_data", directory, encoded_filename
-        ),
+        os.path.join(os.path.dirname(__file__), "files_data", directory, encoded_filename),
     ) as f:
         try:
             data = json.load(f)

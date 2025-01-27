@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.db.session import DatabaseSessionManager, configure_database_session_manager
+from app.db.session import configure_database_session_manager
 from app.logger import L
 from app.routers import router
 

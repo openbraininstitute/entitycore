@@ -81,7 +81,6 @@ ignore = [
     "N815",    # Variable in class scope should not be mixedCase
     "PLR0911", # Too many return statements (7 > 6)
     "PLR0912", # Too many branches (24 > 12)
-    "PLR6301", # Method could be a function, class method, or static method
     "RUF012",  # Mutable class attributes should be annotated with `typing.ClassVar`
     "S101",    # Use of `assert` detected
 ]

@@ -32,7 +32,7 @@ test-local: export DB_NAME=test
 test-local:  ## Run tests locally
 	docker compose up --wait db-test
 	uv run -m alembic upgrade head
-	uv run -m pytest -sv test
+	uv run -m pytest -sv tests
 
 test-docker: build  ## Run tests in Docker
 	docker compose run --rm --remove-orphans test

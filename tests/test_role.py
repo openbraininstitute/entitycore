@@ -1,4 +1,4 @@
-def test_create_person(client):
+def test_create_role(client):
     name = "important role"
     role_id = "important role id"
     response = client.post("/role/", json={"name": name, "role_id": role_id})
@@ -20,3 +20,11 @@ def test_create_person(client):
     assert data[0]["name"] == name
     assert data[0]["id"] == id_
     assert len(data) == 1
+
+
+def test_missing_role(client):
+    response = client.get("/role/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/role/notanumber")
+    assert response.status_code == 422

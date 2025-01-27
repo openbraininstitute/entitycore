@@ -1,49 +1,4 @@
-def test_experimental_synapses_per_connection(client):
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
-    assert response.status_code == 200, f"Failed to create species: {response.text}"
-    data = response.json()
-    assert data["name"] == "Test Species"
-    assert "id" in data, f"Failed to get id for species: {data}"
-    species_id = data["id"]
-    response = client.post(
-        "/strain/",
-        json={
-            "name": "Test Strain",
-            "taxonomy_id": "Taxonomy ID",
-            "species_id": species_id,
-        },
-    )
-    assert response.status_code == 200, f"Failed to create strain: {response.text}"
-    data = response.json()
-    assert data["taxonomy_id"] == "Taxonomy ID"
-    assert "id" in data, f"Failed to get id for strain: {data}"
-    strain_id = data["id"]
-    ontology_id = "Test Ontology ID"
-    response = client.post(
-        "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
-    )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create brain region: {response.text}"
-    data = response.json()
-    assert data["name"] == "Test Brain Region"
-    assert data["ontology_id"] == ontology_id
-    assert "id" in data, f"Failed to get id for brain region: {data}"
-    brain_region_id = data["id"]
-    response = client.post(
-        "/license/",
-        json={
-            "name": "Test License",
-            "description": "a license description",
-            "label": "test label",
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
-    license_id = data["id"]
-    assert "id" in data, f"Failed to get id for license: {data}"
+def test_experimental_synapses_per_connection(client, species_id, strain_id, license_id, brain_region_id):
     bouton_description = "Test bouton Description"
     bouton_name = "Test bouton Name"
     response = client.post(
@@ -89,3 +44,15 @@ def test_experimental_synapses_per_connection(client):
     assert data["species"]["id"] == species_id
     assert data["strain"]["id"] == strain_id
     assert data["description"] == bouton_description
+
+    response = client.get("/experimental_synapses_per_connection/")
+    assert response.status_code == 200
+    assert len(response.json()) == 1
+
+
+def test_missing_experimental_synapses_per_connection(client):
+    response = client.get("/experimental_synapses_per_connection/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/experimental_synapses_per_connection/notanumber")
+    assert response.status_code == 422

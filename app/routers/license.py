@@ -18,13 +18,13 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[LicenseRead])
-async def read_licenses(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def read_licenses(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     users = db.query(License).offset(skip).limit(limit).all()
     return users
 
 
 @router.get("/{license_id}", response_model=LicenseRead)
-async def read_license(license_id: int, db: Session = Depends(get_db)):
+def read_license(license_id: int, db: Session = Depends(get_db)):
     license = db.query(License).filter(License.id == license_id).first()
     if license is None:
         raise HTTPException(status_code=404, detail="License not found")

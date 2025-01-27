@@ -16,7 +16,7 @@ services:
     - DB_HOST=db-test
     - DB_PORT=5432
     volumes:
-    - ./test:/code/tests
+    - ./tests:/code/tests
     depends_on:
       db-test:
         condition: service_healthy

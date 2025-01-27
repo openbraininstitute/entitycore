@@ -45,11 +45,8 @@ def create_morphology_feature_annotation(
     return db_morphology_feature_annotation
 
 
-@router.get(
-    "/",
-    response_model=list[MorphologyFeatureAnnotationCreate],
-)
-async def read_morphology_feature_annotations(
+@router.get("/", response_model=list[MorphologyFeatureAnnotationCreate])
+def read_morphology_feature_annotations(
     skip: int = 0, limit: int = 10, db: Session = Depends(get_db)
 ):
     users = db.query(MorphologyFeatureAnnotation).offset(skip).limit(limit).all()

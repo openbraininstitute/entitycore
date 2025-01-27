@@ -1,85 +1,10 @@
+import itertools as it
+
 import pytest
 import sqlalchemy
 
 
-def test_create_species(client):
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "Test Species"
-    assert "id" in data
-
-
-def test_create_strain(client):
-    response = client.post(
-        "/species/", json={"name": "Test Strain", "taxonomy_id": "12345"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "Test Strain"
-    assert "id" in data
-    response = client.post(
-        "/strain/",
-        json={
-            "name": "Test Strain",
-            "taxonomy_id": "Taxonomy ID",
-            "species_id": data["id"],
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["taxonomy_id"] == "Taxonomy ID"
-    assert "id" in data
-
-
-def test_create_reconstruction_morphology(client):
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
-    assert response.status_code == 200, f"Failed to create species: {response.text}"
-    data = response.json()
-    assert data["name"] == "Test Species"
-    assert "id" in data, f"Failed to get id for species: {data}"
-    species_id = data["id"]
-    response = client.post(
-        "/strain/",
-        json={
-            "name": "Test Strain",
-            "taxonomy_id": "Taxonomy ID",
-            "species_id": species_id,
-        },
-    )
-    assert response.status_code == 200, f"Failed to create strain: {response.text}"
-    data = response.json()
-    assert data["taxonomy_id"] == "Taxonomy ID"
-    assert "id" in data, f"Failed to get id for strain: {data}"
-    strain_id = data["id"]
-    ontology_id = "Test Ontology ID"
-    response = client.post(
-        "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
-    )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create brain region: {response.text}"
-    data = response.json()
-    assert data["name"] == "Test Brain Region"
-    assert data["ontology_id"] == ontology_id
-    assert "id" in data, f"Failed to get id for brain region: {data}"
-    brain_region_id = data["id"]
-    response = client.post(
-        "/license/",
-        json={
-            "name": "Test License",
-            "description": "a license description",
-            "label": "test",
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
-    license_id = data["id"]
-    assert "id" in data, f"Failed to get id for license: {data}"
+def test_create_reconstruction_morphology(client, species_id, strain_id, license_id, brain_region_id):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
     response = client.post(
@@ -124,34 +49,7 @@ def test_create_reconstruction_morphology(client):
     ), f"Failed to get reconstruction morphologies: {response.text}"
 
 
-def test_create_annotation(client):
-    response = client.post(
-        "/species/", json={"name": "Test Species", "taxonomy_id": "12345"}
-    )
-    assert response.status_code == 200, f"Failed to create species: {response.text}"
-    data = response.json()
-    species_id = data["id"]
-    response = client.post(
-        "/strain/",
-        json={
-            "name": "Test Strain",
-            "taxonomy_id": "Taxonomy ID",
-            "species_id": species_id,
-        },
-    )
-    assert response.status_code == 200, f"Failed to create strain: {response.text}"
-    data = response.json()
-    strain_id = data["id"]
-    ontology_id = "Test Ontology ID"
-    response = client.post(
-        "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
-    )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create brain region: {response.text}"
-    data = response.json()
-    assert "id" in data, f"Failed to get id for brain region: {data}"
-    brain_region_id = data["id"]
+def test_create_annotation(client, species_id, strain_id, brain_region_id):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
     response = client.post(
@@ -280,3 +178,71 @@ def test_create_annotation(client):
                 ],
             },
         )
+
+    response = client.get("/reconstruction_morphology/q/?term=test")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {"species": {"Test Species": 1}, "strain": {"Test Strain": 1}}
+
+    assert "data" in data
+    data = data["data"]
+    assert len(data) == 1
+
+
+def test_missing_reconstruction_morphology(client):
+    response = client.get("/reconstruction_morphology/42424242")
+    assert response.status_code == 404
+
+    response = client.get("/reconstruction_morphology/notanumber")
+    assert response.status_code == 422
+
+
+def test_query_reconstruction_morphology(client, species_id, strain_id, brain_region_id, license_id):
+    def create_morphologies(nb_morph):
+        for i in range(nb_morph):
+            morph_description = f"Test Morphology Description {i}"
+            morph_name = f"Test Morphology Name {i}"
+            response = client.post(
+                "/reconstruction_morphology/",
+                json={
+                    "brain_region_id": brain_region_id,
+                    "species_id": species_id,
+                    "strain_id": strain_id,
+                    "description": morph_description,
+                    "name": morph_name,
+                    "brain_location": {"x": 10, "y": 20, "z": 30},
+                    "legacy_id": "Test Legacy ID",
+                    "license_id": license_id,
+                },
+            )
+            assert (
+                response.status_code == 200
+            ), f"Failed to create reconstruction morphology: {response.text}"
+
+    count = 3
+    create_morphologies(count)
+
+    response = client.get("/reconstruction_morphology/")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == count
+
+    response = client.get(
+        "/reconstruction_morphology/", params={"order_by": "+creation_date"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == count
+    assert all(elem["creation_date"] > prev_elem["creation_date"]
+               for prev_elem, elem in it.pairwise(data))
+
+    response = client.get(
+        "/reconstruction_morphology/", params={"order_by": "-creation_date"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert all(elem["creation_date"] < prev_elem["creation_date"]
+               for prev_elem, elem in it.pairwise(data))

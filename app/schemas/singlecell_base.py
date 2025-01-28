@@ -1,6 +1,6 @@
 from pydantic import Field
 
-from app.schemas.base import LicensedCreateMixin, BrainRegionCreate
+from app.schemas.base import BrainRegionCreate, LicensedCreateMixin
 from app.schemas.contribution import ContributionBase
 
 

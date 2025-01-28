@@ -155,6 +155,8 @@ max-statements = 50
 # Maximum number of public methods for a class (see R0904).
 max-public-methods = 60
 
+[tool.ruff.lint.flake8-boolean-trap]
+extend-allowed-calls = ["pydantic.Field"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

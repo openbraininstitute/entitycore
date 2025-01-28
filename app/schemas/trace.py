@@ -1,4 +1,3 @@
-from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from app.schemas.base import BrainLocationRead, CreationMixin, File
@@ -36,15 +35,15 @@ class TraceCreate(SingleCellData):
         title="Recording Location",
         description="location on the cell where recording was performed, in hoc-compatible format",
     )
-    comment: Optional[str] = Field(
+    comment: str | None = Field(
         "", title="Comment", description="Additional information or observations"
     )
-    derivation: Optional[int] = Field(
+    derivation: int | None = Field(
         None,
         title="Derivation ID",
         description="The ID of the cell or model the trace was derived from",
     )
-    image: Optional[List[File]] = Field(
+    image: list[File] | None = Field(
         None,
         title="Images",
         description="List of images associated with the trace.",
@@ -54,7 +53,7 @@ class TraceCreate(SingleCellData):
 class TraceRead(SingleCellData, CreationMixin):
     file: File
     ljp: float
-    stimulus: List[StimulusRead]
+    stimulus: list[StimulusRead]
     recording_location: BrainLocationRead
-    comment: Optional[str]
-    derivation: Optional[str]
+    comment: str | None
+    derivation: str | None

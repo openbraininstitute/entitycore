@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -45,7 +44,7 @@ class BrainLocationCreate(BaseModel):
 class BrainRegionCreate(BaseModel):
     ontology_id: str
     name: str
-    acronym: Optional[str] = Field(
+    acronym: str | None = Field(
         None, description="should be allen notation acronym if it exists"
     )
 
@@ -88,17 +87,17 @@ class SubjectCreate(BaseModel):
         title="Strain ID",
         description="ID of the strain associated with the subject.",
     )
-    age: Optional[int] = Field(
+    age: int | None = Field(
         None,
         title="Age",
         description="Age of the subject in days.",
     )
-    sex: Optional[str] = Field(
+    sex: str | None = Field(
         None,
         title="Sex",
         description="Sex of the subject (e.g., 'male', 'female').",
     )
-    weight: Optional[float] = Field(
+    weight: float | None = Field(
         None,
         title="Weight",
         description="Weight of the subject in grams.",
@@ -109,9 +108,9 @@ class SubjectRead(CreationMixin):
     strain: StrainRead = Field(
         ..., title="Strain", description="Detailed information about the subject's strain."
     )
-    age: Optional[int]
-    sex: Optional[str]
-    weight: Optional[float]
+    age: int | None
+    sex: str | None
+    weight: float | None
 
 
 class LicensedCreateMixin(BaseModel):
@@ -151,4 +150,4 @@ class MeasurementRead(MeasurementCreate):
 class File(BaseModel):
     path: str = Field(..., title="File Path", description="Path or URL to the file.")
     format: str = Field(..., title="File Format", description="Format of the file (e.g., nwb, h5).")
-    size: Optional[int] = Field(None, title="File Size", description="Size of the file in bytes.")
+    size: int | None = Field(None, title="File Size", description="Size of the file in bytes.")

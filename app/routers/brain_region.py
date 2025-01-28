@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
 from app.db.model import BrainRegion
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.schemas.base import (
     BrainRegionCreate,
 )
@@ -18,7 +17,7 @@ router = APIRouter(
 
 
 @router.post("/", response_model=BrainRegionRead)
-def create_brain_region(brain_region: BrainRegionCreate, db: Session = Depends(get_db)):
+def create_brain_region(brain_region: BrainRegionCreate, db: SessionDep):
     db_brain_region = BrainRegion(ontology_id=brain_region.ontology_id, name=brain_region.name)
     db.add(db_brain_region)
     db.commit()

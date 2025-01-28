@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
+from app import L
 from app.db.model import (
     Agent,
     AnalysisSoftwareSourceCode,
@@ -84,8 +85,7 @@ def get_db_type(query):
     type_keyword = type_term[0].get("term", {}).get("@type.keyword", "")
     if not type_keyword:
         type_keyword = type_term[0].get("term", {}).get("@type", "")
-    db_type = MAP_TYPES.inv[type_keyword]
-    return db_type
+    return MAP_TYPES.inv[type_keyword]
 
 
 QUERY_PATH = {
@@ -135,13 +135,13 @@ def get_facets(aggs, musts, db_type, db):
             continue
         split_field = field["field"].split(".")
         target = split_field[0]
-        property_ = split_field[1] if len(split_field) > 2 else "label"
+        property_ = split_field[1] if len(split_field) > 2 else "label"  # noqa: PLR2004
         query_map = QUERY_PATH.get(target)
         joins = list(reversed(query_map["joins"]))
         models = list(reversed(query_map["models"]))
 
         models.append(aliased(db_type))
-        cur_alias = aliased(list(models)[0])
+        cur_alias = aliased(next(iter(models)))
         initial_alias = cur_alias
         property_group = PROPERTY_MAP.get(f"{target}.{property_}", None)
         facet_q = db.query(getattr(initial_alias, property_group), func.count().label("count"))
@@ -174,17 +174,16 @@ def build_response_elem(elem):
         mapping = {**MAPPING_PER_TYPE.get(elem.__class__, {}), **MAPPING_GLOBAL}
         for key, value in mapping.items():
             initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
-        if elem.__class__ in [
+        if elem.__class__ in {
             MTypeAnnotationBody,
             ETypeAnnotationBody,
-        ]:
+        }:
             initial_dict["@type"] = "Class"
         else:
             initial_dict["@type"] = [MAP_TYPES[elem.__class__]]
         initial_dict["@id"] = elem.legacy_id[0]
-    except Exception as e:
-        print(e)
-        print(elem)
+    except Exception:
+        L.exception("elem: %s", elem)
         raise
     return {
         "_id": elem.legacy_id[0],
@@ -202,7 +201,7 @@ def find_term_keys(data):
     result = []
     if isinstance(data, dict):
         for key, value in data.items():
-            if key in ["term", "terms", "wildcard"]:
+            if key in {"term", "terms", "wildcard"}:
                 result.append({key: value})
             else:
                 result.extend(find_term_keys(value))
@@ -212,7 +211,7 @@ def find_term_keys(data):
     return result
 
 
-def add_predicates_to_query(query, must_terms, db_type, alias=None):
+def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: C901, PLR0912, PLR0915
     initial_alias = alias or db_type
     for must_term in must_terms:
         if "term" in must_term:
@@ -223,16 +222,16 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                     detail="Bad request: query must contain only one term",
                 )
 
-            key, value = list(key_value)[0]
+            key, value = next(iter(key_value))
             # deprecated & curated are not a field in the database
-            if key in [
+            if key in {
                 "@type.keyword",
                 "deprecated",
                 "curated",
                 "@type",
                 "_deprecated",
                 "atlasRelease.@id",
-            ]:
+            }:
                 continue
             if key == "@id":
                 query = query.filter(StringList.in_(initial_alias.legacy_id, [value]))
@@ -246,7 +245,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):
                     status_code=400,
                     detail="Bad request: query must contain only one term",
                 )
-            key, value = list(key_value)[0]
+            key, value = next(iter(key_value))
             if "." in key:
                 l_split = key.split(".")
                 target = l_split[0]
@@ -324,8 +323,7 @@ def build_response_body(facets=None, hits=None, count=-1, build_func=build_respo
     if facets:
         response["aggregations"] = build_aggregations(facets)
     response["hits"] = build_hits(hits=hits, count=count, build_func=build_func)
-    ret = JSONResponse(content=jsonable_encoder(response))
-    return ret
+    return JSONResponse(content=jsonable_encoder(response))
 
 
 def build_count_response_body(value):

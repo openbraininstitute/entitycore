@@ -1,10 +1,9 @@
 import json
-import os
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
 
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.routers.legacy.model import class_ontology, utils
 
 router = APIRouter(
@@ -14,7 +13,7 @@ router = APIRouter(
 
 
 @router.post("/{path:path}/_search")
-def legacy_search(query: dict, path, db: Session = Depends(get_db)):
+def legacy_search(query: dict, path: str, db: SessionDep):  # noqa: ARG001
     try:
         terms = query.get("query", {}).get("bool", {}).get("must", [])
         # if not terms:
@@ -38,12 +37,9 @@ def legacy_search(query: dict, path, db: Session = Depends(get_db)):
             if type_term == "Class":
                 return class_ontology.search(query, db)
             if type_term == "GeneratorTaskActivity":
-                with open(
-                    os.path.join(
-                        os.path.dirname(__file__),
-                        "search_data/GeneratorTaskActivity.json",
-                    )
-                ) as f:
+                with (
+                    Path(__file__).parent / "search_data" / "GeneratorTaskActivity.json"
+                ).open() as f:
                     return json.load(f)
         db_type = utils.get_db_type(query)
         musts = utils.find_term_keys(query.get("query", {}))

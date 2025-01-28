@@ -27,5 +27,4 @@ def test_create_license(client):
 
     # non-existant id
     response = client.get("/license/424242")
-    print(response)
     assert response.status_code == 404

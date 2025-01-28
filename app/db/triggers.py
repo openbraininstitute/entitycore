@@ -11,6 +11,6 @@ entities = [
             BEFORE INSERT OR UPDATE ON {ReconstructionMorphology.__tablename__}
             FOR EACH ROW EXECUTE FUNCTION
                 tsvector_update_trigger(morphology_description_vector, 'pg_catalog.english', description, name)
-        """,
+        """,  # noqa: E501
     )
 ]

@@ -1,5 +1,6 @@
 from sqlalchemy import func
 
+from app import L
 from app.cli import curate
 from app.db.model import (
     Agent,
@@ -14,8 +15,7 @@ from app.db.model import (
 
 
 def _find_by_legacy_id(legacy_id, db_type, db):
-    db_elem = db.query(db_type).filter(func.strpos(db_type.legacy_id, legacy_id) > 0).first()
-    return db_elem
+    return db.query(db_type).filter(func.strpos(db_type.legacy_id, legacy_id) > 0).first()
 
 
 def get_or_create_brain_region(brain_region, db):
@@ -46,7 +46,9 @@ def get_or_create_species(species, db):
 
 def get_brain_location_mixin(data, db):
     coordinates = data.get("brainLocation", {}).get("coordinatesInBrainAtlas", {})
-    assert coordinates is not None, "coordinates is None"
+    if coordinates is None:
+        msg = "coordinates is None"
+        raise RuntimeError(msg)
     brain_location = None
     if coordinates:
         x = coordinates.get("valueX", None)
@@ -59,11 +61,13 @@ def get_brain_location_mixin(data, db):
         "label": "root",
     }
     brain_region = data.get("brainLocation", {}).get("brainRegion", root)
-    assert brain_region is not None, "brain_region is None"
+    if brain_region is None:
+        msg = "brain_region is None"
+        raise RuntimeError(msg)
     try:
         brain_region_id = get_or_create_brain_region(brain_region, db)
     except Exception:
-        print(data)
+        L.exception("data: %r", data)
         raise
     return brain_location, brain_region_id
 
@@ -80,8 +84,9 @@ def get_license_id(license, db):
 def get_or_create_strain(strain, species_id, db):
     # Check if the strain already exists in the database
     st = db.query(Strain).filter(Strain.taxonomy_id == strain["@id"]).first()
-    if st:
-        assert st.species_id == species_id
+    if st and st.species_id != species_id:
+        msg = "st.species_id != species_id"
+        raise RuntimeError(msg)
 
     if not st:
         # If not, create a new one
@@ -97,7 +102,9 @@ def get_or_create_strain(strain, species_id, db):
 
 def get_species_mixin(data, db):
     species = data.get("subject", {}).get("species", {})
-    assert species, f"species is None: {data}"
+    if not species:
+        msg = f"species is None: {data}"
+        raise RuntimeError(msg)
     species_id = get_or_create_species(species, db)
     strain = data.get("subject", {}).get("strain", {})
     strain_id = None
@@ -116,11 +123,15 @@ def get_license_mixin(data, db):
 
 def get_agent_mixin(data, db):
     result = []
-    for property in ["_createdBy", "_updatedBy"]:
-        legacy_id = data.get(property, {})
-        assert legacy_id, f"legacy_id is None: {data}"
+    for prop in ["_createdBy", "_updatedBy"]:
+        legacy_id = data.get(prop, {})
+        if not legacy_id:
+            msg = f"legacy_id is None: {data}"
+            raise RuntimeError(msg)
         agent_db = _find_by_legacy_id(legacy_id, Agent, db)
-        assert agent_db, f"legacy_id not found: {legacy_id}"
+        if not agent_db:
+            msg = f"legacy_id not found: {legacy_id}"
+            raise RuntimeError(msg)
         result.append(agent_db.id)
     return result
 
@@ -135,9 +146,8 @@ def get_or_create_role(role_, db):
             r = Role(role_id=role_["@id"], name=role_["label"])
             db.add(r)
             db.commit()
-        except Exception as e:
-            print(e)
-            print(f"Error creating role {role_}")
+        except Exception:
+            L.exception("Error creating role %s", role_)
             raise
     return r.id
 
@@ -151,7 +161,7 @@ def get_or_create_contribution(contribution_, entity_id, db):
     agent_legacy_id = contribution_["agent"]["@id"]
     db_agent = _find_by_legacy_id(agent_legacy_id, Agent, db)
     if not db_agent:
-        print(f"Agent with legacy_id {agent_legacy_id} not found")
+        L.warning("Agent with legacy_id %s not found", agent_legacy_id)
         return None
     agent_id = db_agent.id
     role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})

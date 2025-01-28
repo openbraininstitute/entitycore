@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException
 
 from app.db.model import (
     License,
 )
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.schemas.base import (
     LicenseCreate,
     LicenseRead,
@@ -18,13 +17,12 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[LicenseRead])
-def read_licenses(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    users = db.query(License).offset(skip).limit(limit).all()
-    return users
+def read_licenses(db: SessionDep, skip: int = 0, limit: int = 10):
+    return db.query(License).offset(skip).limit(limit).all()
 
 
 @router.get("/{license_id}", response_model=LicenseRead)
-def read_license(license_id: int, db: Session = Depends(get_db)):
+def read_license(license_id: int, db: SessionDep):
     license = db.query(License).filter(License.id == license_id).first()
     if license is None:
         raise HTTPException(status_code=404, detail="License not found")
@@ -32,7 +30,7 @@ def read_license(license_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=LicenseRead)
-def create_license(license: LicenseCreate, db: Session = Depends(get_db)):
+def create_license(license: LicenseCreate, db: SessionDep):
     db_license = License(name=license.name, description=license.description, label=license.label)
     db.add(db_license)
     db.commit()

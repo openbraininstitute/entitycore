@@ -2,7 +2,7 @@ from app.db.model import ETypeAnnotationBody, MTypeAnnotationBody
 from app.routers.legacy.model import utils
 
 
-def search(body, db):
+def search(body, db):  # noqa: ARG001
     # for the time being only 1 query
     try:
         query_mtype = db.query(MTypeAnnotationBody)

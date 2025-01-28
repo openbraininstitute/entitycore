@@ -44,9 +44,7 @@ class BrainLocationCreate(BaseModel):
 class BrainRegionCreate(BaseModel):
     ontology_id: str
     name: str
-    acronym: str | None = Field(
-        None, description="should be allen notation acronym if it exists"
-    )
+    acronym: str | None = Field(None, description="should be allen notation acronym if it exists")
 
     class Config:
         from_attributes = True

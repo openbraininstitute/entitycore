@@ -1,4 +1,6 @@
-from pydantic import BaseModel
+from collections.abc import Sequence
+
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     BrainLocationCreate,
@@ -14,12 +16,10 @@ from app.schemas.base import (
 
 
 class ReconstructionMorphologyBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
     brain_location: BrainLocationCreate | None
-
-    class Config:
-        from_attributes = True
 
 
 class ReconstructionMorphologyCreate(ReconstructionMorphologyBase, LicensedCreateMixin):
@@ -30,15 +30,13 @@ class ReconstructionMorphologyCreate(ReconstructionMorphologyBase, LicensedCreat
 
 
 class MorphologyFeatureAnnotationCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     reconstruction_morphology_id: int
-    measurements: list[MeasurementCreate]
-
-    class Config:
-        from_attributes = True
+    measurements: Sequence[MeasurementCreate]
 
 
 class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, CreationMixin):
-    measurements: list[MeasurementRead]
+    measurements: Sequence[MeasurementRead]
 
 
 class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin):

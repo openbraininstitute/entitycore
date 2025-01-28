@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import PersonRead
 from app.schemas.base import (
@@ -15,8 +15,7 @@ from app.schemas.role import RoleRead
 
 
 class ContributionBase(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ContributionCreate(ContributionBase):

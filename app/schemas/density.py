@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     BrainLocationCreate,
@@ -12,12 +12,10 @@ from app.schemas.base import (
 
 
 class ExperimentalDensityBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
     brain_location: BrainLocationCreate | None
-
-    class Config:
-        from_attributes = True
 
 
 class ExperimentalDensityCreate(ExperimentalDensityBase, LicensedCreateMixin):

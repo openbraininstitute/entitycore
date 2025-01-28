@@ -99,8 +99,8 @@ EX:
          "id": 997,
          "acronym": "root",
          "name": "root",
-         "color_hex_triplet": "FFFFFF",          # <- if this is used?
-         "parent_structure_id": null,            #
+         "color_hex_triplet": "FFFFFF",
+         "parent_structure_id": null,            # shouldn't be necessary, might be removed
          "children": [
               { "id": 997, "acronym": "root", "name": "root", ..., "children": []},
               ...
@@ -115,17 +115,70 @@ GET /brain-regions/{id}: could do this, but not sure it's useful: the full
 Future work would include using ltree from postgresql to make doing lookups and such easier: https://www.postgresql.org/docs/current/ltree.html 
 
 
-To be looked at more:
-```
-    files/
-    experimental-data/_count
-    model-data/_count
-```
-
 # Authorization:
 Current model is to have things be either public, or private to a lab/project.
 As such, results returned will be gated by this, based on the logged in user.
 The frontend will have to supply the current user's Bearer token, as well as the current lab and project.
-The service will check that the user does indeed belong to this lab and project, and then filter the results to include only public ones, along with those in the lab and project.
 These will have to be passed as headers in the request.
+The service will check that the user does indeed belong to this lab and project, and then filter the results to include only public ones, along with those in the lab and project.
 
+
+# Files:
+
+For files, there are two main use cases:
+1) Downloading them via a web API
+2) Mounting them in some fashion on the cluster
+
+The former is likely to be smaller files (such as morphologies, ephys traces, images and reports \[ie: pdf\], etc).
+The later is things like circuit data, which can be large, and may not include only individual files, rather a directory.
+
+## Semantics
+
+* An entity (eg: morphology), can be associated with multiple files
+* A file is associated with only one Entity, this also means that a `Folder` owns all the contents, and no other Entity points to anything within the folder
+* A file has a type associated with it; at first approximation these are MIME types, however there are many vendor specific ones that will have to be handled
+* Once registered, a file is immutable; it cannot be changed or replaced
+* A file inherits its Authorization from the entity to which it is associated
+
+## API
+* When getting an entity, the `?expand-files=True` query parameter can be used.
+  This will include add the following payload to the request:
+  ```
+  {"filename.ext": {
+    "url": 
+    "type": "aMimetype/like.string",
+    "size": 314159, # in bytes
+    "sha1": "c7102fb8700511782990db9ac149b28cb76c79f0",
+   },
+   "filename.swc": {
+    "url": 
+    "type": "application/swc",  # or should it be application/octet-stream or `application/vnd.swc`
+    "size": 271828, # in bytes
+    "sha1": "571a7182818284590450db9ac718281828459045",
+   }
+   "foldername": {
+    "url": "/some/path/on/cluster",
+    "type": "application/x-directory",
+    "size": 0,   # Not applicable
+    "sha1": "0", # Not applicable
+   }
+  }
+  ```
+
+* The `url` supplied with the result can be used to download the file
+* For folder types there no way to list or download the contents
+
+## Staging
+* On the cluster, a folder is automatically staged, as it's path should be accessible.
+* For files; either the file is pulled down through the API, via the `url` property, or there will need to be a way to map
+
+## Configurations
+
+The frontend currently stores `configuration` data (ex: `cell-composition`, `connectome-model`) in NEXUS.
+
+
+# To be looked at more:
+```
+    experimental-data/_count
+    model-data/_count
+```

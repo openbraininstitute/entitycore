@@ -74,7 +74,6 @@ def license_id(client, species_id):
         json={
             "name": "Test License",
             "description": "a license description",
-            "label": "test label",
         },
     )
     assert response.status_code == 200

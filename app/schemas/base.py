@@ -105,7 +105,7 @@ class SubjectCreate(BaseModel):
     )
 
 
-class SubjectRead(BaseModel, CreationMixin):
+class SubjectRead(CreationMixin):
     strain: StrainRead = Field(
         ..., title="Strain", description="Detailed information about the subject's strain."
     )

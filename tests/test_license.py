@@ -4,7 +4,6 @@ def test_create_license(client):
         json={
             "name": "Test License",
             "description": "a license description",
-            "label": "a label",
         },
     )
     assert response.status_code == 200

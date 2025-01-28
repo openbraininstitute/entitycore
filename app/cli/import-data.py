@@ -67,14 +67,12 @@ def import_licenses(data, db):
     data.append(
         {
             "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30b",
-            "label": "undefined",
             "description": "undefined",
         }
     )
     data.append(
         {
             "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
-            "label": "undefined",
             "description": "undefined",
         }
     )
@@ -85,7 +83,6 @@ def import_licenses(data, db):
         try:
             db_license = License(
                 name=license["@id"],
-                label=license["label"],
                 description=license["description"],
                 legacy_id=[license["@id"]],
             )

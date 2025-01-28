@@ -1,9 +1,11 @@
-from typing import List, Optional, Field
+from typing import List, Optional
+from pydantic import BaseModel, Field
 
-from app.schemas.base import BaseDataModel, SingleCellData, BrainLocationRead, CreationMixin, File
+from app.schemas.base import BrainLocationRead, CreationMixin, File
+from app.schemas.singlecell_base import SingleCellData
 
 
-class StimulusCreate(BaseDataModel):
+class StimulusCreate(BaseModel):
     stimulus_id: int
     dt: float = Field(
         ...,
@@ -12,7 +14,7 @@ class StimulusCreate(BaseDataModel):
     )
 
 
-class StimulusRead(BaseDataModel, CreationMixin):
+class StimulusRead(StimulusCreate, CreationMixin):
     pass
 
 
@@ -24,8 +26,8 @@ class TraceCreate(SingleCellData):
         title="Liquid Junction Potential",
         description="Correction applied to the voltage trace, in mV",
     )
-    stimulus_id: List[tuple[int, float]] = Field(
-        ..., title="Stimuli", description="List of stimuli applied to the cell"
+    stimuli: StimulusCreate = Field(
+        ..., title="Stimuli", description="List of stimuli applied to the cell with their respective time steps"
     )
     recording_location: str = Field(
         ...,

@@ -1,9 +1,7 @@
 from datetime import datetime
-from typing import List, Optional, Field, Dict
+from typing import Optional
 
-from pydantic import BaseModel
-
-from app.schemas.contribution import ContributionBase
+from pydantic import BaseModel, Field
 
 
 class CreationMixin(BaseModel):
@@ -150,26 +148,7 @@ class MeasurementRead(MeasurementCreate):
     id: int
 
 
-class BaseDataModel(LicensedCreateMixin):
-    """
-    Base Data Model schema that will be inherited by all data schemas.
-    """
-
-    name: str
-    description: str
-    contributon: list[ContributionBase]
-
-
-class SingleCellData(BaseModel):
-    brain_region: BrainRegionCreate
-    subject_id: int = Field(
-        ...,
-        title="Subject ID",
-        description="ID of the subject",
-    )
-
-
-class File(BaseDataModel):
+class File(BaseModel):
     path: str = Field(..., title="File Path", description="Path or URL to the file.")
     format: str = Field(..., title="File Format", description="Format of the file (e.g., nwb, h5).")
     size: Optional[int] = Field(None, title="File Size", description="Size of the file in bytes.")

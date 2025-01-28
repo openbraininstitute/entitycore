@@ -1,6 +1,7 @@
-from typing import Field
+from pydantic import Field
 
-from app.schemas.base import SingleCellData, CreationMixin, File
+from app.schemas.base import CreationMixin, File
+from app.schemas.singlecell_base import SingleCellData
 
 
 class SubCellularModelScriptCreate(SingleCellData):

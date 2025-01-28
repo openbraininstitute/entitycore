@@ -1,8 +1,6 @@
 from typing import List, Optional, Field
 
-from app.schemas.base import (
-    BaseDataModel, SingleCellData, BrainLocationRead, CreationMixin, File
-)
+from app.schemas.base import BaseDataModel, SingleCellData, BrainLocationRead, CreationMixin, File
 
 
 class StimulusCreate(BaseDataModel):
@@ -20,9 +18,7 @@ class StimulusRead(BaseDataModel, CreationMixin):
 
 # Trace Model for Electrophysiology Data
 class TraceCreate(SingleCellData):
-    file: File = Field(
-        ..., title="File", description="File associated with the trace."
-    )
+    file: File = Field(..., title="File", description="File associated with the trace.")
     ljp: float = Field(
         0.0,
         title="Liquid Junction Potential",

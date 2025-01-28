@@ -47,7 +47,9 @@ class BrainLocationCreate(BaseModel):
 class BrainRegionCreate(BaseModel):
     ontology_id: str
     name: str
-    acronym: Optional[str] = Field(None, description="should be allen notation acronym if it exists")
+    acronym: Optional[str] = Field(
+        None, description="should be allen notation acronym if it exists"
+    )
 
     class Config:
         from_attributes = True
@@ -104,6 +106,7 @@ class SubjectCreate(BaseModel):
         description="Weight of the subject in grams.",
     )
 
+
 class SubjectRead(BaseModel, CreationMixin):
     strain: StrainRead = Field(
         ..., title="Strain", description="Detailed information about the subject's strain."
@@ -151,6 +154,7 @@ class BaseDataModel(LicensedCreateMixin):
     """
     Base Data Model schema that will be inherited by all data schemas.
     """
+
     name: str
     description: str
     contributon: list[ContributionBase]
@@ -158,19 +162,14 @@ class BaseDataModel(LicensedCreateMixin):
 
 class SingleCellData(BaseModel):
     brain_region: BrainRegionCreate
-    subject_id : int = Field(
+    subject_id: int = Field(
         ...,
         title="Subject ID",
         description="ID of the subject",
     )
 
+
 class File(BaseDataModel):
-    path: str = Field(
-        ..., title="File Path", description="Path or URL to the file."
-    )
-    format: str = Field(
-        ..., title="File Format", description="Format of the file (e.g., nwb, h5)."
-    )
-    size: Optional[int] = Field(
-        None, title="File Size", description="Size of the file in bytes."
-    )
+    path: str = Field(..., title="File Path", description="Path or URL to the file.")
+    format: str = Field(..., title="File Format", description="Format of the file (e.g., nwb, h5).")
+    size: Optional[int] = Field(None, title="File Size", description="Size of the file in bytes.")

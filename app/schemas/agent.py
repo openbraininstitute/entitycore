@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     CreationMixin,
@@ -12,12 +12,10 @@ from app.schemas.base import (
 
 
 class PersonBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     givenName: str
     familyName: str
     pref_label: str
-
-    class Config:
-        from_attributes = True
 
 
 class PersonCreate(PersonBase):
@@ -29,11 +27,9 @@ class PersonRead(PersonBase, CreationMixin):
 
 
 class OrganizationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     pref_label: str
     alternative_name: str | None = None
-
-    class Config:
-        from_attributes = True
 
 
 class OrganizationCreate(OrganizationBase):

@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class CreationMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     id: int
     creation_date: datetime
     update_date: datetime
@@ -16,17 +17,12 @@ class CreationMixin(BaseModel):
         result["update_date"] = result["update_date"].isoformat() if result["update_date"] else None
         return result
 
-    class Config:
-        from_attributes = True
-
 
 class LicenseCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
     label: str
-
-    class Config:
-        from_attributes = True
 
 
 class LicenseRead(LicenseCreate, CreationMixin):
@@ -34,20 +30,16 @@ class LicenseRead(LicenseCreate, CreationMixin):
 
 
 class BrainLocationCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     x: float
     y: float
     z: float
 
-    class Config:
-        from_attributes = True
-
 
 class BrainRegionCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     ontology_id: str
     name: str
-
-    class Config:
-        from_attributes = True
 
 
 class BrainRegionRead(BrainRegionCreate, CreationMixin):
@@ -55,12 +47,10 @@ class BrainRegionRead(BrainRegionCreate, CreationMixin):
 
 
 class StrainCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     taxonomy_id: str
     species_id: int
-
-    class Config:
-        from_attributes = True
 
 
 class StrainRead(StrainCreate, CreationMixin):
@@ -68,11 +58,9 @@ class StrainRead(StrainCreate, CreationMixin):
 
 
 class SpeciesCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     taxonomy_id: str
-
-    class Config:
-        from_attributes = True
 
 
 class SpeciesRead(SpeciesCreate, CreationMixin):
@@ -80,33 +68,25 @@ class SpeciesRead(SpeciesCreate, CreationMixin):
 
 
 class LicensedCreateMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     license_id: int | None = None
-
-    class Config:
-        from_attributes = True
 
 
 class LicensedReadMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     license: LicenseRead | None
-
-    class Config:
-        from_attributes = True
 
 
 class MorphologyMeasurementSerieBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     value: float
 
-    class Config:
-        from_attributes = True
-
 
 class MeasurementCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     measurement_of: str
     measurement_serie: list[MorphologyMeasurementSerieBase]
-
-    class Config:
-        from_attributes = True
 
 
 class MeasurementRead(MeasurementCreate):

@@ -279,7 +279,7 @@ class Annotation(LegacyMixin, TimestampMixin, Base):
 
 class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
-    id = mapped_column(Integer, ForeignKey("root.id"), primary_key=True)
+    id: Mapped[int] = mapped_column(ForeignKey("root.id"), primary_key=True)
     # type = Column(String, unique=False, index=False, nullable=False)
     annotations = relationship("Annotation", back_populates="entity")
     # TODO: keep the _ ? put on agent ?

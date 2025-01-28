@@ -98,6 +98,7 @@ def morphology_query(
     facets = {}
     for ty, table in name_to_table.items():
         types = aliased(table)
+        assert issubclass(types, Species | Strain)  # noqa: S101
         facet_q = (
             session.query(types.name, func.count().label("count"))
             .join(
@@ -111,6 +112,7 @@ def morphology_query(
         for other_ty, other_table in name_to_table.items():
             if value := args.get(other_ty, None):
                 other_types = aliased(other_table)
+                assert issubclass(other_types, Species | Strain)  # noqa: S101
                 facet_q = facet_q.join(
                     other_types,
                     getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,

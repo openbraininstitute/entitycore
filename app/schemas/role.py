@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     CreationMixin,
@@ -6,11 +6,9 @@ from app.schemas.base import (
 
 
 class RoleBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     role_id: str
-
-    class Config:
-        from_attributes = True
 
 
 class RoleCreate(RoleBase):

@@ -1,6 +1,19 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, UUID4
+
+
+class AuthorizationMixin(BaseModel):
+    authorized_project_id: UUID4
+
+
+class AuthorizationOptionalMixin(BaseModel):
+    authorized_project_id: UUID4 | None = None
+
+
+class ProjectContext(BaseModel):
+    virtual_lab_id: UUID4
+    project_id: UUID4
 
 
 class CreationMixin(BaseModel):

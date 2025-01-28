@@ -1,0 +1,28 @@
+"""Helpers to make sure queries are filtered to the allowed members"""
+
+from pydantic import UUID4
+from sqlalchemy import or_
+from sqlalchemy.orm import Query
+
+from app.db.model import Entity
+
+
+def raise_if_unauthorized(project_id: UUID4):
+    if project_id == Entity.PUBLIC:
+        return
+
+    # XXX: this needs to call the virtualab-api, and check if the user is part
+    # of the lab/project that they claim they are writing too
+    #raise Exception("Unauthorized project_id: {project_id} for user {user}")
+
+
+def constrain_query_to_members(query: Query, project_id: UUID4):
+    """Ensure a query is filtered to rows that are viewable by the user"""
+    query = query.filter(
+        or_(
+            Entity.authorized_project_id == Entity.PUBLIC,
+            Entity.authorized_project_id == project_id,
+        )
+    )
+
+    return query

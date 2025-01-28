@@ -98,25 +98,23 @@ def morphology_query(
     facets = {}
     for ty, table in name_to_table.items():
         types = aliased(table)
-        assert issubclass(types, Species | Strain)  # noqa: S101
         facet_q = (
-            session.query(types.name, func.count().label("count"))
+            session.query(types.name, func.count().label("count"))  # type: ignore[attr-defined]
             .join(
                 ReconstructionMorphology,
-                getattr(ReconstructionMorphology, ty + "_id") == types.id,
+                getattr(ReconstructionMorphology, ty + "_id") == types.id,  # type: ignore[attr-defined]
             )
             .filter(ReconstructionMorphology.morphology_description_vector.match(term))
-            .group_by(types.name)
+            .group_by(types.name)  # type: ignore[attr-defined]
         )
 
         for other_ty, other_table in name_to_table.items():
             if value := args.get(other_ty, None):
                 other_types = aliased(other_table)
-                assert issubclass(other_types, Species | Strain)  # noqa: S101
                 facet_q = facet_q.join(
                     other_types,
-                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,
-                ).where(other_types.name == value)
+                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
+                ).where(other_types.name == value)  # type: ignore[attr-defined]
         facets[ty] = {r.name: r.count for r in facet_q.all()}
     rms = (
         session.query(ReconstructionMorphology)

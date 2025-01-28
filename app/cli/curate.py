@@ -1,12 +1,12 @@
 def curate_role(role):
     if not role:
         return {"@id": "unspecified", "label": "unspecified"}
-    if role["@id"] in [
+    if role["@id"] in {
         "neuronmorphology:ReconstructionRole",
         "neuron:MorphologyReconstructionRole",
         "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/NeuronMorphologyReconstruction",
         "https://bbp.epfl.ch/data/public/sscx/NeuronMorphologyReconstruction",
-    ]:
+    }:
         return {
             "@id": "Neuron:MorphologyReconstructionRole",
             "label": "neuron morphology reconstruction role",
@@ -71,7 +71,7 @@ def curate_etype(data):
         )
     if data["label"] == "TH_cNAD_noscltb":
         data["definition"] = (
-            "Thalamus continuous non-adapting non-oscillatory low-threshold bursting electrical type"
+            "Thalamus continuous non-adapting non-oscillatory low-threshold bursting electrical type"  # noqa: E501
         )
     if data["label"] == "TH_dAD_ltb":
         data["definition"] = "Thalamus delayed adapting low-threshold bursting electrical type"

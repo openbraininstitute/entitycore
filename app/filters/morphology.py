@@ -15,7 +15,7 @@ class MorphologyFilter(Filter):
     brain_location_id: int | None = None
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None
-    order_by: list[str] = ["-creation_date"]
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(Filter.Constants):
         model = ReconstructionMorphology

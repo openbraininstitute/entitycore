@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
 from app.db.model import Strain
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.schemas.base import (
     StrainCreate,
 )
@@ -18,7 +17,7 @@ router = APIRouter(
 
 
 @router.post("/", response_model=StrainRead)
-def create_strain(strain: StrainCreate, db: Session = Depends(get_db)):
+def create_strain(strain: StrainCreate, db: SessionDep):
     db_strain = Strain(
         name=strain.name, taxonomy_id=strain.taxonomy_id, species_id=strain.species_id
     )

@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_filter import FilterDepends
 from sqlalchemy import func
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import aliased
 
 from app.db.model import (
     BrainLocation,
@@ -11,7 +13,7 @@ from app.db.model import (
     Species,
     Strain,
 )
-from app.dependencies.db import get_db
+from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
@@ -30,41 +32,36 @@ router = APIRouter(
     "/{rm_id}",
     response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
 )
-def read_reconstruction_morphology(
-    rm_id: int, expand: str | None = Query(None), db: Session = Depends(get_db)
-):
+def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
     rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).first()
 
     if rm is None:
         raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
 
     if expand and "morphology_feature_annotation" in expand:
-        ret = ReconstructionMorphologyExpand.model_validate(rm)
-        return ret
-    ret = ReconstructionMorphologyRead.model_validate(rm)
+        return ReconstructionMorphologyExpand.model_validate(rm)
     # added back with None by the response_model
-    return ret
+    return ReconstructionMorphologyRead.model_validate(rm)
 
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
-    recontruction: ReconstructionMorphologyCreate,
-    morphology_filter: MorphologyFilter = FilterDepends(MorphologyFilter),
-    db: Session = Depends(get_db),
+    reconstruction: ReconstructionMorphologyCreate,
+    db: SessionDep,
 ):
     brain_location = None
 
-    if recontruction.brain_location:
-        brain_location = BrainLocation(**recontruction.brain_location.model_dump())
+    if reconstruction.brain_location:
+        brain_location = BrainLocation(**reconstruction.brain_location.model_dump())
 
     db_reconstruction_morphology = ReconstructionMorphology(
-        name=recontruction.name,
-        description=recontruction.description,
+        name=reconstruction.name,
+        description=reconstruction.description,
         brain_location=brain_location,
-        brain_region_id=recontruction.brain_region_id,
-        species_id=recontruction.species_id,
-        strain_id=recontruction.strain_id,
-        license_id=recontruction.license_id,
+        brain_region_id=reconstruction.brain_region_id,
+        species_id=reconstruction.species_id,
+        strain_id=reconstruction.strain_id,
+        license_id=reconstruction.license_id,
     )
     db.add(db_reconstruction_morphology)
     db.commit()
@@ -74,24 +71,23 @@ def create_reconstruction_morphology(
 
 @router.get("/", response_model=list[ReconstructionMorphologyRead])
 def read_reconstruction_morphologies(
+    morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
+    db: SessionDep,
     skip: int = 0,
     limit: int = 10,
-    morphology_filter: MorphologyFilter = FilterDepends(MorphologyFilter),
-    db: Session = Depends(get_db),
 ):
     query = db.query(ReconstructionMorphology)
     query = morphology_filter.filter(query)
-    rms = morphology_filter.sort(query).offset(skip).limit(limit).all()
-    return rms
+    return morphology_filter.sort(query).offset(skip).limit(limit).all()
 
 
 @router.get("/q/")
 def morphology_query(
     req: Request,
-    term: str | None = Query(None),
+    session: SessionDep,
+    term: str | None = None,
     skip: int = 0,
     limit: int = 10,
-    session: Session = Depends(get_db),
 ):
     # brain_region_id, species_id, strain_id
     args = req.query_params
@@ -100,8 +96,8 @@ def morphology_query(
         "strain": Strain,
     }
     facets = {}
-    for ty in name_to_table:
-        types = aliased(name_to_table[ty])
+    for ty, table in name_to_table.items():
+        types = aliased(table)
         facet_q = (
             session.query(types.name, func.count().label("count"))
             .join(
@@ -112,9 +108,8 @@ def morphology_query(
             .group_by(types.name)
         )
 
-        for other_ty in name_to_table:
+        for other_ty, other_table in name_to_table.items():
             if value := args.get(other_ty, None):
-                other_table = name_to_table[other_ty]
                 other_types = aliased(other_table)
                 facet_q = facet_q.join(
                     other_types,

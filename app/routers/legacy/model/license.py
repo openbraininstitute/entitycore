@@ -17,14 +17,14 @@ def search(body, db):
     terms = body.get("query", {}).get("bool", {}).get("must", [])
     whitelist_terms = {"@id": "name"}
     acceptable_terms = [
-        term for term in terms if list(term.get("term").keys())[0] in whitelist_terms
+        term for term in terms if next(iter(term.get("term").keys())) in whitelist_terms
     ]
     filters = build_filters(
         License,
         {
-            whitelist_terms[list(term.get("term", {}).keys())[0]]: list(
-                term.get("term", {}).values()
-            )[0]
+            whitelist_terms[next(iter(term.get("term", {}).keys()))]: next(
+                iter(term.get("term", {}).values())
+            )
             for term in acceptable_terms
         },
     )

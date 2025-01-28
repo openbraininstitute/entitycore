@@ -25,13 +25,13 @@ def database_session_manager() -> DatabaseSessionManager:
     return configure_database_session_manager()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def db(database_session_manager) -> Iterator[Session]:
     with database_session_manager.session() as session:
         yield session
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(autouse=True)
 def _db_cleanup(db):
     yield
     query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
@@ -39,7 +39,7 @@ def _db_cleanup(db):
     db.commit()
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def species_id(client):
     response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
     assert response.status_code == 200, f"Failed to create species: {response.text}"
@@ -49,7 +49,7 @@ def species_id(client):
     return data["id"]
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def strain_id(client, species_id):
     response = client.post(
         "/strain/",
@@ -63,12 +63,11 @@ def strain_id(client, species_id):
     data = response.json()
     assert data["taxonomy_id"] == "Taxonomy ID"
     assert "id" in data, f"Failed to get id for strain: {data}"
-    strain_id = data["id"]
-    return strain_id
+    return data["id"]
 
 
-@pytest.fixture(scope="function")
-def license_id(client, species_id):
+@pytest.fixture
+def license_id(client):
     response = client.post(
         "/license/",
         json={
@@ -79,11 +78,10 @@ def license_id(client, species_id):
     assert response.status_code == 200
     data = response.json()
     assert "id" in data, f"Failed to get id for license: {data}"
-    license_id = data["id"]
-    return license_id
+    return data["id"]
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def brain_region_id(client):
     ontology_id = "Test Ontology ID"
     response = client.post(
@@ -94,5 +92,4 @@ def brain_region_id(client):
     assert data["name"] == "Test Brain Region"
     assert data["ontology_id"] == ontology_id
     assert "id" in data, f"Failed to get id for brain region: {data}"
-    brain_region_id = data["id"]
-    return brain_region_id
+    return data["id"]

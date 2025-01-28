@@ -27,7 +27,9 @@ class TraceCreate(SingleCellData):
         description="Correction applied to the voltage trace, in mV",
     )
     stimuli: StimulusCreate = Field(
-        ..., title="Stimuli", description="List of stimuli applied to the cell with their respective time steps"
+        ...,
+        title="Stimuli",
+        description="List of stimuli applied to the cell with their respective time steps",
     )
     recording_location: str = Field(
         ...,

@@ -131,7 +131,6 @@ class License(TimestampMixin, LegacyMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
-    label: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
 
 
 class LicensedMixin:

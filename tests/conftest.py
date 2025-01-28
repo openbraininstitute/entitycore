@@ -73,7 +73,6 @@ def license_id(client):
         json={
             "name": "Test License",
             "description": "a license description",
-            "label": "test label",
         },
     )
     assert response.status_code == 200

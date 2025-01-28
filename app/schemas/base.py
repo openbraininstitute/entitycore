@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class CreationMixin(BaseModel):
@@ -23,7 +23,6 @@ class CreationMixin(BaseModel):
 class LicenseCreate(BaseModel):
     name: str
     description: str
-    label: str
 
     class Config:
         from_attributes = True
@@ -45,6 +44,7 @@ class BrainLocationCreate(BaseModel):
 class BrainRegionCreate(BaseModel):
     ontology_id: str
     name: str
+    acronym: str | None = Field(None, description="should be allen notation acronym if it exists")
 
     class Config:
         from_attributes = True
@@ -79,6 +79,38 @@ class SpeciesRead(SpeciesCreate, CreationMixin):
     pass
 
 
+class SubjectCreate(BaseModel):
+    strain_id: int = Field(
+        None,
+        title="Strain ID",
+        description="ID of the strain associated with the subject.",
+    )
+    age: int | None = Field(
+        None,
+        title="Age",
+        description="Age of the subject in days.",
+    )
+    sex: str | None = Field(
+        None,
+        title="Sex",
+        description="Sex of the subject (e.g., 'male', 'female').",
+    )
+    weight: float | None = Field(
+        None,
+        title="Weight",
+        description="Weight of the subject in grams.",
+    )
+
+
+class SubjectRead(CreationMixin):
+    strain: StrainRead = Field(
+        ..., title="Strain", description="Detailed information about the subject's strain."
+    )
+    age: int | None
+    sex: str | None
+    weight: float | None
+
+
 class LicensedCreateMixin(BaseModel):
     license_id: int | None = None
 
@@ -111,3 +143,9 @@ class MeasurementCreate(BaseModel):
 
 class MeasurementRead(MeasurementCreate):
     id: int
+
+
+class File(BaseModel):
+    path: str = Field(..., title="File Path", description="Path or URL to the file.")
+    format: str = Field(..., title="File Format", description="Format of the file (e.g., nwb, h5).")
+    size: int | None = Field(None, title="File Size", description="Size of the file in bytes.")

@@ -31,7 +31,7 @@ def read_license(license_id: int, db: SessionDep):
 
 @router.post("/", response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: SessionDep):
-    db_license = License(name=license.name, description=license.description, label=license.label)
+    db_license = License(name=license.name, description=license.description)
     db.add(db_license)
     db.commit()
     db.refresh(db_license)

@@ -43,7 +43,9 @@ def read_experimental_neuron_density(
     db: SessionDep,
 ):
     experimental_neuron_density = (
-        db.query(ExperimentalNeuronDensity)
+        constrain_query_to_members(
+            db.query(ExperimentalNeuronDensity), project_context.project_id
+        )
         .filter(ExperimentalNeuronDensity.id == experimental_neuron_density_id)
         .first()
     )

@@ -77,6 +77,7 @@ def test_missing_experimental_neuron_density(client):
     )
     assert response.status_code == 422
 
+
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     js = {
         "brain_region_id": brain_region_id,
@@ -97,7 +98,7 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
     public_obj = public_obj.json()
 
     with patch('app.routers.experimental_bouton_density.raise_if_unauthorized'):
-        unaccessable_morph = client.post(
+        inaccessible_obj = client.post(
             ROUTE,
             headers={
                 "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
@@ -105,8 +106,8 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
                 },
             json=js | {"name": "unaccessable obj", }
         )
-        assert unaccessable_morph.status_code == 200
-        unaccessable_morph = unaccessable_morph.json()
+        assert inaccessible_obj.status_code == 200
+        inaccessible_obj = inaccessible_obj.json()
 
     private_obj0 = client.post(
         ROUTE,
@@ -131,3 +132,6 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
 
     ids = {row['id'] for row in data}
     assert ids == {public_obj['id'], private_obj0['id'], private_obj1['id'],}
+
+    response = client.get(f"{ROUTE}{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
+    assert response.status_code == 404

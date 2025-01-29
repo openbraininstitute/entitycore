@@ -1,5 +1,3 @@
-from pydantic import UUID4
-
 from datetime import datetime
 from typing import Annotated, ClassVar
 

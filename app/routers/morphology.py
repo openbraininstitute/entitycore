@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi_filter import FilterDepends
@@ -16,16 +16,12 @@ from app.db.model import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
-from app.schemas.base import ProjectContext
+from app.routers.types import ProjectContextHeader
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyExpand,
     ReconstructionMorphologyRead,
 )
-
-
-ProjectContextHeader = Annotated[ProjectContext, Header()]
-
 
 router = APIRouter(
     prefix="/reconstruction_morphology",

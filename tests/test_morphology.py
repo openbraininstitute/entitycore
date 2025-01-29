@@ -279,8 +279,11 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
     with patch('app.routers.morphology.raise_if_unauthorized'):
         unaccessable_morph = client.post(
             "/reconstruction_morphology/",
-            headers=PROJECT_HEADERS,
-            json=morph_json | {"name": "unaccessable morphology 1", "authorized_project_id": "42424242-4242-4000-9000-424242424242",}
+            headers={
+                "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+                "project-id": "42424242-4242-4000-9000-424242424242",
+                },
+            json=morph_json | {"name": "unaccessable morphology 1"}
         )
         assert unaccessable_morph.status_code == 200
         unaccessable_morph = unaccessable_morph.json()
@@ -288,7 +291,7 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
     private_morph0 = client.post(
         "/reconstruction_morphology/",
         headers=PROJECT_HEADERS,
-        json=morph_json | {"name": "private morphology 0", "authorized_project_id": PROJECT_HEADERS['project-id'],}
+        json=morph_json | {"name": "private morphology 0"}
     )
     assert private_morph0.status_code == 200
     private_morph0 = private_morph0.json()

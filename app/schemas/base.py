@@ -5,11 +5,10 @@ from pydantic import BaseModel, ConfigDict, UUID4
 
 class AuthorizationMixin(BaseModel):
     authorized_project_id: UUID4
-    authorized_public: bool
+    authorized_public: bool = False
 
 
-class AuthorizationOptionalMixin(BaseModel):
-    authorized_project_id: UUID4 | None = None
+class AuthorizationOptionalPublicMixin(BaseModel):
     authorized_public: bool | None = False
 
 

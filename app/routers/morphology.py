@@ -38,15 +38,24 @@ router = APIRouter(
     "/{rm_id}",
     response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
 )
-def read_reconstruction_morphology(project_context: ProjectContextHeader, db: SessionDep, rm_id: int, expand: str | None = None):
-    rm = (constrain_query_to_members(db.query(ReconstructionMorphology),
-                                     project_context.project_id)
-          .filter(ReconstructionMorphology.id == rm_id)
-          .first()
-          )
+def read_reconstruction_morphology(
+    project_context: ProjectContextHeader,
+    db: SessionDep,
+    rm_id: int,
+    expand: str | None = None,
+):
+    rm = (
+        constrain_query_to_members(
+            db.query(ReconstructionMorphology), project_context.project_id
+        )
+        .filter(ReconstructionMorphology.id == rm_id)
+        .first()
+    )
 
     if rm is None:
-        raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
+        raise HTTPException(
+            status_code=404, detail="ReconstructionMorphology not found"
+        )
 
     if expand and "morphology_feature_annotation" in expand:
         return ReconstructionMorphologyExpand.model_validate(rm)
@@ -57,6 +66,7 @@ def read_reconstruction_morphology(project_context: ProjectContextHeader, db: Se
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
+    request: Request,
     project_context: ProjectContextHeader,
     reconstruction: ReconstructionMorphologyCreate,
     db: SessionDep,
@@ -66,10 +76,7 @@ def create_reconstruction_morphology(
     if reconstruction.brain_location:
         brain_location = BrainLocation(**reconstruction.brain_location.model_dump())
 
-    if reconstruction.authorized_project_id is None:
-        reconstruction.authorized_project_id = project_context.project_id
-
-    raise_if_unauthorized(reconstruction.authorized_project_id)
+    raise_if_unauthorized(request, project_context.project_id)
 
     db_reconstruction_morphology = ReconstructionMorphology(
         name=reconstruction.name,
@@ -79,7 +86,8 @@ def create_reconstruction_morphology(
         species_id=reconstruction.species_id,
         strain_id=reconstruction.strain_id,
         license_id=reconstruction.license_id,
-        authorized_project_id = reconstruction.authorized_project_id
+        authorized_project_id=project_context.project_id,
+        authorized_public=reconstruction.authorized_public
     )
     db.add(db_reconstruction_morphology)
     db.commit()
@@ -133,7 +141,8 @@ def morphology_query(
                 other_types = aliased(other_table)
                 facet_q = facet_q.join(
                     other_types,
-                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
+                    getattr(ReconstructionMorphology, other_ty + "_id")
+                    == other_types.id,  # type: ignore[attr-defined]
                 ).where(other_types.name == value)  # type: ignore[attr-defined]
         facets[ty] = {r.name: r.count for r in facet_q.all()}
     rms = (

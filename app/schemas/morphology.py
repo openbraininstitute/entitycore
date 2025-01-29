@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     AuthorizationMixin,
-    AuthorizationOptionalMixin,
+    AuthorizationOptionalPublicMixin,
     BrainLocationCreate,
     BrainRegionRead,
     CreationMixin,
@@ -27,7 +27,7 @@ class ReconstructionMorphologyBase(BaseModel):
 class ReconstructionMorphologyCreate(
     ReconstructionMorphologyBase,
     LicensedCreateMixin,
-    AuthorizationOptionalMixin,
+    AuthorizationOptionalPublicMixin,
 ):
     species_id: int
     strain_id: int

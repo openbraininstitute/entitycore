@@ -20,14 +20,18 @@ class ExperimentalDensityBase(BaseModel):
     brain_location: BrainLocationCreate | None
 
 
-class ExperimentalDensityCreate(ExperimentalDensityBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin):
+class ExperimentalDensityCreate(
+    ExperimentalDensityBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
+):
     species_id: int
     strain_id: int
     brain_region_id: int
     legacy_id: str | None
 
 
-class ExperimentalDensityRead(ExperimentalDensityBase, CreationMixin, LicensedReadMixin, AuthorizationMixin):
+class ExperimentalDensityRead(
+    ExperimentalDensityBase, CreationMixin, LicensedReadMixin, AuthorizationMixin
+):
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead

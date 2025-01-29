@@ -136,6 +136,6 @@ The frontend will have to supply the current user's Bearer token, as well as the
 
 The service will check that the user does indeed belong to the supplied project, and then filter the results to include only public ones, along with those in the project.
 By default, an `Entity` is private, and marked as being owned by the `project-id` supplied in the header.
-When creating an `Entity`, it is possible to provide an `authorized_project_id` field, which will be used as the owner instead of the header value.
 Members of the owning project can set the `authorized_public` on creation, to mark the `Entity` as public.
 In addition, this value can be changed by using the `PATCH` operation.
+Once an `Entity` is made public, it can not be made private, since it could be already shared/used by others.

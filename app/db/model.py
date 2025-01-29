@@ -275,8 +275,6 @@ class Annotation(LegacyMixin, TimestampMixin, Base):
 
 
 class Entity(TimestampMixin, Root):
-    PUBLIC = UUID4('00000000-0000-4000-9000-000000000000')
-
     __tablename__ = "entity"
     id: Mapped[int] = mapped_column(ForeignKey("root.id"), primary_key=True)
     # _type: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
@@ -291,6 +289,7 @@ class Entity(TimestampMixin, Root):
 
     # The id of the project; `PUBLIC` defined above is the public
     authorized_project_id: Mapped[UUID] = mapped_column(UUID, nullable=False)
+    authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
 
 
     __mapper_args__ = {  # noqa: RUF012

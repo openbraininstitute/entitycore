@@ -131,9 +131,12 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
         len(data["measurements"]) == 2
     ), f"Failed to get correct number of measurements for morphology feature annotation: {data}"
 
-    response = client.get(f"/reconstruction_morphology/{reconstruction_morphology_id}")
-    data = response.json()
+    response = client.get(
+        f"/reconstruction_morphology/{reconstruction_morphology_id}",
+        headers=PROJECT_HEADERS,
+        )
     assert response.status_code == 200
+    data = response.json()
     assert "morphology_feature_annotation" not in data
 
     response = client.get(
@@ -253,13 +256,7 @@ def test_query_reconstruction_morphology(
     )
 
 
-@patch('app.routers.morphology.raise_if_unauthorized')
-def test_authorization(
-    mock_raise_if_unauthorized,
-    client, species_id, strain_id, license_id, brain_region_id
-):
-    mock_raise_if_unauthorized.return_value = None
-
+def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     morph_json = {
         "brain_location": {"x": 10, "y": 20, "z": 30},
         "brain_region_id": brain_region_id,
@@ -274,40 +271,40 @@ def test_authorization(
     public_morph = client.post(
         "/reconstruction_morphology/",
         headers=PROJECT_HEADERS,
-        json=morph_json | {"name": "public morphology", "authorized_project_id": "00000000-0000-4000-9000-000000000000",}
+        json=morph_json | {"name": "public morphology", "authorized_public": True, }
     )
     assert public_morph.status_code == 200
-    public_morph_id = public_morph.json()['id']
+    public_morph = public_morph.json()
 
-    # Note: the mock is allowing any authorized_project_id
-    unaccessable_morph = client.post(
-        "/reconstruction_morphology/",
-        headers=PROJECT_HEADERS,
-        json=morph_json | {"name": "unaccessable morphology 1", "authorized_project_id": "42424242-4242-4000-9000-424242424242",}
-    )
-    assert unaccessable_morph.status_code == 200
-    unaccessable_morph = unaccessable_morph.json()['id']
+    with patch('app.routers.morphology.raise_if_unauthorized'):
+        unaccessable_morph = client.post(
+            "/reconstruction_morphology/",
+            headers=PROJECT_HEADERS,
+            json=morph_json | {"name": "unaccessable morphology 1", "authorized_project_id": "42424242-4242-4000-9000-424242424242",}
+        )
+        assert unaccessable_morph.status_code == 200
+        unaccessable_morph = unaccessable_morph.json()
 
-
-    private_morph = client.post(
+    private_morph0 = client.post(
         "/reconstruction_morphology/",
         headers=PROJECT_HEADERS,
         json=morph_json | {"name": "private morphology 0", "authorized_project_id": PROJECT_HEADERS['project-id'],}
     )
-    assert private_morph.status_code == 200
-    private_morph_id0 = private_morph.json()['id']
+    assert private_morph0.status_code == 200
+    private_morph0 = private_morph0.json()
 
-    private_morph = client.post(
+    private_morph1 = client.post(
         "/reconstruction_morphology/",
         headers=PROJECT_HEADERS,
         json=morph_json | {"name": "private morphology 1", }
     )
-    assert private_morph.status_code == 200
-    private_morph_id1 = private_morph.json()['id']
+    assert private_morph1.status_code == 200
+    private_morph1 = private_morph1.json()
 
+    # only return results that matches the desired project, and public ones
     response = client.get("/reconstruction_morphology/", headers=PROJECT_HEADERS)
     data = response.json()
     assert len(data) == 3
 
     ids = {row['id'] for row in data}
-    assert ids == {public_morph_id, private_morph_id0, private_morph_id1,}
+    assert ids == {public_morph['id'], private_morph0['id'], private_morph1['id'],}

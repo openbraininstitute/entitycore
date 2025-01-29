@@ -1,3 +1,5 @@
+from .utils import PROJECT_HEADERS
+
 def test_create_contribution(client, species_id, strain_id, brain_region_id, license_id):
     response = client.post(
         "/person/",
@@ -18,6 +20,7 @@ def test_create_contribution(client, species_id, strain_id, brain_region_id, lic
     morph_name = "Test Morphology Name"
     response = client.post(
         "/reconstruction_morphology/",
+        headers=PROJECT_HEADERS,
         json={
             "brain_region_id": brain_region_id,
             "species_id": species_id,

@@ -1,8 +1,4 @@
-from typing import TypeVar
-
 from pydantic import BaseModel
-
-M = TypeVar("M", bound=BaseModel)
 
 
 class Pagination(BaseModel):
@@ -11,6 +7,8 @@ class Pagination(BaseModel):
     total_items: int
 
 
+# Mapping from attribute -> {distinct_value: count}
+# ex: "mType": {"L5_TPC": 10, "L6_BAC": 1},
 type Facets = dict[str, dict[str, int]]
 
 

@@ -94,6 +94,8 @@ def morphology_query(
         facets: Facets = {}
         for ty, table in name_to_table.items():
             types = aliased(table)
+            # TODO: this should be migrated to sqlalchemy v2.0 style:
+            # https://github.com/openbraininstitute/entitycore/pull/11#discussion_r1935703476
             facet_q = (
                 db.query(types.name, func.count().label("total"))  # type: ignore[attr-defined]
                 .join(

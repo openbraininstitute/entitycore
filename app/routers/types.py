@@ -11,7 +11,10 @@ class Pagination(BaseModel):
     total_items: int
 
 
+type Facets = dict[str, dict[str, int]]
+
+
 class ListResponse[M: BaseModel](BaseModel):
     data: list[M]
     pagination: Pagination
-    facets: dict[str, dict[str, int]] | None = None
+    facets: Facets | None = None

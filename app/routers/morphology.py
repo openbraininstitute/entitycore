@@ -13,7 +13,7 @@ from app.db.model import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
-from app.routers.types import ListResponse, Pagination
+from app.routers.types import Facets, ListResponse, Pagination
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyExpand,
@@ -91,11 +91,11 @@ def morphology_query(
             pagination=Pagination(page=page, page_size=page_size, total_items=query.count()),
         )
     else:
-        facets = {}
+        facets: Facets = {}
         for ty, table in name_to_table.items():
             types = aliased(table)
             facet_q = (
-                db.query(types.name, func.count().label("count"))  # type: ignore[attr-defined]
+                db.query(types.name, func.count().label("total"))  # type: ignore[attr-defined]
                 .join(
                     ReconstructionMorphology,
                     getattr(ReconstructionMorphology, ty + "_id") == types.id,  # type: ignore[attr-defined]
@@ -111,7 +111,7 @@ def morphology_query(
                         other_types,
                         getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
                     ).where(other_types.name == value)  # type: ignore[attr-defined]
-            facets[ty] = {r.name: r.count for r in facet_q.all()}
+            facets[ty] = {r.name: r.total for r in facet_q.all()}
 
         query = db.query(ReconstructionMorphology)
         rms = (

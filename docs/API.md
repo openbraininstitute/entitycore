@@ -1,15 +1,16 @@
 
 # Normal/simple REST APIs:
 ```
-    /bouton-density
-    /contribution
+    # for `Entity`
     /experimental-bouton-density
     /experimental-neuron-density
     /experimental-synapses-per-connection
+    /reconstructed-neuron-morphology/
+
+    /contribution
+    /role
     /organization
     /person
-    /reconstructed-neuron-morphology/
-    /role
 ```
 
 These have CRUD-able patterns:
@@ -45,15 +46,15 @@ Would return:
   "data": [...],
   "pagination": {
     "page": 1,
-    "limit": 10,
-    "total": 100
+    "page_size": 10,
+    "total_items": 100
   }
 }
 ```
 `data` would include the columns that are required for the current FE list view, for now would be hardcoded, but in the future could be part of the query param.
 
 Note:
-will need to decide how to handle expansion of brain_region_ids, something like how the sonata-position-service works
+will need to decide how to handle expansion of brain\_region\_ids, something like how the sonata-position-service works
 
 ## Search and filtering
 

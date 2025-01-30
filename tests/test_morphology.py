@@ -177,7 +177,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
             },
         )
 
-    response = client.get("/reconstruction_morphology/q/?term=test")
+    response = client.get("/reconstruction_morphology/?search=test")
     assert response.status_code == 200
     data = response.json()
 
@@ -227,12 +227,12 @@ def test_query_reconstruction_morphology(
 
     response = client.get("/reconstruction_morphology/")
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert len(data) == count
 
     response = client.get("/reconstruction_morphology/", params={"order_by": "+creation_date"})
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert len(data) == count
     assert all(
         elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
@@ -240,7 +240,7 @@ def test_query_reconstruction_morphology(
 
     response = client.get("/reconstruction_morphology/", params={"order_by": "-creation_date"})
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert all(
         elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )

@@ -1,8 +1,6 @@
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 from fastapi_filter import FilterDepends
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
@@ -15,6 +13,7 @@ from app.db.model import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
+from app.routers.types import ListResponse, Pagination
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyExpand,
@@ -40,6 +39,7 @@ def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | Non
 
     if expand and "morphology_feature_annotation" in expand:
         return ReconstructionMorphologyExpand.model_validate(rm)
+
     # added back with None by the response_model
     return ReconstructionMorphologyRead.model_validate(rm)
 
@@ -69,62 +69,61 @@ def create_reconstruction_morphology(
     return db_reconstruction_morphology
 
 
-@router.get("/", response_model=list[ReconstructionMorphologyRead])
-def read_reconstruction_morphologies(
-    morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
-    db: SessionDep,
-    skip: int = 0,
-    limit: int = 10,
-):
-    query = db.query(ReconstructionMorphology)
-    query = morphology_filter.filter(query)
-    return morphology_filter.sort(query).offset(skip).limit(limit).all()
-
-
-@router.get("/q/")
+@router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
 def morphology_query(
-    req: Request,
-    session: SessionDep,
-    term: str | None = None,
+    request: Request,
+    db: SessionDep,
+    morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
+    search: str | None = None,
     skip: int = 0,
     limit: int = 10,
 ):
-    # brain_region_id, species_id, strain_id
-    args = req.query_params
     name_to_table = {
         "species": Species,
         "strain": Strain,
     }
-    facets = {}
-    for ty, table in name_to_table.items():
-        types = aliased(table)
-        facet_q = (
-            session.query(types.name, func.count().label("count"))  # type: ignore[attr-defined]
-            .join(
-                ReconstructionMorphology,
-                getattr(ReconstructionMorphology, ty + "_id") == types.id,  # type: ignore[attr-defined]
+
+    if search is None and not any(ty in request.query_params for ty in name_to_table):
+        query = db.query(ReconstructionMorphology)
+        query = morphology_filter.filter(query)
+        response = ListResponse[ReconstructionMorphologyRead](
+            data=morphology_filter.sort(query).offset(skip).limit(limit).all(),
+            pagination=Pagination(page=0, limit=0, total=0),
+        )
+    else:
+        facets = {}
+        for ty, table in name_to_table.items():
+            types = aliased(table)
+            facet_q = (
+                db.query(types.name, func.count().label("count"))  # type: ignore[attr-defined]
+                .join(
+                    ReconstructionMorphology,
+                    getattr(ReconstructionMorphology, ty + "_id") == types.id,  # type: ignore[attr-defined]
+                )
+                .filter(ReconstructionMorphology.morphology_description_vector.match(search))
+                .group_by(types.name)  # type: ignore[attr-defined]
             )
-            .filter(ReconstructionMorphology.morphology_description_vector.match(term))
-            .group_by(types.name)  # type: ignore[attr-defined]
+
+            for other_ty, other_table in name_to_table.items():
+                if value := request.query_params.get(other_ty, None):
+                    other_types = aliased(other_table)
+                    facet_q = facet_q.join(
+                        other_types,
+                        getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
+                    ).where(other_types.name == value)  # type: ignore[attr-defined]
+            facets[ty] = {r.name: r.count for r in facet_q.all()}
+
+        rms = (
+            db.query(ReconstructionMorphology)
+            .where(ReconstructionMorphology.morphology_description_vector.match(search))
+            .offset(skip)
+            .limit(limit)
+            .all()
         )
 
-        for other_ty, other_table in name_to_table.items():
-            if value := args.get(other_ty, None):
-                other_types = aliased(other_table)
-                facet_q = facet_q.join(
-                    other_types,
-                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
-                ).where(other_types.name == value)  # type: ignore[attr-defined]
-        facets[ty] = {r.name: r.count for r in facet_q.all()}
-    rms = (
-        session.query(ReconstructionMorphology)
-        .where(ReconstructionMorphology.morphology_description_vector.match(term))
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-    res = {
-        "data": [ReconstructionMorphologyRead.model_validate(rm) for rm in rms],
-        "facets": facets,
-    }
-    return JSONResponse(content=jsonable_encoder(res))
+        response = ListResponse[ReconstructionMorphologyRead](
+            data=[ReconstructionMorphologyRead.model_validate(rm) for rm in rms],
+            pagination=Pagination(page=0, limit=0, total=0),
+            facets=facets,
+        )
+    return response

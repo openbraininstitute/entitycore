@@ -75,8 +75,8 @@ def morphology_query(
     db: SessionDep,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
-    skip: int = 0,
-    limit: int = 10,
+    page: int = 0,
+    page_size: int = 10,
 ):
     name_to_table = {
         "species": Species,
@@ -87,8 +87,8 @@ def morphology_query(
         query = db.query(ReconstructionMorphology)
         query = morphology_filter.filter(query)
         response = ListResponse[ReconstructionMorphologyRead](
-            data=morphology_filter.sort(query).offset(skip).limit(limit).all(),
-            pagination=Pagination(page=0, limit=0, total=0),
+            data=morphology_filter.sort(query).offset(page * page_size).limit(page_size).all(),
+            pagination=Pagination(page=page, page_size=page_size, total_items=query.count()),
         )
     else:
         facets = {}
@@ -113,17 +113,17 @@ def morphology_query(
                     ).where(other_types.name == value)  # type: ignore[attr-defined]
             facets[ty] = {r.name: r.count for r in facet_q.all()}
 
+        query = db.query(ReconstructionMorphology)
         rms = (
-            db.query(ReconstructionMorphology)
-            .where(ReconstructionMorphology.morphology_description_vector.match(search))
-            .offset(skip)
-            .limit(limit)
+            query.where(ReconstructionMorphology.morphology_description_vector.match(search))
+            .offset(page * page_size)
+            .limit(page_size)
             .all()
         )
 
         response = ListResponse[ReconstructionMorphologyRead](
             data=[ReconstructionMorphologyRead.model_validate(rm) for rm in rms],
-            pagination=Pagination(page=0, limit=0, total=0),
+            pagination=Pagination(page=page, page_size=page_size, total_items=query.count()),
             facets=facets,
         )
     return response

@@ -222,7 +222,7 @@ def test_query_reconstruction_morphology(
                 response.status_code == 200
             ), f"Failed to create reconstruction morphology: {response.text}"
 
-    count = 3
+    count = 10
     create_morphologies(count)
 
     response = client.get("/reconstruction_morphology/")
@@ -244,3 +244,12 @@ def test_query_reconstruction_morphology(
     assert all(
         elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
+
+    response = client.get(
+        "/reconstruction_morphology/",
+        params={"order_by": "+creation_date", "page": 0, "page_size": 3},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 3
+    assert [row["id"] for row in data] == [1, 2, 3]

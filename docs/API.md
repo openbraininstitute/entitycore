@@ -46,8 +46,8 @@ Would return:
   "data": [...],
   "pagination": {
     "page": 1,
-    "limit": 10,
-    "total": 100
+    "page_size": 10,
+    "total_items": 100
   }
 }
 ```

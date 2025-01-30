@@ -2,14 +2,16 @@ from datetime import datetime
 from typing import Annotated, ClassVar
 
 from sqlalchemy import (
+    Column,
     DateTime,
     ForeignKey,
+    Integer,
     MetaData,
     UniqueConstraint,
     func,
     or_,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
@@ -94,9 +96,11 @@ class BrainLocation(Base):
 
 class BrainRegion(TimestampMixin, Base):
     __tablename__ = "brain_region"
+
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    ontology_id: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    acronym: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    children: list[int] = Column(ARRAY(Integer), nullable=True)  # type: ignore[assignment]
 
 
 class Species(TimestampMixin, Base):

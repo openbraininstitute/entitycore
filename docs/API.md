@@ -100,8 +100,8 @@ EX:
          "id": 997,
          "acronym": "root",
          "name": "root",
-         "color_hex_triplet": "FFFFFF",          # <- if this is used?
-         "parent_structure_id": null,            #
+         "color_hex_triplet": "FFFFFF",
+         "parent_structure_id": null,          # <- if this is used?
          "children": [
               { "id": 997, "acronym": "root", "name": "root", ..., "children": []},
               ...

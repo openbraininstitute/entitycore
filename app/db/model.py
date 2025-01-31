@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Annotated, ClassVar
+from typing import Any, ClassVar
+from uuid import UUID
 
 from sqlalchemy import (
     DateTime,
@@ -7,43 +8,18 @@ from sqlalchemy import (
     MetaData,
     UniqueConstraint,
     func,
-    or_,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
-from sqlalchemy.types import VARCHAR, TypeDecorator
 
-
-class StringListType(TypeDecorator):
-    impl = VARCHAR
-    cache_ok = True
-
-    def process_bind_param(self, value, dialect):  # noqa: ARG002, PLR6301
-        if value is not None:
-            return ",".join(value)
-        return None
-
-    def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301
-        if value is not None:
-            return value.split(",")
-        return None
-
-    @staticmethod
-    def is_equal(column, value):
-        return func.strpos(column, value) > 0
-
-    @staticmethod
-    def in_(column, values):
-        return or_(*[StringList.is_equal(column, value) for value in values])
-
-
-StringList = Annotated[StringListType, "StringList"]
+from app.db.types import AssetStatus, EntityType, StringList, StringListType
 
 
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
         datetime: DateTime(timezone=True),
         StringList: StringListType,
+        dict[str, Any]: JSONB,
     }
     # See https://alembic.sqlalchemy.org/en/latest/naming.html
     metadata = MetaData(
@@ -512,3 +488,25 @@ class ExperimentalSynapsesPerConnection(LocationMixin, SpeciesMixin, LicensedMix
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     __mapper_args__ = {"polymorphic_identity": "experimental_synapses_per_connection"}  # noqa: RUF012
+
+
+class Asset(TimestampMixin, Base):
+    """Asset table."""
+
+    __tablename__ = "asset"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    uuid: Mapped[UUID] = mapped_column(index=True, unique=True)  # for external access
+    status: Mapped[AssetStatus] = mapped_column(nullable=False)
+    path: Mapped[str]
+    meta: Mapped[dict[str, Any]]  # not used yet. can be useful?
+    # TODO: consider other attributes
+
+
+class AssetEntity(Base):
+    """Asset-Entity many-to-many table."""
+
+    __tablename__ = "asset_entity"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    asset_id: Mapped[int] = mapped_column(ForeignKey("asset.id", ondelete="CASCADE"), index=True)
+    entity_id: Mapped[int] = mapped_column(index=True)  # cannot be ForeignKey
+    entity_type: Mapped[EntityType]  # needed to look up the correct entity table

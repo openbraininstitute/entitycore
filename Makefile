@@ -59,7 +59,7 @@ run-local: export UVICORN_PORT=8000
 run-local: export UVICORN_RELOAD=true
 run-local: export DB_HOST=127.0.0.1
 run-local: export DB_PORT=5433
-run-local: build  ## Run the application locally
+run-local:  ## Run the application locally
 	docker compose up --wait db
 	uv run -m alembic upgrade head
 	uv run uvicorn app:app

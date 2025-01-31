@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Annotated, ClassVar
 
 from sqlalchemy import (
-    Column,
     DateTime,
     ForeignKey,
     Integer,
@@ -100,7 +99,7 @@ class BrainRegion(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     acronym: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
-    children: list[int] = Column(ARRAY(Integer), nullable=True)  # type: ignore[assignment]
+    children: Mapped[list[int]] = mapped_column(ARRAY(Integer), nullable=True)
 
 
 class Species(TimestampMixin, Base):

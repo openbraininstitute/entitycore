@@ -53,9 +53,9 @@ def create_brain_region(brain_region: BrainRegionCreate, db: SessionDep):
 
 
 @router.get("/")
-def get(db: SessionDep, flat: str | None = None) -> Response:
+def get(db: SessionDep, flat: bool | None = False) -> Response:  # noqa: FBT001, FBT002
     response: Response
-    if flat and flat.lower() == "true":
+    if flat:
         # TODO: this depends on 997 existing; which is bad
         # the return format isn't good, but this can be decided in the future
         response = JSONResponse(content=[tuple(r) for r in get_region_tree(db, start_id=997)])

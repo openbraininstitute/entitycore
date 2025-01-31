@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from contextlib import contextmanager
 from typing import Annotated
 
@@ -8,11 +10,15 @@ from app.application import app
 from app.dependencies.auth import AuthHeader, verify_project_context
 from app.schemas.base import ProjectContext
 
+TEST_DATA_DIR = Path(__file__).parent / "data"
+
 BEARER_TOKEN = {"Authorization": "Bearer this is a fake token"}
+VIRTUAL_LAB_ID = "9c6fba01-2c6f-4eac-893f-f0dc665605c5"
+PROJECT_ID = "ee86d4a0-eaca-48ca-9788-ddc450250b15"
 
 PROJECT_HEADERS = {
-    "virtual-lab-id": "9c6fba01-2c6f-4eac-893f-f0dc665605c5",
-    "project-id": "ee86d4a0-eaca-48ca-9788-ddc450250b15",
+    "virtual-lab-id": VIRTUAL_LAB_ID,
+    "project-id": PROJECT_ID,
 }
 
 UNRELATED_PROJECT_HEADERS = {

@@ -4,6 +4,7 @@ import json
 import os
 import sys
 from contextlib import closing
+from collections import defaultdict
 
 import sqlalchemy
 from tqdm import tqdm
@@ -371,8 +372,10 @@ def import_e_models(data, db, file_path):
         return types == "EModel"
 
     possible_data = [data for data in data if is_emodel(data)]
+
     if not possible_data:
         return
+
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
         db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
@@ -499,62 +502,80 @@ def import_morphologies(data_list, db, file_path):
 
 
 def import_morphology_feature_annotations(data_list, db, file_path):
-    possible_data = [
-        data for data in data_list if "NeuronMorphologyFeatureAnnotation" in data["@type"]
-    ]
-    if not possible_data:
-        return
+    annotations = defaultdict(list)
     skip = 0
     dup = 0
-    for data in tqdm(possible_data):
-        try:
-            legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
-            if not legacy_id:
-                print("Skipping morphology feature annotation due to missing legacy id.")
-                continue
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
-            if not rm:
-                #print("skipping morphology that is not imported")
-                skip += 1
-                continue
-            all_measurements = []
-            for measurement in data.get("hasBody", []):
-                serie = measurement.get("value", {}).get("series", [])
-                if isinstance(serie, dict):
-                    serie = [serie]
-                measurement_serie = [
-                    MorphologyMeasurementSerieElement(
-                        name=serie_elem.get("statistic", None),
-                        value=serie_elem.get("value", None),
-                    )
-                    for serie_elem in serie
-                ]
-
-                all_measurements.append(
-                    MorphologyMeasurement(
-                        measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
-                        measurement_serie=measurement_serie,
-                    )
-                )
-
-            db_morphology_feature_annotation = MorphologyFeatureAnnotation(
-                reconstruction_morphology_id=rm.id
-            )
-            db_morphology_feature_annotation.measurements = all_measurements
-            db.add(db_morphology_feature_annotation)
-            db.commit()
-            db.refresh(db_morphology_feature_annotation)
-        except sqlalchemy.exc.IntegrityError:
-            # TODO: investigate if what is actually happening
-            #print("2 annotations for a morphology ignoring")
-            dup += 1
-            db.rollback()
+    for data in data_list:
+        if "NeuronMorphologyFeatureAnnotation" not in data["@type"]:
             continue
-        except Exception as e:
-            print(f"Error: {e}")
-            print(data)
+        legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
+        if not legacy_id:
+            print("Skipping morphology feature annotation due to missing legacy id.")
+            continue
 
-    print(f"{file_path}: skip: {skip}, dup: {dup}")
+        rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+        if not rm:
+            #print("skipping morphology that is not imported")
+            skip += 1
+            continue
+
+        all_measurements = []
+        for measurement in data.get("hasBody", []):
+            serie = measurement.get("value", {}).get("series", [])
+            if isinstance(serie, dict):
+                serie = [serie]
+
+            measurement_serie = [
+                MorphologyMeasurementSerieElement(
+                    name=serie_elem.get("statistic", None),
+                    value=serie_elem.get("value", None),
+                )
+                for serie_elem in serie
+            ]
+
+            all_measurements.append(
+                MorphologyMeasurement(
+                    measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
+                    measurement_serie=measurement_serie,
+                )
+            )
+
+        annotations[rm.id].append(MorphologyFeatureAnnotation(
+            reconstruction_morphology_id=rm.id,
+            measurements=all_measurements,
+            ))
+
+    if not annotations:
+        return
+
+    already_dup = 0
+    for rm_id, annotation in tqdm(annotations.items()):
+        mfa = (db
+               .query(MorphologyFeatureAnnotation)
+               .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
+               .first()
+               )
+        if mfa:
+            already_dup += len(annotation)
+            continue
+
+        if len(annotation) > 1:
+            #print(f"{rm_id} has {len(annotation)}, only using the first one")
+            dup += len(annotation) - 1
+
+        data = annotation[0]
+
+        try:
+            db.add(data)
+            db.commit()
+            db.refresh(data)
+        except Exception as e:
+            print(f"Error: {e!r}")
+            print(data)
+            raise
+
+    print(f"{file_path}: skip: {skip}, dup: {dup}, dup from previous: {already_dup}, total_dup: {dup+already_dup}")
+
 
 def import_experimental_neuron_densities(data_list, db, file_path):
     _import_experimental_densities(

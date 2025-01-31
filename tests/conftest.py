@@ -1,19 +1,47 @@
+import os
 from collections.abc import Iterator
 
+import boto3
 import pytest
 from fastapi.testclient import TestClient
+from moto import mock_aws
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.application import app
+from app.config import settings
 from app.db.model import Base
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
-from . import utils
+from tests import utils
+from tests.utils import BEARER_TOKEN, PROJECT_HEADERS
 
 
 @pytest.fixture(scope="session")
-def client():
+def _aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # noqa: S105
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"  # noqa: S105
+    os.environ["AWS_SESSION_TOKEN"] = "testing"  # noqa: S105
+    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+
+
+@pytest.fixture(scope="session")
+def s3(_aws_credentials):
+    """Return a mocked S3 client."""
+    with mock_aws():
+        yield boto3.client("s3")
+
+
+@pytest.fixture(scope="session")
+def _create_buckets(s3):
+    s3.create_bucket(Bucket=settings.S3_PRIVATE_BUCKET_NAME)
+    s3.create_bucket(Bucket=settings.S3_PUBLIC_BUCKET_NAME)
+
+
+@pytest.fixture(scope="session")
+def client(_create_buckets):
     """Yield a web client instance.
 
     The fixture is session-scoped so that the lifespan events are executed only once per session.
@@ -119,6 +147,31 @@ def brain_region_id(client):
     assert response.status_code == 200, f"Failed to create brain region: {response.text}"
     data = response.json()
     assert "id" in data, f"Failed to get id for brain region: {data}"
+    return data["id"]
+
+
+@pytest.fixture
+def reconstruction_morphology_id(client, species_id, strain_id, license_id, brain_region_id):
+    morph_description = "Test Morphology Description"
+    morph_name = "Test Morphology Name"
+    response = client.post(
+        "/reconstruction_morphology/",
+        json={
+            "brain_region_id": brain_region_id,
+            "species_id": species_id,
+            "strain_id": strain_id,
+            "description": morph_description,
+            "name": morph_name,
+            "brain_location": {"x": 10, "y": 20, "z": 30},
+            "legacy_id": "Test Legacy ID",
+            "license_id": license_id,
+        },
+    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create reconstruction morphology: {response.text}"
+    data = response.json()
+    assert "id" in data, f"Failed to get id for reconstruction morphology: {data}"
     return data["id"]
 
 

@@ -26,9 +26,17 @@ def curate_annotation_body(annotation_body):
 
 
 def curate_person(person):
-    if person.get("name", "") == "Weina Ji":
-        person["givenName"] = "Weina"
-        person["familyName"] = "Ji"
+    if name := person.get("name", ""):
+        if name == "Weina Ji":
+            person["givenName"] = "Weina"
+            person["familyName"] = "Ji"
+        elif name == "None None":  # noqa: SIM114
+            person["givenName"] = "bbp-dke-bluebrainatlas-sa"
+            person["familyName"] = "bbp-dke-bluebrainatlas-sa"
+        elif name == "None brain-modeling-ontology-ci-cd":
+            person["givenName"] = "bbp-dke-bluebrainatlas-sa"
+            person["familyName"] = "bbp-dke-bluebrainatlas-sa"
+
     return person
 
 
@@ -76,6 +84,7 @@ def curate_etype(data):
     if data["label"] == "TH_dAD_ltb":
         data["definition"] = "Thalamus delayed adapting low-threshold bursting electrical type"
         data["alt_label"] = "Thalamus delayed adapting low-threshold bursting electrical type"
+
     if data["label"] == "TH_dNAD_ltb":
         data["definition"] = "Thalamus delayed non-adapting low-threshold bursting electrical type"
         data["alt_label"] = "Thalamus delayed non-adapting low-threshold bursting electrical type"

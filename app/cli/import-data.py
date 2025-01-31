@@ -94,7 +94,7 @@ def import_licenses(data, db):
             db.add(db_license)
             db.commit()
         except Exception as e:
-            print(e)
+            print(f"Error creating license: {e!r}")
             print(license)
             raise
 
@@ -228,7 +228,7 @@ def import_agents(data_list, db):
                         db.commit()
                 except Exception as e:
                     print("Error importing person: ", data)
-                    print(e)
+                    print(f"{e!r}")
         elif "Organization" in data["@type"]:
             legacy_id = data["@id"]
             db_agent = utils._find_by_legacy_id(legacy_id, Organization, db)
@@ -254,7 +254,7 @@ def import_agents(data_list, db):
                         db.commit()
                 except Exception as e:
                     print("Error importing organization: ", data)
-                    print(e)
+                    print(f"{e!r}")
 
 
 def import_single_neuron_simulation(data, db, file_path):

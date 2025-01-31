@@ -3,7 +3,7 @@
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy import Row, Sequence
+from sqlalchemy import Sequence
 
 from app.db.model import Asset, AssetEntity
 from app.db.types import AssetStatus, EntityType
@@ -17,36 +17,26 @@ class AssetRepository(BaseRepository):
         self,
         entity_type: EntityType,
         entity_id: int,
-    ) -> Sequence[Row]:
+    ) -> Sequence[Asset]:
         """."""
         query = (
-            sa.select(
-                Asset.uuid,
-                Asset.path,
-                Asset.status,
-            )
-            .select_from(Asset)
+            sa.select(Asset)
             .join(AssetEntity)
             .where(
                 AssetEntity.entity_type == entity_type,
                 AssetEntity.entity_id == entity_id,
             )
         )
-        return self.db.execute(query).all()
+        return self.db.execute(query).scalars().all()
 
     def get_entity_asset(
         self,
         entity_type: EntityType,
         entity_id: int,
         asset_id: UUID,
-    ) -> Row | None:
+    ) -> Asset:
         query = (
-            sa.select(
-                Asset.uuid,
-                Asset.path,
-                Asset.status,
-            )
-            .select_from(Asset)
+            sa.select(Asset)
             .join(AssetEntity)
             .where(
                 AssetEntity.entity_type == entity_type,
@@ -54,7 +44,7 @@ class AssetRepository(BaseRepository):
                 Asset.uuid == asset_id,
             )
         )
-        return self.db.execute(query).one_or_none()
+        return self.db.execute(query).scalar_one()
 
     def update_entity_asset_status(
         self,
@@ -62,7 +52,7 @@ class AssetRepository(BaseRepository):
         entity_id: int,
         asset_id: UUID,
         asset_status: AssetStatus,
-    ) -> Asset | None:
+    ) -> Asset:
         query = (
             sa.update(Asset)
             .values(status=asset_status)
@@ -74,4 +64,4 @@ class AssetRepository(BaseRepository):
             )
             .returning(Asset)
         )
-        return self.db.execute(query).scalar_one_or_none()
+        return self.db.execute(query).scalar_one()

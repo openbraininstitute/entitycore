@@ -256,7 +256,7 @@ def import_agents(data_list, db):
                     print(e)
 
 
-def import_single_neuron_simulation(data, db):
+def import_single_neuron_simulation(data, db, file_path):
     possible_data = [elem for elem in data if "SingleNeuronSimulation" in elem["@type"]]
     if not possible_data:
         return
@@ -298,7 +298,7 @@ def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
     return db_annotation.id
 
 
-def import_analysis_software_source_code(data, db):
+def import_analysis_software_source_code(data, db, file_path):
     possible_data = [data for data in data if data["@type"] == "AnalysisSoftwareSourceCode"]
     if not possible_data:
         return
@@ -327,7 +327,7 @@ def import_analysis_software_source_code(data, db):
             db.commit()
 
 
-def import_me_models(data, db):
+def import_me_models(data, db, file_path):
     def is_memodel(data):
         types = data["@type"]
         if isinstance(types, list):
@@ -363,7 +363,7 @@ def import_me_models(data, db):
             # get_or_create_annotation(data, rm.id, db)
 
 
-def import_e_models(data, db):
+def import_e_models(data, db, file_path):
     def is_emodel(data):
         types = data["@type"]
         if isinstance(types, list):
@@ -407,7 +407,7 @@ def import_e_models(data, db):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
-def import_brain_region_meshes(data, db):
+def import_brain_region_meshes(data, db, file_path):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
     possible_data = [
         data for data in possible_data if data.get("atlasRelease").get("tag", None) == "v1.1.0"
@@ -429,7 +429,7 @@ def import_brain_region_meshes(data, db):
             db.commit()
 
 
-def import_traces(data_list, db):
+def import_traces(data_list, db, file_path):
     possible_data = [data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]]
     if not possible_data:
         return
@@ -464,7 +464,7 @@ def import_traces(data_list, db):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
-def import_morphologies(data_list, db):
+def import_morphologies(data_list, db, file_path):
     possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
     if not possible_data:
         return
@@ -498,12 +498,14 @@ def import_morphologies(data_list, db):
                 get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
 
 
-def import_morphology_feature_annotations(data_list, db):
+def import_morphology_feature_annotations(data_list, db, file_path):
     possible_data = [
         data for data in data_list if "NeuronMorphologyFeatureAnnotation" in data["@type"]
     ]
     if not possible_data:
         return
+    skip = 0
+    dup = 0
     for data in tqdm(possible_data):
         try:
             legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
@@ -512,7 +514,8 @@ def import_morphology_feature_annotations(data_list, db):
                 continue
             rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
             if not rm:
-                print("skipping morphology that is not imported")
+                #print("skipping morphology that is not imported")
+                skip += 1
                 continue
             all_measurements = []
             for measurement in data.get("hasBody", []):
@@ -543,15 +546,17 @@ def import_morphology_feature_annotations(data_list, db):
             db.refresh(db_morphology_feature_annotation)
         except sqlalchemy.exc.IntegrityError:
             # TODO: investigate if what is actually happening
-            print("2 annotations for a morphology ignoring")
+            #print("2 annotations for a morphology ignoring")
+            dup += 1
             db.rollback()
             continue
         except Exception as e:
             print(f"Error: {e}")
             print(data)
 
+    print(f"{file_path}: skip: {skip}, dup: {dup}")
 
-def import_experimental_neuron_densities(data_list, db):
+def import_experimental_neuron_densities(data_list, db, file_path):
     _import_experimental_densities(
         data_list,
         db,
@@ -561,7 +566,7 @@ def import_experimental_neuron_densities(data_list, db):
     )
 
 
-def import_experimental_bouton_densities(data_list, db):
+def import_experimental_bouton_densities(data_list, db, file_path):
     _import_experimental_densities(
         data_list,
         db,
@@ -571,7 +576,7 @@ def import_experimental_bouton_densities(data_list, db):
     )
 
 
-def import_experimental_synapses_per_connection(data_list, db):
+def import_experimental_synapses_per_connection(data_list, db, file_path):
     _import_experimental_densities(
         data_list,
         db,
@@ -612,16 +617,19 @@ def _import_experimental_densities(data_list, db, schema_type, model_type, curat
 
 
 def _do_import(db, input_dir):
-    all_files = glob.glob(os.path.join(input_dir, "*", "*", "*.json"))
+    all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
+
     print("importing agents")
     for file_path in all_files:
         with open(file_path) as f:
             data = json.load(f)
             import_agents(data, db)
+
     print("import licenses")
     with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
         data = json.load(f)
         import_licenses(data, db)
+
     print("import mtype annotations")
     with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
         data = json.load(f)
@@ -653,7 +661,7 @@ def _do_import(db, input_dir):
             for file_path in all_files:
                 with open(file_path) as f:
                     data = json.load(f)
-                    action(data, db)
+                    action(data, db, file_path=file_path)
 
 
 def main():

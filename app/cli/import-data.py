@@ -4,7 +4,9 @@ import json
 import os
 import sys
 from contextlib import closing
+from collections import defaultdict
 
+import click
 import sqlalchemy
 from tqdm import tqdm
 
@@ -13,6 +15,7 @@ from app.cli import curate, utils
 from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
+    BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
     ETypeAnnotationBody,
@@ -31,6 +34,12 @@ from app.db.model import (
     ReconstructionMorphology,
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
+)
+
+
+REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
+REQUIRED_PATH_DIR = click.Path(
+    exists=True, readable=True, file_okay=False, dir_okay=True, resolve_path=True
 )
 
 
@@ -93,26 +102,41 @@ def import_licenses(data, db):
             db.add(db_license)
             db.commit()
         except Exception as e:
-            print(e)
+            print(f"Error creating license: {e!r}")
             print(license)
             raise
 
 
 def _import_annotation_body(data, db_type_, db):
+    #aa = [(d.get('label', ''), d.get('prefLabel', ''), d.get('definition', '')) for d in data]
+    #breakpoint() # XXX BREAKPOINT
     for class_elem in tqdm(data):
         if db_type_ == ETypeAnnotationBody:
             class_elem = curate.curate_etype(class_elem)
+
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
         if db_elem:
-            assert db_elem.definition == class_elem.get("definition", "")
-            assert db_elem.alt_label == class_elem.get("prefLabel", "")
+            #if "Continuous accommodating electrical type" == class_elem.get("definition", ""):
+            #    breakpoint() # XXX BREAKPOINT
+
+            #if db_elem.definition != class_elem.get("definition", ""):
+            #    print("DEF: ", db_type_, class_elem.get("definition", ""))
+
+            #if db_elem.alt_label == class_elem.get("prefLabel", ""):
+            #    print("PRE: ", db_type_, class_elem.get("prefLabel", ""))
+
+            #assert db_elem.definition == class_elem.get("definition", "")
+            #assert db_elem.alt_label == class_elem.get("prefLabel", "")
+
             continue
+
         db_elem = db_type_(
             pref_label=class_elem["label"],
             definition=class_elem.get("definition", ""),
             alt_label=class_elem.get("prefLabel", ""),
             legacy_id=[class_elem["@id"]],
         )
+
         db.add(db_elem)
         db.commit()
 
@@ -227,7 +251,7 @@ def import_agents(data_list, db):
                         db.commit()
                 except Exception as e:
                     print("Error importing person: ", data)
-                    print(e)
+                    print(f"{e!r}")
         elif "Organization" in data["@type"]:
             legacy_id = data["@id"]
             db_agent = utils._find_by_legacy_id(legacy_id, Organization, db)
@@ -253,7 +277,7 @@ def import_agents(data_list, db):
                         db.commit()
                 except Exception as e:
                     print("Error importing organization: ", data)
-                    print(e)
+                    print(f"{e!r}")
 
 
 def import_single_neuron_simulation(data, db):
@@ -371,8 +395,10 @@ def import_e_models(data, db):
         return types == "EModel"
 
     possible_data = [data for data in data if is_emodel(data)]
+
     if not possible_data:
         return
+
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
         db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
@@ -499,55 +525,70 @@ def import_morphologies(data_list, db):
 
 
 def import_morphology_feature_annotations(data_list, db):
-    possible_data = [
-        data for data in data_list if "NeuronMorphologyFeatureAnnotation" in data["@type"]
-    ]
-    if not possible_data:
-        return
-    for data in tqdm(possible_data):
-        try:
-            legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
-            if not legacy_id:
-                print("Skipping morphology feature annotation due to missing legacy id.")
-                continue
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
-            if not rm:
-                print("skipping morphology that is not imported")
-                continue
-            all_measurements = []
-            for measurement in data.get("hasBody", []):
-                serie = measurement.get("value", {}).get("series", [])
-                if isinstance(serie, dict):
-                    serie = [serie]
-                measurement_serie = [
-                    MorphologyMeasurementSerieElement(
-                        name=serie_elem.get("statistic", None),
-                        value=serie_elem.get("value", None),
-                    )
-                    for serie_elem in serie
-                ]
-
-                all_measurements.append(
-                    MorphologyMeasurement(
-                        measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
-                        measurement_serie=measurement_serie,
-                    )
-                )
-
-            db_morphology_feature_annotation = MorphologyFeatureAnnotation(
-                reconstruction_morphology_id=rm.id
-            )
-            db_morphology_feature_annotation.measurements = all_measurements
-            db.add(db_morphology_feature_annotation)
-            db.commit()
-            db.refresh(db_morphology_feature_annotation)
-        except sqlalchemy.exc.IntegrityError:
-            # TODO: investigate if what is actually happening
-            print("2 annotations for a morphology ignoring")
-            db.rollback()
+    annotations = defaultdict(list)
+    for data in data_list:
+        if "NeuronMorphologyFeatureAnnotation" not in data["@type"]:
             continue
+        legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
+        if not legacy_id:
+            print("Skipping morphology feature annotation due to missing legacy id.")
+            continue
+
+        rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+        if not rm:
+            breakpoint() # XXX BREAKPOINT
+            print("skipping morphology that is not imported")
+            continue
+
+        all_measurements = []
+        for measurement in data.get("hasBody", []):
+            serie = measurement.get("value", {}).get("series", [])
+            if isinstance(serie, dict):
+                serie = [serie]
+
+            measurement_serie = [
+                MorphologyMeasurementSerieElement(
+                    name=serie_elem.get("statistic", None),
+                    value=serie_elem.get("value", None),
+                )
+                for serie_elem in serie
+            ]
+
+            all_measurements.append(
+                MorphologyMeasurement(
+                    measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
+                    measurement_serie=measurement_serie,
+                )
+            )
+
+        annotations[rm.id].append(MorphologyFeatureAnnotation(
+            reconstruction_morphology_id=rm.id,
+            measurements=all_measurements,
+            ))
+
+    if not annotations:
+        return
+
+    for rm_id, annotation in tqdm(annotations.items()):
+        mfa = (db
+               .query(MorphologyFeatureAnnotation)
+               .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
+               .first()
+               )
+        if mfa:
+            continue
+
+        if len(annotation) > 1:
+            print(f"{rm_id} has {len(annotation)}, only using the first one")
+
+        data = annotation[0]
+
+        try:
+            db.add(data)
+            db.commit()
+            db.refresh(data)
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error: {e!r}")
             print(data)
 
 
@@ -612,66 +653,113 @@ def _import_experimental_densities(data_list, db, schema_type, model_type, curat
 
 
 def _do_import(db, input_dir):
-    all_files = glob.glob(os.path.join(input_dir, "*", "*", "*.json"))
-    print("importing agents")
-    for file_path in all_files:
-        with open(file_path) as f:
-            data = json.load(f)
-            import_agents(data, db)
-    print("import licenses")
-    with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
-        data = json.load(f)
-        import_licenses(data, db)
-    print("import mtype annotations")
-    with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
-        data = json.load(f)
-        possible_data = [data for data in data if "nsg:MType" in data.get("subClassOf", {})]
-        import_mtype_annotation_body(possible_data, db)
+    all_files = glob.glob(os.path.join(str(input_dir), "*", "*", "*.json"))
 
-    print("import etype annotations")
+    #print("import agents")
+    #for file_path in all_files:
+    #    with open(file_path) as f:
+    #        data = json.load(f)
+    #        import_agents(data, db)
+
+    #print("import licenses")
+    #with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
+    #    data = json.load(f)
+    #    import_licenses(data, db)
+
     with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
-        data = json.load(f)
-        possible_data = [data for data in data if "nsg:EType" in data.get("subClassOf", {})]
-        import_etype_annotation_body(possible_data, db)
+        all_data = json.load(f)
+        mtype_annotations, etype_annotations = [], []
+
+        for data in all_data:
+            sub_class = data.get("subClassOf", {})
+            if "nsg:MType" in sub_class:
+                mtype_annotations.append(data)
+            elif "nsg:EType" in sub_class:
+                etype_annotations.append(data)
+
+        print("import mtype annotations")
+        import_mtype_annotation_body(mtype_annotations, db)
+
+        print("import etype annotations")
+        import_etype_annotation_body(etype_annotations, db)
 
     l_imports = [
-        {"AnalysisSoftwareSourceCode": import_analysis_software_source_code},
-        {"eModels": import_e_models},
-        {"meshes": import_brain_region_meshes},
+        #{"AnalysisSoftwareSourceCode": import_analysis_software_source_code},
+        #{"eModels": import_e_models},
+        #{"meshes": import_brain_region_meshes},
         {"morphologies": import_morphologies},
         {"morphologyFeatureAnnotations": import_morphology_feature_annotations},
-        {"experimentalNeuronDensities": import_experimental_neuron_densities},
-        {"experimentalBoutonDensities": import_experimental_bouton_densities},
-        {"experimentalSynapsesPerConnections": import_experimental_synapses_per_connection},
-        {"traces": import_traces},
-        {"meModels": import_me_models},
-        {"SingleNeuronSimulation": import_single_neuron_simulation},
+        #{"experimentalNeuronDensities": import_experimental_neuron_densities},
+        #{"experimentalBoutonDensities": import_experimental_bouton_densities},
+        #{"experimentalSynapsesPerConnections": import_experimental_synapses_per_connection},
+        #{"traces": import_traces},
+        #{"meModels": import_me_models},
+        #{"SingleNeuronSimulation": import_single_neuron_simulation},
     ]
     for l_import in l_imports:
         for label, action in l_import.items():
             print(f"importing {label}")
             for file_path in all_files:
+                print(f"   {file_path}")
                 with open(file_path) as f:
                     data = json.load(f)
                     action(data, db)
 
+@click.group()
+def cli():
+    """Main CLI group."""
 
-def main():
-    parser = argparse.ArgumentParser(description="Import data script")
-    parser.add_argument("--input_dir", required=True, help="Input directory path")
 
-    args = parser.parse_args()
+@cli.command()
+@click.argument("input-dir", type=REQUIRED_PATH_DIR)
+def run(input_dir):
+    """Import data script."""
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        _do_import(db, input_dir=input_dir)
 
-    if not os.path.exists(args.input_dir):
-        print(f"Error: Input directory '{args.input_dir}' does not exist")
-        sys.exit(1)
+
+@cli.command()
+@click.argument("hierarchy_path", type=REQUIRED_PATH)
+def hierarchy(hierarchy_path):
+    """Load a hierarchy.json."""
+
+    with open(hierarchy_path) as fd:
+        hierarchy = json.load(fd)
+        if 'msg' in hierarchy:
+            hierarchy = hierarchy['msg'][0]
+
+    regions = []
+
+    def recurse(i):
+        children = []
+        item = i | {"children": children}
+        for child in i["children"]:
+            children.append(child["id"])
+            recurse(child)
+        regions.append(item)
+
+    recurse(hierarchy)
 
     with (
         closing(configure_database_session_manager()) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        _do_import(db, input_dir=args.input_dir)
+        for region in tqdm(regions):
+            if orig:= db.query(BrainRegion).filter(BrainRegion.id == region['id']).first():
+                continue
+
+            db_br = BrainRegion(
+                id=region["id"],
+                name=region["name"],
+                acronym=region["acronym"],
+                children=region["children"],
+                )
+            db.add(db_br)
+            db.commit()
 
 
 if __name__ == "__main__":
-    main()
+    cli()

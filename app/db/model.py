@@ -4,7 +4,7 @@ from typing import Annotated, ClassVar
 from sqlalchemy import (
     DateTime,
     ForeignKey,
-    Integer,
+    BigInteger,
     MetaData,
     UniqueConstraint,
     func,
@@ -96,10 +96,10 @@ class BrainLocation(Base):
 class BrainRegion(TimestampMixin, Base):
     __tablename__ = "brain_region"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
     acronym: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
-    children: Mapped[list[int]] = mapped_column(ARRAY(Integer), nullable=True)
+    children: Mapped[list[int]] = mapped_column(ARRAY(BigInteger), nullable=True)
 
 
 class Species(TimestampMixin, Base):

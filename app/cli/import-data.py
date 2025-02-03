@@ -108,25 +108,25 @@ def import_licenses(data, db):
 
 
 def _import_annotation_body(data, db_type_, db):
-    #aa = [(d.get('label', ''), d.get('prefLabel', ''), d.get('definition', '')) for d in data]
-    #breakpoint() # XXX BREAKPOINT
+    # aa = [(d.get('label', ''), d.get('prefLabel', ''), d.get('definition', '')) for d in data]
+    # breakpoint() # XXX BREAKPOINT
     for class_elem in tqdm(data):
         if db_type_ == ETypeAnnotationBody:
             class_elem = curate.curate_etype(class_elem)
 
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
         if db_elem:
-            #if "Continuous accommodating electrical type" == class_elem.get("definition", ""):
+            # if "Continuous accommodating electrical type" == class_elem.get("definition", ""):
             #    breakpoint() # XXX BREAKPOINT
 
-            #if db_elem.definition != class_elem.get("definition", ""):
+            # if db_elem.definition != class_elem.get("definition", ""):
             #    print("DEF: ", db_type_, class_elem.get("definition", ""))
 
-            #if db_elem.alt_label == class_elem.get("prefLabel", ""):
+            # if db_elem.alt_label == class_elem.get("prefLabel", ""):
             #    print("PRE: ", db_type_, class_elem.get("prefLabel", ""))
 
-            #assert db_elem.definition == class_elem.get("definition", "")
-            #assert db_elem.alt_label == class_elem.get("prefLabel", "")
+            # assert db_elem.definition == class_elem.get("definition", "")
+            # assert db_elem.alt_label == class_elem.get("prefLabel", "")
 
             continue
 
@@ -536,7 +536,7 @@ def import_morphology_feature_annotations(data_list, db):
 
         rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
         if not rm:
-            breakpoint() # XXX BREAKPOINT
+            breakpoint()  # XXX BREAKPOINT
             print("skipping morphology that is not imported")
             continue
 
@@ -561,20 +561,22 @@ def import_morphology_feature_annotations(data_list, db):
                 )
             )
 
-        annotations[rm.id].append(MorphologyFeatureAnnotation(
-            reconstruction_morphology_id=rm.id,
-            measurements=all_measurements,
-            ))
+        annotations[rm.id].append(
+            MorphologyFeatureAnnotation(
+                reconstruction_morphology_id=rm.id,
+                measurements=all_measurements,
+            )
+        )
 
     if not annotations:
         return
 
     for rm_id, annotation in tqdm(annotations.items()):
-        mfa = (db
-               .query(MorphologyFeatureAnnotation)
-               .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
-               .first()
-               )
+        mfa = (
+            db.query(MorphologyFeatureAnnotation)
+            .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
+            .first()
+        )
         if mfa:
             continue
 
@@ -655,14 +657,14 @@ def _import_experimental_densities(data_list, db, schema_type, model_type, curat
 def _do_import(db, input_dir):
     all_files = glob.glob(os.path.join(str(input_dir), "*", "*", "*.json"))
 
-    #print("import agents")
-    #for file_path in all_files:
+    # print("import agents")
+    # for file_path in all_files:
     #    with open(file_path) as f:
     #        data = json.load(f)
     #        import_agents(data, db)
 
-    #print("import licenses")
-    #with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
+    # print("import licenses")
+    # with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
     #    data = json.load(f)
     #    import_licenses(data, db)
 
@@ -684,17 +686,17 @@ def _do_import(db, input_dir):
         import_etype_annotation_body(etype_annotations, db)
 
     l_imports = [
-        #{"AnalysisSoftwareSourceCode": import_analysis_software_source_code},
-        #{"eModels": import_e_models},
-        #{"meshes": import_brain_region_meshes},
+        # {"AnalysisSoftwareSourceCode": import_analysis_software_source_code},
+        # {"eModels": import_e_models},
+        # {"meshes": import_brain_region_meshes},
         {"morphologies": import_morphologies},
         {"morphologyFeatureAnnotations": import_morphology_feature_annotations},
-        #{"experimentalNeuronDensities": import_experimental_neuron_densities},
-        #{"experimentalBoutonDensities": import_experimental_bouton_densities},
-        #{"experimentalSynapsesPerConnections": import_experimental_synapses_per_connection},
-        #{"traces": import_traces},
-        #{"meModels": import_me_models},
-        #{"SingleNeuronSimulation": import_single_neuron_simulation},
+        # {"experimentalNeuronDensities": import_experimental_neuron_densities},
+        # {"experimentalBoutonDensities": import_experimental_bouton_densities},
+        # {"experimentalSynapsesPerConnections": import_experimental_synapses_per_connection},
+        # {"traces": import_traces},
+        # {"meModels": import_me_models},
+        # {"SingleNeuronSimulation": import_single_neuron_simulation},
     ]
     for l_import in l_imports:
         for label, action in l_import.items():
@@ -704,6 +706,7 @@ def _do_import(db, input_dir):
                 with open(file_path) as f:
                     data = json.load(f)
                     action(data, db)
+
 
 @click.group()
 def cli():
@@ -728,8 +731,8 @@ def hierarchy(hierarchy_path):
 
     with open(hierarchy_path) as fd:
         hierarchy = json.load(fd)
-        if 'msg' in hierarchy:
-            hierarchy = hierarchy['msg'][0]
+        if "msg" in hierarchy:
+            hierarchy = hierarchy["msg"][0]
 
     regions = []
 
@@ -748,7 +751,7 @@ def hierarchy(hierarchy_path):
         database_session_manager.session() as db,
     ):
         for region in tqdm(regions):
-            if orig:= db.query(BrainRegion).filter(BrainRegion.id == region['id']).first():
+            if orig := db.query(BrainRegion).filter(BrainRegion.id == region["id"]).first():
                 continue
 
             db_br = BrainRegion(
@@ -756,7 +759,7 @@ def hierarchy(hierarchy_path):
                 name=region["name"],
                 acronym=region["acronym"],
                 children=region["children"],
-                )
+            )
             db.add(db_br)
             db.commit()
 

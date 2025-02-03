@@ -1,4 +1,4 @@
-""" Switch BrainRegion to align with contents of hierarchy
+"""Switch BrainRegion to align with contents of hierarchy
 
 Revision ID: 87634ff81363
 Revises: 989322c75e81

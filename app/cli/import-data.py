@@ -105,6 +105,10 @@ def _import_annotation_body(data, db_type_, db):
             class_elem = curate.curate_etype(class_elem)
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
         if db_elem:
+            if (
+                db_elem.definition != class_elem.get("definition", "")
+            ) or db_elem.alt_label != class_elem.get("prefLabel", ""):
+                breakpoint()  # XXX BREAKPOINT
             assert db_elem.definition == class_elem.get("definition", "")
             assert db_elem.alt_label == class_elem.get("prefLabel", "")
             continue
@@ -503,8 +507,8 @@ def import_morphologies(data_list, db, file_path):
 
 def import_morphology_feature_annotations(data_list, db, file_path):
     annotations = defaultdict(list)
-    skip = 0
-    dup = 0
+    missing_morphology = 0
+    duplicate_annotation = 0
     for data in data_list:
         if "NeuronMorphologyFeatureAnnotation" not in data["@type"]:
             continue
@@ -515,8 +519,7 @@ def import_morphology_feature_annotations(data_list, db, file_path):
 
         rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
         if not rm:
-            #print("skipping morphology that is not imported")
-            skip += 1
+            missing_morphology += 1
             continue
 
         all_measurements = []
@@ -540,28 +543,29 @@ def import_morphology_feature_annotations(data_list, db, file_path):
                 )
             )
 
-        annotations[rm.id].append(MorphologyFeatureAnnotation(
-            reconstruction_morphology_id=rm.id,
-            measurements=all_measurements,
-            ))
+        annotations[rm.id].append(
+            MorphologyFeatureAnnotation(
+                reconstruction_morphology_id=rm.id,
+                measurements=all_measurements,
+            )
+        )
 
     if not annotations:
         return
 
-    already_dup = 0
+    already_registered = 0
     for rm_id, annotation in tqdm(annotations.items()):
-        mfa = (db
-               .query(MorphologyFeatureAnnotation)
-               .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
-               .first()
-               )
+        mfa = (
+            db.query(MorphologyFeatureAnnotation)
+            .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
+            .first()
+        )
         if mfa:
-            already_dup += len(annotation)
+            already_registered += len(annotation)
             continue
 
         if len(annotation) > 1:
-            #print(f"{rm_id} has {len(annotation)}, only using the first one")
-            dup += len(annotation) - 1
+            duplicate_annotation += len(annotation) - 1
 
         data = annotation[0]
 
@@ -574,7 +578,13 @@ def import_morphology_feature_annotations(data_list, db, file_path):
             print(data)
             raise
 
-    print(f"{file_path}: skip: {skip}, dup: {dup}, dup from previous: {already_dup}, total_dup: {dup+already_dup}")
+    print(
+        f"{file_path}: \n"
+        f"    Annotations related to a morphology that isn't registered: {missing_morphology}\n",
+        f"    Duplicate_annotation: {duplicate_annotation}\n",
+        f"    Previously registered: {already_registered}\n",
+        f"    Total Duplicate: {duplicate_annotation + already_registered}",
+    )
 
 
 def import_experimental_neuron_densities(data_list, db, file_path):

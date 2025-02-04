@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app import app as application
+from app.application import app
 from app.db.model import Base
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
@@ -18,7 +18,7 @@ def client():
 
     The fixture is session-scoped so that the lifespan events are executed only once per session.
     """
-    with TestClient(application) as client:
+    with TestClient(app) as client:
         yield client
 
 

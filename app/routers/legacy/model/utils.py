@@ -5,7 +5,6 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
-from app import L
 from app.db.model import (
     Agent,
     AnalysisSoftwareSourceCode,
@@ -29,6 +28,7 @@ from app.db.model import (
     Species,
     StringList,
 )
+from app.logger import L
 
 MAP_TYPES = bidict(
     {

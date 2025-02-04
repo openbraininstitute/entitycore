@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app import app
+from app.application import app
 from app.config import LEGACY_TEST_DATABASE_URI, LEGACY_DATABASE_CONNECT_ARGS
 from app.dependencies.db import get_db
 from app.db.model import Base

@@ -4,11 +4,11 @@ import json
 import os
 import sys
 from contextlib import closing
+from collections import defaultdict
 
 import sqlalchemy
 from tqdm import tqdm
 
-from app import configure_database_session_manager
 from app.cli import curate, utils
 from app.db.model import (
     AnalysisSoftwareSourceCode,
@@ -32,6 +32,7 @@ from app.db.model import (
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
 )
+from app.db.session import configure_database_session_manager
 
 
 def get_or_create_annotation_body(annotation_body, db):
@@ -93,7 +94,7 @@ def import_licenses(data, db):
             db.add(db_license)
             db.commit()
         except Exception as e:
-            print(e)
+            print(f"Error creating license: {e!r}")
             print(license)
             raise
 
@@ -227,7 +228,7 @@ def import_agents(data_list, db):
                         db.commit()
                 except Exception as e:
                     print("Error importing person: ", data)
-                    print(e)
+                    print(f"{e!r}")
         elif "Organization" in data["@type"]:
             legacy_id = data["@id"]
             db_agent = utils._find_by_legacy_id(legacy_id, Organization, db)
@@ -253,10 +254,10 @@ def import_agents(data_list, db):
                         db.commit()
                 except Exception as e:
                     print("Error importing organization: ", data)
-                    print(e)
+                    print(f"{e!r}")
 
 
-def import_single_neuron_simulation(data, db):
+def import_single_neuron_simulation(data, db, file_path):
     possible_data = [elem for elem in data if "SingleNeuronSimulation" in elem["@type"]]
     if not possible_data:
         return
@@ -298,7 +299,7 @@ def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
     return db_annotation.id
 
 
-def import_analysis_software_source_code(data, db):
+def import_analysis_software_source_code(data, db, file_path):
     possible_data = [data for data in data if data["@type"] == "AnalysisSoftwareSourceCode"]
     if not possible_data:
         return
@@ -327,7 +328,7 @@ def import_analysis_software_source_code(data, db):
             db.commit()
 
 
-def import_me_models(data, db):
+def import_me_models(data, db, file_path):
     def is_memodel(data):
         types = data["@type"]
         if isinstance(types, list):
@@ -363,7 +364,7 @@ def import_me_models(data, db):
             # get_or_create_annotation(data, rm.id, db)
 
 
-def import_e_models(data, db):
+def import_e_models(data, db, file_path):
     def is_emodel(data):
         types = data["@type"]
         if isinstance(types, list):
@@ -371,8 +372,10 @@ def import_e_models(data, db):
         return types == "EModel"
 
     possible_data = [data for data in data if is_emodel(data)]
+
     if not possible_data:
         return
+
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
         db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
@@ -407,7 +410,7 @@ def import_e_models(data, db):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
-def import_brain_region_meshes(data, db):
+def import_brain_region_meshes(data, db, file_path):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
     possible_data = [
         data for data in possible_data if data.get("atlasRelease").get("tag", None) == "v1.1.0"
@@ -429,7 +432,7 @@ def import_brain_region_meshes(data, db):
             db.commit()
 
 
-def import_traces(data_list, db):
+def import_traces(data_list, db, file_path):
     possible_data = [data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]]
     if not possible_data:
         return
@@ -464,7 +467,7 @@ def import_traces(data_list, db):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
-def import_morphologies(data_list, db):
+def import_morphologies(data_list, db, file_path):
     possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
     if not possible_data:
         return
@@ -498,60 +501,92 @@ def import_morphologies(data_list, db):
                 get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
 
 
-def import_morphology_feature_annotations(data_list, db):
-    possible_data = [
-        data for data in data_list if "NeuronMorphologyFeatureAnnotation" in data["@type"]
-    ]
-    if not possible_data:
-        return
-    for data in tqdm(possible_data):
-        try:
-            legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
-            if not legacy_id:
-                print("Skipping morphology feature annotation due to missing legacy id.")
-                continue
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
-            if not rm:
-                print("skipping morphology that is not imported")
-                continue
-            all_measurements = []
-            for measurement in data.get("hasBody", []):
-                serie = measurement.get("value", {}).get("series", [])
-                if isinstance(serie, dict):
-                    serie = [serie]
-                measurement_serie = [
-                    MorphologyMeasurementSerieElement(
-                        name=serie_elem.get("statistic", None),
-                        value=serie_elem.get("value", None),
-                    )
-                    for serie_elem in serie
-                ]
-
-                all_measurements.append(
-                    MorphologyMeasurement(
-                        measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
-                        measurement_serie=measurement_serie,
-                    )
-                )
-
-            db_morphology_feature_annotation = MorphologyFeatureAnnotation(
-                reconstruction_morphology_id=rm.id
-            )
-            db_morphology_feature_annotation.measurements = all_measurements
-            db.add(db_morphology_feature_annotation)
-            db.commit()
-            db.refresh(db_morphology_feature_annotation)
-        except sqlalchemy.exc.IntegrityError:
-            # TODO: investigate if what is actually happening
-            print("2 annotations for a morphology ignoring")
-            db.rollback()
+def import_morphology_feature_annotations(data_list, db, file_path):
+    annotations = defaultdict(list)
+    missing_morphology = 0
+    duplicate_annotation = 0
+    for data in data_list:
+        if "NeuronMorphologyFeatureAnnotation" not in data["@type"]:
             continue
+        legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
+        if not legacy_id:
+            print("Skipping morphology feature annotation due to missing legacy id.")
+            continue
+
+        rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+        if not rm:
+            missing_morphology += 1
+            continue
+
+        all_measurements = []
+        for measurement in data.get("hasBody", []):
+            serie = measurement.get("value", {}).get("series", [])
+            if isinstance(serie, dict):
+                serie = [serie]
+
+            measurement_serie = [
+                MorphologyMeasurementSerieElement(
+                    name=serie_elem.get("statistic", None),
+                    value=serie_elem.get("value", None),
+                )
+                for serie_elem in serie
+            ]
+
+            all_measurements.append(
+                MorphologyMeasurement(
+                    measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
+                    measurement_serie=measurement_serie,
+                )
+            )
+
+        annotations[rm.id].append(
+            MorphologyFeatureAnnotation(
+                reconstruction_morphology_id=rm.id,
+                measurements=all_measurements,
+            )
+        )
+
+    if not annotations:
+        return
+
+    already_registered = 0
+    for rm_id, annotation in tqdm(annotations.items()):
+        mfa = (
+            db.query(MorphologyFeatureAnnotation)
+            .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
+            .first()
+        )
+        if mfa:
+            already_registered += len(annotation)
+            continue
+
+        if len(annotation) > 1:
+            duplicate_annotation += len(annotation) - 1
+
+        # TODO:
+        # JDC wants to look into why there are multiple annotations:
+        # https://github.com/openbraininstitute/entitycore/pull/16#discussion_r1940740060
+        data = annotation[0]
+
+        try:
+            db.add(data)
+            db.commit()
+            db.refresh(data)
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error: {e!r}")
             print(data)
+            raise
+
+    print(
+        f"{file_path}: \n"
+        f"    Annotations related to a morphology that isn't registered: {missing_morphology}\n",
+        f"    Duplicate_annotation: {duplicate_annotation}\n",
+        f"    Previously registered: {already_registered}\n",
+        f"    Total Duplicate: {duplicate_annotation + already_registered}",
+    )
 
 
-def import_experimental_neuron_densities(data_list, db):
+def import_experimental_neuron_densities(data_list, db, file_path):
     _import_experimental_densities(
         data_list,
         db,
@@ -561,7 +596,7 @@ def import_experimental_neuron_densities(data_list, db):
     )
 
 
-def import_experimental_bouton_densities(data_list, db):
+def import_experimental_bouton_densities(data_list, db, file_path):
     _import_experimental_densities(
         data_list,
         db,
@@ -571,7 +606,7 @@ def import_experimental_bouton_densities(data_list, db):
     )
 
 
-def import_experimental_synapses_per_connection(data_list, db):
+def import_experimental_synapses_per_connection(data_list, db, file_path):
     _import_experimental_densities(
         data_list,
         db,
@@ -612,16 +647,19 @@ def _import_experimental_densities(data_list, db, schema_type, model_type, curat
 
 
 def _do_import(db, input_dir):
-    all_files = glob.glob(os.path.join(input_dir, "*", "*", "*.json"))
+    all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
+
     print("importing agents")
     for file_path in all_files:
         with open(file_path) as f:
             data = json.load(f)
             import_agents(data, db)
+
     print("import licenses")
     with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
         data = json.load(f)
         import_licenses(data, db)
+
     print("import mtype annotations")
     with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
         data = json.load(f)
@@ -653,7 +691,7 @@ def _do_import(db, input_dir):
             for file_path in all_files:
                 with open(file_path) as f:
                     data = json.load(f)
-                    action(data, db)
+                    action(data, db, file_path=file_path)
 
 
 def main():

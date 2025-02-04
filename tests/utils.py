@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-from app import app as application
+from app.application import app
 from app.routers.auth import check_project_id
 
 BEARER_TOKEN = {"Authorization": "Bearer this is a fake token"}
@@ -13,13 +13,13 @@ PROJECT_HEADERS = {
 
 @contextmanager
 def allow_all_access():
-    orig = dict(application.dependency_overrides)
+    orig = dict(app.dependency_overrides)
 
     def ok():
         return True
 
-    application.dependency_overrides[check_project_id] = ok
+    app.dependency_overrides[check_project_id] = ok
 
     yield
 
-    application.dependency_overrides = orig
+    app.dependency_overrides = orig

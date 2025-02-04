@@ -189,7 +189,9 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
             },
         )
 
-    response = client.get(ROUTE + "q/?term=test", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(
+        "/reconstruction_morphology/?search=test", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
     assert response.status_code == 200
     data = response.json()
 
@@ -237,19 +239,19 @@ def test_query_reconstruction_morphology(
                 response.status_code == 200
             ), f"Failed to create reconstruction morphology: {response.text}"
 
-    count = 3
+    count = 10
     create_morphologies(count)
 
     response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert len(data) == count
 
     response = client.get(
         ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "+creation_date"}
     )
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert len(data) == count
     assert all(
         elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
@@ -259,10 +261,20 @@ def test_query_reconstruction_morphology(
         ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "-creation_date"}
     )
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert all(
         elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
+
+    response = client.get(
+        "/reconstruction_morphology/",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"order_by": "+creation_date", "page": 0, "page_size": 3},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 3
+    assert [row["id"] for row in data] == [1, 2, 3]
 
 
 @pytest.mark.usefixtures("allow_all_access")
@@ -323,7 +335,7 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
 
     # only return results that matches the desired project, and public ones
     response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
-    data = response.json()
+    data = response.json()["data"]
     assert len(data) == 3
 
     ids = {row["id"] for row in data}

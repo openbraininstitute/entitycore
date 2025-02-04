@@ -105,10 +105,6 @@ def _import_annotation_body(data, db_type_, db):
             class_elem = curate.curate_etype(class_elem)
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
         if db_elem:
-            if (
-                db_elem.definition != class_elem.get("definition", "")
-            ) or db_elem.alt_label != class_elem.get("prefLabel", ""):
-                breakpoint()  # XXX BREAKPOINT
             assert db_elem.definition == class_elem.get("definition", "")
             assert db_elem.alt_label == class_elem.get("prefLabel", "")
             continue
@@ -567,6 +563,9 @@ def import_morphology_feature_annotations(data_list, db, file_path):
         if len(annotation) > 1:
             duplicate_annotation += len(annotation) - 1
 
+        # TODO:
+        # JDC wants to look into why there are multiple annotations:
+        # https://github.com/openbraininstitute/entitycore/pull/16#discussion_r1940740060
         data = annotation[0]
 
         try:

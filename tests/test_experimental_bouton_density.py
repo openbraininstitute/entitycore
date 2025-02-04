@@ -1,11 +1,11 @@
-from unittest.mock import patch
+import pytest
 
 from .utils import PROJECT_HEADERS
-
 
 ROUTE = "/experimental_bouton_density/"
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_experimental_bouton_density(client, species_id, strain_id, license_id, brain_region_id):
     bouton_description = "Test bouton Description"
     bouton_name = "Test bouton Name"
@@ -46,7 +46,7 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
         data["license"]["name"] == "Test License"
     ), f"Failed to get license for  experimental bouton density: {data}"
 
-    response = client.get(ROUTE + str(data['id']), headers=PROJECT_HEADERS)
+    response = client.get(ROUTE + str(data["id"]), headers=PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert data["brain_region"]["id"] == brain_region_id
@@ -60,6 +60,7 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
     assert len(response.json()) == 1
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_missing_bouton_density(client):
     response = client.get(ROUTE + "42424242", headers=PROJECT_HEADERS)
     assert response.status_code == 404
@@ -68,6 +69,7 @@ def test_missing_bouton_density(client):
     assert response.status_code == 422
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     js = {
         "brain_location": {"x": 10, "y": 20, "z": 30},
@@ -77,40 +79,42 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "license_id": license_id,
         "species_id": species_id,
         "strain_id": strain_id,
-        }
+    }
 
     public_obj = client.post(
         ROUTE,
         headers=PROJECT_HEADERS,
-        json=js | {"name": "public obj", "authorized_public": True, }
+        json=js
+        | {
+            "name": "public obj",
+            "authorized_public": True,
+        },
     )
     assert public_obj.status_code == 200
     public_obj = public_obj.json()
 
-    with patch('app.routers.experimental_bouton_density.raise_if_unauthorized'):
-        inaccessible_obj = client.post(
-            ROUTE,
-            headers={
-                "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-                "project-id": "42424242-4242-4000-9000-424242424242",
-                },
-            json=js | {"name": "unaccessable obj"}
-        )
-        assert inaccessible_obj.status_code == 200
-        inaccessible_obj = inaccessible_obj.json()
-
-    private_obj0 = client.post(
+    inaccessible_obj = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
-        json=js | {"name": "private obj 0"}
+        headers={
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=js | {"name": "unaccessable obj"},
     )
+    assert inaccessible_obj.status_code == 200
+    inaccessible_obj = inaccessible_obj.json()
+
+    private_obj0 = client.post(ROUTE, headers=PROJECT_HEADERS, json=js | {"name": "private obj 0"})
     assert private_obj0.status_code == 200
     private_obj0 = private_obj0.json()
 
     private_obj1 = client.post(
         ROUTE,
         headers=PROJECT_HEADERS,
-        json=js | {"name": "private obj 1", }
+        json=js
+        | {
+            "name": "private obj 1",
+        },
     )
     assert private_obj1.status_code == 200
     private_obj1 = private_obj1.json()
@@ -120,8 +124,12 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
     data = response.json()
     assert len(data) == 3
 
-    ids = {row['id'] for row in data}
-    assert ids == {public_obj['id'], private_obj0['id'], private_obj1['id'],}
+    ids = {row["id"] for row in data}
+    assert ids == {
+        public_obj["id"],
+        private_obj0["id"],
+        private_obj1["id"],
+    }
 
     response = client.get(f"{ROUTE}{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
     assert response.status_code == 404

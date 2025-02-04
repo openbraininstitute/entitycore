@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str | None = None
     ROOT_PATH: str = ""
 
+    VLAB_API: str = "https://openbluebrain.com/api/virtual-lab-manager/"
+
     DB_ENGINE: str = "postgresql"
     DB_USER: str = "entitycore"
     DB_PASS: str = "entitycore"

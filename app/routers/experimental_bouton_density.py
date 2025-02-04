@@ -1,12 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 
+from app.db.authorization import constrain_query_to_members
 from app.db.model import (
     BrainLocation,
     ExperimentalBoutonDensity,
 )
-from app.db.authorization import constrain_query_to_members, raise_if_unauthorized
 from app.dependencies.db import SessionDep
-from app.routers.types import ProjectContextHeader
+from app.routers.auth import AuthProjectContextHeader
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
@@ -21,15 +21,13 @@ router = APIRouter(
 
 @router.get("/", response_model=list[ExperimentalBoutonDensityRead])
 def read_experimental_bouton_densities(
-    project_context: ProjectContextHeader,
+    project_context: AuthProjectContextHeader,
     db: SessionDep,
     skip: int = 0,
     limit: int = 10,
 ):
     return (
-        constrain_query_to_members(
-            db.query(ExperimentalBoutonDensity), project_context.project_id
-        )
+        constrain_query_to_members(db.query(ExperimentalBoutonDensity), project_context.project_id)
         .offset(skip)
         .limit(limit)
         .all()
@@ -41,29 +39,25 @@ def read_experimental_bouton_densities(
     response_model=ExperimentalBoutonDensityRead,
 )
 def read_experimental_bouton_density(
-    project_context: ProjectContextHeader,
+    project_context: AuthProjectContextHeader,
     experimental_bouton_density_id: int,
     db: SessionDep,
 ):
     experimental_bouton_density = (
-        constrain_query_to_members(
-            db.query(ExperimentalBoutonDensity), project_context.project_id
-        )
+        constrain_query_to_members(db.query(ExperimentalBoutonDensity), project_context.project_id)
         .filter(ExperimentalBoutonDensity.id == experimental_bouton_density_id)
         .first()
     )
 
     if experimental_bouton_density is None:
-        raise HTTPException(
-            status_code=404, detail="experimental_bouton_density not found"
-        )
+        raise HTTPException(status_code=404, detail="experimental_bouton_density not found")
+
     return ExperimentalBoutonDensityRead.model_validate(experimental_bouton_density)
 
 
 @router.post("/", response_model=ExperimentalBoutonDensityRead)
 def create_experimental_bouton_density(
-    request: Request,
-    project_context: ProjectContextHeader,
+    project_context: AuthProjectContextHeader,
     density: ExperimentalBoutonDensityCreate,
     db: SessionDep,
 ):
@@ -71,8 +65,6 @@ def create_experimental_bouton_density(
 
     if density.brain_location:
         dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
-
-    raise_if_unauthorized(request, project_context.project_id)
 
     db_experimental_bouton_density = ExperimentalBoutonDensity(
         **dump, authorized_project_id=project_context.project_id

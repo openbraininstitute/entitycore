@@ -9,7 +9,7 @@ from sqlalchemy import (
     func,
     or_,
 )
-from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
@@ -288,7 +288,6 @@ class Entity(TimestampMixin, Root):
     # The id of the project; `PUBLIC` defined above is the public
     authorized_project_id: Mapped[UUID] = mapped_column(UUID, nullable=False)
     authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
-
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",

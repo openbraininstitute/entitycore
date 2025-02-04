@@ -1,37 +1,28 @@
-from .utils import PROJECT_HEADERS
+from .utils import PROJECT_HEADERS, allow_all_access
 
-def test_create_contribution(client, species_id, strain_id, brain_region_id, license_id):
-    response = client.post(
-        "/person/",
-        json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"},
-    )
-    assert response.status_code == 200
-    data = response.json()
-    person_id = data["id"]
 
-    response = client.post(
-        "/role/", json={"name": "important role", "role_id": "important role id"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    role_id = data["id"]
-
+def test_create_contribution(
+    client, person_id, role_id, species_id, strain_id, brain_region_id, license_id
+):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
-    response = client.post(
-        "/reconstruction_morphology/",
-        headers=PROJECT_HEADERS,
-        json={
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": morph_description,
-            "name": morph_name,
-            "brain_location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": "Test Legacy ID",
-            "license_id": license_id,
-        },
-    )
+
+    with allow_all_access():
+        response = client.post(
+            "/reconstruction_morphology/",
+            headers=PROJECT_HEADERS,
+            json={
+                "brain_region_id": brain_region_id,
+                "species_id": species_id,
+                "strain_id": strain_id,
+                "description": morph_description,
+                "name": morph_name,
+                "brain_location": {"x": 10, "y": 20, "z": 30},
+                "legacy_id": "Test Legacy ID",
+                "license_id": license_id,
+            },
+        )
+
     assert response.status_code == 200
     data = response.json()
     entity_id = data["id"]

@@ -1,15 +1,14 @@
 import itertools as it
-from unittest.mock import patch
 
 import pytest
 import sqlalchemy
 
-from .utils import PROJECT_HEADERS
-
+from .utils import BEARER_TOKEN, PROJECT_HEADERS
 
 ROUTE = "/reconstruction_morphology/"
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_create_reconstruction_morphology(
     client, species_id, strain_id, license_id, brain_region_id
 ):
@@ -17,7 +16,7 @@ def test_create_reconstruction_morphology(
     morph_name = "Test Morphology Name"
     response = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "brain_region_id": brain_region_id,
             "species_id": species_id,
@@ -50,18 +49,19 @@ def test_create_reconstruction_morphology(
         data["license"]["name"] == "Test License"
     ), f"Failed to get license for reconstruction morphology: {data}"
 
-    response = client.get(ROUTE, headers=PROJECT_HEADERS)
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert (
         response.status_code == 200
     ), f"Failed to get reconstruction morphologies: {response.text}"
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_create_annotation(client, species_id, strain_id, brain_region_id):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
     response = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "brain_region_id": brain_region_id,
             "species_id": species_id,
@@ -136,15 +136,15 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
 
     response = client.get(
         f"{ROUTE}{reconstruction_morphology_id}",
-        headers=PROJECT_HEADERS,
-        )
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
     assert response.status_code == 200
     data = response.json()
     assert "morphology_feature_annotation" not in data
 
     response = client.get(
         f"{ROUTE}{reconstruction_morphology_id}?expand=morphology_feature_annotation",
-        headers=PROJECT_HEADERS,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()
     assert response.status_code == 200
@@ -189,7 +189,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
             },
         )
 
-    response = client.get(ROUTE + "q/?term=test", headers=PROJECT_HEADERS)
+    response = client.get(ROUTE + "q/?term=test", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
 
@@ -202,14 +202,16 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     assert len(data) == 1
 
 
-def test_missing_reconstruction_morphology(client):
-    response = client.get(ROUTE + "42424242", headers=PROJECT_HEADERS)
+@pytest.mark.usefixtures("allow_all_access")
+def test_missing(client):
+    response = client.get(ROUTE + "42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(ROUTE + "notanumber", headers=PROJECT_HEADERS)
+    response = client.get(ROUTE + "notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 422
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_query_reconstruction_morphology(
     client, species_id, strain_id, brain_region_id, license_id
 ):
@@ -219,7 +221,7 @@ def test_query_reconstruction_morphology(
             morph_name = f"Test Morphology Name {i}"
             response = client.post(
                 ROUTE,
-                headers=PROJECT_HEADERS,
+                headers=BEARER_TOKEN | PROJECT_HEADERS,
                 json={
                     "brain_region_id": brain_region_id,
                     "species_id": species_id,
@@ -238,12 +240,14 @@ def test_query_reconstruction_morphology(
     count = 3
     create_morphologies(count)
 
-    response = client.get(ROUTE, headers=PROJECT_HEADERS)
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == count
 
-    response = client.get(ROUTE, headers=PROJECT_HEADERS, params={"order_by": "+creation_date"})
+    response = client.get(
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "+creation_date"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data) == count
@@ -251,7 +255,9 @@ def test_query_reconstruction_morphology(
         elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
 
-    response = client.get(ROUTE, headers=PROJECT_HEADERS, params={"order_by": "-creation_date"})
+    response = client.get(
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "-creation_date"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert all(
@@ -259,6 +265,7 @@ def test_query_reconstruction_morphology(
     )
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     morph_json = {
         "brain_location": {"x": 10, "y": 20, "z": 30},
@@ -269,51 +276,64 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "name": "Test Morphology Name",
         "species_id": species_id,
         "strain_id": strain_id,
-        }
+    }
 
     public_morph = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
-        json=morph_json | {"name": "public morphology", "authorized_public": True, }
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=morph_json
+        | {
+            "name": "public morphology",
+            "authorized_public": True,
+        },
     )
     assert public_morph.status_code == 200
     public_morph = public_morph.json()
 
-    with patch('app.routers.morphology.raise_if_unauthorized'):
-        inaccessible_obj = client.post(
-            ROUTE,
-            headers={
-                "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-                "project-id": "42424242-4242-4000-9000-424242424242",
-                },
-            json=morph_json | {"name": "unaccessable morphology 1"}
-        )
-        assert inaccessible_obj.status_code == 200
-        inaccessible_obj = inaccessible_obj.json()
+    inaccessible_obj = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=morph_json | {"name": "unaccessable morphology 1"},
+    )
+    assert inaccessible_obj.status_code == 200
+    inaccessible_obj = inaccessible_obj.json()
 
     private_morph0 = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
-        json=morph_json | {"name": "private morphology 0"}
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=morph_json | {"name": "private morphology 0"},
     )
     assert private_morph0.status_code == 200
     private_morph0 = private_morph0.json()
 
     private_morph1 = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
-        json=morph_json | {"name": "private morphology 1", }
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=morph_json
+        | {
+            "name": "private morphology 1",
+        },
     )
     assert private_morph1.status_code == 200
     private_morph1 = private_morph1.json()
 
     # only return results that matches the desired project, and public ones
-    response = client.get(ROUTE, headers=PROJECT_HEADERS)
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
     data = response.json()
     assert len(data) == 3
 
-    ids = {row['id'] for row in data}
-    assert ids == {public_morph['id'], private_morph0['id'], private_morph1['id'],}
+    ids = {row["id"] for row in data}
+    assert ids == {
+        public_morph["id"],
+        private_morph0["id"],
+        private_morph1["id"],
+    }
 
-    response = client.get(f"{ROUTE}{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
+    response = client.get(
+        f"{ROUTE}{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
     assert response.status_code == 404

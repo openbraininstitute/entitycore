@@ -7,7 +7,7 @@ from fastapi_filter import FilterDepends
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
-from app.db.authorization import constrain_query_to_members, raise_if_unauthorized
+from app.db.authorization import constrain_query_to_members
 from app.db.model import (
     BrainLocation,
     ReconstructionMorphology,
@@ -16,7 +16,7 @@ from app.db.model import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
-from app.routers.types import ProjectContextHeader
+from app.routers.auth import AuthProjectContextHeader
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyExpand,
@@ -35,23 +35,19 @@ router = APIRouter(
     response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
 )
 def read_reconstruction_morphology(
-    project_context: ProjectContextHeader,
     db: SessionDep,
     rm_id: int,
+    project_context: AuthProjectContextHeader,
     expand: str | None = None,
 ):
     rm = (
-        constrain_query_to_members(
-            db.query(ReconstructionMorphology), project_context.project_id
-        )
+        constrain_query_to_members(db.query(ReconstructionMorphology), project_context.project_id)
         .filter(ReconstructionMorphology.id == rm_id)
         .first()
     )
 
     if rm is None:
-        raise HTTPException(
-            status_code=404, detail="ReconstructionMorphology not found"
-        )
+        raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
 
     if expand and "morphology_feature_annotation" in expand:
         return ReconstructionMorphologyExpand.model_validate(rm)
@@ -62,8 +58,7 @@ def read_reconstruction_morphology(
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
-    request: Request,
-    project_context: ProjectContextHeader,
+    project_context: AuthProjectContextHeader,
     reconstruction: ReconstructionMorphologyCreate,
     db: SessionDep,
 ):
@@ -71,8 +66,6 @@ def create_reconstruction_morphology(
 
     if reconstruction.brain_location:
         brain_location = BrainLocation(**reconstruction.brain_location.model_dump())
-
-    raise_if_unauthorized(request, project_context.project_id)
 
     db_reconstruction_morphology = ReconstructionMorphology(
         name=reconstruction.name,
@@ -83,7 +76,7 @@ def create_reconstruction_morphology(
         strain_id=reconstruction.strain_id,
         license_id=reconstruction.license_id,
         authorized_project_id=project_context.project_id,
-        authorized_public=reconstruction.authorized_public
+        authorized_public=reconstruction.authorized_public,
     )
     db.add(db_reconstruction_morphology)
     db.commit()
@@ -93,7 +86,7 @@ def create_reconstruction_morphology(
 
 @router.get("/", response_model=list[ReconstructionMorphologyRead])
 def read_reconstruction_morphologies(
-    project_context: ProjectContextHeader,
+    project_context: AuthProjectContextHeader,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     db: SessionDep,
     skip: int = 0,
@@ -137,8 +130,7 @@ def morphology_query(
                 other_types = aliased(other_table)
                 facet_q = facet_q.join(
                     other_types,
-                    getattr(ReconstructionMorphology, other_ty + "_id")
-                    == other_types.id,  # type: ignore[attr-defined]
+                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
                 ).where(other_types.name == value)  # type: ignore[attr-defined]
         facets[ty] = {r.name: r.count for r in facet_q.all()}
     rms = (

@@ -39,5 +39,3 @@ router.include_router(_search.router)
 router.include_router(sbo.router)
 router.include_router(resources.router)
 router.include_router(files.router)
-
-

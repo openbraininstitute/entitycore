@@ -1,11 +1,11 @@
-from unittest.mock import patch
+import pytest
 
 from .utils import PROJECT_HEADERS
-
 
 ROUTE = "/experimental_synapses_per_connection/"
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_experimental_synapses_per_connection(
     client, species_id, strain_id, license_id, brain_region_id
 ):
@@ -25,31 +25,30 @@ def test_experimental_synapses_per_connection(
             "license_id": license_id,
         },
     )
-    assert response.status_code == 200, (
-        f"Failed to create  experimental bouton density: {response.text}"
-    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create  experimental bouton density: {response.text}"
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, (
-        f"Failed to get id for  experimental bouton density: {data}"
-    )
-    assert data["species"]["id"] == species_id, (
-        f"Failed to get species_id for  experimental bouton density: {data}"
-    )
-    assert data["strain"]["id"] == strain_id, (
-        f"Failed to get strain_id for  experimental bouton density: {data}"
-    )
-    assert data["description"] == bouton_description, (
-        f"Failed to get description for  experimental bouton density: {data}"
-    )
-    assert data["name"] == bouton_name, (
-        f"Failed to get name for  experimental bouton density: {data}"
-    )
-    assert data["license"]["name"] == "Test License", (
-        f"Failed to get license for  experimental bouton density: {data}"
-    )
+    assert (
+        data["brain_region"]["id"] == brain_region_id
+    ), f"Failed to get id for  experimental bouton density: {data}"
+    assert (
+        data["species"]["id"] == species_id
+    ), f"Failed to get species_id for  experimental bouton density: {data}"
+    assert (
+        data["strain"]["id"] == strain_id
+    ), f"Failed to get strain_id for  experimental bouton density: {data}"
+    assert (
+        data["description"] == bouton_description
+    ), f"Failed to get description for  experimental bouton density: {data}"
+    assert (
+        data["name"] == bouton_name
+    ), f"Failed to get name for  experimental bouton density: {data}"
+    assert (
+        data["license"]["name"] == "Test License"
+    ), f"Failed to get license for  experimental bouton density: {data}"
 
-    response = client.get(f"{ROUTE}{data['id']}",
-                          headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}{data['id']}", headers=PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert data["brain_region"]["id"] == brain_region_id
@@ -62,6 +61,7 @@ def test_experimental_synapses_per_connection(
     assert len(response.json()) == 1
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_missing_experimental_synapses_per_connection(client):
     response = client.get(ROUTE + "42424242", headers=PROJECT_HEADERS)
     assert response.status_code == 404
@@ -70,6 +70,7 @@ def test_missing_experimental_synapses_per_connection(client):
     assert response.status_code == 422
 
 
+@pytest.mark.usefixtures("allow_all_access")
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     js = {
         "brain_region_id": brain_region_id,
@@ -79,40 +80,45 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "brain_location": {"x": 10, "y": 20, "z": 30},
         "legacy_id": "Test Legacy ID",
         "license_id": license_id,
-        }
+    }
 
     public_obj = client.post(
         ROUTE,
         headers=PROJECT_HEADERS,
-        json=js | {"name": "public obj", "authorized_public": True, }
+        json=js
+        | {
+            "name": "public obj",
+            "authorized_public": True,
+        },
     )
     assert public_obj.status_code == 200
     public_obj = public_obj.json()
 
-    with patch('app.routers.experimental_synapses_per_connection.raise_if_unauthorized'):
-        inaccessible_obj = client.post(
-            ROUTE,
-            headers={
-                "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-                "project-id": "42424242-4242-4000-9000-424242424242",
-                },
-            json=js | {"name": "unaccessable obj", }
-        )
-        assert inaccessible_obj.status_code == 200
-        inaccessible_obj = inaccessible_obj.json()
-
-    private_obj0 = client.post(
+    inaccessible_obj = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
-        json=js | {"name": "private obj 0"}
+        headers={
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=js
+        | {
+            "name": "unaccessable obj",
+        },
     )
+    assert inaccessible_obj.status_code == 200
+    inaccessible_obj = inaccessible_obj.json()
+
+    private_obj0 = client.post(ROUTE, headers=PROJECT_HEADERS, json=js | {"name": "private obj 0"})
     assert private_obj0.status_code == 200
     private_obj0 = private_obj0.json()
 
     private_obj1 = client.post(
         ROUTE,
         headers=PROJECT_HEADERS,
-        json=js | {"name": "private obj 1", }
+        json=js
+        | {
+            "name": "private obj 1",
+        },
     )
     assert private_obj1.status_code == 200
     private_obj1 = private_obj1.json()
@@ -122,8 +128,12 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
     data = response.json()
     assert len(data) == 3
 
-    ids = {row['id'] for row in data}
-    assert ids == {public_obj['id'], private_obj0['id'], private_obj1['id'],}
+    ids = {row["id"] for row in data}
+    assert ids == {
+        public_obj["id"],
+        private_obj0["id"],
+        private_obj1["id"],
+    }
 
     response = client.get(f"{ROUTE}{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
     assert response.status_code == 404

@@ -56,13 +56,12 @@ test-docker: build  ## Run tests in Docker
 
 run-local: export UVICORN_HOST=127.0.0.1
 run-local: export UVICORN_PORT=8000
-run-local: export UVICORN_RELOAD=true
 run-local: export DB_HOST=127.0.0.1
 run-local: export DB_PORT=5433
 run-local: build  ## Run the application locally
 	docker compose up --wait db
 	uv run -m alembic upgrade head
-	uv run uvicorn app:app
+	uv run -m app run --host $(UVICORN_HOST) --port $(UVICORN_PORT) --reload
 
 run-docker: build  ## Run the application in Docker
 	docker compose up app --watch --remove-orphans

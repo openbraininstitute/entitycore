@@ -1,6 +1,5 @@
 from sqlalchemy import func
 
-from app import L
 from app.cli import curate
 from app.db.model import (
     Agent,
@@ -12,6 +11,7 @@ from app.db.model import (
     Species,
     Strain,
 )
+from app.logger import L
 
 
 def _find_by_legacy_id(legacy_id, db_type, db):

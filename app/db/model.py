@@ -13,7 +13,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 
-from app.db.types import AssetStatus, EntityType, StringList, StringListType
+from app.db.types import BIGINT, AssetStatus, EntityType, StringList, StringListType
 
 
 class Base(DeclarativeBase):
@@ -501,7 +501,11 @@ class Asset(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     uuid: Mapped[UUID] = mapped_column(index=True, unique=True)  # for external access
     status: Mapped[AssetStatus] = mapped_column(nullable=False)
-    path: Mapped[str]
+    path: Mapped[str] = mapped_column(index=True, unique=True)
+    is_directory: Mapped[bool]
+    is_public: Mapped[bool]
+    content_type: Mapped[str]
+    size: Mapped[BIGINT]
     meta: Mapped[dict[str, Any]]  # not used yet. can be useful?
     # TODO: consider other attributes
 

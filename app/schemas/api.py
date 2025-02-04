@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app import ApiErrorCode
+from app.errors import ApiErrorCode
 
 
 class ErrorResponse(BaseModel, use_enum_values=True):

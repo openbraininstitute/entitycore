@@ -31,7 +31,7 @@ def get_entity_assets(
     entity_type: EntityType,
     entity_id: int,
     proj_id: UUID,
-) -> Sequence:
+) -> Sequence[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     _check_entity(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
     return [

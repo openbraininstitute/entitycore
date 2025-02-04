@@ -1,7 +1,8 @@
 from enum import auto
 from typing import Annotated
 
-from sqlalchemy import func, or_
+from sqlalchemy import BigInteger, func, or_
+from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.utils.enum import HyphenStrEnum
@@ -31,6 +32,7 @@ class StringListType(TypeDecorator):
 
 
 StringList = Annotated[StringListType, "StringList"]
+BIGINT = Annotated[int, mapped_column(BigInteger)]
 
 
 class EntityType(HyphenStrEnum):

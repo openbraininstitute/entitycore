@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 71a52eb5b537
+Revision ID: 3976d1e8083b
 Revises: 989322c75e81
-Create Date: 2025-02-04 17:34:24.183590
+Create Date: 2025-02-04 19:31:09.526329
 
 """
 
@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "71a52eb5b537"
+revision: str = "3976d1e8083b"
 down_revision: str | None = "989322c75e81"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -45,10 +45,10 @@ def upgrade() -> None:
             postgresql.ENUM("CREATED", "DELETED", name="assetstatus", create_type=False),
             nullable=False,
         ),
-        sa.Column("fullpath", sa.String(), nullable=False),
         sa.Column("path", sa.String(), nullable=False),
+        sa.Column("fullpath", sa.String(), nullable=False),
+        sa.Column("bucket_name", sa.String(), nullable=False),
         sa.Column("is_directory", sa.Boolean(), nullable=False),
-        sa.Column("is_public", sa.Boolean(), nullable=False),
         sa.Column("content_type", sa.String(), nullable=False),
         sa.Column("size", sa.BigInteger(), nullable=False),
         sa.Column("meta", postgresql.JSONB(astext_type=sa.Text()), nullable=False),

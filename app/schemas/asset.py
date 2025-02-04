@@ -5,13 +5,25 @@ from pydantic import BaseModel, ConfigDict
 from app.db.types import AssetStatus
 
 
-class AssetRead(BaseModel):
+class AssetBase(BaseModel):
+    """Asset model with common attributes."""
+
     model_config = ConfigDict(from_attributes=True)
-    uuid: UUID
-    status: AssetStatus
-    fullpath: str
     path: str
+    fullpath: str
+    bucket_name: str
     is_directory: bool
     content_type: str
     size: int
     meta: dict
+
+
+class AssetRead(AssetBase):
+    """Asset model for responses."""
+
+    uuid: UUID
+    status: AssetStatus
+
+
+class AssetCreate(AssetBase):
+    """Asset model for creation."""

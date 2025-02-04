@@ -501,10 +501,10 @@ class Asset(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     uuid: Mapped[UUID] = mapped_column(index=True, unique=True)  # for external access
     status: Mapped[AssetStatus] = mapped_column(nullable=False)
-    fullpath: Mapped[str] = mapped_column(index=True, unique=True)  # full path on S3
     path: Mapped[str]  # relative path
+    fullpath: Mapped[str] = mapped_column(index=True, unique=True)  # full path on S3
+    bucket_name: Mapped[str]
     is_directory: Mapped[bool]
-    is_public: Mapped[bool]
     content_type: Mapped[str]
     size: Mapped[BIGINT]
     meta: Mapped[dict[str, Any]]  # not used yet. can be useful?

@@ -13,7 +13,7 @@ from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode
 from app.routers.types import ListResponse, Pagination
-from app.schemas.asset import AssetRead
+from app.schemas.asset import AssetCreate, AssetRead
 from app.service import asset as asset_service
 from app.utils.s3 import (
     build_s3_path,
@@ -84,22 +84,27 @@ def upload_entity_asset(
     if not file.filename or not validate_filename(file.filename):
         msg = f"Invalid file name {file.filename}"
         raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
-    bucket_name = settings.S3_PRIVATE_BUCKET_NAME
+    bucket_name = settings.S3_PRIVATE_BUCKET_NAME  # support private bucket only at the moment
     fullpath = build_s3_path(proj_id, entity_type, entity_id, file.filename)
-    asset = repos.asset.create_entity_asset(
-        entity_type=entity_type,
-        entity_id=entity_id,
-        fullpath=fullpath,
+    asset_create = AssetCreate(
         path=file.filename,
+        fullpath=fullpath,
+        bucket_name=bucket_name,
         is_directory=False,
-        is_public=False,
         content_type=file.content_type,
         size=file.size,
         meta=meta or {},
     )
+    asset_read = asset_service.create_entity_asset(
+        repos=repos,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        proj_id=proj_id,
+        asset=asset_create,
+    )
     if not upload_to_s3(s3_client, file_obj=file.file, bucket_name=bucket_name, s3_key=fullpath):
         raise HTTPException(status_code=500, detail="Failed to upload object")
-    return AssetRead.model_validate(asset)
+    return asset_read
 
 
 @router.get("/{entity_type}/{entity_id}/assets/{asset_id}/download")
@@ -118,8 +123,9 @@ def download_entity_asset(
         proj_id=proj_id,
         asset_id=asset_id,
     )
-    bucket_name = settings.S3_PRIVATE_BUCKET_NAME
-    url = generate_presigned_url(s3_client=s3_client, bucket_name=bucket_name, s3_key=asset.path)
+    url = generate_presigned_url(
+        s3_client=s3_client, bucket_name=asset.bucket_name, s3_key=asset.fullpath
+    )
     if not url:
         raise HTTPException(status_code=500, detail="Failed to generate presigned url")
     return RedirectResponse(url=url)
@@ -140,7 +146,7 @@ def delete_entity_asset(
     The file is actually deleted from S3, unless using a versioning-enabled bucket.
     """
     # TODO:
-    #  - what if the user want to re-upload the same file that was deleted?
+    #  - what if the user want to re-upload or recover the file that was deleted?
     asset = asset_service.delete_entity_asset(
         repos,
         entity_type=entity_type,
@@ -148,8 +154,7 @@ def delete_entity_asset(
         proj_id=proj_id,
         asset_id=asset_id,
     )
-    bucket_name = settings.S3_PRIVATE_BUCKET_NAME
-    if not delete_from_s3(s3_client, bucket_name=bucket_name, s3_key=asset.path):
+    if not delete_from_s3(s3_client, bucket_name=asset.bucket_name, s3_key=asset.fullpath):
         raise HTTPException(status_code=500, detail="Failed to delete object")
     return AssetRead.model_validate(asset)
 

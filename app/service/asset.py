@@ -3,10 +3,10 @@ from uuid import UUID
 from app.db.types import AssetStatus, EntityType
 from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.repository.group import RepositoryGroup
-from app.schemas.asset import AssetRead
+from app.schemas.asset import AssetCreate, AssetRead
 
 
-def _check_entity(
+def _check_entity_auth(
     repos: RepositoryGroup,
     entity_type: EntityType,
     entity_id: int,
@@ -32,7 +32,7 @@ def get_entity_assets(
     proj_id: UUID,
 ) -> list[AssetRead]:
     """Return the list of assets associated with a specific entity."""
-    _check_entity(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
+    _check_entity_auth(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
     return [
         AssetRead.model_validate(row)
         for row in repos.asset.get_entity_assets(entity_type=entity_type, entity_id=entity_id)
@@ -47,12 +47,29 @@ def get_entity_asset(
     proj_id: UUID,
 ) -> AssetRead:
     """Return an asset associated with a specific entity."""
-    _check_entity(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
+    _check_entity_auth(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
     with ensure_result(f"Asset {asset_id} not found"):
         asset = repos.asset.get_entity_asset(
             entity_type=entity_type, entity_id=entity_id, asset_id=asset_id
         )
     return AssetRead.model_validate(asset)
+
+
+def create_entity_asset(
+    repos: RepositoryGroup,
+    entity_type: EntityType,
+    entity_id: int,
+    proj_id: UUID,
+    asset: AssetCreate,
+) -> AssetRead:
+    """Create an asset for an entity."""
+    _check_entity_auth(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
+    asset_db = repos.asset.create_entity_asset(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        asset=asset,
+    )
+    return AssetRead.model_validate(asset_db)
 
 
 def delete_entity_asset(
@@ -63,7 +80,7 @@ def delete_entity_asset(
     proj_id: UUID,
 ) -> AssetRead:
     """Mark an entity asset as deleted."""
-    _check_entity(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
+    _check_entity_auth(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
     with ensure_result(f"Asset {asset_id} not found"):
         asset = repos.asset.update_entity_asset_status(
             entity_type=entity_type,

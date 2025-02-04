@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import Session
 
-from app import settings
+from app.config import settings
 from app.logger import L
 
 

@@ -9,7 +9,6 @@ from collections import defaultdict
 import sqlalchemy
 from tqdm import tqdm
 
-from app import configure_database_session_manager
 from app.cli import curate, utils
 from app.db.model import (
     AnalysisSoftwareSourceCode,
@@ -33,6 +32,7 @@ from app.db.model import (
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
 )
+from app.db.session import configure_database_session_manager
 
 
 def get_or_create_annotation_body(annotation_body, db):

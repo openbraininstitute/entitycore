@@ -36,12 +36,27 @@ BIGINT = Annotated[int, mapped_column(BigInteger)]
 
 
 class EntityType(HyphenStrEnum):
-    # name (underscore separated): for table names
-    # value (hyphen separated): for endpoints
+    """Entity types that are directly exposed through the API.
+
+    For each entry:
+
+    - name (underscore separated): used for table names
+    - value (hyphen separated): used for endpoints
+    """
+
+    brain_region = auto()
+    contribution = auto()
+    experimental_bouton_density = auto()
+    experimental_neuron_density = auto()
+    experimental_synapses_per_connection = auto()
+    license = auto()
     reconstruction_morphology = auto()
+    morphology_feature_annotation = auto()
+    # organization = auto()
+    # person = auto()
+    # role = auto()
     species = auto()
     strain = auto()
-    experimental_bouton_density = auto()
 
 
 class AssetStatus(HyphenStrEnum):

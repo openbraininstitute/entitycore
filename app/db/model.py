@@ -501,20 +501,12 @@ class Asset(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     uuid: Mapped[UUID] = mapped_column(index=True, unique=True)  # for external access
     status: Mapped[AssetStatus] = mapped_column(nullable=False)
-    path: Mapped[str] = mapped_column(index=True, unique=True)
+    fullpath: Mapped[str] = mapped_column(index=True, unique=True)  # full path on S3
+    path: Mapped[str]  # relative path
     is_directory: Mapped[bool]
     is_public: Mapped[bool]
     content_type: Mapped[str]
     size: Mapped[BIGINT]
     meta: Mapped[dict[str, Any]]  # not used yet. can be useful?
-    # TODO: consider other attributes
-
-
-class AssetEntity(Base):
-    """Asset-Entity many-to-many table."""
-
-    __tablename__ = "asset_entity"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    asset_id: Mapped[int] = mapped_column(ForeignKey("asset.id", ondelete="CASCADE"), index=True)
     entity_id: Mapped[int] = mapped_column(index=True)  # cannot be ForeignKey
     entity_type: Mapped[EntityType]  # needed to look up the correct entity table

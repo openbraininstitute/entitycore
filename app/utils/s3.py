@@ -16,11 +16,11 @@ def build_s3_path(proj_id: UUID, entity_type: EntityType, entity_id: int, filena
     return f"project/{proj_id}/{entity_type}/{entity_id}/{filename}"
 
 
-def validate_filename(filename) -> bool:
+def validate_filename(filename: str) -> bool:
     return ".." not in filename.split("/")
 
 
-def validate_filesize(filesize) -> bool:
+def validate_filesize(filesize: int) -> bool:
     return filesize <= settings.API_ASSET_POST_MAX_SIZE
 
 

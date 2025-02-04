@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from uuid import UUID
 
 from app.db.types import AssetStatus, EntityType
@@ -31,7 +30,7 @@ def get_entity_assets(
     entity_type: EntityType,
     entity_id: int,
     proj_id: UUID,
-) -> Sequence[AssetRead]:
+) -> list[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     _check_entity(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
     return [

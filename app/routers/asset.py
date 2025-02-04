@@ -78,25 +78,26 @@ def upload_entity_asset(
 
     To be used only for small files. Use delegation for big files.
     """
-    if not validate_filesize(file.size):
+    if not file.size or not validate_filesize(file.size):
         msg = f"File bigger than {settings.API_ASSET_POST_MAX_SIZE}, please use delegation"
         raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
-    if not validate_filename(file.filename):
+    if not file.filename or not validate_filename(file.filename):
         msg = f"Invalid file name {file.filename}"
         raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
     bucket_name = settings.S3_PRIVATE_BUCKET_NAME
-    asset_path = build_s3_path(proj_id, entity_type, entity_id, file.filename)
+    fullpath = build_s3_path(proj_id, entity_type, entity_id, file.filename)
     asset = repos.asset.create_entity_asset(
         entity_type=entity_type,
         entity_id=entity_id,
-        path=asset_path,
+        fullpath=fullpath,
+        path=file.filename,
         is_directory=False,
         is_public=False,
         content_type=file.content_type,
         size=file.size,
         meta=meta or {},
     )
-    if not upload_to_s3(s3_client, file_obj=file.file, bucket_name=bucket_name, s3_key=asset_path):
+    if not upload_to_s3(s3_client, file_obj=file.file, bucket_name=bucket_name, s3_key=fullpath):
         raise HTTPException(status_code=500, detail="Failed to upload object")
     return AssetRead.model_validate(asset)
 

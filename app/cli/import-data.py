@@ -108,25 +108,14 @@ def import_licenses(data, db):
 
 
 def _import_annotation_body(data, db_type_, db):
-    # aa = [(d.get('label', ''), d.get('prefLabel', ''), d.get('definition', '')) for d in data]
-    # breakpoint() # XXX BREAKPOINT
     for class_elem in tqdm(data):
         if db_type_ == ETypeAnnotationBody:
             class_elem = curate.curate_etype(class_elem)
 
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
         if db_elem:
-            # if "Continuous accommodating electrical type" == class_elem.get("definition", ""):
-            #    breakpoint() # XXX BREAKPOINT
-
-            # if db_elem.definition != class_elem.get("definition", ""):
-            #    print("DEF: ", db_type_, class_elem.get("definition", ""))
-
-            # if db_elem.alt_label == class_elem.get("prefLabel", ""):
-            #    print("PRE: ", db_type_, class_elem.get("prefLabel", ""))
-
-            # assert db_elem.definition == class_elem.get("definition", "")
-            # assert db_elem.alt_label == class_elem.get("prefLabel", "")
+            assert db_elem.definition == class_elem.get("definition", "")
+            assert db_elem.alt_label == class_elem.get("prefLabel", "")
 
             continue
 

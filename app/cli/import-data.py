@@ -480,7 +480,11 @@ def import_traces(data_list, db, file_path):
 
 
 def import_morphologies(data_list, db, file_path):
-    possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"] or "NeuronMorphology" in data["@type"]]
+    possible_data = [
+        data
+        for data in data_list
+        if "ReconstructedNeuronMorphology" in data["@type"] or "NeuronMorphology" in data["@type"]
+    ]
     if not possible_data:
         return
 

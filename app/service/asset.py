@@ -1,7 +1,8 @@
+from http import HTTPStatus
 from uuid import UUID
 
 from app.db.types import AssetStatus, EntityType
-from app.errors import ApiError, ApiErrorCode, ensure_result
+from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import AssetCreate, AssetRead
 
@@ -16,12 +17,14 @@ def _check_entity_auth(
     if not result:
         raise ApiError(
             message="Entity not found",
-            error_code=ApiErrorCode.ENTITY_NOT_FOUND,
+            error_code=ApiErrorCode.RESOURCE_NOT_FOUND,
+            http_status_code=HTTPStatus.NOT_FOUND,
         )
     # if not result.authorized_public and result.authorized_project_id != proj_id:
     #     raise ApiError(
     #         message="Entity forbidden",
-    #         error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+    #         error_code=ApiErrorCode.RESOURCE_FORBIDDEN,
+    #         http_status_code = HTTPStatus.FORBIDDEN,
     #     )
 
 
@@ -64,11 +67,12 @@ def create_entity_asset(
 ) -> AssetRead:
     """Create an asset for an entity."""
     _check_entity_auth(repos=repos, entity_type=entity_type, entity_id=entity_id, proj_id=proj_id)
-    asset_db = repos.asset.create_entity_asset(
-        entity_type=entity_type,
-        entity_id=entity_id,
-        asset=asset,
-    )
+    with ensure_uniqueness(f"Asset with path {asset.path!r} already exists"):
+        asset_db = repos.asset.create_entity_asset(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            asset=asset,
+        )
     return AssetRead.model_validate(asset_db)
 
 

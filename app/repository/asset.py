@@ -38,6 +38,7 @@ class AssetRepository(BaseRepository):
             Asset.entity_type == entity_type,
             Asset.entity_id == entity_id,
             Asset.uuid == asset_id,
+            Asset.status != AssetStatus.DELETED,
         )
         return self.db.execute(query).scalar_one()
 

@@ -17,7 +17,9 @@ def build_s3_path(proj_id: UUID, entity_type: EntityType, entity_id: int, filena
 
 
 def validate_filename(filename: str) -> bool:
-    return ".." not in filename.split("/")
+    forbidden = {".", "..", ""}
+    items = filename.split("/")
+    return items and all(item not in forbidden for item in items)
 
 
 def validate_filesize(filesize: int) -> bool:
@@ -76,11 +78,15 @@ def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:
         s3_key: S3 object key (file path in the bucket).
     """
     try:
-        s3_client.delete_object(Bucket=bucket_name, Key=s3_key)
+        response = s3_client.delete_object(Bucket=bucket_name, Key=s3_key)
     except Exception:  # noqa: BLE001
         L.exception("Error while deleting file from s3://%s/%s", bucket_name, s3_key)
         return False
-    L.info("File deleted successfully from s3://%s/%s", bucket_name, s3_key)
+    # if using versioning-enabled buckets, we could store the version id for recovery
+    version_id = response.get("VersionId")
+    L.info(
+        "File deleted successfully from s3://%s/%s?versionId=%s", bucket_name, s3_key, version_id
+    )
     return True
 
 

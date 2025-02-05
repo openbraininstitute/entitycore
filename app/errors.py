@@ -7,7 +7,8 @@ from enum import auto
 from http import HTTPStatus
 from typing import Any
 
-from sqlalchemy.exc import NoResultFound
+from psycopg2.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from app.utils.enum import UpperStrEnum
 
@@ -16,8 +17,9 @@ class ApiErrorCode(UpperStrEnum):
     """API Error codes."""
 
     INVALID_REQUEST = auto()
-    ENTITY_NOT_FOUND = auto()
-    ENTITY_FORBIDDEN = auto()
+    RESOURCE_NOT_FOUND = auto()
+    RESOURCE_FORBIDDEN = auto()
+    RESOURCE_DUPLICATED = auto()
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -61,6 +63,21 @@ def ensure_result(error_message: str) -> Iterator[None]:
     except NoResultFound as err:
         raise ApiError(
             message=error_message,
-            error_code=ApiErrorCode.ENTITY_NOT_FOUND,
+            error_code=ApiErrorCode.RESOURCE_NOT_FOUND,
             http_status_code=HTTPStatus.NOT_FOUND,
         ) from err
+
+
+@contextmanager
+def ensure_uniqueness(error_message: str) -> Iterator[None]:
+    """Context manager that raises ApiError when a UniqueViolation is raised."""
+    try:
+        yield
+    except IntegrityError as err:
+        if isinstance(err.orig, UniqueViolation):
+            raise ApiError(
+                message=error_message,
+                error_code=ApiErrorCode.RESOURCE_DUPLICATED,
+                http_status_code=HTTPStatus.CONFLICT,
+            ) from err
+        raise

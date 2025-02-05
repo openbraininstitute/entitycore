@@ -6,6 +6,7 @@ from sqlalchemy import (
     BigInteger,
     DateTime,
     ForeignKey,
+    Index,
     MetaData,
     UniqueConstraint,
     func,
@@ -501,8 +502,8 @@ class Asset(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     uuid: Mapped[UUID] = mapped_column(index=True, unique=True)  # for external access
     status: Mapped[AssetStatus] = mapped_column(nullable=False)
-    path: Mapped[str]  # relative path
-    fullpath: Mapped[str] = mapped_column(index=True, unique=True)  # full path on S3
+    path: Mapped[str] = mapped_column(nullable=False)  # relative path
+    fullpath: Mapped[str] = mapped_column(nullable=False)  # full path on S3
     bucket_name: Mapped[str]
     is_directory: Mapped[bool]
     content_type: Mapped[str]
@@ -510,3 +511,13 @@ class Asset(TimestampMixin, Base):
     meta: Mapped[dict[str, Any]]  # not used yet. can be useful?
     entity_id: Mapped[int] = mapped_column(index=True)  # cannot be ForeignKey
     entity_type: Mapped[EntityType]  # needed to look up the correct entity table
+
+    # partial unique index
+    __table_args__ = (
+        Index(
+            "ix_asset_fullpath",
+            fullpath,
+            unique=True,
+            postgresql_where=(status != AssetStatus.DELETED.name),
+        ),
+    )

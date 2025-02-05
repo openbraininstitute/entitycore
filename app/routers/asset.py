@@ -66,6 +66,7 @@ def get_entity_asset(
 
 @router.post("/{entity_type}/{entity_id}/assets", status_code=status.HTTP_201_CREATED)
 def upload_entity_asset(
+    *,
     repos: RepoGroupDep,
     proj_id: ProjectDep,
     s3_client: S3ClientDep,
@@ -73,6 +74,7 @@ def upload_entity_asset(
     entity_id: int,
     file: UploadFile,
     meta: Annotated[dict | None, Form()] = None,
+    is_public: bool = False,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 
@@ -82,9 +84,9 @@ def upload_entity_asset(
         msg = f"File bigger than {settings.API_ASSET_POST_MAX_SIZE}, please use delegation"
         raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
     if not file.filename or not validate_filename(file.filename):
-        msg = f"Invalid file name {file.filename}"
+        msg = f"Invalid file name {file.filename!r}"
         raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
-    bucket_name = settings.S3_PRIVATE_BUCKET_NAME  # support private bucket only at the moment
+    bucket_name = settings.S3_PUBLIC_BUCKET_NAME if is_public else settings.S3_PRIVATE_BUCKET_NAME
     fullpath = build_s3_path(proj_id, entity_type, entity_id, file.filename)
     asset_create = AssetCreate(
         path=file.filename,
@@ -145,8 +147,6 @@ def delete_entity_asset(
     The asset record is not deleted from the database, but its status is changed.
     The file is actually deleted from S3, unless using a versioning-enabled bucket.
     """
-    # TODO:
-    #  - what if the user want to re-upload or recover the file that was deleted?
     asset = asset_service.delete_entity_asset(
         repos,
         entity_type=entity_type,

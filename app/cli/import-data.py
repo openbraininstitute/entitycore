@@ -42,6 +42,7 @@ REQUIRED_PATH_DIR = click.Path(
     exists=True, readable=True, file_okay=False, dir_okay=True, resolve_path=True
 )
 
+
 def ensurelist(x):
     return x if isinstance(x, list) else [x]
 
@@ -762,7 +763,6 @@ def _do_import(db, input_dir):
         for label, action in l_import.items():
             print(f"importing {label}")
             for file_path in all_files:
-                print(f"   {file_path}")
                 with open(file_path) as f:
                     data = json.load(f)
                     action(data, db, file_path=file_path)

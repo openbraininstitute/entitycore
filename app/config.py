@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str | None = None
     ROOT_PATH: str = ""
 
+    KEYCLOAK_URL: str = "https://openbluebrain.com/auth/realms/SBO/"
+
     DB_ENGINE: str = "postgresql"
     DB_USER: str = "entitycore"
     DB_PASS: str = "entitycore"

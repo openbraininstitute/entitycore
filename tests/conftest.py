@@ -9,6 +9,8 @@ from app.application import app
 from app.db.model import Base
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
+from . import utils
+
 
 @pytest.fixture(scope="session")
 def client():
@@ -37,6 +39,27 @@ def _db_cleanup(db):
     query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
     db.execute(query)
     db.commit()
+
+
+@pytest.fixture
+def person_id(client):
+    response = client.post(
+        "/person/",
+        json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    return data["id"]
+
+
+@pytest.fixture
+def role_id(client):
+    response = client.post(
+        "/role/", json={"name": "important role", "role_id": "important role id"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    return data["id"]
 
 
 @pytest.fixture
@@ -96,3 +119,9 @@ def brain_region_id(client):
     data = response.json()
     assert "id" in data, f"Failed to get id for brain region: {data}"
     return data["id"]
+
+
+@pytest.fixture
+def allow_all_access():
+    with utils.allow_all_access():
+        yield

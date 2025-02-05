@@ -10,7 +10,7 @@ from sqlalchemy import (
     func,
     or_,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
@@ -288,6 +288,10 @@ class Entity(TimestampMixin, Root):
     updatedBy = relationship("Agent", uselist=False, foreign_keys="Entity.updatedBy_id")
     # TODO: move to mandatory
     updatedBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), nullable=True)
+
+    authorized_project_id: Mapped[UUID] = mapped_column(UUID, nullable=False)
+    authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
+
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",
     }

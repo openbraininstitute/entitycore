@@ -67,7 +67,7 @@ def get_brain_location_mixin(data, db):
     try:
         brain_region_id = get_or_create_brain_region(brain_region, db)
     except Exception:
-        L.exception("data: %r", data)
+        L.exception("data: {!r}", data)
         raise
     return brain_location, brain_region_id
 
@@ -147,7 +147,7 @@ def get_or_create_role(role_, db):
             db.add(r)
             db.commit()
         except Exception:
-            L.exception("Error creating role %s", role_)
+            L.exception("Error creating role {}", role_)
             raise
     return r.id
 
@@ -161,7 +161,7 @@ def get_or_create_contribution(contribution_, entity_id, db):
     agent_legacy_id = contribution_["agent"]["@id"]
     db_agent = _find_by_legacy_id(agent_legacy_id, Agent, db)
     if not db_agent:
-        L.warning("Agent with legacy_id %s not found", agent_legacy_id)
+        L.warning("Agent with legacy_id {} not found", agent_legacy_id)
         return None
     agent_id = db_agent.id
     role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})

@@ -35,6 +35,10 @@ from app.db.model import (
 from app.db.session import configure_database_session_manager
 
 
+def ensurelist(x):
+    return x if isinstance(x, list) else [x]
+
+
 def get_or_create_annotation_body(annotation_body, db):
     annotation_body = curate.curate_annotation_body(annotation_body)
     annotation_types = {
@@ -58,7 +62,10 @@ def get_or_create_annotation_body(annotation_body, db):
         if db_annotation is MTypeAnnotationBody:
             msg = f"Missing mtype in annotation body {annotation_body}"
             raise ValueError(msg)
-        ab = db_annotation(pref_label=annotation_body["label"])
+        ab = db_annotation(
+            legacy_id=[annotation_body["@id"]],
+            pref_label=annotation_body["label"],
+        )
         db.add(ab)
         db.commit()
     return ab.id
@@ -103,17 +110,21 @@ def _import_annotation_body(data, db_type_, db):
     for class_elem in tqdm(data):
         if db_type_ == ETypeAnnotationBody:
             class_elem = curate.curate_etype(class_elem)
+
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
+
         if db_elem:
             assert db_elem.definition == class_elem.get("definition", "")
             assert db_elem.alt_label == class_elem.get("prefLabel", "")
             continue
+
         db_elem = db_type_(
             pref_label=class_elem["label"],
             definition=class_elem.get("definition", ""),
             alt_label=class_elem.get("prefLabel", ""),
-            legacy_id=[class_elem["@id"]],
+            legacy_id=ensurelist(class_elem["@id"]),
         )
+
         db.add(db_elem)
         db.commit()
 
@@ -125,7 +136,10 @@ def import_mtype_annotation_body(data, db):
             "label": "Inhibitory neuron",
             "definition": "Inhibitory neuron",
             "prefLabel": "Inhibitory neuron",
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron",
+            "@id": [
+                "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron",
+                "nsg:InhibitoryNeuron",
+            ],
         }
     )
     data.append(
@@ -133,7 +147,10 @@ def import_mtype_annotation_body(data, db):
             "label": "Excitatory neuron",
             "definition": "Excitatory neuron",
             "prefLabel": "Excitatory neuron",
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron",
+            "@id": [
+                "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron",
+                "nsg:ExcitatoryNeuron",
+            ],
         }
     )
     _import_annotation_body(data, MTypeAnnotationBody, db)
@@ -289,6 +306,7 @@ def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
     annotation_body_id = get_or_create_annotation_body(annotation_["hasBody"], db)
     if not annotation_body_id:
         return None
+
     db_annotation = Annotation(
         entity_id=reconstruction_morphology_id,
         note=annotation_.get("note", None),
@@ -403,9 +421,7 @@ def import_e_models(data, db, file_path):
             db.add(db_item)
             db.commit()
             utils.import_contribution(data, db_item.id, db)
-            annotations = data.get("annotation", [])
-            if isinstance(annotations, dict):
-                annotations = [annotations]
+            annotations = ensurelist(data.get("annotation", []))
             for annotation in annotations:
                 get_or_create_annotation(annotation, db_item.id, db)
 
@@ -460,45 +476,85 @@ def import_traces(data_list, db, file_path):
             db.commit()
             db.refresh(db_item)
             utils.import_contribution(data, db_item.id, db)
-            annotations = data.get("annotation", [])
-            if isinstance(annotations, dict):
-                annotations = [annotations]
+            annotations = ensurelist(data.get("annotation", []))
             for annotation in annotations:
                 get_or_create_annotation(annotation, db_item.id, db)
+
+
+def debug(annotations):
+    if annotations:
+        with open("/tmp/missing", "a+") as fd:
+            from pprint import pprint as pp
+
+            pp(annotations, stream=fd)
+            fd.write("\n")
 
 
 def import_morphologies(data_list, db, file_path):
     possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
     if not possible_data:
         return
+
+    total = 0
+    missing_mtype = 0
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
         rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
-        if not rm:
-            description = data.get("description", None)
-            name = data.get("name", None)
-            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            license_id = utils.get_license_mixin(data, db)
-            species_id, strain_id = utils.get_species_mixin(data, db)
-            db_reconstruction_morphology = ReconstructionMorphology(
-                legacy_id=[data.get("@id", None)],
-                name=name,
-                description=description,
-                brain_location=brain_location,
-                brain_region_id=brain_region_id,
-                species_id=species_id,
-                strain_id=strain_id,
-                license_id=license_id,
-            )
-            db.add(db_reconstruction_morphology)
-            db.commit()
-            db.refresh(db_reconstruction_morphology)
-            utils.import_contribution(data, db_reconstruction_morphology.id, db)
-            annotations = data.get("annotation", [])
-            if isinstance(annotations, dict):
-                annotations = [annotations]
-            for annotation in annotations:
-                get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
+
+        if rm:
+            continue
+
+        description = data.get("description", None)
+        name = data.get("name", None)
+        brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+        license_id = utils.get_license_mixin(data, db)
+        species_id, strain_id = utils.get_species_mixin(data, db)
+
+        annotations = ensurelist(data.get("annotation", []))
+
+        mtype_id = None
+        for annotation in annotations:
+            if "hasBody" in annotation:
+                body = annotation["hasBody"]
+                types = set(ensurelist(body.get("@type", [])))
+                if "MType" in types or "Mtype" in types:
+                    legacy_id = body.get("@id")
+                    mtype_id = utils._find_by_legacy_id(legacy_id, MTypeAnnotationBody, db)
+                    if mtype_id:
+                        mtype_id = mtype_id.id
+                    elif label := body.get("label", None):
+                        mtype_id = (
+                            db.query(MTypeAnnotationBody)
+                            .filter(MTypeAnnotationBody.pref_label == label)
+                            .first()
+                        )
+                        if mtype_id:
+                            mtype_id = mtype_id.id
+
+        db_reconstruction_morphology = ReconstructionMorphology(
+            legacy_id=[data.get("@id", None)],
+            name=name,
+            description=description,
+            brain_location=brain_location,
+            brain_region_id=brain_region_id,
+            species_id=species_id,
+            strain_id=strain_id,
+            license_id=license_id,
+            mtype_id=mtype_id,
+        )
+        total += 1
+        if mtype_id is None:
+            missing_mtype += 1
+
+        db.add(db_reconstruction_morphology)
+        db.commit()
+        db.refresh(db_reconstruction_morphology)
+        utils.import_contribution(data, db_reconstruction_morphology.id, db)
+
+        for annotation in annotations:
+            get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
+
+    print(f"{file_path}: \n" f"   total: {total}\n", f"   missing_mtype: {missing_mtype}")
 
 
 def import_morphology_feature_annotations(data_list, db, file_path):
@@ -520,9 +576,7 @@ def import_morphology_feature_annotations(data_list, db, file_path):
 
         all_measurements = []
         for measurement in data.get("hasBody", []):
-            serie = measurement.get("value", {}).get("series", [])
-            if isinstance(serie, dict):
-                serie = [serie]
+            serie = ensurelist(measurement.get("value", {}).get("series", []))
 
             measurement_serie = [
                 MorphologyMeasurementSerieElement(

@@ -225,6 +225,7 @@ class MTypeAnnotationBody(AnnotationBody):
     # difficult to believe this can be null
     definition: Mapped[str] = mapped_column(unique=False, nullable=True)
     alt_label: Mapped[str] = mapped_column(unique=False, nullable=True)
+
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "mtype_annotation_body",
     }
@@ -399,6 +400,9 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     morphology_description_vector: Mapped[str] = mapped_column(TSVECTOR, nullable=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+    mtype_id: Mapped[int] = mapped_column(
+        ForeignKey("mtype_annotation_body.id"), primary_key=True, nullable=True
+    )
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 
 

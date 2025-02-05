@@ -17,7 +17,7 @@ from app.routers import router
 async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
     """Execute actions on server startup and shutdown."""
     L.info(
-        "Starting application [PID=%s, CPU_COUNT=%s, ENVIRONMENT=%s]",
+        "Starting application [PID={}, CPU_COUNT={}, ENVIRONMENT={}]",
         os.getpid(),
         os.cpu_count(),
         settings.ENVIRONMENT,
@@ -27,7 +27,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         yield {"database_session_manager": database_session_manager}
     except asyncio.CancelledError as err:
         # this can happen if the task is cancelled without sending SIGINT
-        L.info("Ignored %s in lifespan", err)
+        L.info("Ignored {} in lifespan", err)
     finally:
         database_session_manager.close()
         L.info("Stopping application")
@@ -41,7 +41,7 @@ app = FastAPI(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

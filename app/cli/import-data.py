@@ -480,10 +480,12 @@ def import_traces(data_list, db, file_path):
 
 
 def import_morphologies(data_list, db, file_path):
-    possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
+    possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"] or "NeuronMorphology" in data["@type"]]
     if not possible_data:
         return
+
     for data in tqdm(possible_data):
+        curate.curate_morphology(data)
         legacy_id = data["@id"]
         rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
         if not rm:
@@ -492,6 +494,7 @@ def import_morphologies(data_list, db, file_path):
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
+
             db_reconstruction_morphology = ReconstructionMorphology(
                 legacy_id=[data.get("@id", None)],
                 name=name,

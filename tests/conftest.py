@@ -107,14 +107,16 @@ def license_id(client):
 
 @pytest.fixture
 def brain_region_id(client):
-    ontology_id = "Test Ontology ID"
-    response = client.post(
-        "/brain_region/", json={"name": "Test Brain Region", "ontology_id": ontology_id}
-    )
+    js = {
+        "id": 64,
+        "acronym": "red",
+        "name": "RedRegion",
+        "color_hex_triplet": "FF0000",
+        "children": [],
+    }
+    response = client.post("/brain-region/", json=js)
     assert response.status_code == 200, f"Failed to create brain region: {response.text}"
     data = response.json()
-    assert data["name"] == "Test Brain Region"
-    assert data["ontology_id"] == ontology_id
     assert "id" in data, f"Failed to get id for brain region: {data}"
     return data["id"]
 

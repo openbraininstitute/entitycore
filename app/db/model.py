@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Annotated, ClassVar
 
 from sqlalchemy import (
+    BigInteger,
     DateTime,
     ForeignKey,
     MetaData,
@@ -9,7 +10,7 @@ from sqlalchemy import (
     func,
     or_,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
@@ -94,9 +95,12 @@ class BrainLocation(Base):
 
 class BrainRegion(TimestampMixin, Base):
     __tablename__ = "brain_region"
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    ontology_id: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+
+    # See https://github.com/openbraininstitute/core-web-app/blob/cd89893db3fe08a1d2e5ba90235ef6d8c7be6484/src/types/ontologies.ts#L7
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    acronym: Mapped[str] = mapped_column(unique=True, index=True, nullable=False)
+    children: Mapped[list[int]] = mapped_column(ARRAY(BigInteger), nullable=True)
 
 
 class Species(TimestampMixin, Base):
@@ -285,7 +289,6 @@ class Entity(TimestampMixin, Root):
     # TODO: move to mandatory
     updatedBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), nullable=True)
 
-    # The id of the project; `PUBLIC` defined above is the public
     authorized_project_id: Mapped[UUID] = mapped_column(UUID, nullable=False)
     authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
 

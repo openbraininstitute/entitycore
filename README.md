@@ -65,17 +65,30 @@ migration               Create or update the alembic migration
 
 ## Optional, populate the database with sample data
 
+- Download the hierarchy:
+
+```
+aws s3 cp --no-sign-request s3://openbluebrain/Model_Data/Brain_atlas/Mouse/resolution_25_um/version_1.1.0/Parcellation_ontology/mba_hierarchy.json . 
+```
+
+- Import data into the specified database:
+```
+DB_HOST=127.0.0.1 DB_PORT=5433 uv run -m app.cli.import-data hierarchy mba_hierarchy.json
+```
+
 - Download the Nexus data (only metadata) from:
 ```
 https://openbraininstitute-my.sharepoint.com/:u:/g/personal/jean-denis_courcol_openbraininstitute_org/EVY7UqF-iHtFs1SmpWoykC4B5vdckmGWlM9OQTe8aTTqIA?e=dHJ9Os
 ```
 - Untar in a directory called `out`
+
 ```
 tar xzf out.tar.gz
 ```
+
 - Import data into the specified database:
 ```
-DB_HOST=127.0.0.1 DB_PORT=5433 uv run -m app.cli.import-data --input_dir ./out
+DB_HOST=127.0.0.1 DB_PORT=5433 uv run -m app.cli.import-data run ./out
 ```
 
 ## Legacy notes, to be cleaned up

@@ -52,8 +52,10 @@ class BrainLocationCreate(BaseModel):
 
 class BrainRegionCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    ontology_id: str
+    id: int
     name: str
+    acronym: str
+    children: list[int]
 
 
 class BrainRegionRead(BrainRegionCreate, CreationMixin):

@@ -85,10 +85,10 @@ Tables:
   - `id`: int (PK)  # for internal foreign keys
   - `uuid`: UUID  # for external access, not strictly needed
   - `status`: AssetStatus  # (created, deleted...) 
-  - `fullpath`: str  # full path to the file or directory in the S3 bucket
   - `path`: str  # relative path to the file or directory, useful when downloading the asset
-  - `is_directory`: bool 
-  - `is_public`: bool  # needed if we use different buckets for private and public assets. Alternatively we can store the bucket name itself 
+  - `fullpath`: str  # full path to the file or directory in the S3 bucket
+  - `bucket_name`: str  # name of the S3 bucket (private or public)
+  - `is_directory`: bool
   - `content_type`: str 
   - `size`: int8
   - `meta`: dict  # not used yet. can be useful?

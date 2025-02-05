@@ -222,15 +222,25 @@ def test_query_reconstruction_morphology(
                 response.status_code == 200
             ), f"Failed to create reconstruction morphology: {response.text}"
 
-    count = 10
+    count = 11
     create_morphologies(count)
 
     response = client.get("/reconstruction_morphology/")
     assert response.status_code == 200
     data = response.json()["data"]
-    assert len(data) == count
+    assert len(data) == 10
 
-    response = client.get("/reconstruction_morphology/", params={"order_by": "+creation_date"})
+    response = client.get(
+        "/reconstruction_morphology/",
+        params={"page_size": 100},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 11
+
+    response = client.get(
+        "/reconstruction_morphology/", params={"order_by": "+creation_date", "page_size": 100}
+    )
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count
@@ -238,7 +248,9 @@ def test_query_reconstruction_morphology(
         elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
 
-    response = client.get("/reconstruction_morphology/", params={"order_by": "-creation_date"})
+    response = client.get(
+        "/reconstruction_morphology/", params={"order_by": "-creation_date", "page_size": 100}
+    )
     assert response.status_code == 200
     data = response.json()["data"]
     assert all(
@@ -253,3 +265,19 @@ def test_query_reconstruction_morphology(
     data = response.json()["data"]
     assert len(data) == 3
     assert [row["id"] for row in data] == [1, 2, 3]
+
+    response = client.get("/reconstruction_morphology/")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
+
+    response = client.get("/reconstruction_morphology/?search=Test")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}

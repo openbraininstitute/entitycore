@@ -6,6 +6,7 @@ import sys
 from contextlib import closing
 from collections import defaultdict
 
+import click
 import sqlalchemy
 from tqdm import tqdm
 
@@ -13,6 +14,7 @@ from app.cli import curate, utils
 from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
+    BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
     ETypeAnnotationBody,
@@ -34,6 +36,11 @@ from app.db.model import (
 )
 from app.db.session import configure_database_session_manager
 
+
+REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
+REQUIRED_PATH_DIR = click.Path(
+    exists=True, readable=True, file_okay=False, dir_okay=True, resolve_path=True
+)
 
 def ensurelist(x):
     return x if isinstance(x, list) else [x]
@@ -116,6 +123,7 @@ def _import_annotation_body(data, db_type_, db):
         if db_elem:
             assert db_elem.definition == class_elem.get("definition", "")
             assert db_elem.alt_label == class_elem.get("prefLabel", "")
+
             continue
 
         db_elem = db_type_(
@@ -720,11 +728,22 @@ def _do_import(db, input_dir):
         possible_data = [data for data in data if "nsg:MType" in data.get("subClassOf", {})]
         import_mtype_annotation_body(possible_data, db)
 
-    print("import etype annotations")
     with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
-        data = json.load(f)
-        possible_data = [data for data in data if "nsg:EType" in data.get("subClassOf", {})]
-        import_etype_annotation_body(possible_data, db)
+        all_data = json.load(f)
+        mtype_annotations, etype_annotations = [], []
+
+        for data in all_data:
+            sub_class = data.get("subClassOf", {})
+            if "nsg:MType" in sub_class:
+                mtype_annotations.append(data)
+            elif "nsg:EType" in sub_class:
+                etype_annotations.append(data)
+
+        print("import mtype annotations")
+        import_mtype_annotation_body(mtype_annotations, db)
+
+        print("import etype annotations")
+        import_etype_annotation_body(etype_annotations, db)
 
     l_imports = [
         {"AnalysisSoftwareSourceCode": import_analysis_software_source_code},
@@ -743,27 +762,67 @@ def _do_import(db, input_dir):
         for label, action in l_import.items():
             print(f"importing {label}")
             for file_path in all_files:
+                print(f"   {file_path}")
                 with open(file_path) as f:
                     data = json.load(f)
                     action(data, db, file_path=file_path)
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Import data script")
-    parser.add_argument("--input_dir", required=True, help="Input directory path")
+@click.group()
+def cli():
+    """Main CLI group."""
 
-    args = parser.parse_args()
 
-    if not os.path.exists(args.input_dir):
-        print(f"Error: Input directory '{args.input_dir}' does not exist")
-        sys.exit(1)
+@cli.command()
+@click.argument("input-dir", type=REQUIRED_PATH_DIR)
+def run(input_dir):
+    """Import data script."""
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        _do_import(db, input_dir=input_dir)
+
+
+@cli.command()
+@click.argument("hierarchy_path", type=REQUIRED_PATH)
+def hierarchy(hierarchy_path):
+    """Load a hierarchy.json."""
+
+    with open(hierarchy_path) as fd:
+        hierarchy = json.load(fd)
+        if "msg" in hierarchy:
+            hierarchy = hierarchy["msg"][0]
+
+    regions = []
+
+    def recurse(i):
+        children = []
+        item = i | {"children": children}
+        for child in i["children"]:
+            children.append(child["id"])
+            recurse(child)
+        regions.append(item)
+
+    recurse(hierarchy)
 
     with (
         closing(configure_database_session_manager()) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        _do_import(db, input_dir=args.input_dir)
+        for region in tqdm(regions):
+            if orig := db.query(BrainRegion).filter(BrainRegion.id == region["id"]).first():
+                continue
+
+            db_br = BrainRegion(
+                id=region["id"],
+                name=region["name"],
+                acronym=region["acronym"],
+                children=region["children"],
+            )
+            db.add(db_br)
+            db.commit()
 
 
 if __name__ == "__main__":
-    main()
+    cli()

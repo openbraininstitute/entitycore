@@ -15,6 +15,7 @@ from app.errors import ApiError, ApiErrorCode
 from app.routers.types import ListResponse, Pagination
 from app.schemas.asset import AssetCreate, AssetRead
 from app.service import asset as asset_service
+from app.utils.files import get_content_type
 from app.utils.s3 import (
     build_s3_path,
     delete_from_s3,
@@ -86,6 +87,7 @@ def upload_entity_asset(
     if not file.filename or not validate_filename(file.filename):
         msg = f"Invalid file name {file.filename!r}"
         raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
+    content_type = get_content_type(file)
     bucket_name = settings.S3_PUBLIC_BUCKET_NAME if is_public else settings.S3_PRIVATE_BUCKET_NAME
     fullpath = build_s3_path(proj_id, entity_type, entity_id, file.filename)
     asset_create = AssetCreate(
@@ -93,7 +95,7 @@ def upload_entity_asset(
         fullpath=fullpath,
         bucket_name=bucket_name,
         is_directory=False,
-        content_type=file.content_type,
+        content_type=content_type,
         size=file.size,
         meta=meta or {},
     )

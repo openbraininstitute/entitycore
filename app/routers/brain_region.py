@@ -53,7 +53,7 @@ def create_brain_region(brain_region: BrainRegionCreate, db: SessionDep):
 
 
 @router.get("/")
-def get(db: SessionDep, flat: bool | None = False) -> Response:  # noqa: FBT001, FBT002
+def get(db: SessionDep, flat: bool = False) -> Response:  # noqa: FBT001, FBT002
     response: Response
     if flat:
         # TODO: this depends on 997 existing; which is bad

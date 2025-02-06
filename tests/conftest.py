@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.application import app
-from app.db.model import Base
+from app.db.model import Base, MTypeAnnotationBody
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
 
@@ -37,6 +37,19 @@ def _db_cleanup(db):
     query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
     db.execute(query)
     db.commit()
+
+
+@pytest.fixture
+def mtype_id(db):
+    row = MTypeAnnotationBody(
+        pref_label="fixture mtype pref_label",
+        alt_label="fixture mtype alt_label",
+        definition="fixture mtype definition",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row.id
 
 
 @pytest.fixture

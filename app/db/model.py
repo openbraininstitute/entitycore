@@ -409,6 +409,11 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     )
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 
+    @declared_attr
+    @classmethod
+    def mtype(cls):
+        return relationship("MTypeAnnotationBody", uselist=False)
+
 
 class MorphologyFeatureAnnotation(TimestampMixin, Base):
     __tablename__ = "morphology_feature_annotation"

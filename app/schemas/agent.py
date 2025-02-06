@@ -38,3 +38,6 @@ class OrganizationCreate(OrganizationBase):
 
 class OrganizationRead(OrganizationBase, CreationMixin):
     pass
+
+
+type AgentRead = PersonRead | OrganizationRead

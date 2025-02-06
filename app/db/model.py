@@ -279,18 +279,26 @@ class Annotation(LegacyMixin, TimestampMixin, Base):
 class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
     id: Mapped[int] = mapped_column(ForeignKey("root.id"), primary_key=True)
+
     # _type: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     annotations = relationship("Annotation", back_populates="entity")
+
     # TODO: keep the _ ? put on agent ?
     createdBy = relationship("Agent", uselist=False, foreign_keys="Entity.createdBy_id")
     # TODO: move to mandatory
     createdBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), nullable=True)
+
     updatedBy = relationship("Agent", uselist=False, foreign_keys="Entity.updatedBy_id")
     # TODO: move to mandatory
     updatedBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), nullable=True)
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "entity",
-    }
+
+    contributors = relationship(
+        "Contribution",
+        uselist=True,
+        back_populates="entity",
+    )
+
+    __mapper_args__ = {"polymorphic_identity": "entity"}  # noqa: RUF012
 
 
 class AnalysisSoftwareSourceCode(DistributionMixin, Entity):
@@ -326,13 +334,18 @@ class AnalysisSoftwareSourceCode(DistributionMixin, Entity):
 
 class Contribution(TimestampMixin, Base):
     __tablename__ = "contribution"
+
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+
     agent_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), nullable=False)
     agent = relationship("Agent", uselist=False)
+
     role_id: Mapped[int] = mapped_column(ForeignKey("role.id"), nullable=False)
     role = relationship("Role", uselist=False)
+
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), nullable=False)
     entity = relationship("Entity", uselist=False)
+
     __table_args__ = (
         UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
     )
@@ -397,12 +410,14 @@ class MEModel(DistributionMixin, LocationMixin, Entity):
 
 class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
+
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     # name is not unique
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     morphology_description_vector: Mapped[str] = mapped_column(TSVECTOR, nullable=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 
 

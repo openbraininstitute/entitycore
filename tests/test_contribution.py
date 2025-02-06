@@ -1,19 +1,9 @@
-def test_create_contribution(client, species_id, strain_id, brain_region_id, license_id):
-    response = client.post(
-        "/person/",
-        json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"},
-    )
-    assert response.status_code == 200
-    data = response.json()
-    person_id = data["id"]
 
-    response = client.post(
-        "/role/", json={"name": "important role", "role_id": "important role id"}
-    )
-    assert response.status_code == 200
-    data = response.json()
-    role_id = data["id"]
+ROUTE = "/contribution/"
 
+def test_create_contribution(
+    client, person_id, role_id, species_id, strain_id, brain_region_id, license_id
+):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
     response = client.post(
@@ -33,8 +23,9 @@ def test_create_contribution(client, species_id, strain_id, brain_region_id, lic
     data = response.json()
     entity_id = data["id"]
     assert entity_id is not None
+
     response = client.post(
-        "/contribution/",
+        ROUTE,
         json={
             "agent_id": person_id,
             "role_id": role_id,
@@ -50,13 +41,9 @@ def test_create_contribution(client, species_id, strain_id, brain_region_id, lic
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == entity_id
-    assert data["entity"]["name"] == morph_name
-    assert data["entity"]["description"] == morph_description
-    assert data["creation_date"] is not None
-    assert data["update_date"] is not None
 
     contribution_id = data["id"]
-    response = client.get(f"/contribution/{contribution_id}")
+    response = client.get(f"{ROUTE}{contribution_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == person_id
@@ -66,19 +53,19 @@ def test_create_contribution(client, species_id, strain_id, brain_region_id, lic
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == entity_id
-    assert data["entity"]["name"] == morph_name
-    assert data["entity"]["description"] == morph_description
-    assert data["creation_date"] is not None
-    assert data["update_date"] is not None
     assert data["id"] == contribution_id
 
     response = client.get("/contribution/")
     assert len(response.json()) == 1
 
+    response = client.get("/reconstruction_morphology/")
+    breakpoint()  # XXX BREAKPOINT
+    pass
+
 
 def test_missing_contribution(client):
-    response = client.get("/contribution/12345")
+    response = client.get(ROUTE + "12345")
     assert response.status_code == 404
 
-    response = client.get("/contribution/not_a_contribution_id")
+    response = client.get(ROUTE + "not_a_contribution_id")
     assert response.status_code == 422

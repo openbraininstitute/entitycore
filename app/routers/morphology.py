@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, aliased
 from app.db.model import (
     Base,
     BrainLocation,
+    Contribution,
     ReconstructionMorphology,
     Species,
     Strain,
@@ -17,7 +18,6 @@ from app.filters.morphology import MorphologyFilter
 from app.routers.types import Facets, ListResponse, Pagination
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
-    ReconstructionMorphologyExpand,
     ReconstructionMorphologyRead,
 )
 
@@ -30,16 +30,21 @@ router = APIRouter(
 
 @router.get(
     "/{rm_id}",
-    response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
+    response_model=ReconstructionMorphologyRead,
 )
 def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
-    rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).first()
+    query = db.query(ReconstructionMorphology)
 
-    if rm is None:
+    if expand:
+        if "morphology_feature_annotation" in expand:
+            query = query.filter(ReconstructionMorphology.id == rm_id)
+        if "contributions" in expand:
+            query = query.filter(Contribution.id == rm_id)
+
+    rm = query.first()
+
+    if query is None:
         raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
-
-    if expand and "morphology_feature_annotation" in expand:
-        return ReconstructionMorphologyExpand.model_validate(rm)
 
     # added back with None by the response_model
     return ReconstructionMorphologyRead.model_validate(rm)
@@ -55,7 +60,7 @@ def create_reconstruction_morphology(
     if reconstruction.brain_location:
         brain_location = BrainLocation(**reconstruction.brain_location.model_dump())
 
-    db_reconstruction_morphology = ReconstructionMorphology(
+    db_rm = ReconstructionMorphology(
         name=reconstruction.name,
         description=reconstruction.description,
         brain_location=brain_location,
@@ -64,10 +69,11 @@ def create_reconstruction_morphology(
         strain_id=reconstruction.strain_id,
         license_id=reconstruction.license_id,
     )
-    db.add(db_reconstruction_morphology)
+    db.add(db_rm)
     db.commit()
-    db.refresh(db_reconstruction_morphology)
-    return db_reconstruction_morphology
+    db.refresh(db_rm)
+
+    return db_rm
 
 
 def _get_facets(

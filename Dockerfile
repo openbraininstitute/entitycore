@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.9
-ARG UV_VERSION=0.4.20
+ARG UV_VERSION=0.5
 ARG PYTHON_VERSION=3.12
 ARG PYTHON_BASE=${PYTHON_VERSION}-slim
 
@@ -33,7 +33,7 @@ ARG ENVIRONMENT
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-  uv sync --locked --no-install-project
+  uv --version && uv sync --locked --no-install-project
 
 # run stage
 FROM python:$PYTHON_BASE

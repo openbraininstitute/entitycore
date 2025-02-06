@@ -11,8 +11,7 @@ services:
       - COMMIT_SHA
     ports:
     - "127.0.0.1:8000:8000"
-    environment:
-    - APP_DEBUG=true
+    env_file: .env.run-docker
     develop:
       watch:
       - action: sync+restart

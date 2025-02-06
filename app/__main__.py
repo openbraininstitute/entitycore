@@ -1,7 +1,9 @@
 """Main entrypoint."""
 
 import click
-import uvicorn
+
+from app.logger import configure_logging
+from app.utils.uvicorn import run_server
 
 
 @click.group()
@@ -15,8 +17,10 @@ def cli():
 @click.option("--reload", is_flag=True, default=False, help="Enable auto-reload.")
 def run(host, port, reload):
     """Run the application."""
-    uvicorn.run("app.application:app", host=host, port=port, reload=reload)
+    run_server("app.application:app", host=host, port=port, reload=reload)
 
 
 if __name__ == "__main__":
+    """"""
+    configure_logging()
     cli()

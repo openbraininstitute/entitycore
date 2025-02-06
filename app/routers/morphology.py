@@ -18,6 +18,7 @@ from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
 from app.routers.types import Facet, Facets, ListResponse, Pagination
 from app.schemas.morphology import (
+    ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
 )
@@ -30,7 +31,7 @@ router = APIRouter(
 
 @router.get(
     "/{rm_id}",
-    response_model=ReconstructionMorphologyRead,
+    response_model=ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead,
 )
 def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
     with ensure_result(error_message="ReconstructionMorphology not found"):
@@ -42,10 +43,13 @@ def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | Non
             if "contributions" in expand:
                 query = query.filter(Contribution.id == rm_id)
 
-        rm = query.one()
+        row = query.one()
+
+    if expand and "morphology_feature_annotation" in expand:
+        return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)
 
     # added back with None by the response_model
-    return ReconstructionMorphologyRead.model_validate(rm)
+    return ReconstructionMorphologyRead.model_validate(row)
 
 
 @router.post("/", response_model=ReconstructionMorphologyRead)

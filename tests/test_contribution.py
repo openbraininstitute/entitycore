@@ -1,5 +1,5 @@
-
 ROUTE = "/contribution/"
+
 
 def test_create_contribution(
     client, person_id, role_id, species_id, strain_id, brain_region_id, license_id
@@ -19,7 +19,7 @@ def test_create_contribution(
             "license_id": license_id,
         },
     )
-    assert response.status_code == 200
+    response.raise_for_status()
     data = response.json()
     entity_id = data["id"]
     assert entity_id is not None
@@ -32,7 +32,7 @@ def test_create_contribution(
             "entity_id": entity_id,
         },
     )
-    assert response.status_code == 200
+    response.raise_for_status()
     data = response.json()
     assert data["agent"]["id"] == person_id
     assert data["agent"]["givenName"] == "jd"
@@ -44,7 +44,7 @@ def test_create_contribution(
 
     contribution_id = data["id"]
     response = client.get(f"{ROUTE}{contribution_id}")
-    assert response.status_code == 200
+    response.raise_for_status()
     data = response.json()
     assert data["agent"]["id"] == person_id
     assert data["agent"]["givenName"] == "jd"
@@ -58,9 +58,17 @@ def test_create_contribution(
     response = client.get("/contribution/")
     assert len(response.json()) == 1
 
+    response = client.get(f"/reconstruction_morphology/{entity_id}")
+    response.raise_for_status()
+    data = response.json()
+    assert "contributors" in data
+    assert len(data["contributors"]) == 1
+
     response = client.get("/reconstruction_morphology/")
-    breakpoint()  # XXX BREAKPOINT
-    pass
+    response.raise_for_status()
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert len(data[0]["contributors"]) == 1
 
 
 def test_missing_contribution(client):

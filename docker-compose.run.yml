@@ -22,6 +22,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      minio:
+        condition: service_started
 
   db:
     profiles: [run]
@@ -46,6 +48,16 @@ services:
     - -clog_statement=all
     - -clog_min_duration_statement=100ms
     - -clog_lock_waits=on
+
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: entitycore
+      MINIO_ROOT_PASSWORD: entitycore
+    ports:
+      - 127.0.0.1:9000:9000
+      - 127.0.0.1:9001:9001
 
 volumes:
   pgdata: {}

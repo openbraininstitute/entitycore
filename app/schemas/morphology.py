@@ -13,6 +13,7 @@ from app.schemas.base import (
     SpeciesRead,
     StrainRead,
 )
+from app.schemas.contribution import ContributorRead
 
 
 class ReconstructionMorphologyBase(BaseModel):
@@ -43,7 +44,8 @@ class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, 
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
+    contributors: list[ContributorRead] | None
 
 
-class ReconstructionMorphologyExpand(ReconstructionMorphologyRead):
-    morphology_feature_annotation: MorphologyFeatureAnnotationCreate | None
+class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):
+    morphology_feature_annotation: MorphologyFeatureAnnotationCreate

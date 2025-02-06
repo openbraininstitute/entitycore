@@ -27,6 +27,7 @@ def test_create_contribution(client, species_id, strain_id, brain_region_id, lic
             "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "license_id": license_id,
+            "mtype_id": None,
         },
     )
     assert response.status_code == 200

@@ -185,23 +185,23 @@ class Agent(Root, TimestampMixin):
 
 class Person(Agent):
     __tablename__ = "person"
+
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     givenName: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     familyName: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "person",
-    }
+
+    __mapper_args__ = {"polymorphic_identity": "person"}  # noqa: RUF012
     __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
 
 
 class Organization(Agent):
     __tablename__ = "organization"
+
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     # what is the difference between name and label here ?
     alternative_name: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "organization",
-    }
+
+    __mapper_args__ = {"polymorphic_identity": "organization"}  # noqa: RUF012
 
 
 class AnnotationBody(LegacyMixin, TimestampMixin, Base):

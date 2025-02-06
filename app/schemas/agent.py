@@ -13,6 +13,7 @@ from app.schemas.base import (
 
 class PersonBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
     givenName: str
     familyName: str
     pref_label: str
@@ -28,6 +29,7 @@ class PersonRead(PersonBase, CreationMixin):
 
 class OrganizationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
     pref_label: str
     alternative_name: str | None = None
 

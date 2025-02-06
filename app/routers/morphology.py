@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session, aliased
 from app.db.model import (
     Base,
     BrainLocation,
-    Contribution,
     ReconstructionMorphology,
     Species,
     Strain,
@@ -17,6 +16,7 @@ from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
 from app.routers.types import Facets, ListResponse, Pagination
 from app.schemas.morphology import (
+    ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
 )
@@ -30,24 +30,21 @@ router = APIRouter(
 
 @router.get(
     "/{rm_id}",
-    response_model=ReconstructionMorphologyRead,
+    response_model=ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead,
 )
 def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
-    query = db.query(ReconstructionMorphology)
+    query = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id)
 
-    if expand:
-        if "morphology_feature_annotation" in expand:
-            query = query.filter(ReconstructionMorphology.id == rm_id)
-        if "contributions" in expand:
-            query = query.filter(Contribution.id == rm_id)
+    row = query.first()
 
-    rm = query.first()
-
-    if query is None:
+    if row is None:
         raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
 
+    if expand and "morphology_feature_annotation" in expand:
+        return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)
+
     # added back with None by the response_model
-    return ReconstructionMorphologyRead.model_validate(rm)
+    return ReconstructionMorphologyRead.model_validate(row)
 
 
 @router.post("/", response_model=ReconstructionMorphologyRead)

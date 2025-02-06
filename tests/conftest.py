@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.application import app
-from app.db.model import Base
+from app.db.model import Base, Person, Role
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
 
@@ -38,6 +38,31 @@ def _db_cleanup(db):
     query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
     db.execute(query)
     db.commit()
+
+
+@pytest.fixture
+def person_id(db):
+    row = Person(
+        givenName="jd",
+        familyName="courcol",
+        pref_label="jd courcol",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row.id
+
+
+@pytest.fixture
+def role_id(db):
+    row = Role(
+        name="important role",
+        role_id="important role id",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row.id
 
 
 @pytest.fixture

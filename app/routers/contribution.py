@@ -28,15 +28,18 @@ def create_contribution(contribution: ContributionCreate, db: SessionDep):
     # if agent is None:
     #     raise HTTPException(status_code=404, detail="Agent not found")
 
-    db_contribution = Contribution(
+    row = Contribution(
         agent_id=contribution.agent_id,
         role_id=contribution.role_id,
         entity_id=contribution.entity_id,
     )
-    db.add(db_contribution)
+    db.add(row)
     db.commit()
-    db.refresh(db_contribution)
-    return ContributionRead.model_validate(db_contribution)
+    db.refresh(row)
+
+    breakpoint() # XXX BREAKPOINT
+
+    return ContributionRead.model_validate(row)
 
 
 @router.get("/", response_model=list[ContributionRead])

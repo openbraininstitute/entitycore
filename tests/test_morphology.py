@@ -193,7 +193,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     assert len(data) == 1
 
 
-def test_missing_reconstruction_morphology(client):
+def test_missing(client):
     response = client.get("/reconstruction_morphology/42424242")
     assert response.status_code == 404
 

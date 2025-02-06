@@ -8,9 +8,11 @@
     /reconstructed-neuron-morphology/
 
     /contribution
-    /role
+    /etype
+    /mtype
     /organization
     /person
+    /role
 ```
 
 These have CRUD-able patterns:
@@ -24,6 +26,8 @@ Future work may include auto-additing organizations when one joins the OBI; alte
 TODO:
     What are the ACLs on these operations?
         contribution
+        etype
+        mtype
         organization
         person
         role

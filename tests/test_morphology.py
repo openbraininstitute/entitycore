@@ -5,7 +5,7 @@ import sqlalchemy
 
 
 def test_create_reconstruction_morphology(
-    client, species_id, strain_id, license_id, brain_region_id
+    client, species_id, strain_id, license_id, brain_region_id, mtype_id
 ):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
@@ -20,6 +20,7 @@ def test_create_reconstruction_morphology(
             "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "license_id": license_id,
+            "mtype_id": mtype_id,
         },
     )
     assert (
@@ -36,6 +37,9 @@ def test_create_reconstruction_morphology(
         data["strain"]["id"] == strain_id
     ), f"Failed to get strain_id for reconstruction morphology: {data}"
     assert (
+        data["mtype"]["id"] == mtype_id
+    ), f"Failed to get mtype_id for reconstruction morphology: {data}"
+    assert (
         data["description"] == morph_description
     ), f"Failed to get description for reconstruction morphology: {data}"
     assert data["name"] == morph_name, f"Failed to get name for reconstruction morphology: {data}"
@@ -44,12 +48,17 @@ def test_create_reconstruction_morphology(
     ), f"Failed to get license for reconstruction morphology: {data}"
 
     response = client.get("/reconstruction_morphology/")
-    assert (
-        response.status_code == 200
-    ), f"Failed to get reconstruction morphologies: {response.text}"
+    assert response.status_code == 200
+    response = response.json()
+    assert "data" in response
+    assert "facets" in response
+    assert "pagination" in response
+
+    data = response["data"]
+    assert len(data) == 1
 
 
-def test_create_annotation(client, species_id, strain_id, brain_region_id):
+def test_create_annotation(client, species_id, strain_id, brain_region_id, mtype_id):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
     response = client.post(
@@ -62,6 +71,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
             "name": morph_name,
             "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
+            "mtype_id": mtype_id,
         },
     )
     assert (
@@ -183,14 +193,18 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
 
     assert "facets" in data
     facets = data["facets"]
-    assert facets == {"species": {"Test Species": 1}, "strain": {"Test Strain": 1}}
+    assert facets == {
+        "species": {"Test Species": 1},
+        "strain": {"Test Strain": 1},
+        "mtype": {"fixture mtype pref_label": 1},
+    }
 
     assert "data" in data
     data = data["data"]
     assert len(data) == 1
 
 
-def test_missing_reconstruction_morphology(client):
+def test_missing(client):
     response = client.get("/reconstruction_morphology/42424242")
     assert response.status_code == 404
 
@@ -199,7 +213,7 @@ def test_missing_reconstruction_morphology(client):
 
 
 def test_query_reconstruction_morphology(
-    client, species_id, strain_id, brain_region_id, license_id
+    client, species_id, strain_id, brain_region_id, license_id, mtype_id
 ):
     def create_morphologies(nb_morph):
         for i in range(nb_morph):
@@ -216,6 +230,7 @@ def test_query_reconstruction_morphology(
                     "brain_location": {"x": 10, "y": 20, "z": 30},
                     "legacy_id": "Test Legacy ID",
                     "license_id": license_id,
+                    "mtype_id": mtype_id,
                 },
             )
             assert (
@@ -272,7 +287,11 @@ def test_query_reconstruction_morphology(
 
     assert "facets" in data
     facets = data["facets"]
-    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
+    assert facets == {
+        "species": {"Test Species": count},
+        "strain": {"Test Strain": count},
+        "mtype": {"fixture mtype pref_label": count},
+    }
 
     response = client.get("/reconstruction_morphology/?search=Test")
     assert response.status_code == 200
@@ -280,4 +299,8 @@ def test_query_reconstruction_morphology(
 
     assert "facets" in data
     facets = data["facets"]
-    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
+    assert facets == {
+        "species": {"Test Species": count},
+        "strain": {"Test Strain": count},
+        "mtype": {"fixture mtype pref_label": count},
+    }

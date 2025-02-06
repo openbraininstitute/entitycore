@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, aliased
 from app.db.model import (
     Base,
     BrainLocation,
+    MTypeAnnotationBody,
     ReconstructionMorphology,
     Species,
     Strain,
@@ -63,6 +64,7 @@ def create_reconstruction_morphology(
         species_id=reconstruction.species_id,
         strain_id=reconstruction.strain_id,
         license_id=reconstruction.license_id,
+        mtype_id=reconstruction.mtype_id,
     )
     db.add(db_reconstruction_morphology)
     db.commit()
@@ -72,36 +74,37 @@ def create_reconstruction_morphology(
 
 def _get_facets(
     db: Session,
-    name_to_table: dict[str, type[Base]],
+    name_to_table: dict[str, tuple[type[Base], str]],
     request: Request,
     search: str | None,
 ):
     facets: Facets = {}
-    for ty, table in name_to_table.items():
+    for ty, (table, attr_name) in name_to_table.items():
         types = aliased(table)
         # TODO: this should be migrated to sqlalchemy v2.0 style:
         # https://github.com/openbraininstitute/entitycore/pull/11#discussion_r1935703476
+        attr = getattr(types, attr_name)
         facet_q = (
-            db.query(types.name, func.count().label("total"))  # type: ignore[attr-defined]
+            db.query(attr, func.count().label("total"))  # type: ignore[attr-defined]
             .join(
                 ReconstructionMorphology,
                 getattr(ReconstructionMorphology, ty + "_id") == types.id,  # type: ignore[attr-defined]
             )
-            .group_by(types.name)  # type: ignore[attr-defined]
+            .group_by(attr)  # type: ignore[attr-defined]
         )
         if search:
             facet_q = facet_q.filter(
                 ReconstructionMorphology.morphology_description_vector.match(search)
             )
 
-        for other_ty, other_table in name_to_table.items():
+        for other_ty, (other_table, other_attr_name) in name_to_table.items():
             if value := request.query_params.get(other_ty, None):
                 other_types = aliased(other_table)
                 facet_q = facet_q.join(
                     other_types,
                     getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
-                ).where(other_types.name == value)  # type: ignore[attr-defined]
-        facets[ty] = {r.name: r.total for r in facet_q.all()}
+                ).where(getattr(other_types, other_attr_name) == value)  # type: ignore[attr-defined]
+        facets[ty] = {getattr(r, attr_name): r.total for r in facet_q.all()}
 
     return facets
 
@@ -116,8 +119,9 @@ def morphology_query(
     page_size: int = 10,
 ):
     name_to_table = {
-        "species": Species,
-        "strain": Strain,
+        "species": (Species, "name"),
+        "strain": (Strain, "name"),
+        "mtype": (MTypeAnnotationBody, "pref_label"),
     }
 
     facets = _get_facets(db, name_to_table, request, search)

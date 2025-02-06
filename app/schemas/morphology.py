@@ -13,6 +13,7 @@ from app.schemas.base import (
     SpeciesRead,
     StrainRead,
 )
+from app.schemas.mtype import MTypeRead
 
 
 class ReconstructionMorphologyBase(BaseModel):
@@ -27,6 +28,7 @@ class ReconstructionMorphologyCreate(ReconstructionMorphologyBase, LicensedCreat
     strain_id: int
     brain_region_id: int
     legacy_id: str | None
+    mtype_id: int | None
 
 
 class MorphologyFeatureAnnotationCreate(BaseModel):
@@ -43,6 +45,7 @@ class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, 
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
+    mtype: MTypeRead | None
 
 
 class ReconstructionMorphologyExpand(ReconstructionMorphologyRead):

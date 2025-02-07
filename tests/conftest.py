@@ -122,6 +122,6 @@ def brain_region_id(client):
 
 
 @pytest.fixture
-def allow_all_access():
-    with utils.allow_all_access():
+def skip_project_check():
+    with utils.skip_project_check():
         yield

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.db.model import Contribution
 from app.dependencies.db import SessionDep
+from app.routers.auth import AuthProjectContextHeader
 from app.schemas.contribution import ContributionCreate, ContributionRead
 
 router = APIRouter(
@@ -15,11 +16,14 @@ router = APIRouter(
     "/{contribution_id}",
     response_model=ContributionRead,
 )
-def read_contribution(contribution_id: int, db: SessionDep):
+def read_contribution(
+    contribution_id: int, project_context: AuthProjectContextHeader, db: SessionDep
+):
     contribution = db.query(Contribution).filter(Contribution.id == contribution_id).first()
 
     if contribution is None:
         raise HTTPException(status_code=404, detail="contribution not found")
+
     return ContributionRead.model_validate(contribution)
 
 

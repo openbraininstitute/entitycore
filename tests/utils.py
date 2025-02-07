@@ -12,7 +12,12 @@ PROJECT_HEADERS = {
 
 
 @contextmanager
-def allow_all_access():
+def skip_project_check():
+    """Skip checking if Bearer token has access to a the project-id
+
+    Note: Otherwise, the keycloak endpoint is called,
+          depending on the config.py::Settings.KEYCLOAK_URL
+    """
     orig = dict(app.dependency_overrides)
 
     def ok():

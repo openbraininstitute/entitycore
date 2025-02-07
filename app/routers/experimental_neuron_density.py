@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.db.authorization import constrain_query_to_members
+from app.db.auth import constrain_entity_query_to_project
 from app.db.model import BrainLocation, ExperimentalNeuronDensity
 from app.dependencies.db import SessionDep
 from app.routers.auth import AuthProjectContextHeader
@@ -24,7 +24,9 @@ def read_experimental_neuron_densities(
     limit: int = 10,
 ):
     return (
-        constrain_query_to_members(db.query(ExperimentalNeuronDensity), project_context.project_id)
+        constrain_entity_query_to_project(
+            db.query(ExperimentalNeuronDensity), project_context.project_id
+        )
         .offset(skip)
         .limit(limit)
         .all()
@@ -41,7 +43,9 @@ def read_experimental_neuron_density(
     db: SessionDep,
 ):
     experimental_neuron_density = (
-        constrain_query_to_members(db.query(ExperimentalNeuronDensity), project_context.project_id)
+        constrain_entity_query_to_project(
+            db.query(ExperimentalNeuronDensity), project_context.project_id
+        )
         .filter(ExperimentalNeuronDensity.id == experimental_neuron_density_id)
         .first()
     )

@@ -5,7 +5,7 @@ from .utils import PROJECT_HEADERS
 ROUTE = "/experimental_bouton_density/"
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_experimental_bouton_density(client, species_id, strain_id, license_id, brain_region_id):
     bouton_description = "Test bouton Description"
     bouton_name = "Test bouton Name"
@@ -60,7 +60,7 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
     assert len(response.json()) == 1
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_missing_bouton_density(client):
     response = client.get(ROUTE + "42424242", headers=PROJECT_HEADERS)
     assert response.status_code == 404
@@ -69,7 +69,7 @@ def test_missing_bouton_density(client):
     assert response.status_code == 422
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     js = {
         "brain_location": {"x": 10, "y": 20, "z": 30},

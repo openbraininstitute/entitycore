@@ -8,7 +8,7 @@ from .utils import BEARER_TOKEN, PROJECT_HEADERS
 ROUTE = "/reconstruction_morphology/"
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_create_reconstruction_morphology(
     client, species_id, strain_id, license_id, brain_region_id
 ):
@@ -55,7 +55,7 @@ def test_create_reconstruction_morphology(
     ), f"Failed to get reconstruction morphologies: {response.text}"
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_create_annotation(client, species_id, strain_id, brain_region_id):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
@@ -204,7 +204,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     assert len(data) == 1
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
     response = client.get(ROUTE + "42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
@@ -213,7 +213,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_query_reconstruction_morphology(
     client, species_id, strain_id, brain_region_id, license_id
 ):
@@ -277,7 +277,7 @@ def test_query_reconstruction_morphology(
     assert [row["id"] for row in data] == [1, 2, 3]
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     morph_json = {
         "brain_location": {"x": 10, "y": 20, "z": 30},

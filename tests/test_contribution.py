@@ -1,13 +1,16 @@
-from .utils import PROJECT_HEADERS, allow_all_access
+import pytest
+
+from .utils import BEARER_TOKEN, PROJECT_HEADERS, skip_project_check
 
 
+@pytest.mark.usefixtures("skip_project_check")
 def test_create_contribution(
     client, person_id, role_id, species_id, strain_id, brain_region_id, license_id
 ):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
 
-    with allow_all_access():
+    with skip_project_check():
         response = client.post(
             "/reconstruction_morphology/",
             headers=PROJECT_HEADERS,
@@ -50,7 +53,9 @@ def test_create_contribution(
     assert data["update_date"] is not None
 
     contribution_id = data["id"]
-    response = client.get(f"/contribution/{contribution_id}")
+    response = client.get(
+        f"/contribution/{contribution_id}", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == person_id
@@ -70,9 +75,12 @@ def test_create_contribution(
     assert len(response.json()) == 1
 
 
-def test_missing_contribution(client):
-    response = client.get("/contribution/12345")
+@pytest.mark.usefixtures("skip_project_check")
+def test_missing(client):
+    response = client.get("/contribution/12345", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get("/contribution/not_a_contribution_id")
+    response = client.get(
+        "/contribution/not_a_contribution_id", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
     assert response.status_code == 422

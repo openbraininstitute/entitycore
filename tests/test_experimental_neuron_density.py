@@ -5,7 +5,7 @@ from .utils import PROJECT_HEADERS
 ROUTE = "/experimental_neuron_density/"
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_experimental_neuron_density(client, species_id, strain_id, brain_region_id, license_id):
     neuron_description = "Test neuron Description"
     neuron_name = "Test neuron Name"
@@ -62,7 +62,7 @@ def test_experimental_neuron_density(client, species_id, strain_id, brain_region
     assert len(response.json()) == 1
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_missing_experimental_neuron_density(client):
     response = client.get(
         ROUTE + "42424242",
@@ -77,7 +77,7 @@ def test_missing_experimental_neuron_density(client):
     assert response.status_code == 422
 
 
-@pytest.mark.usefixtures("allow_all_access")
+@pytest.mark.usefixtures("skip_project_check")
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     js = {
         "brain_region_id": brain_region_id,

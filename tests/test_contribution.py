@@ -128,7 +128,7 @@ def test_authorization(
             "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Public Object",
             "license_id": license_id,
-            "authorized_public": True
+            "authorized_public": True,
         },
     )
     public_entity_id = response.json()["id"]
@@ -136,11 +136,7 @@ def test_authorization(
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json={
-            "agent_id": person_id,
-            "role_id": role_id,
-            "entity_id": public_entity_id
-        },
+        json={"agent_id": person_id, "role_id": role_id, "entity_id": public_entity_id},
     )
     # can't attach contributions to projects unrelated to us, even if public
     assert response.status_code == 404
@@ -157,15 +153,17 @@ def test_authorization(
     assert public_obj.status_code == 200
     public_obj = public_obj.json()
 
-    response = client.get(f"{ROUTE}{public_obj['id']}",
-                          headers=BEARER_TOKEN | PROJECT_HEADERS,
-                          )
+    response = client.get(
+        f"{ROUTE}{public_obj['id']}",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
     # can get the contributor if the entity is public
     assert response.status_code == 200
 
-    response = client.get(f"{ROUTE}",
-                          headers=BEARER_TOKEN | PROJECT_HEADERS,
-                          )
+    response = client.get(
+        f"{ROUTE}",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1  # only public entity is available

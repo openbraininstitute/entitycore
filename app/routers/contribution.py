@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import contains_eager
 
-from app.db.auth import constrain_to_accessible_entities, constrain_entity_query_to_project
+from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
 from app.dependencies.db import SessionDep
 from app.logger import L
@@ -75,4 +75,11 @@ def create_contribution(
 def read_contributions(
     project_context: AuthProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
 ):
-    return constrain_to_accessible_entities(db.query(Contribution).join(Entity), project_context.project_id).offset(skip).limit(limit).all()
+    return (
+        constrain_to_accessible_entities(
+            db.query(Contribution).join(Entity), project_context.project_id
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )

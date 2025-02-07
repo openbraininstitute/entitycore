@@ -42,4 +42,4 @@ services:
     - -cfsync=off
     - -csynchronous_commit=off
     - -cfull_page_writes=off
-    # - -clog_statement=all
+    - -clog_statement=all

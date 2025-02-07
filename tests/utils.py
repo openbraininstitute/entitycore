@@ -10,6 +10,11 @@ PROJECT_HEADERS = {
     "project-id": "ee86d4a0-eaca-48ca-9788-ddc450250b15",
 }
 
+UNRELATED_PROJECT_HEADERS = {
+    "virtual-lab-id": "99999999-2c6f-4eac-893f-f0dc665605c5",
+    "project-id": "66666666-eaca-48ca-9788-ddc450250b15",
+}
+
 
 @contextmanager
 def skip_project_check():

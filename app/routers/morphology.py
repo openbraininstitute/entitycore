@@ -5,7 +5,7 @@ from fastapi_filter import FilterDepends
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
-from app.db.auth import constrain_entity_query_to_project
+from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     BrainLocation,
     ReconstructionMorphology,
@@ -40,7 +40,7 @@ def read_reconstruction_morphology(
     expand: str | None = None,
 ):
     rm = (
-        constrain_entity_query_to_project(
+        constrain_to_accessible_entities(
             db.query(ReconstructionMorphology), project_context.project_id
         )
         .filter(ReconstructionMorphology.id == rm_id)
@@ -102,7 +102,7 @@ def morphology_query(
 
     if search is None and not any(ty in request.query_params for ty in name_to_table):
         query = db.query(ReconstructionMorphology)
-        query = constrain_entity_query_to_project(query, project_context.project_id)
+        query = constrain_to_accessible_entities(query, project_context.project_id)
         query = morphology_filter.filter(query)
         response = ListResponse[ReconstructionMorphologyRead](
             data=morphology_filter.sort(query).offset(page * page_size).limit(page_size).all(),
@@ -134,7 +134,7 @@ def morphology_query(
             facets[ty] = {r.name: r.total for r in facet_q.all()}
 
         query = db.query(ReconstructionMorphology)
-        query = constrain_entity_query_to_project(query, project_context.project_id)
+        query = constrain_to_accessible_entities(query, project_context.project_id)
         rms = (
             query.where(ReconstructionMorphology.morphology_description_vector.match(search))
             .offset(page * page_size)

@@ -26,6 +26,7 @@ def create_morphology_feature_annotation(
     db_morphology_feature_annotation = MorphologyFeatureAnnotation(
         reconstruction_morphology_id=morphology_feature_annotation.reconstruction_morphology_id
     )
+
     for measurement in morphology_feature_annotation.measurements:
         db_measurement = MorphologyMeasurement()
         db_morphology_feature_annotation.measurements.append(db_measurement)

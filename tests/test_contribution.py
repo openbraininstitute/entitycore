@@ -2,6 +2,7 @@ import pytest
 
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, skip_project_check
 
+ROUTE = "/contribution/"
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_create_contribution(
@@ -13,7 +14,7 @@ def test_create_contribution(
     with skip_project_check():
         response = client.post(
             "/reconstruction_morphology/",
-            headers=PROJECT_HEADERS,
+            headers=BEARER_TOKEN|PROJECT_HEADERS,
             json={
                 "brain_region_id": brain_region_id,
                 "species_id": species_id,
@@ -31,7 +32,8 @@ def test_create_contribution(
     entity_id = data["id"]
     assert entity_id is not None
     response = client.post(
-        "/contribution/",
+        ROUTE,
+        headers=BEARER_TOKEN|PROJECT_HEADERS,
         json={
             "agent_id": person_id,
             "role_id": role_id,
@@ -54,7 +56,7 @@ def test_create_contribution(
 
     contribution_id = data["id"]
     response = client.get(
-        f"/contribution/{contribution_id}", headers=BEARER_TOKEN | PROJECT_HEADERS
+        f"{ROUTE}{contribution_id}", headers=BEARER_TOKEN | PROJECT_HEADERS
     )
     assert response.status_code == 200
     data = response.json()
@@ -71,16 +73,27 @@ def test_create_contribution(
     assert data["update_date"] is not None
     assert data["id"] == contribution_id
 
-    response = client.get("/contribution/")
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert len(response.json()) == 1
 
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get("/contribution/12345", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(ROUTE + "12345", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(
-        "/contribution/not_a_contribution_id", headers=BEARER_TOKEN | PROJECT_HEADERS
+    response = client.get(ROUTE + "not_a_contribution_id",
+                          headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_authorization(client):
+    response = client.get(ROUTE + "12345", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 404
+
+    response = client.get(ROUTE + "not_a_contribution_id",
+                          headers=BEARER_TOKEN | PROJECT_HEADERS
     )
     assert response.status_code == 422

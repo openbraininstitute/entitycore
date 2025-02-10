@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException
-from sqlalchemy.orm import contains_eager
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import (
@@ -26,11 +25,12 @@ router = APIRouter(
 
 @router.get("/", response_model=list[MorphologyFeatureAnnotationRead])
 def read_morphology_feature_annotations(
-    project_context: AuthProjectContextHeader,
-    db: SessionDep, skip: int = 0, limit: int = 10):
+    project_context: AuthProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
+):
     return (
         constrain_to_accessible_entities(
-            db.query(MorphologyFeatureAnnotation).join(ReconstructionMorphology), project_context.project_id
+            db.query(MorphologyFeatureAnnotation).join(ReconstructionMorphology),
+            project_context.project_id,
         )
         .offset(skip)
         .limit(limit)
@@ -47,7 +47,10 @@ def read_morphology_feature_annotation_id(
 ):
     row = (
         db.query(MorphologyFeatureAnnotation)
-        .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == morphology_feature_annotation_id)
+        .filter(
+            MorphologyFeatureAnnotation.reconstruction_morphology_id
+            == morphology_feature_annotation_id
+        )
         .join(ReconstructionMorphology)
         .first()
     )
@@ -71,18 +74,25 @@ def create_morphology_feature_annotation(
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
     db: SessionDep,
 ):
+    reconstruction_morphology_id = morphology_feature_annotation.reconstruction_morphology_id
+
     if not constrain_entity_query_to_project(
-        db.query(Entity).filter(Entity.id == morphology_feature_annotation.reconstruction_morphology_id), project_context.project_id
+        db.query(Entity).filter(
+            Entity.id == morphology_feature_annotation.reconstruction_morphology_id
+        ),
+        project_context.project_id,
     ).first():
-        msg = "Attempting to `MorphologyFeatureAnnotation` an entity inaccessible to user"
-        L.warning(msg)
+        L.warning(
+            "Block `MorphologyFeatureAnnotation` with entity inaccessible: {}",
+            reconstruction_morphology_id,
+        )
         raise HTTPException(
             status_code=404,
-            detail=f"Cannot access entity {morphology_feature_annotation.reconstruction_morphology_id}"
+            detail=f"Cannot access entity {reconstruction_morphology_id}",
         )
 
     db_morphology_feature_annotation = MorphologyFeatureAnnotation(
-        reconstruction_morphology_id=morphology_feature_annotation.reconstruction_morphology_id
+        reconstruction_morphology_id=reconstruction_morphology_id
     )
 
     for measurement in morphology_feature_annotation.measurements:

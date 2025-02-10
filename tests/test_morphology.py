@@ -98,7 +98,8 @@ def test_query_reconstruction_morphology(
     assert len(data) == 10
 
     response = client.get(
-        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS,
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"order_by": "+creation_date", "page_size": 100},
     )
     assert response.status_code == 200
@@ -106,8 +107,9 @@ def test_query_reconstruction_morphology(
     assert len(data) == 11
 
     response = client.get(
-        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"order_by": "+creation_date", "page_size": 100}
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"order_by": "+creation_date", "page_size": 100},
     )
     assert response.status_code == 200
     data = response.json()["data"]

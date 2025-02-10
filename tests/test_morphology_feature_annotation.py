@@ -77,9 +77,9 @@ def test_create_annotation(client, reconstruction_morphology_id):
         json=js,
     )
 
-    assert response.status_code == 200, (
-        f"Failed to create morphology feature annotation: {response.text}"
-    )
+    assert (
+        response.status_code == 200
+    ), f"Failed to create morphology feature annotation: {response.text}"
     data = response.json()
     morphology_annotation_id = data["id"]
     assert "creation_date" in data
@@ -169,9 +169,14 @@ def test_authorization(client, species_id, strain_id, brain_region_id):
         authorized_public=True,
     )
 
-    response = client.post(ROUTE,
+    response = client.post(
+        ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=annotation_js | {"reconstruction_morphology_id": reconstruction_morphology_id_public,})
+        json=annotation_js
+        | {
+            "reconstruction_morphology_id": reconstruction_morphology_id_public,
+        },
+    )
     assert response.status_code == 200
 
     # try and add annotation to inaccessible reconstruction
@@ -183,15 +188,25 @@ def test_authorization(client, species_id, strain_id, brain_region_id):
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         authorized_public=False,
     )
-    response = client.post(ROUTE,
+    response = client.post(
+        ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=annotation_js | {"reconstruction_morphology_id": reconstruction_morphology_id_inaccessible,})
+        json=annotation_js
+        | {
+            "reconstruction_morphology_id": reconstruction_morphology_id_inaccessible,
+        },
+    )
     assert response.status_code == 404
 
     # try and add annotation to inaccessible reconstruction
-    response = client.post(ROUTE,
+    response = client.post(
+        ROUTE,
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
-        json=annotation_js | {"reconstruction_morphology_id": reconstruction_morphology_id_inaccessible,})
+        json=annotation_js
+        | {
+            "reconstruction_morphology_id": reconstruction_morphology_id_inaccessible,
+        },
+    )
     assert response.status_code == 200
     response = client.get(f"{ROUTE}{response.json()["id"]}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
@@ -204,9 +219,14 @@ def test_authorization(client, species_id, strain_id, brain_region_id):
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         authorized_public=True,
     )
-    response = client.post(ROUTE,
+    response = client.post(
+        ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=annotation_js | {"reconstruction_morphology_id": reconstruction_morphology_id_public_inaccessible,})
+        json=annotation_js
+        | {
+            "reconstruction_morphology_id": reconstruction_morphology_id_public_inaccessible,
+        },
+    )
     assert response.status_code == 404
 
     response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)

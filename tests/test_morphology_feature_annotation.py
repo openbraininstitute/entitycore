@@ -1,44 +1,27 @@
 import pytest
 import sqlalchemy
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, UNRELATED_PROJECT_HEADERS
+from .utils import (
+    BEARER_TOKEN,
+    PROJECT_HEADERS,
+    UNRELATED_PROJECT_HEADERS,
+    create_reconstruction_morphology_id,
+)
 
 ROUTE = "/morphology_feature_annotation/"
 MORPHOLOGY_ROUTE = "/reconstruction_morphology/"
 
 
-def _reconstruction_morphology_id(
-    client, species_id, strain_id, brain_region_id, headers, authorized_public
-):
-    response = client.post(
-        MORPHOLOGY_ROUTE,
-        headers=headers,
-        json={
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": "Test Morphology Description",
-            "name": "Test Morphology Name",
-            "brain_location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": "Test Legacy ID",
-            "authorized_public": authorized_public,
-        },
-    )
-    assert response.status_code == 200
-    return response.json()["id"]
-
-
-@pytest.fixture
-def reconstruction_morphology_id(client, species_id, strain_id, brain_region_id):
-    headers = BEARER_TOKEN | PROJECT_HEADERS
-    authorized_public = False
-    return _reconstruction_morphology_id(
-        client, species_id, strain_id, brain_region_id, headers, authorized_public
-    )
-
-
 @pytest.mark.usefixtures("skip_project_check")
-def test_create_annotation(client, reconstruction_morphology_id):
+def test_create_annotation(client, species_id, strain_id, brain_region_id):
+    reconstruction_morphology_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        authorized_public=False,
+    )
     measurement_of = "Test Measurement Of ID"
     js = {
         "reconstruction_morphology_id": reconstruction_morphology_id,
@@ -160,7 +143,7 @@ def test_authorization(client, species_id, strain_id, brain_region_id):
         ],
     }
 
-    reconstruction_morphology_id_public = _reconstruction_morphology_id(
+    reconstruction_morphology_id_public = create_reconstruction_morphology_id(
         client,
         species_id,
         strain_id,
@@ -180,7 +163,7 @@ def test_authorization(client, species_id, strain_id, brain_region_id):
     assert response.status_code == 200
 
     # try and add annotation to inaccessible reconstruction
-    reconstruction_morphology_id_inaccessible = _reconstruction_morphology_id(
+    reconstruction_morphology_id_inaccessible = create_reconstruction_morphology_id(
         client,
         species_id,
         strain_id,
@@ -208,10 +191,10 @@ def test_authorization(client, species_id, strain_id, brain_region_id):
         },
     )
     assert response.status_code == 200
-    response = client.get(f"{ROUTE}{response.json()["id"]}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}{response.json()['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    reconstruction_morphology_id_public_inaccessible = _reconstruction_morphology_id(
+    reconstruction_morphology_id_public_inaccessible = create_reconstruction_morphology_id(
         client,
         species_id,
         strain_id,

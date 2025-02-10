@@ -36,6 +36,7 @@ def read_contribution(
 
     if row is None:
         raise HTTPException(status_code=404, detail="contribution not found")
+
     if (
         not row.entity.authorized_public
         and row.entity.authorized_project_id != project_context.project_id

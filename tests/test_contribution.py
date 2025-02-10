@@ -1,43 +1,33 @@
 import pytest
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, UNRELATED_PROJECT_HEADERS
+from .utils import (
+    BEARER_TOKEN,
+    PROJECT_HEADERS,
+    UNRELATED_PROJECT_HEADERS,
+    create_reconstruction_morphology_id,
+)
 
 ROUTE = "/contribution/"
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_create_contribution(
-    client, person_id, role_id, species_id, strain_id, brain_region_id, license_id
-):
-    morph_description = "Test Morphology Description"
-    morph_name = "Test Morphology Name"
-
-    response = client.post(
-        "/reconstruction_morphology/",
+def test_create_contribution(client, person_id, role_id, species_id, strain_id, brain_region_id):
+    reconstruction_morphology_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json={
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": morph_description,
-            "name": morph_name,
-            "brain_location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": "Test Legacy ID",
-            "license_id": license_id,
-        },
+        authorized_public=False,
     )
 
-    assert response.status_code == 200
-    data = response.json()
-    entity_id = data["id"]
-    assert entity_id is not None
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": person_id,
             "role_id": role_id,
-            "entity_id": entity_id,
+            "entity_id": reconstruction_morphology_id,
         },
     )
     assert response.status_code == 200
@@ -48,9 +38,7 @@ def test_create_contribution(
     assert data["role"]["id"] == role_id
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
-    assert data["entity"]["id"] == entity_id
-    assert data["entity"]["name"] == morph_name
-    assert data["entity"]["description"] == morph_description
+    assert data["entity"]["id"] == reconstruction_morphology_id
     assert data["creation_date"] is not None
     assert data["update_date"] is not None
 
@@ -64,9 +52,7 @@ def test_create_contribution(
     assert data["role"]["id"] == role_id
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
-    assert data["entity"]["id"] == entity_id
-    assert data["entity"]["name"] == morph_name
-    assert data["entity"]["description"] == morph_description
+    assert data["entity"]["id"] == reconstruction_morphology_id
     assert data["creation_date"] is not None
     assert data["update_date"] is not None
     assert data["id"] == contribution_id
@@ -85,25 +71,16 @@ def test_missing(client):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_authorization(
-    client, brain_region_id, species_id, strain_id, license_id, person_id, role_id
-):
-    response = client.post(
-        "/reconstruction_morphology/",
+def test_authorization(client, brain_region_id, species_id, strain_id, person_id, role_id):
+    inaccessible_entity_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
-        json={
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": "Test Morphology Description",
-            "name": "Test Morphology Name",
-            "brain_location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": "Test Legacy ID",
-            "license_id": license_id,
-        },
+        authorized_public=False,
     )
 
-    inaccessible_entity_id = response.json()["id"]
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -117,22 +94,30 @@ def test_authorization(
     assert response.status_code == 404
 
     response = client.post(
-        "/reconstruction_morphology/",
+        ROUTE,
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         json={
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": "Public Object",
-            "name": "Test Morphology Name",
-            "brain_location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": "Public Object",
-            "license_id": license_id,
-            "authorized_public": True,
+            "agent_id": person_id,
+            "role_id": role_id,
+            "entity_id": inaccessible_entity_id,
         },
     )
-    public_entity_id = response.json()["id"]
+    assert response.status_code == 200
+    inaccessible_annotation_id = response.json()["id"]
+    response = client.get(
+        f"{ROUTE}{inaccessible_annotation_id}",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    assert response.status_code == 404
 
+    public_entity_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
+        headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
+        authorized_public=True,
+    )
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,

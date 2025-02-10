@@ -36,7 +36,6 @@ router = APIRouter(
 def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
     with ensure_result(error_message="ReconstructionMorphology not found"):
         query = db.query(ReconstructionMorphology)
-
         if expand:
             if "morphology_feature_annotation" in expand:
                 query = query.filter(ReconstructionMorphology.id == rm_id)

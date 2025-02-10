@@ -1,11 +1,17 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from sqlalchemy.orm import contains_eager
 
+from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import (
+    Entity,
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
     MorphologyMeasurementSerieElement,
+    ReconstructionMorphology,
 )
 from app.dependencies.db import SessionDep
+from app.logger import L
+from app.routers.auth import AuthProjectContextHeader
 from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
     MorphologyFeatureAnnotationRead,
@@ -18,11 +24,63 @@ router = APIRouter(
 )
 
 
+@router.get("/", response_model=list[MorphologyFeatureAnnotationRead])
+def read_morphology_feature_annotations(
+    project_context: AuthProjectContextHeader,
+    db: SessionDep, skip: int = 0, limit: int = 10):
+    return (
+        constrain_to_accessible_entities(
+            db.query(MorphologyFeatureAnnotation).join(Entity), project_context.project_id
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+@router.get(
+    "/{morphology_feature_annotation_id}",
+    response_model=MorphologyFeatureAnnotationRead,
+)
+def read_morphology_feature_annotation_id(
+    morphology_feature_annotation_id: int, project_context: AuthProjectContextHeader, db: SessionDep
+):
+    row = (
+        db.query(MorphologyFeatureAnnotation)
+        .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == morphology_feature_annotation_id)
+        .join(ReconstructionMorphology)
+        .first()
+    )
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="Morphology annotation not found")
+
+    if (
+        not row.reconstruction_morphology.authorized_public
+        and row.reconstruction_morphology.authorized_project_id != project_context.project_id
+    ):
+        L.warning("Attempting to get an annotation for an entity the user does not have access to")
+        raise HTTPException(status_code=404, detail="Morphology annotation not found")
+
+    return MorphologyFeatureAnnotationRead.model_validate(row)
+
+
 @router.post("/", response_model=MorphologyFeatureAnnotationRead)
 def create_morphology_feature_annotation(
+    project_context: AuthProjectContextHeader,
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
     db: SessionDep,
 ):
+    if not constrain_entity_query_to_project(
+        db.query(Entity).filter(Entity.id == morphology_feature_annotation.reconstruction_morphology_id), project_context.project_id
+    ).first():
+        msg = "Attempting to `MorphologyFeatureAnnotation` an entity inaccessible to user"
+        L.warning(msg)
+        raise HTTPException(
+            status_code=404,
+            detail=f"Cannot access entity {morphology_feature_annotation.reconstruction_morphology_id}"
+        )
+
     db_morphology_feature_annotation = MorphologyFeatureAnnotation(
         reconstruction_morphology_id=morphology_feature_annotation.reconstruction_morphology_id
     )
@@ -41,8 +99,3 @@ def create_morphology_feature_annotation(
     db.commit()
     db.refresh(db_morphology_feature_annotation)
     return db_morphology_feature_annotation
-
-
-@router.get("/", response_model=list[MorphologyFeatureAnnotationCreate])
-def read_morphology_feature_annotations(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(MorphologyFeatureAnnotation).offset(skip).limit(limit).all()

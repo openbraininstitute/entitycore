@@ -3,10 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Request
 from fastapi_filter import FilterDepends
 from sqlalchemy import func
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import Session, aliased
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
+    Base,
     BrainLocation,
     ReconstructionMorphology,
     Species,
@@ -85,6 +86,42 @@ def create_reconstruction_morphology(
     return db_reconstruction_morphology
 
 
+def _get_facets(
+    db: Session,
+    name_to_table: dict[str, type[Base]],
+    request: Request,
+    search: str | None,
+):
+    facets: Facets = {}
+    for ty, table in name_to_table.items():
+        types = aliased(table)
+        # TODO: this should be migrated to sqlalchemy v2.0 style:
+        # https://github.com/openbraininstitute/entitycore/pull/11#discussion_r1935703476
+        facet_q = (
+            db.query(types.name, func.count().label("total"))  # type: ignore[attr-defined]
+            .join(
+                ReconstructionMorphology,
+                getattr(ReconstructionMorphology, ty + "_id") == types.id,  # type: ignore[attr-defined]
+            )
+            .group_by(types.name)  # type: ignore[attr-defined]
+        )
+        if search:
+            facet_q = facet_q.filter(
+                ReconstructionMorphology.morphology_description_vector.match(search)
+            )
+
+        for other_ty, other_table in name_to_table.items():
+            if value := request.query_params.get(other_ty, None):
+                other_types = aliased(other_table)
+                facet_q = facet_q.join(
+                    other_types,
+                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
+                ).where(other_types.name == value)  # type: ignore[attr-defined]
+        facets[ty] = {r.name: r.total for r in facet_q.all()}
+
+    return facets
+
+
 @router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
 def morphology_query(
     request: Request,
@@ -100,6 +137,8 @@ def morphology_query(
         "strain": Strain,
     }
 
+    facets = _get_facets(db, name_to_table, request, search)
+
     if search is None and not any(ty in request.query_params for ty in name_to_table):
         query = db.query(ReconstructionMorphology)
         query = constrain_to_accessible_entities(query, project_context.project_id)
@@ -107,32 +146,9 @@ def morphology_query(
         response = ListResponse[ReconstructionMorphologyRead](
             data=morphology_filter.sort(query).offset(page * page_size).limit(page_size).all(),
             pagination=Pagination(page=page, page_size=page_size, total_items=query.count()),
+            facets=facets,
         )
     else:
-        facets: Facets = {}
-        for ty, table in name_to_table.items():
-            types = aliased(table)
-            # TODO: this should be migrated to sqlalchemy v2.0 style:
-            # https://github.com/openbraininstitute/entitycore/pull/11#discussion_r1935703476
-            facet_q = (
-                db.query(types.name, func.count().label("total"))  # type: ignore[attr-defined]
-                .join(
-                    ReconstructionMorphology,
-                    getattr(ReconstructionMorphology, ty + "_id") == types.id,  # type: ignore[attr-defined]
-                )
-                .filter(ReconstructionMorphology.morphology_description_vector.match(search))
-                .group_by(types.name)  # type: ignore[attr-defined]
-            )
-
-            for other_ty, other_table in name_to_table.items():
-                if value := request.query_params.get(other_ty, None):
-                    other_types = aliased(other_table)
-                    facet_q = facet_q.join(
-                        other_types,
-                        getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,  # type: ignore[attr-defined]
-                    ).where(other_types.name == value)  # type: ignore[attr-defined]
-            facets[ty] = {r.name: r.total for r in facet_q.all()}
-
         query = db.query(ReconstructionMorphology)
         query = constrain_to_accessible_entities(query, project_context.project_id)
         rms = (
@@ -147,4 +163,5 @@ def morphology_query(
             pagination=Pagination(page=page, page_size=page_size, total_items=query.count()),
             facets=facets,
         )
+
     return response

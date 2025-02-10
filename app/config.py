@@ -17,6 +17,20 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: str | None = None
     ROOT_PATH: str = ""
+    CORS_ORIGINS: list[str] = ["*"]
+
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = (
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+        "<level>{level: <8}</level> | "
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>"
+    )
+    LOG_SERIALIZE: bool = True
+    LOG_BACKTRACE: bool = False
+    LOG_DIAGNOSE: bool = False
+    LOG_ENQUEUE: bool = False
+    LOG_CATCH: bool = True
+    LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO"}
 
     KEYCLOAK_URL: str = "https://openbluebrain.com/auth/realms/SBO/"
 

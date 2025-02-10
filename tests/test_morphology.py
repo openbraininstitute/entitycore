@@ -89,16 +89,25 @@ def test_query_reconstruction_morphology(
                 response.status_code == 200
             ), f"Failed to create reconstruction morphology: {response.text}"
 
-    count = 10
+    count = 11
     create_morphologies(count)
 
     response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()["data"]
-    assert len(data) == count
+    assert len(data) == 10
 
     response = client.get(
-        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "+creation_date"}
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"order_by": "+creation_date", "page_size": 100},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 11
+
+    response = client.get(
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"order_by": "+creation_date", "page_size": 100}
     )
     assert response.status_code == 200
     data = response.json()["data"]
@@ -125,6 +134,22 @@ def test_query_reconstruction_morphology(
     data = response.json()["data"]
     assert len(data) == 3
     assert [row["id"] for row in data] == [1, 2, 3]
+
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
+
+    response = client.get(ROUTE + "?search=Test", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
 
 
 @pytest.mark.usefixtures("skip_project_check")

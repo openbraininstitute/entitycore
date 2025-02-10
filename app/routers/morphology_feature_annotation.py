@@ -30,7 +30,7 @@ def read_morphology_feature_annotations(
     db: SessionDep, skip: int = 0, limit: int = 10):
     return (
         constrain_to_accessible_entities(
-            db.query(MorphologyFeatureAnnotation).join(Entity), project_context.project_id
+            db.query(MorphologyFeatureAnnotation).join(ReconstructionMorphology), project_context.project_id
         )
         .offset(skip)
         .limit(limit)

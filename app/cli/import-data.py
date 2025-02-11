@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import glob
 import json
 import os
@@ -73,30 +74,21 @@ def get_or_create_annotation_body(annotation_body, db):
 
 
 def import_licenses(data, db):
-    data.append(
-        {
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30b",
-            "label": "undefined",
-            "description": "undefined",
-        }
-    )
-    data.append(
-        {
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
-            "label": "undefined",
-            "description": "undefined",
-        }
-    )
     for license in data:
         db_license = db.query(License).filter(License.name == license["@id"]).first()
         if db_license:
             continue
+
         try:
+            createdAt, updatedAt = utils.get_created_and_updated(license)
+
             db_license = License(
                 name=license["@id"],
                 label=license["label"],
                 description=license["description"],
                 legacy_id=[license["@id"]],
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
 
             db.add(db_license)
@@ -113,17 +105,22 @@ def _import_annotation_body(data, db_type_, db):
             class_elem = curate.curate_etype(class_elem)
 
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
+
         if db_elem:
             assert db_elem.definition == class_elem.get("definition", "")
             assert db_elem.alt_label == class_elem.get("prefLabel", "")
 
             continue
 
+        createdAt, updatedAt = utils.get_created_and_updated(class_elem)
+
         db_elem = db_type_(
             pref_label=class_elem["label"],
             definition=class_elem.get("definition", ""),
             alt_label=class_elem.get("prefLabel", ""),
             legacy_id=[class_elem["@id"]],
+            creation_date=createdAt,
+            update_date=updatedAt,
         )
 
         db.add(db_elem)
@@ -138,6 +135,8 @@ def import_mtype_annotation_body(data, db):
             "definition": "Inhibitory neuron",
             "prefLabel": "Inhibitory neuron",
             "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         }
     )
     data.append(
@@ -146,6 +145,8 @@ def import_mtype_annotation_body(data, db):
             "definition": "Excitatory neuron",
             "prefLabel": "Excitatory neuron",
             "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         }
     )
     _import_annotation_body(data, MTypeAnnotationBody, db)
@@ -156,55 +157,6 @@ def import_etype_annotation_body(data, db):
 
 
 def import_agents(data_list, db):
-    data_list.append(
-        {
-            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ikilic",
-            "@type": "Person",
-            "givenName": "Ilkan",
-            "familyName": "Kilic",
-        }
-    )
-    # TODO: find out who that is.
-    data_list.append(
-        {
-            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/harikris",
-            "@type": "Person",
-            "givenName": "h",
-            "familyName": "arikris",
-        }
-    )
-    data_list.append(
-        {
-            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ricardi",
-            "@type": "Person",
-            "givenName": "Nicolo",
-            "familyName": "Ricardi",
-        }
-    )
-    data_list.append(
-        {
-            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/akkaufma",
-            "@type": "Person",
-            "givenName": "Anna-Kristin",
-            "familyName": "Kaufmann",
-        }
-    )
-    data_list.append(
-        {
-            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gbarrios",
-            "@type": "Person",
-            "givenName": "Gil",
-            "familyName": "Barrios",
-        }
-    )
-    data_list.append(
-        {
-            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/okeeva",
-            "@type": "Person",
-            "givenName": "Ayima",
-            "familyName": "Okeeva",
-        }
-    )
     for data in data_list:
         if "Person" in data["@type"]:
             legacy_id = data["@id"]
@@ -230,11 +182,14 @@ def import_agents(data_list, db):
 
                         db.commit()
                     else:
+                        createdAt, updatedAt = utils.get_created_and_updated(data)
                         db_agent = Person(
                             legacy_id=[legacy_id],
                             givenName=data["givenName"],
                             familyName=data["familyName"],
                             pref_label=label,
+                            creation_date=createdAt,
+                            update_date=updatedAt,
                         )
                         db.add(db_agent)
                         db.commit()
@@ -257,10 +212,13 @@ def import_agents(data_list, db):
 
                         db.commit()
                     else:
+                        createdAt, updatedAt = utils.get_created_and_updated(data)
                         db_agent = Organization(
                             legacy_id=[legacy_id],
                             pref_label=data.get("name"),
                             alternative_name=data.get("alternativeName", ""),
+                            creation_date=createdAt,
+                            update_date=updatedAt,
                         )
                         db.add(db_agent)
                         db.commit()
@@ -320,6 +278,8 @@ def import_analysis_software_source_code(data, db, file_path):
         rm = utils._find_by_legacy_id(legacy_id, AnalysisSoftwareSourceCode, db)
         if not rm:
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
             db_code = AnalysisSoftwareSourceCode(
                 legacy_id=[legacy_id],
                 name=data.get("name", ""),
@@ -335,6 +295,8 @@ def import_analysis_software_source_code(data, db, file_path):
                 programmingLanguage=data.get("programmingLanguage", ""),
                 runtimePlatform=data.get("runtimePlatform", ""),
                 version=data.get("version", ""),
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
             db.add(db_code)
             db.commit()
@@ -356,6 +318,7 @@ def import_me_models(data, db, file_path):
         if not rm:
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
             # TO DO: add species and strain mixin ?
             # species_id, strain_id = utils.get_species_mixin(data, db)
             rm = MEModel(
@@ -370,6 +333,8 @@ def import_me_models(data, db, file_path):
                 updatedBy_id=updated_by_id,
                 # species_id=species_id,
                 # strain_id=strain_id
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
             db.add(rm)
             db.commit()
@@ -395,6 +360,8 @@ def import_e_models(data, db, file_path):
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
             db_item = EModel(
                 legacy_id=[legacy_id],
                 name=data.get("name", None),
@@ -410,12 +377,16 @@ def import_e_models(data, db, file_path):
                 strain_id=strain_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
 
             db.add(db_item)
             db.commit()
             utils.import_contribution(data, db_item.id, db)
+
             annotations = data.get("annotation", [])
+
             if isinstance(annotations, dict):
                 annotations = [annotations]
             for annotation in annotations:
@@ -434,11 +405,17 @@ def import_brain_region_meshes(data, db, file_path):
         rm = utils._find_by_legacy_id(legacy_id, Mesh, db)
         if not rm:
             _, brain_region_id = utils.get_brain_location_mixin(data, db)
+
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
             content_url = data.get("distribution").get("contentUrl")
+
             db_item = Mesh(
                 legacy_id=[legacy_id],
                 brain_region_id=brain_region_id,
                 content_url=content_url,
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
             db.add(db_item)
             db.commit()
@@ -453,25 +430,31 @@ def import_traces(data_list, db, file_path):
         rm = utils._find_by_legacy_id(legacy_id, SingleCellExperimentalTrace, db)
         if not rm:
             data = curate.curate_trace(data)
-            description = data.get("description", None)
-            name = data.get("name", None)
+
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
             db_item = SingleCellExperimentalTrace(
                 legacy_id=[data.get("@id", None)],
-                name=name,
-                description=description,
+                name=data.get("name", None),
+                description=data.get("description", None),
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
                 license_id=license_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
+
             db.add(db_item)
             db.commit()
             db.refresh(db_item)
+
             utils.import_contribution(data, db_item.id, db)
+
             annotations = data.get("annotation", [])
             if isinstance(annotations, dict):
                 annotations = [annotations]
@@ -487,24 +470,28 @@ def import_morphologies(data_list, db, file_path):
         legacy_id = data["@id"]
         rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
         if not rm:
-            description = data.get("description", None)
-            name = data.get("name", None)
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
             db_reconstruction_morphology = ReconstructionMorphology(
                 legacy_id=[data.get("@id", None)],
-                name=name,
-                description=description,
+                name=data.get("name", None),
+                description=data.get("description", None),
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
                 license_id=license_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
+
             db.add(db_reconstruction_morphology)
             db.commit()
             db.refresh(db_reconstruction_morphology)
+
             utils.import_contribution(data, db_reconstruction_morphology.id, db)
             annotations = data.get("annotation", [])
             if isinstance(annotations, dict):
@@ -520,6 +507,7 @@ def import_morphology_feature_annotations(data_list, db, file_path):
     for data in data_list:
         if "NeuronMorphologyFeatureAnnotation" not in data["@type"]:
             continue
+
         legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
         if not legacy_id:
             print("Skipping morphology feature annotation due to missing legacy id.")
@@ -551,10 +539,14 @@ def import_morphology_feature_annotations(data_list, db, file_path):
                 )
             )
 
+        createdAt, updatedAt = utils.get_created_and_updated(data)
+
         annotations[rm.id].append(
             MorphologyFeatureAnnotation(
                 reconstruction_morphology_id=rm.id,
                 measurements=all_measurements,
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
         )
 
@@ -640,7 +632,10 @@ def _import_experimental_densities(data_list, db, schema_type, model_type, curat
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
             brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            _createdBy_id, _updatedBy_id = utils.get_agent_mixin(data, db)
+            createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
+
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
             db_element = model_type(
                 legacy_id=[legacy_id],
                 name=data.get("name", None),
@@ -650,8 +645,10 @@ def _import_experimental_densities(data_list, db, schema_type, model_type, curat
                 license_id=license_id,
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
-                createdBy_id=_createdBy_id,
-                updatedBy_id=_updatedBy_id,
+                createdBy_id=createdBy_id,
+                updatedBy_id=updatedBy_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
             )
             db.add(db_element)
             db.commit()
@@ -662,12 +659,17 @@ def _do_import(db, input_dir):
     all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
 
     print("importing agents")
+    import_agents(curate.default_agents(), db)
     for file_path in all_files:
         with open(file_path) as f:
             data = json.load(f)
-            import_agents(data, db)
+            possible_data = [
+                d for d in data if {"Person", "Organization"} & set(d.get("@type", {}))
+            ]
+            import_agents(possible_data, db)
 
     print("import licenses")
+    import_licenses(curate.default_licenses(), db)
     with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
         data = json.load(f)
         import_licenses(data, db)
@@ -675,7 +677,7 @@ def _do_import(db, input_dir):
     print("import mtype annotations")
     with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
         data = json.load(f)
-        possible_data = [data for data in data if "nsg:MType" in data.get("subClassOf", {})]
+        possible_data = [d for d in data if "nsg:MType" in d.get("subClassOf", {})]
         import_mtype_annotation_body(possible_data, db)
 
     with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:

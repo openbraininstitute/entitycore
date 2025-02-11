@@ -1,3 +1,5 @@
+import datetime
+
 from sqlalchemy import func
 
 from app.cli import curate
@@ -186,3 +188,10 @@ def import_contribution(data, db_item_id, db):
     contribution = curate.curate_contribution(contribution)
     if contribution:
         get_or_create_contribution(contribution, db_item_id, db)
+
+
+def get_created_and_updated(data):
+    return (
+        datetime.datetime.fromisoformat(data["_createdAt"]),
+        datetime.datetime.fromisoformat(data["_updatedAt"]),
+    )

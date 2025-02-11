@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Request
 from fastapi_filter import FilterDepends
 from sqlalchemy import func
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.db.model import (
     Base,
@@ -75,20 +75,22 @@ def _get_facets(
     name_to_table: dict[str, type[Base]],
     request: Request,
     search: str | None,
-):
-    facets: Facets = {}
+) -> Facets:
+    facets = []
     for ty, table in name_to_table.items():
         types = aliased(table)
         # TODO: this should be migrated to sqlalchemy v2.0 style:
         # https://github.com/openbraininstitute/entitycore/pull/11#discussion_r1935703476
         facet_q = (
-            db.query(types.name, func.count().label("total"))  # type: ignore[attr-defined]
+            db
+            .query(types.name, func.count().label("total"))  # type: ignore[attr-defined]
             .join(
                 ReconstructionMorphology,
                 getattr(ReconstructionMorphology, ty + "_id") == types.id,  # type: ignore[attr-defined]
             )
             .group_by(types.name)  # type: ignore[attr-defined]
         )
+
         if search:
             facet_q = facet_q.filter(
                 ReconstructionMorphology.morphology_description_vector.match(search)
@@ -121,6 +123,15 @@ def morphology_query(
     }
 
     facets = _get_facets(db, name_to_table, request, search)
+
+    query = (
+        db.query(ReconstructionMorphology)
+        .options(joinedload(ReconstructionMorphology.license))
+        .options(joinedload(ReconstructionMorphology.species))
+        .options(joinedload(ReconstructionMorphology.brain_region))
+        .options(joinedload(ReconstructionMorphology.brain_location))
+        .options(joinedload(ReconstructionMorphology.contributors))
+    )
 
     if search is None and not any(ty in request.query_params for ty in name_to_table):
         query = db.query(ReconstructionMorphology)

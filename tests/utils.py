@@ -30,9 +30,10 @@ def skip_project_check():
 
     app.dependency_overrides[check_project_id] = ok
 
-    yield
-
-    app.dependency_overrides = orig
+    try:
+        yield
+    finally:
+        app.dependency_overrides = orig
 
 
 def create_reconstruction_morphology_id(

@@ -9,7 +9,7 @@ class AuthorizationMixin(BaseModel):
 
 
 class AuthorizationOptionalPublicMixin(BaseModel):
-    authorized_public: bool | None = False
+    authorized_public: bool = False
 
 
 class ProjectContext(BaseModel):

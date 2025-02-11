@@ -5,8 +5,8 @@ from app.db.model import (
     BrainLocation,
     ExperimentalBoutonDensity,
 )
+from app.dependencies import AuthProjectContextHeader
 from app.dependencies.db import SessionDep
-from app.routers.auth import AuthProjectContextHeader
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,

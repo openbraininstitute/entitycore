@@ -13,9 +13,9 @@ from app.db.model import (
     Species,
     Strain,
 )
+from app.dependencies import AuthProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
-from app.routers.auth import AuthProjectContextHeader
 from app.routers.types import Facets, ListResponse, Pagination
 from app.schemas.morphology import (
     ReconstructionMorphologyCreate,

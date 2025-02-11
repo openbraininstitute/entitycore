@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, HTTPException
+from fastapi import Depends, Header, HTTPException
 from fastapi.security import (
     HTTPAuthorizationCredentials,
     HTTPBearer,
@@ -9,10 +9,10 @@ from fastapi.security import (
 
 from app.config import settings
 from app.logger import L
-from app.routers.types import ProjectContextHeader
 from app.schemas.base import ProjectContext
 
 AuthHeader: HTTPBearer = HTTPBearer(auto_error=True)
+ProjectContextHeader = Annotated[ProjectContext, Header()]
 
 KEYCLOAK_GROUPS_URL = settings.KEYCLOAK_URL + "protocol/openid-connect/userinfo"
 
@@ -21,7 +21,7 @@ def _split_out_vlab_and_projects(groups: list[str]) -> list[ProjectContext]:
     # "/proj/03ecd74b-a19e-4b3d-b737-5286a5fbea2d/6f945641-bc92-4e30-aa32-63be8eb9ca49/admin",
     result = []
     for group in groups:
-        if not group.startswith("/proj"):
+        if not group.startswith("/proj/"):
             continue
         parts = group[6:].split("/")
         if len(parts) >= 3:  # noqa: PLR2004
@@ -60,21 +60,21 @@ def check_project_id(
         # }
 
         if response.status_code != 200:  # noqa: PLR2004
-            L.warning("Keycloak returned an error: `%s`", response.text)
+            L.warning("Keycloak returned an error: `{}`", response.text)
             raise HTTPException(status_code=404, detail="Project not found")
 
         data = response.json()
         if "groups" not in data:
-            L.warning("Keycloak returned no `groups`: `%s`", response.text)
+            L.warning("Keycloak returned no `groups`: `{}`", response.text)
             raise HTTPException(status_code=404, detail="Project not found")
 
         projects = _split_out_vlab_and_projects(data["groups"])
 
-        if any(project.project_id == project_context.project_id for project in projects):
+        if any(project == project_context for project in projects):
             return True
 
         L.warning(
-            "User attempted to use project_id %s, but is only a member of %s",
+            "User attempted to use project_id {}, but is only a member of {}",
             project_context.project_id,
             [project.project_id for project in projects],
         )
@@ -94,6 +94,3 @@ def verify_project_id(
         return project_context
 
     raise HTTPException(status_code=404, detail="Project not found")
-
-
-AuthProjectContextHeader = Annotated[ProjectContext, Depends(verify_project_id)]

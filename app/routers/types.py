@@ -1,11 +1,4 @@
-from typing import Annotated
-
-from fastapi import Header
 from pydantic import BaseModel
-
-from app.schemas.base import ProjectContext
-
-ProjectContextHeader = Annotated[ProjectContext, Header()]
 
 
 class Pagination(BaseModel):

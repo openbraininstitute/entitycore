@@ -8,9 +8,9 @@ from app.db.model import (
     MorphologyMeasurementSerieElement,
     ReconstructionMorphology,
 )
+from app.dependencies import AuthProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.logger import L
-from app.routers.auth import AuthProjectContextHeader
 from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
     MorphologyFeatureAnnotationRead,

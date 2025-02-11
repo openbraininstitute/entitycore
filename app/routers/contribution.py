@@ -3,9 +3,9 @@ from sqlalchemy.orm import contains_eager
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
+from app.dependencies import AuthProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.logger import L
-from app.routers.auth import AuthProjectContextHeader
 from app.schemas.contribution import ContributionCreate, ContributionRead
 
 router = APIRouter(

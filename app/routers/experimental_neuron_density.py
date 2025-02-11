@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import BrainLocation, ExperimentalNeuronDensity
+from app.dependencies import AuthProjectContextHeader
 from app.dependencies.db import SessionDep
-from app.routers.auth import AuthProjectContextHeader
 from app.schemas.density import (
     ExperimentalNeuronDensityCreate,
     ExperimentalNeuronDensityRead,

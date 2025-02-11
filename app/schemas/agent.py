@@ -4,14 +4,14 @@ from app.schemas.base import (
     CreationMixin,
 )
 
-# LNMC contributions
-# Reconstructor full name,
-# Experimenter full name,
-# LNMC/BBP,
-# EPFL, Switzerland
+
+class AgentBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    type: str
 
 
-class PersonBase(BaseModel):
+class PersonBase(AgentBase):
     model_config = ConfigDict(from_attributes=True)
 
     givenName: str
@@ -27,7 +27,7 @@ class PersonRead(PersonBase, CreationMixin):
     pass
 
 
-class OrganizationBase(BaseModel):
+class OrganizationBase(AgentBase):
     model_config = ConfigDict(from_attributes=True)
 
     pref_label: str

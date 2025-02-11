@@ -1,8 +1,8 @@
 ROUTE = "/contribution/"
 
 
-def test_create_contribution(
-    client, person_id, role_id, species_id, strain_id, brain_region_id, license_id
+def test_create_contribution(  # noqa: PLR0915
+    client, person_id, organization_id, role_id, species_id, strain_id, brain_region_id, license_id
 ):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
@@ -37,6 +37,8 @@ def test_create_contribution(
     assert data["agent"]["id"] == person_id
     assert data["agent"]["givenName"] == "jd"
     assert data["agent"]["familyName"] == "courcol"
+    assert data["agent"]["pref_label"] == "jd courcol"
+    assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == role_id
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
@@ -49,26 +51,42 @@ def test_create_contribution(
     assert data["agent"]["id"] == person_id
     assert data["agent"]["givenName"] == "jd"
     assert data["agent"]["familyName"] == "courcol"
+    assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == role_id
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == entity_id
     assert data["id"] == contribution_id
 
+    response = client.post(
+        ROUTE,
+        json={
+            "agent_id": organization_id,
+            "role_id": role_id,
+            "entity_id": entity_id,
+        },
+    )
+    response.raise_for_status()
+    data = response.json()
+    assert data["agent"]["id"] == organization_id
+    assert data["agent"]["pref_label"] == "ACME"
+    assert data["agent"]["alternative_name"] == "A Company Making Everything"
+    assert data["agent"]["type"] == "organization"
+
     response = client.get("/contribution/")
-    assert len(response.json()) == 1
+    assert len(response.json()) == 2
 
     response = client.get(f"/reconstruction_morphology/{entity_id}")
     response.raise_for_status()
     data = response.json()
     assert "contributors" in data
-    assert len(data["contributors"]) == 1
+    assert len(data["contributors"]) == 2
 
     response = client.get("/reconstruction_morphology/")
     response.raise_for_status()
     data = response.json()["data"]
     assert len(data) == 1
-    assert len(data[0]["contributors"]) == 1
+    assert len(data[0]["contributors"]) == 2
 
 
 def test_missing_contribution(client):

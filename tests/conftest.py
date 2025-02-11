@@ -6,7 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.application import app
-from app.db.model import Base, Person, Role
+from app.db.model import Base, Organization, Person, Role
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
 
@@ -46,6 +46,18 @@ def person_id(db):
         givenName="jd",
         familyName="courcol",
         pref_label="jd courcol",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row.id
+
+
+@pytest.fixture
+def organization_id(db):
+    row = Organization(
+        pref_label="ACME",
+        alternative_name="A Company Making Everything",
     )
     db.add(row)
     db.commit()

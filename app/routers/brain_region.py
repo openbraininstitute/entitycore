@@ -19,7 +19,6 @@ HIERARCHY = (Path(__file__).parent.parent / "static/brain-regions-tree.json").op
 router = APIRouter(
     prefix="/brain-region",
     tags=["brain-region"],
-    responses={404: {"description": "Not found"}},
 )
 
 

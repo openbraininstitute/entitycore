@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from fastapi_filter import FilterDepends
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, joinedload
@@ -13,6 +13,7 @@ from app.db.model import (
     Strain,
 )
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
 from app.routers.types import Facet, Facets, ListResponse, Pagination
 from app.schemas.morphology import (
@@ -24,7 +25,6 @@ from app.schemas.morphology import (
 router = APIRouter(
     prefix="/reconstruction_morphology",
     tags=["reconstruction_morphology"],
-    responses={404: {"description": "Not found"}},
 )
 
 
@@ -33,10 +33,8 @@ router = APIRouter(
     response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
 )
 def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
-    rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).first()
-
-    if rm is None:
-        raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
+    with ensure_result(error_message="ReconstructionMorphology not found"):
+        rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).one()
 
     if expand and "morphology_feature_annotation" in expand:
         return ReconstructionMorphologyExpand.model_validate(rm)

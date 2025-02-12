@@ -12,7 +12,6 @@ from app.schemas.morphology import (
 router = APIRouter(
     prefix="/species",
     tags=["species"],
-    responses={404: {"description": "Not found"}},
 )
 
 

@@ -12,7 +12,6 @@ from app.schemas.density import (
 router = APIRouter(
     prefix="/experimental_neuron_density",
     tags=["experimental_neuron_density"],
-    responses={404: {"description": "Not found"}},
 )
 
 

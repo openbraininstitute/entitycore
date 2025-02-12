@@ -15,7 +15,6 @@ from app.schemas.density import (
 router = APIRouter(
     prefix="/experimental_bouton_density",
     tags=["experimental_bouton_density"],
-    responses={404: {"description": "Not found"}},
 )
 
 

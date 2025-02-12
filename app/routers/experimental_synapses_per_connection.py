@@ -12,7 +12,6 @@ from app.schemas.density import (
 router = APIRouter(
     prefix="/experimental_synapses_per_connection",
     tags=["experimental_synapses_per_connection"],
-    responses={404: {"description": "Not found"}},
 )
 
 

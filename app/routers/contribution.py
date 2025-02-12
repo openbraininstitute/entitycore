@@ -11,7 +11,6 @@ from app.schemas.contribution import ContributionCreate, ContributionRead
 router = APIRouter(
     prefix="/contribution",
     tags=["contribution"],
-    responses={404: {"description": "Not found"}},
 )
 
 

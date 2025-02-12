@@ -36,6 +36,7 @@ def db(database_session_manager) -> Iterator[Session]:
 @pytest.fixture(autouse=True)
 def _db_cleanup(db):
     yield
+    db.rollback()
     query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
     db.execute(query)
     db.commit()

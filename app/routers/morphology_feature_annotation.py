@@ -19,7 +19,6 @@ from app.schemas.morphology import (
 router = APIRouter(
     prefix="/morphology_feature_annotation",
     tags=["brain_region"],
-    responses={404: {"description": "Not found"}},
 )
 
 

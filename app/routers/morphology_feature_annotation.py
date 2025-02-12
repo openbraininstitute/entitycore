@@ -8,7 +8,7 @@ from app.db.model import (
     MorphologyMeasurementSerieElement,
     ReconstructionMorphology,
 )
-from app.dependencies import AuthProjectContextHeader
+from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.logger import L
 from app.schemas.morphology import (
@@ -25,7 +25,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[MorphologyFeatureAnnotationRead])
 def read_morphology_feature_annotations(
-    project_context: AuthProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
+    project_context: VerifiedProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
 ):
     return (
         constrain_to_accessible_entities(
@@ -43,7 +43,9 @@ def read_morphology_feature_annotations(
     response_model=MorphologyFeatureAnnotationRead,
 )
 def read_morphology_feature_annotation_id(
-    morphology_feature_annotation_id: int, project_context: AuthProjectContextHeader, db: SessionDep
+    morphology_feature_annotation_id: int,
+    project_context: VerifiedProjectContextHeader,
+    db: SessionDep,
 ):
     row = (
         db.query(MorphologyFeatureAnnotation)
@@ -70,7 +72,7 @@ def read_morphology_feature_annotation_id(
 
 @router.post("/", response_model=MorphologyFeatureAnnotationRead)
 def create_morphology_feature_annotation(
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
     db: SessionDep,
 ):

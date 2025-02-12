@@ -5,7 +5,7 @@ from app.db.model import (
     BrainLocation,
     ExperimentalBoutonDensity,
 )
-from app.dependencies import AuthProjectContextHeader
+from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
@@ -21,7 +21,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[ExperimentalBoutonDensityRead])
 def read_experimental_bouton_densities(
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     db: SessionDep,
     skip: int = 0,
     limit: int = 10,
@@ -41,7 +41,7 @@ def read_experimental_bouton_densities(
     response_model=ExperimentalBoutonDensityRead,
 )
 def read_experimental_bouton_density(
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     experimental_bouton_density_id: int,
     db: SessionDep,
 ):
@@ -61,7 +61,7 @@ def read_experimental_bouton_density(
 
 @router.post("/", response_model=ExperimentalBoutonDensityRead)
 def create_experimental_bouton_density(
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     density: ExperimentalBoutonDensityCreate,
     db: SessionDep,
 ):

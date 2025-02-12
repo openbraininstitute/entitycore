@@ -3,7 +3,7 @@ from sqlalchemy.orm import contains_eager
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
-from app.dependencies import AuthProjectContextHeader
+from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.logger import L
 from app.schemas.contribution import ContributionCreate, ContributionRead
@@ -20,7 +20,7 @@ router = APIRouter(
     response_model=ContributionRead,
 )
 def read_contribution(
-    contribution_id: int, project_context: AuthProjectContextHeader, db: SessionDep
+    contribution_id: int, project_context: VerifiedProjectContextHeader, db: SessionDep
 ):
     row = (
         db.query(Contribution)
@@ -49,7 +49,7 @@ def read_contribution(
 
 @router.post("/", response_model=ContributionRead)
 def create_contribution(
-    contribution: ContributionCreate, project_context: AuthProjectContextHeader, db: SessionDep
+    contribution: ContributionCreate, project_context: VerifiedProjectContextHeader, db: SessionDep
 ):
     if not constrain_entity_query_to_project(
         db.query(Entity).filter(Entity.id == contribution.entity_id), project_context.project_id
@@ -74,7 +74,7 @@ def create_contribution(
 
 @router.get("/", response_model=list[ContributionRead])
 def read_contributions(
-    project_context: AuthProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
+    project_context: VerifiedProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
 ):
     return (
         constrain_to_accessible_entities(

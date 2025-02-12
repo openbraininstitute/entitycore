@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import BrainLocation, ExperimentalSynapsesPerConnection
-from app.dependencies import AuthProjectContextHeader
+from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
@@ -18,7 +18,7 @@ router = APIRouter(
 
 @router.get("/", response_model=list[ExperimentalSynapsesPerConnectionRead])
 def read_experimental_neuron_densities(
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     db: SessionDep,
     skip: int = 0,
     limit: int = 10,
@@ -38,7 +38,7 @@ def read_experimental_neuron_densities(
     response_model=ExperimentalSynapsesPerConnectionRead,
 )
 def read_experimental_neuron_density(
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     experimental_synapses_per_connection_id: int,
     db: SessionDep,
 ):
@@ -62,7 +62,7 @@ def read_experimental_neuron_density(
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)
 def create_experimental_neuron_density(
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     density: ExperimentalSynapsesPerConnectionCreate,
     db: SessionDep,
 ):

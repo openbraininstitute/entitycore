@@ -1,7 +1,12 @@
 from contextlib import contextmanager
+from typing import Annotated
+
+from fastapi import Depends, Header
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.application import app
-from app.routers.auth import check_project_id
+from app.dependencies.auth import AuthHeader, verify_project_context
+from app.schemas.base import ProjectContext
 
 BEARER_TOKEN = {"Authorization": "Bearer this is a fake token"}
 
@@ -18,17 +23,21 @@ UNRELATED_PROJECT_HEADERS = {
 
 @contextmanager
 def skip_project_check():
-    """Skip checking if Bearer token has access to a the project-id
+    """Skip checking if Bearer token has access to the project-id
 
     Note: Otherwise, the keycloak endpoint is called,
           depending on the config.py::Settings.KEYCLOAK_URL
     """
+
+    def mock_verify_project_context(
+        project_context: Annotated[ProjectContext, Header()],
+        token: Annotated[HTTPAuthorizationCredentials, Depends(AuthHeader)],
+    ) -> ProjectContext:
+        assert f"{token.scheme} {token.credentials}" == BEARER_TOKEN["Authorization"]
+        return project_context
+
     orig = dict(app.dependency_overrides)
-
-    def ok():
-        return True
-
-    app.dependency_overrides[check_project_id] = ok
+    app.dependency_overrides[verify_project_context] = mock_verify_project_context
 
     try:
         yield

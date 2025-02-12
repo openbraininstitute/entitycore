@@ -13,7 +13,7 @@ from app.db.model import (
     Species,
     Strain,
 )
-from app.dependencies import AuthProjectContextHeader
+from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilter
 from app.routers.types import Facets, ListResponse, Pagination
@@ -37,7 +37,7 @@ router = APIRouter(
 def read_reconstruction_morphology(
     db: SessionDep,
     rm_id: int,
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     expand: str | None = None,
 ):
     rm = (
@@ -60,7 +60,7 @@ def read_reconstruction_morphology(
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     reconstruction: ReconstructionMorphologyCreate,
     db: SessionDep,
 ):
@@ -126,7 +126,7 @@ def _get_facets(
 def morphology_query(
     request: Request,
     db: SessionDep,
-    project_context: AuthProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
     page: int = 0,

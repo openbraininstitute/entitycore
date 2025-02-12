@@ -18,7 +18,7 @@ def client():
 
     The fixture is session-scoped so that the lifespan events are executed only once per session.
     """
-    with TestClient(app) as client:
+    with TestClient(app, headers=utils.BEARER_TOKEN) as client:
         yield client
 
 

@@ -93,4 +93,8 @@ app.add_middleware(
 )
 app.include_router(
     router,
+    responses={
+        404: {"description": "Not found", "model": ErrorResponse},
+        422: {"description": "Validation Error", "model": ErrorResponse},
+    },
 )

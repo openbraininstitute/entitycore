@@ -29,10 +29,7 @@ def test_errors():
 def test_ensure_result(db):
     with (
         pytest.raises(test_module.ApiError) as exc_info,
-        test_module.ensure_result(
-            error_message="Custom error",
-            error_code=test_module.ApiErrorCode.ENTITY_NOT_FOUND,
-        ),
+        test_module.ensure_result(error_message="Custom error"),
     ):
         db.execute(sa.select(Root)).scalar_one()
 
@@ -47,10 +44,7 @@ def test_ensure_uniqueness(db):
 
     with (
         pytest.raises(test_module.ApiError) as exc_info,
-        test_module.ensure_uniqueness(
-            error_message="Custom error",
-            error_code=test_module.ApiErrorCode.ENTITY_DUPLICATED,
-        ),
+        test_module.ensure_uniqueness(error_message="Custom error"),
     ):
         db.execute(query)
 

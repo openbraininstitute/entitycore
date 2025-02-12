@@ -54,7 +54,9 @@ class ApiError(Exception):
 
 
 @contextmanager
-def ensure_result(error_message: str, error_code: ApiErrorCode) -> Iterator[None]:
+def ensure_result(
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_NOT_FOUND
+) -> Iterator[None]:
     """Context manager that raises ApiError when no results are found after executing a query."""
     try:
         yield
@@ -67,7 +69,9 @@ def ensure_result(error_message: str, error_code: ApiErrorCode) -> Iterator[None
 
 
 @contextmanager
-def ensure_uniqueness(error_message: str, error_code: ApiErrorCode) -> Iterator[None]:
+def ensure_uniqueness(
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_DUPLICATED
+) -> Iterator[None]:
     """Context manager that raises ApiError when a UniqueViolation is raised."""
     try:
         yield

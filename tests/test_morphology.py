@@ -183,7 +183,10 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
 
     assert "facets" in data
     facets = data["facets"]
-    assert facets == {"species": {"Test Species": 1}, "strain": {"Test Strain": 1}}
+    assert facets == {
+        "species": [{"id": 1, "label": "Test Species", "count": 1}],
+        "strain": [{"id": 1, "label": "Test Strain", "count": 1}],
+    }
 
     assert "data" in data
     data = data["data"]
@@ -272,7 +275,10 @@ def test_query_reconstruction_morphology(
 
     assert "facets" in data
     facets = data["facets"]
-    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
+    assert facets == {
+        "species": [{"id": 1, "label": "Test Species", "count": count}],
+        "strain": [{"id": 1, "label": "Test Strain", "count": count}],
+    }
 
     response = client.get("/reconstruction_morphology/?search=Test")
     assert response.status_code == 200
@@ -280,4 +286,7 @@ def test_query_reconstruction_morphology(
 
     assert "facets" in data
     facets = data["facets"]
-    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
+    assert facets == {
+        "species": [{"id": 1, "label": "Test Species", "count": count}],
+        "strain": [{"id": 1, "label": "Test Strain", "count": count}],
+    }

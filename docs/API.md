@@ -63,29 +63,43 @@ Furthermore, fields of the particular entity being searched for can be specified
 
 Ex:
 ```
-GET /reconstructed-neuron-morphology/search=foo&brain_region_id=997
+GET /reconstructed-neuron-morphology/search=foo&species__name=Mus musculus
 ```
 
-The return payload is the same as above, except the `data` only includes matches with `foo` and the region being 997.
+The return payload is the same as above, except the `data` only includes matches with `foo` and the species name matching `Mus musculus`.
 Its pagination data reflects the result of the filters.
+The facets cover the results of the full query, not just the pagination.
 
 ## Faceting
 
-Additional facet statistics can be included by using the `facets` keyword: `[...]&facets=mtype,etype`
+Additional facet statistics are included on entity endpoints:
 
+EX: "facets" for reconstructed-neuron-morphology:
 ```
-"facets": {
-<aggregation of "columns" in data>
-}
-```
-
-"facets" for MEModel: `[...]&facets=mtype,etype`
-```
-"facets": {
-    "mType": {"L5_TPC": 10, "L6_BAC": 1},
-    "eType": {"cSTUT": 10, "bAC": 1},
-    ...
-}
+    "species": [
+        {
+            id: 1,
+            label: "Mus musculus",
+            count: 3508
+        },
+        [...]
+    ],
+    "strain": [
+        {
+            id: 5,
+            label: "C57BL/6J",
+            count: 31
+        },
+    [...]
+    ]
+    "mtype": [
+        {
+         id: 3
+         label: "L5TPC",
+         count: 339
+        },
+    ]
+    .....
 ```
     
 # Special Cases:

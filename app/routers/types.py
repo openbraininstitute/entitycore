@@ -11,10 +11,9 @@ class Facet(BaseModel):
     id: int
     label: str
     count: int
-    type: str
 
 
-type Facets = list[Facet]
+type Facets = dict[str, list[Facet]]
 
 
 class ListResponse[M: BaseModel](BaseModel):

@@ -18,6 +18,7 @@ from app.routers import (
     root,
     species,
     strain,
+    workflow_execution,
 )
 from app.routers.legacy import _search, files, resources, sbo
 
@@ -37,6 +38,7 @@ router.include_router(person.router)
 router.include_router(role.router)
 router.include_router(species.router)
 router.include_router(strain.router)
+router.include_router(workflow_execution.router)
 
 # legacy routes
 router.include_router(_search.router)

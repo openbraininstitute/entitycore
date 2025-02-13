@@ -50,6 +50,7 @@ class EntityType(StrEnum):
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     reconstruction_morphology = auto()
+    workflow_execution = auto()
 
 
 class AssetStatus(HyphenStrEnum):

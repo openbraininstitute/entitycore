@@ -522,3 +522,15 @@ class Asset(TimestampMixin, Base):
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
     )
+
+
+class WorkflowExecution(TimestampMixin, Base):
+    __tablename__ = "workflow_execution"
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
+    description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+    module: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+    task: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+    version: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+    configFileName: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+    status: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)

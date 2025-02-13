@@ -5,6 +5,7 @@ from fastapi_filter import FilterDepends
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, joinedload
 
+from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Base,
     BrainLocation,
@@ -12,6 +13,7 @@ from app.db.model import (
     Species,
     Strain,
 )
+from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
@@ -32,9 +34,20 @@ router = APIRouter(
     "/{rm_id}",
     response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
 )
-def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
+def read_reconstruction_morphology(
+    db: SessionDep,
+    rm_id: int,
+    project_context: VerifiedProjectContextHeader,
+    expand: str | None = None,
+):
     with ensure_result(error_message="ReconstructionMorphology not found"):
-        rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).one()
+        rm = (
+            constrain_to_accessible_entities(
+                db.query(ReconstructionMorphology), project_context.project_id
+            )
+            .filter(ReconstructionMorphology.id == rm_id)
+            .one()
+        )
 
     if expand and "morphology_feature_annotation" in expand:
         return ReconstructionMorphologyExpand.model_validate(rm)
@@ -45,6 +58,7 @@ def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | Non
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
+    project_context: VerifiedProjectContextHeader,
     reconstruction: ReconstructionMorphologyCreate,
     db: SessionDep,
 ):
@@ -61,6 +75,8 @@ def create_reconstruction_morphology(
         species_id=reconstruction.species_id,
         strain_id=reconstruction.strain_id,
         license_id=reconstruction.license_id,
+        authorized_project_id=project_context.project_id,
+        authorized_public=reconstruction.authorized_public,
     )
     db.add(db_reconstruction_morphology)
     db.commit()
@@ -93,6 +109,7 @@ def _get_facets(
 @router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
 def morphology_query(
     db: SessionDep,
+    project_context: VerifiedProjectContextHeader,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
     page: int = 0,
@@ -104,7 +121,9 @@ def morphology_query(
     }
 
     query = (
-        db.query(ReconstructionMorphology)
+        constrain_to_accessible_entities(
+            db.query(ReconstructionMorphology), project_context.project_id
+        )
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Species, ReconstructionMorphology.species_id == Species.id)
     )

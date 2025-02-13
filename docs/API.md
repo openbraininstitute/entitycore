@@ -20,6 +20,7 @@ These have CRUD-able patterns:
 
 Note: the organizations will need to be filled in; they include ones that are not yet part of the OBI, so there isn't a one-to-one relationship with what is included virtual lab service.
 Future work may include auto-additing organizations when one joins the OBI; alternatively the first time data is created, they could be added.
+Currently, `Entity`s are immutable, with the exception of the `authorized_public` property (see Authorization).
 
 TODO:
     What are the ACLs on these operations?
@@ -138,9 +139,18 @@ To be looked at more:
 ```
 
 # Authorization:
-Current model is to have things be either public, or private to a lab/project.
+Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.
 As such, results returned will be gated by this, based on the logged in user.
-The frontend will have to supply the current user's Bearer token, as well as the current lab and project.
-The service will check that the user does indeed belong to this lab and project, and then filter the results to include only public ones, along with those in the lab and project.
-These will have to be passed as headers in the request.
+The frontend will have to supply the current user's Bearer token, as well as the current lab and project:
 
+```
+    Authorization: Bearer <token>
+    virtual-lab-id: <virtual lab UUID>
+    project-id: <project UUID>
+```
+
+The service will check that the user does indeed belong to the supplied project, and then filter the results to include only public ones, along with those in the project.
+By default, an `Entity` is private, and marked as being owned by the `project-id` supplied in the header.
+Members of the owning project can set the `authorized_public` on creation, to mark the `Entity` as public.
+In addition, this value can be changed by using the `PATCH` operation.
+Once an `Entity` is made public, it can not be made private, since it could be already shared/used by others.

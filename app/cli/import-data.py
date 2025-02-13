@@ -1,13 +1,11 @@
-import argparse
 import glob
 import json
 import os
-import sys
 from contextlib import closing
 from collections import defaultdict
 
 import click
-import sqlalchemy
+import sqlalchemy as sa
 from tqdm import tqdm
 
 from app.cli import curate, utils
@@ -718,9 +716,24 @@ def _do_import(db, input_dir):
                     action(data, db, file_path=file_path)
 
 
+def _analyze() -> None:
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        # running in a transaction although it's not needed
+        db.execute(sa.text("ANALYZE"))
+
+
 @click.group()
 def cli():
     """Main CLI group."""
+
+
+@cli.command()
+def analyze():
+    """Update statistics used by the query planner."""
+    _analyze()
 
 
 @cli.command()
@@ -732,6 +745,7 @@ def run(input_dir):
         database_session_manager.session() as db,
     ):
         _do_import(db, input_dir=input_dir)
+    _analyze()
 
 
 @cli.command()
@@ -772,6 +786,7 @@ def hierarchy(hierarchy_path):
             )
             db.add(db_br)
             db.commit()
+    _analyze()
 
 
 if __name__ == "__main__":

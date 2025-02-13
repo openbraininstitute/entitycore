@@ -14,7 +14,6 @@ from app.db.model import Base
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
 from tests import utils
-from tests.utils import BEARER_TOKEN, PROJECT_HEADERS
 
 
 @pytest.fixture(scope="session")
@@ -147,31 +146,6 @@ def brain_region_id(client):
     assert response.status_code == 200, f"Failed to create brain region: {response.text}"
     data = response.json()
     assert "id" in data, f"Failed to get id for brain region: {data}"
-    return data["id"]
-
-
-@pytest.fixture
-def reconstruction_morphology_id(client, species_id, strain_id, license_id, brain_region_id):
-    morph_description = "Test Morphology Description"
-    morph_name = "Test Morphology Name"
-    response = client.post(
-        "/reconstruction_morphology/",
-        json={
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": morph_description,
-            "name": morph_name,
-            "brain_location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": "Test Legacy ID",
-            "license_id": license_id,
-        },
-    )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create reconstruction morphology: {response.text}"
-    data = response.json()
-    assert "id" in data, f"Failed to get id for reconstruction morphology: {data}"
     return data["id"]
 
 

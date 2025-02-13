@@ -9,7 +9,6 @@ from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
 
 from tests.utils import (
-    BEARER_TOKEN,
     PROJECT_HEADERS,
     PROJECT_ID,
     TEST_DATA_DIR,
@@ -18,6 +17,15 @@ from tests.utils import (
 )
 
 NON_EXISTENT_ID = 999999999
+
+# Apply the fixture to all tests in this module
+pytestmark = pytest.mark.usefixtures("skip_project_check")
+
+
+@pytest.fixture
+def client(client):
+    client.headers.update(PROJECT_HEADERS)
+    return client
 
 
 def _upload_entity_asset(client, entity_type, entity_id):
@@ -46,7 +54,7 @@ def entity(client, species_id, strain_id, brain_region_id) -> Entity:
         species_id,
         strain_id,
         brain_region_id,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         authorized_public=False,
     )
     return Entity(id=entity_id, type=entity_type)

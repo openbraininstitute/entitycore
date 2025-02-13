@@ -1,7 +1,8 @@
 from enum import StrEnum, auto
-from typing import Annotated
+from typing import Annotated, Any
 
 from sqlalchemy import BigInteger, func, or_
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
@@ -33,6 +34,7 @@ class StringListType(TypeDecorator):
 
 StringList = Annotated[StringListType, "StringList"]
 BIGINT = Annotated[int, mapped_column(BigInteger)]
+JSONDICT = Annotated[dict[str, Any], mapped_column(JSONB)]
 
 
 class EntityType(StrEnum):

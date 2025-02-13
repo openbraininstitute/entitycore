@@ -27,7 +27,7 @@
 ### Asset creation
 
 - Upload for small files can be done directly through the API (to be checked what limit to consider)
-- Upload for big files should be done through delegation as proposed originally in separate documents.
+- Upload for big files should be done through delegation as proposed originally in the separate document "SBO Infrastructure Platform : Architecture to Manage Data in Lustre FSx and Nexus Integration" (TODO: copy it here).
   This flow can be used to allow bbp-workflow to move the assets created in `scratch` to `project` and register them.
 - Files or directories already existing on S3 cannot be registered, unless they are copied or moved to a target directory indicated by the service.
   This can be discussed further, in case there are use cases that cannot be resolved in other ways.

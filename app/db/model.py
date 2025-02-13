@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import ClassVar
 from uuid import UUID
 
 from sqlalchemy import (
@@ -11,17 +11,16 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 
-from app.db.types import BIGINT, AssetStatus, StringList, StringListType
+from app.db.types import BIGINT, JSONDICT, AssetStatus, StringList, StringListType
 
 
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
         datetime: DateTime(timezone=True),
         StringList: StringListType,
-        dict[str, Any]: JSONB,
     }
     # See https://alembic.sqlalchemy.org/en/latest/naming.html
     metadata = MetaData(
@@ -521,7 +520,7 @@ class Asset(TimestampMixin, Base):
     is_directory: Mapped[bool]
     content_type: Mapped[str]
     size: Mapped[BIGINT]
-    meta: Mapped[dict[str, Any]]  # not used yet. can be useful?
+    meta: Mapped[JSONDICT]  # not used yet. can be useful?
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
 
     # partial unique index

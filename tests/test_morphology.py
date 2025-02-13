@@ -3,6 +3,10 @@ import itertools as it
 import pytest
 import sqlalchemy
 
+from app.db.model import Species
+
+from .utils import create_reconstruction_morphology_id
+
 
 def test_create_reconstruction_morphology(
     client, species_id, strain_id, license_id, brain_region_id
@@ -202,28 +206,29 @@ def test_missing_reconstruction_morphology(client):
 
 
 def test_query_reconstruction_morphology(
-    client, species_id, strain_id, brain_region_id, license_id
+    db, client, strain_id, brain_region_id
 ):
-    def create_morphologies(nb_morph):
-        for i in range(nb_morph):
-            morph_description = f"Test Morphology Description {i}"
-            morph_name = f"Test Morphology Name {i}"
-            response = client.post(
-                "/reconstruction_morphology/",
-                json={
-                    "brain_region_id": brain_region_id,
-                    "species_id": species_id,
-                    "strain_id": strain_id,
-                    "description": morph_description,
-                    "name": morph_name,
-                    "brain_location": {"x": 10, "y": 20, "z": 30},
-                    "legacy_id": "Test Legacy ID",
-                    "license_id": license_id,
-                },
-            )
-            assert (
-                response.status_code == 200
-            ), f"Failed to create reconstruction morphology: {response.text}"
+    def add_db(row):
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return row
+
+    species0 = add_db(Species(name="TestSpecies0", taxonomy_id="0"))
+    species1 = add_db(Species(name="TestSpecies1", taxonomy_id="1"))
+
+    def create_morphologies(count):
+        for i, species in zip(range(count), it.cycle((species0, species1))):
+            create_reconstruction_morphology_id(
+                client,
+                species.id,
+                strain_id,
+                brain_region_id,
+                headers={},
+                authorized_public=False,
+                name=f"Test Morphology Name {i}",
+                description=f"Test Morphology Description {i}",
+                )
 
     count = 11
     create_morphologies(count)
@@ -276,7 +281,8 @@ def test_query_reconstruction_morphology(
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 1, "label": "Test Species", "count": count}],
+        "species": [{"id": 2, "label": "TestSpecies0", "count": 6},
+                    {"id": 3, "label": "TestSpecies1", "count": 5}],
         "strain": [{"id": 1, "label": "Test Strain", "count": count}],
     }
 
@@ -287,6 +293,19 @@ def test_query_reconstruction_morphology(
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 1, "label": "Test Species", "count": count}],
+        "species": [{"id": 2, "label": "TestSpecies0", "count": 6},
+                    {"id": 3, "label": "TestSpecies1", "count": 5}],
         "strain": [{"id": 1, "label": "Test Strain", "count": count}],
+    }
+
+    response = client.get("/reconstruction_morphology/?species__name=TestSpecies0")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["data"]) == 6
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {
+        "species": [{"id": 2, "label": "TestSpecies0", "count": 6}],
+        "strain": [{"id": 1, "label": "Test Strain", "count": 6}],
     }

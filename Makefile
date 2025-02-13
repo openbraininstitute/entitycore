@@ -42,6 +42,11 @@ lint:  ## Run linters
 build:  ## Build the Docker image
 	docker compose --progress=plain build app
 
+import:  ## Run the import on a database, assumes mba_hierarchy.json and out are in the current dir
+	uv run -m alembic upgrade head
+	uv run -m app.cli.import-data hierarchy mba_hierarchy.json
+	uv run -m app.cli.import-data run ./out
+
 publish: build  ## Publish the Docker image to DockerHub
 	docker compose push app
 

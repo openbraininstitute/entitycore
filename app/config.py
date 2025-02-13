@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     LOG_CATCH: bool = True
     LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO"}
 
+    KEYCLOAK_URL: str = "https://example.openbluebrain.com/auth/realms/SBO/"
+
     DB_ENGINE: str = "postgresql"
     DB_USER: str = "entitycore"
     DB_PASS: str = "entitycore"

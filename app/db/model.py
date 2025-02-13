@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Annotated, ClassVar
+from uuid import UUID
 
 from sqlalchemy import (
     BigInteger,
@@ -288,6 +289,10 @@ class Entity(TimestampMixin, Root):
     updatedBy = relationship("Agent", uselist=False, foreign_keys="Entity.updatedBy_id")
     # TODO: move to mandatory
     updatedBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), nullable=True)
+
+    authorized_project_id: Mapped[UUID]
+    authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
+
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",
     }

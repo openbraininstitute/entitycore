@@ -5,13 +5,7 @@ from app.schemas.base import (
 )
 
 
-class AgentBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    type: str
-
-
-class PersonBase(AgentBase):
+class PersonBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     givenName: str
@@ -24,10 +18,10 @@ class PersonCreate(PersonBase):
 
 
 class PersonRead(PersonBase, CreationMixin):
-    pass
+    type: str
 
 
-class OrganizationBase(AgentBase):
+class OrganizationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     pref_label: str
@@ -39,7 +33,7 @@ class OrganizationCreate(OrganizationBase):
 
 
 class OrganizationRead(OrganizationBase, CreationMixin):
-    pass
+    type: str
 
 
 type AgentRead = PersonRead | OrganizationRead

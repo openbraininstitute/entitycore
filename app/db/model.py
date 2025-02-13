@@ -418,6 +418,12 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     morphology_description_vector: Mapped[str] = mapped_column(TSVECTOR, nullable=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
+    contributors = relationship(
+        "Contribution",
+        uselist=True,
+        back_populates="entity",
+    )
+
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 
 

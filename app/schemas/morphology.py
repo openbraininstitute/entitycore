@@ -48,4 +48,4 @@ class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, 
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):
-    morphology_feature_annotation: MorphologyFeatureAnnotationCreate
+    morphology_feature_annotation: MorphologyFeatureAnnotationRead

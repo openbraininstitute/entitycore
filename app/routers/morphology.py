@@ -6,6 +6,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import aliased, joinedload
 
 from app.db.model import (
+    Agent,
     Base,
     BrainLocation,
     Contribution,
@@ -35,12 +36,20 @@ router = APIRouter(
 )
 def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
     with ensure_result(error_message="ReconstructionMorphology not found"):
-        query = db.query(ReconstructionMorphology)
-        if expand:
-            if "morphology_feature_annotation" in expand:
-                query = query.filter(ReconstructionMorphology.id == rm_id)
-            if "contributions" in expand:
-                query = query.filter(Contribution.id == rm_id)
+        query = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id)
+        if expand and "morphology_feature_annotation" in expand:
+            query = query.options(
+                joinedload(ReconstructionMorphology.morphology_feature_annotation)
+            )
+
+        query = (
+            query.options(joinedload(ReconstructionMorphology.brain_location))
+            .options(joinedload(ReconstructionMorphology.brain_region))
+            .options(joinedload(ReconstructionMorphology.contributors))
+            .options(joinedload(ReconstructionMorphology.license))
+            .options(joinedload(ReconstructionMorphology.species))
+            .options(joinedload(ReconstructionMorphology.strain))
+        )
 
         row = query.one()
 
@@ -94,9 +103,29 @@ def _get_facets(
             .add_columns(func.count().label("count"))
             .group_by(types)  # type: ignore[arg-type]
         )
-        facets[ty] = [Facet(id=r.id, label=r.name, count=count) for r, count in facet_q.all()]
+        facets[ty] = [
+            Facet(id=r.id, label=r.name, type=ty, count=count) for r, count in facet_q.all()
+        ]
 
     return facets
+
+
+def _get_facet_contributor(
+    db: SessionDep,
+    query,
+) -> list[Facet]:
+    subq = query.subquery()
+    facet_q = (
+        db.query(Agent)
+        .join(Contribution)
+        .join(subq, Contribution.entity_id == subq.c.id)
+        .add_columns(func.count().label("count"))
+        .group_by(Agent)  # type: ignore[arg-type]
+    )
+
+    return [
+        Facet(id=r.id, label=r.pref_label, type=r.type, count=count) for r, count in facet_q.all()
+    ]
 
 
 @router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
@@ -121,11 +150,15 @@ def morphology_query(
 
     facets = _get_facets(db, query, name_to_table)
 
+    facets["contributors"] = _get_facet_contributor(db, query)
+
     query = (
-        query.options(joinedload(ReconstructionMorphology.license))
-        .options(joinedload(ReconstructionMorphology.species))
+        query.options(joinedload(ReconstructionMorphology.brain_location))
         .options(joinedload(ReconstructionMorphology.brain_region))
-        .options(joinedload(ReconstructionMorphology.brain_location))
+        .options(joinedload(ReconstructionMorphology.contributors))
+        .options(joinedload(ReconstructionMorphology.license))
+        .options(joinedload(ReconstructionMorphology.species))
+        .options(joinedload(ReconstructionMorphology.strain))
     )
 
     response = ListResponse[ReconstructionMorphologyRead](

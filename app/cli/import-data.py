@@ -1,13 +1,11 @@
-import argparse
 import glob
 import json
 import os
-import sys
 from contextlib import closing
 from collections import defaultdict
 
 import click
-import sqlalchemy
+import sqlalchemy as sa
 from tqdm import tqdm
 from pydantic import UUID4
 
@@ -732,9 +730,24 @@ def _do_import(db, input_dir, project_id):
                     action(data, db, file_path=file_path, project_id=project_id)
 
 
+def _analyze() -> None:
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        # running in a transaction although it's not needed
+        db.execute(sa.text("ANALYZE"))
+
+
 @click.group()
 def cli():
     """Main CLI group."""
+
+
+@cli.command()
+def analyze():
+    """Update statistics used by the query planner."""
+    _analyze()
 
 
 @cli.command()
@@ -751,6 +764,7 @@ def run(input_dir, project_id):
         database_session_manager.session() as db,
     ):
         _do_import(db, input_dir=input_dir, project_id=UUID4(project_id))
+    _analyze()
 
 
 @cli.command()
@@ -791,6 +805,7 @@ def hierarchy(hierarchy_path):
             )
             db.add(db_br)
             db.commit()
+    _analyze()
 
 
 if __name__ == "__main__":

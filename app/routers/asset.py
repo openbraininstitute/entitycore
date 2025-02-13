@@ -7,7 +7,7 @@ from starlette.responses import RedirectResponse
 
 from app.config import settings
 from app.db.types import EntityType
-from app.dependencies.auth import ProjectContextHeader
+from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode
@@ -33,7 +33,7 @@ router = APIRouter(
 @router.get("/{entity_type}/{entity_id}/assets")
 def get_entity_assets(
     repos: RepoGroupDep,
-    project_context: ProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     entity_type: EntityType,
     entity_id: int,
 ) -> ListResponse[AssetRead]:
@@ -52,7 +52,7 @@ def get_entity_assets(
 @router.get("/{entity_type}/{entity_id}/assets/{asset_id}")
 def get_entity_asset(
     repos: RepoGroupDep,
-    project_context: ProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     entity_type: EntityType,
     entity_id: int,
     asset_id: int,
@@ -71,7 +71,7 @@ def get_entity_asset(
 def upload_entity_asset(
     *,
     repos: RepoGroupDep,
-    project_context: ProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
     entity_type: EntityType,
     entity_id: int,
@@ -123,7 +123,7 @@ def upload_entity_asset(
 @router.get("/{entity_type}/{entity_id}/assets/{asset_id}/download")
 def download_entity_asset(
     repos: RepoGroupDep,
-    project_context: ProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
     entity_type: EntityType,
     entity_id: int,
@@ -147,7 +147,7 @@ def download_entity_asset(
 @router.delete("/{entity_type}/{entity_id}/assets/{asset_id}")
 def delete_entity_asset(
     repos: RepoGroupDep,
-    project_context: ProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
     entity_type: EntityType,
     entity_id: int,
@@ -173,7 +173,7 @@ def delete_entity_asset(
 @router.post("/{entity_type}/{entity_id}/assets/upload/initiate")
 def initiate_entity_asset_upload(
     repos: RepoGroupDep,
-    project_context: ProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     entity_type: EntityType,
     entity_id: int,
 ):
@@ -184,7 +184,7 @@ def initiate_entity_asset_upload(
 @router.post("/{entity_type}/{entity_id}/assets/upload/complete")
 def complete_entity_asset_upload(
     repos: RepoGroupDep,
-    project_context: ProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     entity_type: EntityType,
     entity_id: int,
 ):

@@ -3,9 +3,9 @@ import itertools as it
 import pytest
 import sqlalchemy
 
-from app.db.model import Species
+from app.db.model import ReconstructionMorphology, Species, Strain
 
-from .utils import create_reconstruction_morphology_id
+from .utils import add_db, create_reconstruction_morphology_id
 
 
 def test_create_reconstruction_morphology(
@@ -205,17 +205,9 @@ def test_missing_reconstruction_morphology(client):
     assert response.status_code == 422
 
 
-def test_query_reconstruction_morphology(
-    db, client, strain_id, brain_region_id
-):
-    def add_db(row):
-        db.add(row)
-        db.commit()
-        db.refresh(row)
-        return row
-
-    species0 = add_db(Species(name="TestSpecies0", taxonomy_id="0"))
-    species1 = add_db(Species(name="TestSpecies1", taxonomy_id="1"))
+def test_query_reconstruction_morphology(db, client, strain_id, brain_region_id):
+    species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="0"))
+    species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="1"))
 
     def create_morphologies(count):
         for i, species in zip(range(count), it.cycle((species0, species1))):
@@ -228,7 +220,7 @@ def test_query_reconstruction_morphology(
                 authorized_public=False,
                 name=f"Test Morphology Name {i}",
                 description=f"Test Morphology Description {i}",
-                )
+            )
 
     count = 11
     create_morphologies(count)
@@ -281,8 +273,10 @@ def test_query_reconstruction_morphology(
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 2, "label": "TestSpecies0", "count": 6},
-                    {"id": 3, "label": "TestSpecies1", "count": 5}],
+        "species": [
+            {"id": 2, "label": "TestSpecies0", "count": 6},
+            {"id": 3, "label": "TestSpecies1", "count": 5},
+        ],
         "strain": [{"id": 1, "label": "Test Strain", "count": count}],
     }
 
@@ -293,8 +287,10 @@ def test_query_reconstruction_morphology(
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 2, "label": "TestSpecies0", "count": 6},
-                    {"id": 3, "label": "TestSpecies1", "count": 5}],
+        "species": [
+            {"id": 2, "label": "TestSpecies0", "count": 6},
+            {"id": 3, "label": "TestSpecies1", "count": 5},
+        ],
         "strain": [{"id": 1, "label": "Test Strain", "count": count}],
     }
 
@@ -309,3 +305,27 @@ def test_query_reconstruction_morphology(
         "species": [{"id": 2, "label": "TestSpecies0", "count": 6}],
         "strain": [{"id": 1, "label": "Test Strain", "count": 6}],
     }
+
+
+def test_query_reconstruction_morphology_species_join(db, client, brain_region_id):
+    """Make sure not to join all the species w/ their strains while doing query"""
+    species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="1"))
+    strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
+    add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species0.id))
+
+    add_db(
+        db,
+        ReconstructionMorphology(
+            brain_region_id=brain_region_id,
+            species_id=species0.id,
+            strain_id=strain0.id,
+            description="description",
+            name="morph00",
+            brain_location=None,
+            legacy_id="Test Legacy ID",
+            license_id=None,
+        ),
+    )
+    response = client.get("/reconstruction_morphology/")
+    data = response.json()
+    assert len(data["data"]) == data["pagination"]["total_items"]

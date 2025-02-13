@@ -103,7 +103,11 @@ def morphology_query(
         "strain": Strain,
     }
 
-    query = db.query(ReconstructionMorphology).outerjoin(Species).outerjoin(Strain)
+    query = (
+        db.query(ReconstructionMorphology)
+        .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
+        .outerjoin(Species, ReconstructionMorphology.species_id == Species.id)
+    )
 
     if search:
         query = query.filter(ReconstructionMorphology.morphology_description_vector.match(search))

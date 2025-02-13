@@ -1,5 +1,10 @@
 def create_reconstruction_morphology_id(
-    client, species_id, strain_id, brain_region_id, headers, authorized_public,
+    client,
+    species_id,
+    strain_id,
+    brain_region_id,
+    headers,
+    authorized_public,
     name="Test Morphology Name",
     description="Test Morphology Description",
 ):
@@ -19,3 +24,10 @@ def create_reconstruction_morphology_id(
     )
     assert response.status_code == 200
     return response.json()["id"]
+
+
+def add_db(db, row):
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row

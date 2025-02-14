@@ -12,7 +12,13 @@ ROUTE = "/contribution/"
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_create_contribution(
-    client, person_id, organization_id, role_id, species_id, strain_id, brain_region_id, license_id
+    client,
+    person_id,
+    organization_id,
+    role_id,
+    species_id,
+    strain_id,
+    brain_region_id,
 ):
     reconstruction_morphology_id = create_reconstruction_morphology_id(
         client,
@@ -75,22 +81,25 @@ def test_create_contribution(
     assert data["agent"]["alternative_name"] == "A Company Making Everything"
     assert data["agent"]["type"] == "organization"
 
-    response = client.get("/contribution/",
-                          headers=BEARER_TOKEN | PROJECT_HEADERS,
-                          )
+    response = client.get(
+        "/contribution/",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
     assert len(response.json()) == 2
 
-    response = client.get(f"/reconstruction_morphology/{reconstruction_morphology_id}",
-                          headers=BEARER_TOKEN | PROJECT_HEADERS,
-                          )
+    response = client.get(
+        f"/reconstruction_morphology/{reconstruction_morphology_id}",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
     response.raise_for_status()
     data = response.json()
     assert "contributors" in data
     assert len(data["contributors"]) == 2
 
-    response = client.get("/reconstruction_morphology/",
-                          headers=BEARER_TOKEN | PROJECT_HEADERS,
-                          )
+    response = client.get(
+        "/reconstruction_morphology/",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
     response.raise_for_status()
     data = response.json()["data"]
     assert len(data) == 1
@@ -100,8 +109,8 @@ def test_create_contribution(
     assert len(facets["contributors"]) == 2
     assert facets["contributors"] == [
         {"count": 1, "id": 2, "label": "ACME", "type": "organization"},
-        {"count": 1, "id": 1, "label": "jd courcol", "type": "person"}
-        ]
+        {"count": 1, "id": 1, "label": "jd courcol", "type": "person"},
+    ]
 
 
 @pytest.mark.usefixtures("skip_project_check")

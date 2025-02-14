@@ -44,8 +44,8 @@ def read_reconstruction_morphology(
 ):
     with ensure_result(error_message="ReconstructionMorphology not found"):
         query = constrain_to_accessible_entities(
-                db.query(ReconstructionMorphology), project_context.project_id
-            ).filter(ReconstructionMorphology.id == rm_id)
+            db.query(ReconstructionMorphology), project_context.project_id
+        ).filter(ReconstructionMorphology.id == rm_id)
 
         if expand and "morphology_feature_annotation" in expand:
             query = query.options(

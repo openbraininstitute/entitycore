@@ -146,7 +146,7 @@ def test_query_reconstruction_morphology(
     assert facets == {
         "species": [{"id": 1, "label": "Test Species", "count": count, "type": "species"}],
         "strain": [{"id": 1, "label": "Test Strain", "count": count, "type": "strain"}],
-        "contributors": []
+        "contributors": [],
     }
 
     response = client.get(ROUTE + "?search=Test", headers=BEARER_TOKEN | PROJECT_HEADERS)
@@ -158,7 +158,7 @@ def test_query_reconstruction_morphology(
     assert facets == {
         "species": [{"id": 1, "label": "Test Species", "count": count, "type": "species"}],
         "strain": [{"id": 1, "label": "Test Strain", "count": count, "type": "strain"}],
-        "contributors": []
+        "contributors": [],
     }
 
 

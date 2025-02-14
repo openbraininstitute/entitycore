@@ -164,7 +164,7 @@ class SpeciesMixin:
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):
+    def __table_args__(cls):  # noqa: D105, PLW3201
         return (
             ForeignKeyConstraint(
                 ["strain_id", "species_id"],

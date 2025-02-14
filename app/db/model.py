@@ -165,6 +165,7 @@ class SpeciesMixin:
     @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: D105, PLW3201
+        # ensure that species_id and strain.species_id are have the same value
         return (
             ForeignKeyConstraint(
                 ["strain_id", "species_id"],

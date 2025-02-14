@@ -97,7 +97,7 @@ class Strain(TimestampMixin, Base):
     species = relationship("Species", uselist=False)
 
     __table_args__ = (
-        # needed for the composite foreign key
+        # needed for the composite foreign key in SpeciesMixin
         UniqueConstraint("id", "species_id", name="uq_strain_id_species_id"),
     )
 
@@ -158,8 +158,9 @@ class SpeciesMixin:
     @declared_attr
     @classmethod
     def strain(cls):
-        # not defined as ForeignKey to avoid ambiguities with the composite foreign key
-        return relationship("Strain", uselist=False)
+        # not defined as ForeignKey to avoid ambiguities with the composite foreign key,
+        # while viewonly is needed to prevent copying strain.species_id to species_id
+        return relationship("Strain", uselist=False, viewonly=True)
 
     @declared_attr.directive
     @classmethod

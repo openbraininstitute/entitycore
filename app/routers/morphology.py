@@ -1,5 +1,6 @@
 from typing import Annotated
 
+import sqlalchemy as sa
 from fastapi import APIRouter
 from fastapi_filter import FilterDepends
 from sqlalchemy import func
@@ -122,14 +123,14 @@ def morphology_query(
 
     query = (
         constrain_to_accessible_entities(
-            db.query(ReconstructionMorphology), project_context.project_id
+            sa.select(ReconstructionMorphology), project_context.project_id
         )
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Species, ReconstructionMorphology.species_id == Species.id)
     )
 
     if search:
-        query = query.filter(ReconstructionMorphology.morphology_description_vector.match(search))
+        query = query.where(ReconstructionMorphology.morphology_description_vector.match(search))
 
     query = morphology_filter.filter(query)
 
@@ -140,11 +141,16 @@ def morphology_query(
         .options(joinedload(ReconstructionMorphology.species))
         .options(joinedload(ReconstructionMorphology.brain_region))
         .options(joinedload(ReconstructionMorphology.brain_location))
+        .options(joinedload(ReconstructionMorphology.strain))
     )
 
+    data = db.execute(
+        morphology_filter.sort(query).offset(page * page_size).limit(page_size)
+    ).scalars()
+    total_items = db.execute(query.with_only_columns(func.count())).scalar_one()
     response = ListResponse[ReconstructionMorphologyRead](
-        data=morphology_filter.sort(query).offset(page * page_size).limit(page_size).all(),
-        pagination=Pagination(page=page, page_size=page_size, total_items=query.count()),
+        data=data,
+        pagination=Pagination(page=page, page_size=page_size, total_items=total_items),
         facets=facets,
     )
 

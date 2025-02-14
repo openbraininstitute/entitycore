@@ -17,6 +17,7 @@ from tests.utils import (
 )
 
 NON_EXISTENT_ID = 999999999
+DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
 
 # Apply the fixture to all tests in this module
 pytestmark = pytest.mark.usefixtures("skip_project_check")
@@ -91,6 +92,18 @@ def test_upload_entity_asset(client, entity):
     assert response.status_code == 409, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_DUPLICATED
+
+    # try to upload to a non-existent entity id
+    response = _upload_entity_asset(client, entity_type=entity.type, entity_id=NON_EXISTENT_ID)
+    assert response.status_code == 404, f"Asset creation didn't fail as expected: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+    # try to upload to valid entity id, but different entity type
+    response = _upload_entity_asset(client, entity_type=DIFFERENT_ENTITY_TYPE, entity_id=entity.id)
+    assert response.status_code == 404, f"Asset creation didn't fail as expected: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
 
 def test_get_entity_asset(client, entity, asset):

@@ -6,7 +6,7 @@ from uuid import UUID
 import sqlalchemy as sa
 from sqlalchemy import Row, or_, true
 
-from app.db.model import Base
+from app.db.model import Base, Entity
 from app.db.types import EntityType
 from app.repository.base import BaseRepository
 
@@ -14,13 +14,23 @@ from app.repository.base import BaseRepository
 class EntityRepository(BaseRepository):
     """EntityRepository."""
 
-    @staticmethod
-    def _get_table(name):
+    _descendants = frozenset(
+        mapper.class_.__tablename__
+        for mapper in Base.registry.mappers
+        if issubclass(mapper.class_, Entity)
+    )
+
+    @classmethod
+    def _get_table(cls, name):
         try:
-            return Base.metadata.tables[name]
+            table = Base.metadata.tables[name]
         except KeyError:
             err = f"Table {name} not found"
             raise RuntimeError(err) from None
+        if name not in cls._descendants:
+            err = f"Table {name} is not a subclass of entity"
+            raise TypeError(err)
+        return table
 
     def get_entity(
         self,

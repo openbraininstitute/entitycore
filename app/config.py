@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "entitycore"
     APP_VERSION: str | None = None
     APP_DEBUG: bool = False
+    COMMIT_SHA: str | None = None
 
     ENVIRONMENT: str | None = None
     ROOT_PATH: str = ""
@@ -31,6 +32,8 @@ class Settings(BaseSettings):
     LOG_ENQUEUE: bool = False
     LOG_CATCH: bool = True
     LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO"}
+
+    KEYCLOAK_URL: str = "https://example.openbluebrain.com/auth/realms/SBO/"
 
     DB_ENGINE: str = "postgresql"
     DB_USER: str = "entitycore"

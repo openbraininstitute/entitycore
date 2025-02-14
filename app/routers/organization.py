@@ -7,7 +7,6 @@ from app.schemas.agent import OrganizationCreate, OrganizationRead
 router = APIRouter(
     prefix="/organization",
     tags=["organization"],
-    responses={404: {"description": "Not found"}},
 )
 
 

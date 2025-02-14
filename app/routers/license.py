@@ -12,7 +12,6 @@ from app.schemas.base import (
 router = APIRouter(
     prefix="/license",
     tags=["license"],
-    responses={404: {"description": "Not found"}},
 )
 
 

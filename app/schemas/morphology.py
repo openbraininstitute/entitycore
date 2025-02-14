@@ -3,6 +3,8 @@ from collections.abc import Sequence
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
     BrainLocationCreate,
     BrainRegionRead,
     CreationMixin,
@@ -23,7 +25,11 @@ class ReconstructionMorphologyBase(BaseModel):
     brain_location: BrainLocationCreate | None
 
 
-class ReconstructionMorphologyCreate(ReconstructionMorphologyBase, LicensedCreateMixin):
+class ReconstructionMorphologyCreate(
+    ReconstructionMorphologyBase,
+    LicensedCreateMixin,
+    AuthorizationOptionalPublicMixin,
+):
     species_id: int
     strain_id: int
     brain_region_id: int
@@ -40,7 +46,12 @@ class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, Creatio
     measurements: Sequence[MeasurementRead]
 
 
-class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin):
+class ReconstructionMorphologyRead(
+    ReconstructionMorphologyBase,
+    CreationMixin,
+    LicensedReadMixin,
+    AuthorizationMixin,
+):
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead

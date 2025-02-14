@@ -9,6 +9,8 @@ from app.application import app
 from app.db.model import Base, Organization, Person, Role
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
+from . import utils
+
 
 @pytest.fixture(scope="session")
 def client():
@@ -16,7 +18,7 @@ def client():
 
     The fixture is session-scoped so that the lifespan events are executed only once per session.
     """
-    with TestClient(app) as client:
+    with TestClient(app, headers=utils.BEARER_TOKEN) as client:
         yield client
 
 
@@ -134,3 +136,9 @@ def brain_region_id(client):
     data = response.json()
     assert "id" in data, f"Failed to get id for brain region: {data}"
     return data["id"]
+
+
+@pytest.fixture
+def skip_project_check():
+    with utils.skip_project_check():
+        yield

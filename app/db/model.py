@@ -1,45 +1,20 @@
 from datetime import datetime
-from typing import Annotated, ClassVar
+from typing import ClassVar
 from uuid import UUID
 
 from sqlalchemy import (
     BigInteger,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     MetaData,
     UniqueConstraint,
     func,
-    or_,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
-from sqlalchemy.types import VARCHAR, TypeDecorator
 
-
-class StringListType(TypeDecorator):
-    impl = VARCHAR
-    cache_ok = True
-
-    def process_bind_param(self, value, dialect):  # noqa: ARG002, PLR6301
-        if value is not None:
-            return ",".join(value)
-        return None
-
-    def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301
-        if value is not None:
-            return value.split(",")
-        return None
-
-    @staticmethod
-    def is_equal(column, value):
-        return func.strpos(column, value) > 0
-
-    @staticmethod
-    def in_(column, values):
-        return or_(*[StringList.is_equal(column, value) for value in values])
-
-
-StringList = Annotated[StringListType, "StringList"]
+from app.db.types import StringList, StringListType
 
 
 class Base(DeclarativeBase):
@@ -121,6 +96,11 @@ class Strain(TimestampMixin, Base):
     species_id: Mapped[int] = mapped_column(ForeignKey("species.id"), index=True, nullable=False)
     species = relationship("Species", uselist=False)
 
+    __table_args__ = (
+        # needed for the composite foreign key in SpeciesMixin
+        UniqueConstraint("id", "species_id", name="uq_strain_id_species_id"),
+    )
+
 
 class Subject(TimestampMixin, Base):
     __tablename__ = "subject"
@@ -173,12 +153,26 @@ class SpeciesMixin:
     def species(cls):
         return relationship("Species", uselist=False)
 
-    strain_id = mapped_column(ForeignKey("strain.id"), index=True, nullable=True)
+    # not defined as ForeignKey to avoid ambiguities with the composite foreign key
+    strain_id: Mapped[int] = mapped_column(index=True, nullable=True)
 
     @declared_attr
     @classmethod
     def strain(cls):
-        return relationship("Strain", uselist=False)
+        # viewonly is needed to prevent copying strain.species_id to species_id
+        return relationship("Strain", uselist=False, viewonly=True)
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        # ensure that species_id and strain.species_id are have the same value
+        return (
+            ForeignKeyConstraint(
+                ["strain_id", "species_id"],
+                ["strain.id", "strain.species_id"],
+                name=f"fk_{cls.__tablename__}_strain_id_species_id",
+            ),
+        )
 
 
 class Agent(Root, TimestampMixin):

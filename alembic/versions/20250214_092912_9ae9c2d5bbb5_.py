@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: bb662aeaecef
-Revises: 81e0f3f095f5
-Create Date: 2025-02-13 13:28:12.346859
+Revision ID: 9ae9c2d5bbb5
+Revises: 6f8d3b6426aa
+Create Date: 2025-02-14 09:29:12.919816
 
 """
 
@@ -14,8 +14,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "bb662aeaecef"
-down_revision: str | None = "81e0f3f095f5"
+revision: str = "9ae9c2d5bbb5"
+down_revision: str | None = "6f8d3b6426aa"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -56,6 +56,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_asset")),
     )
+    op.create_index(op.f("ix_asset_creation_date"), "asset", ["creation_date"], unique=False)
     op.create_index(op.f("ix_asset_entity_id"), "asset", ["entity_id"], unique=False)
     op.create_index(
         "ix_asset_fullpath",
@@ -73,6 +74,7 @@ def downgrade() -> None:
         "ix_asset_fullpath", table_name="asset", postgresql_where=sa.text("status != 'DELETED'")
     )
     op.drop_index(op.f("ix_asset_entity_id"), table_name="asset")
+    op.drop_index(op.f("ix_asset_creation_date"), table_name="asset")
     op.drop_table("asset")
     sa.Enum("CREATED", "DELETED", name="assetstatus").drop(op.get_bind())
     # ### end Alembic commands ###

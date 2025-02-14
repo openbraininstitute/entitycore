@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9ae9c2d5bbb5
-Revises: 6f8d3b6426aa
-Create Date: 2025-02-14 09:29:12.919816
+Revision ID: 1de0e9a0a8e1
+Revises: b300b17671e3
+Create Date: 2025-02-14 12:58:05.815545
 
 """
 
@@ -14,8 +14,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "9ae9c2d5bbb5"
-down_revision: str | None = "6f8d3b6426aa"
+revision: str = "1de0e9a0a8e1"
+down_revision: str | None = "b300b17671e3"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -46,17 +46,24 @@ def skip_project_check():
 
 
 def create_reconstruction_morphology_id(
-    client, species_id, strain_id, brain_region_id, headers, authorized_public
+    client,
+    species_id,
+    strain_id,
+    brain_region_id,
+    headers,
+    authorized_public,
+    name="Test Morphology Name",
+    description="Test Morphology Description",
 ):
     response = client.post(
         "/reconstruction_morphology/",
         headers=headers,
         json={
+            "name": name,
+            "description": description,
             "brain_region_id": brain_region_id,
             "species_id": species_id,
             "strain_id": strain_id,
-            "description": "Test Morphology Description",
-            "name": "Test Morphology Name",
             "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "authorized_public": authorized_public,
@@ -64,3 +71,10 @@ def create_reconstruction_morphology_id(
     )
     assert response.status_code == 200
     return response.json()["id"]
+
+
+def add_db(db, row):
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row

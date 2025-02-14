@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from app.routers import (
+    asset,
     brain_region,
     contribution,
     experimental_bouton_density,
@@ -22,6 +23,7 @@ from app.routers.legacy import _search, files, resources, sbo
 
 router = APIRouter()
 router.include_router(root.router)
+router.include_router(asset.router)
 router.include_router(brain_region.router)
 router.include_router(contribution.router)
 router.include_router(experimental_bouton_density.router)

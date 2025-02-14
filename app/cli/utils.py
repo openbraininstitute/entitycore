@@ -1,4 +1,5 @@
 import datetime
+import functools
 
 import sqlalchemy as sa
 from sqlalchemy import func
@@ -22,14 +23,19 @@ from app.schemas.base import ProjectContext
 from app.utils.s3 import build_s3_path
 
 
+@functools.cache
 def _find_by_legacy_id(legacy_id, db_type, db):
     return db.query(db_type).filter(func.strpos(db_type.legacy_id, legacy_id) > 0).first()
 
 
-def get_or_create_brain_region(brain_region, db):
+def get_or_create_brain_region(brain_region, db, _cache=set()):
     brain_region = curate.curate_brain_region(brain_region)
 
-    br = db.query(BrainRegion).filter(BrainRegion.id == int(brain_region["@id"])).first()
+    brain_region_id = int(brain_region["@id"])
+    if brain_region_id in _cache:
+        return brain_region_id
+
+    br = db.query(BrainRegion).filter(BrainRegion.id == brain_region_id).first()
 
     if not br:
         br1 = db.query(BrainRegion).filter(BrainRegion.name == brain_region["label"]).first()
@@ -37,19 +43,29 @@ def get_or_create_brain_region(brain_region, db):
             print(f"Replacing: {brain_region} -> failed")
             return 997
         print(f"Replacing: {brain_region} -> {br1.id}")
+
+        _cache.add(br1.id)
         return br1.id
 
+    _cache.add(br.id)
     return br.id
 
 
-def get_or_create_species(species, db):
+def get_or_create_species(species, db, _cache={}):
+    id_ = species["@id"]
+    if id_ in _cache:
+        return _cache[id_]
+
     # Check if the species already exists in the database
-    sp = db.query(Species).filter(Species.taxonomy_id == species["@id"]).first()
+    sp = db.query(Species).filter(Species.taxonomy_id == id_).first()
     if not sp:
         # If not, create a new one
         sp = Species(name=species["label"], taxonomy_id=species["@id"])
         db.add(sp)
         db.commit()
+
+    _cache[id_] = sp.id
+
     return sp.id
 
 
@@ -88,18 +104,29 @@ def get_brain_location_mixin(data, db):
     return brain_location, brain_region_id
 
 
-def get_license_id(license, db):
+def get_license_id(license, db, _cache={}):  # noqa: B006
+    id_ = license["@id"]
+    if id_ in _cache:
+        return _cache[id_]
+
     # Check if the license already exists in the database
-    li = db.query(License).filter(License.name == license["@id"]).first()
+    li = db.query(License).filter(License.name == id_).first()
     if not li:
         msg = f"License {license} not found"
         raise ValueError(msg)
+
+    _cache[id_] = li.id
+
     return li.id
 
 
-def get_or_create_strain(strain, species_id, db):
+def get_or_create_strain(strain, species_id, db, _cache={}):
+    id_ = strain["@id"]
+    if (species_id, id_) in _cache:
+        return _cache[species_id, id_]
+
     # Check if the strain already exists in the database
-    st = db.query(Strain).filter(Strain.taxonomy_id == strain["@id"]).first()
+    st = db.query(Strain).filter(Strain.taxonomy_id == id_).first()
     if st and st.species_id != species_id:
         msg = "st.species_id != species_id"
         raise RuntimeError(msg)
@@ -113,6 +140,9 @@ def get_or_create_strain(strain, species_id, db):
         )
         db.add(st)
         db.commit()
+
+    _cache[species_id, id_] = st.id
+
     return st.id
 
 

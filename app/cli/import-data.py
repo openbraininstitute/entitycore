@@ -854,7 +854,6 @@ def _do_import(db, input_dir, project_context):
         print("import etype annotations")
         import_etype_annotation_body(etype_annotations, db)
 
-
     importers = [
         ImportAgent,
         ImportAnalysisSoftwareSourceCode,

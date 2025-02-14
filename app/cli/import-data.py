@@ -7,6 +7,7 @@ from collections import defaultdict
 import click
 import sqlalchemy as sa
 from tqdm import tqdm
+from pydantic import UUID4
 
 from app.cli import curate, utils
 from app.db.model import (
@@ -267,7 +268,7 @@ def import_agents(data_list, db):
                     print(f"{e!r}")
 
 
-def import_single_neuron_simulation(data, db, file_path):
+def import_single_neuron_simulation(data, db, file_path, project_id):
     possible_data = [elem for elem in data if "SingleNeuronSimulation" in elem["@type"]]
     if not possible_data:
         return
@@ -290,6 +291,7 @@ def import_single_neuron_simulation(data, db, file_path):
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
+                authorized_project_id=project_id,
             )
             db.add(rm)
             db.commit()
@@ -309,7 +311,7 @@ def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
     return db_annotation.id
 
 
-def import_analysis_software_source_code(data, db, file_path):
+def import_analysis_software_source_code(data, db, file_path, project_id):
     possible_data = [data for data in data if data["@type"] == "AnalysisSoftwareSourceCode"]
     if not possible_data:
         return
@@ -333,12 +335,13 @@ def import_analysis_software_source_code(data, db, file_path):
                 programmingLanguage=data.get("programmingLanguage", ""),
                 runtimePlatform=data.get("runtimePlatform", ""),
                 version=data.get("version", ""),
+                authorized_project_id=project_id,
             )
             db.add(db_code)
             db.commit()
 
 
-def import_me_models(data, db, file_path):
+def import_me_models(data, db, file_path, project_id):
     def is_memodel(data):
         types = data["@type"]
         if isinstance(types, list):
@@ -366,6 +369,7 @@ def import_me_models(data, db, file_path):
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
+                authorized_project_id=project_id,
                 # species_id=species_id,
                 # strain_id=strain_id
             )
@@ -374,7 +378,7 @@ def import_me_models(data, db, file_path):
             # get_or_create_annotation(data, rm.id, db)
 
 
-def import_e_models(data, db, file_path):
+def import_e_models(data, db, file_path, project_id):
     def is_emodel(data):
         types = data["@type"]
         if isinstance(types, list):
@@ -408,6 +412,7 @@ def import_e_models(data, db, file_path):
                 strain_id=strain_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
+                authorized_project_id=project_id,
             )
 
             db.add(db_item)
@@ -420,7 +425,7 @@ def import_e_models(data, db, file_path):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
-def import_brain_region_meshes(data, db, file_path):
+def import_brain_region_meshes(data, db, file_path, project_id):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
     possible_data = [
         data for data in possible_data if data.get("atlasRelease").get("tag", None) == "v1.1.0"
@@ -437,12 +442,13 @@ def import_brain_region_meshes(data, db, file_path):
                 legacy_id=[legacy_id],
                 brain_region_id=brain_region_id,
                 content_url=content_url,
+                authorized_project_id=project_id,
             )
             db.add(db_item)
             db.commit()
 
 
-def import_traces(data_list, db, file_path):
+def import_traces(data_list, db, file_path, project_id):
     possible_data = [data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]]
     if not possible_data:
         return
@@ -465,6 +471,7 @@ def import_traces(data_list, db, file_path):
                 species_id=species_id,
                 strain_id=strain_id,
                 license_id=license_id,
+                authorized_project_id=project_id,
             )
             db.add(db_item)
             db.commit()
@@ -477,7 +484,7 @@ def import_traces(data_list, db, file_path):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
-def import_morphologies(data_list, db, file_path):
+def import_morphologies(data_list, db, file_path, project_id):
     possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
     if not possible_data:
         return
@@ -499,6 +506,7 @@ def import_morphologies(data_list, db, file_path):
                 species_id=species_id,
                 strain_id=strain_id,
                 license_id=license_id,
+                authorized_project_id=project_id,
             )
             db.add(db_reconstruction_morphology)
             db.commit()
@@ -511,7 +519,7 @@ def import_morphologies(data_list, db, file_path):
                 get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
 
 
-def import_morphology_feature_annotations(data_list, db, file_path):
+def import_morphology_feature_annotations(data_list, db, file_path, project_id):
     annotations = defaultdict(list)
     missing_morphology = 0
     duplicate_annotation = 0
@@ -596,37 +604,42 @@ def import_morphology_feature_annotations(data_list, db, file_path):
     )
 
 
-def import_experimental_neuron_densities(data_list, db, file_path):
+def import_experimental_neuron_densities(data_list, db, file_path, project_id):
     _import_experimental_densities(
         data_list,
         db,
         "ExperimentalNeuronDensity",
         ExperimentalNeuronDensity,
         curate.default_curate,
+        project_id,
     )
 
 
-def import_experimental_bouton_densities(data_list, db, file_path):
+def import_experimental_bouton_densities(data_list, db, file_path, project_id):
     _import_experimental_densities(
         data_list,
         db,
         "ExperimentalBoutonDensity",
         ExperimentalBoutonDensity,
         curate.default_curate,
+        project_id,
     )
 
 
-def import_experimental_synapses_per_connection(data_list, db, file_path):
+def import_experimental_synapses_per_connection(data_list, db, file_path, project_id):
     _import_experimental_densities(
         data_list,
         db,
         "ExperimentalSynapsesPerConnection",
         ExperimentalSynapsesPerConnection,
         curate.curate_synapses_per_connections,
+        project_id,
     )
 
 
-def _import_experimental_densities(data_list, db, schema_type, model_type, curate_function):
+def _import_experimental_densities(
+    data_list, db, schema_type, model_type, curate_function, project_id
+):
     possible_data = [data for data in data_list if schema_type in data["@type"]]
     if not possible_data:
         return
@@ -650,13 +663,14 @@ def _import_experimental_densities(data_list, db, schema_type, model_type, curat
                 brain_region_id=brain_region_id,
                 createdBy_id=_createdBy_id,
                 updatedBy_id=_updatedBy_id,
+                authorized_project_id=project_id,
             )
             db.add(db_element)
             db.commit()
             utils.import_contribution(data, db_element.id, db)
 
 
-def _do_import(db, input_dir):
+def _do_import(db, input_dir, project_id):
     all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
 
     print("importing agents")
@@ -713,7 +727,7 @@ def _do_import(db, input_dir):
                 print(f"   {file_path}")
                 with open(file_path) as f:
                     data = json.load(f)
-                    action(data, db, file_path=file_path)
+                    action(data, db, file_path=file_path, project_id=project_id)
 
 
 def _analyze() -> None:
@@ -738,13 +752,18 @@ def analyze():
 
 @cli.command()
 @click.argument("input-dir", type=REQUIRED_PATH_DIR)
-def run(input_dir):
+@click.option(
+    "--project-id",
+    type=str,
+    help="The UUID4 `project-id` under which the entities will be registered",
+)
+def run(input_dir, project_id):
     """Import data script."""
     with (
         closing(configure_database_session_manager()) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        _do_import(db, input_dir=input_dir)
+        _do_import(db, input_dir=input_dir, project_id=UUID4(project_id))
     _analyze()
 
 

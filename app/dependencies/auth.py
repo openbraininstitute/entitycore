@@ -90,8 +90,13 @@ def verify_project_context(
 
     ie: as a member of the virtual_lab_id and project_id claimed in the header
     """
+    if settings.APP_DISABLE_AUTH:
+        L.warning("Authentication is disabled")
+        return project_context
+
     if not _check_user_info(project_context=project_context, token=token):
         raise HTTPException(status_code=404, detail="Project not found")
+
     return project_context
 
 

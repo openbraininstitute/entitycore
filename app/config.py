@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "entitycore"
     APP_VERSION: str | None = None
     APP_DEBUG: bool = False
+    APP_DISABLE_AUTH: bool = False
+
     COMMIT_SHA: str | None = None
 
     ENVIRONMENT: str | None = None

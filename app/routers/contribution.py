@@ -58,17 +58,17 @@ def create_contribution(
             status_code=404, detail=f"Cannot access entity {contribution.entity_id}"
         )
 
-    db_contribution = Contribution(
+    row = Contribution(
         agent_id=contribution.agent_id,
         role_id=contribution.role_id,
         entity_id=contribution.entity_id,
     )
-
-    db.add(db_contribution)
+    db.add(row)
     db.commit()
-    db.refresh(db_contribution)
+    db.refresh(row)
 
-    return ContributionRead.model_validate(db_contribution)
+    result = ContributionRead.model_validate(row)
+    return result
 
 
 @router.get("/", response_model=list[ContributionRead])

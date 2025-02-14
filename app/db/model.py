@@ -186,23 +186,23 @@ class Agent(Root, TimestampMixin):
 
 class Person(Agent):
     __tablename__ = "person"
+
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     givenName: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     familyName: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "person",
-    }
+
+    __mapper_args__ = {"polymorphic_identity": "person"}  # noqa: RUF012
     __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
 
 
 class Organization(Agent):
     __tablename__ = "organization"
+
     id: Mapped[int] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     # what is the difference between name and label here ?
     alternative_name: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "organization",
-    }
+
+    __mapper_args__ = {"polymorphic_identity": "organization"}  # noqa: RUF012
 
 
 class AnnotationBody(LegacyMixin, TimestampMixin, Base):
@@ -280,8 +280,10 @@ class Annotation(LegacyMixin, TimestampMixin, Base):
 class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
     id: Mapped[int] = mapped_column(ForeignKey("root.id"), primary_key=True)
+
     # _type: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     annotations = relationship("Annotation", back_populates="entity")
+
     # TODO: keep the _ ? put on agent ?
     createdBy = relationship("Agent", uselist=False, foreign_keys="Entity.createdBy_id")
     # TODO: move to mandatory
@@ -331,6 +333,7 @@ class AnalysisSoftwareSourceCode(DistributionMixin, Entity):
 
 class Contribution(TimestampMixin, Base):
     __tablename__ = "contribution"
+
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     agent_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), index=True, nullable=False)
     agent = relationship("Agent", uselist=False)
@@ -338,6 +341,7 @@ class Contribution(TimestampMixin, Base):
     role = relationship("Role", uselist=False)
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True, nullable=False)
     entity = relationship("Entity", uselist=False)
+
     __table_args__ = (
         UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
     )
@@ -404,12 +408,20 @@ class MEModel(DistributionMixin, LocationMixin, Entity):
 
 class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
+
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     # name is not unique
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     morphology_description_vector: Mapped[str] = mapped_column(TSVECTOR, nullable=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+
+    contributors = relationship(
+        "Contribution",
+        uselist=True,
+        back_populates="entity",
+    )
+
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 
 

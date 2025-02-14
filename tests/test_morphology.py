@@ -143,7 +143,11 @@ def test_query_reconstruction_morphology(
 
     assert "facets" in data
     facets = data["facets"]
-    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
+    assert facets == {
+        "species": [{"id": 1, "label": "Test Species", "count": count, "type": "species"}],
+        "strain": [{"id": 1, "label": "Test Strain", "count": count, "type": "strain"}],
+        "contributors": [],
+    }
 
     response = client.get(ROUTE + "?search=Test", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
@@ -151,7 +155,11 @@ def test_query_reconstruction_morphology(
 
     assert "facets" in data
     facets = data["facets"]
-    assert facets == {"species": {"Test Species": count}, "strain": {"Test Strain": count}}
+    assert facets == {
+        "species": [{"id": 1, "label": "Test Species", "count": count, "type": "species"}],
+        "strain": [{"id": 1, "label": "Test Strain", "count": count, "type": "strain"}],
+        "contributors": [],
+    }
 
 
 @pytest.mark.usefixtures("skip_project_check")

@@ -64,7 +64,7 @@ Furthermore, fields of the particular entity being searched for can be specified
 
 Ex:
 ```
-GET /reconstructed-neuron-morphology/search=foo&species__name=Mus musculus
+GET /reconstruction_morphology/?search=foo&species__name=Mus%20musculus
 ```
 
 The return payload is the same as above, except the `data` only includes matches with `foo` and the species name matching `Mus musculus`.

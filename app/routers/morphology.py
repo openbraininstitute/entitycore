@@ -3,8 +3,8 @@ from typing import Annotated
 import sqlalchemy as sa
 from fastapi import APIRouter
 from fastapi_filter import FilterDepends
-from sqlalchemy import func
-from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy import Select, func
+from sqlalchemy.orm import Session, contains_eager, joinedload
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
@@ -86,23 +86,23 @@ def create_reconstruction_morphology(
 
 
 def _get_facets(
-    db: SessionDep,
-    query,
+    db: Session,
+    query: Select,
     name_to_table: dict[str, type[Base]],
 ) -> Facets:
     facets = {}
 
-    for ty, table in name_to_table.items():
-        types = aliased(table)
-        # TODO: this should be migrated to sqlalchemy v2.0 style:
-        # https://github.com/openbraininstitute/entitycore/pull/11#discussion_r1935703476
+    for name, table in name_to_table.items():
         facet_q = (
-            db.query(types)
-            .join(query.subquery())
-            .add_columns(func.count().label("count"))
-            .group_by(types)  # type: ignore[arg-type]
+            query.with_only_columns(table, func.count().label("count"))
+            .group_by(table)  # type: ignore[arg-type]
+            .order_by(table.name)  # type: ignore[attr-defined]
         )
-        facets[ty] = [Facet(id=r.id, label=r.name, count=count) for r, count in facet_q.all()]
+        facets[name] = [
+            Facet(id=row.id, label=row.name, count=count)
+            for row, count in db.execute(facet_q).all()
+            if row is not None  # exclude null rows
+        ]
 
     return facets
 
@@ -125,8 +125,8 @@ def morphology_query(
         constrain_to_accessible_entities(
             sa.select(ReconstructionMorphology), project_context.project_id
         )
+        .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
-        .outerjoin(Species, ReconstructionMorphology.species_id == Species.id)
     )
 
     if search:
@@ -137,11 +137,11 @@ def morphology_query(
     facets = _get_facets(db, query, name_to_table)
 
     query = (
-        query.options(joinedload(ReconstructionMorphology.license))
-        .options(joinedload(ReconstructionMorphology.species))
+        query.options(contains_eager(ReconstructionMorphology.species))
+        .options(contains_eager(ReconstructionMorphology.strain))
+        .options(joinedload(ReconstructionMorphology.license))
         .options(joinedload(ReconstructionMorphology.brain_region))
         .options(joinedload(ReconstructionMorphology.brain_location))
-        .options(joinedload(ReconstructionMorphology.strain))
     )
 
     data = db.execute(

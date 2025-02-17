@@ -66,16 +66,27 @@ def test_missing(client):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_query_reconstruction_morphology(db, client, strain_id, brain_region_id):
-    species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="0"))
-    species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="1"))
+def test_query_reconstruction_morphology(db, client, brain_region_id):
+    species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
+    species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
+
+    strain1 = add_db(db, Strain(name="TestStrain1", species_id=species1.id, taxonomy_id="0"))
+    strain2 = add_db(db, Strain(name="TestStrain2", species_id=species2.id, taxonomy_id="1"))
 
     def create_morphologies(count):
-        for i, species in zip(range(count), it.cycle((species0, species1))):
+        for i, (species, strain) in zip(
+            range(count),
+            it.cycle(
+                (
+                    (species1, strain1),
+                    (species2, strain2),
+                )
+            ),
+        ):
             create_reconstruction_morphology_id(
                 client,
                 species.id,
-                strain_id,
+                strain.id,
                 brain_region_id,
                 headers=BEARER_TOKEN | PROJECT_HEADERS,
                 authorized_public=False,
@@ -139,10 +150,13 @@ def test_query_reconstruction_morphology(db, client, strain_id, brain_region_id)
     facets = data["facets"]
     assert facets == {
         "species": [
-            {"id": 2, "label": "TestSpecies0", "count": 6},
-            {"id": 3, "label": "TestSpecies1", "count": 5},
+            {"id": 1, "label": "TestSpecies1", "count": 6},
+            {"id": 2, "label": "TestSpecies2", "count": 5},
         ],
-        "strain": [{"id": 1, "label": "Test Strain", "count": count}],
+        "strain": [
+            {"id": 1, "label": "TestStrain1", "count": 6},
+            {"id": 2, "label": "TestStrain2", "count": 5},
+        ],
     }
 
     response = client.get(ROUTE + "?search=Test", headers=BEARER_TOKEN | PROJECT_HEADERS)
@@ -153,14 +167,17 @@ def test_query_reconstruction_morphology(db, client, strain_id, brain_region_id)
     facets = data["facets"]
     assert facets == {
         "species": [
-            {"id": 2, "label": "TestSpecies0", "count": 6},
-            {"id": 3, "label": "TestSpecies1", "count": 5},
+            {"id": 1, "label": "TestSpecies1", "count": 6},
+            {"id": 2, "label": "TestSpecies2", "count": 5},
         ],
-        "strain": [{"id": 1, "label": "Test Strain", "count": count}],
+        "strain": [
+            {"id": 1, "label": "TestStrain1", "count": 6},
+            {"id": 2, "label": "TestStrain2", "count": 5},
+        ],
     }
 
     response = client.get(
-        ROUTE + "?species__name=TestSpecies0", headers=BEARER_TOKEN | PROJECT_HEADERS
+        ROUTE + "?species__name=TestSpecies1", headers=BEARER_TOKEN | PROJECT_HEADERS
     )
     assert response.status_code == 200
     data = response.json()
@@ -169,8 +186,8 @@ def test_query_reconstruction_morphology(db, client, strain_id, brain_region_id)
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 2, "label": "TestSpecies0", "count": 6}],
-        "strain": [{"id": 1, "label": "Test Strain", "count": 6}],
+        "species": [{"id": 1, "label": "TestSpecies1", "count": 6}],
+        "strain": [{"id": 1, "label": "TestStrain1", "count": 6}],
     }
 
 

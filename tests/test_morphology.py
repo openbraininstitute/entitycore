@@ -2,7 +2,9 @@ import itertools as it
 
 import pytest
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS
+from app.db.model import ReconstructionMorphology, Species, Strain
+
+from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
 ROUTE = "/reconstruction_morphology/"
 
@@ -64,30 +66,33 @@ def test_missing(client):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_query_reconstruction_morphology(
-    client, species_id, strain_id, brain_region_id, license_id
-):
-    def create_morphologies(nb_morph):
-        for i in range(nb_morph):
-            morph_description = f"Test Morphology Description {i}"
-            morph_name = f"Test Morphology Name {i}"
-            response = client.post(
-                ROUTE,
+def test_query_reconstruction_morphology(db, client, brain_region_id):
+    species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
+    species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
+
+    strain1 = add_db(db, Strain(name="TestStrain1", species_id=species1.id, taxonomy_id="0"))
+    strain2 = add_db(db, Strain(name="TestStrain2", species_id=species2.id, taxonomy_id="1"))
+
+    def create_morphologies(count):
+        for i, (species, strain) in zip(
+            range(count),
+            it.cycle(
+                (
+                    (species1, strain1),
+                    (species2, strain2),
+                )
+            ),
+        ):
+            create_reconstruction_morphology_id(
+                client,
+                species.id,
+                strain.id,
+                brain_region_id,
                 headers=BEARER_TOKEN | PROJECT_HEADERS,
-                json={
-                    "brain_region_id": brain_region_id,
-                    "species_id": species_id,
-                    "strain_id": strain_id,
-                    "description": morph_description,
-                    "name": morph_name,
-                    "brain_location": {"x": 10, "y": 20, "z": 30},
-                    "legacy_id": "Test Legacy ID",
-                    "license_id": license_id,
-                },
+                authorized_public=False,
+                name=f"Test Morphology Name {i}",
+                description=f"Test Morphology Description {i}",
             )
-            assert (
-                response.status_code == 200
-            ), f"Failed to create reconstruction morphology: {response.text}"
 
     count = 11
     create_morphologies(count)
@@ -144,9 +149,15 @@ def test_query_reconstruction_morphology(
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 1, "label": "Test Species", "count": count, "type": "species"}],
-        "strain": [{"id": 1, "label": "Test Strain", "count": count, "type": "strain"}],
         "contributors": [],
+        "species": [
+            {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
+            {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
+        ],
+        "strain": [
+            {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
+            {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
+        ],
     }
 
     response = client.get(ROUTE + "?search=Test", headers=BEARER_TOKEN | PROJECT_HEADERS)
@@ -156,9 +167,63 @@ def test_query_reconstruction_morphology(
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 1, "label": "Test Species", "count": count, "type": "species"}],
-        "strain": [{"id": 1, "label": "Test Strain", "count": count, "type": "strain"}],
         "contributors": [],
+        "species": [
+            {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
+            {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
+        ],
+        "strain": [
+            {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
+            {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
+        ],
+    }
+
+    response = client.get(
+        ROUTE + "?species__name=TestSpecies1", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["data"]) == 6
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {
+        "contributors": [],
+        "species": [{"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"}],
+        "strain": [{"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"}],
+    }
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_query_reconstruction_morphology_species_join(db, client, brain_region_id):
+    """Make sure not to join all the species w/ their strains while doing query"""
+    species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="1"))
+    strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
+    add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species0.id))
+
+    add_db(
+        db,
+        ReconstructionMorphology(
+            brain_region_id=brain_region_id,
+            species_id=species0.id,
+            strain_id=strain0.id,
+            description="description",
+            name="morph00",
+            brain_location=None,
+            legacy_id="Test Legacy ID",
+            license_id=None,
+            authorized_project_id=PROJECT_HEADERS["project-id"],
+        ),
+    )
+
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    data = response.json()
+    assert len(data["data"]) == data["pagination"]["total_items"]
+    assert "facets" in data
+    assert data["facets"] == {
+        "contributors": [],
+        "species": [{"id": 1, "label": "TestSpecies0", "count": 1, "type": "species"}],
+        "strain": [{"id": 1, "label": "Strain0", "count": 1, "type": "strain"}],
     }
 
 

@@ -155,13 +155,13 @@ class SpeciesMixin:
         return relationship("Species", uselist=False)
 
     # not defined as ForeignKey to avoid ambiguities with the composite foreign key
-    strain_id: Mapped[int] = mapped_column(index=True, nullable=True)
+    strain_id: Mapped[int | None] = mapped_column(index=True, nullable=True)
 
     @declared_attr
     @classmethod
     def strain(cls):
-        # viewonly is needed to prevent copying strain.species_id to species_id
-        return relationship("Strain", uselist=False, viewonly=True)
+        # primaryjoin is needed to ignore species_id from the ForeignKeyConstraint
+        return relationship("Strain", uselist=False, primaryjoin=cls.strain_id == Strain.id)
 
     @declared_attr.directive
     @classmethod

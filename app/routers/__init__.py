@@ -11,6 +11,7 @@ from app.routers import (
     license,
     morphology,
     morphology_feature_annotation,
+    mtype,
     organization,
     person,
     role,
@@ -30,6 +31,7 @@ router.include_router(experimental_synapses_per_connection.router)
 router.include_router(license.router)
 router.include_router(morphology.router)
 router.include_router(morphology_feature_annotation.router)
+router.include_router(mtype.router)
 router.include_router(organization.router)
 router.include_router(person.router)
 router.include_router(role.router)

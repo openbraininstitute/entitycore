@@ -1,6 +1,6 @@
 from fastapi_filter.contrib.sqlalchemy import Filter
 
-from app.db.model import Species, Strain
+from app.db.model import MTypeAnnotationBody, Species, Strain
 
 
 class SpeciesFilter(Filter):
@@ -17,3 +17,11 @@ class StrainFilter(Filter):
 
     class Constants(Filter.Constants):
         model = Strain
+
+
+class MTypeFilter(Filter):
+    id: int | None = None
+    pref_label: str | None = None
+
+    class Constants(Filter.Constants):
+        model = MTypeAnnotationBody

@@ -8,7 +8,8 @@ from sqlalchemy.orm import aliased
 from app.db.model import (
     Agent,
     AnalysisSoftwareSourceCode,
-    Annotation,
+    AnnotationEType,
+    AnnotationMType,
     BrainRegion,
     Contribution,
     EModel,
@@ -90,11 +91,11 @@ def get_db_type(query):
 
 QUERY_PATH = {
     "mType": {
-        "models": [Annotation, MTypeAnnotationBody],
+        "models": [AnnotationMType, MTypeAnnotationBody],
         "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
     },
     "eType": {
-        "models": [Annotation, ETypeAnnotationBody],
+        "models": [AnnotationEType, ETypeAnnotationBody],
         "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
     },
     "brainRegion": {"models": [BrainRegion], "joins": [("brain_region_id", "id")]},

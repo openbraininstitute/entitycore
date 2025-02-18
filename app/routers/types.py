@@ -11,6 +11,7 @@ class Facet(BaseModel):
     id: int
     label: str
     count: int
+    type: str
 
 
 type Facets = dict[str, list[Facet]]

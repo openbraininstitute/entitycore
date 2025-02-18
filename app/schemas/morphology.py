@@ -15,6 +15,7 @@ from app.schemas.base import (
     SpeciesRead,
     StrainRead,
 )
+from app.schemas.mtype import MTypeRead
 
 
 class ReconstructionMorphologyBase(BaseModel):
@@ -54,6 +55,7 @@ class ReconstructionMorphologyRead(
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
+    mtypes: Sequence[MTypeRead]
 
 
 class ReconstructionMorphologyExpand(ReconstructionMorphologyRead):

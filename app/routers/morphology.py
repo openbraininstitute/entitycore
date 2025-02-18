@@ -3,13 +3,14 @@ from typing import Annotated
 import sqlalchemy as sa
 from fastapi import APIRouter
 from fastapi_filter import FilterDepends
-from sqlalchemy import Select, func
 from sqlalchemy.orm import Session, contains_eager, joinedload
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
+    AnnotationMType,
     Base,
     BrainLocation,
+    MTypeAnnotationBody,
     ReconstructionMorphology,
     Species,
     Strain,
@@ -42,19 +43,30 @@ def read_reconstruction_morphology(
     expand: str | None = None,
 ):
     with ensure_result(error_message="ReconstructionMorphology not found"):
-        rm = (
-            constrain_to_accessible_entities(
-                db.query(ReconstructionMorphology), project_context.project_id
+        query = constrain_to_accessible_entities(
+            db.query(ReconstructionMorphology), project_context.project_id
+        ).filter(ReconstructionMorphology.id == rm_id)
+
+        if expand and "morphology_feature_annotation" in expand:
+            query = query.options(
+                joinedload(ReconstructionMorphology.morphology_feature_annotation)
             )
-            .filter(ReconstructionMorphology.id == rm_id)
-            .one()
+
+        query = (
+            query.options(joinedload(ReconstructionMorphology.brain_location))
+            .options(joinedload(ReconstructionMorphology.brain_region))
+            .options(joinedload(ReconstructionMorphology.license))
+            .options(joinedload(ReconstructionMorphology.species))
+            .options(joinedload(ReconstructionMorphology.strain))
         )
 
+        row = query.one()
+
     if expand and "morphology_feature_annotation" in expand:
-        return ReconstructionMorphologyExpand.model_validate(rm)
+        return ReconstructionMorphologyExpand.model_validate(row)
 
     # added back with None by the response_model
-    return ReconstructionMorphologyRead.model_validate(rm)
+    return ReconstructionMorphologyRead.model_validate(row)
 
 
 @router.post("/", response_model=ReconstructionMorphologyRead)
@@ -87,24 +99,44 @@ def create_reconstruction_morphology(
 
 def _get_facets(
     db: Session,
-    query: Select,
+    query: sa.Select,
     name_to_table: dict[str, type[Base]],
 ) -> Facets:
     facets = {}
 
     for name, table in name_to_table.items():
         facet_q = (
-            query.with_only_columns(table, func.count().label("count"))
+            query.with_only_columns(table, sa.func.count().label("count"))
             .group_by(table)  # type: ignore[arg-type]
             .order_by(table.name)  # type: ignore[attr-defined]
         )
         facets[name] = [
-            Facet(id=row.id, label=row.name, count=count)
+            Facet(id=row.id, label=row.name, count=count, type=name)
             for row, count in db.execute(facet_q).all()
             if row is not None  # exclude null rows
         ]
 
     return facets
+
+
+def _get_facet_mtypes(
+    db: SessionDep,
+    query,
+) -> list[Facet]:
+    facet_q = (
+        query.join(AnnotationMType, ReconstructionMorphology.id == AnnotationMType.entity_id)
+        .join(MTypeAnnotationBody)
+        .with_only_columns(MTypeAnnotationBody, sa.func.count().label("count"))
+        .group_by(MTypeAnnotationBody)  # type: ignore[arg-type]
+        .order_by(MTypeAnnotationBody.pref_label)  # type: ignore[attr-defined]
+    )
+
+    return [
+        Facet(id=row.id, label=row.pref_label, count=count, type=row.type)
+        for row, count in db.execute(facet_q).all()
+    ]
+
+    return []
 
 
 @router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
@@ -130,11 +162,13 @@ def morphology_query(
     )
 
     if search:
+        # query = query.filter(ReconstructionMorphology.morphology_description_vector.match(search))
         query = query.where(ReconstructionMorphology.morphology_description_vector.match(search))
 
     query = morphology_filter.filter(query)
 
     facets = _get_facets(db, query, name_to_table)
+    facets["mtypes"] = _get_facet_mtypes(db, query)
 
     query = (
         query.options(contains_eager(ReconstructionMorphology.species))
@@ -147,7 +181,9 @@ def morphology_query(
     data = db.execute(
         morphology_filter.sort(query).offset(page * page_size).limit(page_size)
     ).scalars()
-    total_items = db.execute(query.with_only_columns(func.count())).scalar_one()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+
     response = ListResponse[ReconstructionMorphologyRead](
         data=data,
         pagination=Pagination(page=page, page_size=page_size, total_items=total_items),

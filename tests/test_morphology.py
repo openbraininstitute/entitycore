@@ -2,9 +2,21 @@ import itertools as it
 
 import pytest
 
-from app.db.model import ReconstructionMorphology, Species, Strain
+from app.db.model import (
+    AnnotationMType,
+    MTypeAnnotationBody,
+    ReconstructionMorphology,
+    Species,
+    Strain,
+)
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
+from .utils import (
+    BEARER_TOKEN,
+    PROJECT_HEADERS,
+    UNRELATED_PROJECT_HEADERS,
+    add_db,
+    create_reconstruction_morphology_id,
+)
 
 ROUTE = "/reconstruction_morphology/"
 
@@ -51,6 +63,17 @@ def test_create_reconstruction_morphology(
     ), f"Failed to get license for reconstruction morphology: {data}"
 
     response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    response = response.json()
+    assert "data" in response
+    assert "facets" in response
+    assert "pagination" in response
+
+    data = response["data"]
+    assert len(data) == 1
+    morph_id = data[0]["id"]
+
+    response = client.get(ROUTE + str(morph_id), headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert (
         response.status_code == 200
     ), f"Failed to get reconstruction morphologies: {response.text}"
@@ -133,7 +156,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     )
 
     response = client.get(
-        "/reconstruction_morphology/",
+        ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"order_by": "+creation_date", "page": 0, "page_size": 3},
     )
@@ -149,13 +172,14 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
+        "mtypes": [],
         "species": [
-            {"id": 1, "label": "TestSpecies1", "count": 6},
-            {"id": 2, "label": "TestSpecies2", "count": 5},
+            {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
+            {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
         ],
         "strain": [
-            {"id": 1, "label": "TestStrain1", "count": 6},
-            {"id": 2, "label": "TestStrain2", "count": 5},
+            {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
+            {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
         ],
     }
 
@@ -166,13 +190,14 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
+        "mtypes": [],
         "species": [
-            {"id": 1, "label": "TestSpecies1", "count": 6},
-            {"id": 2, "label": "TestSpecies2", "count": 5},
+            {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
+            {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
         ],
         "strain": [
-            {"id": 1, "label": "TestStrain1", "count": 6},
-            {"id": 2, "label": "TestStrain2", "count": 5},
+            {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
+            {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
         ],
     }
 
@@ -186,8 +211,9 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 1, "label": "TestSpecies1", "count": 6}],
-        "strain": [{"id": 1, "label": "TestStrain1", "count": 6}],
+        "mtypes": [],
+        "species": [{"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"}],
+        "strain": [{"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"}],
     }
 
 
@@ -218,8 +244,9 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     assert len(data["data"]) == data["pagination"]["total_items"]
     assert "facets" in data
     assert data["facets"] == {
-        "species": [{"id": 1, "label": "TestSpecies0", "count": 1}],
-        "strain": [{"id": 1, "label": "Strain0", "count": 1}],
+        "mtypes": [],
+        "species": [{"id": 1, "label": "TestSpecies0", "count": 1, "type": "species"}],
+        "strain": [{"id": 1, "label": "Strain0", "count": 1, "type": "strain"}],
     }
 
 
@@ -295,3 +322,75 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         f"{ROUTE}{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
     )
     assert response.status_code == 404
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_mtype_annotation(db, client, species_id, strain_id, brain_region_id):
+    morph_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
+        headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
+        authorized_public=True,
+    )
+
+    mtype1 = add_db(
+        db,
+        MTypeAnnotationBody(pref_label="m1", alt_label="m1", definition="m1d"),
+    )
+    mtype2 = add_db(
+        db,
+        MTypeAnnotationBody(pref_label="m2", alt_label="m2", definition="m2d"),
+    )
+
+    add_db(
+        db,
+        AnnotationMType(
+            entity_id=morph_id,
+            annotation_body_id=mtype1.id,
+            project_id=UNRELATED_PROJECT_HEADERS["project-id"],
+        ),
+    )
+    add_db(
+        db,
+        AnnotationMType(
+            entity_id=morph_id,
+            annotation_body_id=mtype2.id,
+            project_id=PROJECT_HEADERS["project-id"],
+        ),
+    )
+
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    facets = response.json()["facets"]
+    assert facets["mtypes"] == [
+        {"id": 1, "label": "m1", "count": 1, "type": "mtype"},
+        {"id": 2, "label": "m2", "count": 1, "type": "mtype"},
+    ]
+
+    response = client.get(ROUTE + str(morph_id), headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    data = response.json()
+    assert "mtypes" in data
+    mtypes = data["mtypes"]
+    assert len(mtypes) == 2
+
+    for mtype in mtypes:
+        assert "update_date" in mtype
+        del mtype["update_date"]
+
+        assert "creation_date" in mtype
+        del mtype["creation_date"]
+
+    assert data["mtypes"] == [
+        {"alt_label": "m1", "definition": "m1d", "id": 1, "pref_label": "m1"},
+        {"alt_label": "m2", "definition": "m2d", "id": 2, "pref_label": "m2"},
+    ]
+
+    response = client.get(f"{ROUTE}?mtype__pref_label=m1", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    facets = response.json()["facets"]
+    assert facets["mtypes"] == [
+        {"id": 1, "label": "m1", "count": 1, "type": "mtype"},
+    ]

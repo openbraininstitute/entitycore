@@ -231,7 +231,7 @@ class MTypeAnnotationBody(AnnotationBody):
     definition: Mapped[str] = mapped_column(unique=False, nullable=True)
     alt_label: Mapped[str] = mapped_column(unique=False, nullable=True)
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "mtype_annotation_body",
+        "polymorphic_identity": "mtype",
     }
 
 
@@ -248,7 +248,7 @@ class ETypeAnnotationBody(AnnotationBody):
     definition: Mapped[str] = mapped_column(unique=False, nullable=True)
     alt_label: Mapped[str] = mapped_column(unique=False, nullable=True)
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "etype_annotation_body",
+        "polymorphic_identity": "etype",
     }
 
 
@@ -262,26 +262,97 @@ class DataMaturityAnnotationBody(AnnotationBody):
         autoincrement=True,
     )
     pref_label: Mapped[str] = mapped_column(nullable=False, unique=True)
+
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "datamaturity_annotation_body",
     }
 
 
-class Annotation(LegacyMixin, TimestampMixin, Base):
-    __tablename__ = "annotation"
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    note: Mapped[str] = mapped_column(nullable=True)
-    entity = relationship("Entity", back_populates="annotations")
-    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
+class AnnotationRoot(LegacyMixin, TimestampMixin, Base):
+    __tablename__ = "annotation_root"
+    id: Mapped[int] = mapped_column(
+        primary_key=True, index=True, nullable=False, autoincrement=True
+    )
+
     annotation_body_id: Mapped[int] = mapped_column(ForeignKey("annotation_body.id"), index=True)
-    annotation_body = relationship("AnnotationBody", uselist=False)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
+
+    # A member of a project can decide to annotate a public mtype
+    # differently than what was originally chosen
+    project_id: Mapped[UUID]
+
+    type: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": "annotation_body",
+        "polymorphic_on": type,
+    }
+
+
+class AnnotationNote(AnnotationRoot):
+    __tablename__ = "annotation_note"
+    id: Mapped[int] = mapped_column(
+        ForeignKey("annotation_root.id"),
+        primary_key=True,
+        index=True,
+        nullable=False,
+        autoincrement=True,
+    )
+
+    note: Mapped[str] = mapped_column(nullable=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": "annotation_note",
+    }
+
+
+class AnnotationEType(AnnotationRoot):
+    __tablename__ = "annotation_etype"
+    id: Mapped[int] = mapped_column(
+        ForeignKey("annotation_root.id"),
+        primary_key=True,
+        index=True,
+        nullable=False,
+        autoincrement=True,
+    )
+
+    # mtype_annotation_body_id: Mapped[int] = mapped_column(
+    #    ForeignKey("etype_annotation_body.id"),
+    #    index=True,
+    #    nullable=False,
+    # )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": "annotation_etype",
+    }
+
+
+class AnnotationMType(AnnotationRoot):
+    __tablename__ = "annotation_mtype"
+    id: Mapped[int] = mapped_column(
+        ForeignKey("annotation_root.id"),
+        primary_key=True,
+        index=True,
+        nullable=False,
+        autoincrement=True,
+    )
+
+    # mtype_annotation_body_id: Mapped[int] = mapped_column(
+    #    ForeignKey("mtype_annotation_body.id"),
+    #    index=True,
+    #    nullable=False,
+    # )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": "annotation_mtype",
+    }
 
 
 class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
+
     id: Mapped[int] = mapped_column(ForeignKey("root.id"), primary_key=True)
     # _type: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
-    annotations = relationship("Annotation", back_populates="entity")
     # TODO: keep the _ ? put on agent ?
     createdBy = relationship("Agent", uselist=False, foreign_keys="Entity.createdBy_id")
     # TODO: move to mandatory
@@ -292,6 +363,8 @@ class Entity(TimestampMixin, Root):
 
     authorized_project_id: Mapped[UUID]
     authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
+
+    annotations = relationship("AnnotationRoot")
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",
@@ -404,12 +477,28 @@ class MEModel(DistributionMixin, LocationMixin, Entity):
 
 class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "reconstruction_morphology"
+
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     # name is not unique
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
+
     morphology_description_vector: Mapped[str] = mapped_column(TSVECTOR, nullable=True)
+
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+
+    mtypes: Mapped[list[MTypeAnnotationBody]] = relationship(
+        "MTypeAnnotationBody",
+        secondary="join(annotation_mtype, annotation_root)",
+        primaryjoin="ReconstructionMorphology.id==AnnotationRoot.entity_id",
+        secondaryjoin=(
+            "and_(AnnotationMType.id==AnnotationRoot.id, "
+            "AnnotationRoot.annotation_body_id==MTypeAnnotationBody.id)"
+        ),
+        viewonly=True,
+        uselist=True,
+    )
+
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 
 

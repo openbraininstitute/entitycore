@@ -5,7 +5,7 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import field_validator
 
 from app.db.model import ReconstructionMorphology
-from app.filters import SpeciesFilter, StrainFilter
+from app.filters import MTypeFilter, SpeciesFilter, StrainFilter
 
 
 class MorphologyFilter(Filter):
@@ -17,8 +17,11 @@ class MorphologyFilter(Filter):
     brain_location_id: int | None = None
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None
+
     species: SpeciesFilter | None = FilterDepends(with_prefix("species", SpeciesFilter))
     strain: StrainFilter | None = FilterDepends(with_prefix("strain", StrainFilter))
+    mtype: MTypeFilter | None = FilterDepends(with_prefix("mtype", MTypeFilter))
+
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(Filter.Constants):

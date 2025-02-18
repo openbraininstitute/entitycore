@@ -1,10 +1,20 @@
+import itertools as it
 import pytest
+
+from app.db.model import (
+    Contribution,
+    Organization,
+    Person,
+    Role,
+)
+
 
 from .utils import (
     BEARER_TOKEN,
     PROJECT_HEADERS,
     UNRELATED_PROJECT_HEADERS,
     create_reconstruction_morphology_id,
+    add_db,
 )
 
 ROUTE = "/contribution/"
@@ -198,7 +208,7 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     assert response.status_code == 200
 
     response = client.get(
-        f"{ROUTE}",
+        ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     assert response.status_code == 200
@@ -207,3 +217,64 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     assert data[0]["id"] == public_obj["id"]
     assert data[0]["entity"]["id"] == public_entity_id
     assert data[0]["entity"]["authorized_public"]
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_contribution_facets(
+    db,
+    client,
+    species_id,
+    strain_id,
+    brain_region_id,
+):
+    person = add_db(
+        db, Person(givenName="givenName", familyName="FamilyName", pref_label="person_pref_label")
+    )
+    person_role = add_db(db, Role(name="PersonRoleName", role_id="role_id"))
+
+    org = add_db(db, Organization(pref_label="org_pref_label", alternative_name="org_alt_name"))
+    org_role = add_db(db, Role(name="OrgRoleName", role_id="role_id_org"))
+
+    for i, (agent, agent_role) in zip(
+        range(10), it.cycle(((person, person_role), (person, person_role), (org, org_role)))
+    ):
+        reconstruction_morphology_id = create_reconstruction_morphology_id(
+            client,
+            species_id,
+            strain_id,
+            brain_region_id,
+            headers=BEARER_TOKEN | PROJECT_HEADERS,
+            name=f"TestMorphologyName{i}",
+            authorized_public=False,
+        )
+        contrib0 = add_db(
+            db,
+            Contribution(
+                agent_id=agent.id, role_id=agent_role.id, entity_id=reconstruction_morphology_id
+            ),
+        )
+
+    response = client.get(
+        "/reconstruction_morphology/",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    facets = response.json()["facets"]
+    assert facets == {
+        "contributors": [
+            {"count": 3, "id": 2, "label": "org_pref_label", "type": "organization"},
+            {"count": 7, "id": 1, "label": "person_pref_label", "type": "person"},
+        ],
+        "species": [{"count": 10, "id": 1, "label": "Test Species", "type": "species"}],
+        "strain": [{"count": 10, "id": 1, "label": "Test Strain", "type": "strain"}],
+    }
+
+    response = client.get(
+        "/reconstruction_morphology/?contributor__pref_label=person_pref_label",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    facets = response.json()["facets"]
+    assert facets == {
+        "contributors": [{"count": 7, "id": 1, "label": "person_pref_label", "type": "person"}],
+        "species": [{"count": 7, "id": 1, "label": "Test Species", "type": "species"}],
+        "strain": [{"count": 7, "id": 1, "label": "Test Strain", "type": "strain"}],
+    }

@@ -5,7 +5,7 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import field_validator
 
 from app.db.model import ReconstructionMorphology
-from app.filters import SpeciesFilter, StrainFilter
+from app.filters import AgentFilter, SpeciesFilter, StrainFilter
 
 
 class MorphologyFilter(Filter):
@@ -19,6 +19,7 @@ class MorphologyFilter(Filter):
     species_id__in: list[int] | None = None
     species: SpeciesFilter | None = FilterDepends(with_prefix("species", SpeciesFilter))
     strain: StrainFilter | None = FilterDepends(with_prefix("strain", StrainFilter))
+    contributor: AgentFilter | None = FilterDepends(with_prefix("contributor", AgentFilter))
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(Filter.Constants):

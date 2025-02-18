@@ -12,7 +12,8 @@ from pydantic import UUID4
 from app.cli import curate, utils
 from app.db.model import (
     AnalysisSoftwareSourceCode,
-    Annotation,
+    AnnotationNote,
+    AnnotationMType,
     BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
@@ -311,15 +312,16 @@ def import_single_neuron_simulation(data, db, file_path, project_id):
             db.commit()
 
 
-def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
+def get_or_create_annotation(annotation_, reconstruction_morphology_id, db, project_id):
     annotation_body_id = get_or_create_annotation_body(annotation_["hasBody"], db)
     if not annotation_body_id:
         return None
 
-    db_annotation = Annotation(
+    db_annotation = AnnotationNote(
         entity_id=reconstruction_morphology_id,
         note=annotation_.get("note", None),
         annotation_body_id=annotation_body_id,
+        project_id=project_id,
     )
     db.add(db_annotation)
     db.commit()
@@ -435,7 +437,7 @@ def import_e_models(data, db, file_path, project_id):
             utils.import_contribution(data, db_item.id, db)
             annotations = ensurelist(data.get("annotation", []))
             for annotation in annotations:
-                get_or_create_annotation(annotation, db_item.id, db)
+                get_or_create_annotation(annotation, db_item.id, db, project_id)
 
 
 def import_brain_region_meshes(data, db, file_path, project_id):
@@ -492,7 +494,7 @@ def import_traces(data_list, db, file_path, project_id):
             utils.import_contribution(data, db_item.id, db)
             annotations = ensurelist(data.get("annotation", []))
             for annotation in annotations:
-                get_or_create_annotation(annotation, db_item.id, db)
+                get_or_create_annotation(annotation, db_item.id, db, project_id)
 
 
 def import_morphologies(data_list, db, file_path, project_id):
@@ -545,20 +547,31 @@ def import_morphologies(data_list, db, file_path, project_id):
             species_id=species_id,
             strain_id=strain_id,
             license_id=license_id,
-            mtype_id=mtype_id,
             authorized_project_id=project_id,
         )
-        total += 1
-        if mtype_id is None:
-            missing_mtype += 1
 
         db.add(db_reconstruction_morphology)
         db.commit()
         db.refresh(db_reconstruction_morphology)
+
         utils.import_contribution(data, db_reconstruction_morphology.id, db)
 
+        total += 1
+
+        if mtype_id is not None:
+            db.add(
+                AnnotationMType(
+                    entity_id=db_reconstruction_morphology.id,
+                    annotation_body_id=mtype_id,
+                    project_id=project_id,
+                )
+            )
+            db.commit()
+        else:
+            missing_mtype += 1
+
         for annotation in annotations:
-            get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
+            get_or_create_annotation(annotation, db_reconstruction_morphology.id, db, project_id)
 
     print(f"{file_path}: \n" f"   total: {total}\n", f"   missing_mtype: {missing_mtype}")
 

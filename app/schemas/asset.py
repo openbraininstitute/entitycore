@@ -8,7 +8,7 @@ class AssetBase(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
     path: str
-    fullpath: str
+    full_path: str
     bucket_name: str
     is_directory: bool
     content_type: str

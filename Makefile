@@ -50,9 +50,16 @@ build:  ## Build the Docker image
 import:  ## Run the import on a database, assumes mba_hierarchy.json and out are in the current dir
 	@$(call load_env,run-local)
 	@test -n "$(PROJECT_ID_IMPORT)" || (echo "Please set the variable PROJECT_ID_IMPORT"; exit 1)
+	@test -n "$(VIRTUAL_LAB_ID_IMPORT)" || (echo "Please set the variable VIRTUAL_LAB_ID_IMPORT"; exit 1)
+	docker compose up --wait db
 	uv run -m alembic upgrade head
 	uv run -m app.cli.import-data hierarchy mba_hierarchy.json
-	uv run -m app.cli.import-data run ./out --project-id $(PROJECT_ID_IMPORT)
+	uv run -m app.cli.import-data run ./out --virtual-lab-id $(VIRTUAL_LAB_ID_IMPORT) --project-id $(PROJECT_ID_IMPORT)
+
+organize-files:  ## Organize files locally by copying them from the backup to the expected location
+	@$(call load_env,run-local)
+	docker compose up --wait db
+	uv run -m app.cli.import-data organize-files files.txt
 
 publish: build  ## Publish the Docker image to DockerHub
 	docker compose push app

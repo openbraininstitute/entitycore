@@ -19,14 +19,10 @@ def build_s3_path(
     filename: str,
     is_public: bool,
 ) -> str:
-    """Return the path used to store the file on S3."""
-    vlab_id = str(vlab_id)
-    proj_id = str(proj_id)
-    entity_id_mod = f"{entity_id % 0xFFFF:04x}"
-    path = f"assets/{entity_type.name}/{entity_id_mod}/{entity_id}/{filename}"
-    if not is_public:
-        path = f"private/{vlab_id[:4]}/{vlab_id}/{proj_id}/{path}"
-    return path
+    """Return the key used to store the file on S3."""
+    prefix = "public" if is_public else "private"
+    # TODO: verify if prefix partitioning is needed for better performance
+    return f"{prefix}/{vlab_id}/{proj_id}/assets/{entity_type.name}/{entity_id}/{filename}"
 
 
 def validate_filename(filename: str) -> bool:

@@ -56,7 +56,7 @@ class AssetRepository(BaseRepository):
                 status=AssetStatus.CREATED,
                 entity_id=entity_id,
                 path=asset.path,
-                fullpath=asset.fullpath,
+                full_path=asset.full_path,
                 bucket_name=asset.bucket_name,
                 is_directory=asset.is_directory,
                 content_type=asset.content_type,

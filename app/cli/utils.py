@@ -1,10 +1,14 @@
 import datetime
 
+import sqlalchemy as sa
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 from app.cli import curate
+from app.config import settings
 from app.db.model import (
     Agent,
+    Asset,
     BrainRegion,
     Contribution,
     License,
@@ -12,7 +16,10 @@ from app.db.model import (
     Species,
     Strain,
 )
+from app.db.types import AssetStatus
 from app.logger import L
+from app.schemas.base import ProjectContext
+from app.utils.s3 import build_s3_path
 
 
 def _find_by_legacy_id(legacy_id, db_type, db):
@@ -153,7 +160,7 @@ def get_or_create_role(role_, db):
 
 def get_or_create_contribution(contribution_, entity_id, db):
     # Check if the Contribution already exists in the database
-    if type(contribution_) is list:
+    if isinstance(contribution_, list):
         for c in contribution_:
             get_or_create_contribution(c, entity_id, db)
         return None
@@ -194,3 +201,56 @@ def get_created_and_updated(data):
         datetime.datetime.fromisoformat(data["_createdAt"]),
         datetime.datetime.fromisoformat(data["_updatedAt"]),
     )
+
+
+def get_or_create_distribution(
+    distribution, entity_id, entity_type, db: Session, project_context: ProjectContext
+):
+    # Check if the Distribution already exists in the database
+    if isinstance(distribution, list):
+        for c in distribution:
+            get_or_create_distribution(c, entity_id, entity_type, db, project_context)
+        return
+
+    bucket_name = settings.S3_PRIVATE_BUCKET_NAME
+    full_path = build_s3_path(
+        vlab_id=project_context.virtual_lab_id,
+        proj_id=project_context.project_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        filename=distribution["name"],
+        is_public=False,
+    )
+    query: sa.Select = sa.Select(Asset).where(Asset.full_path == full_path)
+    row = db.execute(query).scalar_one_or_none()
+    if row:
+        if row.entity_id == entity_id:
+            # Duplicated distribution
+            return
+        L.warning(
+            "Conflicting distribution for ids {}, {}: {}", row.entity_id, entity_id, full_path
+        )
+        return
+    asset = Asset(
+        status=AssetStatus.CREATED,
+        path=distribution["name"],
+        full_path=full_path,
+        bucket_name=bucket_name,
+        is_directory=False,
+        content_type=distribution["encodingFormat"],
+        size=distribution["contentSize"]["value"],
+        sha256_digest=bytes.fromhex(distribution["digest"]["value"]),
+        meta={
+            "legacy": distribution,  # for inspection
+        },
+        entity_id=entity_id,
+    )
+    db.add(asset)
+    db.commit()
+
+
+def import_distribution(data, db_item_id, db_item_type, db, project_context):
+    distribution = data.get("distribution", [])
+    distribution = curate.curate_distribution(distribution, project_context)
+    if distribution:
+        get_or_create_distribution(distribution, db_item_id, db_item_type, db, project_context)

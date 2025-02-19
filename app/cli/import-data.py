@@ -442,8 +442,8 @@ def import_traces(data_list, db, file_path, project_id):
 
             db_item = SingleCellExperimentalTrace(
                 legacy_id=[data.get("@id", None)],
-                name=data.get("name", None),
-                description=data.get("description", None),
+                name=data["name"],
+                description=data["description"],
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
                 species_id=species_id,
@@ -482,8 +482,8 @@ def import_morphologies(data_list, db, file_path, project_id):
 
             db_reconstruction_morphology = ReconstructionMorphology(
                 legacy_id=[data.get("@id", None)],
-                name=data.get("name", None),
-                description=data.get("description", None),
+                name=data["name"],
+                description=data["description"],
                 brain_location=brain_location,
                 brain_region_id=brain_region_id,
                 species_id=species_id,

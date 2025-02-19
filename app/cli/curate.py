@@ -124,7 +124,7 @@ def default_agents():
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ricardi",
             "@type": "Person",
-            "givenName": "Nicolo",
+            "givenName": "Niccolò",
             "familyName": "Ricardi",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
@@ -158,13 +158,6 @@ def default_agents():
 
 def default_licenses():
     return [
-        {
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30b",
-            "label": "undefined",
-            "description": "undefined",
-            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
-            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
-        },
         {
             "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
             "label": "undefined",

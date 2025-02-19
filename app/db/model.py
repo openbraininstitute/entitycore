@@ -295,6 +295,10 @@ class Entity(TimestampMixin, Root):
     authorized_project_id: Mapped[UUID]
     authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
 
+    contributors: Mapped[list["Contribution"]] = relationship(
+        uselist=True,
+        viewonly=True,
+    )
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",
     }
@@ -415,12 +419,6 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     morphology_description_vector: Mapped[str] = mapped_column(TSVECTOR, nullable=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
-
-    contributors = relationship(
-        "Contribution",
-        uselist=True,
-        back_populates="entity",
-    )
 
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 

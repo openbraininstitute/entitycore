@@ -1,4 +1,5 @@
 import itertools as it
+
 import pytest
 
 from app.db.model import (
@@ -8,13 +9,12 @@ from app.db.model import (
     Role,
 )
 
-
 from .utils import (
     BEARER_TOKEN,
     PROJECT_HEADERS,
     UNRELATED_PROJECT_HEADERS,
-    create_reconstruction_morphology_id,
     add_db,
+    create_reconstruction_morphology_id,
 )
 
 ROUTE = "/contribution/"
@@ -92,7 +92,7 @@ def test_create_contribution(
     assert data["agent"]["type"] == "organization"
 
     response = client.get(
-        "/contribution/",
+        ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     assert len(response.json()) == 2
@@ -118,8 +118,8 @@ def test_create_contribution(
     facets = response.json()["facets"]
     assert len(facets["contributors"]) == 2
     assert facets["contributors"] == [
-        {"count": 1, "id": 2, "label": "ACME", "type": "organization"},
-        {"count": 1, "id": 1, "label": "jd courcol", "type": "person"},
+        {"id": 2, "label": "ACME", "type": "organization", "count": 1},
+        {"id": 1, "label": "jd courcol", "type": "person", "count": 1},
     ]
 
 
@@ -247,7 +247,7 @@ def test_contribution_facets(
             name=f"TestMorphologyName{i}",
             authorized_public=False,
         )
-        contrib0 = add_db(
+        add_db(
             db,
             Contribution(
                 agent_id=agent.id, role_id=agent_role.id, entity_id=reconstruction_morphology_id

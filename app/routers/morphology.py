@@ -3,7 +3,7 @@ from typing import Annotated
 import sqlalchemy as sa
 from fastapi import APIRouter
 from fastapi_filter import FilterDepends
-from sqlalchemy.orm import Session, joinedload, aliased
+from sqlalchemy.orm import Session, aliased, joinedload
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
@@ -14,7 +14,6 @@ from app.db.model import (
     ReconstructionMorphology,
     Species,
     Strain,
-    Root,
 )
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
@@ -126,18 +125,18 @@ def _get_facet_contributor(
     db: SessionDep,
     query: sa.Select,
 ) -> list[Facet]:
-    subq = query.join(Agent).subquery()
-
+    agent_alias = aliased(Agent, flat=True)
     facet_q = (
-        sa.select(Agent)
-        .join(Contribution)
-        .join(subq, Contribution.entity_id == subq.c.id)
-        .with_only_columns(Agent.id, Agent.pref_label, Agent.type, sa.func.count().label("count"))
-        .group_by(Agent.id, Agent.pref_label, Agent.type)  # type: ignore[arg-type]
+        query.join(agent_alias, agent_alias.id == Contribution.agent_id)
+        .where(ReconstructionMorphology.id == Contribution.entity_id)
+        .with_only_columns(agent_alias, sa.func.count().label("count"))
+        .group_by(agent_alias)  # type: ignore[arg-type]
+        .order_by(agent_alias.pref_label)  # type: ignore[attr-defined]
     )
+
     return [
-        Facet(id=id_, label=pref_label, type=type_, count=count)
-        for id_, pref_label, type_, count in db.execute(facet_q).all()
+        Facet(id=row.id, label=row.pref_label, count=count, type=row.type)
+        for row, count in db.execute(facet_q).all()
     ]
 
 
@@ -162,7 +161,7 @@ def morphology_query(
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
-        #.outerjoin(Agent, Agent.id == Contribution.agent_id)
+        .outerjoin(Agent, Agent.id == Contribution.agent_id)
     )
 
     if search:
@@ -170,8 +169,7 @@ def morphology_query(
 
     query = morphology_filter.filter(query)
 
-    #facets = _get_facets(db, query, name_to_table)
-    facets = {}
+    facets = _get_facets(db, query, name_to_table)
     facets["contributors"] = _get_facet_contributor(db, query)
 
     query = (

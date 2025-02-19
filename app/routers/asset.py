@@ -12,11 +12,10 @@ from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode
 from app.routers.types import ListResponse, Pagination
-from app.schemas.asset import AssetCreate, AssetRead
+from app.schemas.asset import AssetRead
 from app.service import asset as asset_service
 from app.utils.files import get_content_type
 from app.utils.s3 import (
-    build_s3_path,
     delete_from_s3,
     generate_presigned_url,
     upload_to_s3,
@@ -77,7 +76,6 @@ def upload_entity_asset(
     entity_id: int,
     file: UploadFile,
     meta: Annotated[dict | None, Form()] = None,
-    is_public: Annotated[bool, Form()] = False,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 
@@ -90,32 +88,22 @@ def upload_entity_asset(
         msg = f"Invalid file name {file.filename!r}"
         raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
     content_type = get_content_type(file)
-    bucket_name = settings.S3_PUBLIC_BUCKET_NAME if is_public else settings.S3_PRIVATE_BUCKET_NAME
-    fullpath = build_s3_path(
-        vlab_id=project_context.virtual_lab_id,
-        proj_id=project_context.project_id,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        filename=file.filename,
-        is_public=is_public,
-    )
-    asset_create = AssetCreate(
-        path=file.filename,
-        fullpath=fullpath,
-        bucket_name=bucket_name,
-        is_directory=False,
-        content_type=content_type,
-        size=file.size,
-        meta=meta or {},
-    )
     asset_read = asset_service.create_entity_asset(
         repos=repos,
         project_context=project_context,
         entity_type=entity_type,
         entity_id=entity_id,
-        asset=asset_create,
+        filename=file.filename,
+        content_type=content_type,
+        size=file.size,
+        meta=meta,
     )
-    if not upload_to_s3(s3_client, file_obj=file.file, bucket_name=bucket_name, s3_key=fullpath):
+    if not upload_to_s3(
+        s3_client,
+        file_obj=file.file,
+        bucket_name=asset_read.bucket_name,
+        s3_key=asset_read.fullpath,
+    ):
         raise HTTPException(status_code=500, detail="Failed to upload object")
     return asset_read
 

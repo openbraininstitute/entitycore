@@ -1,12 +1,11 @@
 """Entity repository module."""
 
-from collections.abc import Sequence
 from uuid import UUID
 
 import sqlalchemy as sa
-from sqlalchemy import Row, or_, true
 
-from app.db.model import Base, Entity
+from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
+from app.db.model import Entity
 from app.db.types import EntityType
 from app.repository.base import BaseRepository
 
@@ -14,62 +13,49 @@ from app.repository.base import BaseRepository
 class EntityRepository(BaseRepository):
     """EntityRepository."""
 
-    _descendants = frozenset(
-        mapper.class_.__tablename__
-        for mapper in Base.registry.mappers
-        if issubclass(mapper.class_, Entity)
-    )
-
-    @classmethod
-    def _get_table(cls, name):
-        try:
-            table = Base.metadata.tables[name]
-        except KeyError:
-            err = f"Table {name} not found"
-            raise RuntimeError(err) from None
-        if name not in cls._descendants:
-            err = f"Table {name} is not a subclass of entity"
-            raise TypeError(err)
-        return table
-
-    def get_entity(
+    def get_readable_entity(
         self,
         entity_type: EntityType,
-        entity_id: int | None = None,
-    ) -> Row | None:
-        """Return a specific entity by type and id.
+        entity_id: int,
+        project_id: UUID,
+    ) -> Entity:
+        """Return a specific entity by type and id, readable by the given project.
 
         Args:
             entity_type: type of entity.
             entity_id: id of the entity.
+            project_id: optional project id owning the entity.
 
         Returns:
-            the selected entity, or None if the id doesn't exist.
+            the selected entity if it's public or owned by project_id,
+            or raises NoResultFound if the entity doesn't exist, or it's forbidden.
         """
-        table = self._get_table(entity_type.name)
-        query = sa.select(table).where(table.c.id == entity_id)
-        return self.db.execute(query).one_or_none()
+        query = sa.select(Entity).where(Entity.id == entity_id, Entity.type == entity_type)
+        query = constrain_to_accessible_entities(query, project_id=project_id)
+        return self.db.execute(query).scalar_one()
 
-    def get_entities(
+    def get_writable_entity(
         self,
         entity_type: EntityType,
-        proj_id: UUID | None = None,
-    ) -> Sequence[Row]:
-        """Return a sequence of entities.
+        entity_id: int,
+        project_id: UUID,
+        *,
+        for_update: bool = False,
+    ) -> Entity:
+        """Return a specific entity by type and id, writable by the given project.
 
         Args:
             entity_type: type of entity.
-            proj_id: optional project id owning the entity, used to filter the results.
-                If not specified, only the public entities are returned.
+            entity_id: id of the entity.
+            project_id: project id owning the entity.
+            for_update: if True, lock the row for update.
 
         Returns:
-            a sequence of entities.
+            the selected entity,
+            or raises NoResultFound if the entity doesn't exist, or it's forbidden.
         """
-        table = self._get_table(entity_type.name)
-        query = sa.select(table).where(
-            or_(
-                table.c.authorized_public == true(),
-                (table.c.authorized_project_id == proj_id) if proj_id else true(),
-            )
-        )
-        return self.db.execute(query).scalars().all()
+        query = sa.select(Entity).where(Entity.id == entity_id, Entity.type == entity_type)
+        query = constrain_entity_query_to_project(query, project_id=project_id)
+        if for_update:
+            query = query.with_for_update()
+        return self.db.execute(query).scalar_one()

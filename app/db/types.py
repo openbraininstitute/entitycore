@@ -43,7 +43,7 @@ class EntityType(StrEnum):
     For each entry:
 
     - name (underscore separated): used for table names
-    - value (hyphen separated): used for endpoints ### FIXME
+    - value (hyphen separated): used for endpoints  # TODO: use it to make everything kebab-case
     """
 
     experimental_bouton_density = auto()

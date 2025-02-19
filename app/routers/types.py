@@ -7,9 +7,13 @@ class Pagination(BaseModel):
     total_items: int
 
 
-# Mapping from attribute -> {distinct_value: count}
-# ex: "mType": {"L5_TPC": 10, "L6_BAC": 1},
-type Facets = dict[str, dict[str, int]]
+class Facet(BaseModel):
+    id: int
+    label: str
+    count: int
+
+
+type Facets = dict[str, list[Facet]]
 
 
 class ListResponse[M: BaseModel](BaseModel):

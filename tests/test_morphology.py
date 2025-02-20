@@ -383,9 +383,9 @@ def test_mtype_annotation(db, client, species_id, strain_id, brain_region_id):
         assert "creation_date" in mtype
         del mtype["creation_date"]
 
-    assert data["mtypes"] == [
-        {"alt_label": "m1", "definition": "m1d", "id": 1, "pref_label": "m1"},
-        {"alt_label": "m2", "definition": "m2d", "id": 2, "pref_label": "m2"},
+    assert mtypes == [
+        {"id": 1, "pref_label": "m1", "alt_label": "m1", "definition": "m1d"},
+        {"id": 2, "pref_label": "m2", "alt_label": "m2", "definition": "m2d"},
     ]
 
     response = client.get(f"{ROUTE}?mtype__pref_label=m1", headers=BEARER_TOKEN | PROJECT_HEADERS)

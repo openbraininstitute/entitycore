@@ -27,6 +27,7 @@ def test_mtype(db, client):
     response = client.get(ROUTE + "1")
     assert response.status_code == 200
     data = response.json()
+    assert data["id"] == 1
     assert data["pref_label"] == "pref_label_0"
     assert data["alt_label"] == "alt_label_0"
     assert data["definition"] == "definition_0"

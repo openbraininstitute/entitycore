@@ -136,8 +136,6 @@ def _get_facet_mtypes(
         for row, count in db.execute(facet_q).all()
     ]
 
-    return []
-
 
 @router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
 def morphology_query(

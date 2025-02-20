@@ -12,4 +12,4 @@ class MTypeBase(BaseModel):
 
 
 class MTypeRead(MTypeBase, CreationMixin):
-    pass
+    id: int

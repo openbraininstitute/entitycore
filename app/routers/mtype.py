@@ -8,7 +8,6 @@ from app.schemas.mtype import MTypeRead
 router = APIRouter(
     prefix="/mtype",
     tags=["mtype"],
-    responses={404: {"description": "Not found"}},
 )
 
 

@@ -27,7 +27,8 @@ def curate_role(role):
 def curate_annotation_body(annotation_body):
     if "Mtype" in annotation_body["@type"]:
         annotation_body["@type"] = ["MType", "AnnotationBody"]
-
+    if annotation_body.get("@id", "") == "nsg:InhibitoryNeuron":
+        annotation_body["label"] = "Inhibitory neuron"
     return annotation_body
 
 
@@ -79,7 +80,10 @@ def curate_trace(data):
 def curate_brain_region(data):
     if data["@id"] == "mba:977" and data["label"] == "root":
         data["@id"] = "mba:997"
-
+    data["@id"] = data["@id"].replace("mba:", "")
+    data["@id"] = data["@id"].replace("http://api.brain-map.org/api/v2/data/Structure/", "")
+    if data["@id"] == "root":
+        data["@id"] = "997"
     return data
 
 
@@ -99,6 +103,17 @@ def curate_etype(data):
         data["definition"] = "Thalamus delayed non-adapting low-threshold bursting electrical type"
         data["alt_label"] = "Thalamus delayed non-adapting low-threshold bursting electrical type"
 
+    return data
+
+
+def curate_morphology(data):
+    if data.get("name", "") == "cylindrical_morphology_20.5398":
+        data["subject"] = {
+            "species": {
+                "@id": "NCBITaxon:10090",
+                "label": "Mus musculus",
+            },
+        }
     return data
 
 

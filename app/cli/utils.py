@@ -23,7 +23,7 @@ def _find_by_legacy_id(legacy_id, db_type, db):
 def get_or_create_brain_region(brain_region, db):
     brain_region = curate.curate_brain_region(brain_region)
     # Check if the brain region already exists in the database
-    brain_region_at_id = brain_region["@id"].replace("mba:", "")
+    brain_region_at_id = brain_region["@id"]
     br = db.query(BrainRegion).filter(BrainRegion.id == brain_region_at_id).first()
     if not br:
         # If not, create a new one

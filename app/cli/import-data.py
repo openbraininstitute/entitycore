@@ -468,10 +468,17 @@ def import_traces(data_list, db, file_path, project_id):
 
 
 def import_morphologies(data_list, db, file_path, project_id):
-    possible_data = [data for data in data_list if "ReconstructedNeuronMorphology" in data["@type"]]
+    possible_data = [
+        data
+        for data in data_list
+        if {"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(data.get("@type", {}))
+    ]
+
     if not possible_data:
         return
+
     for data in tqdm(possible_data):
+        curate.curate_morphology(data)
         legacy_id = data["@id"]
         rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
         if not rm:
@@ -726,7 +733,6 @@ def _do_import(db, input_dir, project_id):
         for label, action in l_import.items():
             print(f"importing {label}")
             for file_path in all_files:
-                print(f"   {file_path}")
                 with open(file_path) as f:
                     data = json.load(f)
                     action(data, db, file_path=file_path, project_id=project_id)

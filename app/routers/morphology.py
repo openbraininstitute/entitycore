@@ -153,7 +153,7 @@ def morphology_query(
         "species": Species,
         "strain": Strain,
     }
-
+    agent_alias = aliased(Agent, flat=True)
     query = (
         constrain_to_accessible_entities(
             sa.select(ReconstructionMorphology), project_context.project_id
@@ -161,13 +161,13 @@ def morphology_query(
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
-        .outerjoin(Agent, Agent.id == Contribution.agent_id)
+        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
     )
 
     if search:
         query = query.where(ReconstructionMorphology.morphology_description_vector.match(search))
 
-    query = morphology_filter.filter(query)
+    query = morphology_filter.filter(query, aliases={Agent: agent_alias})
 
     facets = _get_facets(db, query, name_to_table)
     facets["contributors"] = _get_facet_contributor(db, query)

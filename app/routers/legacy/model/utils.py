@@ -183,7 +183,7 @@ def build_response_elem(elem):
             initial_dict["@type"] = [MAP_TYPES[elem.__class__]]
         initial_dict["@id"] = elem.legacy_id[0]
     except Exception:
-        L.exception("elem: %s", elem)
+        L.exception("elem: {}", elem)
         raise
     return {
         "_id": elem.legacy_id[0],

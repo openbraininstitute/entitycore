@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 
+from app.db.auth import constrain_to_accessible_entities
 from app.db.model import BrainLocation, ExperimentalSynapsesPerConnection
+from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
@@ -10,22 +12,40 @@ from app.schemas.density import (
 router = APIRouter(
     prefix="/experimental_synapses_per_connection",
     tags=["experimental_synapses_per_connection"],
-    responses={404: {"description": "Not found"}},
 )
 
 
 @router.get("/", response_model=list[ExperimentalSynapsesPerConnectionRead])
-def read_experimental_neuron_densities(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(ExperimentalSynapsesPerConnection).offset(skip).limit(limit).all()
+def read_experimental_neuron_densities(
+    project_context: VerifiedProjectContextHeader,
+    db: SessionDep,
+    skip: int = 0,
+    limit: int = 10,
+):
+    return (
+        constrain_to_accessible_entities(
+            db.query(ExperimentalSynapsesPerConnection), project_context.project_id
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 @router.get(
     "/{experimental_synapses_per_connection_id}",
     response_model=ExperimentalSynapsesPerConnectionRead,
 )
-def read_experimental_neuron_density(experimental_synapses_per_connection_id: int, db: SessionDep):
+def read_experimental_neuron_density(
+    project_context: VerifiedProjectContextHeader,
+    experimental_synapses_per_connection_id: int,
+    db: SessionDep,
+):
     experimental_synapses_per_connection_id = (
-        db.query(ExperimentalSynapsesPerConnection)
+        constrain_to_accessible_entities(
+            db.query(ExperimentalSynapsesPerConnection),
+            project_context.project_id,
+        )
         .filter(ExperimentalSynapsesPerConnection.id == experimental_synapses_per_connection_id)
         .first()
     )
@@ -41,13 +61,17 @@ def read_experimental_neuron_density(experimental_synapses_per_connection_id: in
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)
 def create_experimental_neuron_density(
-    density: ExperimentalSynapsesPerConnectionCreate, db: SessionDep
+    project_context: VerifiedProjectContextHeader,
+    density: ExperimentalSynapsesPerConnectionCreate,
+    db: SessionDep,
 ):
     dump = density.model_dump()
     if density.brain_location:
         dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
-    db_experimental_neuron_density = ExperimentalSynapsesPerConnection(**dump)
+    db_experimental_neuron_density = ExperimentalSynapsesPerConnection(
+        **dump, authorized_project_id=project_context.project_id
+    )
     db.add(db_experimental_neuron_density)
     db.commit()
     db.refresh(db_experimental_neuron_density)

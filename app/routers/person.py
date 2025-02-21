@@ -7,7 +7,6 @@ from app.schemas.agent import PersonCreate, PersonRead
 router = APIRouter(
     prefix="/person",
     tags=["person"],
-    responses={404: {"description": "Not found"}},
 )
 
 

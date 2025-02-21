@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
     MetaData,
     UniqueConstraint,
     func,
@@ -14,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 
-from app.db.types import StringList, StringListType
+from app.db.types import BIGINT, JSONDICT, AssetStatus, StringList, StringListType
 
 
 class Base(DeclarativeBase):
@@ -525,3 +526,29 @@ class ExperimentalSynapsesPerConnection(LocationMixin, SpeciesMixin, LicensedMix
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     description: Mapped[str] = mapped_column(unique=False, index=False, nullable=False)
     __mapper_args__ = {"polymorphic_identity": "experimental_synapses_per_connection"}  # noqa: RUF012
+
+
+class Asset(TimestampMixin, Base):
+    """Asset table."""
+
+    __tablename__ = "asset"
+    id: Mapped[BIGINT] = mapped_column(primary_key=True)
+    status: Mapped[AssetStatus] = mapped_column(nullable=False)
+    path: Mapped[str] = mapped_column(nullable=False)  # relative path
+    fullpath: Mapped[str] = mapped_column(nullable=False)  # full path on S3
+    bucket_name: Mapped[str]
+    is_directory: Mapped[bool]
+    content_type: Mapped[str]
+    size: Mapped[BIGINT]
+    meta: Mapped[JSONDICT]  # not used yet. can be useful?
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
+
+    # partial unique index
+    __table_args__ = (
+        Index(
+            "ix_asset_fullpath",
+            fullpath,
+            unique=True,
+            postgresql_where=(status != AssetStatus.DELETED.name),
+        ),
+    )

@@ -57,7 +57,7 @@ test-local:  ## Run tests locally
 	@$(call load_env,test-local)
 	docker compose up --wait db-test
 	uv run -m alembic upgrade head
-	uv run -m pytest -sv tests
+	uv run -m pytest
 	uv run -m coverage xml
 	uv run -m coverage html
 
@@ -66,7 +66,7 @@ test-docker: build  ## Run tests in Docker
 
 run-local: ## Run the application locally
 	@$(call load_env,run-local)
-	docker compose up --wait db
+	docker compose up --wait db minio
 	uv run -m alembic upgrade head
 	uv run -m app run --host $(UVICORN_HOST) --port $(UVICORN_PORT) --reload
 

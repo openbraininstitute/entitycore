@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session, aliased, joinedload
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
-    Base,
     BrainLocation,
     Contribution,
     ReconstructionMorphology,
@@ -102,42 +101,27 @@ def create_reconstruction_morphology(
 def _get_facets(
     db: Session,
     query: sa.Select,
-    name_to_table: dict[str, type[Base]],
+    name_to_facet_fields: dict[str, dict],
 ) -> Facets:
     facets = {}
-
-    for name, table in name_to_table.items():
+    groupby_keys = ["id", "label", "type"]
+    orderby_keys = ["label"]
+    for facet_type, fields in name_to_facet_fields.items():
+        groupby_fields = {"type": sa.literal(facet_type), **fields}
+        groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]
+        groupby_ids = [sa.literal(i + 1) for i in range(len(groupby_columns))]
         facet_q = (
-            query.with_only_columns(table, sa.func.count().label("count"))
-            .group_by(table)  # type: ignore[arg-type]
-            .order_by(table.name)  # type: ignore[attr-defined]
+            query.with_only_columns(*groupby_columns, sa.func.count().label("count"))
+            .group_by(*groupby_ids)
+            .order_by(*orderby_keys)
         )
-        facets[name] = [
-            Facet(id=row.id, label=row.name, count=count, type=name)
-            for row, count in db.execute(facet_q).all()
-            if row is not None  # exclude null rows
+        facets[facet_type] = [
+            Facet.model_validate(row, from_attributes=True)
+            for row in db.execute(facet_q).all()
+            if row.id is not None  # exclude null rows if present
         ]
 
     return facets
-
-
-def _get_facet_contributor(
-    db: SessionDep,
-    query: sa.Select,
-) -> list[Facet]:
-    agent_alias = aliased(Agent, flat=True)
-    facet_q = (
-        query.join(agent_alias, agent_alias.id == Contribution.agent_id)
-        .where(ReconstructionMorphology.id == Contribution.entity_id)
-        .with_only_columns(agent_alias, sa.func.count().label("count"))
-        .group_by(agent_alias)  # type: ignore[arg-type]
-        .order_by(agent_alias.pref_label)  # type: ignore[attr-defined]
-    )
-
-    return [
-        Facet(id=row.id, label=row.pref_label, count=count, type=row.type)
-        for row, count in db.execute(facet_q).all()
-    ]
 
 
 @router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
@@ -149,11 +133,16 @@ def morphology_query(
     page: int = 0,
     page_size: int = 10,
 ):
-    name_to_table = {
-        "species": Species,
-        "strain": Strain,
-    }
     agent_alias = aliased(Agent, flat=True)
+    name_to_facet_fields = {
+        "species": {"id": Species.id, "label": Species.name},
+        "strain": {"id": Strain.id, "label": Strain.name},
+        "contributors": {
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
+        },
+    }
     query = (
         constrain_to_accessible_entities(
             sa.select(ReconstructionMorphology), project_context.project_id
@@ -169,8 +158,7 @@ def morphology_query(
 
     query = morphology_filter.filter(query, aliases={Agent: agent_alias})
 
-    facets = _get_facets(db, query, name_to_table)
-    facets["contributors"] = _get_facet_contributor(db, query)
+    facets = _get_facets(db, query, name_to_facet_fields)
 
     query = (
         query.options(joinedload(ReconstructionMorphology.brain_location))

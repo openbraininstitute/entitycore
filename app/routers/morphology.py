@@ -7,6 +7,7 @@ from sqlalchemy.orm import (
     InstrumentedAttribute,
     Session,
     aliased,
+    contains_eager,
     joinedload,
 )
 
@@ -181,12 +182,12 @@ def morphology_query(
     )
 
     query = (
-        query.options(joinedload(ReconstructionMorphology.brain_location))
+        query.options(contains_eager(ReconstructionMorphology.species))
+        .options(contains_eager(ReconstructionMorphology.strain))
+        .options(contains_eager(ReconstructionMorphology.contributors))
         .options(joinedload(ReconstructionMorphology.brain_region))
+        .options(joinedload(ReconstructionMorphology.brain_location))
         .options(joinedload(ReconstructionMorphology.license))
-        .options(joinedload(ReconstructionMorphology.species))
-        .options(joinedload(ReconstructionMorphology.strain))
-        .options(joinedload(ReconstructionMorphology.contributors))
     )
 
     data = db.execute(

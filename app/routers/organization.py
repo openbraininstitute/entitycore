@@ -15,15 +15,16 @@ router = APIRouter(
 
 
 @router.get("/", response_model=ListResponse[OrganizationRead])
-def read_organizations(db: SessionDep,
+def read_organizations(
+    db: SessionDep,
     pagination_request: PaginationQuery,
-    ):
+):
     query = sa.select(Organization)
 
     data = db.execute(
-        query
-        .offset(pagination_request.page * pagination_request.page_size)
-        .limit(pagination_request.page_size)
+        query.offset(pagination_request.page * pagination_request.page_size).limit(
+            pagination_request.page_size
+        )
     ).scalars()
 
     total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()

@@ -1,6 +1,6 @@
+import sqlalchemy as sa
 from fastapi import APIRouter
 
-import sqlalchemy as sa
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     BrainLocation,
@@ -8,9 +8,9 @@ from app.db.model import (
 )
 from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
-from app.routers.types import ListResponse, PaginationResponse
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
+from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
@@ -29,13 +29,13 @@ def read_experimental_bouton_densities(
     pagination_request: PaginationQuery,
 ):
     query = constrain_to_accessible_entities(
-            sa.select(ExperimentalBoutonDensity), project_context.project_id
-        )
+        sa.select(ExperimentalBoutonDensity), project_context.project_id
+    )
 
     data = db.execute(
-        query
-        .offset(pagination_request.page * pagination_request.page_size)
-        .limit(pagination_request.page_size)
+        query.offset(pagination_request.page * pagination_request.page_size).limit(
+            pagination_request.page_size
+        )
     ).scalars()
 
     total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()

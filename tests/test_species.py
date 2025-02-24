@@ -6,7 +6,7 @@ def test_create_species(client):
     response = client.post(ROUTE, json={"name": name, "taxonomy_id": "12345"})
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "Test Species"
+    assert data["name"] == name
     assert data["taxonomy_id"] == "12345"
     assert "id" in data
     id_ = data["id"]

@@ -8,6 +8,7 @@ from sqlalchemy.orm import (
     Session,
     aliased,
     joinedload,
+    raiseload,
 )
 
 from app.db.auth import constrain_to_accessible_entities
@@ -189,6 +190,7 @@ def morphology_query(
         .limit(page_size)
     ).subquery("distinct_ids")
 
+    # FIXME: person.* and organization.alternative_name aren't loaded eagerly
     data_query = (
         morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
         .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
@@ -199,6 +201,7 @@ def morphology_query(
         .options(joinedload(ReconstructionMorphology.brain_region))
         .options(joinedload(ReconstructionMorphology.brain_location))
         .options(joinedload(ReconstructionMorphology.license))
+        .options(raiseload("*"))
     )
 
     # unique is needed b/c it contains results that include joined eager loads against collections

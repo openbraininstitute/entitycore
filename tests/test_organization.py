@@ -19,7 +19,8 @@ def test_create_organization(client):
     assert data["id"] == id_
     response = client.get("/organization/")
     assert response.status_code == 200
-    data = response.json()
+
+    data = response.json()["data"]
     assert data[0]["id"] == id_
     assert len(data) == 1
 

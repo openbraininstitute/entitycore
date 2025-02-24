@@ -1,9 +1,7 @@
 import sqlalchemy as sa
 from fastapi import APIRouter
 
-from app.db.model import (
-    License,
-)
+from app.db.model import License
 from app.dependencies import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result

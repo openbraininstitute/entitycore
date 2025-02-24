@@ -1,10 +1,13 @@
+import sqlalchemy as sa
 from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import BrainLocation, ExperimentalSynapsesPerConnection
+from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
+from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
@@ -16,21 +19,35 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[ExperimentalSynapsesPerConnectionRead])
+@router.get("/", response_model=ListResponse[ExperimentalSynapsesPerConnectionRead])
 def read_experimental_neuron_densities(
-    project_context: VerifiedProjectContextHeader,
     db: SessionDep,
-    skip: int = 0,
-    limit: int = 10,
+    project_context: VerifiedProjectContextHeader,
+    pagination_request: PaginationQuery,
 ):
-    return (
-        constrain_to_accessible_entities(
-            db.query(ExperimentalSynapsesPerConnection), project_context.project_id
+    query = constrain_to_accessible_entities(
+            sa.select(ExperimentalSynapsesPerConnection), project_context.project_id
         )
-        .offset(skip)
-        .limit(limit)
-        .all()
+
+    data = db.execute(
+        query
+        .offset(pagination_request.page * pagination_request.page_size)
+        .limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+
+    response = ListResponse[ExperimentalSynapsesPerConnectionRead](
+        data=data,
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
     )
+
+    return response
 
 
 @router.get(

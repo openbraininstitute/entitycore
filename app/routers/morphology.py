@@ -1,9 +1,14 @@
-from typing import Annotated
+from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
 from fastapi import APIRouter
 from fastapi_filter import FilterDepends
-from sqlalchemy.orm import Session, aliased, joinedload
+from sqlalchemy.orm import (
+    InstrumentedAttribute,
+    Session,
+    aliased,
+    joinedload,
+)
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
@@ -29,6 +34,12 @@ router = APIRouter(
     prefix="/reconstruction_morphology",
     tags=["reconstruction_morphology"],
 )
+
+
+class FacetQueryParams(TypedDict):
+    id: InstrumentedAttribute[int]
+    label: InstrumentedAttribute[str]
+    type: NotRequired[InstrumentedAttribute[str]]
 
 
 @router.get(
@@ -101,17 +112,21 @@ def create_reconstruction_morphology(
 def _get_facets(
     db: Session,
     query: sa.Select,
-    name_to_facet_fields: dict[str, dict],
+    name_to_facet_query_params: dict[str, FacetQueryParams],
+    count_distinct_field: InstrumentedAttribute,
 ) -> Facets:
     facets = {}
     groupby_keys = ["id", "label", "type"]
     orderby_keys = ["label"]
-    for facet_type, fields in name_to_facet_fields.items():
+    for facet_type, fields in name_to_facet_query_params.items():
         groupby_fields = {"type": sa.literal(facet_type), **fields}
-        groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]
+        groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]  # type: ignore[attr-defined]
         groupby_ids = [sa.literal(i + 1) for i in range(len(groupby_columns))]
         facet_q = (
-            query.with_only_columns(*groupby_columns, sa.func.count().label("count"))
+            query.with_only_columns(
+                *groupby_columns,
+                sa.func.count(sa.func.distinct(count_distinct_field)).label("count"),
+            )
             .group_by(*groupby_ids)
             .order_by(*orderby_keys)
         )
@@ -134,7 +149,7 @@ def morphology_query(
     page_size: int = 10,
 ):
     agent_alias = aliased(Agent, flat=True)
-    name_to_facet_fields = {
+    name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},
         "contributors": {
@@ -158,7 +173,12 @@ def morphology_query(
 
     query = morphology_filter.filter(query, aliases={Agent: agent_alias})
 
-    facets = _get_facets(db, query, name_to_facet_fields)
+    facets = _get_facets(
+        db,
+        query,
+        name_to_facet_query_params=name_to_facet_query_params,
+        count_distinct_field=ReconstructionMorphology.id,
+    )
 
     query = (
         query.options(joinedload(ReconstructionMorphology.brain_location))

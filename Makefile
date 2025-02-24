@@ -31,12 +31,12 @@ check-deps:  ## Check that the dependencies in the existing lock file are valid
 	uv lock --locked
 
 format:  ## Run formatters
-	uv run -m ruff format app tests
-	uv run -m ruff check --fix app tests
+	uv run -m ruff format
+	uv run -m ruff check --fix
 
 lint:  ## Run linters
-	uv run -m ruff format --check app tests
-	uv run -m ruff check app tests
+	uv run -m ruff format --check
+	uv run -m ruff check
 	uv run -m mypy app
 
 build:  ## Build the Docker image
@@ -69,11 +69,6 @@ run-local: ## Run the application locally
 	docker compose up --wait db
 	uv run -m alembic upgrade head
 	uv run -m app run --host $(UVICORN_HOST) --port $(UVICORN_PORT) --reload
-
-import:  ## Run the import on a database, assumes mba_hierarchy.json and out are in the current dir
-	uv run -m alembic upgrade head
-	uv run -m app.cli.import-data hierarchy mba_hierarchy.json
-	uv run -m app.cli.import-data run ./out
 
 run-docker: build  ## Run the application in Docker
 	docker compose up app --watch --remove-orphans

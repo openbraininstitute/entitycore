@@ -30,7 +30,7 @@ class ReconstructionMorphologyCreate(
     AuthorizationOptionalPublicMixin,
 ):
     species_id: int
-    strain_id: int
+    strain_id: int | None
     brain_region_id: int
     legacy_id: str | None
 

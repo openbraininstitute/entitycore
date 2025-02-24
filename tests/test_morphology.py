@@ -295,3 +295,59 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         f"{ROUTE}{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
     )
     assert response.status_code == 404
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_pagination(db, client, brain_region_id):
+    species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="0"))
+    species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="1"))
+    strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
+    strain1 = add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species1.id))
+
+    total_items = 29
+    for i, (species, strain) in zip(
+        range(total_items), it.cycle(((species0, None), (species0, strain0), (species1, strain1)))
+    ):
+        create_reconstruction_morphology_id(
+            client,
+            species.id,
+            strain.id if strain else None,
+            brain_region_id,
+            headers=BEARER_TOKEN | PROJECT_HEADERS,
+            name=f"TestMorphologyName{i}",
+            authorized_public=False,
+        )
+
+    response = client.get(
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["data"]) == total_items
+
+    for i in range(0, total_items + 10, 2):
+        response = client.get(
+            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": i}
+        )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        expected_items = min(i, total_items)
+        assert len(data) == expected_items
+        names = [int(d["name"].removeprefix("TestMorphologyName")) for d in data]
+        assert list(names) == list(range(total_items - 1, total_items - expected_items - 1, -1))
+
+    items = []
+    for i in range(total_items):
+        response = client.get(
+            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page": i, "page_size": 1}
+        )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 1
+        items.append(data[0])
+
+    assert len(items) == total_items
+    names = [int(d["name"].removeprefix("TestMorphologyName")) for d in items]
+    assert list(reversed(names)) == list(range(total_items))

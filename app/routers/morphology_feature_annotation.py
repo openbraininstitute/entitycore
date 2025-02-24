@@ -1,3 +1,4 @@
+import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
@@ -8,10 +9,12 @@ from app.db.model import (
     MorphologyMeasurementSerieElement,
     ReconstructionMorphology,
 )
+from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.logger import L
+from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
     MorphologyFeatureAnnotationRead,
@@ -23,19 +26,36 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[MorphologyFeatureAnnotationRead])
+@router.get("/", response_model=ListResponse[MorphologyFeatureAnnotationRead])
 def read_morphology_feature_annotations(
-    project_context: VerifiedProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
+    db: SessionDep,
+    project_context: VerifiedProjectContextHeader,
+    pagination_request: PaginationQuery,
 ):
-    return (
-        constrain_to_accessible_entities(
-            db.query(MorphologyFeatureAnnotation).join(ReconstructionMorphology),
-            project_context.project_id,
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
+    query = constrain_to_accessible_entities(
+        sa.select(MorphologyFeatureAnnotation).join(ReconstructionMorphology),
+        project_context.project_id,
     )
+
+    data = db.execute(
+        query.offset(pagination_request.page * pagination_request.page_size).limit(
+            pagination_request.page_size
+        )
+    ).scalars()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+
+    response = ListResponse[MorphologyFeatureAnnotationRead](
+        data=data,
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
 
 
 @router.get(

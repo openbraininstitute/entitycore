@@ -1,4 +1,7 @@
+from app.routers.types import ListResponse, PaginationResponse
+import sqlalchemy as sa
 from fastapi import APIRouter
+from app.dependencies import PaginationQuery
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import BrainLocation, ExperimentalNeuronDensity
@@ -16,21 +19,35 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[ExperimentalNeuronDensityRead])
+@router.get("/", response_model=ListResponse[ExperimentalNeuronDensityRead])
 def read_experimental_neuron_densities(
-    project_context: VerifiedProjectContextHeader,
     db: SessionDep,
-    skip: int = 0,
-    limit: int = 10,
+    project_context: VerifiedProjectContextHeader,
+    pagination_request: PaginationQuery,
 ):
-    return (
-        constrain_to_accessible_entities(
-            db.query(ExperimentalNeuronDensity), project_context.project_id
+    query = constrain_to_accessible_entities(
+            sa.select(ExperimentalNeuronDensity), project_context.project_id
         )
-        .offset(skip)
-        .limit(limit)
-        .all()
+
+    data = db.execute(
+        query
+        .offset(pagination_request.page * pagination_request.page_size)
+        .limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+
+    response = ListResponse[ExperimentalNeuronDensityRead](
+        data=data,
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
     )
+
+    return response
 
 
 @router.get(

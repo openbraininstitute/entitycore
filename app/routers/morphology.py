@@ -190,7 +190,7 @@ def morphology_query(
         .limit(page_size)
     ).subquery("distinct_ids")
 
-    # FIXME: person.* and organization.alternative_name aren't loaded eagerly
+    # TODO: load person.* and organization.* eagerly
     data_query = (
         morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
         .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)

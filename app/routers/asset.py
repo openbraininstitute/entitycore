@@ -11,7 +11,7 @@ from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode
-from app.routers.types import ListResponse, Pagination
+from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.asset import AssetRead
 from app.service import asset as asset_service
 from app.utils.files import get_content_type
@@ -44,7 +44,7 @@ def get_entity_assets(
         entity_id=entity_id,
     )
     # TODO: proper pagination
-    pagination = Pagination(page=1, page_size=len(assets), total_items=len(assets))
+    pagination = PaginationResponse(page=1, page_size=len(assets), total_items=len(assets))
     return ListResponse[AssetRead](data=assets, pagination=pagination)
 
 

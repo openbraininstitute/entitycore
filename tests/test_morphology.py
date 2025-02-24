@@ -105,7 +105,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     response = client.get(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"order_by": "+creation_date", "page_size": 100},
+        params={"page_size": 100, "order_by": "+creation_date"},
     )
     assert response.status_code == 200
     data = response.json()["data"]
@@ -325,7 +325,7 @@ def test_pagination(db, client, brain_region_id):
     assert response.status_code == 200
     assert len(response.json()["data"]) == total_items
 
-    for i in range(0, total_items + 10, 2):
+    for i in range(1, total_items + 10, 2):
         response = client.get(
             ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": i}
         )

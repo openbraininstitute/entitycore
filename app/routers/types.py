@@ -1,7 +1,16 @@
-from pydantic import BaseModel
+from typing import Annotated
+
+from fastapi import Query
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
-class Pagination(BaseModel):
+class PaginationRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    page: int
+    page_size: int
+
+
+class PaginationResponse(BaseModel):
     page: int
     page_size: int
     total_items: int
@@ -18,5 +27,5 @@ type Facets = dict[str, list[Facet]]
 
 class ListResponse[M: BaseModel](BaseModel):
     data: list[M]
-    pagination: Pagination
+    pagination: PaginationResponse
     facets: Facets | None = None

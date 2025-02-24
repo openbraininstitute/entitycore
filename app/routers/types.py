@@ -1,22 +1,24 @@
-from typing import Annotated
-
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict
 
 
 class PaginationRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
     page: int
     page_size: int
 
 
 class PaginationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     page: int
     page_size: int
     total_items: int
 
 
 class Facet(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     label: str
     count: int

@@ -111,8 +111,8 @@ def _get_facets(
 @router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
 def morphology_query(
     db: SessionDep,
-    pagination_request: PaginationQuery,
     project_context: VerifiedProjectContextHeader,
+    pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
 ):

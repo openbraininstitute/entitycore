@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.db.model import (
     License,
 )
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.schemas.base import (
     LicenseCreate,
     LicenseRead,
@@ -22,10 +23,9 @@ def read_licenses(db: SessionDep, skip: int = 0, limit: int = 10):
 
 @router.get("/{license_id}", response_model=LicenseRead)
 def read_license(license_id: int, db: SessionDep):
-    license = db.query(License).filter(License.id == license_id).first()
-    if license is None:
-        raise HTTPException(status_code=404, detail="License not found")
-    return license
+    with ensure_result(error_message="License not found"):
+        row = db.query(License).filter(License.id == license_id).one()
+    return row
 
 
 @router.post("/", response_model=LicenseRead)

@@ -6,7 +6,7 @@ from app.db.model import ReconstructionMorphology, Species, Strain
 
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
-ROUTE = "/reconstruction_morphology/"
+ROUTE = "/reconstruction-morphology/"
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -133,7 +133,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     )
 
     response = client.get(
-        "/reconstruction_morphology/",
+        ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"order_by": "+creation_date", "page": 0, "page_size": 3},
     )

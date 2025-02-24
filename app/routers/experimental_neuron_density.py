@@ -1,16 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import BrainLocation, ExperimentalNeuronDensity
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.schemas.density import (
     ExperimentalNeuronDensityCreate,
     ExperimentalNeuronDensityRead,
 )
 
 router = APIRouter(
-    prefix="/experimental_neuron_density",
+    prefix="/experimental-neuron-density",
     tags=["experimental_neuron_density"],
 )
 
@@ -41,17 +42,16 @@ def read_experimental_neuron_density(
     experimental_neuron_density_id: int,
     db: SessionDep,
 ):
-    experimental_neuron_density = (
-        constrain_to_accessible_entities(
-            db.query(ExperimentalNeuronDensity), project_context.project_id
+    with ensure_result(error_message="ExperimentalNeuronDensity not found"):
+        row = (
+            constrain_to_accessible_entities(
+                db.query(ExperimentalNeuronDensity), project_context.project_id
+            )
+            .filter(ExperimentalNeuronDensity.id == experimental_neuron_density_id)
+            .one()
         )
-        .filter(ExperimentalNeuronDensity.id == experimental_neuron_density_id)
-        .first()
-    )
 
-    if experimental_neuron_density is None:
-        raise HTTPException(status_code=404, detail="experimental_neuron_density not found")
-    return ExperimentalNeuronDensityRead.model_validate(experimental_neuron_density)
+    return ExperimentalNeuronDensityRead.model_validate(row)
 
 
 @router.post("/", response_model=ExperimentalNeuronDensityRead)

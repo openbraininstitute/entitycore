@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.db.model import Role
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.schemas.role import RoleCreate, RoleRead
 
 router = APIRouter(
@@ -10,13 +11,16 @@ router = APIRouter(
 )
 
 
+@router.get("/", response_model=list[RoleRead])
+def read_role(db: SessionDep, skip: int = 0, limit: int = 10):
+    return db.query(Role).offset(skip).limit(limit).all()
+
+
 @router.get("/{role_id}", response_model=RoleRead)
 def read_person(role_id: int, db: SessionDep):
-    role = db.query(Role).filter(Role.id == role_id).first()
-
-    if role is None:
-        raise HTTPException(status_code=404, detail="role not found")
-    return RoleRead.model_validate(role)
+    with ensure_result(error_message="Role not found"):
+        row = db.query(Role).filter(Role.id == role_id).one()
+    return row
 
 
 @router.post("/", response_model=RoleRead)
@@ -28,9 +32,4 @@ def create_role(role: RoleCreate, db: SessionDep):
     db.add(db_role)
     db.commit()
     db.refresh(db_role)
-    return RoleRead.model_validate(db_role)
-
-
-@router.get("/", response_model=list[RoleRead])
-def read_role(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(Role).offset(skip).limit(limit).all()
+    return db_role

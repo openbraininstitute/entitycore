@@ -26,8 +26,8 @@ from app.schemas.morphology import (
 )
 
 router = APIRouter(
-    prefix="/reconstruction_morphology",
-    tags=["reconstruction_morphology"],
+    prefix="/reconstruction-morphology",
+    tags=["reconstruction-morphology"],
 )
 
 

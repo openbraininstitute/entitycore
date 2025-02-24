@@ -10,6 +10,7 @@ from app.db.model import (
 )
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.logger import L
 from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
@@ -17,8 +18,8 @@ from app.schemas.morphology import (
 )
 
 router = APIRouter(
-    prefix="/morphology_feature_annotation",
-    tags=["brain_region"],
+    prefix="/morphology-feature-annotation",
+    tags=["morphology-feature-annotation"],
 )
 
 
@@ -46,18 +47,16 @@ def read_morphology_feature_annotation_id(
     project_context: VerifiedProjectContextHeader,
     db: SessionDep,
 ):
-    row = (
-        db.query(MorphologyFeatureAnnotation)
-        .filter(
-            MorphologyFeatureAnnotation.reconstruction_morphology_id
-            == morphology_feature_annotation_id
+    with ensure_result(error_message="MorphologyFeatureAnnotation not found"):
+        row = (
+            db.query(MorphologyFeatureAnnotation)
+            .filter(
+                MorphologyFeatureAnnotation.reconstruction_morphology_id
+                == morphology_feature_annotation_id
+            )
+            .join(ReconstructionMorphology)
+            .one()
         )
-        .join(ReconstructionMorphology)
-        .first()
-    )
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="Morphology annotation not found")
 
     if (
         not row.reconstruction_morphology.authorized_public

@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.db.model import Organization
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.schemas.agent import OrganizationCreate, OrganizationRead
 
 router = APIRouter(
@@ -10,13 +11,16 @@ router = APIRouter(
 )
 
 
+@router.get("/", response_model=list[OrganizationRead])
+def read_organizations(db: SessionDep, skip: int = 0, limit: int = 10):
+    return db.query(Organization).offset(skip).limit(limit).all()
+
+
 @router.get("/{organization_id}", response_model=OrganizationRead)
 def read_organization(organization_id: int, db: SessionDep):
-    organization = db.query(Organization).filter(Organization.id == organization_id).first()
-
-    if organization is None:
-        raise HTTPException(status_code=404, detail="organization not found")
-    return OrganizationRead.model_validate(organization)
+    with ensure_result(error_message="Organization not found"):
+        row = db.query(Organization).filter(Organization.id == organization_id).one()
+    return OrganizationRead.model_validate(row)
 
 
 @router.post("/", response_model=OrganizationRead)
@@ -26,8 +30,3 @@ def create_organization(organization: OrganizationCreate, db: SessionDep):
     db.commit()
     db.refresh(db_organization)
     return db_organization
-
-
-@router.get("/", response_model=list[OrganizationRead])
-def read_organizations(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(Organization).offset(skip).limit(limit).all()

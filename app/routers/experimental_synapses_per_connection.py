@@ -1,16 +1,17 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import BrainLocation, ExperimentalSynapsesPerConnection
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
 )
 
 router = APIRouter(
-    prefix="/experimental_synapses_per_connection",
+    prefix="/experimental-synapses-per-connection",
     tags=["experimental_synapses_per_connection"],
 )
 
@@ -41,22 +42,17 @@ def read_experimental_neuron_density(
     experimental_synapses_per_connection_id: int,
     db: SessionDep,
 ):
-    experimental_synapses_per_connection_id = (
-        constrain_to_accessible_entities(
-            db.query(ExperimentalSynapsesPerConnection),
-            project_context.project_id,
+    with ensure_result(error_message="ExperimentalSynapsesPerConnection not found"):
+        row = (
+            constrain_to_accessible_entities(
+                db.query(ExperimentalSynapsesPerConnection),
+                project_context.project_id,
+            )
+            .filter(ExperimentalSynapsesPerConnection.id == experimental_synapses_per_connection_id)
+            .one()
         )
-        .filter(ExperimentalSynapsesPerConnection.id == experimental_synapses_per_connection_id)
-        .first()
-    )
 
-    if experimental_synapses_per_connection_id is None:
-        raise HTTPException(
-            status_code=404, detail="experimental_synapses_per_connection not found"
-        )
-    return ExperimentalSynapsesPerConnectionRead.model_validate(
-        experimental_synapses_per_connection_id
-    )
+    return ExperimentalSynapsesPerConnectionRead.model_validate(row)
 
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)

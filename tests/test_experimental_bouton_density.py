@@ -2,7 +2,7 @@ import pytest
 
 from .utils import PROJECT_HEADERS
 
-ROUTE = "/experimental_bouton_density/"
+ROUTE = "/experimental-bouton-density/"
 
 
 @pytest.mark.usefixtures("skip_project_check")

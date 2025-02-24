@@ -52,7 +52,7 @@ def read_experimental_neuron_density(
             .one()
         )
 
-    return ExperimentalSynapsesPerConnectionRead.model_validate(row)
+    return row
 
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)

@@ -25,7 +25,7 @@ def read_role(db: SessionDep, skip: int = 0, limit: int = 10):
 def read_person(role_id: int, db: SessionDep):
     with ensure_result(error_message="Species not found"):
         row = db.query(Species).filter(Species.id == role_id).one()
-    return SpeciesRead.model_validate(row)
+    return row
 
 
 @router.post("/", response_model=SpeciesRead)

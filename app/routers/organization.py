@@ -20,7 +20,7 @@ def read_organizations(db: SessionDep, skip: int = 0, limit: int = 10):
 def read_organization(organization_id: int, db: SessionDep):
     with ensure_result(error_message="Organization not found"):
         row = db.query(Organization).filter(Organization.id == organization_id).one()
-    return OrganizationRead.model_validate(row)
+    return row
 
 
 @router.post("/", response_model=OrganizationRead)

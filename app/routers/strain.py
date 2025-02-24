@@ -25,7 +25,7 @@ def read_organizations(db: SessionDep, skip: int = 0, limit: int = 10):
 def read_organization(organization_id: int, db: SessionDep):
     with ensure_result(error_message="Strain not found"):
         row = db.query(Strain).filter(Strain.id == organization_id).one()
-    return StrainRead.model_validate(row)
+    return row
 
 
 @router.post("/", response_model=StrainRead)

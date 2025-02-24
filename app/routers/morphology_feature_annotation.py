@@ -65,7 +65,7 @@ def read_morphology_feature_annotation_id(
         L.warning("Attempting to get an annotation for an entity the user does not have access to")
         raise HTTPException(status_code=404, detail="Morphology annotation not found")
 
-    return MorphologyFeatureAnnotationRead.model_validate(row)
+    return row
 
 
 @router.post("/", response_model=MorphologyFeatureAnnotationRead)

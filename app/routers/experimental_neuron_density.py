@@ -51,7 +51,7 @@ def read_experimental_neuron_density(
             .one()
         )
 
-    return ExperimentalNeuronDensityRead.model_validate(row)
+    return row
 
 
 @router.post("/", response_model=ExperimentalNeuronDensityRead)

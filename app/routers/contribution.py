@@ -5,6 +5,7 @@ from app.db.auth import constrain_entity_query_to_project, constrain_to_accessib
 from app.db.model import Contribution, Entity
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.logger import L
 from app.schemas.contribution import ContributionCreate, ContributionRead
 
@@ -21,20 +22,18 @@ router = APIRouter(
 def read_contribution(
     contribution_id: int, project_context: VerifiedProjectContextHeader, db: SessionDep
 ):
-    row = (
-        db.query(Contribution)
-        .filter(Contribution.id == contribution_id)
-        .join(Contribution.entity)
-        .options(
-            contains_eager(Contribution.entity).load_only(
-                Entity.authorized_project_id, Entity.authorized_public
+    with ensure_result(error_message="Contribution not found"):
+        row = (
+            db.query(Contribution)
+            .filter(Contribution.id == contribution_id)
+            .join(Contribution.entity)
+            .options(
+                contains_eager(Contribution.entity).load_only(
+                    Entity.authorized_project_id, Entity.authorized_public
+                )
             )
+            .one()
         )
-        .first()
-    )
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="contribution not found")
 
     if (
         not row.entity.authorized_public
@@ -68,7 +67,7 @@ def create_contribution(
     db.commit()
     db.refresh(db_contribution)
 
-    return ContributionRead.model_validate(db_contribution)
+    return db_contribution
 
 
 @router.get("/", response_model=list[ContributionRead])

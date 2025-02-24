@@ -54,7 +54,7 @@ def read_experimental_bouton_density(
             .one()
         )
 
-    return ExperimentalBoutonDensityRead.model_validate(row)
+    return row
 
 
 @router.post("/", response_model=ExperimentalBoutonDensityRead)

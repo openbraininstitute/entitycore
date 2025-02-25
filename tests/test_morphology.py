@@ -149,13 +149,14 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
+        "contributions": [],
         "species": [
-            {"id": 1, "label": "TestSpecies1", "count": 6},
-            {"id": 2, "label": "TestSpecies2", "count": 5},
+            {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
+            {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
         ],
         "strain": [
-            {"id": 1, "label": "TestStrain1", "count": 6},
-            {"id": 2, "label": "TestStrain2", "count": 5},
+            {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
+            {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
         ],
     }
 
@@ -166,13 +167,14 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
+        "contributions": [],
         "species": [
-            {"id": 1, "label": "TestSpecies1", "count": 6},
-            {"id": 2, "label": "TestSpecies2", "count": 5},
+            {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
+            {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
         ],
         "strain": [
-            {"id": 1, "label": "TestStrain1", "count": 6},
-            {"id": 2, "label": "TestStrain2", "count": 5},
+            {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
+            {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
         ],
     }
 
@@ -186,8 +188,9 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "species": [{"id": 1, "label": "TestSpecies1", "count": 6}],
-        "strain": [{"id": 1, "label": "TestStrain1", "count": 6}],
+        "contributions": [],
+        "species": [{"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"}],
+        "strain": [{"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"}],
     }
 
 
@@ -218,8 +221,9 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     assert len(data["data"]) == data["pagination"]["total_items"]
     assert "facets" in data
     assert data["facets"] == {
-        "species": [{"id": 1, "label": "TestSpecies0", "count": 1}],
-        "strain": [{"id": 1, "label": "Strain0", "count": 1}],
+        "contributions": [],
+        "species": [{"id": 1, "label": "TestSpecies0", "count": 1, "type": "species"}],
+        "strain": [{"id": 1, "label": "Strain0", "count": 1, "type": "strain"}],
     }
 
 

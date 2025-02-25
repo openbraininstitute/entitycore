@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.application import app
 from app.config import settings
-from app.db.model import Base
+from app.db.model import Base, Organization, Person, Role
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
 from tests import utils
@@ -70,24 +70,40 @@ def _db_cleanup(db):
 
 
 @pytest.fixture
-def person_id(client):
-    response = client.post(
-        "/person/",
-        json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"},
+def person_id(db):
+    row = Person(
+        givenName="jd",
+        familyName="courcol",
+        pref_label="jd courcol",
     )
-    assert response.status_code == 200
-    data = response.json()
-    return data["id"]
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row.id
 
 
 @pytest.fixture
-def role_id(client):
-    response = client.post(
-        "/role/", json={"name": "important role", "role_id": "important role id"}
+def organization_id(db):
+    row = Organization(
+        pref_label="ACME",
+        alternative_name="A Company Making Everything",
     )
-    assert response.status_code == 200
-    data = response.json()
-    return data["id"]
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row.id
+
+
+@pytest.fixture
+def role_id(db):
+    row = Role(
+        name="important role",
+        role_id="important role id",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row.id
 
 
 @pytest.fixture

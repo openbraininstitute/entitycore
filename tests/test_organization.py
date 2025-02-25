@@ -11,12 +11,14 @@ def test_create_organization(client):
     assert data["alternative_name"] == alternative_name
     assert "id" in data
     id_ = data["id"]
+
     response = client.get(f"/organization/{id_}")
     assert response.status_code == 200
     data = response.json()
     assert data["pref_label"] == label
     assert data["alternative_name"] == alternative_name
     assert data["id"] == id_
+
     response = client.get("/organization/")
     assert response.status_code == 200
     data = response.json()
@@ -24,7 +26,7 @@ def test_create_organization(client):
     assert len(data) == 1
 
 
-def test_missing_organization(client):
+def test_missing(client):
     response = client.get("/organization/42424242")
     assert response.status_code == 404
 

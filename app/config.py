@@ -37,6 +37,13 @@ class Settings(BaseSettings):
 
     KEYCLOAK_URL: str = "https://example.openbluebrain.com/auth/realms/SBO/"
 
+    S3_PRIVATE_BUCKET_NAME: str = "obi-private"
+    S3_PUBLIC_BUCKET_NAME: str = "obi-public"
+    S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value
+    S3_PRESIGNED_URL_EXPIRATION: int = 600  # seconds  # TODO: decide an appropriate value
+
+    API_ASSET_POST_MAX_SIZE: int = 10 * 1024**2  # bytes  # TODO: decide an appropriate value
+
     DB_ENGINE: str = "postgresql"
     DB_USER: str = "entitycore"
     DB_PASS: str = "entitycore"

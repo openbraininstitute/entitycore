@@ -1,19 +1,46 @@
+import os
 from collections.abc import Iterator
 
+import boto3
 import pytest
 from fastapi.testclient import TestClient
+from moto import mock_aws
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.application import app
+from app.config import settings
 from app.db.model import Base, Organization, Person, Role
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
-from . import utils
+from tests import utils
 
 
 @pytest.fixture(scope="session")
-def client():
+def _aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # noqa: S105
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"  # noqa: S105
+    os.environ["AWS_SESSION_TOKEN"] = "testing"  # noqa: S105
+    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+
+
+@pytest.fixture(scope="session")
+def s3(_aws_credentials):
+    """Return a mocked S3 client."""
+    with mock_aws():
+        yield boto3.client("s3")
+
+
+@pytest.fixture(scope="session")
+def _create_buckets(s3):
+    s3.create_bucket(Bucket=settings.S3_PRIVATE_BUCKET_NAME)
+    s3.create_bucket(Bucket=settings.S3_PUBLIC_BUCKET_NAME)
+
+
+@pytest.fixture(scope="session")
+def client(_create_buckets):
     """Yield a web client instance.
 
     The fixture is session-scoped so that the lifespan events are executed only once per session.

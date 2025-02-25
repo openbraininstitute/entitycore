@@ -45,7 +45,6 @@ build:  ## Build the Docker image
 import:  ## Run the import on a database, assumes mba_hierarchy.json and out are in the current dir
 	@$(call load_env,run-local)
 	@test -n "$(PROJECT_ID_IMPORT)" || (echo "Please set the variable PROJECT_ID_IMPORT"; exit 1)
-	docker compose up --wait db
 	uv run -m alembic upgrade head
 	uv run -m app.cli.import-data hierarchy mba_hierarchy.json
 	uv run -m app.cli.import-data run ./out --project-id $(PROJECT_ID_IMPORT)
@@ -57,7 +56,7 @@ test-local:  ## Run tests locally
 	@$(call load_env,test-local)
 	docker compose up --wait db-test
 	uv run -m alembic upgrade head
-	uv run -m pytest -sv tests
+	uv run -m pytest
 	uv run -m coverage xml
 	uv run -m coverage html
 
@@ -66,7 +65,7 @@ test-docker: build  ## Run tests in Docker
 
 run-local: ## Run the application locally
 	@$(call load_env,run-local)
-	docker compose up --wait db
+	docker compose up --wait db minio
 	uv run -m alembic upgrade head
 	uv run -m app run --host $(UVICORN_HOST) --port $(UVICORN_PORT) --reload
 

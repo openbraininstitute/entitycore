@@ -101,8 +101,8 @@ def test_create_contribution(
     )
     response.raise_for_status()
     data = response.json()
-    assert "contributors" in data
-    assert len(data["contributors"]) == 2
+    assert "contributions" in data
+    assert len(data["contributions"]) == 2
 
     response = client.get(
         "/reconstruction_morphology/",
@@ -111,11 +111,11 @@ def test_create_contribution(
     response.raise_for_status()
     data = response.json()["data"]
     assert len(data) == 1
-    assert len(data[0]["contributors"]) == 2
+    assert len(data[0]["contributions"]) == 2
 
     facets = response.json()["facets"]
-    assert len(facets["contributors"]) == 2
-    assert facets["contributors"] == [
+    assert len(facets["contributions"]) == 2
+    assert facets["contributions"] == [
         {"id": 2, "label": "ACME", "type": "organization", "count": 1},
         {"id": 1, "label": "jd courcol", "type": "person", "count": 1},
     ]
@@ -280,7 +280,7 @@ def test_contribution_facets(
     data = response.json()
     facets = data["facets"]
     assert facets == {
-        "contributors": [
+        "contributions": [
             {"count": 6, "id": 2, "label": "org_pref_label", "type": "organization"},
             {"count": 9, "id": 1, "label": "person_pref_label", "type": "person"},
         ],
@@ -294,7 +294,7 @@ def test_contribution_facets(
     assert [item["id"] for item in data["data"]] == expected_morphology_ids
 
     expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
-    assert [len(item["contributors"]) for item in data["data"]] == expected_contribution_sizes
+    assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
 
     response = client.get(
         "/reconstruction_morphology/?contributor__pref_label=person_pref_label",
@@ -303,7 +303,7 @@ def test_contribution_facets(
     data = response.json()
     facets = data["facets"]
     assert facets == {
-        "contributors": [{"count": 9, "id": 1, "label": "person_pref_label", "type": "person"}],
+        "contributions": [{"count": 9, "id": 1, "label": "person_pref_label", "type": "person"}],
         "species": [{"count": 9, "id": 1, "label": "Test Species", "type": "species"}],
         "strain": [{"count": 9, "id": 1, "label": "Test Strain", "type": "strain"}],
     }
@@ -314,4 +314,4 @@ def test_contribution_facets(
     assert [item["id"] for item in data["data"]] == expected_morphology_ids
 
     expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
-    assert [len(item["contributors"]) for item in data["data"]] == expected_contribution_sizes
+    assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes

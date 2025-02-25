@@ -18,7 +18,6 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
             "strain_id": strain_id,
             "description": bouton_description,
             "name": bouton_name,
-            "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "license_id": license_id,
         },
@@ -53,7 +52,6 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
     assert data["species"]["id"] == species_id
     assert data["strain"]["id"] == strain_id
     assert data["description"] == bouton_description
-    assert data["brain_location"] == {"x": 10.0, "y": 20.0, "z": 30.0}
 
     response = client.get(ROUTE, headers=PROJECT_HEADERS)
     assert response.status_code == 200
@@ -72,7 +70,6 @@ def test_missing_bouton_density(client):
 @pytest.mark.usefixtures("skip_project_check")
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     js = {
-        "brain_location": {"x": 10, "y": 20, "z": 30},
         "brain_region_id": brain_region_id,
         "description": "a great description",
         "legacy_id": "Test Legacy ID",

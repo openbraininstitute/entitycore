@@ -3,7 +3,6 @@ from pydantic import BaseModel, ConfigDict
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainLocationCreate,
     BrainRegionRead,
     CreationMixin,
     LicensedCreateMixin,
@@ -17,7 +16,6 @@ class ExperimentalDensityBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
-    brain_location: BrainLocationCreate | None
 
 
 class ExperimentalDensityCreate(

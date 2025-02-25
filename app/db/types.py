@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
+from app.schemas.base import PointLocationBase
 from app.utils.enum import HyphenStrEnum
 
 
@@ -33,6 +34,28 @@ class StringListType(TypeDecorator):
 
 
 StringList = Annotated[StringListType, "StringList"]
+
+
+class PointLocationType(TypeDecorator):
+    impl = JSONB
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):  # noqa: ARG002, PLR6301
+        if value is None:
+            return None
+
+        return value.model_dump()
+
+    def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301
+        if value is None:
+            return None
+
+        return PointLocationBase(**value)
+
+
+PointLocation = Annotated[PointLocationType, "PointLocation"]
+
+
 BIGINT = Annotated[int, mapped_column(BigInteger)]
 JSONDICT = Annotated[dict[str, Any], mapped_column(JSONB)]
 

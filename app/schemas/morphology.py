@@ -5,13 +5,13 @@ from pydantic import BaseModel, ConfigDict
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainLocationCreate,
     BrainRegionRead,
     CreationMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
     MeasurementCreate,
     MeasurementRead,
+    PointLocationBase,
     SpeciesRead,
     StrainRead,
 )
@@ -22,7 +22,7 @@ class ReconstructionMorphologyBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
-    brain_location: BrainLocationCreate | None
+    location: PointLocationBase | None
 
 
 class ReconstructionMorphologyCreate(

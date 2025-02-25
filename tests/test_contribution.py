@@ -1,5 +1,3 @@
-import itertools as it
-
 import pytest
 
 from app.db.model import (
@@ -235,8 +233,23 @@ def test_contribution_facets(
     org = add_db(db, Organization(pref_label="org_pref_label", alternative_name="org_alt_name"))
     org_role = add_db(db, Role(name="OrgRoleName", role_id="role_id_org"))
 
-    for i, (agent, agent_role) in zip(
-        range(10), it.cycle(((person, person_role), (person, person_role), (org, org_role)))
+    morphology_ids = []
+    contribution_sizes = []  # len of contributions for each morphology
+    for i, contributions in enumerate(
+        [
+            [(person, person_role), (org, org_role)],
+            [(person, person_role)],
+            [(person, person_role)],
+            [(person, person_role)],
+            [(person, person_role)],
+            [(person, person_role)],
+            [(person, person_role)],
+            [(org, org_role)],
+            [(org, org_role)],
+            [(org, org_role)],
+            [(person, person_role), (org, org_role)],
+            [(person, person_role), (org, org_role)],
+        ]
     ):
         reconstruction_morphology_id = create_reconstruction_morphology_id(
             client,
@@ -247,34 +260,58 @@ def test_contribution_facets(
             name=f"TestMorphologyName{i}",
             authorized_public=False,
         )
-        add_db(
-            db,
-            Contribution(
-                agent_id=agent.id, role_id=agent_role.id, entity_id=reconstruction_morphology_id
-            ),
-        )
+        morphology_ids.append(reconstruction_morphology_id)
+        contribution_sizes.append(len(contributions))
+        for agent, agent_role in contributions:
+            add_db(
+                db,
+                Contribution(
+                    agent_id=agent.id, role_id=agent_role.id, entity_id=reconstruction_morphology_id
+                ),
+            )
+
+    assert len(morphology_ids) == 12
+    assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
     response = client.get(
         "/reconstruction_morphology/",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
-    facets = response.json()["facets"]
+    data = response.json()
+    facets = data["facets"]
     assert facets == {
         "contributions": [
-            {"count": 3, "id": 2, "label": "org_pref_label", "type": "organization"},
-            {"count": 7, "id": 1, "label": "person_pref_label", "type": "person"},
+            {"count": 6, "id": 2, "label": "org_pref_label", "type": "organization"},
+            {"count": 9, "id": 1, "label": "person_pref_label", "type": "person"},
         ],
-        "species": [{"count": 10, "id": 1, "label": "Test Species", "type": "species"}],
-        "strain": [{"count": 10, "id": 1, "label": "Test Strain", "type": "strain"}],
+        "species": [{"count": 12, "id": 1, "label": "Test Species", "type": "species"}],
+        "strain": [{"count": 12, "id": 1, "label": "Test Strain", "type": "strain"}],
     }
+    assert len(data["data"]) == 10
+    expected_indexes = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
+
+    expected_morphology_ids = [morphology_ids[i] for i in expected_indexes]
+    assert [item["id"] for item in data["data"]] == expected_morphology_ids
+
+    expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
+    assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
 
     response = client.get(
         "/reconstruction_morphology/?contributor__pref_label=person_pref_label",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
-    facets = response.json()["facets"]
+    data = response.json()
+    facets = data["facets"]
     assert facets == {
-        "contributions": [{"count": 7, "id": 1, "label": "person_pref_label", "type": "person"}],
-        "species": [{"count": 7, "id": 1, "label": "Test Species", "type": "species"}],
-        "strain": [{"count": 7, "id": 1, "label": "Test Strain", "type": "strain"}],
+        "contributions": [{"count": 9, "id": 1, "label": "person_pref_label", "type": "person"}],
+        "species": [{"count": 9, "id": 1, "label": "Test Species", "type": "species"}],
+        "strain": [{"count": 9, "id": 1, "label": "Test Strain", "type": "strain"}],
     }
+    assert len(data["data"]) == 9
+    expected_indexes = [11, 10, 6, 5, 4, 3, 2, 1, 0]
+
+    expected_morphology_ids = [morphology_ids[i] for i in expected_indexes]
+    assert [item["id"] for item in data["data"]] == expected_morphology_ids
+
+    expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
+    assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes

@@ -8,6 +8,7 @@ from sqlalchemy.orm import (
     Session,
     aliased,
     joinedload,
+    raiseload,
 )
 
 from app.db.auth import constrain_to_accessible_entities
@@ -159,9 +160,9 @@ def morphology_query(
         },
     }
 
-    query = (
+    filter_query = (
         constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), project_context.project_id
+            sa.select(ReconstructionMorphology), project_id=project_context.project_id
         )
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
@@ -170,34 +171,51 @@ def morphology_query(
     )
 
     if search:
-        query = query.where(ReconstructionMorphology.morphology_description_vector.match(search))
+        filter_query = filter_query.where(
+            ReconstructionMorphology.morphology_description_vector.match(search)
+        )
 
-    query = morphology_filter.filter(query, aliases={Agent: agent_alias})
+    filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
 
     facets = _get_facets(
         db,
-        query,
+        filter_query,
         name_to_facet_query_params=name_to_facet_query_params,
         count_distinct_field=ReconstructionMorphology.id,
     )
+    distinct_ids_subquery = (
+        morphology_filter.sort(filter_query)
+        .with_only_columns(ReconstructionMorphology)
+        .distinct()
+        .offset(page * page_size)
+        .limit(page_size)
+    ).subquery("distinct_ids")
 
-    query = (
-        query.options(joinedload(ReconstructionMorphology.brain_location))
-        .options(joinedload(ReconstructionMorphology.brain_region))
-        .options(joinedload(ReconstructionMorphology.license))
-        .options(joinedload(ReconstructionMorphology.species))
+    # TODO: load person.* and organization.* eagerly
+    data_query = (
+        morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
+        .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
+        .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
         .options(joinedload(ReconstructionMorphology.strain))
-        .options(joinedload(ReconstructionMorphology.contributions))
+        .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))
+        .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.role))
+        .options(joinedload(ReconstructionMorphology.brain_region))
+        .options(joinedload(ReconstructionMorphology.brain_location))
+        .options(joinedload(ReconstructionMorphology.license))
+        .options(raiseload("*"))
     )
 
-    data = db.execute(
-        morphology_filter.sort(query).offset(page * page_size).limit(page_size)
-    ).scalars()
+    # unique is needed b/c it contains results that include joined eager loads against collections
+    data = db.execute(data_query).scalars().unique()
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+    total_items = db.execute(
+        filter_query.with_only_columns(
+            sa.func.count(sa.func.distinct(ReconstructionMorphology.id)).label("count")
+        )
+    ).scalar_one()
 
     response = ListResponse[ReconstructionMorphologyRead](
-        data=data.unique(),
+        data=data,
         pagination=Pagination(page=page, page_size=page_size, total_items=total_items),
         facets=facets,
     )

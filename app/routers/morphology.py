@@ -65,7 +65,7 @@ def read_reconstruction_morphology(
         query = (
             query.options(joinedload(ReconstructionMorphology.brain_location))
             .options(joinedload(ReconstructionMorphology.brain_region))
-            .options(joinedload(ReconstructionMorphology.contributors))
+            .options(joinedload(ReconstructionMorphology.contributions))
             .options(joinedload(ReconstructionMorphology.license))
             .options(joinedload(ReconstructionMorphology.species))
             .options(joinedload(ReconstructionMorphology.strain))
@@ -152,12 +152,13 @@ def morphology_query(
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},
-        "contributors": {
+        "contributions": {
             "id": agent_alias.id,
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
     }
+
     query = (
         constrain_to_accessible_entities(
             sa.select(ReconstructionMorphology), project_context.project_id
@@ -186,7 +187,7 @@ def morphology_query(
         .options(joinedload(ReconstructionMorphology.license))
         .options(joinedload(ReconstructionMorphology.species))
         .options(joinedload(ReconstructionMorphology.strain))
-        .options(joinedload(ReconstructionMorphology.contributors))
+        .options(joinedload(ReconstructionMorphology.contributions))
     )
 
     data = db.execute(

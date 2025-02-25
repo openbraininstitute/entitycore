@@ -9,6 +9,7 @@ dependencies = [
     "alembic>=1.14.1",
     "alembic-postgresql-enum>=1.5.0",
     "alembic-utils>=0.8.6",
+    "boto3>=1.36.3",
     "fastapi",
     "fastapi-filter>=2.0.0",
     "loguru>=0.7.3",
@@ -21,6 +22,8 @@ dependencies = [
     "deepdiff",
     "click>=8.1.7",
     "pydantic-settings>=2.7.1",
+    "python-multipart>=0.0.20",
+    "types-boto3-lite[essential]>=1.36.11",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -37,6 +40,7 @@ include = ["app"]
 dev-dependencies = [
     "coverage[toml]",
     "httpx",
+    "moto[s3]>=5.0.28",
     "mypy",
     "pytest",
     "pytest-cov",
@@ -145,6 +149,9 @@ addopts = [
 # asyncio_mode = "auto"
 testpaths = [
     "tests",
+]
+filterwarnings = [
+    "ignore:datetime.datetime.utcnow:DeprecationWarning:botocore"  # https://github.com/boto/boto3/issues/3889
 ]
 
 [tool.coverage.run]

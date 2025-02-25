@@ -1,7 +1,12 @@
-from typing import Annotated
+from enum import StrEnum, auto
+from typing import Annotated, Any
 
-from sqlalchemy import func, or_
+from sqlalchemy import BigInteger, func, or_
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
+
+from app.utils.enum import HyphenStrEnum
 
 
 class StringListType(TypeDecorator):
@@ -28,3 +33,25 @@ class StringListType(TypeDecorator):
 
 
 StringList = Annotated[StringListType, "StringList"]
+BIGINT = Annotated[int, mapped_column(BigInteger)]
+JSONDICT = Annotated[dict[str, Any], mapped_column(JSONB)]
+
+
+class EntityType(StrEnum):
+    """Entity types that are directly exposed through the API.
+
+    For each entry:
+
+    - name (underscore separated): used for table names
+    - value (hyphen separated): used for endpoints  # TODO: use it to make everything kebab-case
+    """
+
+    experimental_bouton_density = auto()
+    experimental_neuron_density = auto()
+    experimental_synapses_per_connection = auto()
+    reconstruction_morphology = auto()
+
+
+class AssetStatus(HyphenStrEnum):
+    CREATED = auto()
+    DELETED = auto()

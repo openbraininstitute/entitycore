@@ -103,8 +103,8 @@ def test_create_contribution(
     )
     response.raise_for_status()
     data = response.json()
-    assert "contributors" in data
-    assert len(data["contributors"]) == 2
+    assert "contributions" in data
+    assert len(data["contributions"]) == 2
 
     response = client.get(
         "/reconstruction_morphology/",
@@ -113,11 +113,11 @@ def test_create_contribution(
     response.raise_for_status()
     data = response.json()["data"]
     assert len(data) == 1
-    assert len(data[0]["contributors"]) == 2
+    assert len(data[0]["contributions"]) == 2
 
     facets = response.json()["facets"]
-    assert len(facets["contributors"]) == 2
-    assert facets["contributors"] == [
+    assert len(facets["contributions"]) == 2
+    assert facets["contributions"] == [
         {"id": 2, "label": "ACME", "type": "organization", "count": 1},
         {"id": 1, "label": "jd courcol", "type": "person", "count": 1},
     ]
@@ -260,7 +260,7 @@ def test_contribution_facets(
     )
     facets = response.json()["facets"]
     assert facets == {
-        "contributors": [
+        "contributions": [
             {"count": 3, "id": 2, "label": "org_pref_label", "type": "organization"},
             {"count": 7, "id": 1, "label": "person_pref_label", "type": "person"},
         ],
@@ -274,7 +274,7 @@ def test_contribution_facets(
     )
     facets = response.json()["facets"]
     assert facets == {
-        "contributors": [{"count": 7, "id": 1, "label": "person_pref_label", "type": "person"}],
+        "contributions": [{"count": 7, "id": 1, "label": "person_pref_label", "type": "person"}],
         "species": [{"count": 7, "id": 1, "label": "Test Species", "type": "species"}],
         "strain": [{"count": 7, "id": 1, "label": "Test Strain", "type": "strain"}],
     }

@@ -78,23 +78,17 @@ Can be controlled by an agent or occur automatically.
 
 
 - **Annotation**:
-    An opinion about an entity.
+    An opinion about an entity. Annotations are a relationship between an entity and a element of a controlled vocabulary, set by an Agent at a given time.
 
-    Different people may have different opinions of what qualifies the entity as having an `Annotation`.
-    Thus, multiple `Annotation` may be applied to an Entity, within the same project.
+    A "controlled vocabulary" is a predefined set of terms (no free string) for concepts such as m-types / e-types /...
+    The terms are possibly in a hierarchical structure.
+    Each element of the vocabulary has a property prefLabel which is the preferred label for a concept element, A property AltLabel for synonyms and a description.
 
-    Ex:
+    A "controlled vocabulary + the hierarchical structure is called a classification scheme. There can be multiple "classification schemes" for the same concept.
 
-     - MType for a ReconstructionMorphology
-     - EType for a SingleCellExperimentalTrace
+    We agreed to use 1 annotation of a classification scheme for 1 entity. Discussions are on going for coexistence of multiple classification. We can proceed assuming 1 classification scheme is used for the time being per concept.
 
-- **metadata**:
 
-    data associated with an `Entity`
-
-    This data can be changed at any point, so, for instance, the owner can decide that the BrainLocation was wrong, and change it.
-
-    Ex:
 
      - Brain Location
      - Brain Region

@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.routers import (
     asset,
     brain_region,
+    cell_composition,
     contribution,
     experimental_bouton_density,
     experimental_neuron_density,
@@ -25,6 +26,7 @@ router = APIRouter()
 router.include_router(root.router)
 router.include_router(asset.router)
 router.include_router(brain_region.router)
+router.include_router(cell_composition.router)
 router.include_router(contribution.router)
 router.include_router(experimental_bouton_density.router)
 router.include_router(experimental_neuron_density.router)

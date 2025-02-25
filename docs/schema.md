@@ -78,6 +78,7 @@ Can be controlled by an agent or occur automatically.
 
 
 - **Annotation**:
+  
     An opinion about an entity. Annotations are a relationship between an entity and a element of a controlled vocabulary, set by an Agent at a given time.
 
     A "controlled vocabulary" is a predefined set of terms (no free string) for concepts such as m-types / e-types /...
@@ -88,9 +89,6 @@ Can be controlled by an agent or occur automatically.
 
     We agreed to use 1 annotation of a classification scheme for 1 entity. Discussions are on going for coexistence of multiple classification. We can proceed assuming 1 classification scheme is used for the time being per concept.
 
-
-
-     - Brain Location
-     - Brain Region
-     - License
-     - Species
+- **Files/Directory**:
+  
+  Some entities may refer to multiple files or directories, called "assets". TBC.

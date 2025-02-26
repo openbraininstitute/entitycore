@@ -20,9 +20,9 @@ router = APIRouter(
 
 
 @router.get("/", response_model=ListResponse[ExperimentalSynapsesPerConnectionRead])
-def read_experimental_neuron_densities(
-    db: SessionDep,
+def get(
     project_context: VerifiedProjectContextHeader,
+    db: SessionDep,
     pagination_request: PaginationQuery,
 ):
     query = constrain_to_accessible_entities(
@@ -50,13 +50,10 @@ def read_experimental_neuron_densities(
     return response
 
 
-@router.get(
-    "/{experimental_synapses_per_connection_id}",
-    response_model=ExperimentalSynapsesPerConnectionRead,
-)
-def read_experimental_neuron_density(
+@router.get("/{id_}", response_model=ExperimentalSynapsesPerConnectionRead)
+def read_experimental_synapses_per_connection(
     project_context: VerifiedProjectContextHeader,
-    experimental_synapses_per_connection_id: int,
+    id_: int,
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalSynapsesPerConnection not found"):
@@ -65,15 +62,15 @@ def read_experimental_neuron_density(
                 db.query(ExperimentalSynapsesPerConnection),
                 project_context.project_id,
             )
-            .filter(ExperimentalSynapsesPerConnection.id == experimental_synapses_per_connection_id)
+            .filter(ExperimentalSynapsesPerConnection.id == id_)
             .one()
         )
 
-    return row
+    return ExperimentalSynapsesPerConnectionRead.model_validate(row)
 
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)
-def create_experimental_neuron_density(
+def create_experimental_synapses_per_connection(
     project_context: VerifiedProjectContextHeader,
     density: ExperimentalSynapsesPerConnectionCreate,
     db: SessionDep,
@@ -82,10 +79,10 @@ def create_experimental_neuron_density(
     if density.brain_location:
         dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
-    db_experimental_neuron_density = ExperimentalSynapsesPerConnection(
+    row = ExperimentalSynapsesPerConnection(
         **dump, authorized_project_id=project_context.project_id
     )
-    db.add(db_experimental_neuron_density)
+    db.add(row)
     db.commit()
-    db.refresh(db_experimental_neuron_density)
-    return db_experimental_neuron_density
+    db.refresh(row)
+    return row

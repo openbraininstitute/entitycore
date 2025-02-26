@@ -39,18 +39,18 @@ def read_persons(db: SessionDep, pagination_request: PaginationQuery):
     return response
 
 
-@router.get("/{person_id}", response_model=PersonRead)
-def read_person(person_id: int, db: SessionDep):
+@router.get("/{id_}", response_model=PersonRead)
+def read_person(id_: int, db: SessionDep):
     with ensure_result(error_message="Person not found"):
-        row = db.query(Person).filter(Person.id == person_id).one()
+        row = db.query(Person).filter(Person.id == id_).one()
 
-    return row
+    return PersonRead.model_validate(row)
 
 
 @router.post("/", response_model=PersonRead)
 def create_person(person: PersonCreate, db: SessionDep):
-    db_person = Person(**person.model_dump())
-    db.add(db_person)
+    row = Person(**person.model_dump())
+    db.add(row)
     db.commit()
-    db.refresh(db_person)
-    return db_person
+    db.refresh(row)
+    return row

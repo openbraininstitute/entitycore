@@ -53,13 +53,10 @@ def read_experimental_bouton_densities(
     return response
 
 
-@router.get(
-    "/{experimental_bouton_density_id}",
-    response_model=ExperimentalBoutonDensityRead,
-)
+@router.get("/{id_}", response_model=ExperimentalBoutonDensityRead)
 def read_experimental_bouton_density(
     project_context: VerifiedProjectContextHeader,
-    experimental_bouton_density_id: int,
+    id_: int,
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalBoutonDensity not found"):
@@ -67,11 +64,11 @@ def read_experimental_bouton_density(
             constrain_to_accessible_entities(
                 db.query(ExperimentalBoutonDensity), project_context.project_id
             )
-            .filter(ExperimentalBoutonDensity.id == experimental_bouton_density_id)
+            .filter(ExperimentalBoutonDensity.id == id_)
             .one()
         )
 
-    return row
+    return ExperimentalBoutonDensityRead.model_validate(row)
 
 
 @router.post("/", response_model=ExperimentalBoutonDensityRead)
@@ -85,10 +82,8 @@ def create_experimental_bouton_density(
     if density.brain_location:
         dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
-    db_experimental_bouton_density = ExperimentalBoutonDensity(
-        **dump, authorized_project_id=project_context.project_id
-    )
-    db.add(db_experimental_bouton_density)
+    row = ExperimentalBoutonDensity(**dump, authorized_project_id=project_context.project_id)
+    db.add(row)
     db.commit()
-    db.refresh(db_experimental_bouton_density)
-    return db_experimental_bouton_density
+    db.refresh(row)
+    return row

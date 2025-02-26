@@ -15,7 +15,7 @@ router = APIRouter(
 
 
 @router.get("/", response_model=ListResponse[RoleRead])
-def read_role(db: SessionDep, pagination_request: PaginationQuery):
+def read_roles(db: SessionDep, pagination_request: PaginationQuery):
     query = sa.select(Role)
 
     data = db.execute(
@@ -39,20 +39,17 @@ def read_role(db: SessionDep, pagination_request: PaginationQuery):
     return response
 
 
-@router.get("/{role_id}", response_model=RoleRead)
-def read_person(role_id: int, db: SessionDep):
+@router.get("/{id_}", response_model=RoleRead)
+def read_role(id_: int, db: SessionDep):
     with ensure_result(error_message="Role not found"):
-        row = db.query(Role).filter(Role.id == role_id).one()
-    return row
+        row = db.query(Role).filter(Role.id == id_).one()
+    return RoleRead.model_validate(row)
 
 
 @router.post("/", response_model=RoleRead)
 def create_role(role: RoleCreate, db: SessionDep):
-    db_role = Role(
-        name=role.name,
-        role_id=role.role_id,
-    )
-    db.add(db_role)
+    row = Role(name=role.name, role_id=role.role_id)
+    db.add(row)
     db.commit()
-    db.refresh(db_role)
-    return db_role
+    db.refresh(row)
+    return row

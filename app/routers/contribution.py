@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException
-from sqlalchemy.orm import contains_eager
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
@@ -15,32 +14,27 @@ router = APIRouter(
 )
 
 
-@router.get(
-    "/{contribution_id}",
-    response_model=ContributionRead,
-)
-def read_contribution(
-    contribution_id: int, project_context: VerifiedProjectContextHeader, db: SessionDep
+@router.get("/", response_model=list[ContributionRead])
+def read_contributions(
+    project_context: VerifiedProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
 ):
-    with ensure_result(error_message="Contribution not found"):
-        row = (
-            db.query(Contribution)
-            .filter(Contribution.id == contribution_id)
-            .join(Contribution.entity)
-            .options(
-                contains_eager(Contribution.entity).load_only(
-                    Entity.authorized_project_id, Entity.authorized_public
-                )
-            )
-            .one()
+    return (
+        constrain_to_accessible_entities(
+            db.query(Contribution).join(Entity), project_context.project_id
         )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
-    if (
-        not row.entity.authorized_public
-        and row.entity.authorized_project_id != project_context.project_id
-    ):
-        L.warning("Attempting to get an annotation for an entity the user does not have access to")
-        raise HTTPException(status_code=404, detail="contribution not found")
+
+@router.get("/{id_}", response_model=ContributionRead)
+def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep):
+    with ensure_result(error_message="Contribution not found"):
+        row = constrain_to_accessible_entities(
+            db.query(Contribution).filter(Contribution.id == id_).join(Contribution.entity),
+            project_context.project_id,
+        ).one()
 
     return ContributionRead.model_validate(row)
 
@@ -57,28 +51,13 @@ def create_contribution(
             status_code=404, detail=f"Cannot access entity {contribution.entity_id}"
         )
 
-    db_contribution = Contribution(
+    row = Contribution(
         agent_id=contribution.agent_id,
         role_id=contribution.role_id,
         entity_id=contribution.entity_id,
     )
-
-    db.add(db_contribution)
+    db.add(row)
     db.commit()
-    db.refresh(db_contribution)
+    db.refresh(row)
 
-    return db_contribution
-
-
-@router.get("/", response_model=list[ContributionRead])
-def read_contributions(
-    project_context: VerifiedProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
-):
-    return (
-        constrain_to_accessible_entities(
-            db.query(Contribution).join(Entity), project_context.project_id
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return row

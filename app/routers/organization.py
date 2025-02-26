@@ -42,17 +42,17 @@ def read_organizations(
     return response
 
 
-@router.get("/{organization_id}", response_model=OrganizationRead)
-def read_organization(organization_id: int, db: SessionDep):
+@router.get("/{id_}", response_model=OrganizationRead)
+def read_organization(id_: int, db: SessionDep):
     with ensure_result(error_message="Organization not found"):
-        row = db.query(Organization).filter(Organization.id == organization_id).one()
-    return row
+        row = db.query(Organization).filter(Organization.id == id_).one()
+    return OrganizationRead.model_validate(row)
 
 
 @router.post("/", response_model=OrganizationRead)
 def create_organization(organization: OrganizationCreate, db: SessionDep):
-    db_organization = Organization(**organization.model_dump())
-    db.add(db_organization)
+    row = Organization(**organization.model_dump())
+    db.add(row)
     db.commit()
-    db.refresh(db_organization)
-    return db_organization
+    db.refresh(row)
+    return row

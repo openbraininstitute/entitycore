@@ -33,13 +33,10 @@ def read_experimental_neuron_densities(
     )
 
 
-@router.get(
-    "/{experimental_neuron_density_id}",
-    response_model=ExperimentalNeuronDensityRead,
-)
+@router.get("/{id_}", response_model=ExperimentalNeuronDensityRead)
 def read_experimental_neuron_density(
     project_context: VerifiedProjectContextHeader,
-    experimental_neuron_density_id: int,
+    id_: int,
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalNeuronDensity not found"):
@@ -47,11 +44,11 @@ def read_experimental_neuron_density(
             constrain_to_accessible_entities(
                 db.query(ExperimentalNeuronDensity), project_context.project_id
             )
-            .filter(ExperimentalNeuronDensity.id == experimental_neuron_density_id)
+            .filter(ExperimentalNeuronDensity.id == id_)
             .one()
         )
 
-    return row
+    return ExperimentalNeuronDensityRead.model_validate(row)
 
 
 @router.post("/", response_model=ExperimentalNeuronDensityRead)
@@ -65,10 +62,8 @@ def create_experimental_neuron_density(
     if density.brain_location:
         dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
-    db_experimental_neuron_density = ExperimentalNeuronDensity(
-        **dump, authorized_project_id=project_context.project_id
-    )
-    db.add(db_experimental_neuron_density)
+    row = ExperimentalNeuronDensity(**dump, authorized_project_id=project_context.project_id)
+    db.add(row)
     db.commit()
-    db.refresh(db_experimental_neuron_density)
-    return db_experimental_neuron_density
+    db.refresh(row)
+    return row

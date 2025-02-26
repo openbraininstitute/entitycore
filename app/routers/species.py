@@ -3,12 +3,7 @@ from fastapi import APIRouter
 from app.db.model import Species
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.schemas.base import (
-    SpeciesCreate,
-)
-from app.schemas.morphology import (
-    SpeciesRead,
-)
+from app.schemas.base import SpeciesCreate, SpeciesRead
 
 router = APIRouter(
     prefix="/species",
@@ -21,17 +16,17 @@ def get(db: SessionDep, skip: int = 0, limit: int = 10):
     return db.query(Species).offset(skip).limit(limit).all()
 
 
-@router.get("/{role_id}", response_model=SpeciesRead)
-def read_species(role_id: int, db: SessionDep):
+@router.get("/{id_}", response_model=SpeciesRead)
+def read_species(id_: int, db: SessionDep):
     with ensure_result(error_message="Species not found"):
-        row = db.query(Species).filter(Species.id == role_id).one()
-    return row
+        row = db.query(Species).filter(Species.id == id_).one()
+    return SpeciesRead.model_validate(row)
 
 
 @router.post("/", response_model=SpeciesRead)
 def create_species(species: SpeciesCreate, db: SessionDep):
-    db_species = Species(name=species.name, taxonomy_id=species.taxonomy_id)
-    db.add(db_species)
+    row = Species(name=species.name, taxonomy_id=species.taxonomy_id)
+    db.add(row)
     db.commit()
-    db.refresh(db_species)
-    return db_species
+    db.refresh(row)
+    return row

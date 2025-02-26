@@ -28,18 +28,11 @@ def read_contributions(
     )
 
 
-@router.get(
-    "/{contribution_id}",
-    response_model=ContributionRead,
-)
-def read_contribution(
-    contribution_id: int, project_context: VerifiedProjectContextHeader, db: SessionDep
-):
+@router.get("/{id_}", response_model=ContributionRead)
+def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep):
     with ensure_result(error_message="Contribution not found"):
         row = constrain_to_accessible_entities(
-            db.query(Contribution)
-            .filter(Contribution.id == contribution_id)
-            .join(Contribution.entity),
+            db.query(Contribution).filter(Contribution.id == id_).join(Contribution.entity),
             project_context.project_id,
         ).one()
 

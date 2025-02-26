@@ -33,13 +33,10 @@ def get(
     )
 
 
-@router.get(
-    "/{experimental_synapses_per_connection_id}",
-    response_model=ExperimentalSynapsesPerConnectionRead,
-)
+@router.get("/{id_}", response_model=ExperimentalSynapsesPerConnectionRead)
 def read_experimental_synapses_per_connection(
     project_context: VerifiedProjectContextHeader,
-    experimental_synapses_per_connection_id: int,
+    id_: int,
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalSynapsesPerConnection not found"):
@@ -48,11 +45,11 @@ def read_experimental_synapses_per_connection(
                 db.query(ExperimentalSynapsesPerConnection),
                 project_context.project_id,
             )
-            .filter(ExperimentalSynapsesPerConnection.id == experimental_synapses_per_connection_id)
+            .filter(ExperimentalSynapsesPerConnection.id == id_)
             .one()
         )
 
-    return row
+    return ExperimentalSynapsesPerConnectionRead.model_validate(row)
 
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)
@@ -65,10 +62,10 @@ def create_experimental_synapses_per_connection(
     if density.brain_location:
         dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
-    db_experimental_neuron_density = ExperimentalSynapsesPerConnection(
+    row = ExperimentalSynapsesPerConnection(
         **dump, authorized_project_id=project_context.project_id
     )
-    db.add(db_experimental_neuron_density)
+    db.add(row)
     db.commit()
-    db.refresh(db_experimental_neuron_density)
-    return db_experimental_neuron_density
+    db.refresh(row)
+    return row

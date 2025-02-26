@@ -38,27 +38,21 @@ def read_morphology_feature_annotations(
     )
 
 
-@router.get(
-    "/{morphology_feature_annotation_id}",
-    response_model=MorphologyFeatureAnnotationRead,
-)
+@router.get("/{id_}", response_model=MorphologyFeatureAnnotationRead)
 def read_morphology_feature_annotation_id(
-    morphology_feature_annotation_id: int,
+    id_: int,
     project_context: VerifiedProjectContextHeader,
     db: SessionDep,
 ):
     with ensure_result(error_message="MorphologyFeatureAnnotation not found"):
         row = constrain_to_accessible_entities(
             db.query(MorphologyFeatureAnnotation)
-            .filter(
-                MorphologyFeatureAnnotation.reconstruction_morphology_id
-                == morphology_feature_annotation_id
-            )
+            .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == id_)
             .join(ReconstructionMorphology),
             project_context.project_id,
         ).one()
 
-    return row
+    return MorphologyFeatureAnnotationRead.model_validate(row)
 
 
 @router.post("/", response_model=MorphologyFeatureAnnotationRead)
@@ -84,13 +78,11 @@ def create_morphology_feature_annotation(
             detail=f"Cannot access entity {reconstruction_morphology_id}",
         )
 
-    db_morphology_feature_annotation = MorphologyFeatureAnnotation(
-        reconstruction_morphology_id=reconstruction_morphology_id
-    )
+    row = MorphologyFeatureAnnotation(reconstruction_morphology_id=reconstruction_morphology_id)
 
     for measurement in morphology_feature_annotation.measurements:
         db_measurement = MorphologyMeasurement()
-        db_morphology_feature_annotation.measurements.append(db_measurement)
+        row.measurements.append(db_measurement)
         db_measurement.measurement_of = measurement.measurement_of
 
         for serie in measurement.measurement_serie:
@@ -98,7 +90,7 @@ def create_morphology_feature_annotation(
                 MorphologyMeasurementSerieElement(**serie.model_dump())
             )
 
-    db.add(db_morphology_feature_annotation)
+    db.add(row)
     db.commit()
-    db.refresh(db_morphology_feature_annotation)
-    return db_morphology_feature_annotation
+    db.refresh(row)
+    return row

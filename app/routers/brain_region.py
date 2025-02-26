@@ -7,12 +7,7 @@ from sqlalchemy import text
 from app.db.model import BrainRegion
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.schemas.base import (
-    BrainRegionCreate,
-)
-from app.schemas.morphology import (
-    BrainRegionRead,
-)
+from app.schemas.base import BrainRegionCreate, BrainRegionRead
 
 HIERARCHY = (Path(__file__).parent.parent / "static/brain-regions-tree.json").open().read()
 
@@ -60,13 +55,13 @@ def get(db: SessionDep, flat: bool = False) -> Response:  # noqa: FBT001, FBT002
 def read_brain_region(db: SessionDep, id_: int):
     with ensure_result(error_message="License not found"):
         row = db.query(BrainRegion).filter(BrainRegion.id == id_).one()
-    return row
+    return BrainRegionRead.model_validate(row)
 
 
 @router.post("/", response_model=BrainRegionRead)
 def create_brain_region(brain_region: BrainRegionCreate, db: SessionDep):
-    db_brain_region = BrainRegion(**brain_region.model_dump())
-    db.add(db_brain_region)
+    row = BrainRegion(**brain_region.model_dump())
+    db.add(row)
     db.commit()
-    db.refresh(db_brain_region)
-    return db_brain_region
+    db.refresh(row)
+    return row

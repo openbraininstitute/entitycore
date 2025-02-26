@@ -12,12 +12,12 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[RoleRead])
-def read_role(db: SessionDep, skip: int = 0, limit: int = 10):
+def read_roles(db: SessionDep, skip: int = 0, limit: int = 10):
     return db.query(Role).offset(skip).limit(limit).all()
 
 
 @router.get("/{role_id}", response_model=RoleRead)
-def read_person(role_id: int, db: SessionDep):
+def read_role(role_id: int, db: SessionDep):
     with ensure_result(error_message="Role not found"):
         row = db.query(Role).filter(Role.id == role_id).one()
     return row

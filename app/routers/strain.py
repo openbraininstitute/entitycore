@@ -17,12 +17,12 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[StrainRead])
-def read_organizations(db: SessionDep, skip: int = 0, limit: int = 10):
+def read_strains(db: SessionDep, skip: int = 0, limit: int = 10):
     return db.query(Strain).offset(skip).limit(limit).all()
 
 
 @router.get("/{organization_id}", response_model=StrainRead)
-def read_organization(organization_id: int, db: SessionDep):
+def read_strain(organization_id: int, db: SessionDep):
     with ensure_result(error_message="Strain not found"):
         row = db.query(Strain).filter(Strain.id == organization_id).one()
     return row

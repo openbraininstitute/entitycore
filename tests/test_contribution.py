@@ -165,6 +165,7 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     )
     assert response.status_code == 200
     inaccessible_annotation_id = response.json()["id"]
+
     response = client.get(
         f"{ROUTE}{inaccessible_annotation_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,

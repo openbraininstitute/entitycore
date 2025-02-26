@@ -17,7 +17,7 @@ router = APIRouter(
 
 
 @router.get("/", response_model=list[ExperimentalSynapsesPerConnectionRead])
-def read_experimental_neuron_densities(
+def get(
     project_context: VerifiedProjectContextHeader,
     db: SessionDep,
     skip: int = 0,
@@ -37,7 +37,7 @@ def read_experimental_neuron_densities(
     "/{experimental_synapses_per_connection_id}",
     response_model=ExperimentalSynapsesPerConnectionRead,
 )
-def read_experimental_neuron_density(
+def read_experimental_synapses_per_connection(
     project_context: VerifiedProjectContextHeader,
     experimental_synapses_per_connection_id: int,
     db: SessionDep,
@@ -56,7 +56,7 @@ def read_experimental_neuron_density(
 
 
 @router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)
-def create_experimental_neuron_density(
+def create_experimental_synapses_per_connection(
     project_context: VerifiedProjectContextHeader,
     density: ExperimentalSynapsesPerConnectionCreate,
     db: SessionDep,

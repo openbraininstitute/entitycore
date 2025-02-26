@@ -27,7 +27,7 @@ def read_persons(db: SessionDep, pagination_request: PaginationQuery):
     total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
 
     response = ListResponse[PersonRead](
-        data=data,
+        data=[PersonRead.model_validate(d) for d in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

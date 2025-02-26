@@ -30,7 +30,7 @@ def read_licenses(
     total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
 
     response = ListResponse[LicenseRead](
-        data=data,
+        data=[LicenseRead.model_validate(d) for d in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

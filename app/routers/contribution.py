@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from sqlalchemy.orm import contains_eager
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
@@ -20,7 +21,8 @@ def read_contributions(
 ):
     return (
         constrain_to_accessible_entities(
-            db.query(Contribution).join(Entity), project_context.project_id
+            db.query(Contribution).join(Entity).options(contains_eager(Contribution.entity)),
+            project_context.project_id,
         )
         .offset(skip)
         .limit(limit)
@@ -32,7 +34,12 @@ def read_contributions(
 def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep):
     with ensure_result(error_message="Contribution not found"):
         row = constrain_to_accessible_entities(
-            db.query(Contribution).filter(Contribution.id == id_).join(Contribution.entity),
+            (
+                db.query(Contribution)
+                .filter(Contribution.id == id_)
+                .join(Contribution.entity)
+                .options(contains_eager(Contribution.entity))
+            ),
             project_context.project_id,
         ).one()
 

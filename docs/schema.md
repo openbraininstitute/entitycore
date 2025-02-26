@@ -2,6 +2,7 @@
 
 ## Concepts
 
+see https://openprovenance.org/opm/model/opmo for more details related to Entity, Agent, Activities and relationships.
 
 - **Entity**:
 
@@ -91,4 +92,23 @@ Can be controlled by an agent or occur automatically.
 
 - **Files/Directory**:
   
-  Some entities may refer to multiple files or directories, called "assets". TBC.
+  Some entities may refer to multiple files or directories, called "assets". Assets are a particular kind of Entities. Assets can not have assets themselves.
+  Assets have metadata to manage the file/directory. Assets are always refering to one unique parent entity.
+  The file/directory managed by the asset can be removed/archived. In that case, properties on the asset would reflect that state.
+
+- **Versioning**:
+
+  Asset is the only type of entity that can be versionned. One should have a version relationship between the 2 versions of the same asset. Asset version are just a integer being increased sequentially.
+  Provenance usage can reference an asset. In that case, it is therefore always referencing a particular version.
+  Other entities (so only metadata) are not versionned. Provenance usage can reference an entity if it is not actually using its assets.
+  We can initially start w/o versioning.
+
+- **Auditing**:
+
+  We may need to know who did what modification on entities. However, we don't have to store that information the same way as the latest version of the entities as we won't perform queries on previous state of the entity.
+  We may store for instance, in some system/table, an entry with: entity_id, date, who, entity_serialized_as_json.
+  We can initially start w/o auditing
+  
+  
+  
+  

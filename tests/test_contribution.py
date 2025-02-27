@@ -16,6 +16,7 @@ from .utils import (
 )
 
 ROUTE = "/contribution/"
+ROUTE_MORPH = "/reconstruction-morphology/"
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -96,7 +97,7 @@ def test_create_contribution(
     assert len(response.json()) == 2
 
     response = client.get(
-        f"/reconstruction_morphology/{reconstruction_morphology_id}",
+        f"{ROUTE_MORPH}{reconstruction_morphology_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     response.raise_for_status()
@@ -105,7 +106,7 @@ def test_create_contribution(
     assert len(data["contributions"]) == 2
 
     response = client.get(
-        "/reconstruction_morphology/",
+        ROUTE_MORPH,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     response.raise_for_status()
@@ -164,6 +165,7 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     )
     assert response.status_code == 200
     inaccessible_annotation_id = response.json()["id"]
+
     response = client.get(
         f"{ROUTE}{inaccessible_annotation_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -274,7 +276,7 @@ def test_contribution_facets(
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
     response = client.get(
-        "/reconstruction_morphology/",
+        ROUTE_MORPH,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()
@@ -297,7 +299,7 @@ def test_contribution_facets(
     assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
 
     response = client.get(
-        "/reconstruction_morphology/?contributor__pref_label=person_pref_label",
+        f"{ROUTE_MORPH}?contributor__pref_label=person_pref_label",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()

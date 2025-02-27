@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
@@ -6,14 +6,15 @@ from app.db.model import (
 )
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
 )
 
 router = APIRouter(
-    prefix="/experimental_bouton_density",
-    tags=["experimental_bouton_density"],
+    prefix="/experimental-bouton-density",
+    tags=["experimental-bouton-density"],
 )
 
 
@@ -34,27 +35,22 @@ def read_experimental_bouton_densities(
     )
 
 
-@router.get(
-    "/{experimental_bouton_density_id}",
-    response_model=ExperimentalBoutonDensityRead,
-)
+@router.get("/{id_}", response_model=ExperimentalBoutonDensityRead)
 def read_experimental_bouton_density(
     project_context: VerifiedProjectContextHeader,
-    experimental_bouton_density_id: int,
+    id_: int,
     db: SessionDep,
 ):
-    experimental_bouton_density = (
-        constrain_to_accessible_entities(
-            db.query(ExperimentalBoutonDensity), project_context.project_id
+    with ensure_result(error_message="ExperimentalBoutonDensity not found"):
+        row = (
+            constrain_to_accessible_entities(
+                db.query(ExperimentalBoutonDensity), project_context.project_id
+            )
+            .filter(ExperimentalBoutonDensity.id == id_)
+            .one()
         )
-        .filter(ExperimentalBoutonDensity.id == experimental_bouton_density_id)
-        .first()
-    )
 
-    if experimental_bouton_density is None:
-        raise HTTPException(status_code=404, detail="experimental_bouton_density not found")
-
-    return ExperimentalBoutonDensityRead.model_validate(experimental_bouton_density)
+    return ExperimentalBoutonDensityRead.model_validate(row)
 
 
 @router.post("/", response_model=ExperimentalBoutonDensityRead)
@@ -65,10 +61,8 @@ def create_experimental_bouton_density(
 ):
     dump = density.model_dump()
 
-    db_experimental_bouton_density = ExperimentalBoutonDensity(
-        **dump, authorized_project_id=project_context.project_id
-    )
-    db.add(db_experimental_bouton_density)
+    row = ExperimentalBoutonDensity(**dump, authorized_project_id=project_context.project_id)
+    db.add(row)
     db.commit()
-    db.refresh(db_experimental_bouton_density)
-    return db_experimental_bouton_density
+    db.refresh(row)
+    return row

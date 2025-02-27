@@ -2,7 +2,7 @@ import pytest
 
 from .utils import PROJECT_HEADERS
 
-ROUTE = "/experimental_synapses_per_connection/"
+ROUTE = "/experimental-synapses-per-connection/"
 
 
 @pytest.mark.usefixtures("skip_project_check")

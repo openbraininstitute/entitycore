@@ -31,8 +31,8 @@ from app.schemas.morphology import (
 )
 
 router = APIRouter(
-    prefix="/reconstruction_morphology",
-    tags=["reconstruction_morphology"],
+    prefix="/reconstruction-morphology",
+    tags=["reconstruction-morphology"],
 )
 
 
@@ -43,19 +43,19 @@ class FacetQueryParams(TypedDict):
 
 
 @router.get(
-    "/{rm_id}",
+    "/{id_}",
     response_model=ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead,
 )
 def read_reconstruction_morphology(
     db: SessionDep,
-    rm_id: int,
+    id_: int,
     project_context: VerifiedProjectContextHeader,
     expand: str | None = None,
 ):
     with ensure_result(error_message="ReconstructionMorphology not found"):
         query = constrain_to_accessible_entities(
             db.query(ReconstructionMorphology), project_context.project_id
-        ).filter(ReconstructionMorphology.id == rm_id)
+        ).filter(ReconstructionMorphology.id == id_)
 
         if expand and "morphology_feature_annotation" in expand:
             query = query.options(

@@ -1,17 +1,13 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app.db.model import BrainRegion
 from app.dependencies.db import SessionDep
-from app.schemas.base import (
-    BrainRegionCreate,
-)
-from app.schemas.morphology import (
-    BrainRegionRead,
-)
+from app.errors import ensure_result
+from app.schemas.base import BrainRegionCreate, BrainRegionRead
 
 HIERARCHY = (Path(__file__).parent.parent / "static/brain-regions-tree.json").open().read()
 
@@ -42,15 +38,6 @@ def get_region_tree(db, start_id=None):
     return result
 
 
-@router.post("/", response_model=BrainRegionRead)
-def create_brain_region(brain_region: BrainRegionCreate, db: SessionDep):
-    db_brain_region = BrainRegion(**brain_region.model_dump())
-    db.add(db_brain_region)
-    db.commit()
-    db.refresh(db_brain_region)
-    return db_brain_region
-
-
 @router.get("/")
 def get(db: SessionDep, flat: bool = False) -> Response:  # noqa: FBT001, FBT002
     response: Response
@@ -65,10 +52,16 @@ def get(db: SessionDep, flat: bool = False) -> Response:  # noqa: FBT001, FBT002
 
 
 @router.get("/{id_}", response_model=BrainRegionRead)
-def read_reconstruction_morphology(db: SessionDep, id_: int):
-    rm = db.query(BrainRegion).filter(BrainRegion.id == id_).first()
+def read_brain_region(db: SessionDep, id_: int):
+    with ensure_result(error_message="Brain region not found"):
+        row = db.query(BrainRegion).filter(BrainRegion.id == id_).one()
+    return BrainRegionRead.model_validate(row)
 
-    if rm is None:
-        raise HTTPException(status_code=404, detail="Brain Region not found")
 
-    return BrainRegionRead.model_validate(rm)
+@router.post("/", response_model=BrainRegionRead)
+def create_brain_region(brain_region: BrainRegionCreate, db: SessionDep):
+    row = BrainRegion(**brain_region.model_dump())
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row

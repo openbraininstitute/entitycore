@@ -61,7 +61,7 @@ def create_reconstruction_morphology_id(
     description="Test Morphology Description",
 ):
     response = client.post(
-        "/reconstruction_morphology/",
+        "/reconstruction-morphology/",
         headers=headers,
         json={
             "name": name,

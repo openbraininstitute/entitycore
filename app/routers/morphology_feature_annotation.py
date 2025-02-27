@@ -89,7 +89,7 @@ def create_morphology_feature_annotation(
         project_context.project_id,
     ).with_only_columns(sa.func.count())
 
-    if not db.execute(stmt).scalar_one_or_none():
+    if db.execute(stmt).scalar_one() == 0:
         L.warning(
             "Block `MorphologyFeatureAnnotation` with entity inaccessible: {}",
             reconstruction_morphology_id,

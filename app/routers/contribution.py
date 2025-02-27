@@ -73,7 +73,7 @@ def create_contribution(
     stmt = constrain_entity_query_to_project(
         sa.select(Entity).filter(Entity.id == contribution.entity_id), project_context.project_id
     ).with_only_columns(sa.func.count())
-    if not db.execute(stmt).scalar_one_or_none():
+    if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
         raise HTTPException(
             status_code=404, detail=f"Cannot access entity {contribution.entity_id}"

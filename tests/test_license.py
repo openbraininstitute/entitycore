@@ -1,6 +1,9 @@
+ROUTE = "/license/"
+
+
 def test_create_license(client):
     response = client.post(
-        "/license/",
+        ROUTE,
         json={
             "name": "Test License",
             "description": "a license description",
@@ -13,18 +16,24 @@ def test_create_license(client):
     assert "id" in data
     assert data["description"] == "a license description"
     id_ = data["id"]
-    response = client.get(f"/license/{id_}")
+
+    response = client.get(f"{ROUTE}{id_}")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Test License"
     assert data["description"] == "a license description"
-    response = client.get("/license/")
+
+    response = client.get(ROUTE)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
     assert data[0]["name"] == "Test License"
     assert data[0]["description"] == "a license description"
 
-    # non-existant id
-    response = client.get("/license/424242")
+
+def test_missing_role(client):
+    response = client.get(f"{ROUTE}42424242")
     assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}notanumber")
+    assert response.status_code == 422

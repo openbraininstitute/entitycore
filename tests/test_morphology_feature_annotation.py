@@ -8,8 +8,8 @@ from .utils import (
     create_reconstruction_morphology_id,
 )
 
-ROUTE = "/morphology_feature_annotation/"
-MORPHOLOGY_ROUTE = "/reconstruction_morphology/"
+ROUTE = "/morphology-feature-annotation/"
+MORPHOLOGY_ROUTE = "/reconstruction-morphology/"
 
 
 @pytest.mark.usefixtures("skip_project_check")

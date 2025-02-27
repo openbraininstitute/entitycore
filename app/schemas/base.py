@@ -43,8 +43,9 @@ class LicenseRead(LicenseCreate, CreationMixin):
     pass
 
 
-class BrainLocationCreate(BaseModel):
+class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
+
     x: float
     y: float
     z: float

@@ -69,7 +69,7 @@ def create_reconstruction_morphology_id(
             "brain_region_id": brain_region_id,
             "species_id": species_id,
             "strain_id": strain_id,
-            "brain_location": {"x": 10, "y": 20, "z": 30},
+            "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "authorized_public": authorized_public,
         },

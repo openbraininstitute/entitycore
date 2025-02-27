@@ -24,7 +24,7 @@ def test_create_reconstruction_morphology(
             "strain_id": strain_id,
             "description": morph_description,
             "name": morph_name,
-            "brain_location": {"x": 10, "y": 20, "z": 30},
+            "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "license_id": license_id,
         },
@@ -209,7 +209,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
             strain_id=strain0.id,
             description="description",
             name="morph00",
-            brain_location=None,
+            location=None,
             legacy_id="Test Legacy ID",
             license_id=None,
             authorized_project_id=PROJECT_HEADERS["project-id"],
@@ -230,7 +230,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
 @pytest.mark.usefixtures("skip_project_check")
 def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
     morph_json = {
-        "brain_location": {"x": 10, "y": 20, "z": 30},
+        "location": {"x": 10, "y": 20, "z": 30},
         "brain_region_id": brain_region_id,
         "description": "morph description",
         "legacy_id": "Test Legacy ID",

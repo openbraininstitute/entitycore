@@ -15,13 +15,22 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 
-from app.db.types import BIGINT, JSONDICT, AssetStatus, StringList, StringListType
+from app.db.types import (
+    BIGINT,
+    JSONDICT,
+    AssetStatus,
+    PointLocation,
+    PointLocationType,
+    StringList,
+    StringListType,
+)
 
 
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
         datetime: DateTime(timezone=True),
         StringList: StringListType,
+        PointLocation: PointLocationType,
     }
     # See https://alembic.sqlalchemy.org/en/latest/naming.html
     metadata = MetaData(
@@ -62,14 +71,6 @@ class Root(LegacyMixin, Base):
         "polymorphic_identity": "root",
         "polymorphic_on": type,
     }
-
-
-class BrainLocation(Base):
-    __tablename__ = "brain_location"
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    x: Mapped[float] = mapped_column(unique=False, index=False, nullable=True)
-    y: Mapped[float] = mapped_column(unique=False, index=False, nullable=True)
-    z: Mapped[float] = mapped_column(unique=False, index=False, nullable=True)
 
 
 class BrainRegion(TimestampMixin, Base):
@@ -127,15 +128,6 @@ class LicensedMixin:
 
 
 class LocationMixin:
-    brain_location_id: Mapped[int] = mapped_column(
-        ForeignKey("brain_location.id"), index=True, nullable=True
-    )
-
-    @declared_attr
-    @classmethod
-    def brain_location(cls):
-        return relationship("BrainLocation", uselist=False)
-
     brain_region_id: Mapped[int] = mapped_column(
         ForeignKey("brain_region.id"), index=True, nullable=False
     )
@@ -420,6 +412,8 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     name: Mapped[str] = mapped_column(unique=False, index=True, nullable=False)
     morphology_description_vector: Mapped[str] = mapped_column(TSVECTOR, nullable=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+
+    location: Mapped[PointLocation] = mapped_column(nullable=True)
 
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 

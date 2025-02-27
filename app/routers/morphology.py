@@ -55,7 +55,7 @@ def read_reconstruction_morphology(
 ):
     with ensure_result(error_message="ReconstructionMorphology not found"):
         query = constrain_to_accessible_entities(
-            db.query(ReconstructionMorphology), project_context.project_id
+            sa.select(ReconstructionMorphology), project_context.project_id
         ).filter(ReconstructionMorphology.id == id_)
 
         if expand and "morphology_feature_annotation" in expand:
@@ -71,7 +71,7 @@ def read_reconstruction_morphology(
             .options(joinedload(ReconstructionMorphology.strain))
         )
 
-        row = query.one()
+        row = db.execute(query).unique().scalar_one()
 
     if expand and "morphology_feature_annotation" in expand:
         return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)

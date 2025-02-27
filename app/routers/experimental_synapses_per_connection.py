@@ -57,14 +57,13 @@ def read_experimental_synapses_per_connection(
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalSynapsesPerConnection not found"):
-        row = (
-            constrain_to_accessible_entities(
-                db.query(ExperimentalSynapsesPerConnection),
-                project_context.project_id,
-            )
-            .filter(ExperimentalSynapsesPerConnection.id == id_)
-            .one()
+        stmt = constrain_to_accessible_entities(
+            sa.select(ExperimentalSynapsesPerConnection).filter(
+                ExperimentalSynapsesPerConnection.id == id_
+            ),
+            project_context.project_id,
         )
+        row = db.execute(stmt).scalar_one()
 
     return ExperimentalSynapsesPerConnectionRead.model_validate(row)
 

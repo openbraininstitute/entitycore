@@ -42,7 +42,8 @@ def read_strains(db: SessionDep, pagination_request: PaginationQuery):
 @router.get("/{id_}", response_model=StrainRead)
 def read_strain(id_: int, db: SessionDep):
     with ensure_result(error_message="Strain not found"):
-        row = db.query(Strain).filter(Strain.id == id_).one()
+        stmt = sa.select(Strain).filter(Strain.id == id_)
+        row = db.execute(stmt).scalar_one()
     return StrainRead.model_validate(row)
 
 

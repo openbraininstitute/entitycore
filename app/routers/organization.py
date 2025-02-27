@@ -45,7 +45,8 @@ def read_organizations(
 @router.get("/{id_}", response_model=OrganizationRead)
 def read_organization(id_: int, db: SessionDep):
     with ensure_result(error_message="Organization not found"):
-        row = db.query(Organization).filter(Organization.id == id_).one()
+        stmt = sa.select(Organization).filter(Organization.id == id_)
+        row = db.execute(stmt).scalar_one()
     return OrganizationRead.model_validate(row)
 
 

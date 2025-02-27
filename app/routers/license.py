@@ -45,7 +45,8 @@ def read_licenses(
 @router.get("/{id_}", response_model=LicenseRead)
 def read_license(id_: int, db: SessionDep):
     with ensure_result(error_message="License not found"):
-        row = db.query(License).filter(License.id == id_).one()
+        stmt = sa.select(License).filter(License.id == id_)
+        row = db.execute(stmt).scalar_one()
     return LicenseRead.model_validate(row)
 
 

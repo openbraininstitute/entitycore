@@ -42,8 +42,8 @@ def read_persons(db: SessionDep, pagination_request: PaginationQuery):
 @router.get("/{id_}", response_model=PersonRead)
 def read_person(id_: int, db: SessionDep):
     with ensure_result(error_message="Person not found"):
-        row = db.query(Person).filter(Person.id == id_).one()
-
+        stmt = sa.select(Person).filter(Person.id == id_)
+        row = db.execute(stmt).scalar_one()
     return PersonRead.model_validate(row)
 
 

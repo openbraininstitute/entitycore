@@ -65,12 +65,13 @@ def read_morphology_feature_annotation_id(
     db: SessionDep,
 ):
     with ensure_result(error_message="MorphologyFeatureAnnotation not found"):
-        row = constrain_to_accessible_entities(
-            db.query(MorphologyFeatureAnnotation)
+        stmt = constrain_to_accessible_entities(
+            sa.select(MorphologyFeatureAnnotation)
             .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == id_)
             .join(ReconstructionMorphology),
             project_context.project_id,
-        ).one()
+        )
+        row = db.execute(stmt).scalar_one()
 
     return MorphologyFeatureAnnotationRead.model_validate(row)
 
@@ -83,12 +84,12 @@ def create_morphology_feature_annotation(
 ):
     reconstruction_morphology_id = morphology_feature_annotation.reconstruction_morphology_id
 
-    if not constrain_entity_query_to_project(
-        db.query(Entity).filter(
-            Entity.id == morphology_feature_annotation.reconstruction_morphology_id
-        ),
+    stmt = constrain_entity_query_to_project(
+        sa.select(MorphologyFeatureAnnotation).filter(Entity.id == reconstruction_morphology_id),
         project_context.project_id,
-    ).first():
+    ).with_only_columns(sa.func.count())
+
+    if not db.execute(stmt).scalar_one_or_none():
         L.warning(
             "Block `MorphologyFeatureAnnotation` with entity inaccessible: {}",
             reconstruction_morphology_id,

@@ -42,7 +42,8 @@ def get(db: SessionDep, pagination_request: PaginationQuery):
 @router.get("/{id_}", response_model=SpeciesRead)
 def read_species(id_: int, db: SessionDep):
     with ensure_result(error_message="Species not found"):
-        row = db.query(Species).filter(Species.id == id_).one()
+        stmt = sa.select(Species).filter(Species.id == id_)
+        row = db.execute(stmt).scalar_one()
     return SpeciesRead.model_validate(row)
 
 

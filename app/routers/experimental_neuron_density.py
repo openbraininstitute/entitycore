@@ -57,13 +57,11 @@ def read_experimental_neuron_density(
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalNeuronDensity not found"):
-        row = (
-            constrain_to_accessible_entities(
-                db.query(ExperimentalNeuronDensity), project_context.project_id
-            )
-            .filter(ExperimentalNeuronDensity.id == id_)
-            .one()
+        stmt = constrain_to_accessible_entities(
+            sa.select(ExperimentalNeuronDensity).filter(ExperimentalNeuronDensity.id == id_),
+            project_context.project_id,
         )
+        row = db.execute(stmt).scalar_one()
 
     return ExperimentalNeuronDensityRead.model_validate(row)
 

@@ -53,13 +53,15 @@ def read_contributions(
 @router.get("/{id_}", response_model=ContributionRead)
 def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep):
     with ensure_result(error_message="Contribution not found"):
-        row = constrain_to_accessible_entities(
-            db.query(Contribution)
+        stmt = constrain_to_accessible_entities(
+            sa.select(Contribution)
             .filter(Contribution.id == id_)
             .join(Contribution.entity)
             .options(contains_eager(Contribution.entity)),
             project_context.project_id,
-        ).one()
+        )
+
+        row = db.execute(stmt).scalar_one()
 
     return ContributionRead.model_validate(row)
 
@@ -68,9 +70,10 @@ def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, d
 def create_contribution(
     contribution: ContributionCreate, project_context: VerifiedProjectContextHeader, db: SessionDep
 ):
-    if not constrain_entity_query_to_project(
-        db.query(Entity).filter(Entity.id == contribution.entity_id), project_context.project_id
-    ).first():
+    stmt = constrain_entity_query_to_project(
+        sa.select(Entity).filter(Entity.id == contribution.entity_id), project_context.project_id
+    ).with_only_columns(sa.func.count())
+    if not db.execute(stmt).scalar_one_or_none():
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
         raise HTTPException(
             status_code=404, detail=f"Cannot access entity {contribution.entity_id}"

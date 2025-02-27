@@ -2,9 +2,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
-from app.db.model import (
-    ExperimentalBoutonDensity,
-)
+from app.db.model import ExperimentalBoutonDensity
 from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
@@ -59,13 +57,11 @@ def read_experimental_bouton_density(
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalBoutonDensity not found"):
-        row = (
-            constrain_to_accessible_entities(
-                db.query(ExperimentalBoutonDensity), project_context.project_id
-            )
-            .filter(ExperimentalBoutonDensity.id == id_)
-            .one()
+        stmt = constrain_to_accessible_entities(
+            sa.select(ExperimentalBoutonDensity).filter(ExperimentalBoutonDensity.id == id_),
+            project_context.project_id,
         )
+        row = db.execute(stmt).scalar_one()
 
     return ExperimentalBoutonDensityRead.model_validate(row)
 

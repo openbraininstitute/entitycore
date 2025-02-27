@@ -342,7 +342,7 @@ def test_pagination(db, client, brain_region_id):
         assert list(names) == list(range(total_items - 1, total_items - expected_items - 1, -1))
 
     items = []
-    for i in range(total_items):
+    for i in range(1, total_items + 1):
         response = client.get(
             ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page": i, "page_size": 1}
         )

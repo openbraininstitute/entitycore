@@ -19,9 +19,7 @@ def get(db: SessionDep, pagination_request: PaginationQuery):
     query = sa.select(Species)
 
     data = db.execute(
-        query.offset(pagination_request.page * pagination_request.page_size).limit(
-            pagination_request.page_size
-        )
+        query.offset(pagination_request.offset).limit(pagination_request.page_size)
     ).scalars()
 
     total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()

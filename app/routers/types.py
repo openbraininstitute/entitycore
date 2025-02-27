@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
 
 
 class PaginationRequest(BaseModel):
@@ -6,6 +6,11 @@ class PaginationRequest(BaseModel):
 
     page: int
     page_size: int
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size
 
 
 class PaginationResponse(BaseModel):

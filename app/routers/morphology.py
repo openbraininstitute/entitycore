@@ -180,7 +180,7 @@ def morphology_query(
         morphology_filter.sort(filter_query)
         .with_only_columns(ReconstructionMorphology)
         .distinct()
-        .offset(pagination_request.page * pagination_request.page_size)
+        .offset(pagination_request.offset)
         .limit(pagination_request.page_size)
     ).subquery("distinct_ids")
 

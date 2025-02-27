@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
-from app.db.model import BrainLocation, ExperimentalNeuronDensity
+from app.db.model import ExperimentalNeuronDensity
 from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
@@ -75,9 +75,6 @@ def create_experimental_neuron_density(
     db: SessionDep,
 ):
     dump = density.model_dump()
-
-    if density.brain_location:
-        dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
     row = ExperimentalNeuronDensity(**dump, authorized_project_id=project_context.project_id)
     db.add(row)

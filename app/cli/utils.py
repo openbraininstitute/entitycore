@@ -5,7 +5,6 @@ from sqlalchemy import func
 from app.cli import curate
 from app.db.model import (
     Agent,
-    BrainLocation,
     BrainRegion,
     Contribution,
     License,
@@ -55,7 +54,7 @@ def get_brain_location_mixin(data, db):
         y = coordinates.get("valueY", None)
         z = coordinates.get("valueZ", None)
         if x is not None and y is not None and z is not None:
-            brain_location = BrainLocation(x=x, y=y, z=z)
+            brain_location = {"x": x, "y": y, "z": z}
     root = {
         "@id": "http://api.brain-map.org/api/v2/data/Structure/root",
         "label": "root",

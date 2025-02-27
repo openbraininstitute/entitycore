@@ -20,7 +20,6 @@ def test_experimental_synapses_per_connection(
             "strain_id": strain_id,
             "description": bouton_description,
             "name": bouton_name,
-            "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "license_id": license_id,
         },
@@ -77,7 +76,6 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "species_id": species_id,
         "strain_id": strain_id,
         "description": "a worthy description",
-        "brain_location": {"x": 10, "y": 20, "z": 30},
         "legacy_id": "Test Legacy ID",
         "license_id": license_id,
     }

@@ -18,7 +18,6 @@ def test_experimental_neuron_density(client, species_id, strain_id, brain_region
             "strain_id": strain_id,
             "description": neuron_description,
             "name": neuron_name,
-            "brain_location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "license_id": license_id,
         },
@@ -84,7 +83,6 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "species_id": species_id,
         "strain_id": strain_id,
         "description": "the finest description",
-        "brain_location": {"x": 10, "y": 20, "z": 30},
         "legacy_id": "Test Legacy ID",
         "license_id": license_id,
     }

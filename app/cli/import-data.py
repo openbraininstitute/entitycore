@@ -34,6 +34,7 @@ from app.db.model import (
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
 )
+from app.schemas.base import PointLocationBase
 from app.db.session import configure_database_session_manager
 
 
@@ -235,6 +236,8 @@ def import_single_neuron_simulation(data, db, file_path, project_id):
         rm = utils._find_by_legacy_id(legacy_id, SingleNeuronSimulation, db)
         if not rm:
             _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            assert _brain_location is None
+
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             me_model_lid = data.get("used", {}).get("@id", None)
             me_model = utils._find_by_legacy_id(me_model_lid, MEModel, db)
@@ -317,7 +320,9 @@ def import_me_models(data, db, file_path, project_id):
         legacy_id = data["@id"]
         rm = utils._find_by_legacy_id(legacy_id, MEModel, db)
         if not rm:
-            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            assert _brain_location is None
+
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
             # TO DO: add species and strain mixin ?
@@ -328,7 +333,6 @@ def import_me_models(data, db, file_path, project_id):
                 description=data.get("description", None),
                 validated=data.get("validated", None),
                 status=data.get("status", None),
-                brain_location=brain_location,
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
@@ -359,7 +363,9 @@ def import_e_models(data, db, file_path, project_id):
         legacy_id = data["@id"]
         db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
         if not db_item:
-            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            assert _brain_location is None
+
             species_id, strain_id = utils.get_species_mixin(data, db)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
@@ -373,7 +379,6 @@ def import_e_models(data, db, file_path, project_id):
                 iteration=data.get("iteration", None),
                 eModel=data.get("eModel", None),
                 eType=data.get("eType", None),
-                brain_location=brain_location,
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
@@ -407,7 +412,8 @@ def import_brain_region_meshes(data, db, file_path, project_id):
         legacy_id = data["@id"]
         rm = utils._find_by_legacy_id(legacy_id, Mesh, db)
         if not rm:
-            _, brain_region_id = utils.get_brain_location_mixin(data, db)
+            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            assert _brain_location is None
 
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
@@ -435,7 +441,9 @@ def import_traces(data_list, db, file_path, project_id):
         if not rm:
             data = curate.curate_trace(data)
 
-            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            assert _brain_location is None
+
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
@@ -444,7 +452,6 @@ def import_traces(data_list, db, file_path, project_id):
                 legacy_id=[data.get("@id", None)],
                 name=data["name"],
                 description=data["description"],
-                brain_location=brain_location,
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
@@ -491,7 +498,7 @@ def import_morphologies(data_list, db, file_path, project_id):
                 legacy_id=[data.get("@id", None)],
                 name=data["name"],
                 description=data["description"],
-                brain_location=brain_location,
+                location=brain_location and PointLocationBase(**brain_location),
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
@@ -649,7 +656,8 @@ def _import_experimental_densities(
         if not db_element:
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
-            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            assert _brain_location is None
             createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
 
             createdAt, updatedAt = utils.get_created_and_updated(data)
@@ -661,7 +669,6 @@ def _import_experimental_densities(
                 species_id=species_id,
                 strain_id=strain_id,
                 license_id=license_id,
-                brain_location=brain_location,
                 brain_region_id=brain_region_id,
                 createdBy_id=createdBy_id,
                 updatedBy_id=updatedBy_id,

@@ -3,7 +3,6 @@ from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
-    BrainLocation,
     ExperimentalBoutonDensity,
 )
 from app.dependencies import PaginationQuery
@@ -78,9 +77,6 @@ def create_experimental_bouton_density(
     db: SessionDep,
 ):
     dump = density.model_dump()
-
-    if density.brain_location:
-        dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
 
     row = ExperimentalBoutonDensity(**dump, authorized_project_id=project_context.project_id)
     db.add(row)

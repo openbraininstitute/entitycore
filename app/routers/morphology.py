@@ -14,7 +14,6 @@ from sqlalchemy.orm import (
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
-    BrainLocation,
     Contribution,
     ReconstructionMorphology,
     Species,
@@ -65,8 +64,7 @@ def read_reconstruction_morphology(
             )
 
         query = (
-            query.options(joinedload(ReconstructionMorphology.brain_location))
-            .options(joinedload(ReconstructionMorphology.brain_region))
+            query.options(joinedload(ReconstructionMorphology.brain_region))
             .options(joinedload(ReconstructionMorphology.contributions))
             .options(joinedload(ReconstructionMorphology.license))
             .options(joinedload(ReconstructionMorphology.species))
@@ -88,15 +86,10 @@ def create_reconstruction_morphology(
     reconstruction: ReconstructionMorphologyCreate,
     db: SessionDep,
 ):
-    brain_location = None
-
-    if reconstruction.brain_location:
-        brain_location = BrainLocation(**reconstruction.brain_location.model_dump())
-
     db_rm = ReconstructionMorphology(
         name=reconstruction.name,
         description=reconstruction.description,
-        brain_location=brain_location,
+        location=reconstruction.location,
         brain_region_id=reconstruction.brain_region_id,
         species_id=reconstruction.species_id,
         strain_id=reconstruction.strain_id,
@@ -200,7 +193,6 @@ def morphology_query(
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.role))
         .options(joinedload(ReconstructionMorphology.brain_region))
-        .options(joinedload(ReconstructionMorphology.brain_location))
         .options(joinedload(ReconstructionMorphology.license))
         .options(raiseload("*"))
     )

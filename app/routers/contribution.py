@@ -1,11 +1,15 @@
+import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException
+from sqlalchemy.orm import contains_eager
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
+from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.logger import L
+from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.contribution import ContributionCreate, ContributionRead
 
 router = APIRouter(
@@ -14,25 +18,46 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[ContributionRead])
+@router.get("/", response_model=ListResponse[ContributionRead])
 def read_contributions(
-    project_context: VerifiedProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
+    db: SessionDep,
+    project_context: VerifiedProjectContextHeader,
+    pagination_request: PaginationQuery,
 ):
-    return (
-        constrain_to_accessible_entities(
-            db.query(Contribution).join(Entity), project_context.project_id
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
+    query = constrain_to_accessible_entities(
+        sa.select(Contribution).join(Entity).options(contains_eager(Contribution.entity)),
+        project_context.project_id,
     )
+
+    data = db.execute(
+        query.offset(pagination_request.page * pagination_request.page_size).limit(
+            pagination_request.page_size
+        )
+    ).scalars()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+
+    response = ListResponse[ContributionRead](
+        data=[ContributionRead.model_validate(d) for d in data],
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
 
 
 @router.get("/{id_}", response_model=ContributionRead)
 def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep):
     with ensure_result(error_message="Contribution not found"):
         row = constrain_to_accessible_entities(
-            db.query(Contribution).filter(Contribution.id == id_).join(Contribution.entity),
+            db.query(Contribution)
+            .filter(Contribution.id == id_)
+            .join(Contribution.entity)
+            .options(contains_eager(Contribution.entity)),
             project_context.project_id,
         ).one()
 

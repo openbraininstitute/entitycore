@@ -53,7 +53,7 @@ def get(db: SessionDep, flat: bool = False) -> Response:  # noqa: FBT001, FBT002
 
 @router.get("/{id_}", response_model=BrainRegionRead)
 def read_brain_region(db: SessionDep, id_: int):
-    with ensure_result(error_message="License not found"):
+    with ensure_result(error_message="Brain region not found"):
         row = db.query(BrainRegion).filter(BrainRegion.id == id_).one()
     return BrainRegionRead.model_validate(row)
 

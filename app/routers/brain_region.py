@@ -1,8 +1,8 @@
 from pathlib import Path
 
+import sqlalchemy as sa
 from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
-from sqlalchemy import text
 
 from app.db.model import BrainRegion
 from app.dependencies.db import SessionDep
@@ -19,7 +19,7 @@ router = APIRouter(
 
 
 def get_region_tree(db, start_id=None):
-    query = text("""
+    query = sa.text("""
         WITH RECURSIVE region_tree AS (
             SELECT id, name, acronym, children, 1 as level
             FROM brain_region
@@ -54,7 +54,8 @@ def get(db: SessionDep, flat: bool = False) -> Response:  # noqa: FBT001, FBT002
 @router.get("/{id_}", response_model=BrainRegionRead)
 def read_brain_region(db: SessionDep, id_: int):
     with ensure_result(error_message="Brain region not found"):
-        row = db.query(BrainRegion).filter(BrainRegion.id == id_).one()
+        stmt = sa.select(BrainRegion).filter(BrainRegion.id == id_)
+        row = db.execute(stmt).scalar_one()
     return BrainRegionRead.model_validate(row)
 
 

@@ -25,7 +25,7 @@ def test_create_license(client):
 
     response = client.get(ROUTE)
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert len(data) == 1
     assert data[0]["name"] == "Test License"
     assert data[0]["description"] == "a license description"

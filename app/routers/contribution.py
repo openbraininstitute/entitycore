@@ -1,12 +1,15 @@
+import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import contains_eager
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
+from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.logger import L
+from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.contribution import ContributionCreate, ContributionRead
 
 router = APIRouter(
@@ -15,33 +18,48 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[ContributionRead])
+@router.get("/", response_model=ListResponse[ContributionRead])
 def read_contributions(
-    project_context: VerifiedProjectContextHeader, db: SessionDep, skip: int = 0, limit: int = 10
+    db: SessionDep,
+    project_context: VerifiedProjectContextHeader,
+    pagination_request: PaginationQuery,
 ):
-    return (
-        constrain_to_accessible_entities(
-            db.query(Contribution).join(Entity).options(contains_eager(Contribution.entity)),
-            project_context.project_id,
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
+    query = constrain_to_accessible_entities(
+        sa.select(Contribution).join(Entity).options(contains_eager(Contribution.entity)),
+        project_context.project_id,
     )
+
+    data = db.execute(
+        query.offset(pagination_request.offset).limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+
+    response = ListResponse[ContributionRead](
+        data=[ContributionRead.model_validate(d) for d in data],
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
 
 
 @router.get("/{id_}", response_model=ContributionRead)
 def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep):
     with ensure_result(error_message="Contribution not found"):
-        row = constrain_to_accessible_entities(
-            (
-                db.query(Contribution)
-                .filter(Contribution.id == id_)
-                .join(Contribution.entity)
-                .options(contains_eager(Contribution.entity))
-            ),
+        stmt = constrain_to_accessible_entities(
+            sa.select(Contribution)
+            .filter(Contribution.id == id_)
+            .join(Contribution.entity)
+            .options(contains_eager(Contribution.entity)),
             project_context.project_id,
-        ).one()
+        )
+
+        row = db.execute(stmt).scalar_one()
 
     return ContributionRead.model_validate(row)
 
@@ -50,9 +68,10 @@ def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, d
 def create_contribution(
     contribution: ContributionCreate, project_context: VerifiedProjectContextHeader, db: SessionDep
 ):
-    if not constrain_entity_query_to_project(
-        db.query(Entity).filter(Entity.id == contribution.entity_id), project_context.project_id
-    ).first():
+    stmt = constrain_entity_query_to_project(
+        sa.select(Entity).filter(Entity.id == contribution.entity_id), project_context.project_id
+    ).with_only_columns(sa.func.count())
+    if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
         raise HTTPException(
             status_code=404, detail=f"Cannot access entity {contribution.entity_id}"

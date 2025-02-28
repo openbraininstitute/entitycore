@@ -1,8 +1,11 @@
+import sqlalchemy as sa
 from fastapi import APIRouter
 
 from app.db.model import License
+from app.dependencies import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
+from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.base import LicenseCreate, LicenseRead
 
 router = APIRouter(
@@ -11,15 +14,37 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[LicenseRead])
-def read_licenses(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(License).offset(skip).limit(limit).all()
+@router.get("/", response_model=ListResponse[LicenseRead])
+def read_licenses(
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+):
+    query = sa.select(License)
+
+    data = db.execute(
+        query.offset(pagination_request.offset).limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+
+    response = ListResponse[LicenseRead](
+        data=[LicenseRead.model_validate(d) for d in data],
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
 
 
 @router.get("/{id_}", response_model=LicenseRead)
 def read_license(id_: int, db: SessionDep):
     with ensure_result(error_message="License not found"):
-        row = db.query(License).filter(License.id == id_).one()
+        stmt = sa.select(License).filter(License.id == id_)
+        row = db.execute(stmt).scalar_one()
     return LicenseRead.model_validate(row)
 
 

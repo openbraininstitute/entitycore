@@ -1,21 +1,42 @@
-def test_create_strain(client):
-    response = client.post("/species/", json={"name": "Test Strain", "taxonomy_id": "12345"})
-    assert response.status_code == 200
-    data = response.json()
-    assert data["name"] == "Test Strain"
-    assert "id" in data
-    species_id = data["id"]
+ROUTE = "/strain/"
+
+
+def test_create_strain(client, species_id):
+    name = "Test Strain"
+    taxonomy_id = "TaxonomyID"
     response = client.post(
-        "/strain/",
+        ROUTE,
         json={
-            "name": "Test Strain",
-            "taxonomy_id": "Taxonomy ID",
+            "name": name,
+            "taxonomy_id": taxonomy_id,
             "species_id": species_id,
         },
     )
+    response.raise_for_status()
+    data = response.json()
+    assert data["taxonomy_id"] == taxonomy_id
+    assert data["species_id"] == species_id
+    assert "id" in data
+    id_ = data["id"]
+
+    response = client.get(f"{ROUTE}{id_}")
     assert response.status_code == 200
     data = response.json()
-    assert data["taxonomy_id"] == "Taxonomy ID"
-    assert data["species_id"] == species_id
+    assert data["id"] == id_
+    assert data["name"] == name
+    assert data["taxonomy_id"] == taxonomy_id
 
-    assert "id" in data
+    response = client.get(ROUTE)
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["name"] == name
+    assert data[0]["id"] == id_
+
+
+def test_missing_role(client):
+    response = client.get(f"{ROUTE}42424242")
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}notanumber")
+    assert response.status_code == 422

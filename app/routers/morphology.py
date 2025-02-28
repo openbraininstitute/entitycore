@@ -19,11 +19,12 @@ from app.db.model import (
     Species,
     Strain,
 )
+from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
-from app.routers.types import Facet, Facets, ListResponse, Pagination
+from app.routers.types import Facet, Facets, ListResponse, PaginationResponse
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
@@ -54,7 +55,7 @@ def read_reconstruction_morphology(
 ):
     with ensure_result(error_message="ReconstructionMorphology not found"):
         query = constrain_to_accessible_entities(
-            db.query(ReconstructionMorphology), project_context.project_id
+            sa.select(ReconstructionMorphology), project_context.project_id
         ).filter(ReconstructionMorphology.id == id_)
 
         if expand and "morphology_feature_annotation" in expand:
@@ -70,7 +71,7 @@ def read_reconstruction_morphology(
             .options(joinedload(ReconstructionMorphology.strain))
         )
 
-        row = query.one()
+        row = db.execute(query).unique().scalar_one()
 
     if expand and "morphology_feature_annotation" in expand:
         return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)
@@ -137,10 +138,9 @@ def _get_facets(
 def morphology_query(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
+    pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
-    page: int = 0,
-    page_size: int = 10,
 ):
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -180,8 +180,8 @@ def morphology_query(
         morphology_filter.sort(filter_query)
         .with_only_columns(ReconstructionMorphology)
         .distinct()
-        .offset(page * page_size)
-        .limit(page_size)
+        .offset(pagination_request.offset)
+        .limit(pagination_request.page_size)
     ).subquery("distinct_ids")
 
     # TODO: load person.* and organization.* eagerly
@@ -208,7 +208,11 @@ def morphology_query(
 
     response = ListResponse[ReconstructionMorphologyRead](
         data=data,
-        pagination=Pagination(page=page, page_size=page_size, total_items=total_items),
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
         facets=facets,
     )
 

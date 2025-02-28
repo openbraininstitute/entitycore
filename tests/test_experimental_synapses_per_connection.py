@@ -57,7 +57,7 @@ def test_experimental_synapses_per_connection(
 
     response = client.get(ROUTE, headers=PROJECT_HEADERS)
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    assert len(response.json()["data"]) == 1
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -123,7 +123,7 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
 
     # only return results that matches the desired project, and public ones
     response = client.get(ROUTE, headers=PROJECT_HEADERS)
-    data = response.json()
+    data = response.json()["data"]
     assert len(data) == 3
 
     ids = {row["id"] for row in data}

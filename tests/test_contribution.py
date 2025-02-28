@@ -94,7 +94,7 @@ def test_create_contribution(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
-    assert len(response.json()) == 2
+    assert len(response.json()["data"]) == 2
 
     response = client.get(
         f"{ROUTE_MORPH}{reconstruction_morphology_id}",
@@ -212,7 +212,7 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert len(data) == 1  # only public entity is available
     assert data[0]["id"] == public_obj["id"]
     assert data[0]["entity"]["id"] == public_entity_id

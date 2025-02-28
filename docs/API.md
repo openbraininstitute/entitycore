@@ -53,6 +53,7 @@ Would return:
 }
 ```
 `data` would include the columns that are required for the current FE list view, for now would be hardcoded, but in the future could be part of the query param.
+Note that `page` starts at 1.
 
 Note:
 will need to decide how to handle expansion of brain\_region\_ids, something like how the sonata-position-service works

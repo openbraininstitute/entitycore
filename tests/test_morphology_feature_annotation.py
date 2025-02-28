@@ -214,4 +214,4 @@ def test_authorization(client, species_id, strain_id, brain_region_id):
 
     response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    assert len(response.json()["data"]) == 1

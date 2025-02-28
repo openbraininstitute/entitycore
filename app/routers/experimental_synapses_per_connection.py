@@ -1,10 +1,13 @@
+import sqlalchemy as sa
 from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import ExperimentalSynapsesPerConnection
+from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
+from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
@@ -16,21 +19,33 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=list[ExperimentalSynapsesPerConnectionRead])
+@router.get("/", response_model=ListResponse[ExperimentalSynapsesPerConnectionRead])
 def get(
     project_context: VerifiedProjectContextHeader,
     db: SessionDep,
-    skip: int = 0,
-    limit: int = 10,
+    pagination_request: PaginationQuery,
 ):
-    return (
-        constrain_to_accessible_entities(
-            db.query(ExperimentalSynapsesPerConnection), project_context.project_id
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
+    query = constrain_to_accessible_entities(
+        sa.select(ExperimentalSynapsesPerConnection), project_context.project_id
     )
+
+    data = db.execute(
+        query.offset(pagination_request.offset).limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+
+    response = ListResponse[ExperimentalSynapsesPerConnectionRead](
+        data=data,
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
 
 
 @router.get("/{id_}", response_model=ExperimentalSynapsesPerConnectionRead)
@@ -40,14 +55,13 @@ def read_experimental_synapses_per_connection(
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalSynapsesPerConnection not found"):
-        row = (
-            constrain_to_accessible_entities(
-                db.query(ExperimentalSynapsesPerConnection),
-                project_context.project_id,
-            )
-            .filter(ExperimentalSynapsesPerConnection.id == id_)
-            .one()
+        stmt = constrain_to_accessible_entities(
+            sa.select(ExperimentalSynapsesPerConnection).filter(
+                ExperimentalSynapsesPerConnection.id == id_
+            ),
+            project_context.project_id,
         )
+        row = db.execute(stmt).scalar_one()
 
     return ExperimentalSynapsesPerConnectionRead.model_validate(row)
 

@@ -210,22 +210,35 @@ class AnnotationBody(LegacyMixin, TimestampMixin, Base):
     }
 
 
-class MTypeAnnotationBody(AnnotationBody):
-    __tablename__ = "mtype_annotation_body"
+class MTypeClass(LegacyMixin, TimestampMixin, Base):
+    __tablename__ = "mtype_class"
     id: Mapped[int] = mapped_column(
-        ForeignKey("annotation_body.id"),
         primary_key=True,
         index=True,
         nullable=False,
         autoincrement=True,
     )
     pref_label: Mapped[str] = mapped_column(unique=True, nullable=False)
-    # difficult to believe this can be null
-    definition: Mapped[str] = mapped_column(unique=False, nullable=True)
+    definition: Mapped[str] = mapped_column(unique=False, nullable=False)
     alt_label: Mapped[str] = mapped_column(unique=False, nullable=True)
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "mtype_annotation_body",
-    }
+
+
+class MTypeClassification(TimestampMixin, Base):
+    __tablename__ = "mtype_classification"
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        index=True,
+        nullable=False,
+        autoincrement=True,
+    )
+    createdBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), index=True, nullable=True)
+    updatedBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), index=True, nullable=True)
+    morphology_id: Mapped[int] = mapped_column(
+        ForeignKey("ReconstructionMorphology.id"), index=True, nullable=False
+    )
+    mtype_class_id: Mapped[int] = mapped_column(
+        ForeignKey("MTypeClass.id"), index=True, nullable=False
+    )
 
 
 class ETypeAnnotationBody(AnnotationBody):

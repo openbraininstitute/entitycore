@@ -1,11 +1,13 @@
-from pydantic import BaseModel, ConfigDict, computed_field
+from typing import Annotated
+
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class PaginationRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    page: int
-    page_size: int
+    page: Annotated[int, Field(strict=True, ge=1)]
+    page_size: Annotated[int, Field(strict=True, ge=1)]
 
     @computed_field  # type: ignore[prop-decorator]
     @property

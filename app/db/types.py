@@ -65,7 +65,7 @@ class EntityWithAssets(HyphenStrEnum):
 
     For each entry:
 
-    - name (underscore separated): for table names
+    - name (underscore separated): for table names and S3 keys
     - value (hyphen separated): for endpoints
     """
 

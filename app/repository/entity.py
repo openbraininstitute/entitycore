@@ -30,7 +30,7 @@ class EntityRepository(BaseRepository):
             the selected entity if it's public or owned by project_id,
             or raises NoResultFound if the entity doesn't exist, or it's forbidden.
         """
-        query = sa.select(Entity).where(Entity.id == entity_id, Entity.type == entity_type)
+        query = sa.select(Entity).where(Entity.id == entity_id, Entity.type == entity_type.name)
         query = constrain_to_accessible_entities(query, project_id=project_id)
         return self.db.execute(query).scalar_one()
 
@@ -54,7 +54,7 @@ class EntityRepository(BaseRepository):
             the selected entity,
             or raises NoResultFound if the entity doesn't exist, or it's forbidden.
         """
-        query = sa.select(Entity).where(Entity.id == entity_id, Entity.type == entity_type)
+        query = sa.select(Entity).where(Entity.id == entity_id, Entity.type == entity_type.name)
         query = constrain_entity_query_to_project(query, project_id=project_id)
         if for_update:
             query = query.with_for_update()

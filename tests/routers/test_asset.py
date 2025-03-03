@@ -3,7 +3,7 @@ from unittest.mock import ANY
 import pytest
 
 from app.db.model import Entity
-from app.db.types import AssetStatus, EntityType
+from app.db.types import AssetStatus, EntityWithAssets
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
@@ -30,7 +30,7 @@ def client(client):
 
 
 def _upload_entity_asset(client, entity_type, entity_id):
-    entity_type_path = EntityType[entity_type]
+    entity_type_path = EntityWithAssets[entity_type]
     with (TEST_DATA_DIR / "example.json").open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)

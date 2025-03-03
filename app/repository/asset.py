@@ -5,7 +5,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 
 from app.db.model import Asset, Root
-from app.db.types import AssetStatus, EntityType
+from app.db.types import AssetStatus, EntityWithAssets
 from app.repository.base import BaseRepository
 from app.schemas.asset import AssetCreate
 
@@ -15,7 +15,7 @@ class AssetRepository(BaseRepository):
 
     def get_entity_assets(
         self,
-        entity_type: EntityType,
+        entity_type: EntityWithAssets,
         entity_id: int,
     ) -> Sequence[Asset]:
         """Return a sequence of assets, potentially empty."""
@@ -31,7 +31,7 @@ class AssetRepository(BaseRepository):
 
     def get_entity_asset(
         self,
-        entity_type: EntityType,
+        entity_type: EntityWithAssets,
         entity_id: int,
         asset_id: int,
     ) -> Asset:
@@ -69,7 +69,7 @@ class AssetRepository(BaseRepository):
 
     def update_entity_asset_status(
         self,
-        entity_type: EntityType,
+        entity_type: EntityWithAssets,
         entity_id: int,
         asset_id: int,
         asset_status: AssetStatus,

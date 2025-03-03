@@ -1,5 +1,5 @@
 from app.config import settings
-from app.db.types import AssetStatus, EntityType
+from app.db.types import AssetStatus, EntityWithAssets
 from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import AssetCreate, AssetRead
@@ -11,7 +11,7 @@ from app.utils.s3 import build_s3_path
 def get_entity_assets(
     repos: RepositoryGroup,
     project_context: ProjectContext,
-    entity_type: EntityType,
+    entity_type: EntityWithAssets,
     entity_id: int,
 ) -> list[AssetRead]:
     """Return the list of assets associated with a specific entity."""
@@ -30,7 +30,7 @@ def get_entity_assets(
 def get_entity_asset(
     repos: RepositoryGroup,
     project_context: ProjectContext,
-    entity_type: EntityType,
+    entity_type: EntityWithAssets,
     entity_id: int,
     asset_id: int,
 ) -> AssetRead:
@@ -51,7 +51,7 @@ def get_entity_asset(
 def create_entity_asset(
     repos: RepositoryGroup,
     project_context: ProjectContext,
-    entity_type: EntityType,
+    entity_type: EntityWithAssets,
     entity_id: int,
     filename: str,
     content_type: str,
@@ -101,7 +101,7 @@ def create_entity_asset(
 def delete_entity_asset(
     repos: RepositoryGroup,
     project_context: ProjectContext,
-    entity_type: EntityType,
+    entity_type: EntityWithAssets,
     entity_id: int,
     asset_id: int,
 ) -> AssetRead:

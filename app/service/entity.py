@@ -1,5 +1,5 @@
 from app.db.model import Entity
-from app.db.types import EntityType
+from app.db.types import EntityWithAssets
 from app.errors import ensure_result
 from app.repository.group import RepositoryGroup
 from app.schemas.base import ProjectContext
@@ -8,7 +8,7 @@ from app.schemas.base import ProjectContext
 def get_readable_entity(
     repos: RepositoryGroup,
     project_context: ProjectContext,
-    entity_type: EntityType,
+    entity_type: EntityWithAssets,
     entity_id: int,
 ) -> Entity:
     with ensure_result(f"Entity {entity_id} not found or forbidden"):
@@ -22,7 +22,7 @@ def get_readable_entity(
 def get_writable_entity(
     repos: RepositoryGroup,
     project_context: ProjectContext,
-    entity_type: EntityType,
+    entity_type: EntityWithAssets,
     entity_id: int,
     *,
     for_update: bool = False,

@@ -168,6 +168,14 @@ def default_agents():
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },
+        {
+            "@id": "https://www.grid.ac/institutes/grid.83440.3b ",
+            "@type": "Organization",
+            "name": "University College London",
+            "alternativeName": "UCL",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
     ]
 
 

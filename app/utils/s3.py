@@ -23,7 +23,7 @@ def build_s3_path(
     vlab_id = str(vlab_id)
     proj_id = str(proj_id)
     entity_id_mod = f"{entity_id % 0xFFFF:04x}"
-    path = f"assets/{entity_type}/{entity_id_mod}/{entity_id}/{filename}"
+    path = f"assets/{entity_type.name}/{entity_id_mod}/{entity_id}/{filename}"
     if not is_public:
         path = f"private/{vlab_id[:4]}/{vlab_id}/{proj_id}/{path}"
     return path

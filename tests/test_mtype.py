@@ -1,0 +1,100 @@
+import pytest
+
+from app.db.model import MTypeClass, MTypeClassification
+
+from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
+
+ROUTE = "/mtype/"
+ROUTE_MORPH = "/reconstruction-morphology/"
+
+
+def test_mtype(db, client):
+    count = 10
+
+    for i in range(count):
+        row = MTypeClass(
+            pref_label=f"pref_label_{i}",
+            alt_label=f"alt_label_{i}",
+            definition=f"definition_{i}",
+        )
+        db.add(row)
+    db.commit()
+
+    response = client.get(ROUTE)
+    assert response.status_code == 200
+    data = response.json()["data"]
+
+    assert len(data) == count
+    assert data[0]["pref_label"] == "pref_label_0"
+    assert data[0]["alt_label"] == "alt_label_0"
+    assert data[0]["definition"] == "definition_0"
+
+    response = client.get(ROUTE + "1")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == 1
+    assert data["pref_label"] == "pref_label_0"
+    assert data["alt_label"] == "alt_label_0"
+    assert data["definition"] == "definition_0"
+
+
+def test_missing_mtype(client):
+    response = client.get(ROUTE + "42424242")
+    assert response.status_code == 404
+
+    response = client.get(ROUTE + "notanumber")
+    assert response.status_code == 422
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
+    morph_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        authorized_public=False,
+    )
+
+    mtype1 = add_db(db, MTypeClass(pref_label="m1", alt_label="m1", definition="m1d"))
+    mtype2 = add_db(db, MTypeClass(pref_label="m2", alt_label="m2", definition="m2d"))
+
+    add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype1.id))
+    add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype2.id))
+
+    response = client.get(ROUTE_MORPH, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    facets = response.json()["facets"]
+    assert facets["mtypes"] == [
+        {"id": 1, "label": "m1", "count": 1, "type": "mtypes"},
+        {"id": 2, "label": "m2", "count": 1, "type": "mtypes"},
+    ]
+
+    response = client.get(ROUTE_MORPH + str(morph_id), headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    data = response.json()
+    assert "mtypes" in data
+    mtypes = data["mtypes"]
+    assert len(mtypes) == 2
+
+    for mtype in mtypes:
+        assert "update_date" in mtype
+        del mtype["update_date"]
+
+        assert "creation_date" in mtype
+        del mtype["creation_date"]
+
+    assert mtypes == [
+        {"id": 1, "pref_label": "m1", "alt_label": "m1", "definition": "m1d"},
+        {"id": 2, "pref_label": "m2", "alt_label": "m2", "definition": "m2d"},
+    ]
+
+    response = client.get(
+        f"{ROUTE_MORPH}?mtypes__pref_label=m1", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
+    assert response.status_code == 200
+    facets = response.json()["facets"]
+    assert facets["mtypes"] == [
+        {"id": 1, "label": "m1", "count": 1, "type": "mtypes"},
+    ]

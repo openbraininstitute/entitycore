@@ -233,11 +233,9 @@ class MTypeClassification(TimestampMixin, Base):
     )
     createdBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), index=True, nullable=True)
     updatedBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), index=True, nullable=True)
-    morphology_id: Mapped[int] = mapped_column(
-        ForeignKey("ReconstructionMorphology.id"), index=True, nullable=False
-    )
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True, nullable=False)
     mtype_class_id: Mapped[int] = mapped_column(
-        ForeignKey("MTypeClass.id"), index=True, nullable=False
+        ForeignKey("mtype_class.id"), index=True, nullable=False
     )
 
 
@@ -301,10 +299,8 @@ class Entity(TimestampMixin, Root):
     authorized_project_id: Mapped[UUID]
     authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
 
-    contributions: Mapped[list["Contribution"]] = relationship(
-        uselist=True,
-        viewonly=True,
-    )
+    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",
     }
@@ -427,6 +423,13 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
     location: Mapped[PointLocation] = mapped_column(nullable=True)
+
+    mtypes: Mapped[list["MTypeClass"]] = relationship(
+        primaryjoin="ReconstructionMorphology.id == MTypeClassification.entity_id",
+        secondary="join(mtype_classification, mtype_class)",
+        uselist=True,
+        viewonly=True,
+    )
 
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 

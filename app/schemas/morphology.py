@@ -16,6 +16,7 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributorRead
+from app.schemas.mtype import MTypeClassRead
 
 
 class ReconstructionMorphologyBase(BaseModel):
@@ -56,6 +57,7 @@ class ReconstructionMorphologyRead(
     strain: StrainRead | None
     brain_region: BrainRegionRead
     contributions: list[ContributorRead] | None
+    mtypes: list[MTypeClassRead] | None
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

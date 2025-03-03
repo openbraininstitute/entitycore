@@ -4,7 +4,13 @@ from fastapi_filter import FilterDepends, with_prefix
 from pydantic import field_validator
 
 from app.db.model import ReconstructionMorphology
-from app.filters import AgentFilter, FilterWithAliases, SpeciesFilter, StrainFilter
+from app.filters import (
+    AgentFilter,
+    FilterWithAliases,
+    MTypeClassFilter,
+    SpeciesFilter,
+    StrainFilter,
+)
 
 
 class MorphologyFilter(FilterWithAliases):
@@ -17,6 +23,7 @@ class MorphologyFilter(FilterWithAliases):
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None
 
+    mtypes: MTypeClassFilter | None = FilterDepends(with_prefix("mtypes", MTypeClassFilter))
     species: SpeciesFilter | None = FilterDepends(with_prefix("species", SpeciesFilter))
     strain: StrainFilter | None = FilterDepends(with_prefix("strain", StrainFilter))
     contributor: AgentFilter | None = FilterDepends(with_prefix("contributor", AgentFilter))

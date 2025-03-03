@@ -6,7 +6,7 @@ from boto3.s3.transfer import TransferConfig
 from types_boto3_s3 import S3Client
 
 from app.config import settings
-from app.db.types import EntityWithAssets
+from app.db.types import EntityType
 from app.logger import L
 
 
@@ -14,7 +14,7 @@ def build_s3_path(
     *,
     vlab_id: UUID,
     proj_id: UUID,
-    entity_type: EntityWithAssets,
+    entity_type: EntityType,
     entity_id: int,
     filename: str,
     is_public: bool,

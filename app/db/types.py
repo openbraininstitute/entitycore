@@ -60,8 +60,8 @@ BIGINT = Annotated[int, mapped_column(BigInteger)]
 JSONDICT = Annotated[dict[str, Any], mapped_column(JSONB)]
 
 
-class EntityWithAssets(HyphenStrEnum):
-    """Entity with assets that are directly exposed through the API.
+class EntityType(HyphenStrEnum):
+    """Entities that are directly exposed through the API.
 
     For each entry:
 

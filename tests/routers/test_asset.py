@@ -3,7 +3,7 @@ from unittest.mock import ANY
 import pytest
 
 from app.db.model import Entity
-from app.db.types import AssetStatus, EntityWithAssets
+from app.db.types import AssetStatus, EntityType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
@@ -30,7 +30,7 @@ def client(client):
 
 
 def _route(entity_type: str) -> str:
-    return f"/{EntityWithAssets[entity_type]}"
+    return f"/{EntityType[entity_type]}"
 
 
 def _upload_entity_asset(client, entity_type, entity_id):
@@ -52,7 +52,7 @@ def _get_expected_fullpath(entity, path):
 
 @pytest.fixture
 def entity(client, species_id, strain_id, brain_region_id) -> Entity:
-    entity_type = EntityWithAssets.reconstruction_morphology.name
+    entity_type = EntityType.reconstruction_morphology.name
     entity_id = create_reconstruction_morphology_id(
         client,
         species_id,

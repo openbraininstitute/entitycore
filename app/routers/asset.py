@@ -6,7 +6,7 @@ from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from starlette.responses import RedirectResponse
 
 from app.config import settings
-from app.db.types import EntityWithAssets
+from app.db.types import EntityType
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
@@ -33,7 +33,7 @@ router = APIRouter(
 def get_entity_assets(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
-    entity_type: EntityWithAssets,
+    entity_type: EntityType,
     entity_id: int,
 ) -> ListResponse[AssetRead]:
     """Return the list of assets associated with a specific entity."""
@@ -52,7 +52,7 @@ def get_entity_assets(
 def get_entity_asset(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
-    entity_type: EntityWithAssets,
+    entity_type: EntityType,
     entity_id: int,
     asset_id: int,
 ) -> AssetRead:
@@ -72,7 +72,7 @@ def upload_entity_asset(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
-    entity_type: EntityWithAssets,
+    entity_type: EntityType,
     entity_id: int,
     file: UploadFile,
     meta: Annotated[dict | None, Form()] = None,
@@ -113,7 +113,7 @@ def download_entity_asset(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
-    entity_type: EntityWithAssets,
+    entity_type: EntityType,
     entity_id: int,
     asset_id: int,
 ) -> RedirectResponse:
@@ -137,7 +137,7 @@ def delete_entity_asset(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
-    entity_type: EntityWithAssets,
+    entity_type: EntityType,
     entity_id: int,
     asset_id: int,
 ) -> AssetRead:
@@ -162,7 +162,7 @@ def delete_entity_asset(
 def initiate_entity_asset_upload(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
-    entity_type: EntityWithAssets,
+    entity_type: EntityType,
     entity_id: int,
 ):
     """Generate a signed URL with expiration that can be used to upload the file directly to S3."""
@@ -173,7 +173,7 @@ def initiate_entity_asset_upload(
 def complete_entity_asset_upload(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
-    entity_type: EntityWithAssets,
+    entity_type: EntityType,
     entity_id: int,
 ):
     """Register the uploaded file."""

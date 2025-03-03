@@ -6,7 +6,7 @@ import sqlalchemy as sa
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Entity
-from app.db.types import EntityWithAssets
+from app.db.types import EntityType
 from app.repository.base import BaseRepository
 
 
@@ -15,7 +15,7 @@ class EntityRepository(BaseRepository):
 
     def get_readable_entity(
         self,
-        entity_type: EntityWithAssets,
+        entity_type: EntityType,
         entity_id: int,
         project_id: UUID,
     ) -> Entity:
@@ -36,7 +36,7 @@ class EntityRepository(BaseRepository):
 
     def get_writable_entity(
         self,
-        entity_type: EntityWithAssets,
+        entity_type: EntityType,
         entity_id: int,
         project_id: UUID,
         *,

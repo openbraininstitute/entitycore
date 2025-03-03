@@ -27,7 +27,8 @@ from app.db.model import (
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
     MorphologyMeasurementSerieElement,
-    MTypeAnnotationBody,
+    MTypeClass,
+    MTypeClassification,
     Organization,
     Person,
     ReconstructionMorphology,
@@ -48,7 +49,7 @@ def get_or_create_annotation_body(annotation_body, db):
     annotation_body = curate.curate_annotation_body(annotation_body)
     annotation_types = {
         "EType": ETypeAnnotationBody,
-        "MType": MTypeAnnotationBody,
+        "MType": MTypeClass,
         "DataMaturity": DataMaturityAnnotationBody,
         "DataScope": None,
     }
@@ -56,21 +57,25 @@ def get_or_create_annotation_body(annotation_body, db):
     intersection = [value for value in annotation_type_list if value in annotation_types]
 
     assert len(intersection) == 1, f"Unknown annotation body type {annotation_body['@type']}"
-    db_annotation = annotation_types[intersection[0]]
+    annotation_type = annotation_types[intersection[0]]
     # TODO manage datascope
-    if db_annotation is None:
-        return None
+    if annotation_type is None:
+        return annotation_type, None
+
     ab = (
-        db.query(db_annotation).filter(db_annotation.pref_label == annotation_body["label"]).first()
+        db.query(annotation_type)
+        .filter(annotation_type.pref_label == annotation_body["label"])
+        .first()
     )
     if not ab:
-        if db_annotation is MTypeAnnotationBody:
+        if annotation_type is MTypeClass:
             msg = f"Missing mtype in annotation body {annotation_body}"
             raise ValueError(msg)
-        ab = db_annotation(pref_label=annotation_body["label"])
+        ab = annotation_type(pref_label=annotation_body["label"])
         db.add(ab)
         db.commit()
-    return ab.id
+        print(f"Added Annotation: {ab}")
+    return annotation_type, ab.id
 
 
 def import_licenses(data, db):
@@ -149,7 +154,7 @@ def import_mtype_annotation_body(data, db):
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         }
     )
-    _import_annotation_body(data, MTypeAnnotationBody, db)
+    _import_annotation_body(data, MTypeClass, db)
 
 
 def import_etype_annotation_body(data, db):
@@ -258,18 +263,50 @@ def import_single_neuron_simulation(data, db, file_path, project_id):
             db.commit()
 
 
-def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
-    annotation_body_id = get_or_create_annotation_body(annotation_["hasBody"], db)
+def create_annotation(annotation_, entity_id, db):
+    annotation_type, annotation_body_id = get_or_create_annotation_body(annotation_["hasBody"], db)
+
     if not annotation_body_id:
         return None
-    db_annotation = Annotation(
-        entity_id=reconstruction_morphology_id,
-        note=annotation_.get("note", None),
-        annotation_body_id=annotation_body_id,
-    )
-    db.add(db_annotation)
-    db.commit()
-    return db_annotation.id
+
+    if annotation_type is MTypeClass:
+        createdBy_id = None
+        updatedBy_id = None
+
+        if "contribution" in annotation_:
+            # Example contribution, in this case
+            # 'contribution': {'@type': 'Contribution',
+            #                  'agent': {'@id': 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/foobar',
+            #                            '@type': ['Agent', 'Person'],
+            #                            'familyName': 'Bar', 'givenName': 'Foo'}},
+            contribution = annotation_["contribution"]
+            assert contribution["@type"] == "Contribution"
+            legacy_id = contribution["agent"]["@id"]
+
+            agent = utils._find_by_legacy_id(legacy_id, Person, db)
+            assert agent
+
+            createdBy_id = agent.id
+            updatedBy_id = agent.id
+
+        row = MTypeClassification(
+            entity_id=entity_id,
+            mtype_class_id=annotation_body_id,
+            createdBy_id=createdBy_id,
+            updatedBy_id=updatedBy_id,
+        )
+    else:
+        row = Annotation(
+            entity_id=entity_id,
+            note=annotation_.get("note", None),
+            annotation_body_id=annotation_body_id,
+        )
+
+    try:
+        db.add(row)
+        db.commit()
+    except:
+        breakpoint()  # XXX BREAKPOINT
 
 
 def import_analysis_software_source_code(data, db, file_path, project_id):
@@ -344,7 +381,7 @@ def import_me_models(data, db, file_path, project_id):
             )
             db.add(rm)
             db.commit()
-            # get_or_create_annotation(data, rm.id, db)
+            # create_annotation(data, rm.id, db)
 
 
 def import_e_models(data, db, file_path, project_id):
@@ -398,7 +435,7 @@ def import_e_models(data, db, file_path, project_id):
             if isinstance(annotations, dict):
                 annotations = [annotations]
             for annotation in annotations:
-                get_or_create_annotation(annotation, db_item.id, db)
+                create_annotation(annotation, db_item.id, db)
 
 
 def import_brain_region_meshes(data, db, file_path, project_id):
@@ -471,7 +508,7 @@ def import_traces(data_list, db, file_path, project_id):
             if isinstance(annotations, dict):
                 annotations = [annotations]
             for annotation in annotations:
-                get_or_create_annotation(annotation, db_item.id, db)
+                create_annotation(annotation, db_item.id, db)
 
 
 def import_morphologies(data_list, db, file_path, project_id):
@@ -517,7 +554,7 @@ def import_morphologies(data_list, db, file_path, project_id):
             if isinstance(annotations, dict):
                 annotations = [annotations]
             for annotation in annotations:
-                get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
+                create_annotation(annotation, db_reconstruction_morphology.id, db)
 
 
 def import_morphology_feature_annotations(data_list, db, file_path, project_id):

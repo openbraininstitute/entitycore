@@ -5,7 +5,12 @@ export APP_NAME := entitycore
 export APP_VERSION := $(shell git describe --abbrev --dirty --always --tags)
 export COMMIT_SHA := $(shell git rev-parse HEAD)
 export IMAGE_NAME ?= $(APP_NAME)
-export IMAGE_TAG ?= $(APP_VERSION)-$(ENVIRONMENT)
+export IMAGE_TAG := $(APP_VERSION)
+export IMAGE_TAG_ALIAS := latest
+ifneq ($(ENVIRONMENT), prod)
+	export IMAGE_TAG := $(IMAGE_TAG)-$(ENVIRONMENT)
+	export IMAGE_TAG_ALIAS := $(IMAGE_TAG_ALIAS)-$(ENVIRONMENT)
+endif
 
 .PHONY: help install compile-deps upgrade-deps check-deps format lint build publish test-local test-docker run-local run-docker destroy migration
 

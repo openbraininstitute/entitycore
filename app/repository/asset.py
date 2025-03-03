@@ -50,6 +50,7 @@ class AssetRepository(BaseRepository):
 
     def create_entity_asset(self, entity_id: int, asset: AssetCreate) -> Asset:
         """Create an asset associated with the given entity."""
+        sha256_digest = bytes.fromhex(asset.sha256_digest) if asset.sha256_digest else None
         query = (
             sa.insert(Asset)
             .values(
@@ -61,6 +62,7 @@ class AssetRepository(BaseRepository):
                 is_directory=asset.is_directory,
                 content_type=asset.content_type,
                 size=asset.size,
+                sha256_digest=sha256_digest,
                 meta=asset.meta,
             )
             .returning(Asset)

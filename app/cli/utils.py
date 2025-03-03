@@ -16,7 +16,7 @@ from app.db.model import (
     Species,
     Strain,
 )
-from app.db.types import AssetStatus
+from app.db.types import AssetStatus, EntityType
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.utils.s3 import build_s3_path
@@ -204,7 +204,7 @@ def get_created_and_updated(data):
 
 
 def get_or_create_distribution(
-    distribution, entity_id, entity_type, db: Session, project_context: ProjectContext
+    distribution, entity_id: int, entity_type: str, db: Session, project_context: ProjectContext
 ):
     # Check if the Distribution already exists in the database
     if isinstance(distribution, list):
@@ -216,7 +216,7 @@ def get_or_create_distribution(
     full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,
-        entity_type=entity_type,
+        entity_type=EntityType[entity_type],
         entity_id=entity_id,
         filename=distribution["name"],
         is_public=False,

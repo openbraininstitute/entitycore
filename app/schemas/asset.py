@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.db.types import AssetStatus
 
@@ -13,7 +13,15 @@ class AssetBase(BaseModel):
     is_directory: bool
     content_type: str
     size: int
+    sha256_digest: str | None
     meta: dict
+
+    @field_validator("sha256_digest", mode="before")
+    @classmethod
+    def convert_bytes_to_hex(cls, value: bytes | str | None) -> str | None:
+        if isinstance(value, bytes):
+            return value.hex()
+        return value  # fallback (str or None)
 
 
 class AssetRead(AssetBase):

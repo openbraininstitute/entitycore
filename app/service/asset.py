@@ -56,6 +56,7 @@ def create_entity_asset(
     filename: str,
     content_type: str,
     size: int,
+    sha256_digest: str | None,
     meta: dict | None,
 ) -> AssetRead:
     """Create an asset for an entity."""
@@ -85,6 +86,7 @@ def create_entity_asset(
         is_directory=False,
         content_type=content_type,
         size=size,
+        sha256_digest=sha256_digest,
         meta=meta or {},
     )
     with ensure_uniqueness(

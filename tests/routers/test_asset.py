@@ -20,6 +20,10 @@ from tests.utils import (
 NON_EXISTENT_ID = 999999999
 DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
 
+FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
+FILE_EXAMPLE_DIGEST = "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91"
+FILE_EXAMPLE_SIZE = 31
+
 # Apply the fixture to all tests in this module
 pytestmark = pytest.mark.usefixtures("skip_project_check")
 
@@ -35,7 +39,7 @@ def _route(entity_type: str) -> str:
 
 
 def _upload_entity_asset(client, entity_type, entity_id):
-    with (TEST_DATA_DIR / "example.json").open("rb") as f:
+    with FILE_EXAMPLE_PATH.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
             "file": ("a/b/c.txt", f, "text/plain")
@@ -89,7 +93,8 @@ def test_upload_entity_asset(client, entity):
         "bucket_name": "obi-private",
         "is_directory": False,
         "content_type": "text/plain",
-        "size": 31,
+        "size": FILE_EXAMPLE_SIZE,
+        "sha256_digest": FILE_EXAMPLE_DIGEST,
         "meta": {},
         "status": "created",
     }
@@ -126,7 +131,8 @@ def test_get_entity_asset(client, entity, asset):
         "bucket_name": "obi-private",
         "is_directory": False,
         "content_type": "text/plain",
-        "size": 31,
+        "size": FILE_EXAMPLE_SIZE,
+        "sha256_digest": FILE_EXAMPLE_DIGEST,
         "meta": {},
         "status": "created",
     }
@@ -158,7 +164,8 @@ def test_get_entity_assets(client, entity, asset):
             "bucket_name": "obi-private",
             "is_directory": False,
             "content_type": "text/plain",
-            "size": 31,
+            "size": FILE_EXAMPLE_SIZE,
+            "sha256_digest": FILE_EXAMPLE_DIGEST,
             "meta": {},
             "status": "created",
         }

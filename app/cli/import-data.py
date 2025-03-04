@@ -2,7 +2,6 @@ import datetime
 import glob
 import json
 import os
-import shutil
 from collections import defaultdict
 from contextlib import closing
 from pathlib import Path
@@ -873,9 +872,11 @@ def organize_files(digest_path):
             digest = row.sha256_digest.hex()
             ignored.pop(digest, None)
             if not dst.exists():
-                src = src_paths[digest]
-                Path(row.full_path).parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(src, row.full_path)
+                src = Path(src_paths[digest]).resolve()
+                assert src.exists()
+                dst = Path(row.full_path)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                dst.symlink_to(src)
     if ignored:
         L.info("Ignored files: {}", len(ignored))
 

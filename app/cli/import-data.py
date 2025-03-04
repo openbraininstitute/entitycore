@@ -2,18 +2,19 @@ import datetime
 import glob
 import json
 import os
+from collections import Counter, defaultdict
 from contextlib import closing
-from collections import defaultdict
+from pathlib import Path
 
 import click
 import sqlalchemy as sa
 from tqdm import tqdm
-from pydantic import UUID4
 
 from app.cli import curate, utils
 from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
+    Asset,
     BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
@@ -31,12 +32,13 @@ from app.db.model import (
     Organization,
     Person,
     ReconstructionMorphology,
+    Root,
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
 )
-from app.schemas.base import PointLocationBase
 from app.db.session import configure_database_session_manager
-
+from app.logger import L
+from app.schemas.base import PointLocationBase, ProjectContext
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -227,7 +229,7 @@ def import_agents(data_list, db):
                     print(f"{e!r}")
 
 
-def import_single_neuron_simulation(data, db, file_path, project_id):
+def import_single_neuron_simulation(data, db, file_path, project_context):
     possible_data = [elem for elem in data if "SingleNeuronSimulation" in elem["@type"]]
     if not possible_data:
         return
@@ -252,7 +254,7 @@ def import_single_neuron_simulation(data, db, file_path, project_id):
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
-                authorized_project_id=project_id,
+                authorized_project_id=project_context.project_id,
             )
             db.add(rm)
             db.commit()
@@ -272,7 +274,7 @@ def get_or_create_annotation(annotation_, reconstruction_morphology_id, db):
     return db_annotation.id
 
 
-def import_analysis_software_source_code(data, db, file_path, project_id):
+def import_analysis_software_source_code(data, db, file_path, project_context):
     possible_data = [data for data in data if data["@type"] == "AnalysisSoftwareSourceCode"]
     if not possible_data:
         return
@@ -300,13 +302,13 @@ def import_analysis_software_source_code(data, db, file_path, project_id):
                 version=data.get("version", ""),
                 creation_date=createdAt,
                 update_date=updatedAt,
-                authorized_project_id=project_id,
+                authorized_project_id=project_context.project_id,
             )
             db.add(db_code)
             db.commit()
 
 
-def import_me_models(data, db, file_path, project_id):
+def import_me_models(data, db, file_path, project_context):
     def is_memodel(data):
         types = data["@type"]
         if isinstance(types, list):
@@ -336,7 +338,7 @@ def import_me_models(data, db, file_path, project_id):
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
-                authorized_project_id=project_id,
+                authorized_project_id=project_context.project_id,
                 # species_id=species_id,
                 # strain_id=strain_id
                 creation_date=createdAt,
@@ -347,7 +349,7 @@ def import_me_models(data, db, file_path, project_id):
             # get_or_create_annotation(data, rm.id, db)
 
 
-def import_e_models(data, db, file_path, project_id):
+def import_e_models(data, db, file_path, project_context):
     def is_emodel(data):
         types = data["@type"]
         if isinstance(types, list):
@@ -386,7 +388,7 @@ def import_e_models(data, db, file_path, project_id):
                 updatedBy_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                authorized_project_id=project_id,
+                authorized_project_id=project_context.project_id,
             )
 
             db.add(db_item)
@@ -401,7 +403,7 @@ def import_e_models(data, db, file_path, project_id):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
-def import_brain_region_meshes(data, db, file_path, project_id):
+def import_brain_region_meshes(data, db, file_path, project_context):
     possible_data = [data for data in data if "BrainParcellationMesh" in data["@type"]]
     possible_data = [
         data for data in possible_data if data.get("atlasRelease").get("tag", None) == "v1.1.0"
@@ -425,13 +427,13 @@ def import_brain_region_meshes(data, db, file_path, project_id):
                 content_url=content_url,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                authorized_project_id=project_id,
+                authorized_project_id=project_context.project_id,
             )
             db.add(db_item)
             db.commit()
 
 
-def import_traces(data_list, db, file_path, project_id):
+def import_traces(data_list, db, file_path, project_context):
     possible_data = [data for data in data_list if "SingleCellExperimentalTrace" in data["@type"]]
     if not possible_data:
         return
@@ -458,7 +460,7 @@ def import_traces(data_list, db, file_path, project_id):
                 license_id=license_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                authorized_project_id=project_id,
+                authorized_project_id=project_context.project_id,
             )
 
             db.add(db_item)
@@ -474,7 +476,7 @@ def import_traces(data_list, db, file_path, project_id):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
-def import_morphologies(data_list, db, file_path, project_id):
+def import_morphologies(data_list, db, file_path, project_context):
     possible_data = [
         data
         for data in data_list
@@ -505,7 +507,7 @@ def import_morphologies(data_list, db, file_path, project_id):
                 license_id=license_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                authorized_project_id=project_id,
+                authorized_project_id=project_context.project_id,
             )
 
             db.add(db_reconstruction_morphology)
@@ -520,7 +522,7 @@ def import_morphologies(data_list, db, file_path, project_id):
                 get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
 
 
-def import_morphology_feature_annotations(data_list, db, file_path, project_id):
+def import_morphology_feature_annotations(data_list, db, file_path, project_context):
     annotations = defaultdict(list)
     missing_morphology = 0
     duplicate_annotation = 0
@@ -610,41 +612,41 @@ def import_morphology_feature_annotations(data_list, db, file_path, project_id):
     )
 
 
-def import_experimental_neuron_densities(data_list, db, file_path, project_id):
+def import_experimental_neuron_densities(data_list, db, file_path, project_context):
     _import_experimental_densities(
         data_list,
         db,
         "ExperimentalNeuronDensity",
         ExperimentalNeuronDensity,
         curate.default_curate,
-        project_id,
+        project_context,
     )
 
 
-def import_experimental_bouton_densities(data_list, db, file_path, project_id):
+def import_experimental_bouton_densities(data_list, db, file_path, project_context):
     _import_experimental_densities(
         data_list,
         db,
         "ExperimentalBoutonDensity",
         ExperimentalBoutonDensity,
         curate.default_curate,
-        project_id,
+        project_context,
     )
 
 
-def import_experimental_synapses_per_connection(data_list, db, file_path, project_id):
+def import_experimental_synapses_per_connection(data_list, db, file_path, project_context):
     _import_experimental_densities(
         data_list,
         db,
         "ExperimentalSynapsesPerConnection",
         ExperimentalSynapsesPerConnection,
         curate.curate_synapses_per_connections,
-        project_id,
+        project_context,
     )
 
 
 def _import_experimental_densities(
-    data_list, db, schema_type, model_type, curate_function, project_id
+    data_list, db, schema_type, model_type, curate_function, project_context
 ):
     possible_data = [data for data in data_list if schema_type in data["@type"]]
     if not possible_data:
@@ -674,14 +676,32 @@ def _import_experimental_densities(
                 updatedBy_id=updatedBy_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                authorized_project_id=project_id,
+                authorized_project_id=project_context.project_id,
             )
             db.add(db_element)
             db.commit()
             utils.import_contribution(data, db_element.id, db)
 
 
-def _do_import(db, input_dir, project_id):
+def import_distributions(data, db, file_path, project_context):
+    possible_data = [elem for elem in data if "distribution" in elem]
+    if not possible_data:
+        return
+    ignored = Counter()
+    for data in tqdm(possible_data):
+        legacy_id = data["@id"]
+        root = utils._find_by_legacy_id(legacy_id, Root, db)
+        if root:
+            utils.import_distribution(data, root.id, root.type, db, project_context)
+        else:
+            dt = data["@type"]
+            types = tuple(sorted(dt)) if isinstance(dt, list) else dt
+            ignored[types] += 1
+    if ignored:
+        L.warning("Ignored assets by type: {}", ignored)
+
+
+def _do_import(db, input_dir, project_context):
     all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
 
     print("importing agents")
@@ -735,6 +755,7 @@ def _do_import(db, input_dir, project_id):
         {"traces": import_traces},
         {"meModels": import_me_models},
         {"SingleNeuronSimulation": import_single_neuron_simulation},
+        {"distributions": import_distributions},
     ]
     for l_import in l_imports:
         for label, action in l_import.items():
@@ -742,7 +763,7 @@ def _do_import(db, input_dir, project_id):
             for file_path in all_files:
                 with open(file_path) as f:
                     data = json.load(f)
-                    action(data, db, file_path=file_path, project_id=project_id)
+                    action(data, db, file_path=file_path, project_context=project_context)
 
 
 def _analyze() -> None:
@@ -768,17 +789,23 @@ def analyze():
 @cli.command()
 @click.argument("input-dir", type=REQUIRED_PATH_DIR)
 @click.option(
+    "--virtual-lab-id",
+    type=str,
+    help="The UUID4 `virtual-lab-id` under which the entities will be registered",
+)
+@click.option(
     "--project-id",
     type=str,
     help="The UUID4 `project-id` under which the entities will be registered",
 )
-def run(input_dir, project_id):
+def run(input_dir, virtual_lab_id, project_id):
     """Import data script."""
+    project_context = ProjectContext(virtual_lab_id=virtual_lab_id, project_id=project_id)
     with (
         closing(configure_database_session_manager()) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        _do_import(db, input_dir=input_dir, project_id=UUID4(project_id))
+        _do_import(db, input_dir=input_dir, project_context=project_context)
     _analyze()
 
 
@@ -821,6 +848,44 @@ def hierarchy(hierarchy_path):
             db.add(db_br)
             db.commit()
     _analyze()
+
+
+@cli.command()
+@click.argument("digest_path", type=REQUIRED_PATH)
+def organize_files(digest_path):
+    """Copy files to the expected location.
+
+    The digest file should contain lines like:
+
+        6fc954f05e23b1b5aefa9043b0628872154f356f09e48d112b8554325199b8c8 download/...
+
+    generated with:
+
+        find download -type f | xargs sha256 -r
+
+    It's acceptable that different files have the same digest.
+    """
+    with Path(digest_path).open("r", encoding="utf-8") as f:
+        src_paths = dict(line.strip().split(" ", maxsplit=1) for line in f)
+    ignored = src_paths.copy()  # for debugging
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        query = sa.select(Asset.full_path, Asset.sha256_digest)
+        rows = db.execute(query).all()
+        for row in tqdm(rows):
+            dst = Path(row.full_path)
+            digest = row.sha256_digest.hex()
+            ignored.pop(digest, None)
+            if not dst.exists():
+                src = Path(src_paths[digest]).resolve()
+                assert src.exists()
+                dst = Path(row.full_path)
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                dst.symlink_to(src)
+    if ignored:
+        L.info("Ignored files: {}", len(ignored))
 
 
 if __name__ == "__main__":

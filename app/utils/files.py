@@ -1,3 +1,4 @@
+import hashlib
 import mimetypes
 
 from fastapi import UploadFile
@@ -27,3 +28,12 @@ def get_content_type(file: UploadFile) -> str:
             guessed_content_type,
         )
     return original_content_type or guessed_content_type or "application/octet-stream"
+
+
+def calculate_sha256_digest(file: UploadFile) -> str:
+    """Calculate the sha256 digest of the given file."""
+    try:
+        return hashlib.file_digest(file.file, "sha256").hexdigest()  # type: ignore[arg-type]
+    finally:
+        # Reset the file pointer to the beginning
+        file.file.seek(0)

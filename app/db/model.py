@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    LargeBinary,
     MetaData,
     UniqueConstraint,
     func,
@@ -539,19 +540,20 @@ class Asset(TimestampMixin, Base):
     id: Mapped[BIGINT] = mapped_column(primary_key=True)
     status: Mapped[AssetStatus] = mapped_column(nullable=False)
     path: Mapped[str] = mapped_column(nullable=False)  # relative path
-    fullpath: Mapped[str] = mapped_column(nullable=False)  # full path on S3
+    full_path: Mapped[str] = mapped_column(nullable=False)  # full path on S3
     bucket_name: Mapped[str]
     is_directory: Mapped[bool]
     content_type: Mapped[str]
     size: Mapped[BIGINT]
+    sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32), nullable=True)
     meta: Mapped[JSONDICT]  # not used yet. can be useful?
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
 
     # partial unique index
     __table_args__ = (
         Index(
-            "ix_asset_fullpath",
-            fullpath,
+            "ix_asset_full_path",
+            full_path,
             unique=True,
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),

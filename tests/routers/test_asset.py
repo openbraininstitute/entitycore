@@ -7,6 +7,7 @@ from app.db.types import AssetStatus, EntityType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
+from app.utils.s3 import build_s3_path
 
 from tests.utils import (
     PROJECT_HEADERS,
@@ -18,6 +19,10 @@ from tests.utils import (
 
 NON_EXISTENT_ID = 999999999
 DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
+
+FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
+FILE_EXAMPLE_DIGEST = "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91"
+FILE_EXAMPLE_SIZE = 31
 
 # Apply the fixture to all tests in this module
 pytestmark = pytest.mark.usefixtures("skip_project_check")
@@ -34,7 +39,7 @@ def _route(entity_type: str) -> str:
 
 
 def _upload_entity_asset(client, entity_type, entity_id):
-    with (TEST_DATA_DIR / "example.json").open("rb") as f:
+    with FILE_EXAMPLE_PATH.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
             "file": ("a/b/c.txt", f, "text/plain")
@@ -42,11 +47,14 @@ def _upload_entity_asset(client, entity_type, entity_id):
         return client.post(f"{_route(entity_type)}/{entity_id}/assets", files=files)
 
 
-def _get_expected_fullpath(entity, path):
-    entity_id_mod = f"{entity.id % 0xFFFF:04x}"
-    return (
-        f"private/{VIRTUAL_LAB_ID[:4]}/{VIRTUAL_LAB_ID}/{PROJECT_ID}/"
-        f"assets/{entity.type}/{entity_id_mod}/{entity.id}/{path}"
+def _get_expected_full_path(entity, path):
+    return build_s3_path(
+        vlab_id=VIRTUAL_LAB_ID,
+        proj_id=PROJECT_ID,
+        entity_type=EntityType[entity.type],
+        entity_id=entity.id,
+        filename=path,
+        is_public=False,
     )
 
 
@@ -77,15 +85,16 @@ def test_upload_entity_asset(client, entity):
     assert response.status_code == 201, f"Failed to create asset: {response.text}"
     data = response.json()
 
-    expected_fullpath = _get_expected_fullpath(entity, path="a/b/c.txt")
+    expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
     assert data == {
         "id": ANY,
         "path": "a/b/c.txt",
-        "fullpath": expected_fullpath,
+        "full_path": expected_full_path,
         "bucket_name": "obi-private",
         "is_directory": False,
         "content_type": "text/plain",
-        "size": 31,
+        "size": FILE_EXAMPLE_SIZE,
+        "sha256_digest": FILE_EXAMPLE_DIGEST,
         "meta": {},
         "status": "created",
     }
@@ -114,15 +123,16 @@ def test_get_entity_asset(client, entity, asset):
 
     assert response.status_code == 200, f"Failed to get asset: {response.text}"
     data = response.json()
-    expected_fullpath = _get_expected_fullpath(entity, path="a/b/c.txt")
+    expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
     assert data == {
         "id": asset.id,
         "path": "a/b/c.txt",
-        "fullpath": expected_fullpath,
+        "full_path": expected_full_path,
         "bucket_name": "obi-private",
         "is_directory": False,
         "content_type": "text/plain",
-        "size": 31,
+        "size": FILE_EXAMPLE_SIZE,
+        "sha256_digest": FILE_EXAMPLE_DIGEST,
         "meta": {},
         "status": "created",
     }
@@ -145,16 +155,17 @@ def test_get_entity_assets(client, entity, asset):
 
     assert response.status_code == 200, f"Failed to get asset: {response.text}"
     data = response.json()["data"]
-    expected_fullpath = _get_expected_fullpath(entity, path="a/b/c.txt")
+    expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
     assert data == [
         {
             "id": asset.id,
             "path": "a/b/c.txt",
-            "fullpath": expected_fullpath,
+            "full_path": expected_full_path,
             "bucket_name": "obi-private",
             "is_directory": False,
             "content_type": "text/plain",
-            "size": 31,
+            "size": FILE_EXAMPLE_SIZE,
+            "sha256_digest": FILE_EXAMPLE_DIGEST,
             "meta": {},
             "status": "created",
         }
@@ -174,9 +185,9 @@ def test_download_entity_asset(client, entity, asset):
     )
 
     assert response.status_code == 307, f"Failed to download asset: {response.text}"
-    expected_fullpath = _get_expected_fullpath(entity, path="a/b/c.txt")
+    expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
     expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
-    assert response.next_request.url.path.endswith(expected_fullpath)
+    assert response.next_request.url.path.endswith(expected_full_path)
     assert expected_params.issubset(response.next_request.url.params)
 
     # try to download an asset with non-existent entity id

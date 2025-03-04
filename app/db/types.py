@@ -69,10 +69,13 @@ class EntityType(HyphenStrEnum):
     - value (hyphen separated): for endpoints
     """
 
+    emodel = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
+    mesh = auto()
     reconstruction_morphology = auto()
+    single_cell_experimental_trace = auto()
 
 
 class AssetStatus(HyphenStrEnum):

@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Query
 from sqlalchemy.sql.selectable import Select
 
-from app.db.model import Agent, Species, Strain
+from app.db.model import Agent, MTypeClass, Species, Strain
 
 
 class FilterWithAliases(Filter):
@@ -53,6 +53,14 @@ class FilterWithAliases(Filter):
                     query = query.filter(getattr(model_field, operator)(value))
 
         return query
+
+
+class MTypeClassFilter(FilterWithAliases):
+    id: int | None = None
+    pref_label: str | None = None
+
+    class Constants(FilterWithAliases.Constants):
+        model = MTypeClass
 
 
 class SpeciesFilter(FilterWithAliases):

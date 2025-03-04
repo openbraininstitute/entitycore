@@ -2,7 +2,7 @@ import pytest
 
 from .utils import PROJECT_HEADERS
 
-ROUTE = "/experimental-bouton-density/"
+ROUTE = "/experimental-bouton-density"
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -45,7 +45,7 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
         data["license"]["name"] == "Test License"
     ), f"Failed to get license for  experimental bouton density: {data}"
 
-    response = client.get(ROUTE + str(data["id"]), headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{data['id']}", headers=PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert data["brain_region"]["id"] == brain_region_id
@@ -61,10 +61,10 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing_bouton_density(client):
-    response = client.get(ROUTE + "42424242", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/42424242", headers=PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(ROUTE + "notanumber", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notanumber", headers=PROJECT_HEADERS)
     assert response.status_code == 422
 
 
@@ -129,5 +129,5 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         private_obj1["id"],
     }
 
-    response = client.get(f"{ROUTE}{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
     assert response.status_code == 404

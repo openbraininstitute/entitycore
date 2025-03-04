@@ -1,4 +1,4 @@
-ROUTE = "/strain/"
+ROUTE = "/strain"
 
 
 def test_create_strain(client, species_id):
@@ -19,7 +19,7 @@ def test_create_strain(client, species_id):
     assert "id" in data
     id_ = data["id"]
 
-    response = client.get(f"{ROUTE}{id_}")
+    response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == id_
@@ -35,8 +35,8 @@ def test_create_strain(client, species_id):
 
 
 def test_missing_role(client):
-    response = client.get(f"{ROUTE}42424242")
+    response = client.get(f"{ROUTE}/42424242")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}notanumber")
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422

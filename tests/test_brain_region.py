@@ -1,4 +1,4 @@
-ROUTE = "/brain-region/"
+ROUTE = "/brain-region"
 
 
 def test_get_brain_region(client):
@@ -59,7 +59,7 @@ def test_brain_region_id(client):
         )
         assert response.status_code == 200, f"Failed to create brain region: {response.text}"
 
-    response = client.get(ROUTE + "997")
+    response = client.get(f"{ROUTE}/997")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == 997

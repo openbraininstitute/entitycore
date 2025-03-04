@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[RoleRead])
+@router.get("", response_model=ListResponse[RoleRead])
 def read_roles(db: SessionDep, pagination_request: PaginationQuery):
     query = sa.select(Role)
 
@@ -45,7 +45,7 @@ def read_role(id_: int, db: SessionDep):
     return RoleRead.model_validate(row)
 
 
-@router.post("/", response_model=RoleRead)
+@router.post("", response_model=RoleRead)
 def create_role(role: RoleCreate, db: SessionDep):
     row = Role(name=role.name, role_id=role.role_id)
     db.add(row)

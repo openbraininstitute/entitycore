@@ -1,6 +1,6 @@
 def test_create_person(client):
     response = client.post(
-        "/person/",
+        "/person",
         json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"},
     )
     assert response.status_code == 200
@@ -16,7 +16,7 @@ def test_create_person(client):
     assert data["givenName"] == "jd"
     assert data["id"] == id_
 
-    response = client.get("/person/")
+    response = client.get("/person")
     assert response.status_code == 200
     data = response.json()["data"]
     assert data[0]["givenName"] == "jd"

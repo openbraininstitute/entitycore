@@ -108,7 +108,7 @@ def role_id(db):
 
 @pytest.fixture
 def species_id(client):
-    response = client.post("/species/", json={"name": "Test Species", "taxonomy_id": "12345"})
+    response = client.post("/species", json={"name": "Test Species", "taxonomy_id": "12345"})
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     assert data["name"] == "Test Species"
@@ -119,7 +119,7 @@ def species_id(client):
 @pytest.fixture
 def strain_id(client, species_id):
     response = client.post(
-        "/strain/",
+        "/strain",
         json={
             "name": "Test Strain",
             "taxonomy_id": "Taxonomy ID",
@@ -136,7 +136,7 @@ def strain_id(client, species_id):
 @pytest.fixture
 def license_id(client):
     response = client.post(
-        "/license/",
+        "/license",
         json={
             "name": "Test License",
             "description": "a license description",
@@ -158,7 +158,7 @@ def brain_region_id(client):
         "color_hex_triplet": "FF0000",
         "children": [],
     }
-    response = client.post("/brain-region/", json=js)
+    response = client.post("/brain-region", json=js)
     assert response.status_code == 200, f"Failed to create brain region: {response.text}"
     data = response.json()
     assert "id" in data, f"Failed to get id for brain region: {data}"

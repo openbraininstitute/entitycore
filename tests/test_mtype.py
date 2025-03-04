@@ -6,8 +6,8 @@ from app.db.model import MTypeClass, MTypeClassification
 
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
-ROUTE = "/mtype/"
-ROUTE_MORPH = "/reconstruction-morphology/"
+ROUTE = "/mtype"
+ROUTE_MORPH = "/reconstruction-morphology"
 
 
 def test_mtype(db, client):
@@ -31,7 +31,7 @@ def test_mtype(db, client):
     assert data[0]["alt_label"] == "alt_label_0"
     assert data[0]["definition"] == "definition_0"
 
-    response = client.get(ROUTE + "1")
+    response = client.get(f"{ROUTE}/1")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == 1
@@ -41,10 +41,10 @@ def test_mtype(db, client):
 
 
 def test_missing_mtype(client):
-    response = client.get(ROUTE + "42424242")
+    response = client.get(f"{ROUTE}/42424242")
     assert response.status_code == 404
 
-    response = client.get(ROUTE + "notanumber")
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
 
 
@@ -73,7 +73,7 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
         {"id": 2, "label": "m2", "count": 1, "type": "mtype"},
     ]
 
-    response = client.get(ROUTE_MORPH + str(morph_id), headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE_MORPH}/{morph_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert "mtype" in data

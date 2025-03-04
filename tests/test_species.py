@@ -1,4 +1,4 @@
-ROUTE = "/species/"
+ROUTE = "/species"
 
 
 def test_create_species(client):
@@ -11,7 +11,7 @@ def test_create_species(client):
     assert "id" in data
     id_ = data["id"]
 
-    response = client.get(f"{ROUTE}{id_}")
+    response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == id_
@@ -27,8 +27,8 @@ def test_create_species(client):
 
 
 def test_missing_role(client):
-    response = client.get(f"{ROUTE}42424242")
+    response = client.get(f"{ROUTE}/42424242")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}notanumber")
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422

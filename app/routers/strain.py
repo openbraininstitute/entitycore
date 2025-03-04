@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[StrainRead])
+@router.get("", response_model=ListResponse[StrainRead])
 def read_strains(db: SessionDep, pagination_request: PaginationQuery):
     query = sa.select(Strain)
 
@@ -45,7 +45,7 @@ def read_strain(id_: int, db: SessionDep):
     return StrainRead.model_validate(row)
 
 
-@router.post("/", response_model=StrainRead)
+@router.post("", response_model=StrainRead)
 def create_strain(strain: StrainCreate, db: SessionDep):
     row = Strain(name=strain.name, taxonomy_id=strain.taxonomy_id, species_id=strain.species_id)
     db.add(row)

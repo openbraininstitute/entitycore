@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 
-@router.get("/")
+@router.get("")
 def get() -> Response:
     """Return the old style cellCompositionSummary_payload_prod.json."""
     response = Response(content=COMPOSITION_SUMMARY, media_type="application/json")

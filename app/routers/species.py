@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[SpeciesRead])
+@router.get("", response_model=ListResponse[SpeciesRead])
 def get(db: SessionDep, pagination_request: PaginationQuery):
     query = sa.select(Species)
 
@@ -45,7 +45,7 @@ def read_species(id_: int, db: SessionDep):
     return SpeciesRead.model_validate(row)
 
 
-@router.post("/", response_model=SpeciesRead)
+@router.post("", response_model=SpeciesRead)
 def create_species(species: SpeciesCreate, db: SessionDep):
     row = Species(name=species.name, taxonomy_id=species.taxonomy_id)
     db.add(row)

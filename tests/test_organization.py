@@ -2,7 +2,7 @@ def test_create_organization(client):
     label = "test_organization label"
     alternative_name = "test organization alternative name"
     response = client.post(
-        "/organization/",
+        "/organization",
         json={"pref_label": label, "alternative_name": alternative_name},
     )
     assert response.status_code == 200
@@ -19,7 +19,7 @@ def test_create_organization(client):
     assert data["alternative_name"] == alternative_name
     assert data["id"] == id_
 
-    response = client.get("/organization/")
+    response = client.get("/organization")
     assert response.status_code == 200
 
     data = response.json()["data"]

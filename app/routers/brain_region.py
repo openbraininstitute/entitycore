@@ -38,7 +38,7 @@ def get_region_tree(db, start_id=None):
     return result
 
 
-@router.get("/")
+@router.get("")
 def get(db: SessionDep, flat: bool = False) -> Response:  # noqa: FBT001, FBT002
     response: Response
     if flat:
@@ -59,7 +59,7 @@ def read_brain_region(db: SessionDep, id_: int):
     return BrainRegionRead.model_validate(row)
 
 
-@router.post("/", response_model=BrainRegionRead)
+@router.post("", response_model=BrainRegionRead)
 def create_brain_region(brain_region: BrainRegionCreate, db: SessionDep):
     row = BrainRegion(**brain_region.model_dump())
     db.add(row)

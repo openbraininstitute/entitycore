@@ -1,7 +1,7 @@
 def test_create_role(client):
     name = "important role"
     role_id = "important role id"
-    response = client.post("/role/", json={"name": name, "role_id": role_id})
+    response = client.post("/role", json={"name": name, "role_id": role_id})
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == name
@@ -16,7 +16,7 @@ def test_create_role(client):
     assert data["name"] == name
     assert data["role_id"] == role_id
 
-    response = client.get("/role/")
+    response = client.get("/role")
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1

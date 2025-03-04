@@ -82,7 +82,7 @@ def read_reconstruction_morphology(
     return ReconstructionMorphologyRead.model_validate(row)
 
 
-@router.post("/", response_model=ReconstructionMorphologyRead)
+@router.post("", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
     project_context: VerifiedProjectContextHeader,
     reconstruction: ReconstructionMorphologyCreate,
@@ -136,7 +136,7 @@ def _get_facets(
     return facets
 
 
-@router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
+@router.get("", response_model=ListResponse[ReconstructionMorphologyRead])
 def morphology_query(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,

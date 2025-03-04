@@ -19,7 +19,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[ExperimentalBoutonDensityRead])
+@router.get("", response_model=ListResponse[ExperimentalBoutonDensityRead])
 def read_experimental_bouton_densities(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
@@ -64,7 +64,7 @@ def read_experimental_bouton_density(
     return ExperimentalBoutonDensityRead.model_validate(row)
 
 
-@router.post("/", response_model=ExperimentalBoutonDensityRead)
+@router.post("", response_model=ExperimentalBoutonDensityRead)
 def create_experimental_bouton_density(
     project_context: VerifiedProjectContextHeader,
     density: ExperimentalBoutonDensityCreate,

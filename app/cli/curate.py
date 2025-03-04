@@ -189,3 +189,15 @@ def default_licenses():
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },
     ]
+
+
+def curate_distribution(distribution, project_context):
+    if isinstance(distribution, list):
+        return [curate_distribution(c, project_context) for c in distribution]
+    assert distribution["@type"] == "DataDownload"
+    assert distribution["contentSize"]["unitCode"] == "bytes"
+    assert distribution["contentSize"]["value"] > 0
+    assert distribution["digest"]["algorithm"] == "SHA-256"
+    assert distribution["digest"]["value"] is not None
+    assert distribution["atLocation"]["@type"] == "Location"
+    return distribution

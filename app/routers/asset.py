@@ -14,7 +14,7 @@ from app.errors import ApiError, ApiErrorCode
 from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.asset import AssetRead
 from app.service import asset as asset_service
-from app.utils.files import get_content_type
+from app.utils.files import calculate_sha256_digest, get_content_type
 from app.utils.s3 import (
     delete_from_s3,
     generate_presigned_url,
@@ -88,6 +88,7 @@ def upload_entity_asset(
         msg = f"Invalid file name {file.filename!r}"
         raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
     content_type = get_content_type(file)
+    sha256_digest = calculate_sha256_digest(file)
     asset_read = asset_service.create_entity_asset(
         repos=repos,
         project_context=project_context,
@@ -96,13 +97,14 @@ def upload_entity_asset(
         filename=file.filename,
         content_type=content_type,
         size=file.size,
+        sha256_digest=sha256_digest,
         meta=meta,
     )
     if not upload_to_s3(
         s3_client,
         file_obj=file.file,
         bucket_name=asset_read.bucket_name,
-        s3_key=asset_read.fullpath,
+        s3_key=asset_read.full_path,
     ):
         raise HTTPException(status_code=500, detail="Failed to upload object")
     return asset_read
@@ -125,7 +127,7 @@ def download_entity_asset(
         asset_id=asset_id,
     )
     url = generate_presigned_url(
-        s3_client=s3_client, bucket_name=asset.bucket_name, s3_key=asset.fullpath
+        s3_client=s3_client, bucket_name=asset.bucket_name, s3_key=asset.full_path
     )
     if not url:
         raise HTTPException(status_code=500, detail="Failed to generate presigned url")
@@ -153,7 +155,7 @@ def delete_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    if not delete_from_s3(s3_client, bucket_name=asset.bucket_name, s3_key=asset.fullpath):
+    if not delete_from_s3(s3_client, bucket_name=asset.bucket_name, s3_key=asset.full_path):
         raise HTTPException(status_code=500, detail="Failed to delete object")
     return AssetRead.model_validate(asset)
 

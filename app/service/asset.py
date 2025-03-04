@@ -56,6 +56,7 @@ def create_entity_asset(
     filename: str,
     content_type: str,
     size: int,
+    sha256_digest: str | None,
     meta: dict | None,
 ) -> AssetRead:
     """Create an asset for an entity."""
@@ -70,7 +71,7 @@ def create_entity_asset(
         if entity.authorized_public
         else settings.S3_PRIVATE_BUCKET_NAME
     )
-    fullpath = build_s3_path(
+    full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,
         entity_type=entity_type,
@@ -80,11 +81,12 @@ def create_entity_asset(
     )
     asset_create = AssetCreate(
         path=filename,
-        fullpath=fullpath,
+        full_path=full_path,
         bucket_name=bucket_name,
         is_directory=False,
         content_type=content_type,
         size=size,
+        sha256_digest=sha256_digest,
         meta=meta or {},
     )
     with ensure_uniqueness(

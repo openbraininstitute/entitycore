@@ -211,22 +211,31 @@ class AnnotationBody(LegacyMixin, TimestampMixin, Base):
     }
 
 
-class MTypeAnnotationBody(AnnotationBody):
-    __tablename__ = "mtype_annotation_body"
+class MTypeClass(LegacyMixin, TimestampMixin, Base):
+    __tablename__ = "mtype_class"
     id: Mapped[int] = mapped_column(
-        ForeignKey("annotation_body.id"),
         primary_key=True,
         index=True,
         nullable=False,
         autoincrement=True,
     )
     pref_label: Mapped[str] = mapped_column(unique=True, nullable=False)
-    # difficult to believe this can be null
-    definition: Mapped[str] = mapped_column(unique=False, nullable=True)
+    definition: Mapped[str] = mapped_column(unique=False, nullable=False)
     alt_label: Mapped[str] = mapped_column(unique=False, nullable=True)
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "mtype_annotation_body",
-    }
+
+
+class MTypeClassification(TimestampMixin, Base):
+    __tablename__ = "mtype_classification"
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        index=True,
+        nullable=False,
+        autoincrement=True,
+    )
+    createdBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updatedBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
+    mtype_class_id: Mapped[int] = mapped_column(ForeignKey("mtype_class.id"), index=True)
 
 
 class ETypeAnnotationBody(AnnotationBody):
@@ -289,10 +298,8 @@ class Entity(TimestampMixin, Root):
     authorized_project_id: Mapped[UUID]
     authorized_public: Mapped[bool] = mapped_column(nullable=False, default=False)
 
-    contributions: Mapped[list["Contribution"]] = relationship(
-        uselist=True,
-        viewonly=True,
-    )
+    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",
     }
@@ -415,6 +422,13 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
     location: Mapped[PointLocation] = mapped_column(nullable=True)
+
+    mtype: Mapped[list["MTypeClass"]] = relationship(
+        primaryjoin="ReconstructionMorphology.id == MTypeClassification.entity_id",
+        secondary="join(mtype_classification, mtype_class)",
+        uselist=True,
+        viewonly=True,
+    )
 
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 

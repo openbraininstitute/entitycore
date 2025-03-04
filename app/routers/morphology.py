@@ -15,6 +15,8 @@ from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
     Contribution,
+    MTypeClass,
+    MTypeClassification,
     ReconstructionMorphology,
     Species,
     Strain,
@@ -144,6 +146,7 @@ def morphology_query(
 ):
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
+        "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},
         "contributions": {
@@ -161,6 +164,10 @@ def morphology_query(
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+        .outerjoin(
+            MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id
+        )
+        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
 
     if search:
@@ -192,6 +199,7 @@ def morphology_query(
         .options(joinedload(ReconstructionMorphology.strain))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.role))
+        .options(joinedload(ReconstructionMorphology.mtype))
         .options(joinedload(ReconstructionMorphology.brain_region))
         .options(joinedload(ReconstructionMorphology.license))
         .options(raiseload("*"))

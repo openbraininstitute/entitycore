@@ -20,7 +20,7 @@ from app.db.model import (
     License,
     MEModel,
     Mesh,
-    MTypeAnnotationBody,
+    # MTypeAnnotationBody,
     ReconstructionMorphology,
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
@@ -64,10 +64,10 @@ MAPPING_PER_TYPE = {
         "pref_label": "label",
         "definition": "definition",
     },
-    MTypeAnnotationBody: {
-        "pref_label": "label",
-        "definition": "definition",
-    },
+    # MTypeAnnotationBody: {
+    #    "pref_label": "label",
+    #    "definition": "definition",
+    # },
 }
 
 
@@ -89,10 +89,10 @@ def get_db_type(query):
 
 
 QUERY_PATH = {
-    "mType": {
-        "models": [Annotation, MTypeAnnotationBody],
-        "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
-    },
+    # "mType": {
+    #    "models": [Annotation, MTypeAnnotationBody],
+    #    "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
+    # },
     "eType": {
         "models": [Annotation, ETypeAnnotationBody],
         "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
@@ -174,10 +174,7 @@ def build_response_elem(elem):
         mapping = {**MAPPING_PER_TYPE.get(elem.__class__, {}), **MAPPING_GLOBAL}
         for key, value in mapping.items():
             initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
-        if elem.__class__ in {
-            MTypeAnnotationBody,
-            ETypeAnnotationBody,
-        }:
+        if elem.__class__ == ETypeAnnotationBody:
             initial_dict["@type"] = "Class"
         else:
             initial_dict["@type"] = [MAP_TYPES[elem.__class__]]

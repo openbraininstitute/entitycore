@@ -14,15 +14,17 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=ListResponse[RoleRead])
-def read_roles(db: SessionDep, pagination_request: PaginationQuery):
+@router.get("")
+def read_roles(db: SessionDep, pagination_request: PaginationQuery) -> ListResponse[RoleRead]:
     query = sa.select(Role)
 
-    data = db.execute(
-        query.offset(pagination_request.offset).limit(pagination_request.page_size)
-    ).scalars()
+    data = (
+        db.execute(query.offset(pagination_request.offset).limit(pagination_request.page_size))
+        .scalars()
+        .all()
+    )
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+    total_items = db.execute(query.with_only_columns(sa.func.count(Role.id))).scalar_one()
 
     response = ListResponse[RoleRead](
         data=[RoleRead.model_validate(d) for d in data],

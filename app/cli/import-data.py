@@ -301,11 +301,8 @@ def create_annotation(annotation_, entity_id, db):
             annotation_body_id=annotation_body_id,
         )
 
-    try:
-        db.add(row)
-        db.commit()
-    except:
-        breakpoint()  # XXX BREAKPOINT
+    db.add(row)
+    db.commit()
 
 
 def import_analysis_software_source_code(data, db, file_path, project_id):

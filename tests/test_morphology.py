@@ -150,7 +150,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     facets = data["facets"]
     assert facets == {
         "contributions": [],
-        "mtypes": [],
+        "mtype": [],
         "species": [
             {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
             {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
@@ -169,7 +169,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     facets = data["facets"]
     assert facets == {
         "contributions": [],
-        "mtypes": [],
+        "mtype": [],
         "species": [
             {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
             {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
@@ -191,7 +191,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     facets = data["facets"]
     assert facets == {
         "contributions": [],
-        "mtypes": [],
+        "mtype": [],
         "species": [{"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"}],
         "strain": [{"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"}],
     }
@@ -225,7 +225,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     assert "facets" in data
     assert data["facets"] == {
         "contributions": [],
-        "mtypes": [],
+        "mtype": [],
         "species": [{"id": 1, "label": "TestSpecies0", "count": 1, "type": "species"}],
         "strain": [{"id": 1, "label": "Strain0", "count": 1, "type": "strain"}],
     }

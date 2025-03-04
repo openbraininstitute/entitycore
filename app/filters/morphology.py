@@ -23,7 +23,7 @@ class MorphologyFilter(FilterWithAliases):
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None
 
-    mtypes: MTypeClassFilter | None = FilterDepends(with_prefix("mtypes", MTypeClassFilter))
+    mtype: MTypeClassFilter | None = FilterDepends(with_prefix("mtype", MTypeClassFilter))
     species: SpeciesFilter | None = FilterDepends(with_prefix("species", SpeciesFilter))
     strain: StrainFilter | None = FilterDepends(with_prefix("strain", StrainFilter))
     contributor: AgentFilter | None = FilterDepends(with_prefix("contributor", AgentFilter))

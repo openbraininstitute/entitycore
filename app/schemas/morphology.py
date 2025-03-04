@@ -57,7 +57,7 @@ class ReconstructionMorphologyRead(
     strain: StrainRead | None
     brain_region: BrainRegionRead
     contributions: list[ContributorRead] | None
-    mtypes: list[MTypeClassRead] | None
+    mtype: list[MTypeClassRead] | None
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

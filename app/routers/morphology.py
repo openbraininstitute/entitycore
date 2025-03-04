@@ -146,7 +146,7 @@ def morphology_query(
 ):
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "mtypes": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
+        "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},
         "contributions": {
@@ -199,7 +199,7 @@ def morphology_query(
         .options(joinedload(ReconstructionMorphology.strain))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.role))
-        .options(joinedload(ReconstructionMorphology.mtypes))
+        .options(joinedload(ReconstructionMorphology.mtype))
         .options(joinedload(ReconstructionMorphology.brain_region))
         .options(joinedload(ReconstructionMorphology.license))
         .options(raiseload("*"))

@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 import pytest
 
 from app.db.model import MTypeClass, MTypeClassification
@@ -66,35 +68,42 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
     response = client.get(ROUTE_MORPH, headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     facets = response.json()["facets"]
-    assert facets["mtypes"] == [
-        {"id": 1, "label": "m1", "count": 1, "type": "mtypes"},
-        {"id": 2, "label": "m2", "count": 1, "type": "mtypes"},
+    assert facets["mtype"] == [
+        {"id": 1, "label": "m1", "count": 1, "type": "mtype"},
+        {"id": 2, "label": "m2", "count": 1, "type": "mtype"},
     ]
 
     response = client.get(ROUTE_MORPH + str(morph_id), headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
-    assert "mtypes" in data
-    mtypes = data["mtypes"]
-    assert len(mtypes) == 2
+    assert "mtype" in data
+    mtype = data["mtype"]
+    assert len(mtype) == 2
 
-    for mtype in mtypes:
-        assert "update_date" in mtype
-        del mtype["update_date"]
-
-        assert "creation_date" in mtype
-        del mtype["creation_date"]
-
-    assert mtypes == [
-        {"id": 1, "pref_label": "m1", "alt_label": "m1", "definition": "m1d"},
-        {"id": 2, "pref_label": "m2", "alt_label": "m2", "definition": "m2d"},
+    assert mtype == [
+        {
+            "id": 1,
+            "pref_label": "m1",
+            "alt_label": "m1",
+            "definition": "m1d",
+            "creation_date": ANY,
+            "update_date": ANY,
+        },
+        {
+            "id": 2,
+            "pref_label": "m2",
+            "alt_label": "m2",
+            "definition": "m2d",
+            "creation_date": ANY,
+            "update_date": ANY,
+        },
     ]
 
     response = client.get(
-        f"{ROUTE_MORPH}?mtypes__pref_label=m1", headers=BEARER_TOKEN | PROJECT_HEADERS
+        f"{ROUTE_MORPH}?mtype__pref_label=m1", headers=BEARER_TOKEN | PROJECT_HEADERS
     )
     assert response.status_code == 200
     facets = response.json()["facets"]
-    assert facets["mtypes"] == [
-        {"id": 1, "label": "m1", "count": 1, "type": "mtypes"},
+    assert facets["mtype"] == [
+        {"id": 1, "label": "m1", "count": 1, "type": "mtype"},
     ]

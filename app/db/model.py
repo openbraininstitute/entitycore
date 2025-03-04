@@ -231,12 +231,10 @@ class MTypeClassification(TimestampMixin, Base):
         nullable=False,
         autoincrement=True,
     )
-    createdBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), index=True, nullable=True)
-    updatedBy_id: Mapped[int] = mapped_column(ForeignKey("agent.id"), index=True, nullable=True)
-    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True, nullable=False)
-    mtype_class_id: Mapped[int] = mapped_column(
-        ForeignKey("mtype_class.id"), index=True, nullable=False
-    )
+    createdBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updatedBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
+    mtype_class_id: Mapped[int] = mapped_column(ForeignKey("mtype_class.id"), index=True)
 
 
 class ETypeAnnotationBody(AnnotationBody):
@@ -424,7 +422,7 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
 
     location: Mapped[PointLocation] = mapped_column(nullable=True)
 
-    mtypes: Mapped[list["MTypeClass"]] = relationship(
+    mtype: Mapped[list["MTypeClass"]] = relationship(
         primaryjoin="ReconstructionMorphology.id == MTypeClassification.entity_id",
         secondary="join(mtype_classification, mtype_class)",
         uselist=True,

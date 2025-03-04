@@ -286,7 +286,7 @@ def test_contribution_facets(
             {"count": 6, "id": 2, "label": "org_pref_label", "type": "organization"},
             {"count": 9, "id": 1, "label": "person_pref_label", "type": "person"},
         ],
-        "mtypes": [],
+        "mtype": [],
         "species": [{"count": 12, "id": 1, "label": "Test Species", "type": "species"}],
         "strain": [{"count": 12, "id": 1, "label": "Test Strain", "type": "strain"}],
     }
@@ -307,7 +307,7 @@ def test_contribution_facets(
     facets = data["facets"]
     assert facets == {
         "contributions": [{"count": 9, "id": 1, "label": "person_pref_label", "type": "person"}],
-        "mtypes": [],
+        "mtype": [],
         "species": [{"count": 9, "id": 1, "label": "Test Species", "type": "species"}],
         "strain": [{"count": 9, "id": 1, "label": "Test Strain", "type": "strain"}],
     }

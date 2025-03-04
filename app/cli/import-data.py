@@ -206,7 +206,7 @@ def import_agents(data_list, db):
             db_agent = utils._find_by_legacy_id(legacy_id, Organization, db)
             if not db_agent:
                 try:
-                    name = data["name"]
+                    name = data.get("name", data.get("label"))
                     db_agent = (
                         db.query(Organization).filter(Organization.pref_label == name).first()
                     )
@@ -220,7 +220,7 @@ def import_agents(data_list, db):
                         createdAt, updatedAt = utils.get_created_and_updated(data)
                         db_agent = Organization(
                             legacy_id=[legacy_id],
-                            pref_label=data.get("name"),
+                            pref_label=name,
                             alternative_name=data.get("alternativeName", ""),
                             creation_date=createdAt,
                             update_date=updatedAt,

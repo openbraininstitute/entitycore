@@ -28,14 +28,17 @@ def _find_by_legacy_id(legacy_id, db_type, db):
 
 def get_or_create_brain_region(brain_region, db):
     brain_region = curate.curate_brain_region(brain_region)
-    # Check if the brain region already exists in the database
-    brain_region_at_id = brain_region["@id"]
-    br = db.query(BrainRegion).filter(BrainRegion.id == brain_region_at_id).first()
+
+    br = db.query(BrainRegion).filter(BrainRegion.id == int(brain_region["@id"])).first()
+
     if not br:
-        # If not, create a new one
-        br = BrainRegion(id=brain_region_at_id, name=brain_region["label"])
-        db.add(br)
-        db.commit()
+        br1 = db.query(BrainRegion).filter(BrainRegion.name == brain_region["label"]).first()
+        if not br1:
+            print(f"Replacing: {brain_region} -> failed")
+            return 997
+        print(f"Replacing: {brain_region} -> {br1.id}")
+        return br1.id
+
     return br.id
 
 
@@ -55,26 +58,33 @@ def get_brain_location_mixin(data, db):
     if coordinates is None:
         msg = "coordinates is None"
         raise RuntimeError(msg)
+
     brain_location = None
     if coordinates:
+
         x = coordinates.get("valueX", None)
         y = coordinates.get("valueY", None)
         z = coordinates.get("valueZ", None)
         if x is not None and y is not None and z is not None:
             brain_location = {"x": x, "y": y, "z": z}
+
     root = {
         "@id": "http://api.brain-map.org/api/v2/data/Structure/root",
         "label": "root",
     }
+
     brain_region = data.get("brainLocation", {}).get("brainRegion", root)
+
     if brain_region is None:
         msg = "brain_region is None"
         raise RuntimeError(msg)
+
     try:
         brain_region_id = get_or_create_brain_region(brain_region, db)
     except Exception:
         L.exception("data: {!r}", data)
         raise
+
     return brain_location, brain_region_id
 
 

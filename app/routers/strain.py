@@ -1,10 +1,14 @@
+from typing import Annotated
+
 import sqlalchemy as sa
 from fastapi import APIRouter
+from fastapi_filter import FilterDepends
 
 from app.db.model import Strain
 from app.dependencies import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
+from app.filters.common import StrainFilter
 from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.base import StrainCreate, StrainRead
 
@@ -14,18 +18,23 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=ListResponse[StrainRead])
-def read_strains(db: SessionDep, pagination_request: PaginationQuery):
+@router.get("")
+def read_strains(
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    strain_filter: Annotated[StrainFilter, FilterDepends(StrainFilter)],
+) -> ListResponse[StrainRead]:
     query = sa.select(Strain)
+    query = strain_filter.filter(query)
+    total_items = db.execute(query.with_only_columns(sa.func.count(Strain.id))).scalar_one()
 
+    query = strain_filter.sort(query)
     data = db.execute(
         query.offset(pagination_request.offset).limit(pagination_request.page_size)
     ).scalars()
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
-
     response = ListResponse[StrainRead](
-        data=[StrainRead.model_validate(d) for d in data],
+        data=data,
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

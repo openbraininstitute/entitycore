@@ -26,7 +26,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[MorphologyFeatureAnnotationRead])
+@router.get("", response_model=ListResponse[MorphologyFeatureAnnotationRead])
 def read_morphology_feature_annotations(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
@@ -74,7 +74,7 @@ def read_morphology_feature_annotation_id(
     return MorphologyFeatureAnnotationRead.model_validate(row)
 
 
-@router.post("/", response_model=MorphologyFeatureAnnotationRead)
+@router.post("", response_model=MorphologyFeatureAnnotationRead)
 def create_morphology_feature_annotation(
     project_context: VerifiedProjectContextHeader,
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,

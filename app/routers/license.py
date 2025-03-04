@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[LicenseRead])
+@router.get("", response_model=ListResponse[LicenseRead])
 def read_licenses(
     db: SessionDep,
     pagination_request: PaginationQuery,
@@ -48,7 +48,7 @@ def read_license(id_: int, db: SessionDep):
     return LicenseRead.model_validate(row)
 
 
-@router.post("/", response_model=LicenseRead)
+@router.post("", response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: SessionDep):
     row = License(name=license.name, description=license.description, label=license.label)
     db.add(row)

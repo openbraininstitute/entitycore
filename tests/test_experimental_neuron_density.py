@@ -2,7 +2,7 @@ import pytest
 
 from .utils import PROJECT_HEADERS
 
-ROUTE = "/experimental-neuron-density/"
+ROUTE = "/experimental-neuron-density"
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -46,7 +46,7 @@ def test_experimental_neuron_density(client, species_id, strain_id, brain_region
     ), f"Failed to get license for  experimental neuron density: {data}"
 
     response = client.get(
-        f"{ROUTE}{data['id']}",
+        f"{ROUTE}/{data['id']}",
         headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
@@ -64,13 +64,13 @@ def test_experimental_neuron_density(client, species_id, strain_id, brain_region
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing_experimental_neuron_density(client):
     response = client.get(
-        ROUTE + "42424242",
+        f"{ROUTE}/42424242",
         headers=PROJECT_HEADERS,
     )
     assert response.status_code == 404
 
     response = client.get(
-        ROUTE + "notanumber",
+        f"{ROUTE}/notanumber",
         headers=PROJECT_HEADERS,
     )
     assert response.status_code == 422
@@ -140,5 +140,5 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         private_obj1["id"],
     }
 
-    response = client.get(f"{ROUTE}{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
     assert response.status_code == 404

@@ -8,8 +8,8 @@ from .utils import (
     create_reconstruction_morphology_id,
 )
 
-ROUTE = "/morphology-feature-annotation/"
-MORPHOLOGY_ROUTE = "/reconstruction-morphology/"
+ROUTE = "/morphology-feature-annotation"
+MORPHOLOGY_ROUTE = "/reconstruction-morphology"
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -72,7 +72,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     assert len(data["measurements"]) == 2
 
     response = client.get(
-        f"{ROUTE}{morphology_annotation_id}",
+        f"{ROUTE}/{morphology_annotation_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()
@@ -84,14 +84,14 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     assert len(data["measurements"]) == 2
 
     response = client.get(
-        f"{MORPHOLOGY_ROUTE}{reconstruction_morphology_id}",
+        f"{MORPHOLOGY_ROUTE}/{reconstruction_morphology_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     assert response.status_code == 200
     assert "morphology_feature_annotation" not in response.json()
 
     response = client.get(
-        f"{MORPHOLOGY_ROUTE}{reconstruction_morphology_id}?expand=morphology_feature_annotation",
+        f"{MORPHOLOGY_ROUTE}/{reconstruction_morphology_id}?expand=morphology_feature_annotation",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     assert response.status_code == 200
@@ -116,10 +116,10 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(ROUTE + "42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(ROUTE + "notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 422
 
 
@@ -191,7 +191,9 @@ def test_authorization(client, species_id, strain_id, brain_region_id):
         },
     )
     assert response.status_code == 200
-    response = client.get(f"{ROUTE}{response.json()['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(
+        f"{ROUTE}/{response.json()['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
     assert response.status_code == 404
 
     reconstruction_morphology_id_public_inaccessible = create_reconstruction_morphology_id(

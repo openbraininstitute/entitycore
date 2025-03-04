@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[ContributionRead])
+@router.get("", response_model=ListResponse[ContributionRead])
 def read_contributions(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
@@ -64,7 +64,7 @@ def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, d
     return ContributionRead.model_validate(row)
 
 
-@router.post("/", response_model=ContributionRead)
+@router.post("", response_model=ContributionRead)
 def create_contribution(
     contribution: ContributionCreate, project_context: VerifiedProjectContextHeader, db: SessionDep
 ):

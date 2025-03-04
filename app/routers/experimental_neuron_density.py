@@ -19,7 +19,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[ExperimentalNeuronDensityRead])
+@router.get("", response_model=ListResponse[ExperimentalNeuronDensityRead])
 def read_experimental_neuron_densities(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
@@ -64,7 +64,7 @@ def read_experimental_neuron_density(
     return ExperimentalNeuronDensityRead.model_validate(row)
 
 
-@router.post("/", response_model=ExperimentalNeuronDensityRead)
+@router.post("", response_model=ExperimentalNeuronDensityRead)
 def create_experimental_neuron_density(
     project_context: VerifiedProjectContextHeader,
     density: ExperimentalNeuronDensityCreate,

@@ -19,7 +19,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[ExperimentalSynapsesPerConnectionRead])
+@router.get("", response_model=ListResponse[ExperimentalSynapsesPerConnectionRead])
 def get(
     project_context: VerifiedProjectContextHeader,
     db: SessionDep,
@@ -66,7 +66,7 @@ def read_experimental_synapses_per_connection(
     return ExperimentalSynapsesPerConnectionRead.model_validate(row)
 
 
-@router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)
+@router.post("", response_model=ExperimentalSynapsesPerConnectionRead)
 def create_experimental_synapses_per_connection(
     project_context: VerifiedProjectContextHeader,
     density: ExperimentalSynapsesPerConnectionCreate,

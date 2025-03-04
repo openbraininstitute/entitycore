@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[MTypeClassRead])
+@router.get("", response_model=ListResponse[MTypeClassRead])
 def read_mtypes(db: SessionDep, pagination_request: PaginationQuery):
     query = sa.select(MTypeClass)
 

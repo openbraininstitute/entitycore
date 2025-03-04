@@ -46,6 +46,10 @@ REQUIRED_PATH_DIR = click.Path(
 )
 
 
+def ensurelist(x):
+    return x if isinstance(x, list) else [x]
+
+
 def get_or_create_annotation_body(annotation_body, db):
     annotation_body = curate.curate_annotation_body(annotation_body)
     annotation_types = {
@@ -395,11 +399,7 @@ def import_e_models(data, db, file_path, project_context):
             db.commit()
             utils.import_contribution(data, db_item.id, db)
 
-            annotations = data.get("annotation", [])
-
-            if isinstance(annotations, dict):
-                annotations = [annotations]
-            for annotation in annotations:
+            for annotation in ensurelist(data.get("annotation", [])):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
@@ -469,10 +469,7 @@ def import_traces(data_list, db, file_path, project_context):
 
             utils.import_contribution(data, db_item.id, db)
 
-            annotations = data.get("annotation", [])
-            if isinstance(annotations, dict):
-                annotations = [annotations]
-            for annotation in annotations:
+            for annotation in ensurelist(data.get("annotation", [])):
                 get_or_create_annotation(annotation, db_item.id, db)
 
 
@@ -515,10 +512,8 @@ def import_morphologies(data_list, db, file_path, project_context):
             db.refresh(db_reconstruction_morphology)
 
             utils.import_contribution(data, db_reconstruction_morphology.id, db)
-            annotations = data.get("annotation", [])
-            if isinstance(annotations, dict):
-                annotations = [annotations]
-            for annotation in annotations:
+
+            for annotation in ensurelist(data.get("annotation", [])):
                 get_or_create_annotation(annotation, db_reconstruction_morphology.id, db)
 
 
@@ -542,9 +537,8 @@ def import_morphology_feature_annotations(data_list, db, file_path, project_cont
 
         all_measurements = []
         for measurement in data.get("hasBody", []):
-            serie = measurement.get("value", {}).get("series", [])
-            if isinstance(serie, dict):
-                serie = [serie]
+
+            serie = ensurelist(measurement.get("value", {}).get("series", []))
 
             measurement_serie = [
                 MorphologyMeasurementSerieElement(

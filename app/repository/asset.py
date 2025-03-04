@@ -24,7 +24,7 @@ class AssetRepository(BaseRepository):
             .join(Root, Root.id == Asset.entity_id)
             .where(
                 Asset.entity_id == entity_id,
-                Root.type == entity_type,
+                Root.type == entity_type.name,
             )
         )
         return self.db.execute(query).scalars().all()
@@ -43,7 +43,7 @@ class AssetRepository(BaseRepository):
                 Asset.entity_id == entity_id,
                 Asset.id == asset_id,
                 Asset.status != AssetStatus.DELETED,
-                Root.type == entity_type,
+                Root.type == entity_type.name,
             )
         )
         return self.db.execute(query).scalar_one()
@@ -88,7 +88,7 @@ class AssetRepository(BaseRepository):
                 Asset.entity_id == entity_id,
                 Asset.id == asset_id,
                 Asset.status != asset_status,
-                Root.type == entity_type,
+                Root.type == entity_type.name,
                 Root.id == Asset.entity_id,
             )
             .returning(Asset)

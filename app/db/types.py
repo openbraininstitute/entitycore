@@ -1,4 +1,4 @@
-from enum import StrEnum, auto
+from enum import auto
 from typing import Annotated, Any
 
 from sqlalchemy import BigInteger, func, or_
@@ -60,13 +60,13 @@ BIGINT = Annotated[int, mapped_column(BigInteger)]
 JSONDICT = Annotated[dict[str, Any], mapped_column(JSONB)]
 
 
-class EntityType(StrEnum):
-    """Entity types that are directly exposed through the API.
+class EntityType(HyphenStrEnum):
+    """Entities that are directly exposed through the API.
 
     For each entry:
 
-    - name (underscore separated): used for table names
-    - value (hyphen separated): used for endpoints  # TODO: use it to make everything kebab-case
+    - name (underscore separated): for table names and S3 keys
+    - value (hyphen separated): for endpoints
     """
 
     experimental_bouton_density = auto()

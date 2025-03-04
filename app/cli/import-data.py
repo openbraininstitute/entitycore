@@ -74,7 +74,6 @@ def get_or_create_annotation_body(annotation_body, db):
         ab = annotation_type(pref_label=annotation_body["label"])
         db.add(ab)
         db.commit()
-        print(f"Added Annotation: {ab}")
     return annotation_type, ab.id
 
 

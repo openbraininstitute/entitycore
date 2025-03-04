@@ -2,7 +2,7 @@ import datetime
 import glob
 import json
 import os
-from collections import defaultdict
+from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
 
@@ -687,11 +687,18 @@ def import_distributions(data, db, file_path, project_context):
     possible_data = [elem for elem in data if "distribution" in elem]
     if not possible_data:
         return
+    ignored = Counter()
     for data in tqdm(possible_data):
         legacy_id = data["@id"]
         root = utils._find_by_legacy_id(legacy_id, Root, db)
         if root:
             utils.import_distribution(data, root.id, root.type, db, project_context)
+        else:
+            dt = data["@type"]
+            types = tuple(sorted(dt)) if isinstance(dt, list) else dt
+            ignored[types] += 1
+    if ignored:
+        L.warning("Ignored assets by type: {}", ignored)
 
 
 def _do_import(db, input_dir, project_context):

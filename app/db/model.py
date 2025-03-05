@@ -171,7 +171,7 @@ class SpeciesMixin:
 class Agent(Root, TimestampMixin):
     __tablename__ = "agent"
     id: Mapped[int] = mapped_column(ForeignKey("root.id"), primary_key=True, autoincrement=False)
-    pref_label: Mapped[str] = mapped_column(unique=True)
+    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "agent",
     }
@@ -211,7 +211,7 @@ class AnnotationBody(LegacyMixin, TimestampMixin, Base):
 class MTypeClass(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "mtype_class"
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
-    pref_label: Mapped[str] = mapped_column(unique=True)
+    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
     definition: Mapped[str]
     alt_label: Mapped[str | None]
 
@@ -230,7 +230,7 @@ class ETypeAnnotationBody(AnnotationBody):
     id: Mapped[int] = mapped_column(
         ForeignKey("annotation_body.id"), primary_key=True, autoincrement=False
     )
-    pref_label: Mapped[str] = mapped_column(unique=True)
+    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
     definition: Mapped[str | None]
     alt_label: Mapped[str | None]
     __mapper_args__ = {  # noqa: RUF012
@@ -243,7 +243,7 @@ class DataMaturityAnnotationBody(AnnotationBody):
     id: Mapped[int] = mapped_column(
         ForeignKey("annotation_body.id"), primary_key=True, autoincrement=False
     )
-    pref_label: Mapped[str] = mapped_column(unique=True)
+    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "datamaturity_annotation_body",
     }

@@ -11,8 +11,8 @@ from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode
-from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.asset import AssetRead
+from app.schemas.types import ListResponse, PaginationResponse
 from app.service import asset as asset_service
 from app.utils.files import calculate_sha256_digest, get_content_type
 from app.utils.s3 import (

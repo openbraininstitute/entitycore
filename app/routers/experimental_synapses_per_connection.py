@@ -19,12 +19,12 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[ExperimentalSynapsesPerConnectionRead])
+@router.get("")
 def get(
     project_context: VerifiedProjectContextHeader,
     db: SessionDep,
     pagination_request: PaginationQuery,
-):
+) -> ListResponse[ExperimentalSynapsesPerConnectionRead]:
     query = constrain_to_accessible_entities(
         sa.select(ExperimentalSynapsesPerConnection), project_context.project_id
     )
@@ -33,7 +33,9 @@ def get(
         query.offset(pagination_request.offset).limit(pagination_request.page_size)
     ).scalars()
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+    total_items = db.execute(
+        query.with_only_columns(sa.func.count(ExperimentalSynapsesPerConnection.id))
+    ).scalar_one()
 
     response = ListResponse[ExperimentalSynapsesPerConnectionRead](
         data=data,
@@ -66,7 +68,7 @@ def read_experimental_synapses_per_connection(
     return ExperimentalSynapsesPerConnectionRead.model_validate(row)
 
 
-@router.post("/", response_model=ExperimentalSynapsesPerConnectionRead)
+@router.post("", response_model=ExperimentalSynapsesPerConnectionRead)
 def create_experimental_synapses_per_connection(
     project_context: VerifiedProjectContextHeader,
     density: ExperimentalSynapsesPerConnectionCreate,

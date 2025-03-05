@@ -26,12 +26,12 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[MorphologyFeatureAnnotationRead])
+@router.get("")
 def read_morphology_feature_annotations(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
-):
+) -> ListResponse[MorphologyFeatureAnnotationRead]:
     query = constrain_to_accessible_entities(
         sa.select(MorphologyFeatureAnnotation).join(ReconstructionMorphology),
         project_context.project_id,
@@ -41,7 +41,9 @@ def read_morphology_feature_annotations(
         query.offset(pagination_request.offset).limit(pagination_request.page_size)
     ).scalars()
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+    total_items = db.execute(
+        query.with_only_columns(sa.func.count(MorphologyFeatureAnnotation.id))
+    ).scalar_one()
 
     response = ListResponse[MorphologyFeatureAnnotationRead](
         data=data,
@@ -74,7 +76,7 @@ def read_morphology_feature_annotation_id(
     return MorphologyFeatureAnnotationRead.model_validate(row)
 
 
-@router.post("/", response_model=MorphologyFeatureAnnotationRead)
+@router.post("", response_model=MorphologyFeatureAnnotationRead)
 def create_morphology_feature_annotation(
     project_context: VerifiedProjectContextHeader,
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,

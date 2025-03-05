@@ -6,7 +6,7 @@ from app.db.model import ReconstructionMorphology, Species, Strain
 
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
-ROUTE = "/reconstruction-morphology/"
+ROUTE = "/reconstruction-morphology"
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -58,10 +58,10 @@ def test_create_reconstruction_morphology(
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(ROUTE + "42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(ROUTE + "notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 422
 
 
@@ -161,7 +161,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
         ],
     }
 
-    response = client.get(ROUTE + "?search=Test", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}?search=Test", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
 
@@ -181,7 +181,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     }
 
     response = client.get(
-        ROUTE + "?species__name=TestSpecies1", headers=BEARER_TOKEN | PROJECT_HEADERS
+        f"{ROUTE}?species__name=TestSpecies1", headers=BEARER_TOKEN | PROJECT_HEADERS
     )
     assert response.status_code == 200
     data = response.json()
@@ -300,7 +300,7 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
     }
 
     response = client.get(
-        f"{ROUTE}{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
+        f"{ROUTE}/{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
     )
     assert response.status_code == 404
 

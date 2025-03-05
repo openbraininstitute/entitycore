@@ -18,12 +18,12 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[ContributionRead])
+@router.get("")
 def read_contributions(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
-):
+) -> ListResponse[ContributionRead]:
     query = constrain_to_accessible_entities(
         sa.select(Contribution).join(Entity).options(contains_eager(Contribution.entity)),
         project_context.project_id,
@@ -36,7 +36,7 @@ def read_contributions(
     total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
 
     response = ListResponse[ContributionRead](
-        data=[ContributionRead.model_validate(d) for d in data],
+        data=data,
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,
@@ -64,7 +64,7 @@ def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, d
     return ContributionRead.model_validate(row)
 
 
-@router.post("/", response_model=ContributionRead)
+@router.post("", response_model=ContributionRead)
 def create_contribution(
     contribution: ContributionCreate, project_context: VerifiedProjectContextHeader, db: SessionDep
 ):

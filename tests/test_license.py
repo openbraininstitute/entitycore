@@ -1,4 +1,4 @@
-ROUTE = "/license/"
+ROUTE = "/license"
 
 
 def test_create_license(client):
@@ -17,7 +17,7 @@ def test_create_license(client):
     assert data["description"] == "a license description"
     id_ = data["id"]
 
-    response = client.get(f"{ROUTE}{id_}")
+    response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
     assert data["name"] == "Test License"
@@ -32,8 +32,8 @@ def test_create_license(client):
 
 
 def test_missing_role(client):
-    response = client.get(f"{ROUTE}42424242")
+    response = client.get(f"{ROUTE}/42424242")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}notanumber")
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422

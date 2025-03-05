@@ -14,8 +14,8 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[PersonRead])
-def read_persons(db: SessionDep, pagination_request: PaginationQuery):
+@router.get("")
+def read_persons(db: SessionDep, pagination_request: PaginationQuery) -> ListResponse[PersonRead]:
     query = sa.select(Person)
 
     data = db.execute(
@@ -45,7 +45,7 @@ def read_person(id_: int, db: SessionDep):
     return PersonRead.model_validate(row)
 
 
-@router.post("/", response_model=PersonRead)
+@router.post("", response_model=PersonRead)
 def create_person(person: PersonCreate, db: SessionDep):
     row = Person(**person.model_dump())
     db.add(row)

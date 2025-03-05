@@ -19,12 +19,12 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[ExperimentalBoutonDensityRead])
+@router.get("")
 def read_experimental_bouton_densities(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
-):
+) -> ListResponse[ExperimentalBoutonDensityRead]:
     query = constrain_to_accessible_entities(
         sa.select(ExperimentalBoutonDensity), project_context.project_id
     )
@@ -33,7 +33,9 @@ def read_experimental_bouton_densities(
         query.offset(pagination_request.offset).limit(pagination_request.page_size)
     ).scalars()
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+    total_items = db.execute(
+        query.with_only_columns(sa.func.count(ExperimentalBoutonDensity.id))
+    ).scalar_one()
 
     response = ListResponse[ExperimentalBoutonDensityRead](
         data=data,
@@ -64,7 +66,7 @@ def read_experimental_bouton_density(
     return ExperimentalBoutonDensityRead.model_validate(row)
 
 
-@router.post("/", response_model=ExperimentalBoutonDensityRead)
+@router.post("", response_model=ExperimentalBoutonDensityRead)
 def create_experimental_bouton_density(
     project_context: VerifiedProjectContextHeader,
     density: ExperimentalBoutonDensityCreate,

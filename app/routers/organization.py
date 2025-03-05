@@ -14,18 +14,18 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListResponse[OrganizationRead])
+@router.get("")
 def read_organizations(
     db: SessionDep,
     pagination_request: PaginationQuery,
-):
+) -> ListResponse[OrganizationRead]:
     query = sa.select(Organization)
 
     data = db.execute(
         query.offset(pagination_request.offset).limit(pagination_request.page_size)
     ).scalars()
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+    total_items = db.execute(query.with_only_columns(sa.func.count(Organization.id))).scalar_one()
 
     response = ListResponse[OrganizationRead](
         data=[OrganizationRead.model_validate(d) for d in data],
@@ -48,7 +48,7 @@ def read_organization(id_: int, db: SessionDep):
     return OrganizationRead.model_validate(row)
 
 
-@router.post("/", response_model=OrganizationRead)
+@router.post("", response_model=OrganizationRead)
 def create_organization(organization: OrganizationCreate, db: SessionDep):
     row = Organization(**organization.model_dump())
     db.add(row)

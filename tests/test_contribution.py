@@ -15,8 +15,8 @@ from .utils import (
     create_reconstruction_morphology_id,
 )
 
-ROUTE = "/contribution/"
-ROUTE_MORPH = "/reconstruction-morphology/"
+ROUTE = "/contribution"
+ROUTE_MORPH = "/reconstruction-morphology"
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -61,7 +61,7 @@ def test_create_contribution(
 
     contribution_id = data["id"]
 
-    response = client.get(f"{ROUTE}{contribution_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{contribution_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == person_id
@@ -97,7 +97,7 @@ def test_create_contribution(
     assert len(response.json()["data"]) == 2
 
     response = client.get(
-        f"{ROUTE_MORPH}{reconstruction_morphology_id}",
+        f"{ROUTE_MORPH}/{reconstruction_morphology_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     response.raise_for_status()
@@ -124,10 +124,10 @@ def test_create_contribution(
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(ROUTE + "12345", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/12345", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(ROUTE + "not_a_contribution_id", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/not_a_contribution_id", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 422
 
 
@@ -167,7 +167,7 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     inaccessible_annotation_id = response.json()["id"]
 
     response = client.get(
-        f"{ROUTE}{inaccessible_annotation_id}",
+        f"{ROUTE}/{inaccessible_annotation_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     assert response.status_code == 404
@@ -201,7 +201,7 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     public_obj = public_obj.json()
 
     response = client.get(
-        f"{ROUTE}{public_obj['id']}",
+        f"{ROUTE}/{public_obj['id']}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     # can get the contributor if the entity is public

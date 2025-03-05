@@ -82,7 +82,7 @@ def read_reconstruction_morphology(
     return ReconstructionMorphologyRead.model_validate(row)
 
 
-@router.post("/", response_model=ReconstructionMorphologyRead)
+@router.post("", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
     project_context: VerifiedProjectContextHeader,
     reconstruction: ReconstructionMorphologyCreate,
@@ -136,14 +136,14 @@ def _get_facets(
     return facets
 
 
-@router.get("/", response_model=ListResponse[ReconstructionMorphologyRead])
+@router.get("")
 def morphology_query(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
-):
+) -> ListResponse[ReconstructionMorphologyRead]:
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},

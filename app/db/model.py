@@ -376,7 +376,7 @@ class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
 
 
-class Mesh(DistributionMixin, Entity):
+class Mesh(DistributionMixin, LocationMixin, Entity):
     __tablename__ = "mesh"
     id: Mapped[int] = mapped_column(
         ForeignKey("entity.id"),
@@ -386,10 +386,6 @@ class Mesh(DistributionMixin, Entity):
         nullable=False,
         autoincrement=True,
     )
-    brain_region_id: Mapped[int] = mapped_column(
-        ForeignKey("brain_region.id"), index=True, nullable=False
-    )
-    brain_region = relationship("BrainRegion", uselist=False)
     __mapper_args__ = {"polymorphic_identity": "mesh"}  # noqa: RUF012
 
 
@@ -423,7 +419,7 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
 
     location: Mapped[PointLocation] = mapped_column(nullable=True)
 
-    mtype: Mapped[list["MTypeClass"]] = relationship(
+    mtypes: Mapped[list["MTypeClass"]] = relationship(
         primaryjoin="ReconstructionMorphology.id == MTypeClassification.entity_id",
         secondary="join(mtype_classification, mtype_class)",
         uselist=True,

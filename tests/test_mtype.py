@@ -98,11 +98,11 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
     response = client.get(f"{ROUTE_MORPH}/{morph_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
-    assert "mtype" in data
-    mtype = data["mtype"]
-    assert len(mtype) == 2
+    assert "mtypes" in data
+    mtypes = data["mtypes"]
+    assert len(mtypes) == 2
 
-    assert mtype == [
+    assert mtypes == [
         {
             "id": 1,
             "pref_label": "m1",

@@ -149,7 +149,7 @@ def morphology_query(
         "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},
-        "contributions": {
+        "contribution": {
             "id": agent_alias.id,
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
@@ -199,7 +199,7 @@ def morphology_query(
         .options(joinedload(ReconstructionMorphology.strain))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.role))
-        .options(joinedload(ReconstructionMorphology.mtype))
+        .options(joinedload(ReconstructionMorphology.mtypes))
         .options(joinedload(ReconstructionMorphology.brain_region))
         .options(joinedload(ReconstructionMorphology.license))
         .options(raiseload("*"))

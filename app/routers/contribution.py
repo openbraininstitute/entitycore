@@ -48,8 +48,10 @@ def read_contributions(
     return response
 
 
-@router.get("/{id_}", response_model=ContributionRead)
-def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep):
+@router.get("/{id_}")
+def read_contribution(
+    id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep
+) -> ContributionRead:
     with ensure_result(error_message="Contribution not found"):
         stmt = constrain_to_accessible_entities(
             sa.select(Contribution)
@@ -64,10 +66,10 @@ def read_contribution(id_: int, project_context: VerifiedProjectContextHeader, d
     return ContributionRead.model_validate(row)
 
 
-@router.post("", response_model=ContributionRead)
+@router.post("")
 def create_contribution(
     contribution: ContributionCreate, project_context: VerifiedProjectContextHeader, db: SessionDep
-):
+) -> ContributionRead:
     stmt = constrain_entity_query_to_project(
         sa.select(Entity).filter(Entity.id == contribution.entity_id), project_context.project_id
     ).with_only_columns(sa.func.count())
@@ -86,4 +88,4 @@ def create_contribution(
     db.commit()
     db.refresh(row)
 
-    return row
+    return ContributionRead.model_validate(row)

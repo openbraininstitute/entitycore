@@ -204,7 +204,7 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
         f"{ROUTE}/{public_obj['id']}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
-    # can get the contributor if the entity is public
+    # can get the contribution if the entity is public
     assert response.status_code == 200
 
     response = client.get(
@@ -301,7 +301,7 @@ def test_contribution_facets(
     assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
 
     response = client.get(
-        f"{ROUTE_MORPH}?contributor__pref_label=person_pref_label",
+        f"{ROUTE_MORPH}?contribution__pref_label=person_pref_label",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()

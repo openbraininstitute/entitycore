@@ -1,5 +1,4 @@
 import datetime
-import functools
 
 import sqlalchemy as sa
 from sqlalchemy import func
@@ -23,9 +22,16 @@ from app.schemas.base import ProjectContext
 from app.utils.s3 import build_s3_path
 
 
-@functools.cache
-def _find_by_legacy_id(legacy_id, db_type, db):
-    return db.query(db_type).filter(func.strpos(db_type.legacy_id, legacy_id) > 0).first()
+def _find_by_legacy_id(legacy_id, db_type, db, _cache={}):
+    if legacy_id in _cache:
+        return _cache[legacy_id]
+
+    res = db.query(db_type).filter(func.strpos(db_type.legacy_id, legacy_id) > 0).first()
+
+    if res is not None:
+        _cache[legacy_id] = res
+
+    return res
 
 
 def get_or_create_brain_region(brain_region, db, _cache=set()):
@@ -182,10 +188,16 @@ def get_agent_mixin(data, db):
     return result
 
 
-def get_or_create_role(role_, db):
+def get_or_create_role(role_, db, _cache={}):
     # Check if the role already exists in the database
     role_ = curate.curate_role(role_)
-    r = db.query(Role).filter(Role.role_id == role_["@id"]).first()
+    role_id = role_["@id"]
+
+    if role_id in _cache:
+        return _cache[role_id]
+
+    r = db.query(Role).filter(Role.role_id == role_id).first()
+
     if not r:
         # If not, create a new one
         try:
@@ -195,6 +207,9 @@ def get_or_create_role(role_, db):
         except Exception:
             L.exception("Error creating role {}", role_)
             raise
+
+    _cache[role_id] = r.id
+
     return r.id
 
 
@@ -204,11 +219,13 @@ def get_or_create_contribution(contribution_, entity_id, db):
         for c in contribution_:
             get_or_create_contribution(c, entity_id, db)
         return None
+
     agent_legacy_id = contribution_["agent"]["@id"]
     db_agent = _find_by_legacy_id(agent_legacy_id, Agent, db)
     if not db_agent:
         L.warning("Agent with legacy_id {} not found", agent_legacy_id)
         return None
+
     agent_id = db_agent.id
     role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})
     role_id = get_or_create_role(role_, db)

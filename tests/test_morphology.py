@@ -97,7 +97,11 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     count = 11
     create_morphologies(count)
 
-    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(
+        ROUTE,
+        params={"page_size": 10},
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 10
@@ -135,7 +139,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     response = client.get(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"order_by": "+creation_date", "page": 0, "page_size": 3},
+        params={"order_by": "+creation_date", "page": 1, "page_size": 3},
     )
     assert response.status_code == 200
     data = response.json()["data"]

@@ -20,7 +20,7 @@ class MorphologyFilter(CustomFilter):
     mtype: MTypeClassFilter | None = FilterDepends(with_prefix("mtype", MTypeClassFilter))
     species: SpeciesFilter | None = FilterDepends(with_prefix("species", SpeciesFilter))
     strain: StrainFilter | None = FilterDepends(with_prefix("strain", StrainFilter))
-    contributor: AgentFilter | None = FilterDepends(with_prefix("contributor", AgentFilter))
+    contribution: AgentFilter | None = FilterDepends(with_prefix("contribution", AgentFilter))
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

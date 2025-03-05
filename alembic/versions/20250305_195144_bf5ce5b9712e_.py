@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: bde990f45411
+Revision ID: bf5ce5b9712e
 Revises:
-Create Date: 2025-03-05 19:18:35.394391
+Create Date: 2025-03-05 19:51:44.124111
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "bde990f45411"
+revision: str = "bf5ce5b9712e"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -119,12 +119,12 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_mtype_class")),
-        sa.UniqueConstraint("pref_label", name=op.f("uq_mtype_class_pref_label")),
     )
     op.create_index(
         op.f("ix_mtype_class_creation_date"), "mtype_class", ["creation_date"], unique=False
     )
     op.create_index(op.f("ix_mtype_class_legacy_id"), "mtype_class", ["legacy_id"], unique=False)
+    op.create_index(op.f("ix_mtype_class_pref_label"), "mtype_class", ["pref_label"], unique=True)
     op.create_table(
         "role",
         sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
@@ -217,9 +217,9 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(["id"], ["root.id"], name=op.f("fk_agent_id_root")),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_agent")),
-        sa.UniqueConstraint("pref_label", name=op.f("uq_agent_pref_label")),
     )
     op.create_index(op.f("ix_agent_creation_date"), "agent", ["creation_date"], unique=False)
+    op.create_index(op.f("ix_agent_pref_label"), "agent", ["pref_label"], unique=True)
     op.create_table(
         "datamaturity_annotation_body",
         sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
@@ -230,7 +230,12 @@ def upgrade() -> None:
             name=op.f("fk_datamaturity_annotation_body_id_annotation_body"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_datamaturity_annotation_body")),
-        sa.UniqueConstraint("pref_label", name=op.f("uq_datamaturity_annotation_body_pref_label")),
+    )
+    op.create_index(
+        op.f("ix_datamaturity_annotation_body_pref_label"),
+        "datamaturity_annotation_body",
+        ["pref_label"],
+        unique=True,
     )
     op.create_table(
         "etype_annotation_body",
@@ -242,7 +247,12 @@ def upgrade() -> None:
             ["id"], ["annotation_body.id"], name=op.f("fk_etype_annotation_body_id_annotation_body")
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_etype_annotation_body")),
-        sa.UniqueConstraint("pref_label", name=op.f("uq_etype_annotation_body_pref_label")),
+    )
+    op.create_index(
+        op.f("ix_etype_annotation_body_pref_label"),
+        "etype_annotation_body",
+        ["pref_label"],
+        unique=True,
     )
     op.create_table(
         "strain",
@@ -412,6 +422,13 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_asset_creation_date"), "asset", ["creation_date"], unique=False)
     op.create_index(op.f("ix_asset_entity_id"), "asset", ["entity_id"], unique=False)
+    op.create_index(
+        "ix_asset_full_path",
+        "asset",
+        ["full_path"],
+        unique=True,
+        postgresql_where=sa.text("status != 'DELETED'"),
+    )
     op.create_table(
         "contribution",
         sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
@@ -1198,6 +1215,9 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_contribution_creation_date"), table_name="contribution")
     op.drop_index(op.f("ix_contribution_agent_id"), table_name="contribution")
     op.drop_table("contribution")
+    op.drop_index(
+        "ix_asset_full_path", table_name="asset", postgresql_where=sa.text("status != 'DELETED'")
+    )
     op.drop_index(op.f("ix_asset_entity_id"), table_name="asset")
     op.drop_index(op.f("ix_asset_creation_date"), table_name="asset")
     op.drop_table("asset")
@@ -1218,8 +1238,14 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_strain_name"), table_name="strain")
     op.drop_index(op.f("ix_strain_creation_date"), table_name="strain")
     op.drop_table("strain")
+    op.drop_index(op.f("ix_etype_annotation_body_pref_label"), table_name="etype_annotation_body")
     op.drop_table("etype_annotation_body")
+    op.drop_index(
+        op.f("ix_datamaturity_annotation_body_pref_label"),
+        table_name="datamaturity_annotation_body",
+    )
     op.drop_table("datamaturity_annotation_body")
+    op.drop_index(op.f("ix_agent_pref_label"), table_name="agent")
     op.drop_index(op.f("ix_agent_creation_date"), table_name="agent")
     op.drop_table("agent")
     op.drop_index(op.f("ix_subject_name"), table_name="subject")
@@ -1236,6 +1262,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_role_legacy_id"), table_name="role")
     op.drop_index(op.f("ix_role_creation_date"), table_name="role")
     op.drop_table("role")
+    op.drop_index(op.f("ix_mtype_class_pref_label"), table_name="mtype_class")
     op.drop_index(op.f("ix_mtype_class_legacy_id"), table_name="mtype_class")
     op.drop_index(op.f("ix_mtype_class_creation_date"), table_name="mtype_class")
     op.drop_table("mtype_class")

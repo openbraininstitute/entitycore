@@ -3,15 +3,15 @@ from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import ExperimentalSynapsesPerConnection
-from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
 )
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/experimental-synapses-per-connection",

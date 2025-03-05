@@ -15,6 +15,7 @@ endif
 .PHONY: help install compile-deps upgrade-deps check-deps format lint build publish test-local test-docker run-local run-docker destroy migration
 
 define load_env
+	# all the variables in the included file must be prefixed with export
 	$(eval ENV_FILE := .env.$(1))
 	@echo "Loading env from $(ENV_FILE)"
 	$(eval include $(ENV_FILE))

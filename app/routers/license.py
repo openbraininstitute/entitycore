@@ -2,11 +2,11 @@ import sqlalchemy as sa
 from fastapi import APIRouter
 
 from app.db.model import License
-from app.dependencies import PaginationQuery
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.base import LicenseCreate, LicenseRead
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/license",

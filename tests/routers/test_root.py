@@ -35,3 +35,20 @@ def test_error(client):
         "message": "Generic error returned for testing purposes",
         "details": None,
     }
+
+
+def test_extra_query_params(client):
+    response = client.get("/version", params={"foo": "bar"})
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "error_code": "INVALID_REQUEST",
+        "message": "Unknown query parameters",
+        "details": {"unknown_params": ["foo"]},
+    }
+
+
+def test_extra_query_params_bypass(client):
+    response = client.get("/version", params={"foo": "bar", "allow_extra_params": True})
+
+    assert response.status_code == 200

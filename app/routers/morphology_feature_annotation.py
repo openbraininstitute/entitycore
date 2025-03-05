@@ -9,16 +9,16 @@ from app.db.model import (
     MorphologyMeasurementSerieElement,
     ReconstructionMorphology,
 )
-from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.logger import L
-from app.routers.types import ListResponse, PaginationResponse
 from app.schemas.morphology import (
     MorphologyFeatureAnnotationCreate,
     MorphologyFeatureAnnotationRead,
 )
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/morphology-feature-annotation",

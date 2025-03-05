@@ -277,6 +277,7 @@ def test_contribution_facets(
 
     response = client.get(
         ROUTE_MORPH,
+        params={"page_size": 10},
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()

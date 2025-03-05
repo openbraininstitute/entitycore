@@ -40,6 +40,34 @@ def test_create_strain(client, species_id):
     assert len(data) == 1
     assert data == [items[1]]
 
+    # test pagination
+    response = client.get(f"{ROUTE}", params={"page": 1, "page_size": 2})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 2
+    assert data == [items[0], items[1]]
+
+    # test pagination (page validation error)
+    response = client.get(f"{ROUTE}", params={"page": 0, "page_size": 2})
+    assert response.status_code == 422
+    assert response.json() == {
+        "details": [
+            {
+                "ctx": {
+                    "ge": 1,
+                },
+                "loc": [
+                    "query",
+                    "page",
+                ],
+                "msg": "Input should be greater than or equal to 1",
+                "type": "greater_than_equal",
+            },
+        ],
+        "error_code": "INVALID_REQUEST",
+        "message": "Validation error",
+    }
+
 
 def test_missing_role(client):
     response = client.get(f"{ROUTE}/42424242")

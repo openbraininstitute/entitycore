@@ -21,17 +21,17 @@ from app.db.model import (
     Species,
     Strain,
 )
-from app.dependencies import PaginationQuery
 from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
-from app.routers.types import Facet, Facets, ListResponse, PaginationResponse
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
 )
+from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/reconstruction-morphology",

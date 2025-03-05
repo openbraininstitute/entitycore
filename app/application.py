@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +14,7 @@ from starlette.responses import Response
 
 from app.config import settings
 from app.db.session import configure_database_session_manager
+from app.dependencies.common import forbid_extra_query_params
 from app.errors import ApiError, ApiErrorCode
 from app.logger import L
 from app.routers import router
@@ -97,4 +98,5 @@ app.include_router(
         404: {"description": "Not found", "model": ErrorResponse},
         422: {"description": "Validation Error", "model": ErrorResponse},
     },
+    dependencies=[Depends(forbid_extra_query_params)],
 )

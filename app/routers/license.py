@@ -14,18 +14,18 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=ListResponse[LicenseRead])
+@router.get("")
 def read_licenses(
     db: SessionDep,
     pagination_request: PaginationQuery,
-):
+) -> ListResponse[LicenseRead]:
     query = sa.select(License)
 
     data = db.execute(
         query.offset(pagination_request.offset).limit(pagination_request.page_size)
     ).scalars()
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+    total_items = db.execute(query.with_only_columns(sa.func.count(License.id))).scalar_one()
 
     response = ListResponse[LicenseRead](
         data=[LicenseRead.model_validate(d) for d in data],

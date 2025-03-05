@@ -8,8 +8,6 @@ class EntityRead(BaseModel):
 
     id: int
     createdBy: AgentRead | None
-    createdBy_id: int | None
     updatedBy: AgentRead | None
-    updatedBy_id: int | None
     authorized_project_id: UUID4
     authorized_public: bool

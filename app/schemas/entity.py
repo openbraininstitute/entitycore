@@ -7,6 +7,7 @@ class EntityRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    type: str
     createdBy: AgentRead | None
     updatedBy: AgentRead | None
     authorized_project_id: UUID4

@@ -237,16 +237,13 @@ def test_upload_delete_upload_entity_asset(client, entity):
     data = response.json()
     asset1 = AssetRead.model_validate(data)
 
+    # test that the deleted assets are filtered out
     response = client.get(f"{_route(entity.type)}/{entity.id}/assets")
 
     assert response.status_code == 200, f"Failed to get assest: {response.text}"
     data = response.json()["data"]
-    assert len(data) == 2
+    assert len(data) == 1
 
-    assert data[0]["id"] == asset0.id
+    assert data[0]["id"] == asset1.id
     assert data[0]["path"] == "a/b/c.txt"
-    assert data[0]["status"] == "deleted"
-
-    assert data[1]["id"] == asset1.id
-    assert data[1]["path"] == "a/b/c.txt"
-    assert data[1]["status"] == "created"
+    assert data[0]["status"] == "created"

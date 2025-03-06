@@ -73,3 +73,32 @@ class CustomFilter(Filter):
                     query = query.filter(getattr(model_field, operator)(value))
 
         return query
+
+    def sort(self, query: Query | Select):
+        """Order the results as desired, taking sub-filters into account.
+
+        Note: fastapi_filter doesn't take the existence of further filters
+        """
+        if not self.ordering_values:
+            return query
+
+        for field_name in self.ordering_values:
+            # { CODE is different from fastapi_filter here
+            bare_field_name = field_name.replace("-", "").replace("+", "")
+            if (
+                hasattr(self, bare_field_name)
+                and (field := getattr(self, bare_field_name))
+                and isinstance(field, CustomFilter)
+            ):
+                return field.filter(query)
+            # }
+
+            direction = Filter.Direction.asc
+            if field_name.startswith("-"):
+                direction = Filter.Direction.desc
+
+            order_by_field = getattr(self.Constants.model, bare_field_name)
+
+            query = query.order_by(getattr(order_by_field, direction)())
+
+        return query

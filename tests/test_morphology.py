@@ -1,8 +1,9 @@
 import itertools as it
+from unittest.mock import ANY
 
 import pytest
 
-from app.db.model import ReconstructionMorphology, Species, Strain
+from app.db.model import MTypeClass, MTypeClassification, ReconstructionMorphology, Species, Strain
 
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
@@ -363,3 +364,77 @@ def test_pagination(db, client, brain_region_id):
     assert len(items) == total_items
     names = [int(d["name"].removeprefix("TestMorphologyName")) for d in items]
     assert list(reversed(names)) == list(range(total_items))
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
+    morph_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        authorized_public=False,
+    )
+
+    mtype1 = add_db(db, MTypeClass(pref_label="m1", alt_label="m1", definition="m1d"))
+    mtype2 = add_db(db, MTypeClass(pref_label="m2", alt_label="m2", definition="m2d"))
+
+    add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype1.id))
+    add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype2.id))
+
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    facets = response.json()["facets"]
+    assert facets["mtype"] == [
+        {"id": 1, "label": "m1", "count": 1, "type": "mtype"},
+        {"id": 2, "label": "m2", "count": 1, "type": "mtype"},
+    ]
+
+    response = client.get(f"{ROUTE}/{morph_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    data = response.json()
+    assert "mtype" in data
+    mtype = data["mtype"]
+    assert len(mtype) == 2
+
+    assert mtype == [
+        {
+            "id": 1,
+            "pref_label": "m1",
+            "alt_label": "m1",
+            "definition": "m1d",
+            "creation_date": ANY,
+            "update_date": ANY,
+        },
+        {
+            "id": 2,
+            "pref_label": "m2",
+            "alt_label": "m2",
+            "definition": "m2d",
+            "creation_date": ANY,
+            "update_date": ANY,
+        },
+    ]
+
+    response = client.get(f"{ROUTE}?mtype__pref_label=m1", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    facets = response.json()["facets"]
+    assert facets["mtype"] == [
+        {"id": 1, "label": "m1", "count": 1, "type": "mtype"},
+    ]
+
+    mtype_asc = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"page_size": 100, "order_by": "+mtype"},
+    )
+    assert mtype_asc.status_code == 200
+
+    mtype_dsc = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"page_size": 100, "order_by": "-mtype"},
+    )
+    assert mtype_dsc.status_code == 200
+    assert list(reversed(mtype_dsc.json()["data"])) == mtype_asc.json()["data"]

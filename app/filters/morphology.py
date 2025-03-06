@@ -13,7 +13,6 @@ class MorphologyFilter(CustomFilter):
     update_date__lte: datetime | None = None
     update_date__gte: datetime | None = None
     name__ilike: str | None = None
-    brain_location_id: int | None = None
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None
 
@@ -26,4 +25,9 @@ class MorphologyFilter(CustomFilter):
 
     class Constants(CustomFilter.Constants):
         model = ReconstructionMorphology
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "mtype",
+            "creation_date",
+            "name",
+            "update_date",
+        ]

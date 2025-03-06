@@ -96,14 +96,14 @@ migration:  ## Create or update the alembic migration
 	uv run -m alembic revision --autogenerate
 
 dump:  # Dump the local database to file
-	@$(call load_env,run-local)
+	@$(call load_env,run-docker)
 	docker compose up --wait db
-	export PGUSER=entitycore PGPASSWORD=entitycore PGHOST=$$DB_HOST PGPORT=$$DB_PORT && \
- 	pg_dump --dbname entitycore -Fc -f db.dump
+	docker compose exec -e PGUSER=entitycore -e PGPASSWORD=entitycore -e PGHOST=db -e PGPORT=5432 db \
+	pg_dump --dbname entitycore -Fc -f /data/db.dump
 
 restore:  # Delete and restore the local database from file
-	@$(call load_env,run-local)
+	@$(call load_env,run-docker)
 	docker compose up --wait db
-	export PGUSER=entitycore PGPASSWORD=entitycore PGHOST=$$DB_HOST PGPORT=$$DB_PORT && \
-	pg_restore --clean --if-exists --exit-on-error --no-owner --single-transaction --dbname entitycore db.dump && \
-	psql -c 'ANALYZE;'
+	docker compose exec -e PGUSER=entitycore -e PGPASSWORD=entitycore -e PGHOST=db -e PGPORT=5432 db bash -c '\
+		pg_restore --clean --if-exists --exit-on-error --no-owner --single-transaction --dbname entitycore /data/db.dump \
+		&& psql -c "ANALYZE;"'

@@ -45,9 +45,10 @@ services:
     restart: unless-stopped
     volumes:
     - pgdata:/var/lib/postgresql/data
+    - ./data:/data
     command:
     - postgres
-    - -clog_statement=all
+#    - -clog_statement=all
     - -clog_min_duration_statement=100ms
     - -clog_lock_waits=on
 

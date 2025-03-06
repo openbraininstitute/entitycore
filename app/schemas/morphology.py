@@ -15,7 +15,7 @@ from app.schemas.base import (
     SpeciesRead,
     StrainRead,
 )
-from app.schemas.contribution import ContributorRead
+from app.schemas.contribution import ContributionReadWithoutEntity
 from app.schemas.mtype import MTypeClassRead
 
 
@@ -56,7 +56,7 @@ class ReconstructionMorphologyRead(
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
-    contributions: list[ContributorRead] | None
+    contributions: list[ContributionReadWithoutEntity] | None
     mtype: list[MTypeClassRead] | None
 
 

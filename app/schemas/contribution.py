@@ -28,6 +28,6 @@ class ContributionRead(ContributionBase, CreationMixin):
     entity: EntityRead
 
 
-class ContributorRead(ContributionBase):
+class ContributionReadWithoutEntity(ContributionBase, CreationMixin):
     agent: AgentRead
     role: RoleRead

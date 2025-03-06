@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 class PaginationRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    page: Annotated[int, Field(strict=True, ge=1)]
-    page_size: Annotated[int, Field(strict=True, ge=1)]
+    page: Annotated[int, Field(ge=1)] = 1
+    page_size: Annotated[int, Field(ge=1)] = 100
 
     @computed_field  # type: ignore[prop-decorator]
     @property

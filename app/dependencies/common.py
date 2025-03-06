@@ -38,7 +38,10 @@ def forbid_extra_query_params(
             message="Unknown query parameters",
             error_code=ApiErrorCode.INVALID_REQUEST,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-            details={"unknown_params": sorted(unknown_params)},
+            details={
+                "unknown_params": sorted(unknown_params),
+                "allowed_params": sorted(allowed_params - {"allow_extra_params"}),
+            },
         )
 
 

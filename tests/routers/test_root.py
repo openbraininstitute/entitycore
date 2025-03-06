@@ -44,7 +44,7 @@ def test_extra_query_params(client):
     assert response.json() == {
         "error_code": "INVALID_REQUEST",
         "message": "Unknown query parameters",
-        "details": {"unknown_params": ["foo"]},
+        "details": {"unknown_params": ["foo"], "allowed_params": []},
     }
 
 

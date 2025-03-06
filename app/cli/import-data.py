@@ -48,6 +48,11 @@ REQUIRED_PATH_DIR = click.Path(
     exists=True, readable=True, file_okay=False, dir_okay=True, resolve_path=True
 )
 
+SQLA_ENGINE_ARGS = {
+    #"echo_pool": "debug",
+    "executemany_mode": 'values_plus_batch',
+    "pool_use_lifo": True,
+    }
 
 def ensurelist(x):
     return x if isinstance(x, list) else [x]
@@ -147,11 +152,12 @@ def import_licenses(data, db):
             )
 
             db.add(db_license)
-            db.commit()
         except Exception as e:
             print(f"Error creating license: {e!r}")
             print(license)
             raise
+
+    db.commit()
 
 
 def _import_annotation_body(data, db_type_, db):
@@ -179,7 +185,8 @@ def _import_annotation_body(data, db_type_, db):
         )
 
         db.add(db_elem)
-        db.commit()
+        db.flush()
+    db.commit()
 
 
 def import_mtype_annotation_body(data, db):
@@ -344,7 +351,8 @@ class ImportAnalysisSoftwareSourceCode(Import):
                 authorized_project_id=project_context.project_id,
             )
             db.add(db_code)
-            db.commit()
+
+        db.commit()
 
 
 class ImportEModels(Import):
@@ -430,7 +438,7 @@ class ImportBrainRegionMeshes(Import):
                 authorized_project_id=project_context.project_id,
             )
             db.add(db_item)
-            db.commit()
+        db.commit()
 
 
 class ImportMorphologies(Import):
@@ -622,8 +630,8 @@ class ImportMEModel(Import):
                 update_date=updatedAt,
             )
             db.add(rm)
-            db.commit()
-            # create_annotation(data, rm.id, db)
+        db.commit()
+        # create_annotation(data, rm.id, db)
 
 
 class ImportSingleNeuronSimulation(Import):
@@ -662,7 +670,7 @@ class ImportSingleNeuronSimulation(Import):
                 authorized_project_id=project_context.project_id,
             )
             db.add(rm)
-            db.commit()
+        db.commit()
 
 
 class ImportDistribution(Import):
@@ -670,8 +678,7 @@ class ImportDistribution(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
-        return "Distribution" in types
+        return "distribution" in data
 
     @staticmethod
     def ingest(db, project_context, data_list):
@@ -770,13 +777,12 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
 
             try:
                 db.add(data)
-                db.commit()
-                db.refresh(data)
             except Exception as e:
                 print(f"Error: {e!r}")
                 print(data)
                 raise
 
+        db.commit()
         print(
             f"    Annotations related to a morphology that isn't registered: {missing_morphology}\n",
             f"    Duplicate_annotation: {duplicate_annotation}\n",
@@ -823,19 +829,11 @@ def _import_experimental_densities(
 
 
 def _do_import(db, input_dir, project_context):
-    all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
-
     print("import licenses")
     import_licenses(curate.default_licenses(), db)
     with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
         data = json.load(f)
         import_licenses(data, db)
-
-    print("import mtype annotations")
-    with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
-        data = json.load(f)
-        possible_data = [d for d in data if "nsg:MType" in d.get("subClassOf", {})]
-        import_mtype_annotation_body(possible_data, db)
 
     with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
         all_data = json.load(f)
@@ -878,6 +876,7 @@ def _do_import(db, input_dir, project_context):
     import_data = defaultdict(list)
 
     print("Loading files")
+    all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
     for file_path in tqdm(all_files):
         with open(file_path) as f:
             data = json.load(f)
@@ -925,7 +924,7 @@ def run(input_dir, virtual_lab_id, project_id):
     """Import data script."""
     project_context = ProjectContext(virtual_lab_id=virtual_lab_id, project_id=project_id)
     with (
-        closing(configure_database_session_manager()) as database_session_manager,
+        closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
         database_session_manager.session() as db,
     ):
         _do_import(db, input_dir=input_dir, project_context=project_context)
@@ -955,13 +954,13 @@ def hierarchy(hierarchy_path):
     recurse(hierarchy)
 
     with (
-        closing(configure_database_session_manager()) as database_session_manager,
+        closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
         database_session_manager.session() as db,
     ):
+        ids = set(db.execute(sa.select(BrainRegion.id)).scalars())
         for region in tqdm(regions):
-            if orig := db.query(BrainRegion).filter(BrainRegion.id == region["id"]).first():
+            if region["id"] in ids:
                 continue
-
             db_br = BrainRegion(
                 id=region["id"],
                 name=region["name"],
@@ -969,7 +968,7 @@ def hierarchy(hierarchy_path):
                 children=region["children"],
             )
             db.add(db_br)
-            db.commit()
+        db.commit()
     _analyze()
 
 

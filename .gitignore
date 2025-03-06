@@ -8,4 +8,3 @@ coverage.xml
 .idea
 *.egg-info
 tmp
-db.dump

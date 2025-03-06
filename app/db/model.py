@@ -79,7 +79,7 @@ class BrainRegion(TimestampMixin, Base):
     __tablename__ = "brain_region"
 
     # See https://github.com/openbraininstitute/core-web-app/blob/cd89893db3fe08a1d2e5ba90235ef6d8c7be6484/src/types/ontologies.ts#L7
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     name: Mapped[str] = mapped_column(unique=True, index=True)
     acronym: Mapped[str] = mapped_column(unique=True, index=True)
     children: Mapped[list[int] | None] = mapped_column(ARRAY(BigInteger))

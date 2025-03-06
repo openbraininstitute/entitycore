@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: bf5ce5b9712e
+Revision ID: d62db6fc94c7
 Revises:
-Create Date: 2025-03-05 19:51:44.124111
+Create Date: 2025-03-06 07:36:37.005898
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "bf5ce5b9712e"
+revision: str = "d62db6fc94c7"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -52,7 +52,7 @@ def upgrade() -> None:
     )
     op.create_table(
         "brain_region",
-        sa.Column("id", sa.BigInteger(), nullable=False),
+        sa.Column("id", sa.BigInteger(), autoincrement=False, nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("acronym", sa.String(), nullable=False),
         sa.Column("children", postgresql.ARRAY(sa.BigInteger()), nullable=True),

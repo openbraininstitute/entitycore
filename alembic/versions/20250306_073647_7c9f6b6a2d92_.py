@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5abb2ee01408
-Revises: bf5ce5b9712e
-Create Date: 2025-03-05 19:52:07.344135
+Revision ID: 7c9f6b6a2d92
+Revises: d62db6fc94c7
+Create Date: 2025-03-06 07:36:47.083133
 
 """
 
@@ -13,8 +13,8 @@ from alembic_utils.pg_trigger import PGTrigger
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "5abb2ee01408"
-down_revision: str | None = "bf5ce5b9712e"
+revision: str = "7c9f6b6a2d92"
+down_revision: str | None = "d62db6fc94c7"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

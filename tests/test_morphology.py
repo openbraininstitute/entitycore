@@ -146,26 +146,11 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert len(data) == 3
     assert [row["id"] for row in data] == [1, 2, 3]
 
-    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
-    assert response.status_code == 200
-    data = response.json()
-
-    assert "facets" in data
-    facets = data["facets"]
-    assert facets == {
-        "contributions": [],
-        "mtype": [],
-        "species": [
-            {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
-            {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
-        ],
-        "strain": [
-            {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
-            {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
-        ],
-    }
-
-    response = client.get(f"{ROUTE}?search=Test", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"with_facets": True},
+    )
     assert response.status_code == 200
     data = response.json()
 
@@ -185,7 +170,32 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     }
 
     response = client.get(
-        f"{ROUTE}?species__name=TestSpecies1", headers=BEARER_TOKEN | PROJECT_HEADERS
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"search": "Test", "with_facets": True},
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {
+        "contributions": [],
+        "mtype": [],
+        "species": [
+            {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
+            {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
+        ],
+        "strain": [
+            {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
+            {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
+        ],
+    }
+
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"species__name": "TestSpecies1", "with_facets": True},
     )
     assert response.status_code == 200
     data = response.json()

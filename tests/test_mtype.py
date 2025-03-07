@@ -122,7 +122,7 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
     ]
 
     response = client.get(
-        f"{ROUTE_MORPH}?mtype__pref_label=m1", headers=BEARER_TOKEN | PROJECT_HEADERS
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"mtype__pref_label": "m1"}
     )
     assert response.status_code == 200
     facets = response.json()["facets"]

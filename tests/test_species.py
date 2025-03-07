@@ -27,7 +27,7 @@ def test_create_species(client):
     assert data == items
 
     # test filter
-    response = client.get(f"{ROUTE}", params={"name": "Test Species 1"})
+    response = client.get(ROUTE, params={"name": "Test Species 1"})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1

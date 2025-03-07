@@ -144,7 +144,7 @@ def morphology_query(
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
-    with_facets: bool = True,
+    with_facets: bool = False,
 ) -> ListResponse[ReconstructionMorphologyRead]:
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {

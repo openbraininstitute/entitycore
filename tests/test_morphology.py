@@ -66,7 +66,7 @@ def test_missing(client):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_query_reconstruction_morphology(db, client, brain_region_id):
+def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: PLR0915
     species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
     species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
 
@@ -103,8 +103,11 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     assert response.status_code == 200
-    data = response.json()["data"]
-    assert len(data) == 10
+    response_json = response.json()
+    assert "facets" in response_json
+    assert "data" in response_json
+    assert response_json["facets"] is None
+    assert len(response_json["data"]) == 10
 
     response = client.get(
         ROUTE,
@@ -233,7 +236,11 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
         ),
     )
 
-    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"with_facets": True},
+    )
     data = response.json()
     assert len(data["data"]) == data["pagination"]["total_items"]
     assert "facets" in data

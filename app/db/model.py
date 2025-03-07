@@ -370,7 +370,7 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
 
     location: Mapped[PointLocation | None]
 
-    mtype: Mapped[list["MTypeClass"]] = relationship(
+    mtypes: Mapped[list["MTypeClass"]] = relationship(
         primaryjoin="ReconstructionMorphology.id == MTypeClassification.entity_id",
         secondary="join(mtype_classification, mtype_class)",
         uselist=True,

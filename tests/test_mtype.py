@@ -87,7 +87,11 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
     add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype1.id))
     add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype2.id))
 
-    response = client.get(ROUTE_MORPH, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(
+        ROUTE_MORPH,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"with_facets": True},
+    )
     assert response.status_code == 200
     facets = response.json()["facets"]
     assert facets["mtype"] == [
@@ -122,7 +126,9 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
     ]
 
     response = client.get(
-        f"{ROUTE_MORPH}?mtype__pref_label=m1", headers=BEARER_TOKEN | PROJECT_HEADERS
+        ROUTE_MORPH,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"with_facets": True, "mtype__pref_label": "m1"},
     )
     assert response.status_code == 200
     facets = response.json()["facets"]

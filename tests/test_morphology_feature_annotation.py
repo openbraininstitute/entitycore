@@ -91,8 +91,9 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     assert "morphology_feature_annotation" not in response.json()
 
     response = client.get(
-        f"{MORPHOLOGY_ROUTE}/{reconstruction_morphology_id}?expand=morphology_feature_annotation",
+        f"{MORPHOLOGY_ROUTE}/{reconstruction_morphology_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"expand": "morphology_feature_annotation"},
     )
     assert response.status_code == 200
     data = response.json()

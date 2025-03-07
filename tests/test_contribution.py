@@ -107,6 +107,7 @@ def test_create_contribution(
 
     response = client.get(
         ROUTE_MORPH,
+        params={"with_facets": True},
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     response.raise_for_status()
@@ -277,7 +278,7 @@ def test_contribution_facets(
 
     response = client.get(
         ROUTE_MORPH,
-        params={"page_size": 10},
+        params={"with_facets": True, "page_size": 10},
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()
@@ -301,7 +302,8 @@ def test_contribution_facets(
     assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
 
     response = client.get(
-        f"{ROUTE_MORPH}?contribution__pref_label=person_pref_label",
+        f"{ROUTE_MORPH}",
+        params={"with_facets": True, "contribution__pref_label": "person_pref_label"},
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()

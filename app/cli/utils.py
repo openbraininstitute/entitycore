@@ -83,7 +83,6 @@ def get_brain_location_mixin(data, db):
 
     brain_location = None
     if coordinates:
-
         x = coordinates.get("valueX", None)
         y = coordinates.get("valueY", None)
         z = coordinates.get("valueZ", None)

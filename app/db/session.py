@@ -42,7 +42,9 @@ class DatabaseSessionManager:
             raise RuntimeError(err)
         with Session(
             self._engine,
-            expire_on_commit=False, autocommit=False, autoflush=False,
+            expire_on_commit=False,
+            autocommit=False,
+            autoflush=False,
         ) as session:
             try:
                 yield session
@@ -60,6 +62,6 @@ def configure_database_session_manager(**kwargs) -> DatabaseSessionManager:
         pool_size=settings.DB_POOL_SIZE,
         pool_pre_ping=settings.DB_POOL_PRE_PING,
         max_overflow=settings.DB_MAX_OVERFLOW,
-        **kwargs
+        **kwargs,
     )
     return database_session_manager

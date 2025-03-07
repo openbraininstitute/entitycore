@@ -49,10 +49,11 @@ REQUIRED_PATH_DIR = click.Path(
 )
 
 SQLA_ENGINE_ARGS = {
-    #"echo_pool": "debug",
-    "executemany_mode": 'values_plus_batch',
+    # "echo_pool": "debug",
+    "executemany_mode": "values_plus_batch",
     "pool_use_lifo": True,
-    }
+}
+
 
 def ensurelist(x):
     return x if isinstance(x, list) else [x]
@@ -234,7 +235,7 @@ class Import(ABC):
 
 
 class ImportAgent(Import):
-    name = 'agents'
+    name = "agents"
     defaults = curate.default_agents()
 
     @staticmethod
@@ -486,6 +487,7 @@ class ImportMorphologies(Import):
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_reconstruction_morphology.id, db)
 
+
 class ImportExperimentalNeuronDensities(Import):
     name = "ExperimentalNeuronDensities"
 
@@ -724,7 +726,6 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
 
             all_measurements = []
             for measurement in data.get("hasBody", []):
-
                 serie = ensurelist(measurement.get("value", {}).get("series", []))
 
                 measurement_serie = [
@@ -791,9 +792,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
         )
 
 
-def _import_experimental_densities(
-    db, project_context, model_type, curate_function, data_list
-):
+def _import_experimental_densities(db, project_context, model_type, curate_function, data_list):
     for data in tqdm(data_list):
         data = curate_function(data)
         legacy_id = data["@id"]
@@ -866,7 +865,7 @@ def _do_import(db, input_dir, project_context):
         ImportSingleNeuronSimulation,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,
-        ]
+    ]
 
     for importer in importers:
         if importer.defaults:

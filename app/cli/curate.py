@@ -535,7 +535,7 @@ def curate_brain_region(data):
         "superior cerebellar peduncle decussation: Other": "2434751741",
         "supraoptic commissures: Other": "1060511842",
         "trochlear nerve: Other": "3537828992",
-        }
+    }
 
     if data["label"] in replacements:
         data["@id"] = replacements[data["label"]]

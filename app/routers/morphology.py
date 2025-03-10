@@ -139,7 +139,7 @@ def _get_facets(
 @router.get("")
 def morphology_query(
     db: SessionDep,
-    # project_context: VerifiedProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
@@ -157,10 +157,9 @@ def morphology_query(
     }
 
     query = (
-        # constrain_to_accessible_entities(
-        #     sa.select(ReconstructionMorphology), project_id=project_context.project_id
-        # )
-        sa.select(ReconstructionMorphology)
+        constrain_to_accessible_entities(
+            sa.select(ReconstructionMorphology), project_id=project_context.project_id
+        )
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import ClassVar
 
 from fastapi_filter import FilterDepends, with_prefix
 
@@ -26,4 +27,11 @@ class MorphologyFilter(CustomFilter):
 
     class Constants(CustomFilter.Constants):
         model = ReconstructionMorphology
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields: ClassVar[list[str]] = [
+            "creation_date",
+            "update_date",
+            "name",
+            "mtype",
+            "strain",
+            "species",
+        ]

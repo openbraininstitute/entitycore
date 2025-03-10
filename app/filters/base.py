@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
 from pydantic import field_validator
@@ -9,7 +11,7 @@ class CustomFilter(Filter):
     """Custom common filter."""
 
     class Constants(Filter.Constants):
-        ordering_model_fields: list[str]
+        ordering_model_fields: ClassVar[list[str]]
 
     @field_validator("order_by", check_fields=False)
     @classmethod
@@ -71,5 +73,34 @@ class CustomFilter(Filter):
                         model_field = getattr(self.Constants.model, field_name)
 
                     query = query.filter(getattr(model_field, operator)(value))
+
+        return query
+
+    def sort(self, query: Query | Select):
+        if not self.ordering_values:
+            return query
+
+        for field_name in self.ordering_values:
+            # Sort by nested model
+            field_value = getattr(self, field_name, None)
+            if field_name is not None and isinstance(field_value, Filter):
+                query = field_value.sort(query)
+                continue
+
+            # Sort on current model
+
+            direction = Filter.Direction.asc
+            if field_name.startswith("-"):
+                direction = Filter.Direction.desc
+
+            field_name = field_name.replace("-", "").replace("+", "")  # noqa: PLW2901
+
+            field_value = getattr(self.Constants.model, field_name, None)
+
+            if field_value is None:
+                msg = f"Invalid ordering field {field_name}"
+                raise ValueError(msg)
+
+            query = query.order_by(getattr(field_value, direction)())
 
         return query

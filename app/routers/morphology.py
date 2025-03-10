@@ -139,7 +139,7 @@ def _get_facets(
 @router.get("")
 def morphology_query(
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
+    # project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
@@ -156,10 +156,11 @@ def morphology_query(
         },
     }
 
-    filter_query = (
-        constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), project_id=project_context.project_id
-        )
+    query = (
+        # constrain_to_accessible_entities(
+        #     sa.select(ReconstructionMorphology), project_id=project_context.project_id
+        # )
+        sa.select(ReconstructionMorphology)
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
@@ -170,12 +171,12 @@ def morphology_query(
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
 
+    filter_query = morphology_filter.filter(query, aliases={Agent: agent_alias})
+
     if search:
         filter_query = filter_query.where(
             ReconstructionMorphology.morphology_description_vector.match(search)
         )
-
-    filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
 
     facets = _get_facets(
         db,
@@ -184,17 +185,18 @@ def morphology_query(
         count_distinct_field=ReconstructionMorphology.id,
     )
     distinct_ids_subquery = (
-        morphology_filter.sort(filter_query)
-        .with_only_columns(ReconstructionMorphology)
-        .distinct()
-        .offset(pagination_request.offset)
-        .limit(pagination_request.page_size)
+        filter_query.with_only_columns(ReconstructionMorphology).distinct()
     ).subquery("distinct_ids")
 
     # TODO: load person.* and organization.* eagerly
     data_query = (
-        morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
-        .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
+        morphology_filter.sort(
+            query.join(
+                distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id
+            )
+        )
+        .limit(pagination_request.page_size)
+        .offset(pagination_request.offset)
         .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
         .options(joinedload(ReconstructionMorphology.strain))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))

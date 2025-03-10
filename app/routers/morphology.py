@@ -138,11 +138,13 @@ def _get_facets(
 
 @router.get("")
 def morphology_query(
+    *,
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
+    with_facets: bool = False,
 ) -> ListResponse[ReconstructionMorphologyRead]:
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -177,12 +179,16 @@ def morphology_query(
             ReconstructionMorphology.morphology_description_vector.match(search)
         )
 
-    facets = _get_facets(
-        db,
-        filter_query,
-        name_to_facet_query_params=name_to_facet_query_params,
-        count_distinct_field=ReconstructionMorphology.id,
-    )
+    if with_facets:
+        facets = _get_facets(
+            db,
+            filter_query,
+            name_to_facet_query_params=name_to_facet_query_params,
+            count_distinct_field=ReconstructionMorphology.id,
+        )
+    else:
+        facets = None
+
     distinct_ids_subquery = (
         filter_query.with_only_columns(ReconstructionMorphology).distinct()
     ).subquery("distinct_ids")

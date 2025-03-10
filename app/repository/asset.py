@@ -24,6 +24,7 @@ class AssetRepository(BaseRepository):
             .join(Root, Root.id == Asset.entity_id)
             .where(
                 Asset.entity_id == entity_id,
+                Asset.status != AssetStatus.DELETED,
                 Root.type == entity_type.name,
             )
         )

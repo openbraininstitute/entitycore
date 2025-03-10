@@ -34,21 +34,21 @@ def test_create_strain(client, species_id):
     assert data == items
 
     # test filter
-    response = client.get(f"{ROUTE}", params={"name": "Test Strain 1"})
+    response = client.get(ROUTE, params={"name": "Test Strain 1"})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1
     assert data == [items[1]]
 
     # test pagination
-    response = client.get(f"{ROUTE}", params={"page": 1, "page_size": 2})
+    response = client.get(ROUTE, params={"page": 1, "page_size": 2})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 2
     assert data == [items[0], items[1]]
 
     # test pagination (page validation error)
-    response = client.get(f"{ROUTE}", params={"page": 0, "page_size": 2})
+    response = client.get(ROUTE, params={"page": 0, "page_size": 2})
     assert response.status_code == 422
     assert response.json() == {
         "details": [

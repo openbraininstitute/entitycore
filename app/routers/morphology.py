@@ -158,7 +158,7 @@ def morphology_query(
         },
     }
 
-    query = (
+    filter_query = (
         constrain_to_accessible_entities(
             sa.select(ReconstructionMorphology), project_id=project_context.project_id
         )
@@ -172,12 +172,12 @@ def morphology_query(
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
 
-    filter_query = morphology_filter.filter(query, aliases={Agent: agent_alias})
-
     if search:
         filter_query = filter_query.where(
             ReconstructionMorphology.morphology_description_vector.match(search)
         )
+
+    filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
 
     if with_facets:
         facets = _get_facets(
@@ -195,11 +195,8 @@ def morphology_query(
 
     # TODO: load person.* and organization.* eagerly
     data_query = (
-        morphology_filter.sort(
-            query.join(
-                distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id
-            )
-        )
+        morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
+        .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
         .limit(pagination_request.page_size)
         .offset(pagination_request.offset)
         .options(joinedload(ReconstructionMorphology.species, innerjoin=True))

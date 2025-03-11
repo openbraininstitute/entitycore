@@ -140,7 +140,7 @@ def _get_facets(
 def morphology_query(
     *,
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
+    # project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
@@ -158,10 +158,11 @@ def morphology_query(
         },
     }
 
-    filter_query = (
-        constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), project_id=project_context.project_id
-        )
+    query = (
+        # constrain_to_accessible_entities(
+        #     sa.select(ReconstructionMorphology), project_id=project_context.project_id
+        # )
+        sa.select(ReconstructionMorphology, ReconstructionMorphology.id, MTypeClass.pref_label)
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
@@ -172,12 +173,12 @@ def morphology_query(
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
 
+    filter_query = morphology_filter.filter(query, aliases={Agent: agent_alias})
+
     if search:
         filter_query = filter_query.where(
             ReconstructionMorphology.morphology_description_vector.match(search)
         )
-
-    filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
 
     if with_facets:
         facets = _get_facets(
@@ -189,12 +190,15 @@ def morphology_query(
     else:
         facets = None
 
+    cte = morphology_filter.sort(
+        filter_query.distinct(ReconstructionMorphology.id).order_by(ReconstructionMorphology.id)
+    ).cte("cte")
+
     # TODO: load person.* and organization.* eagerly
     data_query = (
-        morphology_filter.sort(filter_query)
-        .distinct(ReconstructionMorphology.id)
-        .offset(pagination_request.offset)
+        morphology_filter.sort(query.join(cte, ReconstructionMorphology.id == cte.c.id))
         .limit(pagination_request.page_size)
+        .offset(pagination_request.offset)
         .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
         .options(joinedload(ReconstructionMorphology.strain))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))

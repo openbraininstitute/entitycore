@@ -46,9 +46,9 @@ def get_or_create_brain_region(brain_region, db, _cache=set()):
     if not br:
         br1 = db.query(BrainRegion).filter(BrainRegion.name == brain_region["label"]).first()
         if not br1:
-            print(f"Replacing: {brain_region} -> failed")
+            L.info("Replacing: {} -> failed", brain_region)
             return 997
-        print(f"Replacing: {brain_region} -> {br1.id}")
+        L.info("Replacing: {} -> {}", brain_region, br1.id)
 
         _cache.add(br1.id)
         return br1.id
@@ -109,7 +109,7 @@ def get_brain_location_mixin(data, db):
     return brain_location, brain_region_id
 
 
-def get_license_id(license, db, _cache={}):  # noqa: B006
+def get_license_id(license, db, _cache={}):
     id_ = license["@id"]
     if id_ in _cache:
         return _cache[id_]

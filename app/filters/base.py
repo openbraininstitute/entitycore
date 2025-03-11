@@ -101,6 +101,6 @@ class CustomFilter(Filter):
                 msg = f"Invalid ordering field {field_name}"
                 raise ValueError(msg)
 
-            query = query.order_by(getattr(field_value, direction)())
+            query = query.order_by(getattr(field_value, direction)()).distinct(field_value)
 
         return query

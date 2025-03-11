@@ -10,6 +10,7 @@ from sqlalchemy.orm import (
     joinedload,
     raiseload,
 )
+from sqlalchemy import Select
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
@@ -189,16 +190,12 @@ def morphology_query(
     else:
         facets = None
 
-    distinct_ids_subquery = (
-        filter_query.with_only_columns(ReconstructionMorphology).distinct()
-    ).subquery("distinct_ids")
-
     # TODO: load person.* and organization.* eagerly
     data_query = (
-        morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
-        .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
-        .limit(pagination_request.page_size)
+        morphology_filter.sort(filter_query)
+        .distinct(ReconstructionMorphology.id)
         .offset(pagination_request.offset)
+        .limit(pagination_request.page_size)
         .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
         .options(joinedload(ReconstructionMorphology.strain))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))

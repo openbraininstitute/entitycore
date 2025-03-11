@@ -33,7 +33,7 @@ def read_contributions(
         query.offset(pagination_request.offset).limit(pagination_request.page_size)
     ).scalars()
 
-    total_items = db.execute(query.with_only_columns(sa.func.count())).scalar_one()
+    total_items = db.execute(query.with_only_columns(sa.func.count(Contribution.id))).scalar_one()
 
     response = ListResponse[ContributionRead](
         data=data,
@@ -72,7 +72,7 @@ def create_contribution(
 ) -> ContributionRead:
     stmt = constrain_entity_query_to_project(
         sa.select(Entity).filter(Entity.id == contribution.entity_id), project_context.project_id
-    ).with_only_columns(sa.func.count())
+    ).with_only_columns(sa.func.count(Entity.id))
     if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
         raise HTTPException(

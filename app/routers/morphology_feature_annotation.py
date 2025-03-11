@@ -87,7 +87,7 @@ def create_morphology_feature_annotation(
     stmt = constrain_entity_query_to_project(
         sa.select(MorphologyFeatureAnnotation).filter(Entity.id == reconstruction_morphology_id),
         project_context.project_id,
-    ).with_only_columns(sa.func.count())
+    ).with_only_columns(sa.func.count(MorphologyFeatureAnnotation.id))
 
     if db.execute(stmt).scalar_one() == 0:
         L.warning(

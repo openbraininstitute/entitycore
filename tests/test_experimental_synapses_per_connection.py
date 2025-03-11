@@ -24,28 +24,28 @@ def test_experimental_synapses_per_connection(
             "license_id": license_id,
         },
     )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create  experimental bouton density: {response.text}"
+    assert response.status_code == 200, (
+        f"Failed to create  experimental bouton density: {response.text}"
+    )
     data = response.json()
-    assert (
-        data["brain_region"]["id"] == brain_region_id
-    ), f"Failed to get id for  experimental bouton density: {data}"
-    assert (
-        data["species"]["id"] == species_id
-    ), f"Failed to get species_id for  experimental bouton density: {data}"
-    assert (
-        data["strain"]["id"] == strain_id
-    ), f"Failed to get strain_id for  experimental bouton density: {data}"
-    assert (
-        data["description"] == bouton_description
-    ), f"Failed to get description for  experimental bouton density: {data}"
-    assert (
-        data["name"] == bouton_name
-    ), f"Failed to get name for  experimental bouton density: {data}"
-    assert (
-        data["license"]["name"] == "Test License"
-    ), f"Failed to get license for  experimental bouton density: {data}"
+    assert data["brain_region"]["id"] == brain_region_id, (
+        f"Failed to get id for  experimental bouton density: {data}"
+    )
+    assert data["species"]["id"] == species_id, (
+        f"Failed to get species_id for  experimental bouton density: {data}"
+    )
+    assert data["strain"]["id"] == strain_id, (
+        f"Failed to get strain_id for  experimental bouton density: {data}"
+    )
+    assert data["description"] == bouton_description, (
+        f"Failed to get description for  experimental bouton density: {data}"
+    )
+    assert data["name"] == bouton_name, (
+        f"Failed to get name for  experimental bouton density: {data}"
+    )
+    assert data["license"]["name"] == "Test License", (
+        f"Failed to get license for  experimental bouton density: {data}"
+    )
 
     response = client.get(f"{ROUTE}/{data['id']}", headers=PROJECT_HEADERS)
     assert response.status_code == 200

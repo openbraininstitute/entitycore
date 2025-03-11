@@ -46,7 +46,7 @@ class Settings(BaseSettings):
 
     DB_ENGINE: str = "postgresql"
     DB_USER: str = "entitycore"
-    DB_PASS: str = "entitycore"
+    DB_PASS: str = "entitycore"  # noqa: S105
     DB_HOST: str = "db"
     DB_PORT: int = 5432
     DB_NAME: str = "entitycore"

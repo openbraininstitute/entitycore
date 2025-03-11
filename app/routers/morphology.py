@@ -162,7 +162,11 @@ def morphology_query(
         # constrain_to_accessible_entities(
         #     sa.select(ReconstructionMorphology), project_id=project_context.project_id
         # )
-        sa.select(ReconstructionMorphology, ReconstructionMorphology.id, MTypeClass.pref_label)
+        sa.select(
+            ReconstructionMorphology,
+            ReconstructionMorphology.id,
+            *[field[0] for field in morphology_filter.ordering_values],
+        )
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)

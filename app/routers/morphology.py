@@ -10,7 +10,6 @@ from sqlalchemy.orm import (
     joinedload,
     raiseload,
 )
-from sqlalchemy import Select
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (

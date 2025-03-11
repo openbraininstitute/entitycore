@@ -60,9 +60,9 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
         json=js,
     )
 
-    assert (
-        response.status_code == 200
-    ), f"Failed to create morphology feature annotation: {response.text}"
+    assert response.status_code == 200, (
+        f"Failed to create morphology feature annotation: {response.text}"
+    )
     data = response.json()
     morphology_annotation_id = data["id"]
     assert "creation_date" in data

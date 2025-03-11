@@ -22,28 +22,28 @@ def test_experimental_neuron_density(client, species_id, strain_id, brain_region
             "license_id": license_id,
         },
     )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create experimental neuron density: {response.text}"
+    assert response.status_code == 200, (
+        f"Failed to create experimental neuron density: {response.text}"
+    )
     data = response.json()
-    assert (
-        data["brain_region"]["id"] == brain_region_id
-    ), f"Failed to get id for  experimental neuron density: {data}"
-    assert (
-        data["species"]["id"] == species_id
-    ), f"Failed to get species_id for  experimental neuron density: {data}"
-    assert (
-        data["strain"]["id"] == strain_id
-    ), f"Failed to get strain_id for  experimental neuron density: {data}"
-    assert (
-        data["description"] == neuron_description
-    ), f"Failed to get description for  experimental neuron density: {data}"
-    assert (
-        data["name"] == neuron_name
-    ), f"Failed to get name for  experimental neuron density: {data}"
-    assert (
-        data["license"]["name"] == "Test License"
-    ), f"Failed to get license for  experimental neuron density: {data}"
+    assert data["brain_region"]["id"] == brain_region_id, (
+        f"Failed to get id for  experimental neuron density: {data}"
+    )
+    assert data["species"]["id"] == species_id, (
+        f"Failed to get species_id for  experimental neuron density: {data}"
+    )
+    assert data["strain"]["id"] == strain_id, (
+        f"Failed to get strain_id for  experimental neuron density: {data}"
+    )
+    assert data["description"] == neuron_description, (
+        f"Failed to get description for  experimental neuron density: {data}"
+    )
+    assert data["name"] == neuron_name, (
+        f"Failed to get name for  experimental neuron density: {data}"
+    )
+    assert data["license"]["name"] == "Test License", (
+        f"Failed to get license for  experimental neuron density: {data}"
+    )
 
     response = client.get(
         f"{ROUTE}/{data['id']}",

@@ -29,31 +29,31 @@ def test_create_reconstruction_morphology(
             "license_id": license_id,
         },
     )
-    assert (
-        response.status_code == 200
-    ), f"Failed to create reconstruction morphology: {response.text}"
+    assert response.status_code == 200, (
+        f"Failed to create reconstruction morphology: {response.text}"
+    )
     data = response.json()
-    assert (
-        data["brain_region"]["id"] == brain_region_id
-    ), f"Failed to get id for reconstruction morphology: {data}"
-    assert (
-        data["species"]["id"] == species_id
-    ), f"Failed to get species_id for reconstruction morphology: {data}"
-    assert (
-        data["strain"]["id"] == strain_id
-    ), f"Failed to get strain_id for reconstruction morphology: {data}"
-    assert (
-        data["description"] == morph_description
-    ), f"Failed to get description for reconstruction morphology: {data}"
+    assert data["brain_region"]["id"] == brain_region_id, (
+        f"Failed to get id for reconstruction morphology: {data}"
+    )
+    assert data["species"]["id"] == species_id, (
+        f"Failed to get species_id for reconstruction morphology: {data}"
+    )
+    assert data["strain"]["id"] == strain_id, (
+        f"Failed to get strain_id for reconstruction morphology: {data}"
+    )
+    assert data["description"] == morph_description, (
+        f"Failed to get description for reconstruction morphology: {data}"
+    )
     assert data["name"] == morph_name, f"Failed to get name for reconstruction morphology: {data}"
-    assert (
-        data["license"]["name"] == "Test License"
-    ), f"Failed to get license for reconstruction morphology: {data}"
+    assert data["license"]["name"] == "Test License", (
+        f"Failed to get license for reconstruction morphology: {data}"
+    )
 
     response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
-    assert (
-        response.status_code == 200
-    ), f"Failed to get reconstruction morphologies: {response.text}"
+    assert response.status_code == 200, (
+        f"Failed to get reconstruction morphologies: {response.text}"
+    )
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -160,7 +160,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "contributions": [],
+        "contribution": [],
         "mtype": [],
         "species": [
             {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
@@ -183,7 +183,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "contributions": [],
+        "contribution": [],
         "mtype": [],
         "species": [
             {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
@@ -207,7 +207,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "contributions": [],
+        "contribution": [],
         "mtype": [],
         "species": [{"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"}],
         "strain": [{"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"}],
@@ -245,7 +245,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     assert len(data["data"]) == data["pagination"]["total_items"]
     assert "facets" in data
     assert data["facets"] == {
-        "contributions": [],
+        "contribution": [],
         "mtype": [],
         "species": [{"id": 1, "label": "TestSpecies0", "count": 1, "type": "species"}],
         "strain": [{"id": 1, "label": "Strain0", "count": 1, "type": "strain"}],

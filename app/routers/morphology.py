@@ -194,15 +194,18 @@ def morphology_query(
     else:
         facets = None
 
-    cte = morphology_filter.sort(
-        filter_query.distinct(ReconstructionMorphology.id).order_by(ReconstructionMorphology.id)
+    distinct_ids_cte = (
+        filter_query.with_only_columns(ReconstructionMorphology)
+        .distinct(ReconstructionMorphology.id)
+        .order_by(ReconstructionMorphology.id)
     ).cte("cte")
 
     # TODO: load person.* and organization.* eagerly
     data_query = (
-        morphology_filter.sort(query.join(cte, ReconstructionMorphology.id == cte.c.id))
-        .limit(pagination_request.page_size)
+        morphology_filter.sort(query)  # sort without filtering
+        .join(distinct_ids_cte, ReconstructionMorphology.id == distinct_ids_cte.c.id)
         .offset(pagination_request.offset)
+        .limit(pagination_request.page_size)
         .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
         .options(joinedload(ReconstructionMorphology.strain))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))

@@ -2,6 +2,7 @@ from unittest.mock import ANY
 
 import pytest
 
+from app.config import settings
 from app.db.model import Entity
 from app.db.types import AssetStatus, EntityType
 from app.errors import ApiErrorCode
@@ -90,7 +91,7 @@ def test_upload_entity_asset(client, entity):
         "id": ANY,
         "path": "a/b/c.txt",
         "full_path": expected_full_path,
-        "bucket_name": "obi-private",
+        "bucket_name": settings.S3_BUCKET_NAME,
         "is_directory": False,
         "content_type": "text/plain",
         "size": FILE_EXAMPLE_SIZE,
@@ -128,7 +129,7 @@ def test_get_entity_asset(client, entity, asset):
         "id": asset.id,
         "path": "a/b/c.txt",
         "full_path": expected_full_path,
-        "bucket_name": "obi-private",
+        "bucket_name": settings.S3_BUCKET_NAME,
         "is_directory": False,
         "content_type": "text/plain",
         "size": FILE_EXAMPLE_SIZE,
@@ -161,7 +162,7 @@ def test_get_entity_assets(client, entity, asset):
             "id": asset.id,
             "path": "a/b/c.txt",
             "full_path": expected_full_path,
-            "bucket_name": "obi-private",
+            "bucket_name": settings.S3_BUCKET_NAME,
             "is_directory": False,
             "content_type": "text/plain",
             "size": FILE_EXAMPLE_SIZE,

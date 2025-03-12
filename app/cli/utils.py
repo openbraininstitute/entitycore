@@ -6,20 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.cli import curate
 from app.config import settings
-from app.db.model import (
-    Agent,
-    Asset,
-    BrainRegion,
-    Contribution,
-    License,
-    Role,
-    Species,
-    Strain,
-)
+from app.db.model import Agent, Asset, BrainRegion, Contribution, License, Role, Species, Strain
 from app.db.types import AssetStatus, EntityType
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.utils.s3 import build_s3_path
+
+AUTHORIZED_PUBLIC = True
 
 
 def _find_by_legacy_id(legacy_id, db_type, db, _cache={}):
@@ -268,14 +261,14 @@ def get_or_create_distribution(
             get_or_create_distribution(c, entity_id, entity_type, db, project_context)
         return
 
-    bucket_name = settings.S3_PRIVATE_BUCKET_NAME
+    bucket_name = settings.S3_BUCKET_NAME
     full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,
         entity_type=EntityType[entity_type],
         entity_id=entity_id,
         filename=distribution["name"],
-        is_public=False,
+        is_public=AUTHORIZED_PUBLIC,
     )
     query: sa.Select = sa.Select(Asset).where(Asset.full_path == full_path)
     row = db.execute(query).scalar_one_or_none()

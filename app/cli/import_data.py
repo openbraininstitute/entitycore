@@ -13,6 +13,7 @@ import sqlalchemy as sa
 from tqdm import tqdm
 
 from app.cli import curate, utils
+from app.cli.utils import AUTHORIZED_PUBLIC
 from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
@@ -351,6 +352,7 @@ class ImportAnalysisSoftwareSourceCode(Import):
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
             )
             db.add(db_code)
 
@@ -398,6 +400,7 @@ class ImportEModels(Import):
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
             )
 
             db.add(db_item)
@@ -438,6 +441,7 @@ class ImportBrainRegionMeshes(Import):
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
             )
             db.add(db_item)
         db.commit()
@@ -477,6 +481,7 @@ class ImportMorphologies(Import):
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
             )
 
             db.add(db_reconstruction_morphology)
@@ -582,6 +587,7 @@ class ImportSingleCellExperimentalTrace(Import):
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
             )
 
             db.add(db_item)
@@ -627,6 +633,7 @@ class ImportMEModel(Import):
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
                 authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
                 # species_id=species_id,
                 # strain_id=strain_id
                 creation_date=createdAt,
@@ -671,6 +678,7 @@ class ImportSingleNeuronSimulation(Import):
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
                 authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
             )
             db.add(rm)
         db.commit()
@@ -822,6 +830,7 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
             creation_date=createdAt,
             update_date=updatedAt,
             authorized_project_id=project_context.project_id,
+            authorized_public=AUTHORIZED_PUBLIC,
         )
         db.add(db_element)
         db.commit()

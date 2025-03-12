@@ -104,7 +104,7 @@ builtins-ignorelist = ["license"]
     "PLR0915", # Too many statements
     "E501",    # Line too long
 ]
-"app/cli/import-data.py" = ["ALL"]
+"app/cli/import_data.py" = ["ALL"]
 "app/cli/curate.py" = [
     "S101",    # Use of `assert` detected
 ]

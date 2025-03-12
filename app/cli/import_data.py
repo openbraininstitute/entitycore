@@ -52,6 +52,7 @@ SQLA_ENGINE_ARGS = {
     # "echo_pool": "debug",
     "executemany_mode": "values_plus_batch",
     "pool_use_lifo": True,
+    "pool_size": 1,
 }
 
 
@@ -243,7 +244,7 @@ class ImportAgent(Import):
         return {"Person", "Organization"} & set(ensurelist(data.get("@type", [])))
 
     @staticmethod
-    def ingest(db, project_id, data_list):
+    def ingest(db, project_context, data_list):
         for data in tqdm(data_list):
             if "Person" in ensurelist(data["@type"]):
                 legacy_id = data["@id"]

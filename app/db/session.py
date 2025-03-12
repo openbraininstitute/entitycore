@@ -59,9 +59,11 @@ def configure_database_session_manager(**kwargs) -> DatabaseSessionManager:
     database_session_manager = DatabaseSessionManager()
     database_session_manager.initialize(
         url=settings.DB_URI,
-        pool_size=settings.DB_POOL_SIZE,
-        pool_pre_ping=settings.DB_POOL_PRE_PING,
-        max_overflow=settings.DB_MAX_OVERFLOW,
-        **kwargs,
+        **{
+            "pool_size": settings.DB_POOL_SIZE,
+            "pool_pre_ping": settings.DB_POOL_PRE_PING,
+            "max_overflow": settings.DB_MAX_OVERFLOW,
+            **kwargs,
+        },
     )
     return database_session_manager

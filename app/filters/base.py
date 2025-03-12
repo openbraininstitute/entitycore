@@ -1,5 +1,3 @@
-from typing import ClassVar
-
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
 from pydantic import field_validator
@@ -11,7 +9,7 @@ class CustomFilter(Filter):
     """Custom common filter."""
 
     class Constants(Filter.Constants):
-        ordering_model_fields: ClassVar[list[str]]
+        ordering_model_fields: list[str]
 
     @field_validator("order_by", check_fields=False)
     @classmethod

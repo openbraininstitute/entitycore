@@ -2,7 +2,8 @@ import itertools as it
 
 import pytest
 
-from app.db.model import ReconstructionMorphology, Species, Strain
+from app.db.model import ReconstructionMorphology, Species, Strain, MTypeClass, MTypeClassification
+import operator
 
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
@@ -74,6 +75,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     strain2 = add_db(db, Strain(name="TestStrain2", species_id=species2.id, taxonomy_id="1"))
 
     def create_morphologies(count):
+        morph_ids = []
         for i, (species, strain) in zip(
             range(count),
             it.cycle(
@@ -83,19 +85,23 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
                 )
             ),
         ):
-            create_reconstruction_morphology_id(
-                client,
-                species.id,
-                strain.id,
-                brain_region_id,
-                headers=BEARER_TOKEN | PROJECT_HEADERS,
-                authorized_public=False,
-                name=f"Test Morphology Name {i}",
-                description=f"Test Morphology Description {i}",
+            morph_ids.append(
+                create_reconstruction_morphology_id(
+                    client,
+                    species.id,
+                    strain.id,
+                    brain_region_id,
+                    headers=BEARER_TOKEN | PROJECT_HEADERS,
+                    authorized_public=False,
+                    name=f"Test Morphology Name {i}",
+                    description=f"Test Morphology Description {i}",
+                )
             )
 
+        return morph_ids
+
     count = 11
-    create_morphologies(count)
+    morph_ids = create_morphologies(count)
 
     response = client.get(
         ROUTE,
@@ -212,6 +218,38 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
         "species": [{"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"}],
         "strain": [{"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"}],
     }
+
+    mtype1 = add_db(db, MTypeClass(pref_label="mtype1", definition="", alt_label=""))
+    mtype2 = add_db(db, MTypeClass(pref_label="mtype2", definition="", alt_label=""))
+
+    add_db(db, MTypeClassification(entity_id=morph_ids[0], mtype_class_id=mtype1.id))
+    add_db(db, MTypeClassification(entity_id=morph_ids[1], mtype_class_id=mtype2.id))
+    add_db(db, MTypeClassification(entity_id=morph_ids[2], mtype_class_id=mtype2.id))
+
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={
+            "order_by": "mtype",
+            "mtype__order_by": "pref_label",
+            "page_size": 5,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data["data"]) == 5
+
+    mtypes = []
+    for m in data["data"]:
+        if m["mtype"]:
+            mtype = min(m["mtype"], key=operator.itemgetter("pref_label"))
+            mtypes.append(mtype["pref_label"])
+        else:
+            mtypes.append(None)
+
+    assert mtypes == ["mtype1", "mtype2", "mtype2", None, None]
 
 
 @pytest.mark.usefixtures("skip_project_check")

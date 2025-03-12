@@ -19,7 +19,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 from app.db.types import (
     BIGINT,
-    JSONDICT,
+    JSON_DICT,
+    STRING_LIST,
     AssetStatus,
     PointLocation,
     PointLocationType,
@@ -59,6 +60,7 @@ class TimestampMixin:
 
 class LegacyMixin:
     legacy_id: Mapped[StringList | None] = mapped_column(index=True)
+    legacy_self: Mapped[STRING_LIST | None]
 
 
 class DistributionMixin:
@@ -491,7 +493,7 @@ class Asset(TimestampMixin, Base):
     content_type: Mapped[str]
     size: Mapped[BIGINT]
     sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32))
-    meta: Mapped[JSONDICT]  # not used yet. can be useful?
+    meta: Mapped[JSON_DICT]  # not used yet. can be useful?
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
 
     # partial unique index

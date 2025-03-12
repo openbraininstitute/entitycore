@@ -44,7 +44,7 @@ class Settings(BaseSettings):
 
     API_ASSET_POST_MAX_SIZE: int = 10 * 1024**2  # bytes  # TODO: decide an appropriate value
 
-    DB_ENGINE: str = "postgresql"
+    DB_ENGINE: str = "postgresql+psycopg2"
     DB_USER: str = "entitycore"
     DB_PASS: str = "entitycore"  # noqa: S105
     DB_HOST: str = "db"
@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     DB_URI: str = ""
 
     DB_POOL_SIZE: int = 30
-    DB_POOL_PRE_PING: bool = True
+    DB_POOL_PRE_PING: bool = False
     DB_MAX_OVERFLOW: int = 0
 
     @field_validator("DB_URI", mode="before")

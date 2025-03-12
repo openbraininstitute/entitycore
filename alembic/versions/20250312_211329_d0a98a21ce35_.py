@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d62db6fc94c7
+Revision ID: d0a98a21ce35
 Revises:
-Create Date: 2025-03-06 07:36:37.005898
+Create Date: 2025-03-12 21:13:29.722708
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "d62db6fc94c7"
+revision: str = "d0a98a21ce35"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -29,7 +29,8 @@ def upgrade() -> None:
         "annotation_body",
         sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
         sa.Column("type", sa.String(), nullable=False),
-        sa.Column("legacy_id", app.db.types.StringListType(), nullable=True),
+        sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
+        sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -93,7 +94,8 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column("legacy_id", app.db.types.StringListType(), nullable=True),
+        sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
+        sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_license")),
     )
     op.create_index(op.f("ix_license_creation_date"), "license", ["creation_date"], unique=False)
@@ -105,7 +107,8 @@ def upgrade() -> None:
         sa.Column("pref_label", sa.String(), nullable=False),
         sa.Column("definition", sa.String(), nullable=False),
         sa.Column("alt_label", sa.String(), nullable=True),
-        sa.Column("legacy_id", app.db.types.StringListType(), nullable=True),
+        sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
+        sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -130,7 +133,8 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("role_id", sa.String(), nullable=False),
-        sa.Column("legacy_id", app.db.types.StringListType(), nullable=True),
+        sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
+        sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -153,7 +157,8 @@ def upgrade() -> None:
         "root",
         sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
         sa.Column("type", sa.String(), nullable=False),
-        sa.Column("legacy_id", app.db.types.StringListType(), nullable=True),
+        sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
+        sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_root")),
     )
     op.create_index(op.f("ix_root_legacy_id"), "root", ["legacy_id"], unique=False)
@@ -355,7 +360,8 @@ def upgrade() -> None:
         sa.Column("note", sa.String(), nullable=True),
         sa.Column("entity_id", sa.Integer(), nullable=False),
         sa.Column("annotation_body_id", sa.Integer(), nullable=False),
-        sa.Column("legacy_id", app.db.types.StringListType(), nullable=True),
+        sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
+        sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -962,8 +968,8 @@ def upgrade() -> None:
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
-        sa.Column("injectionLocation", app.db.types.StringListType(), nullable=False),
-        sa.Column("recordingLocation", app.db.types.StringListType(), nullable=False),
+        sa.Column("injectionLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
+        sa.Column("recordingLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
         sa.Column("me_model_id", sa.Integer(), nullable=False),
         sa.Column("content_url", sa.String(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),

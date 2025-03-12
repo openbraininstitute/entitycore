@@ -24,15 +24,12 @@ from app.db.types import (
     AssetStatus,
     PointLocation,
     PointLocationType,
-    StringList,
-    StringListType,
 )
 
 
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
         datetime: DateTime(timezone=True),
-        StringList: StringListType,
         PointLocation: PointLocationType,
     }
     # See https://alembic.sqlalchemy.org/en/latest/naming.html
@@ -59,7 +56,7 @@ class TimestampMixin:
 
 
 class LegacyMixin:
-    legacy_id: Mapped[StringList | None] = mapped_column(index=True)
+    legacy_id: Mapped[STRING_LIST | None] = mapped_column(index=True)
     legacy_self: Mapped[STRING_LIST | None]
 
 
@@ -448,8 +445,8 @@ class SingleNeuronSimulation(DistributionMixin, LocationMixin, Entity):
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
     seed: Mapped[int] = mapped_column(default=-1)
-    injectionLocation: Mapped[StringList] = mapped_column(default="")
-    recordingLocation: Mapped[StringList] = mapped_column(default=[])
+    injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     # TODO: called used ?
     me_model_id: Mapped[int] = mapped_column(ForeignKey("memodel.id"), index=True)
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])

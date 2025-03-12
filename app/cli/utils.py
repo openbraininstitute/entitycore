@@ -1,6 +1,7 @@
 import datetime
 
 import sqlalchemy as sa
+from sqlalchemy import any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
@@ -18,7 +19,7 @@ def _find_by_legacy_id(legacy_id, db_type, db, _cache={}):
     if legacy_id in _cache:
         return _cache[legacy_id]
 
-    res = db.query(db_type).filter(sa.func.strpos(db_type.legacy_id, legacy_id) > 0).first()
+    res = db.query(db_type).filter(legacy_id == any_(db_type.legacy_id)).first()
 
     if res is not None:
         _cache[legacy_id] = res

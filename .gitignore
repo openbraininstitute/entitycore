@@ -8,3 +8,8 @@ coverage.xml
 .idea
 *.egg-info
 tmp
+out.tar
+.DS_Store
+mba_hierarchy.json
+notes.md
+out.tar

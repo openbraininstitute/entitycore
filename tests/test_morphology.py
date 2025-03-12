@@ -1,9 +1,9 @@
 import itertools as it
+import operator
 
 import pytest
 
-from app.db.model import ReconstructionMorphology, Species, Strain, MTypeClass, MTypeClassification
-import operator
+from app.db.model import MTypeClass, MTypeClassification, ReconstructionMorphology, Species, Strain
 
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 

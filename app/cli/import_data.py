@@ -2,11 +2,10 @@ import datetime
 import glob
 import json
 import os
+from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
-from collections import defaultdict
-from abc import ABC, abstractmethod
 
 import click
 import sqlalchemy as sa
@@ -150,6 +149,7 @@ def import_licenses(data, db):
                 label=license["label"],
                 description=license["description"],
                 legacy_id=[license["@id"]],
+                legacy_self=[license["_self"]],
                 creation_date=createdAt,
                 update_date=updatedAt,
             )
@@ -183,6 +183,7 @@ def _import_annotation_body(data, db_type_, db):
             definition=class_elem.get("definition", ""),
             alt_label=class_elem.get("prefLabel", ""),
             legacy_id=[class_elem["@id"]],
+            legacy_self=[class_elem["_self"]],
             creation_date=createdAt,
             update_date=updatedAt,
         )
@@ -200,6 +201,7 @@ def import_mtype_annotation_body(data, db):
             "definition": "Inhibitory neuron",
             "prefLabel": "Inhibitory neuron",
             "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron",
+            "_self": "",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         }
@@ -210,6 +212,7 @@ def import_mtype_annotation_body(data, db):
             "definition": "Excitatory neuron",
             "prefLabel": "Excitatory neuron",
             "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron",
+            "_self": "",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         }
@@ -249,6 +252,7 @@ class ImportAgent(Import):
         for data in tqdm(data_list):
             if "Person" in ensurelist(data["@type"]):
                 legacy_id = data["@id"]
+                legacy_self = data["_self"]
                 db_agent = utils._find_by_legacy_id(legacy_id, Person, db)
                 if not db_agent:
                     try:
@@ -265,15 +269,14 @@ class ImportAgent(Import):
                             .first()
                         )
                         if db_agent:
-                            ll = db_agent.legacy_id.copy()
-                            ll.append(legacy_id)
-                            db_agent.legacy_id = ll
-
+                            db_agent.legacy_id = [*db_agent.legacy_id, legacy_id]
+                            db_agent.legacy_self = [*db_agent.legacy_self, legacy_self]
                             db.commit()
                         else:
                             createdAt, updatedAt = utils.get_created_and_updated(data)
                             db_agent = Person(
                                 legacy_id=[legacy_id],
+                                legacy_self=[legacy_self],
                                 givenName=data["givenName"],
                                 familyName=data["familyName"],
                                 pref_label=label,
@@ -287,6 +290,7 @@ class ImportAgent(Import):
                         print(f"{e!r}")
             elif "Organization" in ensurelist(data["@type"]):
                 legacy_id = data["@id"]
+                legacy_self = data["_self"]
                 db_agent = utils._find_by_legacy_id(legacy_id, Organization, db)
                 if not db_agent:
                     try:
@@ -295,15 +299,14 @@ class ImportAgent(Import):
                             db.query(Organization).filter(Organization.pref_label == name).first()
                         )
                         if db_agent:
-                            ll = db_agent.legacy_id.copy()
-                            ll.append(legacy_id)
-                            db_agent.legacy_id = ll
-
+                            db_agent.legacy_id = [*db_agent.legacy_id, legacy_id]
+                            db_agent.legacy_self = [*db_agent.legacy_self, legacy_self]
                             db.commit()
                         else:
                             createdAt, updatedAt = utils.get_created_and_updated(data)
                             db_agent = Organization(
                                 legacy_id=[legacy_id],
+                                legacy_self=[legacy_self],
                                 pref_label=data.get("name"),
                                 alternative_name=data.get("alternativeName", ""),
                                 creation_date=createdAt,
@@ -327,6 +330,7 @@ class ImportAnalysisSoftwareSourceCode(Import):
     def ingest(db, project_context, data_list):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
+            legacy_self = data["_self"]
             rm = utils._find_by_legacy_id(legacy_id, AnalysisSoftwareSourceCode, db)
             if rm:
                 continue
@@ -336,6 +340,7 @@ class ImportAnalysisSoftwareSourceCode(Import):
 
             db_code = AnalysisSoftwareSourceCode(
                 legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
                 name=data.get("name", ""),
                 description=data.get("description", ""),
                 createdBy_id=created_by_id,
@@ -371,6 +376,7 @@ class ImportEModels(Import):
     def ingest(db, project_context, data_list):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
+            legacy_self = data["_self"]
             db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
 
             if db_item:
@@ -385,6 +391,7 @@ class ImportEModels(Import):
 
             db_item = EModel(
                 legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
                 name=data.get("name", None),
                 description=data.get("description", None),
                 score=data.get("score", None),
@@ -423,6 +430,7 @@ class ImportBrainRegionMeshes(Import):
     def ingest(db, project_context, data_list):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
+            legacy_self = data["_self"]
             rm = utils._find_by_legacy_id(legacy_id, Mesh, db)
             if rm:
                 continue
@@ -436,6 +444,7 @@ class ImportBrainRegionMeshes(Import):
 
             db_item = Mesh(
                 legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
                 brain_region_id=brain_region_id,
                 content_url=content_url,
                 creation_date=createdAt,
@@ -460,6 +469,7 @@ class ImportMorphologies(Import):
         for data in tqdm(data_list):
             curate.curate_morphology(data)
             legacy_id = data["@id"]
+            legacy_self = data["_self"]
             rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
             if rm:
                 continue
@@ -470,7 +480,8 @@ class ImportMorphologies(Import):
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
             db_reconstruction_morphology = ReconstructionMorphology(
-                legacy_id=[data.get("@id", None)],
+                legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
                 name=data["name"],
                 description=data["description"],
                 location=brain_location and PointLocationBase(**brain_location),
@@ -563,6 +574,7 @@ class ImportSingleCellExperimentalTrace(Import):
     def ingest(db, project_context, data_list):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
+            legacy_self = data["_self"]
             rm = utils._find_by_legacy_id(legacy_id, SingleCellExperimentalTrace, db)
             if rm:
                 continue
@@ -577,7 +589,8 @@ class ImportSingleCellExperimentalTrace(Import):
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
             db_item = SingleCellExperimentalTrace(
-                legacy_id=[data.get("@id", None)],
+                legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
                 name=data["name"],
                 description=data["description"],
                 brain_region_id=brain_region_id,
@@ -612,6 +625,7 @@ class ImportMEModel(Import):
     def ingest(db, project_context, data_list):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
+            legacy_self = data["_self"]
             rm = utils._find_by_legacy_id(legacy_id, MEModel, db)
             if rm:
                 continue
@@ -625,6 +639,7 @@ class ImportMEModel(Import):
             # species_id, strain_id = utils.get_species_mixin(data, db)
             rm = MEModel(
                 legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
                 name=data.get("name", None),
                 description=data.get("description", None),
                 validated=data.get("validated", None),
@@ -656,6 +671,7 @@ class ImportSingleNeuronSimulation(Import):
     def ingest(db, project_context, data_list):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
+            legacy_self = data["_self"]
             rm = utils._find_by_legacy_id(legacy_id, SingleNeuronSimulation, db)
             if rm:
                 continue
@@ -668,6 +684,7 @@ class ImportSingleNeuronSimulation(Import):
             me_model = utils._find_by_legacy_id(me_model_lid, MEModel, db)
             rm = SingleNeuronSimulation(
                 legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
                 name=data.get("name", None),
                 description=data.get("description", None),
                 seed=data.get("seed", None),
@@ -701,7 +718,7 @@ class ImportDistribution(Import):
                 utils.import_distribution(data, root.id, root.type, db, project_context)
             else:
                 dt = data["@type"]
-                types = tuple(sorted(dt)) if isinstance(dt, list) else dt
+                types = tuple(sorted(dt)) if isinstance(dt, list) else (dt,)
                 ignored[types] += 1
 
         if ignored:
@@ -805,6 +822,7 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
     for data in tqdm(data_list):
         data = curate_function(data)
         legacy_id = data["@id"]
+        legacy_self = data["_self"]
         db_element = utils._find_by_legacy_id(legacy_id, model_type, db)
         if db_element:
             continue
@@ -819,6 +837,7 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
 
         db_element = model_type(
             legacy_id=[legacy_id],
+            legacy_self=[legacy_self],
             name=data.get("name"),
             description=data.get("description", data.get("name")),
             species_id=species_id,

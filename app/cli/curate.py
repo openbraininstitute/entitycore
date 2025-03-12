@@ -577,6 +577,7 @@ def default_agents():
     return [
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ikilic",
+            "_self": "",
             "@type": "Person",
             "givenName": "Ilkan",
             "familyName": "Kilic",
@@ -586,6 +587,7 @@ def default_agents():
         # TODO: find out who that is.
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/harikris",
+            "_self": "",
             "@type": "Person",
             "givenName": "h",
             "familyName": "arikris",
@@ -594,6 +596,7 @@ def default_agents():
         },
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ricardi",
+            "_self": "",
             "@type": "Person",
             "givenName": "Niccolò",
             "familyName": "Ricardi",
@@ -602,6 +605,7 @@ def default_agents():
         },
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/akkaufma",
+            "_self": "",
             "@type": "Person",
             "givenName": "Anna-Kristin",
             "familyName": "Kaufmann",
@@ -610,6 +614,7 @@ def default_agents():
         },
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/gbarrios",
+            "_self": "",
             "@type": "Person",
             "givenName": "Gil",
             "familyName": "Barrios",
@@ -618,6 +623,7 @@ def default_agents():
         },
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/okeeva",
+            "_self": "",
             "@type": "Person",
             "givenName": "Ayima",
             "familyName": "Okeeva",
@@ -626,6 +632,7 @@ def default_agents():
         },
         {
             "@id": "https://www.grid.ac/institutes/grid.83440.3b ",
+            "_self": "",
             "@type": "Organization",
             "name": "University College London",
             "alternativeName": "UCL",
@@ -639,6 +646,7 @@ def default_licenses():
     return [
         {
             "@id": "https://bbp.epfl.ch/neurosciencegraph/data/licenses/97521f71-605d-4f42-8f1b-c37e742a30bf",
+            "_self": "https://openbluebrain.com/api/nexus/v1/resources/public/sscx/_/https:%2F%2Fbbp.epfl.ch%2Fneurosciencegraph%2Fdata%2Flicenses%2F97521f71-605d-4f42-8f1b-c37e742a30bf",
             "label": "undefined",
             "description": "undefined",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),

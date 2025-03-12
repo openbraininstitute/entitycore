@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import (
-    Entity,
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
     MorphologyMeasurementSerieElement,
@@ -85,9 +84,11 @@ def create_morphology_feature_annotation(
     reconstruction_morphology_id = morphology_feature_annotation.reconstruction_morphology_id
 
     stmt = constrain_entity_query_to_project(
-        sa.select(MorphologyFeatureAnnotation).filter(Entity.id == reconstruction_morphology_id),
+        sa.select(sa.func.count(ReconstructionMorphology.id)).where(
+            ReconstructionMorphology.id == reconstruction_morphology_id
+        ),
         project_context.project_id,
-    ).with_only_columns(sa.func.count())
+    )
 
     if db.execute(stmt).scalar_one() == 0:
         L.warning(

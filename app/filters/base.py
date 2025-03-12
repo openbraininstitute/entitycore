@@ -114,6 +114,6 @@ class CustomFilter(Filter):
             return query
 
         for field_value, direction in self.ordering_values:
-            query = query.order_by(getattr(field_value, direction)()).distinct()
+            query = query.order_by(getattr(field_value, direction)())
 
         return query

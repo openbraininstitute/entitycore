@@ -66,11 +66,7 @@ def create_entity_asset(
         entity_type=entity_type,
         entity_id=entity_id,
     )
-    bucket_name = (
-        settings.S3_PUBLIC_BUCKET_NAME
-        if entity.authorized_public
-        else settings.S3_PRIVATE_BUCKET_NAME
-    )
+    bucket_name = settings.S3_BUCKET_NAME
     full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,

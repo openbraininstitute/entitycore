@@ -35,8 +35,7 @@ def s3(_aws_credentials):
 
 @pytest.fixture(scope="session")
 def _create_buckets(s3):
-    s3.create_bucket(Bucket=settings.S3_PRIVATE_BUCKET_NAME)
-    s3.create_bucket(Bucket=settings.S3_PUBLIC_BUCKET_NAME)
+    s3.create_bucket(Bucket=settings.S3_BUCKET_NAME)
 
 
 @pytest.fixture(scope="session")

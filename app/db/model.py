@@ -344,8 +344,8 @@ class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
     score: Mapped[float] = mapped_column(default=-1)
     seed: Mapped[int] = mapped_column(default=-1)
 
-    exemplar_morphology_id: Mapped[int | None] = mapped_column(
-        ForeignKey("reconstruction_morphology.id"), nullable=True
+    exemplar_morphology_id: Mapped[int] = mapped_column(
+        ForeignKey("reconstruction_morphology.id"), nullable=False
     )
 
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012

@@ -402,8 +402,8 @@ class ImportEModels(Import):
             legacy_self = data["_self"]
             db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
 
-            # if db_item:
-            #     continue
+            if db_item:
+                continue
 
             _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             assert _brain_location is None
@@ -442,8 +442,17 @@ class ImportEModels(Import):
                 exemplar_morphology_id, ReconstructionMorphology, db
             )
 
-            if morphology is None:
-                L.warning(f"Cannot find exemplar morphology for eModel {legacy_id}")
+            assert morphology
+
+            # TODO: Import as Asset?
+            thumbnail_id = next(
+                (
+                    image["@id"]
+                    for image in ensurelist(data.get("image", {}))
+                    if "thumbnail" in image.get("about", {})
+                ),
+                None,
+            )
 
             db_item = EModel(
                 legacy_id=[legacy_id],
@@ -464,7 +473,7 @@ class ImportEModels(Import):
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
-                exemplar_morphology_id=morphology and morphology.id,
+                exemplar_morphology_id=morphology.id,
             )
 
             db.add(db_item)

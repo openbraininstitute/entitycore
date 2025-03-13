@@ -402,8 +402,8 @@ class ImportEModels(Import):
             legacy_self = data["_self"]
             db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
 
-            if db_item:
-                continue
+            # if db_item:
+            #     continue
 
             _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             assert _brain_location is None
@@ -412,26 +412,28 @@ class ImportEModels(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
-            generation = data.get("generation", None)
-            activity = generation and generation.get("activity", None)
-            workflow_id = activity and activity.get("followedWorkflow", None)
+            generation = data.get("generation")
+            activity = generation and generation.get("activity")
+            followed_workflow = activity and activity.get("followedWorkflow")
+            workflow_id = followed_workflow and followed_workflow.get("@id")
+            workflow = workflow_id and all_data_by_id.get(workflow_id)
 
-            workflow = all_data_by_id.get(workflow_id, None)
-
-            configuration = next(
+            configuration_id = workflow and next(
                 (
-                    part
-                    for part in workflow.get("hasPart", [])
-                    if part.get("@type", None) == "EModelConfiguration"
+                    part.get("@id")
+                    for part in ensurelist(workflow.get("hasPart", []))
+                    if part.get("@type") == "EModelConfiguration"
                 ),
                 None,
             )
 
-            exemplar_morphology_id = next(
+            configuration = all_data_by_id.get(configuration_id)
+
+            exemplar_morphology_id = configuration and next(
                 (
-                    item.get("@id", None)
+                    item.get("@id")
                     for item in configuration.get("uses", [])
-                    if isinstance(item, dict) and item.get("@type", None) == "NeuronMorphology"
+                    if isinstance(item, dict) and item.get("@type") == "NeuronMorphology"
                 ),
                 None,
             )
@@ -462,6 +464,7 @@ class ImportEModels(Import):
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
+                exemplar_morphology_id=morphology and morphology.id,
             )
 
             db.add(db_item)

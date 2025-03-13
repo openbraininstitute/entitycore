@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 59031f2cd23f
-Revises: 7c9f6b6a2d92
-Create Date: 2025-03-13 14:21:53.870496
+Revision ID: 03dd966582b1
+Revises: 482b1644d661
+Create Date: 2025-03-13 15:33:16.552728
 
 """
 
@@ -14,8 +14,8 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "59031f2cd23f"
-down_revision: str | None = "7c9f6b6a2d92"
+revision: str = "03dd966582b1"
+down_revision: str | None = "482b1644d661"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -29,6 +29,7 @@ def upgrade() -> None:
         sa.Column("definition", sa.String(), nullable=False),
         sa.Column("alt_label", sa.String(), nullable=True),
         sa.Column("legacy_id", app.db.types.StringListType(), nullable=True),
+        sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),

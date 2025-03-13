@@ -13,7 +13,7 @@ from app.db.model import (
     Contribution,
     EModel,
     Entity,
-    ETypeAnnotationBody,
+    ETypeClass,
     ExperimentalBoutonDensity,
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
@@ -60,7 +60,7 @@ MAPPING_PER_TYPE = {
         "description": "description",
         "label": "label",
     },
-    ETypeAnnotationBody: {
+    ETypeClass: {
         "pref_label": "label",
         "definition": "definition",
     },
@@ -94,7 +94,7 @@ QUERY_PATH = {
     #    "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
     # },
     "eType": {
-        "models": [Annotation, ETypeAnnotationBody],
+        "models": [Annotation, ETypeClass],
         "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
     },
     "brainRegion": {"models": [BrainRegion], "joins": [("brain_region_id", "id")]},
@@ -174,7 +174,7 @@ def build_response_elem(elem):
         mapping = {**MAPPING_PER_TYPE.get(elem.__class__, {}), **MAPPING_GLOBAL}
         for key, value in mapping.items():
             initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
-        if elem.__class__ == ETypeAnnotationBody:
+        if elem.__class__ == ETypeClass:
             initial_dict["@type"] = "Class"
         else:
             initial_dict["@type"] = [MAP_TYPES[elem.__class__]]

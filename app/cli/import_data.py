@@ -7,6 +7,7 @@ from contextlib import closing
 from pathlib import Path
 from collections import defaultdict
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 import click
 import sqlalchemy as sa
@@ -20,7 +21,8 @@ from app.db.model import (
     BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
-    ETypeAnnotationBody,
+    ETypeClass,
+    ETypeClassification,
     ExperimentalBoutonDensity,
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
@@ -63,7 +65,7 @@ def ensurelist(x):
 def get_or_create_annotation_body(annotation_body, db):
     annotation_body = curate.curate_annotation_body(annotation_body)
     annotation_types = {
-        "EType": ETypeAnnotationBody,
+        "EType": ETypeClass,
         "MType": MTypeClass,
         "DataMaturity": DataMaturityAnnotationBody,
         "DataScope": None,
@@ -86,6 +88,11 @@ def get_or_create_annotation_body(annotation_body, db):
         if annotation_type is MTypeClass:
             msg = f"Missing mtype in annotation body {annotation_body}"
             raise ValueError(msg)
+
+        if annotation_type is ETypeClass:
+            msg = f"Missing etype in annotation body {annotation_body}"
+            raise ValueError(msg)
+
         ab = annotation_type(pref_label=annotation_body["label"])
         db.add(ab)
         db.commit()
@@ -98,9 +105,8 @@ def create_annotation(annotation_, entity_id, db):
     if not annotation_body_id:
         return None
 
-    if annotation_type is MTypeClass:
-        createdBy_id = None
-        updatedBy_id = None
+    def get_agent_id_from_contribution(annotation_) -> int | None:
+        agent = None
 
         if "contribution" in annotation_:
             # Example contribution, in this case
@@ -115,15 +121,31 @@ def create_annotation(annotation_, entity_id, db):
             agent = utils._find_by_legacy_id(legacy_id, Person, db)
             assert agent
 
-            createdBy_id = agent.id
-            updatedBy_id = agent.id
+        return agent and agent.id
 
+    agent_id = None
+
+    if annotation_type in [MTypeClass, ETypeClass]:
+        agent_id = get_agent_id_from_contribution(annotation_)
+
+    assert agent_id is None or isinstance(agent_id, int)
+
+    if annotation_type is MTypeClass:
         row = MTypeClassification(
             entity_id=entity_id,
             mtype_class_id=annotation_body_id,
-            createdBy_id=createdBy_id,
-            updatedBy_id=updatedBy_id,
+            createdBy_id=agent_id,
+            updatedBy_id=agent_id,
         )
+
+    elif annotation_type is ETypeClass:
+        row = ETypeClassification(
+            entity_id=entity_id,
+            etype_class_id=annotation_body_id,
+            createdBy_id=agent_id,
+            updatedBy_id=agent_id,
+        )
+
     else:
         row = Annotation(
             entity_id=entity_id,
@@ -164,7 +186,7 @@ def import_licenses(data, db):
 
 def _import_annotation_body(data, db_type_, db):
     for class_elem in tqdm(data):
-        if db_type_ == ETypeAnnotationBody:
+        if db_type_ == ETypeClass:
             class_elem = curate.curate_etype(class_elem)
 
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
@@ -217,7 +239,7 @@ def import_mtype_annotation_body(data, db):
 
 
 def import_etype_annotation_body(data, db):
-    _import_annotation_body(data, ETypeAnnotationBody, db)
+    _import_annotation_body(data, ETypeClass, db)
 
 
 class Import(ABC):

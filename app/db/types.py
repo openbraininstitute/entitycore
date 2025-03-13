@@ -1,7 +1,7 @@
 from enum import auto
 from typing import Annotated, Any
 
-from sqlalchemy import BigInteger, func, or_
+from sqlalchemy import ARRAY, BigInteger, func, or_
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
@@ -33,6 +33,7 @@ class StringListType(TypeDecorator):
         return or_(*[StringList.is_equal(column, value) for value in values])
 
 
+# TODO: replace StringList with STRING_LIST below
 StringList = Annotated[StringListType, "StringList"]
 
 
@@ -55,9 +56,9 @@ class PointLocationType(TypeDecorator):
 
 PointLocation = Annotated[PointLocationType, "PointLocation"]
 
-
 BIGINT = Annotated[int, mapped_column(BigInteger)]
-JSONDICT = Annotated[dict[str, Any], mapped_column(JSONB)]
+JSON_DICT = Annotated[dict[str, Any], mapped_column(JSONB)]
+STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 
 
 class EntityType(HyphenStrEnum):

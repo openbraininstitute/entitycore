@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
+from typing import Any
 
 
 import click
@@ -257,7 +258,7 @@ class Import(ABC):
 
     @staticmethod
     @abstractmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any] | None):
         """data that is passes `is_correct_type` will be fed to this to ingest into `db`"""
 
 
@@ -270,7 +271,7 @@ class ImportAgent(Import):
         return {"Person", "Organization"} & set(ensurelist(data.get("@type", [])))
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             if "Person" in ensurelist(data["@type"]):
                 legacy_id = data["@id"]
@@ -349,7 +350,7 @@ class ImportAnalysisSoftwareSourceCode(Import):
         return "AnalysisSoftwareSourceCode" in ensurelist(data["@type"])
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -395,7 +396,7 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -449,7 +450,7 @@ class ImportBrainRegionMeshes(Import):
         return "BrainParcellationMesh" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -487,7 +488,7 @@ class ImportMorphologies(Import):
         return {"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types)
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             curate.curate_morphology(data)
             legacy_id = data["@id"]
@@ -536,7 +537,7 @@ class ImportExperimentalNeuronDensities(Import):
         return "ExperimentalNeuronDensity" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         _import_experimental_densities(
             db,
             project_context,
@@ -555,7 +556,7 @@ class ImportExperimentalBoutonDensity(Import):
         return "ExperimentalBoutonDensity" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         _import_experimental_densities(
             db,
             project_context,
@@ -574,7 +575,7 @@ class ImportExperimentalSynapsesPerConnection(Import):
         return "ExperimentalSynapsesPerConnection" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id):
         _import_experimental_densities(
             db,
             project_context,
@@ -593,7 +594,7 @@ class ImportSingleCellExperimentalTrace(Import):
         return "SingleCellExperimentalTrace" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -644,7 +645,7 @@ class ImportMEModel(Import):
         return "MEModel" in types or "https://neuroshapes.org/MEModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -690,7 +691,7 @@ class ImportSingleNeuronSimulation(Import):
         return "SingleNeuronSimulation" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -731,7 +732,7 @@ class ImportDistribution(Import):
         return "distribution" in data
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         ignored = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
@@ -756,7 +757,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
         return "NeuronMorphologyFeatureAnnotation" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         annotations = defaultdict(list)
         missing_morphology = 0
         duplicate_annotation = 0
@@ -905,9 +906,9 @@ def _do_import(db, input_dir, project_context):
     importers = [
         ImportAgent,
         ImportAnalysisSoftwareSourceCode,
-        ImportEModels,
         ImportBrainRegionMeshes,
         ImportMorphologies,
+        ImportEModels,
         ImportExperimentalNeuronDensities,
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
@@ -925,17 +926,27 @@ def _do_import(db, input_dir, project_context):
 
     import_data = defaultdict(list)
 
-    print("Loading files")
     all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
+
+    all_data_by_id = {}
+
     for file_path in tqdm(all_files):
         with open(file_path) as f:
             data = json.load(f)
-            for importer in importers:
-                import_data[importer].extend(d for d in data if importer.is_correct_type(d))
+
+            for d in data:
+                id = d["@id"]
+
+                all_data_by_id[id] = d
+
+    for importer in importers:
+        import_data[importer].extend(
+            d for d in all_data_by_id.values() if importer.is_correct_type(d)
+        )
 
     for importer, data in import_data.items():
         print(f"ingesting {importer.name}")
-        importer.ingest(db, project_context, data)
+        importer.ingest(db, project_context, data, all_data_by_id)
 
 
 def _analyze() -> None:

@@ -412,6 +412,37 @@ class ImportEModels(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
+            generation = data.get("generation", None)
+            activity = generation and generation.get("activity", None)
+            workflow_id = activity and activity.get("followedWorkflow", None)
+
+            workflow = all_data_by_id.get(workflow_id, None)
+
+            configuration = next(
+                (
+                    part
+                    for part in workflow.get("hasPart", [])
+                    if part.get("@type", None) == "EModelConfiguration"
+                ),
+                None,
+            )
+
+            exemplar_morphology_id = next(
+                (
+                    item.get("@id", None)
+                    for item in configuration.get("uses", [])
+                    if isinstance(item, dict) and item.get("@type", None) == "NeuronMorphology"
+                ),
+                None,
+            )
+
+            morphology = exemplar_morphology_id and utils._find_by_legacy_id(
+                exemplar_morphology_id, ReconstructionMorphology, db
+            )
+
+            if morphology is None:
+                L.warning(f"Cannot find exemplar morphology for eModel {legacy_id}")
+
             db_item = EModel(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],

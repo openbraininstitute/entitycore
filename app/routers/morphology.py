@@ -160,7 +160,12 @@ def morphology_query(
 
     filter_query = (
         constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), project_id=project_context.project_id
+            sa.select(
+                ReconstructionMorphology,
+                ReconstructionMorphology.id,
+                *[field[0] for field in morphology_filter.ordering_values],
+            ),
+            project_id=project_context.project_id,
         )
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
@@ -189,18 +194,12 @@ def morphology_query(
     else:
         facets = None
 
-    distinct_ids_subquery = (
-        morphology_filter.sort(filter_query)
-        .with_only_columns(ReconstructionMorphology)
+    # TODO: load person.* and organization.* eagerly
+    data_query = (
+        morphology_filter.sort(filter_query)  # sort without filtering
         .distinct()
         .offset(pagination_request.offset)
         .limit(pagination_request.page_size)
-    ).subquery("distinct_ids")
-
-    # TODO: load person.* and organization.* eagerly
-    data_query = (
-        morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
-        .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
         .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
         .options(joinedload(ReconstructionMorphology.strain))
         .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))

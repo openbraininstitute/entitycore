@@ -73,3 +73,45 @@ class CustomFilter(Filter):
                     query = query.filter(getattr(model_field, operator)(value))
 
         return query
+
+    @property
+    def ordering_values(self):
+        values = super().ordering_values
+
+        if not values:
+            return []
+
+        all_values = []
+
+        for field_name in values:
+            # Nested model ordering values
+            field_value = getattr(self, field_name, None)
+            if field_name is not None and isinstance(field_value, Filter):
+                all_values += field_value.ordering_values
+                continue
+
+            # Current model's values
+
+            direction = Filter.Direction.asc
+            if field_name.startswith("-"):
+                direction = Filter.Direction.desc
+
+            field_name = field_name.replace("-", "").replace("+", "")  # noqa: PLW2901
+            field_value = getattr(self.Constants.model, field_name, None)
+
+            if field_value is None:
+                msg = f"Invalid ordering field {field_name}"
+                raise ValueError(msg)
+
+            all_values.append((field_value, direction))
+
+        return all_values
+
+    def sort(self, query: Query | Select):
+        if not self.ordering_values:
+            return query
+
+        for field_value, direction in self.ordering_values:
+            query = query.order_by(getattr(field_value, direction)())
+
+        return query

@@ -208,34 +208,38 @@ class AnnotationBody(LegacyMixin, TimestampMixin, Base):
     }
 
 
-class MTypeClass(LegacyMixin, TimestampMixin, Base):
-    __tablename__ = "mtype_class"
+class AnnotationMixin:
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     pref_label: Mapped[str] = mapped_column(unique=True, index=True)
     definition: Mapped[str]
     alt_label: Mapped[str | None]
 
 
-class MTypeClassification(TimestampMixin, Base):
-    __tablename__ = "mtype_classification"
+class ClassificationMixin:
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     createdBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
     updatedBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
     entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
+
+
+class MTypeClass(AnnotationMixin, LegacyMixin, TimestampMixin, Base):
+    __tablename__ = "mtype_class"
+
+
+class ETypeClass(AnnotationMixin, LegacyMixin, TimestampMixin, Base):
+    __tablename__ = "etype_class"
+
+
+class MTypeClassification(ClassificationMixin, TimestampMixin, Base):
+    __tablename__ = "mtype_classification"
+
     mtype_class_id: Mapped[int] = mapped_column(ForeignKey("mtype_class.id"), index=True)
 
 
-class ETypeAnnotationBody(AnnotationBody):
-    __tablename__ = "etype_annotation_body"
-    id: Mapped[int] = mapped_column(
-        ForeignKey("annotation_body.id"), primary_key=True, autoincrement=False
-    )
-    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
-    definition: Mapped[str | None]
-    alt_label: Mapped[str | None]
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "etype_annotation_body",
-    }
+class ETypeClassification(ClassificationMixin, TimestampMixin, Base):
+    __tablename__ = "etype_classification"
+
+    etype_class_id: Mapped[int] = mapped_column(ForeignKey("etype_class.id"), index=True)
 
 
 class DataMaturityAnnotationBody(AnnotationBody):

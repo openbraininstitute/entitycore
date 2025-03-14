@@ -21,6 +21,9 @@ def test_single_neuron_simulation(client, db, brain_region_id):
     db.add(row)
     db.commit()
     db.refresh(row)
+
+    me_model_id = row.id
+
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -29,7 +32,7 @@ def test_single_neuron_simulation(client, db, brain_region_id):
             "description": "my-description",
             "injectionLocation": ["soma[0]"],
             "recordingLocation": ["soma[0]_0.5"],
-            "me_model_id": row.id,
+            "me_model_id": me_model_id,
             "status": "foo",
             "seed": 1,
             "authorized_public": False,
@@ -46,7 +49,7 @@ def test_single_neuron_simulation(client, db, brain_region_id):
     assert data["name"] == "foo"
     assert data["injectionLocation"] == ["soma[0]"]
     assert data["recordingLocation"] == ["soma[0]_0.5"]
-    # assert data["me_model"]["id"] == me_model_id, f"Failed to get id frmo me model; {data}"
+    assert data["me_model"]["id"] == me_model_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "foo"
     assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
 
@@ -59,6 +62,6 @@ def test_single_neuron_simulation(client, db, brain_region_id):
     assert data["name"] == "foo"
     assert data["injectionLocation"] == ["soma[0]"]
     assert data["recordingLocation"] == ["soma[0]_0.5"]
-    # assert data["me_model"]["id"] == me_model_id, f"Failed to get id frmo me model; {data}"
+    assert data["me_model"]["id"] == me_model_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "foo"
     assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]

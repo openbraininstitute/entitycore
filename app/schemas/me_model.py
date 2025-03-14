@@ -1,9 +1,9 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
-from app.schemas.base import BrainRegionRead
+from app.schemas.base import BrainRegionRead, CreationMixin
 
 
-class MEModelCreate(BaseModel):
+class MEModelCreate(CreationMixin):
     model_config = ConfigDict(from_attributes=True)
 
     name: str

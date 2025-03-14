@@ -63,10 +63,14 @@ def read_emodel(
 
         query = (
             query.options(joinedload(EModel.brain_region))
-            .options(joinedload(EModel.contributions))
-            .options(joinedload(EModel.species))
+            .options(joinedload(EModel.contributions).joinedload(Contribution.agent))
+            .options(joinedload(EModel.contributions).joinedload(Contribution.role))
+            .options(joinedload(EModel.species, innerjoin=True))
             .options(joinedload(EModel.strain))
             .options(joinedload(EModel.exemplar_morphology))
+            .options(joinedload(EModel.mtypes))
+            .options(joinedload(EModel.etypes))
+            .options(raiseload("*"))
         )
 
         return db.execute(query).unique().scalar_one()
@@ -77,7 +81,7 @@ def create_reconstruction_morphology(
     project_context: VerifiedProjectContextHeader,
     reconstruction: ReconstructionMorphologyCreate,
     db: SessionDep,
-):
+) -> EModelRead:
     db_rm = ReconstructionMorphology(
         name=reconstruction.name,
         description=reconstruction.description,

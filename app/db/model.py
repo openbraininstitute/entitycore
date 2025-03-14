@@ -352,6 +352,20 @@ class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
         "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
+    mtypes: Mapped[list["MTypeClass"]] = relationship(
+        primaryjoin="EModel.id == MTypeClassification.entity_id",
+        secondary="join(mtype_classification, mtype_class)",
+        uselist=True,
+        viewonly=True,
+    )
+
+    etypes: Mapped[list["ETypeClass"]] = relationship(
+        primaryjoin="EModel.id == ETypeClassification.entity_id",
+        secondary="join(etype_classification, etype_class)",
+        uselist=True,
+        viewonly=True,
+    )
+
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
 
 

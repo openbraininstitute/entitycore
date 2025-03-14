@@ -49,22 +49,24 @@ class FacetQueryParams(TypedDict):
 @router.get(
     "/{id_}",
 )
-def read_reconstruction_morphology(
+def read_emodel(
     db: SessionDep,
     id_: int,
-    project_context: VerifiedProjectContextHeader,
+    # project_context: VerifiedProjectContextHeader,
 ) -> EModelRead:
     with ensure_result(error_message="Emodel not found"):
-        query = constrain_to_accessible_entities(
-            sa.select(EModel), project_context.project_id
-        ).filter(EModel.id == id_)
+        # query = constrain_to_accessible_entities(
+        #     sa.select(EModel), project_context.project_id
+        # ).filter(EModel.id == id_)
+
+        query = sa.Select(EModel).filter(EModel.id == id_)
 
         query = (
-            query.options(joinedload(ReconstructionMorphology.brain_region))
-            .options(joinedload(ReconstructionMorphology.contributions))
-            .options(joinedload(ReconstructionMorphology.license))
-            .options(joinedload(ReconstructionMorphology.species))
-            .options(joinedload(ReconstructionMorphology.strain))
+            query.options(joinedload(EModel.brain_region))
+            .options(joinedload(EModel.contributions))
+            .options(joinedload(EModel.species))
+            .options(joinedload(EModel.strain))
+            .options(joinedload(EModel.exemplar_morphology))
         )
 
         return db.execute(query).unique().scalar_one()

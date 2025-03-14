@@ -8,8 +8,6 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.etype import ETypeClassRead
-from app.schemas.mtype import MTypeClassRead
 
 
 class ExemplarMorphology(BaseModel):
@@ -27,12 +25,12 @@ class EModelRead(
     strain: StrainRead | None
     brain_region: BrainRegionRead
     contributions: list[ContributionReadWithoutEntity] | None
-    mtypes: list[MTypeClassRead] | None
-    etypes: list[ETypeClassRead] | None
+    # mtypes: list[MTypeClassRead] | None
+    # etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
 
     description: str
     name: str
     iteration: str
-    score: int
+    score: float
     seed: int

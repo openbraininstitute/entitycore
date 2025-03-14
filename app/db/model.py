@@ -448,6 +448,7 @@ class SingleNeuronSimulation(DistributionMixin, LocationMixin, Entity):
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
     seed: Mapped[int] = mapped_column(default=-1)
+    status: Mapped[str] = mapped_column(default="")
     injectionLocation: Mapped[StringList] = mapped_column(default="")
     recordingLocation: Mapped[StringList] = mapped_column(default=[])
     # TODO: called used ?

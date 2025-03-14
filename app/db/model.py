@@ -441,6 +441,7 @@ class SingleNeuronSimulation(LocationMixin, Entity):
     seed: Mapped[int] = mapped_column(default=-1)
     injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    status: Mapped[str] = mapped_column(default="")
     # TODO: called used ?
     me_model_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])

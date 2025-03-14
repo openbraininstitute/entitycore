@@ -15,6 +15,7 @@ from app.filters.morphology import MorphologyFilter
 
 
 class EModelFilter(CustomFilter):
+    id: int | None = None
     creation_date__lte: datetime | None = None
     creation_date__gte: datetime | None = None
     update_date__lte: datetime | None = None

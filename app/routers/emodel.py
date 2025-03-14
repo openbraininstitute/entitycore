@@ -15,14 +15,8 @@ from app.db.model import (
     Agent,
     Contribution,
     EModel,
-    ETypeClass,
-    ETypeClassification,
-    MTypeClass,
-    MTypeClassification,
-    ReconstructionMorphology,
-    Species,
-    Strain,
 )
+from http import HTTPStatus
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -30,6 +24,8 @@ from app.errors import ensure_result
 from app.filters.emodel import EModelFilter
 from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
+from app.db.auth import constrain_to_accessible_entities
+from app.errors import ApiError, ApiErrorCode
 
 router = APIRouter(
     prefix="/emodel",
@@ -51,26 +47,18 @@ def read_emodel(
     id_: int,
     # project_context: VerifiedProjectContextHeader,
 ) -> EModelRead:
-    with ensure_result(error_message="Emodel not found"):
-        # query = constrain_to_accessible_entities(
-        #     sa.select(EModel), project_context.project_id
-        # ).filter(EModel.id == id_)
-
-        query = sa.Select(EModel).filter(EModel.id == id_)
-
-        query = (
-            query.options(joinedload(EModel.brain_region))
-            .options(joinedload(EModel.contributions).joinedload(Contribution.agent))
-            .options(joinedload(EModel.contributions).joinedload(Contribution.role))
-            .options(joinedload(EModel.species, innerjoin=True))
-            .options(joinedload(EModel.strain))
-            .options(joinedload(EModel.exemplar_morphology))
-            .options(joinedload(EModel.mtypes))
-            .options(joinedload(EModel.etypes))
-            .options(raiseload("*"))
-        )
-
-        return db.execute(query).unique().scalar_one()
+    try:
+        return emodel_query(
+            db=db,
+            pagination_request=PaginationQuery(page_size=1),
+            emodel_filter=EModelFilter(id=id_),
+        ).data[0]
+    except IndexError as err:
+        raise ApiError(
+            message="EModel not found",
+            error_code=ApiErrorCode.ENTITY_NOT_FOUND,
+            http_status_code=HTTPStatus.NOT_FOUND,
+        ) from err
 
 
 @router.post("")
@@ -147,20 +135,38 @@ def emodel_query(
     #     },
     # }
 
+    # filter_query = (
+    #     # constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
+    #     sa.select(EModel)
+    #     .join(Species, EModel.species_id == Species.id)
+    #     .join(
+    #         ReconstructionMorphology, EModel.exemplar_morphology_id == ReconstructionMorphology.id
+    #     )
+    #     .outerjoin(Strain, EModel.strain_id == Strain.id)
+    #     .outerjoin(Contribution, EModel.id == Contribution.entity_id)
+    #     .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+    #     .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
+    #     .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
+    #     .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
+    #     .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
+    # )
+
+    # TODO: load person.* and organization.* eagerly
+
+    # query = constrain_to_accessible_entities(sa.Select(EModel), project_context.project_id)
+    query = sa.Select(EModel)
+
     filter_query = (
-        # constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
-        sa.select(EModel)
-        .join(Species, EModel.species_id == Species.id)
-        .join(
-            ReconstructionMorphology, EModel.exemplar_morphology_id == ReconstructionMorphology.id
-        )
-        .outerjoin(Strain, EModel.strain_id == Strain.id)
-        .outerjoin(Contribution, EModel.id == Contribution.entity_id)
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
-        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-        .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
-        .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
+        emodel_filter.filter(query)
+        .options(joinedload(EModel.species, innerjoin=True))
+        .options(joinedload(EModel.exemplar_morphology, innerjoin=True))
+        .options(joinedload(EModel.strain))
+        .options(joinedload(EModel.contributions).joinedload(Contribution.agent))
+        .options(joinedload(EModel.contributions).joinedload(Contribution.role))
+        .options(joinedload(EModel.mtypes))
+        .options(joinedload(EModel.etypes))
+        .options(joinedload(EModel.brain_region))
+        .options(raiseload("*"))
     )
 
     # if search:
@@ -168,7 +174,7 @@ def emodel_query(
     #         EModel.morphology_description_vector.match(search)
     #     )
 
-    filter_query = emodel_filter.filter(filter_query, aliases={Agent: agent_alias})
+    # filter_query = emodel_filter.filter(filter_query, aliases={Agent: agent_alias})
 
     # if with_facets:
     #     facets = _get_facets(
@@ -180,31 +186,40 @@ def emodel_query(
     # else:
     #     facets = None
 
-    distinct_ids_subquery = (
-        emodel_filter.sort(filter_query)
-        .with_only_columns(EModel)
-        .distinct()
-        .offset(pagination_request.offset)
-        .limit(pagination_request.page_size)
-    ).subquery("distinct_ids")
+    # distinct_ids_subquery = (
+    #     emodel_filter.sort(filter_query)
+    #     .with_only_columns(EModel)
+    #     .distinct()
+    #     .offset(pagination_request.offset)
+    #     .limit(pagination_request.page_size)
+    # ).subquery("distinct_ids")
 
     # TODO: load person.* and organization.* eagerly
-    data_query = (
-        emodel_filter.sort(sa.Select(EModel))  # sort without filtering
-        .join(distinct_ids_subquery, EModel.id == distinct_ids_subquery.c.id)
-        .options(joinedload(EModel.species, innerjoin=True))
-        .options(joinedload(EModel.strain))
-        .options(joinedload(EModel.contributions).joinedload(Contribution.agent))
-        .options(joinedload(EModel.contributions).joinedload(Contribution.role))
-        .options(joinedload(EModel.mtypes))
-        .options(joinedload(EModel.etypes))
-        .options(joinedload(EModel.brain_region))
-        .options(joinedload(EModel.exemplar_morphology))
-        .options(raiseload("*"))
-    )
+    # data_query = (
+    #     emodel_filter.sort(sa.Select(EModel))  # sort without filtering
+    #     .join(distinct_ids_subquery, EModel.id == distinct_ids_subquery.c.id)
+    #     .options(joinedload(EModel.species, innerjoin=True))
+    #     .options(joinedload(EModel.strain))
+    #     .options(joinedload(EModel.contributions).joinedload(Contribution.agent))
+    #     .options(joinedload(EModel.contributions).joinedload(Contribution.role))
+    #     .options(joinedload(EModel.mtypes))
+    #     .options(joinedload(EModel.etypes))
+    #     .options(joinedload(EModel.brain_region))
+    #     .options(joinedload(EModel.exemplar_morphology))
+    #     .options(raiseload("*"))
+    # )
 
     # unique is needed b/c it contains results that include joined eager loads against collections
-    data = db.execute(data_query).scalars().unique()
+    data = (
+        db.execute(
+            emodel_filter.sort(filter_query)
+            .distinct()
+            .limit(pagination_request.page_size)
+            .offset(pagination_request.offset)
+        )
+        .scalars()
+        .unique()
+    )
 
     total_items = db.execute(
         filter_query.with_only_columns(sa.func.count(sa.func.distinct(EModel.id)).label("count"))

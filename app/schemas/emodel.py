@@ -19,7 +19,6 @@ class ExemplarMorphology(BaseModel):
 
 
 class EModelRead(
-    BaseModel,
     CreationMixin,
     AuthorizationMixin,
 ):

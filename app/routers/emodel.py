@@ -15,6 +15,7 @@ from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
     Contribution,
+    EModel,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
@@ -26,16 +27,16 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
+from app.schemas.emodel import EModelRead
 from app.schemas.morphology import (
-    ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
 )
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
 
 router = APIRouter(
-    prefix="/reconstruction-morphology",
-    tags=["reconstruction-morphology"],
+    prefix="/emodel",
+    tags=["emodel"],
 )
 
 
@@ -47,23 +48,16 @@ class FacetQueryParams(TypedDict):
 
 @router.get(
     "/{id_}",
-    response_model=ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead,
 )
-def read_emodel(
+def read_reconstruction_morphology(
     db: SessionDep,
     id_: int,
     project_context: VerifiedProjectContextHeader,
-    expand: str | None = None,
-):
-    with ensure_result(error_message="ReconstructionMorphology not found"):
+) -> EModelRead:
+    with ensure_result(error_message="Emodel not found"):
         query = constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), project_context.project_id
-        ).filter(ReconstructionMorphology.id == id_)
-
-        if expand and "morphology_feature_annotation" in expand:
-            query = query.options(
-                joinedload(ReconstructionMorphology.morphology_feature_annotation)
-            )
+            sa.select(EModel), project_context.project_id
+        ).filter(EModel.id == id_)
 
         query = (
             query.options(joinedload(ReconstructionMorphology.brain_region))
@@ -73,13 +67,7 @@ def read_emodel(
             .options(joinedload(ReconstructionMorphology.strain))
         )
 
-        row = db.execute(query).unique().scalar_one()
-
-    if expand and "morphology_feature_annotation" in expand:
-        return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)
-
-    # added back with None by the response_model
-    return ReconstructionMorphologyRead.model_validate(row)
+        return db.execute(query).unique().scalar_one()
 
 
 @router.post("", response_model=ReconstructionMorphologyRead)

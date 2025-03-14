@@ -76,7 +76,7 @@ def read_emodel(
         return db.execute(query).unique().scalar_one()
 
 
-@router.post("", response_model=ReconstructionMorphologyRead)
+@router.post("")
 def create_reconstruction_morphology(
     project_context: VerifiedProjectContextHeader,
     reconstruction: ReconstructionMorphologyCreate,

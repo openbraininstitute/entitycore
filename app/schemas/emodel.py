@@ -2,27 +2,43 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
     SpeciesRead,
     StrainRead,
 )
+from app.schemas.morphology import ReconstructionMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntity
 from app.schemas.etype import ETypeClassRead
 from app.schemas.mtype import MTypeClassRead
 
 
-class ExemplarMorphology(BaseModel):
+class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase):
+    pass
+
+
+class EModelBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    description: str
     name: str
+    iteration: str
+    score: float
+    seed: int
+
+
+class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
+    species_id: int
+    strain_id: int | None
+    brain_region_id: int
+    exemplar_morphology_id: int
 
 
 class EModelRead(
+    EModelBase,
     CreationMixin,
     AuthorizationMixin,
 ):
-    model_config = ConfigDict(from_attributes=True)
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
@@ -30,9 +46,3 @@ class EModelRead(
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
-
-    description: str
-    name: str
-    iteration: str
-    score: float
-    seed: int

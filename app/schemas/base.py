@@ -108,3 +108,11 @@ class MeasurementCreate(BaseModel):
 
 class MeasurementRead(MeasurementCreate):
     id: int
+
+
+class AnnotationMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pref_label: str
+    alt_label: str
+    definition: str

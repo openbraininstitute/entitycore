@@ -1,0 +1,43 @@
+from datetime import datetime
+
+from fastapi_filter import FilterDepends, with_prefix
+
+from app.db.model import EModel
+from app.filters.base import CustomFilter
+from app.filters.common import (
+    AgentFilter,
+    ETypeClassFilter,
+    MTypeClassFilter,
+    SpeciesFilter,
+    StrainFilter,
+)
+from app.filters.morphology import MorphologyFilter
+
+
+class EModelFilter(CustomFilter):
+    creation_date__lte: datetime | None = None
+    creation_date__gte: datetime | None = None
+    update_date__lte: datetime | None = None
+    update_date__gte: datetime | None = None
+    name__ilike: str | None = None
+    brain_location_id: int | None = None
+    brain_region_id: int | None = None
+    species_id__in: list[int] | None = None
+
+    score_lte: int | None = None
+    score_gte: int | None = None
+
+    mtype: MTypeClassFilter = FilterDepends(with_prefix("mtype", MTypeClassFilter))
+    etype: ETypeClassFilter = FilterDepends(with_prefix("etype", ETypeClassFilter))
+    species: SpeciesFilter = FilterDepends(with_prefix("species", SpeciesFilter))
+    strain: StrainFilter = FilterDepends(with_prefix("strain", StrainFilter))
+    contribution: AgentFilter = FilterDepends(with_prefix("contribution", AgentFilter))
+    exemplar_morphology: MorphologyFilter = FilterDepends(
+        with_prefix("exemplar_morphology", MorphologyFilter)
+    )
+
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = EModel
+        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012

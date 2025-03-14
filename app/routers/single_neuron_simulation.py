@@ -48,18 +48,9 @@ def create_single_neuron_simulation(
     json_model: SingleNeuronSimulationCreate,
     db: SessionDep,
 ):
-    db_model = SingleNeuronSimulation(
-        name=json_model.name,
-        description=json_model.description,
-        seed=json_model.seed,
-        status=json_model.status,
-        injectionLocation=json_model.injectionLocation,
-        recordingLocation=json_model.recordingLocation,
-        me_model_id=json_model.me_model_id,
-        brain_region_id=json_model.brain_region_id,
-        authorized_project_id=project_context.project_id,
-        authorized_public=json_model.authorized_public,
-    )
+    kwargs = json_model.model_dump() | {"authorized_project_id": project_context.project_id}
+
+    db_model = SingleNeuronSimulation(**kwargs)
     db.add(db_model)
     db.commit()
     db.refresh(db_model)

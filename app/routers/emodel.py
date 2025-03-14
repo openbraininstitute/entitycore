@@ -27,9 +27,8 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
-from app.schemas.emodel import EModelRead
+from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.morphology import (
-    ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
 )
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
@@ -79,19 +78,17 @@ def read_emodel(
 @router.post("")
 def create_reconstruction_morphology(
     project_context: VerifiedProjectContextHeader,
-    reconstruction: ReconstructionMorphologyCreate,
+    emodel: EModelCreate,
     db: SessionDep,
 ) -> EModelRead:
-    db_rm = ReconstructionMorphology(
-        name=reconstruction.name,
-        description=reconstruction.description,
-        location=reconstruction.location,
-        brain_region_id=reconstruction.brain_region_id,
-        species_id=reconstruction.species_id,
-        strain_id=reconstruction.strain_id,
-        license_id=reconstruction.license_id,
+    db_rm = EModel(
+        name=emodel.name,
+        description=emodel.description,
+        brain_region_id=emodel.brain_region_id,
+        species_id=emodel.species_id,
+        strain_id=emodel.strain_id,
         authorized_project_id=project_context.project_id,
-        authorized_public=reconstruction.authorized_public,
+        authorized_public=emodel.authorized_public,
     )
     db.add(db_rm)
     db.commit()

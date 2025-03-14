@@ -8,9 +8,9 @@ from app.schemas.base import (
     SpeciesRead,
     StrainRead,
 )
-from app.schemas.morphology import ReconstructionMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntity
 from app.schemas.etype import ETypeClassRead
+from app.schemas.morphology import ReconstructionMorphologyBase
 from app.schemas.mtype import MTypeClassRead
 
 

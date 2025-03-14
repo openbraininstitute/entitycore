@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
@@ -13,6 +12,12 @@ from app.schemas.etype import ETypeClassRead
 from app.schemas.mtype import MTypeClassRead
 
 
+class ExemplarMorphology(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+
+
 class EModelRead(
     BaseModel,
     CreationMixin,
@@ -25,6 +30,7 @@ class EModelRead(
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
+    exemplar_morphology: ExemplarMorphology
 
     description: str
     name: str

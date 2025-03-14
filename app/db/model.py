@@ -348,6 +348,8 @@ class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
         ForeignKey("reconstruction_morphology.id"), nullable=False
     )
 
+    exemplar_morphology = relationship("ReconstructionMorphology", uselist=False)
+
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
 
 

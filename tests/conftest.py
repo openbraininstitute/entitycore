@@ -165,6 +165,18 @@ def brain_region_id(client):
 
 
 @pytest.fixture
+def exemplar_morphology_id(client, species_id, strain_id, brain_region_id, skip_project_check):
+    return utils.create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
+        utils.PROJECT_HEADERS | utils.BEARER_TOKEN,
+        authorized_public=False,
+    )
+
+
+@pytest.fixture
 def skip_project_check():
     with utils.skip_project_check():
         yield

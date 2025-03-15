@@ -31,6 +31,7 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     strain_id: int | None
     brain_region_id: int
     exemplar_morphology_id: int
+    legacy_id: str | None
 
 
 class EModelRead(

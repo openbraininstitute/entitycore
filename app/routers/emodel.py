@@ -84,25 +84,22 @@ def create_emodel(
     emodel: EModelCreate,
     db: SessionDep,
 ) -> EModelRead:
-    result = db.execute(
-        sa.insert(EModel)
-        .values(
-            name=emodel.name,
-            description=emodel.description,
-            brain_region_id=emodel.brain_region_id,
-            species_id=emodel.species_id,
-            strain_id=emodel.strain_id,
-            authorized_project_id=project_context.project_id,
-            authorized_public=emodel.authorized_public,
-        )
-        .returning(EModel)
+    db_em = EModel(
+        name=emodel.name,
+        description=emodel.description,
+        brain_region_id=emodel.brain_region_id,
+        species_id=emodel.species_id,
+        strain_id=emodel.strain_id,
+        exemplar_morphology_id=emodel.exemplar_morphology_id,
+        authorized_project_id=project_context.project_id,
+        authorized_public=emodel.authorized_public,
     )
 
-    new_em = result.fetchone()
-
+    db.add(db_em)
     db.commit()
+    db.refresh(db_em)
 
-    query = emodel_joinedloads(sa.select(EModel).filter(EModel.id == new_em.id))
+    query = emodel_joinedloads(sa.select(EModel).filter(EModel.id == db_em.id))
 
     return db.execute(query).unique().scalar_one()
 

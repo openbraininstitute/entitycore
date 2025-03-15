@@ -9,7 +9,6 @@ from app.filters.common import (
     ETypeClassFilter,
     MTypeClassFilter,
     SpeciesFilter,
-    StrainFilter,
 )
 from app.filters.morphology import MorphologyFilter
 
@@ -31,7 +30,6 @@ class EModelFilter(CustomFilter):
     mtype: MTypeClassFilter = FilterDepends(with_prefix("mtype", MTypeClassFilter))
     etype: ETypeClassFilter = FilterDepends(with_prefix("etype", ETypeClassFilter))
     species: SpeciesFilter = FilterDepends(with_prefix("species", SpeciesFilter))
-    strain: StrainFilter = FilterDepends(with_prefix("strain", StrainFilter))
     contribution: AgentFilter = FilterDepends(with_prefix("contribution", AgentFilter))
     exemplar_morphology: MorphologyFilter = FilterDepends(
         with_prefix("exemplar_morphology", MorphologyFilter)

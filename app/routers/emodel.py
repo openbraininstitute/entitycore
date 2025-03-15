@@ -1,31 +1,36 @@
+from http import HTTPStatus
 from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Query
 from fastapi_filter import FilterDepends
 from sqlalchemy.orm import (
     InstrumentedAttribute,
     Session,
     aliased,
     joinedload,
-    raiseload,
 )
 
 from app.db.model import (
     Agent,
+    BrainRegion,
     Contribution,
     EModel,
+    ETypeClass,
+    ETypeClassification,
+    MTypeClass,
+    MTypeClassification,
+    ReconstructionMorphology,
+    Role,
+    Species,
 )
-from http import HTTPStatus
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ensure_result
+from app.errors import ApiError, ApiErrorCode
 from app.filters.emodel import EModelFilter
 from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
-from app.db.auth import constrain_to_accessible_entities
-from app.errors import ApiError, ApiErrorCode
 
 router = APIRouter(
     prefix="/emodel",
@@ -113,6 +118,12 @@ def _get_facets(
     return facets
 
 
+def facets_allowed(facets: list[str], allowed_facets: list[str]):
+    for facet in facets:
+        if facet not in allowed_facets:
+            raise HTTPException(422, f"Allowed facets are {allowed_facets}")
+
+
 @router.get("")
 def emodel_query(
     *,
@@ -121,101 +132,75 @@ def emodel_query(
     pagination_request: PaginationQuery,
     emodel_filter: Annotated[EModelFilter, FilterDepends(EModelFilter)],
     # search: str | None = None,
-    # with_facets: bool = False,
+    facets: Annotated[list[str], Query] = [],  # noqa: B006
 ) -> ListResponse[EModelRead]:
     agent_alias = aliased(Agent, flat=True)
-    # name_to_facet_query_params: dict[str, FacetQueryParams] = {
-    #     "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
-    #     "species": {"id": Species.id, "label": Species.name},
-    #     "strain": {"id": Strain.id, "label": Strain.name},
-    #     "contribution": {
-    #         "id": agent_alias.id,
-    #         "label": agent_alias.pref_label,
-    #         "type": agent_alias.type,
-    #     },
-    # }
+    morphology_alias = aliased(ReconstructionMorphology, flat=True)
 
-    # filter_query = (
-    #     # constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
-    #     sa.select(EModel)
-    #     .join(Species, EModel.species_id == Species.id)
-    #     .join(
-    #         ReconstructionMorphology, EModel.exemplar_morphology_id == ReconstructionMorphology.id
-    #     )
-    #     .outerjoin(Strain, EModel.strain_id == Strain.id)
-    #     .outerjoin(Contribution, EModel.id == Contribution.entity_id)
-    #     .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-    #     .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
-    #     .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-    #     .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
-    #     .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
-    # )
+    name_to_facet_query_params: dict[str, FacetQueryParams] = {
+        "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
+        "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
+        "species": {"id": Species.id, "label": Species.name},
+        "contribution": {
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
+        },
+        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
+        "exemplar_morphology": {
+            "id": morphology_alias.id,
+            "label": morphology_alias.name,
+        },
+    }
 
-    # TODO: load person.* and organization.* eagerly
+    facets_allowed(facets, list(name_to_facet_query_params.keys()))
 
-    # query = constrain_to_accessible_entities(sa.Select(EModel), project_context.project_id)
-    query = sa.Select(EModel)
+    # query = constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
+    query = sa.select(EModel)
 
     filter_query = (
         emodel_filter.filter(query)
-        .options(joinedload(EModel.species, innerjoin=True))
-        .options(joinedload(EModel.exemplar_morphology, innerjoin=True))
-        .options(joinedload(EModel.strain))
-        .options(joinedload(EModel.contributions).joinedload(Contribution.agent))
-        .options(joinedload(EModel.contributions).joinedload(Contribution.role))
-        .options(joinedload(EModel.mtypes))
-        .options(joinedload(EModel.etypes))
-        .options(joinedload(EModel.brain_region))
-        .options(raiseload("*"))
+        .join(Species, EModel.species_id == Species.id)
+        .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
+        .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)
+        .outerjoin(Contribution, EModel.id == Contribution.entity_id)
+        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+        .outerjoin(Role, Contribution.role_id == Role.id)
+        .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
+        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
+        .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
+        .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
     )
 
     # if search:
-    #     filter_query = filter_query.where(
-    #         EModel.morphology_description_vector.match(search)
-    #     )
+    #     filter_query = filter_query.where(EModel.morphology_description_vector.match(search))
 
-    # filter_query = emodel_filter.filter(filter_query, aliases={Agent: agent_alias})
+    facet_results = _get_facets(
+        db,
+        filter_query,
+        name_to_facet_query_params={
+            facet: facet_q_param
+            for facet, facet_q_param in name_to_facet_query_params.items()
+            if facet in facets
+        },
+        count_distinct_field=EModel.id,
+    )
 
-    # if with_facets:
-    #     facets = _get_facets(
-    #         db,
-    #         filter_query,
-    #         name_to_facet_query_params=name_to_facet_query_params,
-    #         count_distinct_field=ReconstructionMorphology.id,
-    #     )
-    # else:
-    #     facets = None
-
-    # distinct_ids_subquery = (
-    #     emodel_filter.sort(filter_query)
-    #     .with_only_columns(EModel)
-    #     .distinct()
-    #     .offset(pagination_request.offset)
-    #     .limit(pagination_request.page_size)
-    # ).subquery("distinct_ids")
-
-    # TODO: load person.* and organization.* eagerly
-    # data_query = (
-    #     emodel_filter.sort(sa.Select(EModel))  # sort without filtering
-    #     .join(distinct_ids_subquery, EModel.id == distinct_ids_subquery.c.id)
-    #     .options(joinedload(EModel.species, innerjoin=True))
-    #     .options(joinedload(EModel.strain))
-    #     .options(joinedload(EModel.contributions).joinedload(Contribution.agent))
-    #     .options(joinedload(EModel.contributions).joinedload(Contribution.role))
-    #     .options(joinedload(EModel.mtypes))
-    #     .options(joinedload(EModel.etypes))
-    #     .options(joinedload(EModel.brain_region))
-    #     .options(joinedload(EModel.exemplar_morphology))
-    #     .options(raiseload("*"))
-    # )
-
-    # unique is needed b/c it contains results that include joined eager loads against collections
     data = (
         db.execute(
             emodel_filter.sort(filter_query)
             .distinct()
-            .limit(pagination_request.page_size)
             .offset(pagination_request.offset)
+            .limit(pagination_request.page_size)
+            .options(
+                joinedload(EModel.species),
+                joinedload(EModel.exemplar_morphology),
+                joinedload(EModel.brain_region),
+                joinedload(EModel.contributions).joinedload(Contribution.agent),
+                joinedload(EModel.contributions).joinedload(Contribution.role),
+                joinedload(EModel.mtypes),
+                joinedload(EModel.etypes),
+            )
         )
         .scalars()
         .unique()
@@ -232,7 +217,7 @@ def emodel_query(
             page_size=pagination_request.page_size,
             total_items=total_items,
         ),
-        facets=None,
+        facets=facet_results,
     )
 
     return response

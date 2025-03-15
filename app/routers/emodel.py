@@ -159,7 +159,9 @@ def emodel_query(
     query = sa.select(EModel)
 
     filter_query = (
-        emodel_filter.filter(query)
+        emodel_filter.filter(
+            query, aliases={Agent: agent_alias, ReconstructionMorphology: morphology_alias}
+        )
         .join(Species, EModel.species_id == Species.id)
         .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
         .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)

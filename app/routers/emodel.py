@@ -98,11 +98,13 @@ def create_emodel(
         .returning(EModel)
     )
 
-    inserted = result.fetchone()
+    new_em = result.fetchone()
 
     db.commit()
 
-    return read_emodel(db, inserted.id)  # eager load relations
+    query = emodel_joinedloads(sa.select(EModel).filter(EModel.id == new_em.id))
+
+    return db.execute(query).unique().scalar_one()
 
 
 def _get_facets(

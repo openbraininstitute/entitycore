@@ -1,10 +1,6 @@
-from typing import Annotated
-
 import sqlalchemy as sa
-from fastapi import APIRouter, HTTPException, Query
-from fastapi_filter import FilterDepends
+from fastapi import APIRouter
 from sqlalchemy.orm import (
-    InstrumentedAttribute,
     aliased,
     joinedload,
     raiseload,
@@ -27,8 +23,8 @@ from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.filters.emodel import EModelFilter
-from app.routers.common import FacetQueryParams, get_facets
+from app.filters.emodel import EModelFilterDep
+from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
 from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.types import ListResponse, PaginationResponse
 
@@ -97,28 +93,15 @@ def create_emodel(
     return db.execute(query).unique().scalar_one()
 
 
-def facets_allowed(facets: list[str], allowed_facets: list[str]):
-    for facet in facets:
-        if facet not in allowed_facets:
-            raise HTTPException(422, f"Allowed facets are {allowed_facets}")
-
-
-def with_search(search: str | None, q: Select, vector_col: InstrumentedAttribute):
-    if not search:
-        return q
-
-    return q.where(vector_col.match(search))
-
-
 @router.get("")
 def emodel_query(
     *,
     db: SessionDep,
     # project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
-    emodel_filter: Annotated[EModelFilter, FilterDepends(EModelFilter)],
-    search: str | None = None,
-    facets: Annotated[list[str], Query()] = [],  # noqa: B006
+    emodel_filter: EModelFilterDep,
+    search_dep: SearchDep,
+    facets_dep: FacetsDep,
 ) -> ListResponse[EModelRead]:
     agent_alias = aliased(Agent, flat=True)
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
@@ -139,17 +122,10 @@ def emodel_query(
         },
     }
 
-    facets_allowed(facets, list(name_to_facet_query_params.keys()))
-
-    # query = constrain_to_accessible_entities(
-    # sa.select(EModel), project_id=project_context.project_id)
-
-    query = sa.select(EModel)
-
-    filter_query = (
-        emodel_filter.filter(
-            query, aliases={Agent: agent_alias, ReconstructionMorphology: morphology_alias}
-        )
+    # TODO: Add joins dynamically depending of which filters where passed
+    query = (
+        sa.select(EModel)
+        # constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
         .join(Species, EModel.species_id == Species.id)
         .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
         .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)
@@ -161,38 +137,33 @@ def emodel_query(
         .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
     )
 
-    filter_query = with_search(search, filter_query, EModel.description_vector)
-
-    facet_results = get_facets(
-        db,
-        filter_query,
-        name_to_facet_query_params={
-            facet: facet_q_param
-            for facet, facet_q_param in name_to_facet_query_params.items()
-            if facet in facets
-        },
-        count_distinct_field=EModel.id,
+    filter_query = emodel_filter.filter(
+        query,
+        aliases={Agent: agent_alias, ReconstructionMorphology: morphology_alias},
     )
 
-    data_query = emodel_joinedloads(
-        emodel_filter.sort(filter_query)
-        .distinct()
-        .offset(pagination_request.offset)
-        .limit(pagination_request.page_size)
-    )
+    filter_query = search_dep.with_search(filter_query, EModel.description_vector)
+
+    facets = facets_dep.get_facets(db, filter_query, name_to_facet_query_params, EModel.id)
+
+    data_query = emodel_filter.sort(filter_query).distinct()
+    data_query = pagination_request.paginate_query(data_query)
+    data_query = emodel_joinedloads(data_query)
+
+    data = db.execute(data_query).scalars().unique()
 
     total_items = db.execute(
         filter_query.with_only_columns(sa.func.count(sa.func.distinct(EModel.id)).label("count"))
     ).scalar_one()
 
     response = ListResponse[EModelRead](
-        data=db.execute(data_query).scalars().unique(),
+        data=data,
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,
             total_items=total_items,
         ),
-        facets=facet_results,
+        facets=facets,
     )
 
     return response

@@ -1,6 +1,8 @@
-from typing import NotRequired, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
+from fastapi import Depends
+from pydantic import BaseModel
 from sqlalchemy.orm import (
     InstrumentedAttribute,
     Session,
@@ -43,3 +45,27 @@ def get_facets(
         ]
 
     return facets
+
+
+class Facets(BaseModel):
+    with_facets: bool = False
+
+    def get_facets(self, db, query, name_to_facet_query_params, count_distinct_field):
+        if not self.with_facets:
+            return None
+
+        return get_facets(db, query, name_to_facet_query_params, count_distinct_field)
+
+
+class Search(BaseModel):
+    search: str | None = None
+
+    def with_search(self, q: sa.Select, vector_col: InstrumentedAttribute):
+        if not self.search:
+            return q
+
+        return q.where(vector_col.match(self.search))
+
+
+FacetsDep = Annotated[Facets, Depends()]
+SearchDep = Annotated[Search, Depends()]

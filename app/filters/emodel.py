@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
 
@@ -40,3 +41,6 @@ class EModelFilter(CustomFilter):
     class Constants(CustomFilter.Constants):
         model = EModel
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+
+
+EModelFilterDep = Annotated[EModelFilter, FilterDepends(EModelFilter)]

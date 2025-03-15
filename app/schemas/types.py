@@ -1,6 +1,8 @@
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
+from sqlalchemy import Select
+from sqlalchemy.orm import Query
 
 
 class PaginationRequest(BaseModel):
@@ -13,6 +15,9 @@ class PaginationRequest(BaseModel):
     @property
     def offset(self) -> int:
         return (self.page - 1) * self.page_size
+
+    def paginate_query(self, q: Query | Select):
+        return q.limit(self.page_size).offset(self.offset)
 
 
 class PaginationResponse(BaseModel):

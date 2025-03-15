@@ -1,4 +1,3 @@
-from http import HTTPStatus
 from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
@@ -9,7 +8,9 @@ from sqlalchemy.orm import (
     Session,
     aliased,
     joinedload,
+    raiseload,
 )
+from sqlalchemy.sql.selectable import Select
 
 from app.db.model import (
     Agent,
@@ -27,7 +28,7 @@ from app.db.model import (
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode
+from app.errors import ensure_result
 from app.filters.emodel import EModelFilter
 from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
@@ -44,6 +45,20 @@ class FacetQueryParams(TypedDict):
     type: NotRequired[InstrumentedAttribute[str]]
 
 
+def emodel_joinedloads(select: Select):
+    return select.options(
+        joinedload(EModel.species),
+        joinedload(EModel.strain),
+        joinedload(EModel.exemplar_morphology),
+        joinedload(EModel.brain_region),
+        joinedload(EModel.contributions).joinedload(Contribution.agent),
+        joinedload(EModel.contributions).joinedload(Contribution.role),
+        joinedload(EModel.mtypes),
+        joinedload(EModel.etypes),
+        raiseload("*"),
+    )
+
+
 @router.get(
     "/{id_}",
 )
@@ -52,18 +67,15 @@ def read_emodel(
     id_: int,
     # project_context: VerifiedProjectContextHeader,
 ) -> EModelRead:
-    try:
-        return emodel_query(
-            db=db,
-            pagination_request=PaginationQuery(page_size=1),
-            emodel_filter=EModelFilter(id=id_),
-        ).data[0]
-    except IndexError as err:
-        raise ApiError(
-            message="EModel not found",
-            error_code=ApiErrorCode.ENTITY_NOT_FOUND,
-            http_status_code=HTTPStatus.NOT_FOUND,
-        ) from err
+    with ensure_result("EModel not found"):
+        # query = constrain_to_accessible_entities(
+        # sa.select(EModel), project_context.project_id).filter(
+        #     EModel.id == id_
+        # )
+
+        query = emodel_joinedloads(sa.select(EModel).filter(EModel.id == id_))
+
+        return db.execute(query).unique().scalar_one()
 
 
 @router.post("")
@@ -72,20 +84,25 @@ def create_emodel(
     emodel: EModelCreate,
     db: SessionDep,
 ) -> EModelRead:
-    db_rm = EModel(
-        name=emodel.name,
-        description=emodel.description,
-        brain_region_id=emodel.brain_region_id,
-        species_id=emodel.species_id,
-        strain_id=emodel.strain_id,
-        authorized_project_id=project_context.project_id,
-        authorized_public=emodel.authorized_public,
+    result = db.execute(
+        sa.insert(EModel)
+        .values(
+            name=emodel.name,
+            description=emodel.description,
+            brain_region_id=emodel.brain_region_id,
+            species_id=emodel.species_id,
+            strain_id=emodel.strain_id,
+            authorized_project_id=project_context.project_id,
+            authorized_public=emodel.authorized_public,
+        )
+        .returning(EModel)
     )
-    db.add(db_rm)
-    db.commit()
-    db.refresh(db_rm)
 
-    return db_rm
+    inserted = result.fetchone()
+
+    db.commit()
+
+    return read_emodel(db, inserted.id)  # eager load relations
 
 
 def _get_facets(
@@ -132,7 +149,7 @@ def emodel_query(
     pagination_request: PaginationQuery,
     emodel_filter: Annotated[EModelFilter, FilterDepends(EModelFilter)],
     # search: str | None = None,
-    facets: Annotated[list[str], Query] = [],  # noqa: B006
+    facets: Annotated[list[str], Query()] = [],  # noqa: B006
 ) -> ListResponse[EModelRead]:
     agent_alias = aliased(Agent, flat=True)
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
@@ -155,7 +172,9 @@ def emodel_query(
 
     facets_allowed(facets, list(name_to_facet_query_params.keys()))
 
-    # query = constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
+    # query = constrain_to_accessible_entities(
+    # sa.select(EModel), project_id=project_context.project_id)
+
     query = sa.select(EModel)
 
     filter_query = (
@@ -188,24 +207,11 @@ def emodel_query(
         count_distinct_field=EModel.id,
     )
 
-    data = (
-        db.execute(
-            emodel_filter.sort(filter_query)
-            .distinct()
-            .offset(pagination_request.offset)
-            .limit(pagination_request.page_size)
-            .options(
-                joinedload(EModel.species),
-                joinedload(EModel.exemplar_morphology),
-                joinedload(EModel.brain_region),
-                joinedload(EModel.contributions).joinedload(Contribution.agent),
-                joinedload(EModel.contributions).joinedload(Contribution.role),
-                joinedload(EModel.mtypes),
-                joinedload(EModel.etypes),
-            )
-        )
-        .scalars()
-        .unique()
+    data_query = emodel_joinedloads(
+        emodel_filter.sort(filter_query)
+        .distinct()
+        .offset(pagination_request.offset)
+        .limit(pagination_request.page_size)
     )
 
     total_items = db.execute(
@@ -213,7 +219,7 @@ def emodel_query(
     ).scalar_one()
 
     response = ListResponse[EModelRead](
-        data=data,
+        data=db.execute(data_query).scalars().unique(),
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

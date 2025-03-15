@@ -24,8 +24,8 @@ class EModelFilter(CustomFilter):
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None
 
-    score_lte: int | None = None
-    score_gte: int | None = None
+    score__lte: int | None = None
+    score__gte: int | None = None
 
     mtype: MTypeClassFilter = FilterDepends(with_prefix("mtype", MTypeClassFilter))
     etype: ETypeClassFilter = FilterDepends(with_prefix("etype", ETypeClassFilter))

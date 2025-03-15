@@ -1,16 +1,46 @@
 from alembic_utils.pg_trigger import PGTrigger
+from typing import TypeVar
 
-from app.db.model import ReconstructionMorphology
+from app.db.model import ReconstructionMorphology, EModel
+from sqlalchemy.orm import DeclarativeMeta, InstrumentedAttribute
+
+
+M = TypeVar("M", bound=DeclarativeMeta)
+
+
+def description_vector_trigger(model: M, signature: str, target_field: str, fields: list[str]):  # noqa: UP047
+    if not fields:
+        msg = "At least one field required"
+        raise TypeError(msg)
+
+    for field in [target_field, *fields]:
+        if not isinstance(getattr(model, field), InstrumentedAttribute):
+            msg = f"{field} is not a column of {model}"
+            raise TypeError(msg)
+
+    return PGTrigger(
+        schema="public",
+        signature=signature,
+        on_entity=model.__tablename__,
+        definition=f"""
+            BEFORE INSERT OR UPDATE ON {model.__tablename__}
+            FOR EACH ROW EXECUTE FUNCTION
+                tsvector_update_trigger({target_field}, 'pg_catalog.english', {", ".join(fields)})
+        """,
+    )
+
 
 entities = [
-    PGTrigger(
-        schema="public",
-        signature="morphology_description_vector",
-        on_entity=ReconstructionMorphology.__tablename__,
-        definition=f"""
-            BEFORE INSERT OR UPDATE ON {ReconstructionMorphology.__tablename__}
-            FOR EACH ROW EXECUTE FUNCTION
-                tsvector_update_trigger(morphology_description_vector, 'pg_catalog.english', description, name)
-        """,  # noqa: E501
-    )
+    description_vector_trigger(
+        ReconstructionMorphology,
+        "morphology_description_vector",
+        "morphology_description_vector",
+        ["description", "name"],
+    ),
+    description_vector_trigger(
+        EModel,
+        "emodel_description_vector",
+        "description_vector",
+        ["description", "name"],
+    ),
 ]

@@ -22,7 +22,6 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
-    Role,
     Species,
 )
 from app.dependencies.auth import VerifiedProjectContextHeader
@@ -140,6 +139,13 @@ def facets_allowed(facets: list[str], allowed_facets: list[str]):
             raise HTTPException(422, f"Allowed facets are {allowed_facets}")
 
 
+def with_search(search: str | None, q: Select, vector_col: InstrumentedAttribute):
+    if not search:
+        return q
+
+    return q.where(vector_col.match(search))
+
+
 @router.get("")
 def emodel_query(
     *,
@@ -147,7 +153,7 @@ def emodel_query(
     # project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     emodel_filter: Annotated[EModelFilter, FilterDepends(EModelFilter)],
-    # search: str | None = None,
+    search: str | None = None,
     facets: Annotated[list[str], Query()] = [],  # noqa: B006
 ) -> ListResponse[EModelRead]:
     agent_alias = aliased(Agent, flat=True)
@@ -185,15 +191,13 @@ def emodel_query(
         .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, EModel.id == Contribution.entity_id)
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(Role, Contribution.role_id == Role.id)
         .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
         .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
         .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
     )
 
-    # if search:
-    #     filter_query = filter_query.where(EModel.morphology_description_vector.match(search))
+    filter_query = with_search(search, filter_query, EModel.description_vector)
 
     facet_results = _get_facets(
         db,

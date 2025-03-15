@@ -344,6 +344,8 @@ class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
     score: Mapped[float] = mapped_column(default=-1)
     seed: Mapped[int] = mapped_column(default=-1)
 
+    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
+
     exemplar_morphology_id: Mapped[int] = mapped_column(
         ForeignKey("reconstruction_morphology.id"), nullable=False
     )

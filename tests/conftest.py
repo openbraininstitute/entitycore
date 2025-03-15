@@ -165,7 +165,7 @@ def brain_region_id(client):
 
 
 @pytest.fixture
-def exemplar_morphology_id(client, species_id, strain_id, brain_region_id, skip_project_check):
+def exemplar_morphology_id(client, species_id, strain_id, brain_region_id, skip_project_check):  # noqa: ARG001
     return utils.create_reconstruction_morphology_id(
         client,
         species_id,

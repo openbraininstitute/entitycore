@@ -1,11 +1,10 @@
-from typing import Annotated, NotRequired, TypedDict
+from typing import Annotated
 
 import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_filter import FilterDepends
 from sqlalchemy.orm import (
     InstrumentedAttribute,
-    Session,
     aliased,
     joinedload,
     raiseload,
@@ -29,19 +28,14 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.emodel import EModelFilter
+from app.routers.common import FacetQueryParams, get_facets
 from app.schemas.emodel import EModelCreate, EModelRead
-from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/emodel",
     tags=["emodel"],
 )
-
-
-class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[int]
-    label: InstrumentedAttribute[str]
-    type: NotRequired[InstrumentedAttribute[str]]
 
 
 def emodel_joinedloads(select: Select):
@@ -101,36 +95,6 @@ def create_emodel(
     query = emodel_joinedloads(sa.select(EModel).filter(EModel.id == db_em.id))
 
     return db.execute(query).unique().scalar_one()
-
-
-def _get_facets(
-    db: Session,
-    query: sa.Select,
-    name_to_facet_query_params: dict[str, FacetQueryParams],
-    count_distinct_field: InstrumentedAttribute,
-) -> Facets:
-    facets = {}
-    groupby_keys = ["id", "label", "type"]
-    orderby_keys = ["label"]
-    for facet_type, fields in name_to_facet_query_params.items():
-        groupby_fields = {"type": sa.literal(facet_type), **fields}
-        groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]  # type: ignore[attr-defined]
-        groupby_ids = [sa.literal(i + 1) for i in range(len(groupby_columns))]
-        facet_q = (
-            query.with_only_columns(
-                *groupby_columns,
-                sa.func.count(sa.func.distinct(count_distinct_field)).label("count"),
-            )
-            .group_by(*groupby_ids)
-            .order_by(*orderby_keys)
-        )
-        facets[facet_type] = [
-            Facet.model_validate(row, from_attributes=True)
-            for row in db.execute(facet_q).all()
-            if row.id is not None  # exclude null rows if present
-        ]
-
-    return facets
 
 
 def facets_allowed(facets: list[str], allowed_facets: list[str]):
@@ -199,7 +163,7 @@ def emodel_query(
 
     filter_query = with_search(search, filter_query, EModel.description_vector)
 
-    facet_results = _get_facets(
+    facet_results = get_facets(
         db,
         filter_query,
         name_to_facet_query_params={

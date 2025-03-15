@@ -1,9 +1,9 @@
-from alembic_utils.pg_trigger import PGTrigger
 from typing import TypeVar
 
-from app.db.model import ReconstructionMorphology, EModel
+from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeMeta, InstrumentedAttribute
 
+from app.db.model import EModel, ReconstructionMorphology
 
 M = TypeVar("M", bound=DeclarativeMeta)
 

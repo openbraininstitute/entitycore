@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
@@ -40,7 +41,7 @@ router = APIRouter(
 
 
 class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[int]
+    id: InstrumentedAttribute[uuid.UUID]
     label: InstrumentedAttribute[str]
     type: NotRequired[InstrumentedAttribute[str]]
 

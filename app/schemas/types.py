@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
@@ -26,7 +27,7 @@ class PaginationResponse(BaseModel):
 class Facet(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: uuid.UUID
     label: str
     count: int
     type: str | None

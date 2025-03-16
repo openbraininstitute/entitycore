@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from pydantic import UUID4, BaseModel, ConfigDict
@@ -19,7 +20,7 @@ class ProjectContext(BaseModel):
 
 class CreationMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: uuid.UUID
     creation_date: datetime
     update_date: datetime
 
@@ -67,7 +68,7 @@ class StrainCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     taxonomy_id: str
-    species_id: int
+    species_id: uuid.UUID
 
 
 class StrainRead(StrainCreate, CreationMixin):

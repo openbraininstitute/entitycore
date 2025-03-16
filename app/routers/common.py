@@ -17,7 +17,7 @@ class FacetQueryParams(TypedDict):
     type: NotRequired[InstrumentedAttribute[str]]
 
 
-def get_facets(
+def _get_facets(
     db: Session,
     query: sa.Select,
     name_to_facet_query_params: dict[str, FacetQueryParams],
@@ -50,11 +50,17 @@ def get_facets(
 class Facets(BaseModel):
     with_facets: bool = False
 
-    def get_facets(self, db, query, name_to_facet_query_params, count_distinct_field):
+    def get_facets(
+        self,
+        db: Session,
+        query: sa.Select,
+        name_to_facet_query_params: dict[str, FacetQueryParams],
+        count_distinct_field: InstrumentedAttribute,
+    ):
         if not self.with_facets:
             return None
 
-        return get_facets(db, query, name_to_facet_query_params, count_distinct_field)
+        return _get_facets(db, query, name_to_facet_query_params, count_distinct_field)
 
 
 class Search(BaseModel):

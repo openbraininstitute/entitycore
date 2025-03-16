@@ -30,6 +30,7 @@ from app.schemas.morphology import (
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
 )
+from app.routers.common import FacetsDep, SearchDep
 from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
@@ -106,8 +107,8 @@ def morphology_query(
     project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
-    search: str | None = None,
-    with_facets: bool = False,
+    search_dep: SearchDep,
+    facets_dep: FacetsDep,
 ) -> ListResponse[ReconstructionMorphologyRead]:
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -135,22 +136,15 @@ def morphology_query(
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
 
-    if search:
-        filter_query = filter_query.where(
-            ReconstructionMorphology.morphology_description_vector.match(search)
-        )
-
+    filter_query = search_dep.with_search(filter_query)
     filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
 
-    if with_facets:
-        facets = get_facets(
-            db,
-            filter_query,
-            name_to_facet_query_params=name_to_facet_query_params,
-            count_distinct_field=ReconstructionMorphology.id,
-        )
-    else:
-        facets = None
+    facets = facets_dep.get_facets(
+        db,
+        filter_query,
+        name_to_facet_query_params=name_to_facet_query_params,
+        count_distinct_field=ReconstructionMorphology.id,
+    )
 
     distinct_ids_subquery = (
         morphology_filter.sort(filter_query)

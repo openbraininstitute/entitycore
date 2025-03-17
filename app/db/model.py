@@ -24,15 +24,12 @@ from app.db.types import (
     AssetStatus,
     PointLocation,
     PointLocationType,
-    StringList,
-    StringListType,
 )
 
 
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
         datetime: DateTime(timezone=True),
-        StringList: StringListType,
         PointLocation: PointLocationType,
     }
     # See https://alembic.sqlalchemy.org/en/latest/naming.html
@@ -59,12 +56,8 @@ class TimestampMixin:
 
 
 class LegacyMixin:
-    legacy_id: Mapped[StringList | None] = mapped_column(index=True)
+    legacy_id: Mapped[STRING_LIST | None] = mapped_column(index=True)
     legacy_self: Mapped[STRING_LIST | None]
-
-
-class DistributionMixin:
-    content_url: Mapped[str | None]
 
 
 class Root(LegacyMixin, Base):
@@ -290,7 +283,7 @@ class Entity(TimestampMixin, Root):
     }
 
 
-class AnalysisSoftwareSourceCode(DistributionMixin, Entity):
+class AnalysisSoftwareSourceCode(Entity):
     __tablename__ = "analysis_software_source_code"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     # TODO: identify what is mandatory
@@ -330,7 +323,7 @@ class Contribution(TimestampMixin, Base):
     )
 
 
-class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
+class EModel(SpeciesMixin, LocationMixin, Entity):
     __tablename__ = "emodel"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     description: Mapped[str] = mapped_column(default="")
@@ -371,13 +364,13 @@ class EModel(DistributionMixin, SpeciesMixin, LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
 
 
-class Mesh(DistributionMixin, LocationMixin, Entity):
+class Mesh(LocationMixin, Entity):
     __tablename__ = "mesh"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     __mapper_args__ = {"polymorphic_identity": "mesh"}  # noqa: RUF012
 
 
-class MEModel(DistributionMixin, LocationMixin, Entity):
+class MEModel(LocationMixin, Entity):
     __tablename__ = "memodel"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     description: Mapped[str] = mapped_column(default="")
@@ -459,7 +452,7 @@ class SingleCellExperimentalTrace(LocationMixin, SpeciesMixin, LicensedMixin, En
     __mapper_args__ = {"polymorphic_identity": "single_cell_experimental_trace"}  # noqa: RUF012
 
 
-class SingleNeuronSynaptome(DistributionMixin, LocationMixin, Entity):
+class SingleNeuronSynaptome(LocationMixin, Entity):
     __tablename__ = "single_neuron_synaptome"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     description: Mapped[str] = mapped_column(default="")
@@ -470,14 +463,14 @@ class SingleNeuronSynaptome(DistributionMixin, LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "single_neuron_synaptome"}  # noqa: RUF012
 
 
-class SingleNeuronSimulation(DistributionMixin, LocationMixin, Entity):
+class SingleNeuronSimulation(LocationMixin, Entity):
     __tablename__ = "single_neuron_simulation"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
     seed: Mapped[int] = mapped_column(default=-1)
-    injectionLocation: Mapped[StringList] = mapped_column(default="")
-    recordingLocation: Mapped[StringList] = mapped_column(default=[])
+    injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     # TODO: called used ?
     me_model_id: Mapped[int] = mapped_column(ForeignKey("memodel.id"), index=True)
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])

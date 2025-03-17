@@ -506,13 +506,10 @@ class ImportBrainRegionMeshes(Import):
 
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
-            content_url = data.get("distribution").get("contentUrl")
-
             db_item = Mesh(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 brain_region_id=brain_region_id,
-                content_url=content_url,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,

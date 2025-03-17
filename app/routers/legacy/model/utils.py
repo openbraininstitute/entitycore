@@ -2,7 +2,7 @@ from bidict import bidict
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from sqlalchemy import func
+from sqlalchemy import any_, func
 from sqlalchemy.orm import aliased
 
 from app.db.model import (
@@ -26,7 +26,6 @@ from app.db.model import (
     SingleNeuronSimulation,
     SingleNeuronSynaptome,
     Species,
-    StringList,
 )
 from app.logger import L
 
@@ -231,7 +230,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: C9
             }:
                 continue
             if key == "@id":
-                query = query.filter(StringList.in_(initial_alias.legacy_id, [value]))
+                query = query.filter(value == any_(initial_alias.legacy_id))
             else:
                 query = query.filter(getattr(db_type, key) == value)
         elif "terms" in must_term:
@@ -285,7 +284,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: C9
             if type(value) is not list:
                 value = [value]
             if property_ == "legacy_id":
-                query = query.filter(StringList.in_(column, value))
+                query = query.filter(value == any_(column))
             else:
                 query = query.filter(column.in_(value))
         elif "wildcard" in must_term:

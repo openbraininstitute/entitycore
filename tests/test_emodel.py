@@ -105,7 +105,7 @@ def test_emodels_sorted(client, create_emodel_ids):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 3
-    assert [row["id"] for row in data] == [2, 3, 4]
+    assert [row["id"] for row in data] == [4, 5, 6]  # 1 2 3 are morphology and agents
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -246,7 +246,7 @@ def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_
 def test_pagination(client, create_emodel_ids):
     total_items = 29
     create_emodel_ids(total_items)
-    db_id_offset = 2  # db indexes start from 2 due to the created morphology (indexed 1)
+    db_id_offset = 4  # db indexes start from 4 due to the created morphology and agents
 
     response = client.get(
         ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}

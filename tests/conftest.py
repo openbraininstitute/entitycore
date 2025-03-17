@@ -11,10 +11,20 @@ from sqlalchemy.orm import Session
 
 from app.application import app
 from app.config import settings
-from app.db.model import Base, Organization, Person, Role, Species, Strain
+from app.db.model import (
+    Agent,
+    Base,
+    Contribution,
+    EModel,
+    Organization,
+    Person,
+    Role,
+    Species,
+    Strain,
+)
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db
+from .utils import PROJECT_HEADERS, PROJECT_ID, add_db
 from tests import utils
 
 
@@ -183,53 +193,61 @@ def exemplar_morphology_id(client, species_id, strain_id, brain_region_id, skip_
 
 
 def create_emodel_id(
-    client,
+    db,
     species_id,
     strain_id,
     brain_region_id,
     exemplar_morphology_id,
-    headers,
+    authorized_project_id,
     authorized_public,
     name="Test Emodel Name",
     description="Test Emodel Description",
 ):
-    response = client.post(
-        "/emodel",
-        headers=headers,
-        json={
-            "name": name,
-            "description": description,
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "exemplar_morphology_id": exemplar_morphology_id,
-            "legacy_id": "Test Legacy ID",
-            "authorized_public": authorized_public,
-            "iteration": "test iteration",
-            "score": -1,
-            "seed": -1,
-        },
-    )
-    assert response.status_code == 200
-    return response.json()["id"]
+    return add_db(
+        db,
+        EModel(
+            name=name,
+            description=description,
+            brain_region_id=brain_region_id,
+            species_id=species_id,
+            strain_id=strain_id,
+            exemplar_morphology_id=exemplar_morphology_id,
+            authorized_public=authorized_public,
+            authorized_project_id=authorized_project_id,
+            iteration="1",
+            score=-1,
+            seed=-1,
+        ),
+    ).id
 
 
 @pytest.fixture
-def create_emodel_ids(client, exemplar_morphology_id, brain_region_id, species_id, strain_id):
+def create_emodel_ids(db, exemplar_morphology_id, brain_region_id, species_id, strain_id):
+    agent_1 = add_db(db, Agent(pref_label="test_agent_1"))
+    agent_2 = add_db(db, Agent(pref_label="test_agent_2"))
+    role = add_db(db, Role(role_id=1, name="test role"))
+
+    def add_contributions(emodel_id: int):
+        add_db(db, Contribution(agent_id=agent_1.id, role_id=role.id, entity_id=emodel_id))
+        add_db(db, Contribution(agent_id=agent_2.id, role_id=role.id, entity_id=emodel_id))
+
     def _create_emodels(count: int):
         emodel_ids = []
         for i in range(count):
             emodel_id = create_emodel_id(
-                client,
+                db,
                 species_id,
                 strain_id,
                 brain_region_id,
-                headers=BEARER_TOKEN | PROJECT_HEADERS,
+                authorized_project_id=PROJECT_ID,
                 authorized_public=False,
                 name=f"Test Morphology Name {i}",
                 description=f"Test Morphology Description {i}",
                 exemplar_morphology_id=exemplar_morphology_id,
             )
+
+            add_contributions(emodel_id)
+
             emodel_ids.append(emodel_id)
 
         return emodel_ids
@@ -268,11 +286,11 @@ def create_faceted_emodel_ids(db, client):
         species_ids, brain_region_ids, morphology_ids
     ):
         emodel_id = create_emodel_id(
-            client,
+            db,
             species_id,
             strain_id=None,
             brain_region_id=brain_region_id,
-            headers=BEARER_TOKEN | PROJECT_HEADERS,
+            authorized_project_id=PROJECT_ID,
             authorized_public=False,
             name="",
             description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501

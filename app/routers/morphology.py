@@ -24,13 +24,12 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
-from app.routers.common import FacetQueryParams, get_facets
+from app.routers.common import FacetQueryParams, _get_facets
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
 )
-from app.routers.common import FacetsDep, SearchDep
 from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
@@ -107,8 +106,8 @@ def morphology_query(
     project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
-    search_dep: SearchDep,
-    facets_dep: FacetsDep,
+    search: str | None = None,
+    with_facets: bool = False,
 ) -> ListResponse[ReconstructionMorphologyRead]:
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -136,15 +135,22 @@ def morphology_query(
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
 
-    filter_query = search_dep.with_search(filter_query)
+    if search:
+        filter_query = filter_query.where(
+            ReconstructionMorphology.morphology_description_vector.match(search)
+        )
+
     filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
 
-    facets = facets_dep.get_facets(
-        db,
-        filter_query,
-        name_to_facet_query_params=name_to_facet_query_params,
-        count_distinct_field=ReconstructionMorphology.id,
-    )
+    if with_facets:
+        facets = _get_facets(
+            db,
+            filter_query,
+            name_to_facet_query_params=name_to_facet_query_params,
+            count_distinct_field=ReconstructionMorphology.id,
+        )
+    else:
+        facets = None
 
     distinct_ids_subquery = (
         morphology_filter.sort(filter_query)

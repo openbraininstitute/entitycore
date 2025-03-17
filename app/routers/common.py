@@ -50,7 +50,7 @@ def _get_facets(
 class Facets(BaseModel):
     with_facets: bool = False
 
-    def get_facets(
+    def __call__(
         self,
         db: Session,
         query: sa.Select,
@@ -66,7 +66,7 @@ class Facets(BaseModel):
 class Search(BaseModel):
     search: str | None = None
 
-    def with_search(self, q: sa.Select, vector_col: InstrumentedAttribute):
+    def __call__(self, q: sa.Select, vector_col: InstrumentedAttribute):
         if not self.search:
             return q
 

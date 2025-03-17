@@ -1,22 +1,20 @@
+import itertools as it
 import os
 from collections.abc import Iterator
-import itertools as it
 
 import boto3
 import pytest
 from fastapi.testclient import TestClient
 from moto import mock_aws
-from sqlalchemy import text, select
+from sqlalchemy import text
 from sqlalchemy.orm import Session
-
 
 from app.application import app
 from app.config import settings
-from app.db.model import Base, Organization, Person, Role, Species, Strain, BrainRegion
+from app.db.model import Base, Organization, Person, Role, Species, Strain
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
-
+from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db
 from tests import utils
 
 
@@ -277,7 +275,7 @@ def create_faceted_emodel_ids(db, client):
             headers=BEARER_TOKEN | PROJECT_HEADERS,
             authorized_public=False,
             name="",
-            description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",
+            description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
             exemplar_morphology_id=morphology_id,
         )
         emodel_ids.append(emodel_id)

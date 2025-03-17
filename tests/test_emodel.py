@@ -1,7 +1,8 @@
-import pytest
 import itertools as it
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
+import pytest
+
+from .utils import BEARER_TOKEN, PROJECT_HEADERS
 
 ROUTE = "/emodel"
 
@@ -108,7 +109,7 @@ def test_emodels_sorted(client, create_emodel_ids):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_facets(client, create_faceted_emodel_ids):
+def test_facets(client, create_faceted_emodel_ids):  # noqa: ARG001
     response = client.get(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -162,44 +163,6 @@ def test_facets(client, create_faceted_emodel_ids):
             {"id": 2, "label": "Test Morphology Name", "count": 2, "type": "exemplar_morphology"},
         ],
     }
-
-
-# @pytest.mark.usefixtures("skip_project_check")
-# def test_query_reconstruction_morphology_species_join(db, client, brain_region_id):
-#     """Make sure not to join all the species w/ their strains while doing query"""
-#     species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="1"))
-#     strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
-#     add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species0.id))
-
-#     add_db(
-#         db,
-#         ReconstructionMorphology(
-#             brain_region_id=brain_region_id,
-#             species_id=species0.id,
-#             strain_id=strain0.id,
-#             description="description",
-#             name="morph00",
-#             location=None,
-#             legacy_id="Test Legacy ID",
-#             license_id=None,
-#             authorized_project_id=PROJECT_HEADERS["project-id"],
-#         ),
-#     )
-
-#     response = client.get(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         params={"with_facets": True},
-#     )
-#     data = response.json()
-#     assert len(data["data"]) == data["pagination"]["total_items"]
-#     assert "facets" in data
-#     assert data["facets"] == {
-#         "contribution": [],
-#         "mtype": [],
-#         "species": [{"id": 1, "label": "TestSpecies0", "count": 1, "type": "species"}],
-#         "strain": [{"id": 1, "label": "Strain0", "count": 1, "type": "strain"}],
-#     }
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -279,57 +242,44 @@ def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_
     assert response.status_code == 404
 
 
-# @pytest.mark.usefixtures("skip_project_check")
-# def test_pagination(db, client, brain_region_id):
-#     species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="0"))
-#     species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="1"))
-#     strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
-#     strain1 = add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species1.id))
+@pytest.mark.usefixtures("skip_project_check")
+def test_pagination_total(client, create_emodel_ids):
+    total_items = 29
+    create_emodel_ids(total_items)
+    db_id_offset = 2  # db indexes start from 2 due to the created morphology (indexed 1)
 
-#     total_items = 29
-#     for i, (species, strain) in zip(
-#         range(total_items), it.cycle(((species0, None), (species0, strain0), (species1, strain1)))
-#     ):
-#         create_reconstruction_morphology_id(
-#             client,
-#             species.id,
-#             strain.id if strain else None,
-#             brain_region_id,
-#             headers=BEARER_TOKEN | PROJECT_HEADERS,
-#             name=f"TestMorphologyName{i}",
-#             authorized_public=False,
-#         )
+    response = client.get(
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
+    )
 
-#     response = client.get(
-#         ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
-#     )
+    assert response.status_code == 200
+    assert len(response.json()["data"]) == total_items
 
-#     assert response.status_code == 200
-#     assert len(response.json()["data"]) == total_items
+    for i in range(1, total_items + 1):
+        expected_items = i
+        response = client.get(
+            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": expected_items}
+        )
 
-#     for i in range(1, total_items + 10, 2):
-#         response = client.get(
-#             ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": i}
-#         )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == expected_items
 
-#         assert response.status_code == 200
-#         data = response.json()["data"]
-#         expected_items = min(i, total_items)
-#         assert len(data) == expected_items
-#         names = [int(d["name"].removeprefix("TestMorphologyName")) for d in data]
-#         assert list(names) == list(range(total_items - 1, total_items - expected_items - 1, -1))
+        assert [d["id"] - db_id_offset for d in data] == list(
+            range(total_items - 1, total_items - expected_items - 1, -1)
+        )
 
-#     items = []
-#     for i in range(1, total_items + 1):
-#         response = client.get(
-#             ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page": i, "page_size": 1}
-#         )
+    items = []
+    for i in range(1, total_items + 1):
+        response = client.get(
+            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page": i, "page_size": 1}
+        )
 
-#         assert response.status_code == 200
-#         data = response.json()["data"]
-#         assert len(data) == 1
-#         items.append(data[0])
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 1
+        items.append(data[0])
 
-#     assert len(items) == total_items
-#     names = [int(d["name"].removeprefix("TestMorphologyName")) for d in items]
-#     assert list(reversed(names)) == list(range(total_items))
+    assert len(items) == total_items
+    data_ids = [i["id"] - db_id_offset for i in items]
+    assert list(reversed(data_ids)) == list(range(total_items))

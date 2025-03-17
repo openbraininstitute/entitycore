@@ -363,6 +363,15 @@ class EModel(SpeciesMixin, LocationMixin, Entity):
 
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
 
+    # https://www.postgresql.org/docs/current/textsearch-indexes.html
+    __table_args__ = (
+        Index(
+            "ix_emodel_description_vector",
+            description_vector,
+            postgresql_using="gin",
+        ),
+    )
+
 
 class Mesh(LocationMixin, Entity):
     __tablename__ = "mesh"
@@ -401,6 +410,15 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     )
 
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
+
+    # https://www.postgresql.org/docs/current/textsearch-indexes.html
+    __table_args__ = (
+        Index(
+            "ix_reconstruction_morphology_morphology_description_vector",
+            morphology_description_vector,
+            postgresql_using="gin",
+        ),
+    )
 
 
 class MorphologyFeatureAnnotation(TimestampMixin, Base):

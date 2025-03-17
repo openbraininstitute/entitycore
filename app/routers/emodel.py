@@ -145,7 +145,7 @@ def emodel_query(
 
     response = ListResponse[EModelRead](
         data=pagination_request.paginated_rows(db, data_query).scalars().unique(),
-        pagination=pagination_request.pagination(db, data_query, EModel.id),
+        pagination=pagination_request.pagination(db, filter_query, EModel.id),
         facets=facets(db, filter_query, name_to_facet_query_params, EModel.id),
     )
 

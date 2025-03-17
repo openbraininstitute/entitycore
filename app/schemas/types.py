@@ -25,6 +25,7 @@ class PaginationRequest(BaseModel):
 
     def pagination(self, db: Session, q: Query | sa.Select, distinct_col: InstrumentedAttribute):
         q = self.paginate_query(q)
+
         total_items = db.execute(
             q.with_only_columns(sa.func.count(sa.func.distinct(distinct_col)).label("count"))
         ).scalar_one()

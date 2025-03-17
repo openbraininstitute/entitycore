@@ -28,7 +28,7 @@ class SingleNeuronSimulationCreate(
 
 
 class SingleNeuronSimulationRead(
-    SingleNeuronSimulationCreate,
+    SingleNeuronSimulationBase,
     AuthorizationMixin,
     CreationMixin,
 ):

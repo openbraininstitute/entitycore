@@ -1,5 +1,5 @@
 import pytest
-
+import itertools as it
 
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
@@ -63,96 +63,88 @@ def test_query_emodel(client, create_emodel_ids):
     response = client.get(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"page_size": 100, "order_by": "+creation_date"},
+        params={"page_size": 100},
     )
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 11
 
 
+@pytest.mark.usefixtures("skip_project_check")
+def test_emodels_sorted(client, create_emodel_ids):
+    count = 11
+    create_emodel_ids(count)
+
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"order_by": "+creation_date", "page_size": 100},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == count
+    assert all(
+        elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
+    )
+
+    response = client.get(
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "-creation_date"}
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert all(
+        elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
+    )
+
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"order_by": "+creation_date", "page": 1, "page_size": 3},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 3
+    assert [row["id"] for row in data] == [2, 3, 4]
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_facets(client, create_emodel_ids):
+    count = 11
+    create_emodel_ids(count)
+
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"with_facets": True},
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {
+        "contribution": [],
+        "mtype": [],
+        "etype": [],
+        "species": [
+            {"id": 2, "label": "TestSpecies1", "count": 6, "type": "species"},
+            {"id": 3, "label": "TestSpecies2", "count": 5, "type": "species"},
+        ],
+        "brain_region": [{"id": 64, "label": "RedRegion", "count": 11, "type": "brain_region"}],
+        "exemplar_morphology": [
+            {
+                "id": 1,
+                "count": 11,
+                "label": "Test Morphology Name",
+                "type": "exemplar_morphology",
+            },
+        ],
+    }
+
+
 # @pytest.mark.usefixtures("skip_project_check")
 # def test_query_reconstruction_morphology(db, client, brain_region_id):
-#     species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
-#     species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
 
-#     strain1 = add_db(db, Strain(name="TestStrain1", species_id=species1.id, taxonomy_id="0"))
-#     strain2 = add_db(db, Strain(name="TestStrain2", species_id=species2.id, taxonomy_id="1"))
-
-#     def create_morphologies(count):
-#         for i, (species, strain) in zip(
-#             range(count),
-#             it.cycle(
-#                 (
-#                     (species1, strain1),
-#                     (species2, strain2),
-#                 )
-#             ),
-#         ):
-#             create_reconstruction_morphology_id(
-#                 client,
-#                 species.id,
-#                 strain.id,
-#                 brain_region_id,
-#                 headers=BEARER_TOKEN | PROJECT_HEADERS,
-#                 authorized_public=False,
-#                 name=f"Test Morphology Name {i}",
-#                 description=f"Test Morphology Description {i}",
-#             )
-
-#     count = 11
-#     create_morphologies(count)
-
-#     response = client.get(
-#         ROUTE,
-#         params={"page_size": 10},
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#     )
-#     assert response.status_code == 200
-#     response_json = response.json()
-#     assert "facets" in response_json
-#     assert "data" in response_json
-#     assert response_json["facets"] is None
-#     assert len(response_json["data"]) == 10
-
-#     response = client.get(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         params={"page_size": 100, "order_by": "+creation_date"},
-#     )
-#     assert response.status_code == 200
-#     data = response.json()["data"]
-#     assert len(data) == 11
-
-#     response = client.get(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         params={"order_by": "+creation_date", "page_size": 100},
-#     )
-#     assert response.status_code == 200
-#     data = response.json()["data"]
-#     assert len(data) == count
-#     assert all(
-#         elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
-#     )
-
-#     response = client.get(
-#         ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "-creation_date"}
-#     )
-#     assert response.status_code == 200
-#     data = response.json()["data"]
-#     assert all(
-#         elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
-#     )
-
-#     response = client.get(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         params={"order_by": "+creation_date", "page": 1, "page_size": 3},
-#     )
-#     assert response.status_code == 200
-#     data = response.json()["data"]
-#     assert len(data) == 3
-#     assert [row["id"] for row in data] == [1, 2, 3]
 
 #     response = client.get(
 #         ROUTE,

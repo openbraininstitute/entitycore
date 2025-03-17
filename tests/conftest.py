@@ -244,6 +244,7 @@ def create_faceted_emodel_ids(db, client):
     species_ids = [
         add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id for i in range(2)
     ]
+
     strain_ids = [
         add_db(
             db, Strain(name=f"TestStrain{i}", taxonomy_id=f"{i + 2}", species_id=species_ids[i])
@@ -275,8 +276,8 @@ def create_faceted_emodel_ids(db, client):
             brain_region_id=brain_region_id,
             headers=BEARER_TOKEN | PROJECT_HEADERS,
             authorized_public=False,
-            name="name",
-            description="description",
+            name="",
+            description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",
             exemplar_morphology_id=morphology_id,
         )
         emodel_ids.append(emodel_id)

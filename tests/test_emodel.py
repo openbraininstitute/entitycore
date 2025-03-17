@@ -138,74 +138,30 @@ def test_facets(client, create_faceted_emodel_ids):
         ],
     }
 
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"search": "species1", "with_facets": True},
+    )
+    assert response.status_code == 200
+    data = response.json()
 
-# @pytest.mark.usefixtures("skip_project_check")
-# def test_query_reconstruction_morphology(db, client, brain_region_id):
-
-
-#     response = client.get(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         params={"with_facets": True},
-#     )
-#     assert response.status_code == 200
-#     data = response.json()
-
-#     assert "facets" in data
-#     facets = data["facets"]
-#     assert facets == {
-#         "contribution": [],
-#         "mtype": [],
-#         "species": [
-#             {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
-#             {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
-#         ],
-#         "strain": [
-#             {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
-#             {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
-#         ],
-#     }
-
-#     response = client.get(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         params={"search": "Test", "with_facets": True},
-#     )
-#     assert response.status_code == 200
-#     data = response.json()
-
-#     assert "facets" in data
-#     facets = data["facets"]
-#     assert facets == {
-#         "contribution": [],
-#         "mtype": [],
-#         "species": [
-#             {"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"},
-#             {"id": 2, "label": "TestSpecies2", "count": 5, "type": "species"},
-#         ],
-#         "strain": [
-#             {"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"},
-#             {"id": 2, "label": "TestStrain2", "count": 5, "type": "strain"},
-#         ],
-#     }
-
-#     response = client.get(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         params={"species__name": "TestSpecies1", "with_facets": True},
-#     )
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert len(data["data"]) == 6
-
-#     assert "facets" in data
-#     facets = data["facets"]
-#     assert facets == {
-#         "contribution": [],
-#         "mtype": [],
-#         "species": [{"id": 1, "label": "TestSpecies1", "count": 6, "type": "species"}],
-#         "strain": [{"id": 1, "label": "TestStrain1", "count": 6, "type": "strain"}],
-#     }
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {
+        "mtype": [],
+        "etype": [],
+        "species": [{"id": 1, "label": "TestSpecies0", "count": 4, "type": "species"}],
+        "contribution": [],
+        "brain_region": [
+            {"id": 0, "label": "region0", "count": 2, "type": "brain_region"},
+            {"id": 1, "label": "region1", "count": 2, "type": "brain_region"},
+        ],
+        "exemplar_morphology": [
+            {"id": 1, "label": "Test Morphology Name", "count": 2, "type": "exemplar_morphology"},
+            {"id": 2, "label": "Test Morphology Name", "count": 2, "type": "exemplar_morphology"},
+        ],
+    }
 
 
 # @pytest.mark.usefixtures("skip_project_check")
@@ -246,78 +202,81 @@ def test_facets(client, create_faceted_emodel_ids):
 #     }
 
 
-# @pytest.mark.usefixtures("skip_project_check")
-# def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
-#     morph_json = {
-#         "location": {"x": 10, "y": 20, "z": 30},
-#         "brain_region_id": brain_region_id,
-#         "description": "morph description",
-#         "legacy_id": "Test Legacy ID",
-#         "license_id": license_id,
-#         "name": "Test Morphology Name",
-#         "species_id": species_id,
-#         "strain_id": strain_id,
-#     }
+@pytest.mark.usefixtures("skip_project_check")
+def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_morphology_id):
+    emodel_json = {
+        "brain_region_id": brain_region_id,
+        "description": "morph description",
+        "legacy_id": "Test Legacy ID",
+        "name": "Test Morphology Name",
+        "species_id": species_id,
+        "strain_id": strain_id,
+        "exemplar_morphology_id": exemplar_morphology_id,
+        "score": 0,
+        "iteration": "0",
+        "seed": 0,
+    }
 
-#     public_morph = client.post(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         json=morph_json
-#         | {
-#             "name": "public morphology",
-#             "authorized_public": True,
-#         },
-#     )
-#     assert public_morph.status_code == 200
-#     public_morph = public_morph.json()
+    public_emodel = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=emodel_json
+        | {
+            "name": "public emodel",
+            "authorized_public": True,
+        },
+    )
+    assert public_emodel.status_code == 200
+    public_emodel = public_emodel.json()
 
-#     inaccessible_obj = client.post(
-#         ROUTE,
-#         headers=BEARER_TOKEN
-#         | {
-#             "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-#             "project-id": "42424242-4242-4000-9000-424242424242",
-#         },
-#         json=morph_json | {"name": "unaccessable morphology 1"},
-#     )
-#     assert inaccessible_obj.status_code == 200
-#     inaccessible_obj = inaccessible_obj.json()
+    inaccessible_obj = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=emodel_json | {"name": "unaccessable emodel 1"},
+    )
+    assert inaccessible_obj.status_code == 200
+    inaccessible_obj = inaccessible_obj.json()
 
-#     private_morph0 = client.post(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         json=morph_json | {"name": "private morphology 0"},
-#     )
-#     assert private_morph0.status_code == 200
-#     private_morph0 = private_morph0.json()
+    private_emodel0 = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=emodel_json | {"name": "private emodel 0"},
+    )
+    assert private_emodel0.status_code == 200
+    private_emodel0 = private_emodel0.json()
 
-#     private_morph1 = client.post(
-#         ROUTE,
-#         headers=BEARER_TOKEN | PROJECT_HEADERS,
-#         json=morph_json
-#         | {
-#             "name": "private morphology 1",
-#         },
-#     )
-#     assert private_morph1.status_code == 200
-#     private_morph1 = private_morph1.json()
+    private_emodel1 = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=emodel_json
+        | {
+            "name": "private emodel 1",
+        },
+    )
+    assert private_emodel1.status_code == 200
+    private_emodel1 = private_emodel1.json()
 
-#     # only return results that matches the desired project, and public ones
-#     response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
-#     data = response.json()["data"]
-#     assert len(data) == 3
+    # only return results that matches the desired project, and public ones
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    data = response.json()["data"]
+    assert len(data) == 3
 
-#     ids = {row["id"] for row in data}
-#     assert ids == {
-#         public_morph["id"],
-#         private_morph0["id"],
-#         private_morph1["id"],
-#     }
+    ids = {row["id"] for row in data}
+    assert ids == {
+        public_emodel["id"],
+        private_emodel0["id"],
+        private_emodel1["id"],
+    }
 
-#     response = client.get(
-#         f"{ROUTE}/{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
-#     )
-#     assert response.status_code == 404
+    response = client.get(
+        f"{ROUTE}/{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
+
+    assert response.status_code == 404
 
 
 # @pytest.mark.usefixtures("skip_project_check")

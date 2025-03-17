@@ -62,7 +62,7 @@ def read_emodel(
             sa.select(EModel), project_context.project_id
         ).filter(EModel.id == id_)
 
-        query = emodel_joinedloads(sa.select(EModel).filter(EModel.id == id_))
+        query = emodel_joinedloads(query)
 
         return db.execute(query).unique().scalar_one()
 

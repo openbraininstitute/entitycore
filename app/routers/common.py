@@ -47,7 +47,7 @@ def _get_facets(
     return facets
 
 
-class Facets(BaseModel):
+class _FacetsDep(BaseModel):
     with_facets: bool = False
 
     def __call__(
@@ -73,5 +73,5 @@ class Search(BaseModel):
         return q.where(vector_col.match(self.search))
 
 
-FacetsDep = Annotated[Facets, Depends()]
+FacetsDep = Annotated[_FacetsDep, Depends()]
 SearchDep = Annotated[Search, Depends()]

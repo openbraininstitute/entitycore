@@ -1,14 +1,12 @@
-from typing import TypeVar
-
 from alembic_utils.pg_trigger import PGTrigger
-from sqlalchemy.orm import DeclarativeMeta, InstrumentedAttribute
+from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
 from app.db.model import EModel, ReconstructionMorphology
 
-M = TypeVar("M", bound=DeclarativeMeta)
 
-
-def description_vector_trigger(model: M, signature: str, target_field: str, fields: list[str]):  # noqa: UP047
+def description_vector_trigger(
+    model: type[DeclarativeBase], signature: str, target_field: str, fields: list[str]
+):
     if not fields:
         msg = "At least one field required"
         raise TypeError(msg)

@@ -6,12 +6,13 @@ import boto3
 import pytest
 from fastapi.testclient import TestClient
 from moto import mock_aws
-from sqlalchemy import text
+from sqlalchemy import text, select
 from sqlalchemy.orm import Session
+
 
 from app.application import app
 from app.config import settings
-from app.db.model import Base, Organization, Person, Role, Species, Strain
+from app.db.model import Base, Organization, Person, Role, Species, Strain, BrainRegion
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
@@ -151,12 +152,11 @@ def license_id(client):
     return data["id"]
 
 
-@pytest.fixture
-def brain_region_id(client):
+def create_brain_region_id(client: TestClient, id_: int, name: str):
     js = {
-        "id": 64,
-        "acronym": "red",
-        "name": "RedRegion",
+        "id": id_,
+        "acronym": f"acronym{id_}",
+        "name": name,
         "color_hex_triplet": "FF0000",
         "children": [],
     }
@@ -165,6 +165,11 @@ def brain_region_id(client):
     data = response.json()
     assert "id" in data, f"Failed to get id for brain region: {data}"
     return data["id"]
+
+
+@pytest.fixture
+def brain_region_id(client):
+    return create_brain_region_id(client, 64, "RedRegion")
 
 
 @pytest.fixture
@@ -212,23 +217,14 @@ def create_emodel_id(
 
 
 @pytest.fixture
-def create_emodel_ids(db, client, exemplar_morphology_id, brain_region_id):
+def create_emodel_ids(client, exemplar_morphology_id, brain_region_id, species_id, strain_id):
     def _create_emodels(count: int):
-        species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
-        species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
-
-        strain1 = add_db(db, Strain(name="TestStrain1", species_id=species1.id, taxonomy_id="0"))
-        strain2 = add_db(db, Strain(name="TestStrain2", species_id=species2.id, taxonomy_id="1"))
-
         emodel_ids = []
-        for i, (species, strain) in zip(
-            range(count),
-            it.cycle(((species1, strain1), (species2, strain2))),
-        ):
+        for i in range(count):
             emodel_id = create_emodel_id(
                 client,
-                species.id,
-                strain.id,
+                species_id,
+                strain_id,
                 brain_region_id,
                 headers=BEARER_TOKEN | PROJECT_HEADERS,
                 authorized_public=False,
@@ -241,6 +237,50 @@ def create_emodel_ids(db, client, exemplar_morphology_id, brain_region_id):
         return emodel_ids
 
     return _create_emodels
+
+
+@pytest.fixture
+def create_faceted_emodel_ids(db, client):
+    species_ids = [
+        add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id for i in range(2)
+    ]
+    strain_ids = [
+        add_db(
+            db, Strain(name=f"TestStrain{i}", taxonomy_id=f"{i + 2}", species_id=species_ids[i])
+        ).id
+        for i in range(2)
+    ]
+    brain_region_ids = [create_brain_region_id(client, i, f"region{i}") for i in range(2)]
+
+    morphology_ids = [
+        utils.create_reconstruction_morphology_id(
+            client,
+            species_id=species_ids[i],
+            strain_id=strain_ids[i],
+            brain_region_id=brain_region_ids[i],
+            headers=PROJECT_HEADERS,
+            authorized_public=False,
+        )
+        for i in range(2)
+    ]
+
+    emodel_ids = []
+    for species_id, brain_region_id, morphology_id in it.product(
+        species_ids, brain_region_ids, morphology_ids
+    ):
+        emodel_id = create_emodel_id(
+            client,
+            species_id,
+            strain_id=None,
+            brain_region_id=brain_region_id,
+            headers=BEARER_TOKEN | PROJECT_HEADERS,
+            authorized_public=False,
+            name="name",
+            description="description",
+            exemplar_morphology_id=morphology_id,
+        )
+        emodel_ids.append(emodel_id)
+    return emodel_ids
 
 
 @pytest.fixture

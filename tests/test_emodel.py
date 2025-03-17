@@ -108,10 +108,7 @@ def test_emodels_sorted(client, create_emodel_ids):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_facets(client, create_emodel_ids):
-    count = 11
-    create_emodel_ids(count)
-
+def test_facets(client, create_faceted_emodel_ids):
     response = client.get(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -122,22 +119,22 @@ def test_facets(client, create_emodel_ids):
 
     assert "facets" in data
     facets = data["facets"]
+
     assert facets == {
-        "contribution": [],
         "mtype": [],
         "etype": [],
         "species": [
-            {"id": 2, "label": "TestSpecies1", "count": 6, "type": "species"},
-            {"id": 3, "label": "TestSpecies2", "count": 5, "type": "species"},
+            {"id": 1, "label": "TestSpecies0", "count": 4, "type": "species"},
+            {"id": 2, "label": "TestSpecies1", "count": 4, "type": "species"},
         ],
-        "brain_region": [{"id": 64, "label": "RedRegion", "count": 11, "type": "brain_region"}],
+        "contribution": [],
+        "brain_region": [
+            {"id": 0, "label": "region0", "count": 4, "type": "brain_region"},
+            {"id": 1, "label": "region1", "count": 4, "type": "brain_region"},
+        ],
         "exemplar_morphology": [
-            {
-                "id": 1,
-                "count": 11,
-                "label": "Test Morphology Name",
-                "type": "exemplar_morphology",
-            },
+            {"id": 1, "label": "Test Morphology Name", "count": 4, "type": "exemplar_morphology"},
+            {"id": 2, "label": "Test Morphology Name", "count": 4, "type": "exemplar_morphology"},
         ],
     }
 

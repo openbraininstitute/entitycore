@@ -1,40 +1,13 @@
 from enum import auto
 from typing import Annotated, Any
 
-from sqlalchemy import ARRAY, BigInteger, func, or_
+from sqlalchemy import ARRAY, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.schemas.base import PointLocationBase
 from app.utils.enum import HyphenStrEnum
-
-
-class StringListType(TypeDecorator):
-    impl = VARCHAR
-    cache_ok = True
-
-    def process_bind_param(self, value, dialect):  # noqa: ARG002, PLR6301
-        if value is not None:
-            return ",".join(value)
-        return None
-
-    def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301
-        if value is not None:
-            return value.split(",")
-        return None
-
-    @staticmethod
-    def is_equal(column, value):
-        return func.strpos(column, value) > 0
-
-    @staticmethod
-    def in_(column, values):
-        return or_(*[StringList.is_equal(column, value) for value in values])
-
-
-# TODO: replace StringList with STRING_LIST below
-StringList = Annotated[StringListType, "StringList"]
 
 
 class PointLocationType(TypeDecorator):

@@ -27,6 +27,7 @@ from app.filters.emodel import EModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
 from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.types import ListResponse, PaginationResponse
+from app.db.auth import constrain_to_accessible_entities
 
 router = APIRouter(
     prefix="/emodel",
@@ -54,13 +55,12 @@ def emodel_joinedloads(select: Select):
 def read_emodel(
     db: SessionDep,
     id_: int,
-    # project_context: VerifiedProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
 ) -> EModelRead:
     with ensure_result("EModel not found"):
-        # query = constrain_to_accessible_entities(
-        # sa.select(EModel), project_context.project_id).filter(
-        #     EModel.id == id_
-        # )
+        query = constrain_to_accessible_entities(
+            sa.select(EModel), project_context.project_id
+        ).filter(EModel.id == id_)
 
         query = emodel_joinedloads(sa.select(EModel).filter(EModel.id == id_))
 
@@ -97,7 +97,7 @@ def create_emodel(
 def emodel_query(
     *,
     db: SessionDep,
-    # project_context: VerifiedProjectContextHeader,
+    project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     emodel_filter: EModelFilterDep,
     search_dep: SearchDep,
@@ -122,10 +122,8 @@ def emodel_query(
         },
     }
 
-    # TODO: Add joins dynamically depending of which filters where passed
-    query = (
-        sa.select(EModel)
-        # constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
+    filter_query = (
+        constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
         .join(Species, EModel.species_id == Species.id)
         .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
         .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)
@@ -138,7 +136,7 @@ def emodel_query(
     )
 
     filter_query = emodel_filter.filter(
-        query,
+        filter_query,
         aliases={Agent: agent_alias, ReconstructionMorphology: morphology_alias},
     )
 

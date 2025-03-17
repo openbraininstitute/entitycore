@@ -1,6 +1,7 @@
 import pytest
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS
+
+from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
 ROUTE = "/emodel"
 
@@ -33,13 +34,40 @@ def test_create_emodel(client, species_id, strain_id, brain_region_id, exemplar_
     assert response.status_code == 200, f"Failed to get emodels: {response.text}"
 
 
-# @pytest.mark.usefixtures("skip_project_check")
-# def test_missing(client):
-#     response = client.get(f"{ROUTE}/42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
-#     assert response.status_code == 404
+@pytest.mark.usefixtures("skip_project_check")
+def test_missing(client):
+    response = client.get(f"{ROUTE}/42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 404
 
-#     response = client.get(f"{ROUTE}/notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
-#     assert response.status_code == 422
+    response = client.get(f"{ROUTE}/notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 422
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_query_emodel(client, create_emodel_ids):
+    count = 11
+    create_emodel_ids(count)
+
+    response = client.get(
+        ROUTE,
+        params={"page_size": 10},
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    assert response.status_code == 200
+    response_json = response.json()
+    assert "facets" in response_json
+    assert "data" in response_json
+    assert response_json["facets"] is None
+    assert len(response_json["data"]) == 10
+
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"page_size": 100, "order_by": "+creation_date"},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 11
 
 
 # @pytest.mark.usefixtures("skip_project_check")

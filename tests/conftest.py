@@ -1,5 +1,6 @@
 import os
 from collections.abc import Iterator
+import itertools as it
 
 import boto3
 import pytest
@@ -10,8 +11,10 @@ from sqlalchemy.orm import Session
 
 from app.application import app
 from app.config import settings
-from app.db.model import Base, Organization, Person, Role
+from app.db.model import Base, Organization, Person, Role, Species, Strain
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
+from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
+
 
 from tests import utils
 
@@ -174,6 +177,70 @@ def exemplar_morphology_id(client, species_id, strain_id, brain_region_id, skip_
         utils.PROJECT_HEADERS | utils.BEARER_TOKEN,
         authorized_public=False,
     )
+
+
+def create_emodel_id(
+    client,
+    species_id,
+    strain_id,
+    brain_region_id,
+    exemplar_morphology_id,
+    headers,
+    authorized_public,
+    name="Test Emodel Name",
+    description="Test Emodel Description",
+):
+    response = client.post(
+        "/emodel",
+        headers=headers,
+        json={
+            "name": name,
+            "description": description,
+            "brain_region_id": brain_region_id,
+            "species_id": species_id,
+            "strain_id": strain_id,
+            "exemplar_morphology_id": exemplar_morphology_id,
+            "legacy_id": "Test Legacy ID",
+            "authorized_public": authorized_public,
+            "iteration": "test iteration",
+            "score": -1,
+            "seed": -1,
+        },
+    )
+    assert response.status_code == 200
+    return response.json()["id"]
+
+
+@pytest.fixture
+def create_emodel_ids(db, client, exemplar_morphology_id, brain_region_id):
+    def _create_emodels(count: int):
+        species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
+        species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
+
+        strain1 = add_db(db, Strain(name="TestStrain1", species_id=species1.id, taxonomy_id="0"))
+        strain2 = add_db(db, Strain(name="TestStrain2", species_id=species2.id, taxonomy_id="1"))
+
+        emodel_ids = []
+        for i, (species, strain) in zip(
+            range(count),
+            it.cycle(((species1, strain1), (species2, strain2))),
+        ):
+            emodel_id = create_emodel_id(
+                client,
+                species.id,
+                strain.id,
+                brain_region_id,
+                headers=BEARER_TOKEN | PROJECT_HEADERS,
+                authorized_public=False,
+                name=f"Test Morphology Name {i}",
+                description=f"Test Morphology Description {i}",
+                exemplar_morphology_id=exemplar_morphology_id,
+            )
+            emodel_ids.append(emodel_id)
+
+        return emodel_ids
+
+    return _create_emodels
 
 
 @pytest.fixture

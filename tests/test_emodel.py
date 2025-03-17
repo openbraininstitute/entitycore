@@ -243,7 +243,7 @@ def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_pagination_total(client, create_emodel_ids):
+def test_pagination(client, create_emodel_ids):
     total_items = 29
     create_emodel_ids(total_items)
     db_id_offset = 2  # db indexes start from 2 due to the created morphology (indexed 1)

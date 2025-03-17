@@ -11,6 +11,7 @@ from app.schemas.asset import AssetRead
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
+    MISSING_ID,
     PROJECT_HEADERS,
     PROJECT_ID,
     TEST_DATA_DIR,
@@ -18,7 +19,6 @@ from tests.utils import (
     create_reconstruction_morphology_id,
 )
 
-NON_EXISTENT_ID = 999999999
 DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
 
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
@@ -107,7 +107,7 @@ def test_upload_entity_asset(client, entity):
     assert error.error_code == ApiErrorCode.ASSET_DUPLICATED
 
     # try to upload to a non-existent entity id
-    response = _upload_entity_asset(client, entity_type=entity.type, entity_id=NON_EXISTENT_ID)
+    response = _upload_entity_asset(client, entity_type=entity.type, entity_id=MISSING_ID)
     assert response.status_code == 404, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
@@ -126,7 +126,7 @@ def test_get_entity_asset(client, entity, asset):
     data = response.json()
     expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
     assert data == {
-        "id": asset.id,
+        "id": str(asset.id),
         "path": "a/b/c.txt",
         "full_path": expected_full_path,
         "bucket_name": settings.S3_BUCKET_NAME,
@@ -139,13 +139,13 @@ def test_get_entity_asset(client, entity, asset):
     }
 
     # try to get an asset with non-existent entity id
-    response = client.get(f"{_route(entity.type)}/{NON_EXISTENT_ID}/assets/{asset.id}")
+    response = client.get(f"{_route(entity.type)}/{MISSING_ID}/assets/{asset.id}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to get an asset with non-existent asset id
-    response = client.get(f"{_route(entity.type)}/{entity.id}/assets/{NON_EXISTENT_ID}")
+    response = client.get(f"{_route(entity.type)}/{entity.id}/assets/{MISSING_ID}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
@@ -159,7 +159,7 @@ def test_get_entity_assets(client, entity, asset):
     expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
     assert data == [
         {
-            "id": asset.id,
+            "id": str(asset.id),
             "path": "a/b/c.txt",
             "full_path": expected_full_path,
             "bucket_name": settings.S3_BUCKET_NAME,
@@ -173,7 +173,7 @@ def test_get_entity_assets(client, entity, asset):
     ]
 
     # try to get assets with non-existent entity id
-    response = client.get(f"{_route(entity.type)}/{NON_EXISTENT_ID}/assets")
+    response = client.get(f"{_route(entity.type)}/{MISSING_ID}/assets")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
@@ -192,13 +192,13 @@ def test_download_entity_asset(client, entity, asset):
     assert expected_params.issubset(response.next_request.url.params)
 
     # try to download an asset with non-existent entity id
-    response = client.get(f"{_route(entity.type)}/{NON_EXISTENT_ID}/assets/{asset.id}/download")
+    response = client.get(f"{_route(entity.type)}/{MISSING_ID}/assets/{asset.id}/download")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to download an asset with non-existent asset id
-    response = client.get(f"{_route(entity.type)}/{entity.id}/assets/{NON_EXISTENT_ID}/download")
+    response = client.get(f"{_route(entity.type)}/{entity.id}/assets/{MISSING_ID}/download")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
@@ -215,11 +215,11 @@ def test_delete_entity_asset(client, entity, asset):
     assert response.status_code == 404, f"Unexpected result: {response.text}"
 
     # try to delete an asset with non-existent entity id
-    response = client.delete(f"{_route(entity.type)}/{NON_EXISTENT_ID}/assets/{asset.id}")
+    response = client.delete(f"{_route(entity.type)}/{MISSING_ID}/assets/{asset.id}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
 
     # try to delete an asset with non-existent asset id
-    response = client.delete(f"{_route(entity.type)}/{entity.id}/assets/{NON_EXISTENT_ID}")
+    response = client.delete(f"{_route(entity.type)}/{entity.id}/assets/{MISSING_ID}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
 
 
@@ -245,6 +245,6 @@ def test_upload_delete_upload_entity_asset(client, entity):
     data = response.json()["data"]
     assert len(data) == 1
 
-    assert data[0]["id"] == asset1.id
+    assert data[0]["id"] == str(asset1.id)
     assert data[0]["path"] == "a/b/c.txt"
     assert data[0]["status"] == "created"

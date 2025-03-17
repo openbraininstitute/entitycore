@@ -1,3 +1,5 @@
+import uuid
+
 from app.db.model import Entity
 from app.db.types import EntityType
 from app.errors import ensure_result
@@ -9,7 +11,7 @@ def get_readable_entity(
     repos: RepositoryGroup,
     project_context: ProjectContext,
     entity_type: EntityType,
-    entity_id: int,
+    entity_id: uuid.UUID,
 ) -> Entity:
     with ensure_result(f"Entity {entity_id} not found or forbidden"):
         return repos.entity.get_readable_entity(
@@ -23,7 +25,7 @@ def get_writable_entity(
     repos: RepositoryGroup,
     project_context: ProjectContext,
     entity_type: EntityType,
-    entity_id: int,
+    entity_id: uuid.UUID,
     *,
     for_update: bool = False,
 ) -> Entity:

@@ -1,3 +1,5 @@
+import uuid
+
 from app.config import settings
 from app.db.types import AssetStatus, EntityType
 from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness
@@ -12,7 +14,7 @@ def get_entity_assets(
     repos: RepositoryGroup,
     project_context: ProjectContext,
     entity_type: EntityType,
-    entity_id: int,
+    entity_id: uuid.UUID,
 ) -> list[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     _ = entity_service.get_readable_entity(
@@ -31,8 +33,8 @@ def get_entity_asset(
     repos: RepositoryGroup,
     project_context: ProjectContext,
     entity_type: EntityType,
-    entity_id: int,
-    asset_id: int,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
 ) -> AssetRead:
     """Return an asset associated with a specific entity."""
     _ = entity_service.get_readable_entity(
@@ -52,7 +54,7 @@ def create_entity_asset(
     repos: RepositoryGroup,
     project_context: ProjectContext,
     entity_type: EntityType,
-    entity_id: int,
+    entity_id: uuid.UUID,
     filename: str,
     content_type: str,
     size: int,
@@ -100,8 +102,8 @@ def delete_entity_asset(
     repos: RepositoryGroup,
     project_context: ProjectContext,
     entity_type: EntityType,
-    entity_id: int,
-    asset_id: int,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
 ) -> AssetRead:
     """Mark an entity asset as deleted."""
     _ = entity_service.get_writable_entity(

@@ -1,14 +1,11 @@
 import pytest
 
-from app.db.model import (
-    Contribution,
-    Organization,
-    Person,
-    Role,
-)
+from app.db.model import Contribution, Organization, Person, Role
 
 from .utils import (
     BEARER_TOKEN,
+    MISSING_ID,
+    MISSING_ID_COMPACT,
     PROJECT_HEADERS,
     UNRELATED_PROJECT_HEADERS,
     add_db,
@@ -42,19 +39,19 @@ def test_create_contribution(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
-            "agent_id": person_id,
-            "role_id": role_id,
-            "entity_id": reconstruction_morphology_id,
+            "agent_id": str(person_id),
+            "role_id": str(role_id),
+            "entity_id": str(reconstruction_morphology_id),
         },
     )
     response.raise_for_status()
     data = response.json()
-    assert data["agent"]["id"] == person_id
+    assert data["agent"]["id"] == str(person_id)
     assert data["agent"]["givenName"] == "jd"
     assert data["agent"]["familyName"] == "courcol"
     assert data["agent"]["pref_label"] == "jd courcol"
     assert data["agent"]["type"] == "person"
-    assert data["role"]["id"] == role_id
+    assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == reconstruction_morphology_id
@@ -64,11 +61,11 @@ def test_create_contribution(
     response = client.get(f"{ROUTE}/{contribution_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
-    assert data["agent"]["id"] == person_id
+    assert data["agent"]["id"] == str(person_id)
     assert data["agent"]["givenName"] == "jd"
     assert data["agent"]["familyName"] == "courcol"
     assert data["agent"]["type"] == "person"
-    assert data["role"]["id"] == role_id
+    assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == reconstruction_morphology_id
@@ -78,14 +75,14 @@ def test_create_contribution(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
-            "agent_id": organization_id,
-            "role_id": role_id,
-            "entity_id": reconstruction_morphology_id,
+            "agent_id": str(organization_id),
+            "role_id": str(role_id),
+            "entity_id": str(reconstruction_morphology_id),
         },
     )
     response.raise_for_status()
     data = response.json()
-    assert data["agent"]["id"] == organization_id
+    assert data["agent"]["id"] == str(organization_id)
     assert data["agent"]["pref_label"] == "ACME"
     assert data["agent"]["alternative_name"] == "A Company Making Everything"
     assert data["agent"]["type"] == "organization"
@@ -118,17 +115,23 @@ def test_create_contribution(
     facets = response.json()["facets"]
     assert len(facets["contribution"]) == 2
     assert facets["contribution"] == [
-        {"id": 2, "label": "ACME", "type": "organization", "count": 1},
-        {"id": 1, "label": "jd courcol", "type": "person", "count": 1},
+        {"id": str(organization_id), "label": "ACME", "type": "organization", "count": 1},
+        {"id": str(person_id), "label": "jd courcol", "type": "person", "count": 1},
     ]
 
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(f"{ROUTE}/12345", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{MISSING_ID}", headers=PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/not_a_contribution_id", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}", headers=PROJECT_HEADERS)
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/42424242", headers=PROJECT_HEADERS)
+    assert response.status_code == 422
+
+    response = client.get(f"{ROUTE}/notanumber", headers=PROJECT_HEADERS)
     assert response.status_code == 422
 
 
@@ -147,9 +150,9 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
-            "agent_id": person_id,
-            "role_id": role_id,
-            "entity_id": inaccessible_entity_id,
+            "agent_id": str(person_id),
+            "role_id": str(role_id),
+            "entity_id": str(inaccessible_entity_id),
         },
     )
     # can't attach contributions to projects unrelated to us
@@ -159,9 +162,9 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
         ROUTE,
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         json={
-            "agent_id": person_id,
-            "role_id": role_id,
-            "entity_id": inaccessible_entity_id,
+            "agent_id": str(person_id),
+            "role_id": str(role_id),
+            "entity_id": str(inaccessible_entity_id),
         },
     )
     assert response.status_code == 200
@@ -184,7 +187,11 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json={"agent_id": person_id, "role_id": role_id, "entity_id": public_entity_id},
+        json={
+            "agent_id": str(person_id),
+            "role_id": str(role_id),
+            "entity_id": str(public_entity_id),
+        },
     )
     # can't attach contributions to projects unrelated to us, even if public
     assert response.status_code == 404
@@ -193,9 +200,9 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
         ROUTE,
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         json={
-            "agent_id": person_id,
-            "role_id": role_id,
-            "entity_id": public_entity_id,
+            "agent_id": str(person_id),
+            "role_id": str(role_id),
+            "entity_id": str(public_entity_id),
         },
     )
     assert public_obj.status_code == 200
@@ -285,12 +292,14 @@ def test_contribution_facets(
     facets = data["facets"]
     assert facets == {
         "contribution": [
-            {"count": 6, "id": 2, "label": "org_pref_label", "type": "organization"},
-            {"count": 9, "id": 1, "label": "person_pref_label", "type": "person"},
+            {"count": 6, "id": str(org.id), "label": "org_pref_label", "type": "organization"},
+            {"count": 9, "id": str(person.id), "label": "person_pref_label", "type": "person"},
         ],
         "mtype": [],
-        "species": [{"count": 12, "id": 1, "label": "Test Species", "type": "species"}],
-        "strain": [{"count": 12, "id": 1, "label": "Test Strain", "type": "strain"}],
+        "species": [
+            {"count": 12, "id": str(species_id), "label": "Test Species", "type": "species"}
+        ],
+        "strain": [{"count": 12, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
     }
     assert len(data["data"]) == 10
     expected_indexes = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
@@ -309,10 +318,14 @@ def test_contribution_facets(
     data = response.json()
     facets = data["facets"]
     assert facets == {
-        "contribution": [{"count": 9, "id": 1, "label": "person_pref_label", "type": "person"}],
+        "contribution": [
+            {"count": 9, "id": str(person.id), "label": "person_pref_label", "type": "person"}
+        ],
         "mtype": [],
-        "species": [{"count": 9, "id": 1, "label": "Test Species", "type": "species"}],
-        "strain": [{"count": 9, "id": 1, "label": "Test Strain", "type": "strain"}],
+        "species": [
+            {"count": 9, "id": str(species_id), "label": "Test Species", "type": "species"}
+        ],
+        "strain": [{"count": 9, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
     }
     assert len(data["data"]) == 9
     expected_indexes = [11, 10, 6, 5, 4, 3, 2, 1, 0]

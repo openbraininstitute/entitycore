@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
@@ -7,6 +8,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
     MeasurementCreate,
@@ -31,25 +33,28 @@ class ReconstructionMorphologyCreate(
     LicensedCreateMixin,
     AuthorizationOptionalPublicMixin,
 ):
-    species_id: int
-    strain_id: int | None
+    species_id: uuid.UUID
+    strain_id: uuid.UUID | None
     brain_region_id: int
     legacy_id: str | None
 
 
 class MorphologyFeatureAnnotationCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    reconstruction_morphology_id: int
+    reconstruction_morphology_id: uuid.UUID
     measurements: Sequence[MeasurementCreate]
 
 
-class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, CreationMixin):
+class MorphologyFeatureAnnotationRead(
+    MorphologyFeatureAnnotationCreate, CreationMixin, IdentifiableMixin
+):
     measurements: Sequence[MeasurementRead]
 
 
 class ReconstructionMorphologyRead(
     ReconstructionMorphologyBase,
     CreationMixin,
+    IdentifiableMixin,
     LicensedReadMixin,
     AuthorizationMixin,
 ):

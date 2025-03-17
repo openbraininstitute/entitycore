@@ -1,7 +1,9 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import AgentRead
-from app.schemas.base import CreationMixin
+from app.schemas.base import CreationMixin, IdentifiableMixin
 from app.schemas.entity import EntityRead
 from app.schemas.role import RoleRead
 
@@ -17,17 +19,17 @@ class ContributionBase(BaseModel):
 
 
 class ContributionCreate(ContributionBase):
-    agent_id: int
-    role_id: int
-    entity_id: int
+    agent_id: uuid.UUID
+    role_id: uuid.UUID
+    entity_id: uuid.UUID
 
 
-class ContributionRead(ContributionBase, CreationMixin):
+class ContributionRead(ContributionBase, CreationMixin, IdentifiableMixin):
     agent: AgentRead
     role: RoleRead
     entity: EntityRead
 
 
-class ContributionReadWithoutEntity(ContributionBase, CreationMixin):
+class ContributionReadWithoutEntity(ContributionBase, CreationMixin, IdentifiableMixin):
     agent: AgentRead
     role: RoleRead

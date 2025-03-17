@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     CreationMixin,
+    IdentifiableMixin,
 )
 
 
@@ -17,7 +18,7 @@ class PersonCreate(PersonBase):
     legacy_id: str | None = None
 
 
-class PersonRead(PersonBase, CreationMixin):
+class PersonRead(PersonBase, CreationMixin, IdentifiableMixin):
     type: str
 
 
@@ -32,7 +33,7 @@ class OrganizationCreate(OrganizationBase):
     legacy_id: str | None = None
 
 
-class OrganizationRead(OrganizationBase, CreationMixin):
+class OrganizationRead(OrganizationBase, CreationMixin, IdentifiableMixin):
     type: str
 
 

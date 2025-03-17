@@ -1,3 +1,5 @@
+import uuid
+
 import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException
 
@@ -59,14 +61,14 @@ def read_morphology_feature_annotations(
 
 @router.get("/{id_}", response_model=MorphologyFeatureAnnotationRead)
 def read_morphology_feature_annotation_id(
-    id_: int,
+    id_: uuid.UUID,
     project_context: VerifiedProjectContextHeader,
     db: SessionDep,
 ):
     with ensure_result(error_message="MorphologyFeatureAnnotation not found"):
         stmt = constrain_to_accessible_entities(
             sa.select(MorphologyFeatureAnnotation)
-            .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == id_)
+            .filter(MorphologyFeatureAnnotation.id == id_)
             .join(ReconstructionMorphology),
             project_context.project_id,
         )

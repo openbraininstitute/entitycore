@@ -52,7 +52,7 @@ class FacetQueryParams(TypedDict):
 )
 def read_reconstruction_morphology(
     db: SessionDep,
-    id_: int,
+    id_: uuid.UUID,
     project_context: VerifiedProjectContextHeader,
     expand: str | None = None,
 ):

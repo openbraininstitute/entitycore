@@ -258,9 +258,9 @@ class ETypesMixin:
     @declared_attr
     @classmethod
     def etypes(cls) -> Mapped[list["ETypeClass"]]:
-        if not hasattr(cls, "id"):
-            msg = f"{cls} does not have an 'id' column."
-            raise ValueError(msg)
+        if not issubclass(cls, Entity):
+            msg = f"{cls} should be an Entity"
+            raise TypeError(msg)
 
         return relationship(
             primaryjoin=f"{cls.__name__}.id == ETypeClassification.entity_id",
@@ -403,14 +403,26 @@ class Mesh(LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "mesh"}  # noqa: RUF012
 
 
-class MEModel(LocationMixin, Entity):
+class MEModel(
+    MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity
+):
     __tablename__ = "memodel"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
     status: Mapped[str] = mapped_column(default="")
     validated: Mapped[bool] = mapped_column(default=False)
-    # TODO: see how it relates to other created by properties
+
+    mmodel_id: Mapped[int] = mapped_column(
+        ForeignKey("reconstruction_morphology.id"), nullable=False
+    )
+
+    mmodel = relationship("ReconstructionMorphology", foreign_keys=[mmodel_id], uselist=False)
+
+    emodel_id: Mapped[int] = mapped_column(ForeignKey("emodel.id"), nullable=False)
+
+    emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
+
     __mapper_args__ = {"polymorphic_identity": "memodel"}  # noqa: RUF012
 
 

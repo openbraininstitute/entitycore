@@ -2,7 +2,7 @@ from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
-from app.db.model import EModel, Entity, ReconstructionMorphology
+from app.db.model import MEModel, EModel, Entity, ReconstructionMorphology
 
 
 def description_vector_trigger(
@@ -88,10 +88,28 @@ entities = [
         "description_vector",
         ["description", "name"],
     ),
+    description_vector_trigger(
+        MEModel,
+        "memodel_description_vector",
+        "description_vector",
+        ["description", "name"],
+    ),
     unauthorized_private_reference_function(
         EModel, "exemplar_morphology_id", ReconstructionMorphology
     ),
     unauthorized_private_reference_trigger(
         EModel, "exemplar_morphology_id", ReconstructionMorphology
     ),
+    unauthorized_private_reference_function(
+        MEModel,
+        "mmodel_id",
+        ReconstructionMorphology,
+    ),
+    unauthorized_private_reference_trigger(MEModel, "mmodel_id", ReconstructionMorphology),
+    unauthorized_private_reference_function(
+        MEModel,
+        "emodel_id",
+        EModel,
+    ),
+    unauthorized_private_reference_trigger(MEModel, "emodel_id", EModel),
 ]

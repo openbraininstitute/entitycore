@@ -291,7 +291,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: C9
             # TODO check if this is always hardcoded
             value = must_term["wildcard"]["name.keyword"]["value"]
             # TODO: remove hardcoded morphology_description_vector
-            query = query.filter(db_type.morphology_description_vector.match(value))
+            query = query.filter(db_type.description_vector.match(value))
 
         else:
             raise HTTPException(

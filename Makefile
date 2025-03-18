@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+message ?= "Default migration message"
 
 export ENVIRONMENT ?= dev
 export APP_NAME := entitycore
@@ -93,7 +94,7 @@ migration:  ## Create or update the alembic migration
 	@$(call load_env,run-local)
 	docker compose up --wait db
 	uv run -m alembic upgrade head
-	uv run -m alembic revision --autogenerate
+	uv run -m alembic revision --autogenerate -m "$(message)"
 
 dump:  # Dump the local database to file
 	@$(call load_env,run-docker)

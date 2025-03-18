@@ -160,6 +160,7 @@ class SpeciesMixin:
                 ["strain.id", "strain.species_id"],
                 name=f"fk_{cls.__tablename__}_strain_id_species_id",
             ),
+            *getattr(super(), "__table_args__", ()),
         )
 
 
@@ -258,6 +259,22 @@ class Annotation(LegacyMixin, TimestampMixin, Base):
     annotation_body = relationship("AnnotationBody", uselist=False)
 
 
+class DescriptionVectorMixin:
+    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        return (
+            Index(
+                f"ix_{cls.__tablename__}_description_vector",
+                cls.description_vector,
+                postgresql_using="gin",
+            ),
+            *getattr(super(), "__table_args__", ()),
+        )
+
+
 class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
     id: Mapped[int] = mapped_column(ForeignKey("root.id"), primary_key=True, autoincrement=False)
@@ -323,7 +340,7 @@ class Contribution(TimestampMixin, Base):
     )
 
 
-class EModel(SpeciesMixin, LocationMixin, Entity):
+class EModel(DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
     __tablename__ = "emodel"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     description: Mapped[str] = mapped_column(default="")
@@ -336,8 +353,6 @@ class EModel(SpeciesMixin, LocationMixin, Entity):
     iteration: Mapped[str] = mapped_column(default="")
     score: Mapped[float] = mapped_column(default=-1)
     seed: Mapped[int] = mapped_column(default=-1)
-
-    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
 
     exemplar_morphology_id: Mapped[int] = mapped_column(
         ForeignKey("reconstruction_morphology.id"), nullable=False
@@ -363,15 +378,6 @@ class EModel(SpeciesMixin, LocationMixin, Entity):
 
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
 
-    # https://www.postgresql.org/docs/current/textsearch-indexes.html
-    __table_args__ = (
-        Index(
-            "ix_emodel_description_vector",
-            description_vector,
-            postgresql_using="gin",
-        ),
-    )
-
 
 class Mesh(LocationMixin, Entity):
     __tablename__ = "mesh"
@@ -390,14 +396,15 @@ class MEModel(LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "memodel"}  # noqa: RUF012
 
 
-class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
+class ReconstructionMorphology(
+    DescriptionVectorMixin, LicensedMixin, LocationMixin, SpeciesMixin, Entity
+):
     __tablename__ = "reconstruction_morphology"
 
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     description: Mapped[str]
     # name is not unique
     name: Mapped[str] = mapped_column(index=True)
-    morphology_description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
     location: Mapped[PointLocation | None]
@@ -410,15 +417,6 @@ class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entit
     )
 
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
-
-    # https://www.postgresql.org/docs/current/textsearch-indexes.html
-    __table_args__ = (
-        Index(
-            "ix_reconstruction_morphology_morphology_description_vector",
-            morphology_description_vector,
-            postgresql_using="gin",
-        ),
-    )
 
 
 class MorphologyFeatureAnnotation(TimestampMixin, Base):

@@ -79,7 +79,7 @@ entities = [
     description_vector_trigger(
         ReconstructionMorphology,
         "morphology_description_vector",
-        "morphology_description_vector",
+        "description_vector",
         ["description", "name"],
     ),
     description_vector_trigger(

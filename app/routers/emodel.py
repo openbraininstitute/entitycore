@@ -1,3 +1,4 @@
+import uuid
 from http import HTTPStatus
 
 import sqlalchemy as sa
@@ -57,7 +58,7 @@ def emodel_joinedloads(select: Select):
 )
 def read_emodel(
     db: SessionDep,
-    id_: int,
+    id_: uuid.UUID,
     project_context: VerifiedProjectContextHeader,
 ) -> EModelRead:
     with ensure_result("EModel not found"):

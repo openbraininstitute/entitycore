@@ -10,6 +10,8 @@ from .utils import BEARER_TOKEN, PROJECT_HEADERS, create_reconstruction_morpholo
 
 ROUTE = "/emodel"
 
+CreateEModelIds = Callable[[int], list[uuid.UUID]]
+
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_create_emodel(
@@ -42,15 +44,20 @@ def test_create_emodel(
 
 
 @pytest.mark.usefixtures("skip_project_check")
+def test_get_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
+    emodel_id = str(create_emodel_ids(1)[0])
+    response = client.get(f"{ROUTE}/{emodel_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    assert response.json()["id"] == emodel_id
+
+
+@pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(f"{ROUTE}/42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{uuid.uuid4()}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notauuid", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 422
-
-
-CreateEModelIds = Callable[[int], list[uuid.UUID]]
 
 
 @pytest.mark.usefixtures("skip_project_check")

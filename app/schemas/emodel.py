@@ -20,7 +20,6 @@ class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase):
 
 
 class EModelBase(BaseModel):
-    id: uuid.UUID
     model_config = ConfigDict(from_attributes=True)
     description: str
     name: str
@@ -42,6 +41,7 @@ class EModelRead(
     CreationMixin,
     AuthorizationMixin,
 ):
+    id: uuid.UUID
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead

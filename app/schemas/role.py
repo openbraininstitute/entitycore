@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     CreationMixin,
+    IdentifiableMixin,
 )
 
 
@@ -15,5 +16,5 @@ class RoleCreate(RoleBase):
     pass
 
 
-class RoleRead(RoleBase, CreationMixin):
+class RoleRead(RoleBase, CreationMixin, IdentifiableMixin):
     pass

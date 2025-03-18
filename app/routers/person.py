@@ -1,3 +1,5 @@
+import uuid
+
 import sqlalchemy as sa
 from fastapi import APIRouter
 
@@ -38,7 +40,7 @@ def read_persons(db: SessionDep, pagination_request: PaginationQuery) -> ListRes
 
 
 @router.get("/{id_}", response_model=PersonRead)
-def read_person(id_: int, db: SessionDep):
+def read_person(id_: uuid.UUID, db: SessionDep):
     with ensure_result(error_message="Person not found"):
         stmt = sa.select(Person).filter(Person.id == id_)
         row = db.execute(stmt).scalar_one()

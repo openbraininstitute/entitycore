@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 import sqlalchemy as sa
@@ -47,7 +48,7 @@ def read_mtypes(
 
 
 @router.get("/{id_}", response_model=MTypeClassRead)
-def read_mtype(id_: int, db: SessionDep):
+def read_mtype(id_: uuid.UUID, db: SessionDep):
     with ensure_result(error_message="MTypeClass not found"):
         stmt = sa.select(MTypeClass).filter(MTypeClass.id == id_)
         row = db.execute(stmt).scalar_one()

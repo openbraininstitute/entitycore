@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import UUID4, BaseModel, ConfigDict
 
 from app.schemas.agent import AgentRead
@@ -6,7 +8,7 @@ from app.schemas.agent import AgentRead
 class EntityRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: uuid.UUID
     type: str
     createdBy: AgentRead | None
     updatedBy: AgentRead | None

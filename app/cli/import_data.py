@@ -2,6 +2,8 @@ import datetime
 import glob
 import json
 import os
+import random
+import uuid
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
@@ -999,8 +1001,19 @@ def _analyze() -> None:
 
 
 @click.group()
-def cli():
+@click.option(
+    "--seed",
+    type=int,
+    help="RNG seed to generate UUIDv4, or -1 to not init the seed",
+    default=-1,
+    show_default=True,
+)
+def cli(seed):
     """Main CLI group."""
+    if seed >= 0:
+        click.secho(f"Setting {seed=}")
+        random.seed(seed)
+        uuid.uuid4 = lambda: uuid.UUID(int=random.getrandbits(128), version=4)
 
 
 @cli.command()

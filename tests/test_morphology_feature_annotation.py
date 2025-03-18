@@ -3,6 +3,8 @@ import sqlalchemy
 
 from .utils import (
     BEARER_TOKEN,
+    MISSING_ID,
+    MISSING_ID_COMPACT,
     PROJECT_HEADERS,
     UNRELATED_PROJECT_HEADERS,
     create_reconstruction_morphology_id,
@@ -75,6 +77,10 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
         f"{ROUTE}/{morphology_annotation_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
+
+    assert response.status_code == 200, (
+        f"Failed to retrieve morphology feature annotation: {response.text}"
+    )
     data = response.json()
     morphology_annotation_id = data["id"]
     assert "creation_date" in data
@@ -117,10 +123,16 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(f"{ROUTE}/42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{MISSING_ID}", headers=PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}", headers=PROJECT_HEADERS)
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/42424242", headers=PROJECT_HEADERS)
+    assert response.status_code == 422
+
+    response = client.get(f"{ROUTE}/notanumber", headers=PROJECT_HEADERS)
     assert response.status_code == 422
 
 

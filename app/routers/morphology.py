@@ -136,9 +136,7 @@ def morphology_query(
     )
 
     if search:
-        filter_query = filter_query.where(
-            ReconstructionMorphology.description_vector.match(search)
-        )
+        filter_query = filter_query.where(ReconstructionMorphology.description_vector.match(search))
 
     filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
 

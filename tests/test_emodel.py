@@ -2,7 +2,7 @@ import itertools as it
 
 import pytest
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS
+from .utils import BEARER_TOKEN, PROJECT_HEADERS, create_reconstruction_morphology_id
 
 ROUTE = "/emodel"
 
@@ -192,6 +192,31 @@ def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_
     assert public_emodel.status_code == 200
     public_emodel = public_emodel.json()
 
+    unauthorized_exemplar_morphology = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=emodel_json,
+    )
+
+    assert unauthorized_exemplar_morphology.status_code == 403
+
+    exemplar_morphology_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        authorized_public=False,
+    )
+
     inaccessible_obj = client.post(
         ROUTE,
         headers=BEARER_TOKEN
@@ -199,9 +224,12 @@ def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_
             "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
             "project-id": "42424242-4242-4000-9000-424242424242",
         },
-        json=emodel_json | {"name": "unaccessable emodel 1"},
+        json=emodel_json
+        | {"name": "inaccessible emodel", "exemplar_morphology_id": exemplar_morphology_id},
     )
+
     assert inaccessible_obj.status_code == 200
+
     inaccessible_obj = inaccessible_obj.json()
 
     private_emodel0 = client.post(

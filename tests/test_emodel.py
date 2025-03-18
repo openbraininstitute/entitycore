@@ -1,4 +1,6 @@
 import itertools as it
+import uuid
+from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
@@ -48,8 +50,11 @@ def test_missing(client):
     assert response.status_code == 422
 
 
+CreateEModelIds = Callable[[int], list[uuid.UUID]]
+
+
 @pytest.mark.usefixtures("skip_project_check")
-def test_query_emodel(client, create_emodel_ids):
+def test_query_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
     count = 11
     create_emodel_ids(count)
 
@@ -76,9 +81,9 @@ def test_query_emodel(client, create_emodel_ids):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_emodels_sorted(client, create_emodel_ids):
+def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateEModelIds):
     count = 11
-    create_emodel_ids(count)
+    emodel_ids = create_emodel_ids(count)
 
     response = client.get(
         ROUTE,
@@ -97,6 +102,7 @@ def test_emodels_sorted(client, create_emodel_ids):
     )
     assert response.status_code == 200
     data = response.json()["data"]
+
     assert all(
         elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
@@ -109,7 +115,7 @@ def test_emodels_sorted(client, create_emodel_ids):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 3
-    assert [row["id"] for row in data] == [4, 5, 6]  # 1 2 3 are morphology and agents
+    assert [row["id"] for row in data] == [str(id_) for id_ in emodel_ids][:3]
 
 
 @pytest.mark.usefixtures("skip_project_check")

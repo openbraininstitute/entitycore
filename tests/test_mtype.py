@@ -63,6 +63,7 @@ def test_mtype(db, client):
     response = client.get(f"{ROUTE}/{mtypes[0].id}")
     assert response.status_code == 200
     data = response.json()
+
     assert data["id"] == str(mtypes[0].id)
     assert data["pref_label"] == "pref_label_0"
     assert data["alt_label"] == "alt_label_0"

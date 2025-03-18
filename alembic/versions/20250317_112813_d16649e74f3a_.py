@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d0a98a21ce35
+Revision ID: d16649e74f3a
 Revises:
-Create Date: 2025-03-12 21:13:29.722708
+Create Date: 2025-03-17 11:28:13.846625
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "d0a98a21ce35"
+revision: str = "d16649e74f3a"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -27,7 +27,7 @@ def upgrade() -> None:
     sa.Enum("CREATED", "DELETED", name="assetstatus").create(op.get_bind())
     op.create_table(
         "annotation_body",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("type", sa.String(), nullable=False),
         sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
@@ -78,7 +78,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_brain_region_name"), "brain_region", ["name"], unique=True)
     op.create_table(
         "license",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("label", sa.String(), nullable=False),
@@ -103,7 +103,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_license_name"), "license", ["name"], unique=True)
     op.create_table(
         "mtype_class",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pref_label", sa.String(), nullable=False),
         sa.Column("definition", sa.String(), nullable=False),
         sa.Column("alt_label", sa.String(), nullable=True),
@@ -130,7 +130,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_mtype_class_pref_label"), "mtype_class", ["pref_label"], unique=True)
     op.create_table(
         "role",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("role_id", sa.String(), nullable=False),
         sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
@@ -155,7 +155,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_role_role_id"), "role", ["role_id"], unique=True)
     op.create_table(
         "root",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("type", sa.String(), nullable=False),
         sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
@@ -164,7 +164,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_root_legacy_id"), "root", ["legacy_id"], unique=False)
     op.create_table(
         "species",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("taxonomy_id", sa.String(), nullable=False),
         sa.Column(
@@ -186,7 +186,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_species_taxonomy_id"), "species", ["taxonomy_id"], unique=True)
     op.create_table(
         "subject",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column(
             "creation_date",
@@ -206,7 +206,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_subject_name"), "subject", ["name"], unique=True)
     op.create_table(
         "agent",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pref_label", sa.String(), nullable=False),
         sa.Column(
             "creation_date",
@@ -227,7 +227,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_agent_pref_label"), "agent", ["pref_label"], unique=True)
     op.create_table(
         "datamaturity_annotation_body",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pref_label", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(
             ["id"],
@@ -244,7 +244,7 @@ def upgrade() -> None:
     )
     op.create_table(
         "etype_annotation_body",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pref_label", sa.String(), nullable=False),
         sa.Column("definition", sa.String(), nullable=True),
         sa.Column("alt_label", sa.String(), nullable=True),
@@ -261,10 +261,10 @@ def upgrade() -> None:
     )
     op.create_table(
         "strain",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("taxonomy_id", sa.String(), nullable=False),
-        sa.Column("species_id", sa.Integer(), nullable=False),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -289,9 +289,9 @@ def upgrade() -> None:
     op.create_index(op.f("ix_strain_taxonomy_id"), "strain", ["taxonomy_id"], unique=True)
     op.create_table(
         "entity",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
-        sa.Column("createdBy_id", sa.Integer(), nullable=True),
-        sa.Column("updatedBy_id", sa.Integer(), nullable=True),
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("createdBy_id", sa.Uuid(), nullable=True),
+        sa.Column("updatedBy_id", sa.Uuid(), nullable=True),
         sa.Column("authorized_project_id", sa.Uuid(), nullable=False),
         sa.Column("authorized_public", sa.Boolean(), nullable=False),
         sa.Column(
@@ -320,14 +320,14 @@ def upgrade() -> None:
     op.create_index(op.f("ix_entity_updatedBy_id"), "entity", ["updatedBy_id"], unique=False)
     op.create_table(
         "organization",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("alternative_name", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(["id"], ["agent.id"], name=op.f("fk_organization_id_agent")),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_organization")),
     )
     op.create_table(
         "person",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("givenName", sa.String(), nullable=False),
         sa.Column("familyName", sa.String(), nullable=False),
         sa.ForeignKeyConstraint(["id"], ["agent.id"], name=op.f("fk_person_id_agent")),
@@ -336,7 +336,7 @@ def upgrade() -> None:
     )
     op.create_table(
         "analysis_software_source_code",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("branch", sa.String(), nullable=False),
         sa.Column("codeRepository", sa.String(), nullable=False),
         sa.Column("command", sa.String(), nullable=False),
@@ -348,7 +348,6 @@ def upgrade() -> None:
         sa.Column("programmingLanguage", sa.String(), nullable=False),
         sa.Column("runtimePlatform", sa.String(), nullable=False),
         sa.Column("version", sa.String(), nullable=False),
-        sa.Column("content_url", sa.String(), nullable=True),
         sa.ForeignKeyConstraint(
             ["id"], ["entity.id"], name=op.f("fk_analysis_software_source_code_id_entity")
         ),
@@ -356,10 +355,10 @@ def upgrade() -> None:
     )
     op.create_table(
         "annotation",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("note", sa.String(), nullable=True),
-        sa.Column("entity_id", sa.Integer(), nullable=False),
-        sa.Column("annotation_body_id", sa.Integer(), nullable=False),
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
+        sa.Column("annotation_body_id", sa.Uuid(), nullable=False),
         sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column(
@@ -394,7 +393,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_annotation_legacy_id"), "annotation", ["legacy_id"], unique=False)
     op.create_table(
         "asset",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
             "status",
             postgresql.ENUM("CREATED", "DELETED", name="assetstatus", create_type=False),
@@ -408,7 +407,7 @@ def upgrade() -> None:
         sa.Column("size", sa.BigInteger(), nullable=False),
         sa.Column("sha256_digest", sa.LargeBinary(length=32), nullable=True),
         sa.Column("meta", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("entity_id", sa.Integer(), nullable=False),
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -437,10 +436,10 @@ def upgrade() -> None:
     )
     op.create_table(
         "contribution",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
-        sa.Column("agent_id", sa.Integer(), nullable=False),
-        sa.Column("role_id", sa.Integer(), nullable=False),
-        sa.Column("entity_id", sa.Integer(), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("agent_id", sa.Uuid(), nullable=False),
+        sa.Column("role_id", sa.Uuid(), nullable=False),
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -473,7 +472,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_contribution_role_id"), "contribution", ["role_id"], unique=False)
     op.create_table(
         "emodel",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("eModel", sa.String(), nullable=False),
@@ -481,9 +480,8 @@ def upgrade() -> None:
         sa.Column("iteration", sa.String(), nullable=False),
         sa.Column("score", sa.Float(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
-        sa.Column("content_url", sa.String(), nullable=True),
-        sa.Column("species_id", sa.Integer(), nullable=False),
-        sa.Column("strain_id", sa.Integer(), nullable=True),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
@@ -506,13 +504,13 @@ def upgrade() -> None:
     op.create_index(op.f("ix_emodel_strain_id"), "emodel", ["strain_id"], unique=False)
     op.create_table(
         "experimental_bouton_density",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("species_id", sa.Integer(), nullable=False),
-        sa.Column("strain_id", sa.Integer(), nullable=True),
-        sa.Column("license_id", sa.Integer(), nullable=True),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -570,13 +568,13 @@ def upgrade() -> None:
     )
     op.create_table(
         "experimental_neuron_density",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("species_id", sa.Integer(), nullable=False),
-        sa.Column("strain_id", sa.Integer(), nullable=True),
-        sa.Column("license_id", sa.Integer(), nullable=True),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -634,13 +632,13 @@ def upgrade() -> None:
     )
     op.create_table(
         "experimental_synapses_per_connection",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("species_id", sa.Integer(), nullable=False),
-        sa.Column("strain_id", sa.Integer(), nullable=True),
-        sa.Column("license_id", sa.Integer(), nullable=True),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -698,12 +696,11 @@ def upgrade() -> None:
     )
     op.create_table(
         "memodel",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("status", sa.String(), nullable=False),
         sa.Column("validated", sa.Boolean(), nullable=False),
-        sa.Column("content_url", sa.String(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
@@ -718,8 +715,7 @@ def upgrade() -> None:
     )
     op.create_table(
         "mesh",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
-        sa.Column("content_url", sa.String(), nullable=True),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
@@ -732,11 +728,11 @@ def upgrade() -> None:
     op.create_index(op.f("ix_mesh_brain_region_id"), "mesh", ["brain_region_id"], unique=False)
     op.create_table(
         "mtype_classification",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
-        sa.Column("createdBy_id", sa.Integer(), nullable=True),
-        sa.Column("updatedBy_id", sa.Integer(), nullable=True),
-        sa.Column("entity_id", sa.Integer(), nullable=False),
-        sa.Column("mtype_class_id", sa.Integer(), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("createdBy_id", sa.Uuid(), nullable=True),
+        sa.Column("updatedBy_id", sa.Uuid(), nullable=True),
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
+        sa.Column("mtype_class_id", sa.Uuid(), nullable=False),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -797,15 +793,15 @@ def upgrade() -> None:
     )
     op.create_table(
         "reconstruction_morphology",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("morphology_description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("location", app.db.types.PointLocationType(astext_type=Text()), nullable=True),
-        sa.Column("license_id", sa.Integer(), nullable=True),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("species_id", sa.Integer(), nullable=False),
-        sa.Column("strain_id", sa.Integer(), nullable=True),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -863,13 +859,13 @@ def upgrade() -> None:
     )
     op.create_table(
         "single_cell_experimental_trace",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("species_id", sa.Integer(), nullable=False),
-        sa.Column("strain_id", sa.Integer(), nullable=True),
-        sa.Column("license_id", sa.Integer(), nullable=True),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -927,8 +923,8 @@ def upgrade() -> None:
     )
     op.create_table(
         "morphology_feature_annotation",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
-        sa.Column("reconstruction_morphology_id", sa.Integer(), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("reconstruction_morphology_id", sa.Uuid(), nullable=False),
         sa.Column(
             "creation_date",
             sa.DateTime(timezone=True),
@@ -964,14 +960,13 @@ def upgrade() -> None:
     )
     op.create_table(
         "single_neuron_simulation",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
         sa.Column("injectionLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
         sa.Column("recordingLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
-        sa.Column("me_model_id", sa.Integer(), nullable=False),
-        sa.Column("content_url", sa.String(), nullable=True),
+        sa.Column("me_model_id", sa.Uuid(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
@@ -1002,12 +997,11 @@ def upgrade() -> None:
     )
     op.create_table(
         "single_neuron_synaptome",
-        sa.Column("id", sa.Integer(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
-        sa.Column("me_model_id", sa.Integer(), nullable=False),
-        sa.Column("content_url", sa.String(), nullable=True),
+        sa.Column("me_model_id", sa.Uuid(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
@@ -1038,9 +1032,9 @@ def upgrade() -> None:
     )
     op.create_table(
         "measurement",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("measurement_of", sa.String(), nullable=False),
-        sa.Column("morphology_feature_annotation_id", sa.Integer(), nullable=False),
+        sa.Column("morphology_feature_annotation_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
             ["morphology_feature_annotation_id"],
             ["morphology_feature_annotation.id"],
@@ -1061,10 +1055,10 @@ def upgrade() -> None:
     )
     op.create_table(
         "measurement_serie_element",
-        sa.Column("id", sa.Integer(), sa.Identity(always=False), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=True),
         sa.Column("value", sa.Float(), nullable=True),
-        sa.Column("measurement_id", sa.Integer(), nullable=False),
+        sa.Column("measurement_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
             ["measurement_id"],
             ["measurement.id"],

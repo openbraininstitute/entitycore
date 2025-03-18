@@ -1,6 +1,6 @@
 import pytest
 
-from .utils import PROJECT_HEADERS
+from .utils import MISSING_ID, MISSING_ID_COMPACT, PROJECT_HEADERS
 
 ROUTE = "/experimental-synapses-per-connection"
 
@@ -61,11 +61,17 @@ def test_experimental_synapses_per_connection(
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_missing_experimental_synapses_per_connection(client):
-    response = client.get(f"{ROUTE}/42424242", headers=PROJECT_HEADERS)
+def test_missing(client):
+    response = client.get(f"{ROUTE}/{MISSING_ID}")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/notanumber", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}")
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/42424242")
+    assert response.status_code == 422
+
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
 
 

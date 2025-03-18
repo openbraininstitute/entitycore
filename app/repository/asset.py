@@ -1,5 +1,6 @@
 """Asset repository module."""
 
+import uuid
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -16,7 +17,7 @@ class AssetRepository(BaseRepository):
     def get_entity_assets(
         self,
         entity_type: EntityType,
-        entity_id: int,
+        entity_id: uuid.UUID,
     ) -> Sequence[Asset]:
         """Return a sequence of assets, potentially empty."""
         query = (
@@ -33,8 +34,8 @@ class AssetRepository(BaseRepository):
     def get_entity_asset(
         self,
         entity_type: EntityType,
-        entity_id: int,
-        asset_id: int,
+        entity_id: uuid.UUID,
+        asset_id: uuid.UUID,
     ) -> Asset:
         """Return a single asset, or raise an error."""
         query = (
@@ -49,7 +50,7 @@ class AssetRepository(BaseRepository):
         )
         return self.db.execute(query).scalar_one()
 
-    def create_entity_asset(self, entity_id: int, asset: AssetCreate) -> Asset:
+    def create_entity_asset(self, entity_id: uuid.UUID, asset: AssetCreate) -> Asset:
         """Create an asset associated with the given entity."""
         sha256_digest = bytes.fromhex(asset.sha256_digest) if asset.sha256_digest else None
         query = (
@@ -73,8 +74,8 @@ class AssetRepository(BaseRepository):
     def update_entity_asset_status(
         self,
         entity_type: EntityType,
-        entity_id: int,
-        asset_id: int,
+        entity_id: uuid.UUID,
+        asset_id: uuid.UUID,
         asset_status: AssetStatus,
     ) -> Asset:
         """Update the status of the given asset.

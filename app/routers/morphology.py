@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
@@ -40,7 +41,7 @@ router = APIRouter(
 
 
 class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[int]
+    id: InstrumentedAttribute[uuid.UUID]
     label: InstrumentedAttribute[str]
     type: NotRequired[InstrumentedAttribute[str]]
 
@@ -51,7 +52,7 @@ class FacetQueryParams(TypedDict):
 )
 def read_reconstruction_morphology(
     db: SessionDep,
-    id_: int,
+    id_: uuid.UUID,
     project_context: VerifiedProjectContextHeader,
     expand: str | None = None,
 ):

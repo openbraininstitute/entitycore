@@ -1,4 +1,5 @@
 import datetime
+import uuid
 
 import sqlalchemy as sa
 from sqlalchemy import any_
@@ -253,7 +254,11 @@ def get_created_and_updated(data):
 
 
 def get_or_create_distribution(
-    distribution, entity_id: int, entity_type: str, db: Session, project_context: ProjectContext
+    distribution,
+    entity_id: uuid.UUID,
+    entity_type: str,
+    db: Session,
+    project_context: ProjectContext,
 ):
     # Check if the Distribution already exists in the database
     if isinstance(distribution, list):

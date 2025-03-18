@@ -1,6 +1,6 @@
 import pytest
 
-from .utils import PROJECT_HEADERS
+from .utils import MISSING_ID, MISSING_ID_COMPACT, PROJECT_HEADERS
 
 ROUTE = "/experimental-bouton-density"
 
@@ -60,11 +60,17 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_missing_bouton_density(client):
-    response = client.get(f"{ROUTE}/42424242", headers=PROJECT_HEADERS)
+def test_missing(client):
+    response = client.get(f"{ROUTE}/{MISSING_ID}")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/notanumber", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}")
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/42424242")
+    assert response.status_code == 422
+
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
 
 
@@ -74,9 +80,9 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "brain_region_id": brain_region_id,
         "description": "a great description",
         "legacy_id": "Test Legacy ID",
-        "license_id": license_id,
-        "species_id": species_id,
-        "strain_id": strain_id,
+        "license_id": str(license_id),
+        "species_id": str(species_id),
+        "strain_id": str(strain_id),
     }
 
     public_obj = client.post(

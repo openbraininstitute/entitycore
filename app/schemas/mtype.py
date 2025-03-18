@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.base import CreationMixin
+from app.schemas.base import CreationMixin, IdentifiableMixin
 
 
 class MTypeClassBase(BaseModel):
@@ -11,5 +11,5 @@ class MTypeClassBase(BaseModel):
     definition: str
 
 
-class MTypeClassRead(MTypeClassBase, CreationMixin):
+class MTypeClassRead(MTypeClassBase, CreationMixin, IdentifiableMixin):
     pass

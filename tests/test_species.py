@@ -1,3 +1,5 @@
+from tests.utils import MISSING_ID, MISSING_ID_COMPACT
+
 ROUTE = "/species"
 
 
@@ -34,9 +36,15 @@ def test_create_species(client):
     assert data == [items[1]]
 
 
-def test_missing_role(client):
-    response = client.get(f"{ROUTE}/42424242")
+def test_missing(client):
+    response = client.get(f"{ROUTE}/{MISSING_ID}")
     assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}")
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/42424242")
+    assert response.status_code == 422
 
     response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422

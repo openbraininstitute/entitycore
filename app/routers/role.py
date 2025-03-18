@@ -1,3 +1,5 @@
+import uuid
+
 import sqlalchemy as sa
 from fastapi import APIRouter
 
@@ -40,7 +42,7 @@ def read_roles(db: SessionDep, pagination_request: PaginationQuery) -> ListRespo
 
 
 @router.get("/{id_}", response_model=RoleRead)
-def read_role(id_: int, db: SessionDep):
+def read_role(id_: uuid.UUID, db: SessionDep):
     with ensure_result(error_message="Role not found"):
         stmt = sa.select(Role).filter(Role.id == id_)
         row = db.execute(stmt).scalar_one()

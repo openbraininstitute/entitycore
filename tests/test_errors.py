@@ -4,6 +4,8 @@ import sqlalchemy as sa
 from app import errors as test_module
 from app.db.model import Root
 
+from tests.utils import MISSING_ID
+
 
 def test_errors():
     error = test_module.ApiError(
@@ -39,7 +41,7 @@ def test_ensure_result(db):
 
 
 def test_ensure_uniqueness(db):
-    query = sa.insert(Root).values(id=1, type="root")
+    query = sa.insert(Root).values(id=MISSING_ID, type="root")
     db.execute(query)
 
     with (

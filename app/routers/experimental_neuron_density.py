@@ -1,3 +1,5 @@
+import uuid
+
 import sqlalchemy as sa
 from fastapi import APIRouter
 
@@ -53,7 +55,7 @@ def read_experimental_neuron_densities(
 @router.get("/{id_}", response_model=ExperimentalNeuronDensityRead)
 def read_experimental_neuron_density(
     project_context: VerifiedProjectContextHeader,
-    id_: int,
+    id_: uuid.UUID,
     db: SessionDep,
 ):
     with ensure_result(error_message="ExperimentalNeuronDensity not found"):

@@ -1,6 +1,6 @@
 """Entity repository module."""
 
-from uuid import UUID
+import uuid
 
 import sqlalchemy as sa
 
@@ -16,8 +16,8 @@ class EntityRepository(BaseRepository):
     def get_readable_entity(
         self,
         entity_type: EntityType,
-        entity_id: int,
-        project_id: UUID,
+        entity_id: uuid.UUID,
+        project_id: uuid.UUID,
     ) -> Entity:
         """Return a specific entity by type and id, readable by the given project.
 
@@ -37,8 +37,8 @@ class EntityRepository(BaseRepository):
     def get_writable_entity(
         self,
         entity_type: EntityType,
-        entity_id: int,
-        project_id: UUID,
+        entity_id: uuid.UUID,
+        project_id: uuid.UUID,
         *,
         for_update: bool = False,
     ) -> Entity:

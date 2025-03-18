@@ -1,3 +1,5 @@
+import uuid
+
 import sqlalchemy as sa
 from fastapi import APIRouter, HTTPException
 from sqlalchemy.orm import contains_eager
@@ -50,7 +52,7 @@ def read_contributions(
 
 @router.get("/{id_}")
 def read_contribution(
-    id_: int, project_context: VerifiedProjectContextHeader, db: SessionDep
+    id_: uuid.UUID, project_context: VerifiedProjectContextHeader, db: SessionDep
 ) -> ContributionRead:
     with ensure_result(error_message="Contribution not found"):
         stmt = constrain_to_accessible_entities(

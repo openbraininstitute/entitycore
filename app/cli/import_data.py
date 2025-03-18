@@ -1,3 +1,4 @@
+import uuid
 import datetime
 import glob
 import json
@@ -131,7 +132,7 @@ def create_annotation(annotation_, entity_id, db):
     if annotation_type in [MTypeClass, ETypeClass]:
         agent_id = get_agent_id_from_contribution(annotation_)
 
-    assert agent_id is None or isinstance(agent_id, int)
+    assert agent_id is None or isinstance(agent_id, uuid.UUID)
 
     if annotation_type is MTypeClass:
         row = MTypeClassification(

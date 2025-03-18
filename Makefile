@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-message ?= "Default migration message"
+message ?= Default migration message
 
 export ENVIRONMENT ?= dev
 export APP_NAME := entitycore

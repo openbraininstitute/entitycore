@@ -238,6 +238,38 @@ class ETypeClassification(ClassificationMixin, TimestampMixin, Base):
     etype_class_id: Mapped[int] = mapped_column(ForeignKey("etype_class.id"), index=True)
 
 
+class MTypesMixin:
+    @declared_attr
+    @classmethod
+    def mtypes(cls) -> Mapped[list["MTypeClass"]]:
+        if not hasattr(cls, "id"):
+            msg = f"{cls} does not have an 'id' column."
+            raise ValueError(msg)
+
+        return relationship(
+            primaryjoin=f"{cls.__name__}.id == MTypeClassification.entity_id",
+            secondary="mtype_classification",
+            uselist=True,
+            viewonly=True,
+        )
+
+
+class ETypesMixin:
+    @declared_attr
+    @classmethod
+    def etypes(cls) -> Mapped[list["ETypeClass"]]:
+        if not hasattr(cls, "id"):
+            msg = f"{cls} does not have an 'id' column."
+            raise ValueError(msg)
+
+        return relationship(
+            primaryjoin=f"{cls.__name__}.id == ETypeClassification.entity_id",
+            secondary="etype_classification",
+            uselist=True,
+            viewonly=True,
+        )
+
+
 class DataMaturityAnnotationBody(AnnotationBody):
     __tablename__ = "datamaturity_annotation_body"
     id: Mapped[int] = mapped_column(
@@ -340,7 +372,7 @@ class Contribution(TimestampMixin, Base):
     )
 
 
-class EModel(DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
+class EModel(MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
     __tablename__ = "emodel"
     id: Mapped[int] = mapped_column(ForeignKey("entity.id"), primary_key=True, autoincrement=False)
     description: Mapped[str] = mapped_column(default="")
@@ -360,20 +392,6 @@ class EModel(DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
 
     exemplar_morphology = relationship(
         "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
-    )
-
-    mtypes: Mapped[list["MTypeClass"]] = relationship(
-        primaryjoin="EModel.id == MTypeClassification.entity_id",
-        secondary="join(mtype_classification, mtype_class)",
-        uselist=True,
-        viewonly=True,
-    )
-
-    etypes: Mapped[list["ETypeClass"]] = relationship(
-        primaryjoin="EModel.id == ETypeClassification.entity_id",
-        secondary="join(etype_classification, etype_class)",
-        uselist=True,
-        viewonly=True,
     )
 
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
@@ -397,7 +415,7 @@ class MEModel(LocationMixin, Entity):
 
 
 class ReconstructionMorphology(
-    DescriptionVectorMixin, LicensedMixin, LocationMixin, SpeciesMixin, Entity
+    MTypesMixin, DescriptionVectorMixin, LicensedMixin, LocationMixin, SpeciesMixin, Entity
 ):
     __tablename__ = "reconstruction_morphology"
 
@@ -408,13 +426,6 @@ class ReconstructionMorphology(
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
     location: Mapped[PointLocation | None]
-
-    mtypes: Mapped[list["MTypeClass"]] = relationship(
-        primaryjoin="ReconstructionMorphology.id == MTypeClassification.entity_id",
-        secondary="join(mtype_classification, mtype_class)",
-        uselist=True,
-        viewonly=True,
-    )
 
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 

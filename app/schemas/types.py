@@ -43,7 +43,7 @@ class PaginationResponse(BaseModel):
 class Facet(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: uuid.UUID
+    id: uuid.UUID | int
     label: str
     count: int
     type: str | None

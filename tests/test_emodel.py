@@ -10,7 +10,9 @@ ROUTE = "/emodel"
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_create_emodel(client, species_id, strain_id, brain_region_id, exemplar_morphology_id):
+def test_create_emodel(
+    client: TestClient, species_id, strain_id, brain_region_id, exemplar_morphology_id
+):
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,

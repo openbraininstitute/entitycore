@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
@@ -27,10 +29,10 @@ class EModelBase(BaseModel):
 
 
 class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
-    species_id: int
-    strain_id: int | None
+    species_id: uuid.UUID
+    strain_id: uuid.UUID | None
     brain_region_id: int
-    exemplar_morphology_id: int
+    exemplar_morphology_id: uuid.UUID
     legacy_id: str | None
 
 

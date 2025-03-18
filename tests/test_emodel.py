@@ -320,7 +320,6 @@ def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_
 def test_pagination(client, create_emodel_ids):
     total_items = 29
     create_emodel_ids(total_items)
-    db_id_offset = 4  # db indexes start from 4 due to the created morphology and agents
 
     response = client.get(
         ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
@@ -339,7 +338,7 @@ def test_pagination(client, create_emodel_ids):
         data = response.json()["data"]
         assert len(data) == expected_items
 
-        assert [d["id"] - db_id_offset for d in data] == list(
+        assert [int(d["name"]) for d in data] == list(
             range(total_items - 1, total_items - expected_items - 1, -1)
         )
 
@@ -355,5 +354,5 @@ def test_pagination(client, create_emodel_ids):
         items.append(data[0])
 
     assert len(items) == total_items
-    data_ids = [i["id"] - db_id_offset for i in items]
+    data_ids = [int(i["name"]) for i in items]
     assert list(reversed(data_ids)) == list(range(total_items))

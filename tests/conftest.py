@@ -242,8 +242,8 @@ def create_emodel_ids(db, exemplar_morphology_id, brain_region_id, species_id, s
                 brain_region_id,
                 authorized_project_id=PROJECT_ID,
                 authorized_public=False,
-                name=f"Test Morphology Name {i}",
-                description=f"Test Morphology Description {i}",
+                name=f"{i}",
+                description=f"{i}_description",
                 exemplar_morphology_id=exemplar_morphology_id,
             )
 

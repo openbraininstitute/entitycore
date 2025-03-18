@@ -1,8 +1,8 @@
-"""EModel, MEModel
+"""EModels
 
-Revision ID: 6a02e807090a
+Revision ID: 5dc740111ebf
 Revises: f8309e5aa4de
-Create Date: 2025-03-18 17:06:44.538130
+Create Date: 2025-03-18 20:35:53.962899
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "6a02e807090a"
+revision: str = "5dc740111ebf"
 down_revision: str | None = "f8309e5aa4de"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None

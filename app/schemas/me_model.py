@@ -1,6 +1,7 @@
 import uuid
 from pydantic import ConfigDict, BaseModel
 
+from app.db.model import ValidationStatus
 from app.schemas.base import (
     BrainRegionRead,
     CreationMixin,
@@ -19,20 +20,17 @@ class MEModelBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
-    status: str
-    validated: bool = False
 
 
 class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
     name: str
     description: str
-    status: str
-    validated: bool = False
     brain_region_id: int
     mmodel_id: uuid.UUID
     emodel_id: uuid.UUID
     species_id: uuid.UUID
     strain_id: uuid.UUID
+    validation_status: ValidationStatus = ValidationStatus.CREATED
 
 
 class MEModelRead(
@@ -49,3 +47,4 @@ class MEModelRead(
     etypes: list[ETypeClassRead] | None
     mmodel: MModel
     emodel: EModelBase
+    validation_status: ValidationStatus

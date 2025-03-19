@@ -80,7 +80,6 @@ def create_emodel(
     memodel: MEModelCreate,
     db: SessionDep,
 ):
-    print("\n\n\n HERE HERE HERE ")
     try:
         db_em = MEModel(
             name=memodel.name,
@@ -92,8 +91,7 @@ def create_emodel(
             mmodel_id=memodel.mmodel_id,
             authorized_project_id=project_context.project_id,
             authorized_public=memodel.authorized_public,
-            status=memodel.status,
-            validated=memodel.validated,
+            validation_status=memodel.validation_status,
         )
 
         db.add(db_em)

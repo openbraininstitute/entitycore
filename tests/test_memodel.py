@@ -55,7 +55,6 @@ def test_create_memodel(
             "name": "Test MEModel Name",
             "mmodel_id": morphology_id,
             "emodel_id": emodel_id,
-            "status": "initialized",
         },
     )
     assert response.status_code == 200, f"Failed to create memodel: {response.text}"

@@ -1,3 +1,5 @@
+import uuid
+
 import sqlalchemy as sa
 from fastapi import APIRouter
 
@@ -41,7 +43,7 @@ def read_licenses(
 
 
 @router.get("/{id_}", response_model=LicenseRead)
-def read_license(id_: int, db: SessionDep):
+def read_license(id_: uuid.UUID, db: SessionDep):
     with ensure_result(error_message="License not found"):
         stmt = sa.select(License).filter(License.id == id_)
         row = db.execute(stmt).scalar_one()

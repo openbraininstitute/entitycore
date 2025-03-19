@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
@@ -12,7 +13,7 @@ from app.schemas.types import Facet, Facets
 
 
 class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[int]
+    id: InstrumentedAttribute[uuid.UUID] | InstrumentedAttribute[int]
     label: InstrumentedAttribute[str]
     type: NotRequired[InstrumentedAttribute[str]]
 

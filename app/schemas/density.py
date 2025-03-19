@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
@@ -5,6 +7,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
     SpeciesRead,
@@ -21,14 +24,14 @@ class ExperimentalDensityBase(BaseModel):
 class ExperimentalDensityCreate(
     ExperimentalDensityBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
 ):
-    species_id: int
-    strain_id: int
+    species_id: uuid.UUID
+    strain_id: uuid.UUID
     brain_region_id: int
     legacy_id: str | None
 
 
 class ExperimentalDensityRead(
-    ExperimentalDensityBase, CreationMixin, LicensedReadMixin, AuthorizationMixin
+    ExperimentalDensityBase, CreationMixin, IdentifiableMixin, LicensedReadMixin, AuthorizationMixin
 ):
     species: SpeciesRead
     strain: StrainRead | None

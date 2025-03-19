@@ -1,5 +1,6 @@
 """Generic asset routes."""
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
@@ -34,7 +35,7 @@ def get_entity_assets(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
     entity_type: EntityType,
-    entity_id: int,
+    entity_id: uuid.UUID,
 ) -> ListResponse[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     assets = asset_service.get_entity_assets(
@@ -53,8 +54,8 @@ def get_entity_asset(
     repos: RepoGroupDep,
     project_context: VerifiedProjectContextHeader,
     entity_type: EntityType,
-    entity_id: int,
-    asset_id: int,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
 ) -> AssetRead:
     """Return the metadata of an assets associated with a specific entity."""
     return asset_service.get_entity_asset(
@@ -73,7 +74,7 @@ def upload_entity_asset(
     project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
     entity_type: EntityType,
-    entity_id: int,
+    entity_id: uuid.UUID,
     file: UploadFile,
     meta: Annotated[dict | None, Form()] = None,
 ) -> AssetRead:
@@ -116,8 +117,8 @@ def download_entity_asset(
     project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
     entity_type: EntityType,
-    entity_id: int,
-    asset_id: int,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
 ) -> RedirectResponse:
     asset = asset_service.get_entity_asset(
         repos,
@@ -140,8 +141,8 @@ def delete_entity_asset(
     project_context: VerifiedProjectContextHeader,
     s3_client: S3ClientDep,
     entity_type: EntityType,
-    entity_id: int,
-    asset_id: int,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
 ) -> AssetRead:
     """Delete an assets associated with a specific entity.
 

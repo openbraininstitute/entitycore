@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 import sqlalchemy as sa
@@ -47,7 +48,7 @@ def read_strains(
 
 
 @router.get("/{id_}", response_model=StrainRead)
-def read_strain(id_: int, db: SessionDep):
+def read_strain(id_: uuid.UUID, db: SessionDep):
     with ensure_result(error_message="Strain not found"):
         stmt = sa.select(Strain).filter(Strain.id == id_)
         row = db.execute(stmt).scalar_one()

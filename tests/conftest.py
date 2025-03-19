@@ -6,6 +6,7 @@ import boto3
 import pytest
 from fastapi.testclient import TestClient
 from moto import mock_aws
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -241,8 +242,8 @@ def create_emodel_ids(db, exemplar_morphology_id, brain_region_id, species_id, s
                 brain_region_id,
                 authorized_project_id=PROJECT_ID,
                 authorized_public=False,
-                name=f"Test Morphology Name {i}",
-                description=f"Test Morphology Description {i}",
+                name=f"{i}",
+                description=f"{i}_description",
                 exemplar_morphology_id=exemplar_morphology_id,
             )
 
@@ -255,28 +256,40 @@ def create_emodel_ids(db, exemplar_morphology_id, brain_region_id, species_id, s
     return _create_emodels
 
 
+class Ids(BaseModel):
+    emodel_ids: list[str]
+    species_ids: list[str]
+    brain_region_ids: list[int]
+    morphology_ids: list[str]
+
+
 @pytest.fixture
-def create_faceted_emodel_ids(db, client):
+def create_faceted_emodel_ids(db: Session, client: TestClient):
     species_ids = [
-        add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id for i in range(2)
+        str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
     ]
 
     strain_ids = [
-        add_db(
-            db, Strain(name=f"TestStrain{i}", taxonomy_id=f"{i + 2}", species_id=species_ids[i])
-        ).id
+        str(
+            add_db(
+                db, Strain(name=f"TestStrain{i}", taxonomy_id=f"{i + 2}", species_id=species_ids[i])
+            ).id
+        )
         for i in range(2)
     ]
     brain_region_ids = [create_brain_region_id(client, i, f"region{i}") for i in range(2)]
 
     morphology_ids = [
-        utils.create_reconstruction_morphology_id(
-            client,
-            species_id=species_ids[i],
-            strain_id=strain_ids[i],
-            brain_region_id=brain_region_ids[i],
-            headers=PROJECT_HEADERS,
-            authorized_public=False,
+        str(
+            utils.create_reconstruction_morphology_id(
+                client,
+                species_id=species_ids[i],
+                strain_id=strain_ids[i],
+                brain_region_id=brain_region_ids[i],
+                headers=PROJECT_HEADERS,
+                authorized_public=False,
+                name=f"test exemplar morphology {i}",
+            )
         )
         for i in range(2)
     ]
@@ -285,19 +298,27 @@ def create_faceted_emodel_ids(db, client):
     for species_id, brain_region_id, morphology_id in it.product(
         species_ids, brain_region_ids, morphology_ids
     ):
-        emodel_id = create_emodel_id(
-            db,
-            species_id,
-            strain_id=None,
-            brain_region_id=brain_region_id,
-            authorized_project_id=PROJECT_ID,
-            authorized_public=False,
-            name="",
-            description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
-            exemplar_morphology_id=morphology_id,
+        emodel_id = str(
+            create_emodel_id(
+                db,
+                species_id,
+                strain_id=None,
+                brain_region_id=brain_region_id,
+                authorized_project_id=PROJECT_ID,
+                authorized_public=False,
+                name="",
+                description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
+                exemplar_morphology_id=morphology_id,
+            )
         )
         emodel_ids.append(emodel_id)
-    return emodel_ids
+
+    return Ids(
+        emodel_ids=emodel_ids,
+        species_ids=species_ids,
+        brain_region_ids=brain_region_ids,
+        morphology_ids=morphology_ids,
+    )
 
 
 @pytest.fixture

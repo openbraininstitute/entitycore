@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from pydantic import UUID4, BaseModel, ConfigDict
@@ -17,14 +18,18 @@ class ProjectContext(BaseModel):
     project_id: UUID4
 
 
+class IdentifiableMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+
+
 class CreationMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
     creation_date: datetime
     update_date: datetime
 
     def dict(self, **kwargs):
-        result = super().dict(**kwargs)
+        result = super().model_dump(**kwargs)
         result["creation_date"] = (
             result["creation_date"].isoformat() if result["creation_date"] else None
         )
@@ -39,7 +44,7 @@ class LicenseCreate(BaseModel):
     label: str
 
 
-class LicenseRead(LicenseCreate, CreationMixin):
+class LicenseRead(LicenseCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
@@ -67,10 +72,10 @@ class StrainCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     taxonomy_id: str
-    species_id: int
+    species_id: uuid.UUID
 
 
-class StrainRead(StrainCreate, CreationMixin):
+class StrainRead(StrainCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
@@ -80,13 +85,13 @@ class SpeciesCreate(BaseModel):
     taxonomy_id: str
 
 
-class SpeciesRead(SpeciesCreate, CreationMixin):
+class SpeciesRead(SpeciesCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
 class LicensedCreateMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    license_id: int | None = None
+    license_id: uuid.UUID | None = None
 
 
 class LicensedReadMixin(BaseModel):
@@ -107,4 +112,4 @@ class MeasurementCreate(BaseModel):
 
 
 class MeasurementRead(MeasurementCreate):
-    id: int
+    id: uuid.UUID

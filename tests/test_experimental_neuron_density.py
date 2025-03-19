@@ -1,6 +1,6 @@
 import pytest
 
-from .utils import PROJECT_HEADERS
+from .utils import MISSING_ID, MISSING_ID_COMPACT, PROJECT_HEADERS
 
 ROUTE = "/experimental-neuron-density"
 
@@ -62,17 +62,17 @@ def test_experimental_neuron_density(client, species_id, strain_id, brain_region
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_missing_experimental_neuron_density(client):
-    response = client.get(
-        f"{ROUTE}/42424242",
-        headers=PROJECT_HEADERS,
-    )
+def test_missing(client):
+    response = client.get(f"{ROUTE}/{MISSING_ID}")
     assert response.status_code == 404
 
-    response = client.get(
-        f"{ROUTE}/notanumber",
-        headers=PROJECT_HEADERS,
-    )
+    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}")
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/42424242")
+    assert response.status_code == 422
+
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
 
 

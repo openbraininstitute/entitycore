@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.db.types import AssetStatus
@@ -27,7 +29,7 @@ class AssetBase(BaseModel):
 class AssetRead(AssetBase):
     """Asset model for responses."""
 
-    id: int
+    id: uuid.UUID
     status: AssetStatus
 
 

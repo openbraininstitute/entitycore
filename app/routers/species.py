@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 import sqlalchemy as sa
@@ -47,7 +48,7 @@ def get(
 
 
 @router.get("/{id_}", response_model=SpeciesRead)
-def read_species(id_: int, db: SessionDep):
+def read_species(id_: uuid.UUID, db: SessionDep):
     with ensure_result(error_message="Species not found"):
         stmt = sa.select(Species).filter(Species.id == id_)
         row = db.execute(stmt).scalar_one()

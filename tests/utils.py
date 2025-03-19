@@ -15,6 +15,9 @@ BEARER_TOKEN = {"Authorization": "Bearer this is a fake token"}
 VIRTUAL_LAB_ID = "9c6fba01-2c6f-4eac-893f-f0dc665605c5"
 PROJECT_ID = "ee86d4a0-eaca-48ca-9788-ddc450250b15"
 
+MISSING_ID = "12345678-1234-5678-1234-567812345678"
+MISSING_ID_COMPACT = MISSING_ID.replace("-", "")
+
 PROJECT_HEADERS = {
     "virtual-lab-id": VIRTUAL_LAB_ID,
     "project-id": PROJECT_ID,
@@ -66,14 +69,15 @@ def create_reconstruction_morphology_id(
         json={
             "name": name,
             "description": description,
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
+            "brain_region_id": str(brain_region_id) if isinstance(brain_region_id, int) else None,
+            "species_id": str(species_id) if species_id else None,
+            "strain_id": str(strain_id) if strain_id else None,
             "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": "Test Legacy ID",
             "authorized_public": authorized_public,
         },
     )
+
     assert response.status_code == 200
     return response.json()["id"]
 
@@ -83,3 +87,11 @@ def add_db(db, row):
     db.commit()
     db.refresh(row)
     return row
+
+
+def add_all_db(db, rows):
+    db.add_all(rows)
+    db.commit()
+    for row in rows:
+        db.refresh(row)
+    return rows

@@ -1,3 +1,4 @@
+import uuid
 from typing import IO
 from uuid import UUID
 
@@ -15,7 +16,7 @@ def build_s3_path(
     vlab_id: UUID,
     proj_id: UUID,
     entity_type: EntityType,
-    entity_id: int,
+    entity_id: uuid.UUID,
     filename: str,
     is_public: bool,
 ) -> str:

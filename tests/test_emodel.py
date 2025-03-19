@@ -1,14 +1,22 @@
 import itertools as it
+import uuid
+from collections.abc import Callable
 
 import pytest
+from fastapi.testclient import TestClient
 
+from .conftest import Ids
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, create_reconstruction_morphology_id
 
 ROUTE = "/emodel"
 
+CreateEModelIds = Callable[[int], list[uuid.UUID]]
+
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_create_emodel(client, species_id, strain_id, brain_region_id, exemplar_morphology_id):
+def test_create_emodel(
+    client: TestClient, species_id, strain_id, brain_region_id, exemplar_morphology_id
+):
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -36,16 +44,24 @@ def test_create_emodel(client, species_id, strain_id, brain_region_id, exemplar_
 
 
 @pytest.mark.usefixtures("skip_project_check")
+def test_get_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
+    emodel_id = str(create_emodel_ids(1)[0])
+    response = client.get(f"{ROUTE}/{emodel_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    assert response.status_code == 200
+    assert response.json()["id"] == emodel_id
+
+
+@pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(f"{ROUTE}/42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{uuid.uuid4()}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notauuid", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 422
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_query_emodel(client, create_emodel_ids):
+def test_query_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
     count = 11
     create_emodel_ids(count)
 
@@ -72,9 +88,9 @@ def test_query_emodel(client, create_emodel_ids):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_emodels_sorted(client, create_emodel_ids):
+def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateEModelIds):
     count = 11
-    create_emodel_ids(count)
+    emodel_ids = create_emodel_ids(count)
 
     response = client.get(
         ROUTE,
@@ -93,6 +109,7 @@ def test_emodels_sorted(client, create_emodel_ids):
     )
     assert response.status_code == 200
     data = response.json()["data"]
+
     assert all(
         elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
@@ -105,11 +122,13 @@ def test_emodels_sorted(client, create_emodel_ids):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 3
-    assert [row["id"] for row in data] == [4, 5, 6]  # 1 2 3 are morphology and agents
+    assert [row["id"] for row in data] == [str(id_) for id_ in emodel_ids][:3]
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_facets(client, create_faceted_emodel_ids):  # noqa: ARG001
+def test_facets(client: TestClient, create_faceted_emodel_ids: Ids):
+    ids = create_faceted_emodel_ids
+
     response = client.get(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -125,24 +144,34 @@ def test_facets(client, create_faceted_emodel_ids):  # noqa: ARG001
         "mtype": [],
         "etype": [],
         "species": [
-            {"id": 1, "label": "TestSpecies0", "count": 4, "type": "species"},
-            {"id": 2, "label": "TestSpecies1", "count": 4, "type": "species"},
+            {"id": ids.species_ids[0], "label": "TestSpecies0", "count": 4, "type": "species"},
+            {"id": ids.species_ids[1], "label": "TestSpecies1", "count": 4, "type": "species"},
         ],
         "contribution": [],
         "brain_region": [
-            {"id": 0, "label": "region0", "count": 4, "type": "brain_region"},
-            {"id": 1, "label": "region1", "count": 4, "type": "brain_region"},
+            {"id": ids.brain_region_ids[0], "label": "region0", "count": 4, "type": "brain_region"},
+            {"id": ids.brain_region_ids[1], "label": "region1", "count": 4, "type": "brain_region"},
         ],
         "exemplar_morphology": [
-            {"id": 1, "label": "Test Morphology Name", "count": 4, "type": "exemplar_morphology"},
-            {"id": 2, "label": "Test Morphology Name", "count": 4, "type": "exemplar_morphology"},
+            {
+                "id": ids.morphology_ids[0],
+                "label": "test exemplar morphology 0",
+                "count": 4,
+                "type": "exemplar_morphology",
+            },
+            {
+                "id": ids.morphology_ids[1],
+                "label": "test exemplar morphology 1",
+                "count": 4,
+                "type": "exemplar_morphology",
+            },
         ],
     }
 
     response = client.get(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"search": "species1", "with_facets": True},
+        params={"search": f"species{ids.species_ids[0]}", "with_facets": True},
     )
     assert response.status_code == 200
     data = response.json()
@@ -152,15 +181,32 @@ def test_facets(client, create_faceted_emodel_ids):  # noqa: ARG001
     assert facets == {
         "mtype": [],
         "etype": [],
-        "species": [{"id": 1, "label": "TestSpecies0", "count": 4, "type": "species"}],
+        "species": [
+            {
+                "id": ids.species_ids[0],
+                "label": "TestSpecies0",
+                "count": 4,
+                "type": "species",
+            }
+        ],
         "contribution": [],
         "brain_region": [
             {"id": 0, "label": "region0", "count": 2, "type": "brain_region"},
             {"id": 1, "label": "region1", "count": 2, "type": "brain_region"},
         ],
         "exemplar_morphology": [
-            {"id": 1, "label": "Test Morphology Name", "count": 2, "type": "exemplar_morphology"},
-            {"id": 2, "label": "Test Morphology Name", "count": 2, "type": "exemplar_morphology"},
+            {
+                "id": ids.morphology_ids[0],
+                "label": "test exemplar morphology 0",
+                "count": 2,
+                "type": "exemplar_morphology",
+            },
+            {
+                "id": ids.morphology_ids[1],
+                "label": "test exemplar morphology 1",
+                "count": 2,
+                "type": "exemplar_morphology",
+            },
         ],
     }
 
@@ -274,7 +320,6 @@ def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_
 def test_pagination(client, create_emodel_ids):
     total_items = 29
     create_emodel_ids(total_items)
-    db_id_offset = 4  # db indexes start from 4 due to the created morphology and agents
 
     response = client.get(
         ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
@@ -293,7 +338,7 @@ def test_pagination(client, create_emodel_ids):
         data = response.json()["data"]
         assert len(data) == expected_items
 
-        assert [d["id"] - db_id_offset for d in data] == list(
+        assert [int(d["name"]) for d in data] == list(
             range(total_items - 1, total_items - expected_items - 1, -1)
         )
 
@@ -309,5 +354,5 @@ def test_pagination(client, create_emodel_ids):
         items.append(data[0])
 
     assert len(items) == total_items
-    data_ids = [i["id"] - db_id_offset for i in items]
+    data_ids = [int(i["name"]) for i in items]
     assert list(reversed(data_ids)) == list(range(total_items))

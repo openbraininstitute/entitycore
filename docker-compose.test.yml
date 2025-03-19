@@ -18,7 +18,7 @@ services:
 
   db-test:
     profiles: [test]
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     environment:
     - POSTGRES_USER=test
     - POSTGRES_PASSWORD=test

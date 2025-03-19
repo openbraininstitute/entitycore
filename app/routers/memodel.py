@@ -147,11 +147,11 @@ def memodel_query(
 
     filter_query = (
         constrain_to_accessible_entities(sa.select(MEModel), project_id=project_context.project_id)
-        .outerjoin(Species, MEModel.species_id == Species.id)
+        .join(Species, MEModel.species_id == Species.id)
         .outerjoin(Strain, MEModel.strain_id == Strain.id)
-        .outerjoin(morphology_alias, MEModel.mmodel_id == morphology_alias.id)
-        .outerjoin(emodel_alias, MEModel.emodel_id == emodel_alias.id)
-        .outerjoin(BrainRegion, MEModel.brain_region_id == BrainRegion.id)
+        .join(morphology_alias, MEModel.mmodel_id == morphology_alias.id)
+        .join(emodel_alias, MEModel.emodel_id == emodel_alias.id)
+        .join(BrainRegion, MEModel.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, MEModel.id == Contribution.entity_id)
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
         .outerjoin(MTypeClassification, MEModel.id == MTypeClassification.entity_id)

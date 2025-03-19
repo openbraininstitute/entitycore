@@ -5,7 +5,7 @@ import uuid
 import pytest
 from fastapi.testclient import TestClient
 
-from .conftest import Ids, CreateEModelIds
+from .conftest import Ids, CreateIds
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, create_reconstruction_morphology_id
 
 ROUTE = "/emodel"
@@ -56,7 +56,7 @@ def test_missing(client):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_query_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
+def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     count = 11
     create_emodel_ids(count)
 
@@ -83,7 +83,7 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateEModelIds):
+def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):
     count = 11
     emodel_ids = create_emodel_ids(count)
 

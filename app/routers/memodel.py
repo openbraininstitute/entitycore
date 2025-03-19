@@ -1,3 +1,4 @@
+import uuid
 from http import HTTPStatus
 
 import sqlalchemy as sa
@@ -35,8 +36,8 @@ from app.schemas.me_model import MEModelRead
 from app.schemas.types import ListResponse
 
 router = APIRouter(
-    prefix="/emodel",
-    tags=["emodel"],
+    prefix="/memodel",
+    tags=["memodel"],
 )
 
 
@@ -46,11 +47,11 @@ def memodel_joinedloads(select: Select):
         joinedload(MEModel.strain),
         joinedload(MEModel.emodel),
         joinedload(MEModel.mmodel),
-        joinedload(EModel.brain_region),
-        joinedload(EModel.contributions).joinedload(Contribution.agent),
-        joinedload(EModel.contributions).joinedload(Contribution.role),
-        joinedload(EModel.mtypes),
-        joinedload(EModel.etypes),
+        joinedload(MEModel.brain_region),
+        joinedload(MEModel.contributions).joinedload(Contribution.agent),
+        joinedload(MEModel.contributions).joinedload(Contribution.role),
+        joinedload(MEModel.mtypes),
+        joinedload(MEModel.etypes),
         raiseload("*"),
     )
 
@@ -60,7 +61,7 @@ def memodel_joinedloads(select: Select):
 )
 def read_memodel(
     db: SessionDep,
-    id_: int,
+    id_: uuid.UUID,
     project_context: VerifiedProjectContextHeader,
 ) -> MEModelRead:
     with ensure_result("MEModel not found"):

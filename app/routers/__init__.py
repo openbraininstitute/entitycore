@@ -21,6 +21,7 @@ from app.routers import (
     root,
     species,
     strain,
+    memodel,
 )
 from app.routers.legacy import _search, files, resources, sbo
 
@@ -35,8 +36,9 @@ router.include_router(experimental_neuron_density.router)
 router.include_router(experimental_synapses_per_connection.router)
 router.include_router(license.router)
 router.include_router(morphology.router)
-router.include_router(emodel.router)
 router.include_router(morphology_feature_annotation.router)
+router.include_router(emodel.router)
+router.include_router(memodel.router)
 router.include_router(mtype.router)
 router.include_router(organization.router)
 router.include_router(person.router)

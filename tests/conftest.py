@@ -24,6 +24,7 @@ from app.db.model import (
     Role,
     Species,
     Strain,
+    MEModel,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
@@ -195,19 +196,28 @@ def morphology_id(client, species_id, strain_id, brain_region_id, skip_project_c
     )
 
 
-CreateEModelIds = Callable[[int], list[str]]
+CreateIds = Callable[[int], list[str]]
 
 
 @pytest.fixture
-def create_emodel_ids(db, morphology_id, brain_region_id, species_id, strain_id) -> CreateEModelIds:
+def agents(db: Session):
     agent_1 = add_db(db, Agent(pref_label="test_agent_1"))
     agent_2 = add_db(db, Agent(pref_label="test_agent_2"))
     role = add_db(db, Role(role_id=1, name="test role"))
 
-    def add_contributions(emodel_id: int):
-        add_db(db, Contribution(agent_id=agent_1.id, role_id=role.id, entity_id=emodel_id))
-        add_db(db, Contribution(agent_id=agent_2.id, role_id=role.id, entity_id=emodel_id))
+    return agent_1, agent_2, role
 
+
+def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID):
+    agent_1, agent_2, role = agents
+    add_db(db, Contribution(agent_id=agent_1.id, role_id=role.id, entity_id=entity_id))
+    add_db(db, Contribution(agent_id=agent_2.id, role_id=role.id, entity_id=entity_id))
+
+
+@pytest.fixture
+def create_emodel_ids(
+    db, morphology_id, brain_region_id, species_id, strain_id, agents
+) -> CreateIds:
     def _create_emodels(count: int):
         emodel_ids: list[str] = []
         for i in range(count):
@@ -225,7 +235,7 @@ def create_emodel_ids(db, morphology_id, brain_region_id, species_id, strain_id)
                 ),
             ).id
 
-            add_contributions(emodel_id)
+            add_contributions(db, agents, emodel_id)
 
             emodel_ids.append(str(emodel_id))
 
@@ -235,8 +245,44 @@ def create_emodel_ids(db, morphology_id, brain_region_id, species_id, strain_id)
 
 
 @pytest.fixture
-def emodel_id(create_emodel_ids: CreateEModelIds) -> str:
+def emodel_id(create_emodel_ids: CreateIds) -> str:
     return create_emodel_ids(1)[0]
+
+
+@pytest.fixture
+def create_memodel_ids(
+    db, morphology_id, brain_region_id, species_id, strain_id, emodel_id, agents
+) -> CreateIds:
+    def _create_memodel_ids(count: int):
+        memodel_ids: list[str] = []
+        for i in range(count):
+            memodel_id = add_db(
+                db,
+                MEModel(
+                    name=f"{i}",
+                    description=f"{i}_description",
+                    brain_region_id=brain_region_id,
+                    species_id=species_id,
+                    strain_id=strain_id,
+                    mmodel_id=morphology_id,
+                    emodel_id=emodel_id,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
+                ),
+            ).id
+
+            add_contributions(db, agents, memodel_id)
+
+            memodel_ids.append(str(memodel_id))
+
+        return memodel_ids
+
+    return _create_memodel_ids
+
+
+@pytest.fixture
+def memodel_id(create_memodel_ids: CreateIds) -> str:
+    return create_memodel_ids(1)[0]
 
 
 class Ids(BaseModel):

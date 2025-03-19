@@ -12,9 +12,11 @@ from sqlalchemy import (
     MetaData,
     UniqueConstraint,
     func,
+    Enum,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
+
 
 from app.db.types import (
     BIGINT,
@@ -403,6 +405,14 @@ class Mesh(LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "mesh"}  # noqa: RUF012
 
 
+class ValidationStatus(enum.Enum):
+    CREATED = "created"
+    INITIALIZED = "initialized"
+    RUNNING = "running"
+    DONE = "done"
+    ERROR = "error"
+
+
 class MEModel(
     MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity
 ):
@@ -411,9 +421,11 @@ class MEModel(
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
 
-    # TODO This should be en Enum, what are valid values?
-    status: Mapped[str] = mapped_column(default="")
-    validated: Mapped[bool] = mapped_column(default=False)
+    validation_status: Mapped[ValidationStatus] = mapped_column(
+        Enum(ValidationStatus, name="me_model_validation_status"),
+        nullable=False,
+        default=ValidationStatus.CREATED,
+    )
 
     mmodel_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("reconstruction_morphology.id"), nullable=False

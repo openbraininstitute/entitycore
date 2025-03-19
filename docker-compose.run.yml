@@ -29,7 +29,7 @@ services:
 
   db:
     profiles: [run]
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     environment:
     - POSTGRES_USER=entitycore
     - POSTGRES_PASSWORD=entitycore

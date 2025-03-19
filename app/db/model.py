@@ -409,11 +409,11 @@ class Mesh(LocationMixin, Entity):
 
 
 class ValidationStatus(enum.Enum):
-    CREATED = "created"
-    INITIALIZED = "initialized"
-    RUNNING = "running"
-    DONE = "done"
-    ERROR = "error"
+    created = "created"
+    initialized = "initialized"
+    running = "running"
+    done = "done"
+    error = "error"
 
 
 class MEModel(
@@ -427,7 +427,7 @@ class MEModel(
     validation_status: Mapped[ValidationStatus] = mapped_column(
         Enum(ValidationStatus, name="me_model_validation_status"),
         nullable=False,
-        default=ValidationStatus.CREATED,
+        default=ValidationStatus.created,
     )
 
     mmodel_id: Mapped[uuid.UUID] = mapped_column(

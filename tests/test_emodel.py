@@ -83,7 +83,7 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_emodels_sorted(client: TestClient, create_emodel_ids: EModelIds):
+def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):
     count = 11
     emodel_ids = create_emodel_ids(count)
 

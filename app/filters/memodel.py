@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
 
-from app.db.model import EModel
+from app.db.model import MEModel, ValidationStatus
 from app.filters.base import CustomFilter
 from app.filters.common import (
     AgentFilter,
@@ -12,9 +12,10 @@ from app.filters.common import (
     SpeciesFilter,
 )
 from app.filters.morphology import MorphologyFilter
+from app.filters.emodel import EModelFilter
 
 
-class EModelFilter(CustomFilter):
+class MEModelFilter(CustomFilter):
     creation_date__lte: datetime | None = None
     creation_date__gte: datetime | None = None
     update_date__lte: datetime | None = None
@@ -23,23 +24,20 @@ class EModelFilter(CustomFilter):
     brain_location_id: int | None = None
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None
-
-    score__lte: int | None = None
-    score__gte: int | None = None
+    valdation_status: ValidationStatus | None = None
 
     mtype: MTypeClassFilter = FilterDepends(with_prefix("mtype", MTypeClassFilter))
     etype: ETypeClassFilter = FilterDepends(with_prefix("etype", ETypeClassFilter))
     species: SpeciesFilter = FilterDepends(with_prefix("species", SpeciesFilter))
     contribution: AgentFilter = FilterDepends(with_prefix("contribution", AgentFilter))
-    exemplar_morphology: MorphologyFilter = FilterDepends(
-        with_prefix("exemplar_morphology", MorphologyFilter)
-    )
+    mmodel: MorphologyFilter = FilterDepends(with_prefix("mmodel", MorphologyFilter))
+    emodel: EModelFilter = FilterDepends(with_prefix("emodel", EModelFilter))
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):
-        model = EModel
+        model = MEModel
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
 
 
-EModelFilterDep = Annotated[EModelFilter, FilterDepends(EModelFilter)]
+MEModelFilterDep = Annotated[MEModelFilter, FilterDepends(MEModelFilter)]

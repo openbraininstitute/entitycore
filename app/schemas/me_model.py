@@ -30,7 +30,7 @@ class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
     emodel_id: uuid.UUID
     species_id: uuid.UUID
     strain_id: uuid.UUID
-    validation_status: ValidationStatus = ValidationStatus.CREATED
+    validation_status: ValidationStatus = ValidationStatus.created
 
 
 class MEModelRead(

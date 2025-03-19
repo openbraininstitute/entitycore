@@ -149,13 +149,17 @@ def test_facets(client: TestClient, faceted_memodel_ids: MEModelIds):
         ],
     }
 
-    # response = client.get(
-    #     ROUTE,
-    #     headers=BEARER_TOKEN | PROJECT_HEADERS,
-    #     params={"search": f"species{ids.species_ids[0]}", "with_facets": True},
-    # )
-    # assert response.status_code == 200
-    # data = response.json()
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={
+            "species__id": ids.species_ids[0],
+            "emodel__name__ilike": "%0%",
+            "with_facets": True,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
 
     # assert "facets" in data
     # facets = data["facets"]

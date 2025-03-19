@@ -23,6 +23,7 @@ from app.db.model import (
     MTypeClassification,
     ReconstructionMorphology,
     Species,
+    EModel,
     MEModel,
     Strain,
 )
@@ -30,9 +31,8 @@ from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode, ensure_result
-from app.filters.emodel import EModelFilterDep
+from app.filters.memodel import MEModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
-from app.schemas.emodel import EModelCreate
 from app.schemas.me_model import MEModelRead, MEModelCreate
 from app.schemas.types import ListResponse, PaginationResponse
 
@@ -115,9 +115,9 @@ def memodel_query(
     *,
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
-    pagination_request: PaginationQuery,
-    # emodel_filter: EModelFilterDep,
-    # with_search: SearchDep,
+    pagination: PaginationQuery,
+    filter: MEModelFilterDep,
+    search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[MEModelRead]:
     agent_alias = aliased(Agent, flat=True)
@@ -155,16 +155,20 @@ def memodel_query(
         .outerjoin(Contribution, MEModel.id == Contribution.entity_id)
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
         .outerjoin(MTypeClassification, MEModel.id == MTypeClassification.entity_id)
-        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
+        .outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id)
         .outerjoin(ETypeClassification, MEModel.id == ETypeClassification.entity_id)
-        .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
+        .outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id)
     )
 
-    # filter_query = emodel_filter.filter(
-    #     filter_query,
-    #     aliases={Agent: agent_alias, ReconstructionMorphology: morphology_alias},
-    # )
-    # filter_query = with_search(filter_query, EModel.description_vector)
+    filter_query = filter.filter(
+        filter_query,
+        aliases={
+            Agent: agent_alias,
+            ReconstructionMorphology: morphology_alias,
+            EModel: emodel_alias,
+        },
+    )
+    filter_query = search(filter_query, EModel.description_vector)
 
     # data_query = emodel_joinedloads(emodel_filter.sort(filter_query).distinct())
 

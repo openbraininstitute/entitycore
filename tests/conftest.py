@@ -285,15 +285,24 @@ def memodel_id(create_memodel_ids: CreateIds) -> str:
     return create_memodel_ids(1)[0]
 
 
-class Ids(BaseModel):
+class EModelIds(BaseModel):
     emodel_ids: list[str]
     species_ids: list[str]
     brain_region_ids: list[int]
     morphology_ids: list[str]
 
 
+class MEModelIds(BaseModel):
+    memodel_ids: list[str]
+    species_ids: list[str]
+    brain_region_ids: list[int]
+    mmodel_ids: list[str]
+    emodel_ids: list[str]
+    agent_ids: list[str]
+
+
 @pytest.fixture
-def create_faceted_emodel_ids(db: Session, client: TestClient):
+def faceted_emodel_ids(db: Session, client: TestClient):
     species_ids = [
         str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
     ]
@@ -343,11 +352,96 @@ def create_faceted_emodel_ids(db: Session, client: TestClient):
 
         emodel_ids.append(str(emodel_id))
 
-    return Ids(
+    return EModelIds(
         emodel_ids=emodel_ids,
         species_ids=species_ids,
         brain_region_ids=brain_region_ids,
         morphology_ids=morphology_ids,
+    )
+
+
+@pytest.fixture
+def faceted_memodel_ids(db: Session, client: TestClient, agents: tuple[Agent, Agent, Role]):
+    species_ids = [
+        str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
+    ]
+
+    strain_ids = [
+        str(
+            add_db(
+                db, Strain(name=f"TestStrain{i}", taxonomy_id=f"{i + 2}", species_id=species_ids[i])
+            ).id
+        )
+        for i in range(2)
+    ]
+    brain_region_ids = [create_brain_region_id(client, i, f"region{i}") for i in range(2)]
+
+    morphology_ids = [
+        str(
+            utils.create_reconstruction_morphology_id(
+                client,
+                species_id=species_ids[i],
+                strain_id=strain_ids[i],
+                brain_region_id=brain_region_ids[i],
+                headers=PROJECT_HEADERS,
+                authorized_public=False,
+                name=f"test mmodel {i}",
+            )
+        )
+        for i in range(2)
+    ]
+
+    emodel_ids = [
+        str(
+            add_db(
+                db,
+                EModel(
+                    name=f"{i}",
+                    description=f"{i}_description",
+                    brain_region_id=brain_region_ids[i],
+                    species_id=species_ids[i],
+                    exemplar_morphology_id=morphology_ids[i],
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
+                ),
+            ).id
+        )
+        for i in range(2)
+    ]
+
+    agent_ids = [str(agents[0].id), str(agents[1].id)]
+
+    memodel_ids = []
+
+    for species_id, brain_region_id, mmodel_id, emodel_id in it.product(
+        species_ids, brain_region_ids, morphology_ids, emodel_ids
+    ):
+        memodel_id = add_db(
+            db,
+            MEModel(
+                name="",
+                description=f"species{species_id}, brain_region{brain_region_id}, mmmodle{mmodel_id}, emodel{emodel_id}",
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=None,
+                mmodel_id=mmodel_id,
+                emodel_id=emodel_id,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        ).id
+
+        add_contributions(db, agents, memodel_id)
+
+        memodel_ids.append(str(emodel_id))
+
+    return MEModelIds(
+        memodel_ids=memodel_ids,
+        emodel_ids=emodel_ids,
+        mmodel_ids=morphology_ids,
+        species_ids=species_ids,
+        brain_region_ids=brain_region_ids,
+        agent_ids=agent_ids,
     )
 
 

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import ClassVar
-
+import enum
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -410,16 +410,18 @@ class MEModel(
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
+
+    # TODO This should be en Enum, what are valid values?
     status: Mapped[str] = mapped_column(default="")
     validated: Mapped[bool] = mapped_column(default=False)
 
-    mmodel_id: Mapped[int] = mapped_column(
+    mmodel_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("reconstruction_morphology.id"), nullable=False
     )
 
     mmodel = relationship("ReconstructionMorphology", foreign_keys=[mmodel_id], uselist=False)
 
-    emodel_id: Mapped[int] = mapped_column(ForeignKey("emodel.id"), nullable=False)
+    emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("emodel.id"), nullable=False)
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
 

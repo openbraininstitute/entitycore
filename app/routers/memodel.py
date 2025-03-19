@@ -32,7 +32,7 @@ from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.emodel import EModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
 from app.schemas.emodel import EModelCreate
-from app.schemas.me_model import MEModelRead
+from app.schemas.me_model import MEModelRead, MEModelCreate
 from app.schemas.types import ListResponse
 
 router = APIRouter(
@@ -74,37 +74,41 @@ def read_memodel(
         return db.execute(query).unique().scalar_one()
 
 
-# @router.post("", response_model=EModelRead)
-# def create_emodel(
-#     project_context: VerifiedProjectContextHeader,
-#     emodel: EModelCreate,
-#     db: SessionDep,
-# ):
-#     try:
-#         db_em = EModel(
-#             name=emodel.name,
-#             description=emodel.description,
-#             brain_region_id=emodel.brain_region_id,
-#             species_id=emodel.species_id,
-#             strain_id=emodel.strain_id,
-#             exemplar_morphology_id=emodel.exemplar_morphology_id,
-#             authorized_project_id=project_context.project_id,
-#             authorized_public=emodel.authorized_public,
-#         )
+@router.post("", response_model=MEModelRead)
+def create_emodel(
+    project_context: VerifiedProjectContextHeader,
+    memodel: MEModelCreate,
+    db: SessionDep,
+):
+    print("\n\n\n HERE HERE HERE ")
+    try:
+        db_em = MEModel(
+            name=memodel.name,
+            description=memodel.description,
+            brain_region_id=memodel.brain_region_id,
+            species_id=memodel.species_id,
+            strain_id=memodel.strain_id,
+            emodel_id=memodel.emodel_id,
+            mmodel_id=memodel.mmodel_id,
+            authorized_project_id=project_context.project_id,
+            authorized_public=memodel.authorized_public,
+            status=memodel.status,
+            validated=memodel.validated,
+        )
 
-#         db.add(db_em)
-#         db.commit()
-#         db.refresh(db_em)
+        db.add(db_em)
+        db.commit()
+        db.refresh(db_em)
 
-#         query = emodel_joinedloads(sa.select(EModel).filter(EModel.id == db_em.id))
-#         return db.execute(query).unique().scalar_one()
+        query = memodel_joinedloads(sa.select(MEModel).filter(MEModel.id == db_em.id))
+        return db.execute(query).unique().scalar_one()
 
-#     except InternalError as err:
-#         raise ApiError(
-#             message="Exemplar morphology isn't public or owned by user",
-#             error_code=ApiErrorCode.INVALID_REQUEST,
-#             http_status_code=HTTPStatus.FORBIDDEN,
-#         ) from err
+    except InternalError as err:
+        raise ApiError(
+            message="Exemplar morphology isn't public or owned by user",
+            error_code=ApiErrorCode.INVALID_REQUEST,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        ) from err
 
 
 # @router.get("")

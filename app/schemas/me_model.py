@@ -31,6 +31,8 @@ class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
     brain_region_id: int
     mmodel_id: uuid.UUID
     emodel_id: uuid.UUID
+    species_id: uuid.UUID
+    strain_id: uuid.UUID
 
 
 class MEModelRead(

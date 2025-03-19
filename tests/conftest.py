@@ -1,4 +1,6 @@
+import uuid
 import itertools as it
+from typing import Callable
 import os
 from collections.abc import Iterator
 
@@ -182,7 +184,7 @@ def brain_region_id(client):
 
 
 @pytest.fixture
-def exemplar_morphology_id(client, species_id, strain_id, brain_region_id, skip_project_check):  # noqa: ARG001
+def morphology_id(client, species_id, strain_id, brain_region_id, skip_project_check):  # noqa: ARG001
     return utils.create_reconstruction_morphology_id(
         client,
         species_id,
@@ -193,37 +195,11 @@ def exemplar_morphology_id(client, species_id, strain_id, brain_region_id, skip_
     )
 
 
-def create_emodel_id(
-    db,
-    species_id,
-    strain_id,
-    brain_region_id,
-    exemplar_morphology_id,
-    authorized_project_id,
-    authorized_public,
-    name="Test Emodel Name",
-    description="Test Emodel Description",
-):
-    return add_db(
-        db,
-        EModel(
-            name=name,
-            description=description,
-            brain_region_id=brain_region_id,
-            species_id=species_id,
-            strain_id=strain_id,
-            exemplar_morphology_id=exemplar_morphology_id,
-            authorized_public=authorized_public,
-            authorized_project_id=authorized_project_id,
-            iteration="1",
-            score=-1,
-            seed=-1,
-        ),
-    ).id
+CreateEModelIds = Callable[[int], list[str]]
 
 
 @pytest.fixture
-def create_emodel_ids(db, exemplar_morphology_id, brain_region_id, species_id, strain_id):
+def create_emodel_ids(db, morphology_id, brain_region_id, species_id, strain_id) -> CreateEModelIds:
     agent_1 = add_db(db, Agent(pref_label="test_agent_1"))
     agent_2 = add_db(db, Agent(pref_label="test_agent_2"))
     role = add_db(db, Role(role_id=1, name="test role"))
@@ -233,27 +209,34 @@ def create_emodel_ids(db, exemplar_morphology_id, brain_region_id, species_id, s
         add_db(db, Contribution(agent_id=agent_2.id, role_id=role.id, entity_id=emodel_id))
 
     def _create_emodels(count: int):
-        emodel_ids = []
+        emodel_ids: list[str] = []
         for i in range(count):
-            emodel_id = create_emodel_id(
+            emodel_id = add_db(
                 db,
-                species_id,
-                strain_id,
-                brain_region_id,
-                authorized_project_id=PROJECT_ID,
-                authorized_public=False,
-                name=f"{i}",
-                description=f"{i}_description",
-                exemplar_morphology_id=exemplar_morphology_id,
-            )
+                EModel(
+                    name=f"{i}",
+                    description=f"{i}_description",
+                    brain_region_id=brain_region_id,
+                    species_id=species_id,
+                    strain_id=strain_id,
+                    exemplar_morphology_id=morphology_id,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
+                ),
+            ).id
 
             add_contributions(emodel_id)
 
-            emodel_ids.append(emodel_id)
+            emodel_ids.append(str(emodel_id))
 
         return emodel_ids
 
     return _create_emodels
+
+
+@pytest.fixture
+def emodel_id(create_emodel_ids: CreateEModelIds) -> str:
+    return create_emodel_ids(1)[0]
 
 
 class Ids(BaseModel):
@@ -298,20 +281,21 @@ def create_faceted_emodel_ids(db: Session, client: TestClient):
     for species_id, brain_region_id, morphology_id in it.product(
         species_ids, brain_region_ids, morphology_ids
     ):
-        emodel_id = str(
-            create_emodel_id(
-                db,
-                species_id,
-                strain_id=None,
-                brain_region_id=brain_region_id,
-                authorized_project_id=PROJECT_ID,
-                authorized_public=False,
+        emodel_id = add_db(
+            db,
+            EModel(
                 name="",
-                description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
+                description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=None,
                 exemplar_morphology_id=morphology_id,
-            )
-        )
-        emodel_ids.append(emodel_id)
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        ).id
+
+        emodel_ids.append(str(emodel_id))
 
     return Ids(
         emodel_ids=emodel_ids,

@@ -1,22 +1,18 @@
 import itertools as it
 import uuid
-from collections.abc import Callable
+
 
 import pytest
 from fastapi.testclient import TestClient
 
-from .conftest import Ids
+from .conftest import Ids, CreateEModelIds
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, create_reconstruction_morphology_id
 
 ROUTE = "/emodel"
 
-CreateEModelIds = Callable[[int], list[uuid.UUID]]
-
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_create_emodel(
-    client: TestClient, species_id, strain_id, brain_region_id, exemplar_morphology_id
-):
+def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, morphology_id):
     response = client.post(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -30,7 +26,7 @@ def test_create_emodel(
             "iteration": "test iteration",
             "score": -1,
             "seed": -1,
-            "exemplar_morphology_id": exemplar_morphology_id,
+            "exemplar_morphology_id": morphology_id,
         },
     )
     assert response.status_code == 200, f"Failed to create emodel: {response.text}"
@@ -44,8 +40,7 @@ def test_create_emodel(
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_get_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
-    emodel_id = str(create_emodel_ids(1)[0])
+def test_get_emodel(client: TestClient, emodel_id):
     response = client.get(f"{ROUTE}/{emodel_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
     assert response.status_code == 200
     assert response.json()["id"] == emodel_id
@@ -212,7 +207,7 @@ def test_facets(client: TestClient, create_faceted_emodel_ids: Ids):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_morphology_id):
+def test_authorization(client, species_id, strain_id, brain_region_id, morphology_id):
     emodel_json = {
         "brain_region_id": brain_region_id,
         "description": "morph description",
@@ -220,7 +215,7 @@ def test_authorization(client, species_id, strain_id, brain_region_id, exemplar_
         "name": "Test Morphology Name",
         "species_id": species_id,
         "strain_id": strain_id,
-        "exemplar_morphology_id": exemplar_morphology_id,
+        "exemplar_morphology_id": morphology_id,
         "score": 0,
         "iteration": "0",
         "seed": 0,

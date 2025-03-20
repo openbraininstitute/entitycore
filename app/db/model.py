@@ -295,6 +295,12 @@ class Entity(TimestampMixin, Root):
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
     contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+    assets: Mapped[list["Asset"]] = relationship(
+        "Asset",
+        foreign_keys="Asset.entity_id",
+        uselist=True,
+        viewonly=True,
+    )
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",

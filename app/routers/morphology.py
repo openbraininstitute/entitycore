@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from fastapi_filter import FilterDepends
 from sqlalchemy.orm import (
     aliased,
+    contains_eager,
     joinedload,
     raiseload,
 )
@@ -13,6 +14,7 @@ from sqlalchemy.orm import (
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
+    Asset,
     Contribution,
     MTypeClass,
     MTypeClassification,
@@ -65,6 +67,8 @@ def read_reconstruction_morphology(
             .options(joinedload(ReconstructionMorphology.license))
             .options(joinedload(ReconstructionMorphology.species))
             .options(joinedload(ReconstructionMorphology.strain))
+            .outerjoin(Asset, Asset.entity_id == ReconstructionMorphology.id)
+            .options(contains_eager(ReconstructionMorphology.assets))
         )
 
         row = db.execute(query).unique().scalar_one()
@@ -170,6 +174,8 @@ def morphology_query(
         .options(joinedload(ReconstructionMorphology.mtypes))
         .options(joinedload(ReconstructionMorphology.brain_region))
         .options(joinedload(ReconstructionMorphology.license))
+        .outerjoin(Asset, Asset.entity_id == ReconstructionMorphology.id)
+        .options(contains_eager(ReconstructionMorphology.assets))
         .options(raiseload("*"))
     )
 

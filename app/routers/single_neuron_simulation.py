@@ -46,6 +46,7 @@ def read(
             )
             .filter(SingleNeuronSimulation.id == id_)
             .options(joinedload(SingleNeuronSimulation.me_model))
+            .options(joinedload(SingleNeuronSimulationRead.brain_region))
         )
 
         row = db.execute(query).unique().scalar_one()

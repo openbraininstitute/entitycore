@@ -22,7 +22,7 @@ def me_model_id(db, brain_region_id):
     row = MEModel(
         name="my-me-model",
         description="my-description",
-        status="foo",
+        status="started",
         validated=False,
         brain_region_id=brain_region_id,
         authorized_project_id=PROJECT_ID,
@@ -43,7 +43,7 @@ def test_single_neuron_simulation(client, db, brain_region_id, me_model_id):
             "injectionLocation": ["soma[0]"],
             "recordingLocation": ["soma[0]_0.5"],
             "me_model_id": str(me_model_id),
-            "status": "foo",
+            "status": "success",
             "seed": 1,
             "authorized_public": False,
             "brain_region_id": str(brain_region_id),
@@ -59,7 +59,7 @@ def test_single_neuron_simulation(client, db, brain_region_id, me_model_id):
     assert data["injectionLocation"] == ["soma[0]"]
     assert data["recordingLocation"] == ["soma[0]_0.5"]
     assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
-    assert data["status"] == "foo"
+    assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
 
     response = assert_request(
@@ -75,7 +75,7 @@ def test_single_neuron_simulation(client, db, brain_region_id, me_model_id):
     assert data["injectionLocation"] == ["soma[0]"]
     assert data["recordingLocation"] == ["soma[0]_0.5"]
     assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
-    assert data["status"] == "foo"
+    assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
 
 
@@ -106,7 +106,7 @@ def test_authorization(client, me_model_id, brain_region_id):
         "injectionLocation": ["soma[0]"],
         "recordingLocation": ["soma[0]_0.5"],
         "me_model_id": str(me_model_id),
-        "status": "foo",
+        "status": "failure",
         "seed": 1,
         "brain_region_id": str(brain_region_id),
     }
@@ -184,7 +184,7 @@ def test_pagination(db, client, brain_region_id):
         MEModel(
             name="me-model-1",
             description="my-description-1",
-            status="Done",
+            status="foo",
             validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
@@ -211,7 +211,7 @@ def test_pagination(db, client, brain_region_id):
                 injectionLocation=["soma[0]"],
                 recordingLocation=["soma[0]_0.5"],
                 me_model_id=me_model.id,
-                status="foo",
+                status="success",
                 seed=1,
                 authorized_public=False,
                 brain_region_id=brain_region_id,

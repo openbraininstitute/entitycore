@@ -5,14 +5,9 @@ from fastapi_filter import FilterDepends, with_prefix
 
 from app.db.model import MEModel, ValidationStatus
 from app.filters.base import CustomFilter
-from app.filters.common import (
-    AgentFilter,
-    ETypeClassFilter,
-    MTypeClassFilter,
-    SpeciesFilter,
-)
-from app.filters.morphology import MorphologyFilter
+from app.filters.common import AgentFilter, ETypeClassFilter, MTypeClassFilter, SpeciesFilter
 from app.filters.emodel import EModelFilter
+from app.filters.morphology import MorphologyFilter
 
 
 class MEModelFilter(CustomFilter):

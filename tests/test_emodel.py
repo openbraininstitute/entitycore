@@ -1,11 +1,10 @@
 import itertools as it
 import uuid
 
-
 import pytest
 from fastapi.testclient import TestClient
 
-from .conftest import EModelIds, CreateIds, MEModelIds
+from .conftest import CreateIds, EModelIds
 from .utils import BEARER_TOKEN, PROJECT_HEADERS, create_reconstruction_morphology_id
 
 ROUTE = "/emodel"

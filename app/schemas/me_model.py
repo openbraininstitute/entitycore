@@ -1,19 +1,19 @@
 import uuid
-from pydantic import ConfigDict, BaseModel
+
+from pydantic import BaseModel, ConfigDict
 
 from app.db.model import ValidationStatus
+from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
-    AuthorizationOptionalPublicMixin,
-    AuthorizationMixin,
     SpeciesRead,
     StrainRead,
 )
-
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.annotation import ETypeClassRead, MTypeClassRead
-from app.schemas.emodel import ExemplarMorphology as MModel, EModelBase
+from app.schemas.emodel import EModelBase, ExemplarMorphology as MModel
 
 
 class MEModelBase(BaseModel):

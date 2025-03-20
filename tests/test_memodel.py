@@ -1,11 +1,11 @@
 import uuid
-import itertools as it
 
 import pytest
 from fastapi.testclient import TestClient
-from .conftest import MEModelIds
 
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, create_reconstruction_morphology_id, add_db
+from .conftest import MEModelIds
+from .utils import BEARER_TOKEN, PROJECT_HEADERS
+
 # from app.db.model import EModel
 
 
@@ -296,3 +296,45 @@ def test_facets_with_search(client: TestClient, faceted_memodel_ids: MEModelIds)
             },
         ],
     }
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_pagination(client, create_memodel_ids):
+    total_items = 29
+    create_memodel_ids(total_items)
+
+    response = client.get(
+        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()["data"]) == total_items
+
+    for i in range(1, total_items + 1):
+        expected_items = i
+        response = client.get(
+            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": expected_items}
+        )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == expected_items
+
+        assert [int(d["name"]) for d in data] == list(
+            range(total_items - 1, total_items - expected_items - 1, -1)
+        )
+
+    items = []
+    for i in range(1, total_items + 1):
+        response = client.get(
+            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page": i, "page_size": 1}
+        )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert len(data) == 1
+        items.append(data[0])
+
+    assert len(items) == total_items
+    data_ids = [int(i["name"]) for i in items]
+    assert list(reversed(data_ids)) == list(range(total_items))

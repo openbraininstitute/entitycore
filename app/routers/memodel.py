@@ -19,12 +19,11 @@ from app.db.model import (
     EModel,
     ETypeClass,
     ETypeClassification,
+    MEModel,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
     Species,
-    EModel,
-    MEModel,
     Strain,
 )
 from app.dependencies.auth import VerifiedProjectContextHeader
@@ -33,8 +32,8 @@ from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.memodel import MEModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
-from app.schemas.me_model import MEModelRead, MEModelCreate
-from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.me_model import MEModelCreate, MEModelRead
+from app.schemas.types import ListResponse
 
 router = APIRouter(
     prefix="/memodel",

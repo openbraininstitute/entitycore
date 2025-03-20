@@ -1,8 +1,7 @@
-import uuid
 import itertools as it
-from typing import Callable
 import os
-from collections.abc import Iterator
+import uuid
+from collections.abc import Callable, Iterator
 
 import boto3
 import pytest
@@ -19,12 +18,12 @@ from app.db.model import (
     Base,
     Contribution,
     EModel,
+    MEModel,
     Organization,
     Person,
     Role,
     Species,
     Strain,
-    MEModel,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
@@ -340,7 +339,7 @@ def faceted_emodel_ids(db: Session, client: TestClient):
             db,
             EModel(
                 name="",
-                description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",
+                description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=None,

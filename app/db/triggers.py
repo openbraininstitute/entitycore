@@ -2,7 +2,7 @@ from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
-from app.db.model import MEModel, EModel, Entity, ReconstructionMorphology
+from app.db.model import EModel, Entity, MEModel, ReconstructionMorphology
 
 
 def description_vector_trigger(

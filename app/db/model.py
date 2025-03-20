@@ -1,10 +1,12 @@
+import enum
 import uuid
 from datetime import datetime
 from typing import ClassVar
-import enum
+
 from sqlalchemy import (
     BigInteger,
     DateTime,
+    Enum,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
@@ -12,11 +14,9 @@ from sqlalchemy import (
     MetaData,
     UniqueConstraint,
     func,
-    Enum,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
-
 
 from app.db.types import (
     BIGINT,

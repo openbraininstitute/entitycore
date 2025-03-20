@@ -12,6 +12,7 @@ from app.routers import (
     experimental_neuron_density,
     experimental_synapses_per_connection,
     license,
+    memodel,
     morphology,
     morphology_feature_annotation,
     mtype,
@@ -21,7 +22,6 @@ from app.routers import (
     root,
     species,
     strain,
-    memodel,
 )
 from app.routers.legacy import _search, files, resources, sbo
 

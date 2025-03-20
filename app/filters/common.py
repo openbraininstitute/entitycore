@@ -1,4 +1,5 @@
 import uuid
+
 from app.db.model import Agent, ETypeClass, MTypeClass, Species, Strain
 from app.filters.base import CustomFilter
 

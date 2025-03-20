@@ -2,6 +2,7 @@ import itertools as it
 import os
 import uuid
 from collections.abc import Callable, Iterator
+from dataclasses import dataclass
 
 import boto3
 import pytest
@@ -291,8 +292,9 @@ class EModelIds(BaseModel):
     morphology_ids: list[str]
 
 
-class MEModelIds(BaseModel):
-    memodel_ids: list[str]
+@dataclass
+class MEModels:
+    memodels: list[MEModel]
     species_ids: list[str]
     brain_region_ids: list[int]
     mmodel_ids: list[str]
@@ -360,7 +362,7 @@ def faceted_emodel_ids(db: Session, client: TestClient):
 
 
 @pytest.fixture
-def faceted_memodel_ids(db: Session, client: TestClient, agents: tuple[Agent, Agent, Role]):
+def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent, Role]):
     species_ids = [
         str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
     ]
@@ -409,12 +411,12 @@ def faceted_memodel_ids(db: Session, client: TestClient, agents: tuple[Agent, Ag
 
     agent_ids = [str(agents[0].id), str(agents[1].id)]
 
-    memodel_ids = []
+    memodels = []
 
     for species_id, brain_region_id, mmodel_id, emodel_id in it.product(
         species_ids, brain_region_ids, morphology_ids, emodel_ids
     ):
-        memodel_id = add_db(
+        memodel = add_db(
             db,
             MEModel(
                 name="",
@@ -427,14 +429,14 @@ def faceted_memodel_ids(db: Session, client: TestClient, agents: tuple[Agent, Ag
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
             ),
-        ).id
+        )
 
-        add_contributions(db, agents, memodel_id)
+        add_contributions(db, agents, memodel.id)
 
-        memodel_ids.append(str(emodel_id))
+        memodels.append(memodel)
 
-    return MEModelIds(
-        memodel_ids=memodel_ids,
+    return MEModels(
+        memodels=memodels,
         emodel_ids=emodel_ids,
         mmodel_ids=morphology_ids,
         species_ids=species_ids,

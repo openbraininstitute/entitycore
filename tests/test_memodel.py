@@ -1,13 +1,14 @@
+import operator as op
 import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
-from .conftest import MEModelIds
-from .utils import BEARER_TOKEN, PROJECT_HEADERS
+from app.db.model import EModel
 
-# from app.db.model import EModel
-
+from .conftest import CreateIds, MEModels
+from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
 ROUTE = "/memodel"
 
@@ -69,8 +70,8 @@ def test_create_memodel(
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_facets(client: TestClient, faceted_memodel_ids: MEModelIds):
-    ids = faceted_memodel_ids
+def test_facets(client: TestClient, faceted_memodels: MEModels):
+    ids = faceted_memodels
 
     response = client.get(
         ROUTE,
@@ -151,8 +152,8 @@ def test_facets(client: TestClient, faceted_memodel_ids: MEModelIds):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_filtered_facets(client: TestClient, faceted_memodel_ids: MEModelIds):
-    ids = faceted_memodel_ids
+def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
+    ids = faceted_memodels
 
     response = client.get(
         ROUTE,
@@ -224,8 +225,8 @@ def test_filtered_facets(client: TestClient, faceted_memodel_ids: MEModelIds):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_facets_with_search(client: TestClient, faceted_memodel_ids: MEModelIds):
-    ids = faceted_memodel_ids
+def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
+    ids = faceted_memodels
 
     response = client.get(
         ROUTE,
@@ -299,7 +300,7 @@ def test_facets_with_search(client: TestClient, faceted_memodel_ids: MEModelIds)
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_pagination(client, create_memodel_ids):
+def test_pagination(client, create_memodel_ids: CreateIds):
     total_items = 29
     create_memodel_ids(total_items)
 
@@ -338,3 +339,236 @@ def test_pagination(client, create_memodel_ids):
     assert len(items) == total_items
     data_ids = [int(i["name"]) for i in items]
     assert list(reversed(data_ids)) == list(range(total_items))
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_query_memodel(client: TestClient, create_memodel_ids: CreateIds):
+    count = 11
+    create_memodel_ids(count)
+
+    response = client.get(
+        ROUTE,
+        params={"page_size": 10},
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    assert response.status_code == 200
+    response_json = response.json()
+    assert "facets" in response_json
+    assert "data" in response_json
+    assert response_json["facets"] is None
+    assert len(response_json["data"]) == 10
+
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"page_size": 100},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 11
+    assert data == sorted(data, key=op.itemgetter("creation_date"), reverse=True)
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_sorted(client: TestClient, create_memodel_ids: CreateIds):
+    count = 10
+    create_memodel_ids(count)
+
+    response = client.get(
+        ROUTE,
+        params={"order_by": "-name"},
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+
+    assert data == sorted(data, key=op.itemgetter("name"), reverse=True)
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
+    mmodels = faceted_memodels
+
+    response = client.get(
+        ROUTE,
+        params={
+            "species__id": mmodels.species_ids[0],
+            "emodel__name__ilike": "%0%",
+        },
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    assert response.status_code == 200
+    response_json = response.json()
+    assert response_json["facets"] is None
+    assert "data" in response_json
+
+    data = response_json["data"]
+
+    assert all(d["species"]["id"] == mmodels.species_ids[0] for d in data)
+    assert all(d["emodel"]["name"] == "0" for d in data)
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa: ARG001
+    response = client.get(
+        ROUTE,
+        params={"search": "foo"},
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    assert response.status_code == 200
+    response_json = response.json()
+    assert response_json["facets"] is None
+    assert "data" in response_json
+
+    data = response_json["data"]
+
+    assert all(d["description"] == "foo" for d in data)
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_authorization(
+    db: Session, client, species_id, strain_id, brain_region_id, morphology_id, emodel_id
+):
+    emodel_json = {
+        "brain_region_id": brain_region_id,
+        "description": "description",
+        "legacy_id": "Test Legacy ID",
+        "name": "Test name",
+        "species_id": species_id,
+        "strain_id": strain_id,
+        "emodel_id": emodel_id,
+        "mmodel_id": morphology_id,
+    }
+
+    public_obj = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=emodel_json
+        | {
+            "name": "public obj",
+            "authorized_public": True,
+        },
+    )
+    assert public_obj.status_code == 200
+    public_obj = public_obj.json()
+
+    unauthorized_relations = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=emodel_json,
+    )
+
+    assert unauthorized_relations.status_code == 403
+
+    mmodel_id = create_reconstruction_morphology_id(
+        client,
+        species_id,
+        strain_id,
+        brain_region_id,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        authorized_public=False,
+    )
+
+    unauthorized_emodel = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=emodel_json | {"mmodel_id": mmodel_id},
+    )
+
+    assert unauthorized_emodel.status_code == 403
+
+    emodel_id = str(
+        add_db(
+            db,
+            EModel(
+                authorized_public=False,
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                exemplar_morphology_id=mmodel_id,
+                authorized_project_id="42424242-4242-4000-9000-424242424242",
+            ),
+        ).id
+    )
+
+    inaccessible_obj = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=emodel_json | {"mmodel_id": mmodel_id, "emodel_id": emodel_id},
+    )
+
+    assert inaccessible_obj.status_code == 200
+
+    inaccessible_obj = inaccessible_obj.json()
+
+    private_obj0 = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=emodel_json | {"name": "private obj 0"},
+    )
+    assert private_obj0.status_code == 200
+    private_obj0 = private_obj0.json()
+
+    private_obj1 = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=emodel_json
+        | {
+            "name": "private obj 1",
+        },
+    )
+    assert private_obj1.status_code == 200
+    private_obj1 = private_obj1.json()
+
+    public_obj_diff_project = client.post(
+        ROUTE,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=emodel_json
+        | {
+            "mmodel_id": mmodel_id,
+            "emodel_id": emodel_id,
+            "authorized_public": True,
+        },
+    )
+
+    assert public_obj_diff_project.status_code == 200
+
+    public_obj_diff_project = public_obj_diff_project.json()
+
+    # only return results that matches the desired project, and public ones
+    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    data = response.json()["data"]
+    assert len(data) == 4
+
+    ids = {row["id"] for row in data}
+    assert ids == {
+        public_obj["id"],
+        private_obj0["id"],
+        private_obj1["id"],
+        public_obj_diff_project["id"],
+    }
+
+    response = client.get(
+        f"{ROUTE}/{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
+    )
+
+    assert response.status_code == 404

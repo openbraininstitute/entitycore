@@ -679,51 +679,6 @@ class ImportSingleCellExperimentalTrace(Import):
                 create_annotation(annotation, db_item.id, db)
 
 
-class ImportMEModel(Import):
-    name = "MEModel"
-
-    @staticmethod
-    def is_correct_type(data):
-        types = ensurelist(data["@type"])
-        return "MEModel" in types or "https://neuroshapes.org/MEModel" in types
-
-    @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
-        for data in tqdm(data_list):
-            legacy_id = data["@id"]
-            legacy_self = data["_self"]
-            rm = utils._find_by_legacy_id(legacy_id, MEModel, db)
-            if rm:
-                continue
-
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
-
-            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
-            createdAt, updatedAt = utils.get_created_and_updated(data)
-            # TO DO: add species and strain mixin ?
-            # species_id, strain_id = utils.get_species_mixin(data, db)
-            rm = MEModel(
-                legacy_id=[legacy_id],
-                legacy_self=[legacy_self],
-                name=data.get("name", None),
-                description=data.get("description", None),
-                validation_status=data.get("status", None),
-                brain_region_id=brain_region_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
-                authorized_project_id=project_context.project_id,
-                authorized_public=AUTHORIZED_PUBLIC,
-                # species_id=species_id,
-                # strain_id=strain_id
-                creation_date=createdAt,
-                update_date=updatedAt,
-            )
-            db.add(rm)
-        db.commit()
-        # create_annotation(data, rm.id, db)
-
-
 class ImportSingleNeuronSimulation(Import):
     name = "SingleNeuronSimulation"
 
@@ -955,7 +910,6 @@ def _do_import(db, input_dir, project_context):
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         ImportSingleCellExperimentalTrace,
-        ImportMEModel,
         ImportSingleNeuronSimulation,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,

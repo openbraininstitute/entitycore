@@ -326,7 +326,7 @@ def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):
         (
             part.get("@id")
             for part in ensurelist(get(entity, entity_list_key, []))
-            if entity['@']
+            if is_type(part, type_)
         ),
         None,
     )

@@ -32,15 +32,12 @@ router = APIRouter(
 )
 
 
-@router.get(
-    "/{id_}",
-    response_model=SingleNeuronSimulationRead,
-)
+@router.get("/{id_}")
 def read(
     db: SessionDep,
     id_: uuid.UUID,
     project_context: VerifiedProjectContextHeader,
-):
+) -> SingleNeuronSimulationRead:
     with ensure_result(error_message="SingleNeuronSimulation not found"):
         query = (
             constrain_to_accessible_entities(
@@ -56,12 +53,12 @@ def read(
     return SingleNeuronSimulationRead.model_validate(row)
 
 
-@router.post("", response_model=SingleNeuronSimulationRead)
+@router.post("")
 def create(
     project_context: VerifiedProjectContextHeader,
     json_model: SingleNeuronSimulationCreate,
     db: SessionDep,
-):
+) -> SingleNeuronSimulationRead:
     kwargs = json_model.model_dump() | {"authorized_project_id": project_context.project_id}
 
     db_model = SingleNeuronSimulation(**kwargs)
@@ -102,10 +99,7 @@ def _get_facets(
     return facets
 
 
-@router.get(
-    "",
-    response_model=ListResponse[SingleNeuronSimulationRead],
-)
+@router.get("")
 def query(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
@@ -114,8 +108,8 @@ def query(
         SingleNeuronSimulationFilter, FilterDepends(SingleNeuronSimulationFilter)
     ],
     search: str | None = None,
-    with_facets: bool = False,
-):
+    with_facets: bool | None = None,  # noqa: FBT001
+) -> ListResponse[SingleNeuronSimulationRead]:
     agent_alias = aliased(Agent, flat=True)
     me_model_alias = aliased(MEModel, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -139,7 +133,9 @@ def query(
     if search:
         filter_query = filter_query.where(SingleNeuronSimulation.description_vector.match(search))
 
-    filter_query = filter_model.filter(filter_query, aliases={Agent: agent_alias, MEModel: me_model_alias})
+    filter_query = filter_model.filter(
+        filter_query, aliases={Agent: agent_alias, MEModel: me_model_alias}
+    )
 
     if with_facets:
         facets = _get_facets(

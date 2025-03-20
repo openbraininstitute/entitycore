@@ -32,7 +32,7 @@ def me_model_id(db, brain_region_id):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_single_neuron_simulation(client, db, brain_region_id, me_model_id):
+def test_single_neuron_simulation(client, brain_region_id, me_model_id):
     response = assert_request(
         client.post,
         url=ROUTE,
@@ -81,7 +81,7 @@ def test_single_neuron_simulation(client, db, brain_region_id, me_model_id):
 
 @pytest.mark.usefixtures("skip_project_check")
 @pytest.mark.parametrize(
-    "route_id, expected_status_code",
+    ("route_id", "expected_status_code"),
     [
         (MISSING_ID, 404),
         (MISSING_ID_COMPACT, 404),

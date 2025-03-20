@@ -32,7 +32,7 @@ def test_create_reconstruction_morphology(
             "description": morph_description,
             "name": morph_name,
             "location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": "Test Legacy ID",
+            "legacy_id": ["Test Legacy ID"],
             "license_id": license_id,
         },
     )
@@ -278,7 +278,7 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "location": {"x": 10, "y": 20, "z": 30},
         "brain_region_id": brain_region_id,
         "description": "morph description",
-        "legacy_id": "Test Legacy ID",
+        "legacy_id": ["Test Legacy ID"],
         "license_id": license_id,
         "name": "Test Morphology Name",
         "species_id": species_id,

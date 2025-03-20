@@ -9,7 +9,11 @@ from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, TypeVar
+import operator as op
+from app.cli.utils import ensurelist
+from sqlalchemy.orm import Session
+from app.schemas.base import ProjectContext
 
 
 import click
@@ -60,10 +64,6 @@ SQLA_ENGINE_ARGS = {
     "pool_use_lifo": True,
     "pool_size": 1,
 }
-
-
-def ensurelist(x):
-    return x if isinstance(x, list) else [x]
 
 
 def get_or_create_annotation_body(annotation_body, db):
@@ -416,46 +416,37 @@ class ImportEModels(Import):
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
             generation = data.get("generation")
-            activity = generation and generation.get("activity")
-            followed_workflow = activity and activity.get("followedWorkflow")
-            workflow_id = followed_workflow and followed_workflow.get("@id")
-            workflow = workflow_id and all_data_by_id.get(workflow_id)
+            activity = utils.get(generation, "activity")
+            followed_workflow = utils.get(activity, "followedWorkflow")
+            workflow_id = utils.get(followed_workflow, "@id")
+            workflow = all_data_by_id.get(workflow_id)
 
-            configuration_id = workflow and next(
-                (
-                    part.get("@id")
-                    for part in ensurelist(workflow.get("hasPart", []))
-                    if part.get("@type") == "EModelConfiguration"
-                ),
-                None,
-            )
+
+            assert workflow
+
+            configuration_id = utils.find_id_in_entity(workflow, "EModelConfiguration", "hasPart")
 
             configuration = all_data_by_id.get(configuration_id)
 
-            exemplar_morphology_id = configuration and next(
-                (
-                    item.get("@id")
-                    for item in configuration.get("uses", [])
-                    if isinstance(item, dict) and item.get("@type") == "NeuronMorphology"
-                ),
-                None,
+            assert configuration
+            
+            exemplar_morphology_id = utils.find_id_in_entity(
+                configuration, "NeuronMorphology", "uses"
             )
 
-            morphology = exemplar_morphology_id and utils._find_by_legacy_id(
+            morphology = utils._find_by_legacy_id(
                 exemplar_morphology_id, ReconstructionMorphology, db
             )
 
-            assert morphology
+            if not morphology:
+                L.warning(f"Cannot find exemplar morphology for EModel {data['@id']} skipping")
+                continue
 
-            # TODO: Import as Asset?
-            thumbnail_id = next(
-                (
-                    image["@id"]
-                    for image in ensurelist(data.get("image", {}))
-                    if "thumbnail" in image.get("about", {})
-                ),
-                None,
-            )
+            emodel_script_id = utils.find_id_in_entity(workflow, "EModelScript", "generates")
+
+            emodel_script = all_data_by_id.get(emodel_script_id)
+
+            assert emodel_script
 
             db_item = EModel(
                 legacy_id=[legacy_id],
@@ -775,13 +766,24 @@ class ImportDistribution(Import):
         return "distribution" in data
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
-        ignored = Counter()
+    def ingest(
+        db: Session,
+        project_context: ProjectContext,
+        data_list: list[dict],
+        all_data_by_id: dict | None = None,
+    ):
+        ignored: dict[tuple[dict], int] = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             root = utils._find_by_legacy_id(legacy_id, Root, db)
+
             if root:
+                continue
                 utils.import_distribution(data, root.id, root.type, db, project_context)
+
+            # EModelScripts are not imported but will be added to the EModel
+            elif "EModelScript" in ensurelist(data.get("@type")):
+                utils.import_emodelscript_distribution(data, db, project_context, all_data_by_id)
             else:
                 dt = data["@type"]
                 types = tuple(sorted(dt)) if isinstance(dt, list) else (dt,)
@@ -952,14 +954,14 @@ def _do_import(db, input_dir, project_context):
         ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
-        ImportExperimentalNeuronDensities,
-        ImportExperimentalBoutonDensity,
-        ImportExperimentalSynapsesPerConnection,
-        ImportSingleCellExperimentalTrace,
-        ImportMEModel,
-        ImportSingleNeuronSimulation,
-        ImportDistribution,
-        ImportNeuronMorphologyFeatureAnnotation,
+        # ImportExperimentalNeuronDensities,
+        # ImportExperimentalBoutonDensity,
+        # ImportExperimentalSynapsesPerConnection,
+        # ImportSingleCellExperimentalTrace,
+        # ImportMEModel,
+        # ImportSingleNeuronSimulation,
+        # ImportDistribution,
+        # ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:

@@ -7,7 +7,17 @@ from sqlalchemy.orm import Session
 
 from app.cli import curate
 from app.config import settings
-from app.db.model import Agent, Asset, BrainRegion, Contribution, License, Role, Species, Strain
+from app.db.model import (
+    Agent,
+    Asset,
+    BrainRegion,
+    Contribution,
+    License,
+    Role,
+    Species,
+    Strain,
+    EModel,
+)
 from app.db.types import AssetStatus, EntityType
 from app.logger import L
 from app.schemas.base import ProjectContext
@@ -303,8 +313,71 @@ def get_or_create_distribution(
     db.commit()
 
 
-def import_distribution(data, db_item_id, db_item_type, db, project_context):
+def ensurelist(x):
+    return x if isinstance(x, list) else [x]
+
+
+def get(obj: dict | None, key: str, default=None):
+    return (obj or {}).get(key, default)
+
+
+def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):
+    return next(
+        (
+            part.get("@id")
+            for part in ensurelist(get(entity, entity_list_key, []))
+            if entity['@']
+        ),
+        None,
+    )
+
+
+def is_type(data: dict | None, type_: str):
+    return type_ in ensurelist(get(data, "@type"))
+
+
+def import_distribution(
+    data: dict,
+    db_item_id: uuid.UUID,
+    db_item_type: EntityType,
+    db: Session,
+    project_context: ProjectContext,
+):
     distribution = data.get("distribution", [])
     distribution = curate.curate_distribution(distribution, project_context)
+
     if distribution:
         get_or_create_distribution(distribution, db_item_id, db_item_type, db, project_context)
+
+
+def import_emodelscript_distribution(
+    emodelscript: dict, db: Session, project_context: ProjectContext, all_data_by_id=dict
+):
+    if emodelscript.get("@type") != "EModelScript":
+        msg = "Invalid type, should be an EModelScript"
+        raise TypeError(msg)
+
+    generation = get(emodelscript, "generation")
+    activity = get(generation, "activity")
+    followed_wf = get(activity, "followedWorkflow")
+    workflow_id = get(followed_wf, "@id")
+
+    workflow = all_data_by_id.get(workflow_id)
+
+    if not workflow:
+        L.warning(
+            f"Cannot find EModelWorkflow id {workflow_id}. Skipping EModelScript import: {emodelscript.get('@id')}"  # noqa: E501
+        )
+        return
+
+    emodel_id = find_id_in_entity(workflow, "EModel", "generates")
+
+    emodel = _find_by_legacy_id(
+        emodel_id,
+        EModel,
+        db,
+    )
+
+    L.info(f"Attempting import {emodelscript['@id']}")
+
+    import_distribution(emodelscript, emodel.id, EntityType.emodel, db, project_context)

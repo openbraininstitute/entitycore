@@ -149,6 +149,11 @@ def test_facets(client: TestClient, faceted_memodel_ids: MEModelIds):
         ],
     }
 
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_filtered_facets(client: TestClient, faceted_memodel_ids: MEModelIds):
+    ids = faceted_memodel_ids
+
     response = client.get(
         ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
@@ -161,36 +166,133 @@ def test_facets(client: TestClient, faceted_memodel_ids: MEModelIds):
     assert response.status_code == 200
     data = response.json()
 
-    # assert "facets" in data
-    # facets = data["facets"]
-    # assert facets == {
-    #     "mtype": [],
-    #     "etype": [],
-    #     "species": [
-    #         {
-    #             "id": ids.species_ids[0],
-    #             "label": "TestSpecies0",
-    #             "count": 4,
-    #             "type": "species",
-    #         }
-    #     ],
-    #     "contribution": [],
-    #     "brain_region": [
-    #         {"id": 0, "label": "region0", "count": 2, "type": "brain_region"},
-    #         {"id": 1, "label": "region1", "count": 2, "type": "brain_region"},
-    #     ],
-    #     "exemplar_morphology": [
-    #         {
-    #             "id": ids.morphology_ids[0],
-    #             "label": "test exemplar morphology 0",
-    #             "count": 2,
-    #             "type": "exemplar_morphology",
-    #         },
-    #         {
-    #             "id": ids.morphology_ids[1],
-    #             "label": "test exemplar morphology 1",
-    #             "count": 2,
-    #             "type": "exemplar_morphology",
-    #         },
-    #     ],
-    # }
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {
+        "mtype": [],
+        "etype": [],
+        "species": [
+            {
+                "id": ids.species_ids[0],
+                "label": "TestSpecies0",
+                "count": 4,
+                "type": "species",
+            }
+        ],
+        "strain": [],
+        "contribution": [
+            {
+                "id": ids.agent_ids[0],
+                "label": "test_agent_1",
+                "count": 4,
+                "type": "agent",
+            },
+            {
+                "id": ids.agent_ids[1],
+                "label": "test_agent_2",
+                "count": 4,
+                "type": "agent",
+            },
+        ],
+        "brain_region": [
+            {"id": 0, "label": "region0", "count": 2, "type": "brain_region"},
+            {"id": 1, "label": "region1", "count": 2, "type": "brain_region"},
+        ],
+        "mmodel": [
+            {
+                "id": ids.mmodel_ids[0],
+                "label": "test mmodel 0",
+                "count": 2,
+                "type": "mmodel",
+            },
+            {
+                "id": ids.mmodel_ids[1],
+                "label": "test mmodel 1",
+                "count": 2,
+                "type": "mmodel",
+            },
+        ],
+        "emodel": [
+            {
+                "id": ids.emodel_ids[0],
+                "label": "0",
+                "count": 4,
+                "type": "emodel",
+            }
+        ],
+    }
+
+
+@pytest.mark.usefixtures("skip_project_check")
+def test_facets_with_search(client: TestClient, faceted_memodel_ids: MEModelIds):
+    ids = faceted_memodel_ids
+
+    response = client.get(
+        ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"search": "foo", "with_facets": True},
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets == {
+        "mtype": [],
+        "etype": [],
+        "species": [
+            {
+                "id": ids.species_ids[0],
+                "label": "TestSpecies0",
+                "count": 8,
+                "type": "species",
+            }
+        ],
+        "strain": [],
+        "contribution": [
+            {
+                "id": ids.agent_ids[0],
+                "label": "test_agent_1",
+                "count": 8,
+                "type": "agent",
+            },
+            {
+                "id": ids.agent_ids[1],
+                "label": "test_agent_2",
+                "count": 8,
+                "type": "agent",
+            },
+        ],
+        "brain_region": [
+            {"id": 0, "label": "region0", "count": 4, "type": "brain_region"},
+            {"id": 1, "label": "region1", "count": 4, "type": "brain_region"},
+        ],
+        "mmodel": [
+            {
+                "id": ids.mmodel_ids[0],
+                "label": "test mmodel 0",
+                "count": 4,
+                "type": "mmodel",
+            },
+            {
+                "id": ids.mmodel_ids[1],
+                "label": "test mmodel 1",
+                "count": 4,
+                "type": "mmodel",
+            },
+        ],
+        "emodel": [
+            {
+                "id": ids.emodel_ids[0],
+                "label": "0",
+                "count": 4,
+                "type": "emodel",
+            },
+            {
+                "id": ids.emodel_ids[1],
+                "label": "1",
+                "count": 4,
+                "type": "emodel",
+            },
+        ],
+    }

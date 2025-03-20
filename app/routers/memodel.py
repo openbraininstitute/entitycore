@@ -116,7 +116,7 @@ def memodel_query(
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
     pagination: PaginationQuery,
-    filter: MEModelFilterDep,
+    memodel_filter: MEModelFilterDep,
     search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[MEModelRead]:
@@ -160,7 +160,7 @@ def memodel_query(
         .outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id)
     )
 
-    filter_query = filter.filter(
+    filter_query = memodel_filter.filter(
         filter_query,
         aliases={
             Agent: agent_alias,
@@ -168,15 +168,13 @@ def memodel_query(
             EModel: emodel_alias,
         },
     )
-    filter_query = search(filter_query, EModel.description_vector)
+    filter_query = search(filter_query, MEModel.description_vector)
 
-    # data_query = emodel_joinedloads(emodel_filter.sort(filter_query).distinct())
+    data_query = memodel_joinedloads(memodel_filter.sort(filter_query).distinct())
 
     response = ListResponse[MEModelRead](
-        # data=pagination_request.paginated_rows(db, data_query).scalars().unique(),
-        data=[],
-        # pagination=pagination_request.pagination(db, filter_query, EModel.id),
-        pagination=PaginationResponse(page=0, page_size=0, total_items=0),
+        data=pagination.paginated_rows(db, data_query).scalars().unique(),
+        pagination=pagination.pagination(db, filter_query, MEModel.id),
         facets=facets(db, filter_query, name_to_facet_query_params, MEModel.id),
     )
 

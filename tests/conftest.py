@@ -397,7 +397,6 @@ def faceted_memodel_ids(db: Session, client: TestClient, agents: tuple[Agent, Ag
                 db,
                 EModel(
                     name=f"{i}",
-                    description=f"{i}_description",
                     brain_region_id=brain_region_ids[i],
                     species_id=species_ids[i],
                     exemplar_morphology_id=morphology_ids[i],
@@ -420,7 +419,7 @@ def faceted_memodel_ids(db: Session, client: TestClient, agents: tuple[Agent, Ag
             db,
             MEModel(
                 name="",
-                description=f"species{species_id}, brain_region{brain_region_id}, mmmodle{mmodel_id}, emodel{emodel_id}",
+                description="foo" if species_id == species_ids[0] else "bar",
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=None,

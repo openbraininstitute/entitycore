@@ -317,23 +317,19 @@ def ensurelist(x):
     return x if isinstance(x, list) else [x]
 
 
-def get(obj: dict | None, key: str, default=None):
-    return (obj or {}).get(key, default)
-
-
-def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):
+def find_id_in_entity(entity: dict, type_: str, entity_list_key: str):
     return next(
         (
             part.get("@id")
-            for part in ensurelist(get(entity, entity_list_key, []))
+            for part in ensurelist(entity.get(entity_list_key, []))
             if is_type(part, type_)
         ),
         None,
     )
 
 
-def is_type(data: dict | None, type_: str):
-    return type_ in ensurelist(get(data, "@type"))
+def is_type(data: dict, type_: str):
+    return type_ in ensurelist(data.get("@type", []))
 
 
 def import_distribution(
@@ -353,14 +349,16 @@ def import_distribution(
 def import_emodelscript_distribution(
     emodelscript: dict, db: Session, project_context: ProjectContext, all_data_by_id=dict
 ):
-    if emodelscript.get("@type") != "EModelScript":
+    if not is_type(emodelscript, "EModelScript"):
         msg = "Invalid type, should be an EModelScript"
         raise TypeError(msg)
 
-    generation = get(emodelscript, "generation")
-    activity = get(generation, "activity")
-    followed_wf = get(activity, "followedWorkflow")
-    workflow_id = get(followed_wf, "@id")
+    workflow_id = (
+        emodelscript.get("generation", {})
+        .get("activity", {})
+        .get("followedWorkflow", {})
+        .get("@id")
+    )
 
     workflow = all_data_by_id.get(workflow_id)
 
@@ -372,12 +370,26 @@ def import_emodelscript_distribution(
 
     emodel_id = find_id_in_entity(workflow, "EModel", "generates")
 
+    if not emodel_id:
+        L.warning(
+            f"Cannot find EModel id in EModelWorkflow {workflow_id}. Skipping EModelScript import: {emodelscript.get('@id')}"  # noqa: E501
+        )
+        return
+
     emodel = _find_by_legacy_id(
         emodel_id,
         EModel,
         db,
     )
 
+    if not emodel:
+        L.warning(
+            f"Cannot find EModel {emodel_id}. Skipping EModelScript import: {emodelscript.get('@id')}"  # noqa: E501
+        )
+        return
+
+    assert emodel
+
     L.info(f"Attempting import {emodelscript['@id']}")
 
-    import_distribution(emodelscript, emodel.id, EntityType.emodel, db, project_context)
+    # import_distribution(emodelscript, emodel.id, EntityType.emodel, db, project_context)

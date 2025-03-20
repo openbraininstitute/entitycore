@@ -415,21 +415,16 @@ class ImportEModels(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
-            generation = data.get("generation")
-            activity = utils.get(generation, "activity")
-            followed_workflow = utils.get(activity, "followedWorkflow")
-            workflow_id = utils.get(followed_workflow, "@id")
+            workflow_id = (
+                data.get("generation", {}).get("activity", {}).get("followedWorkflow").get("@id")
+            )
+
             workflow = all_data_by_id.get(workflow_id)
-
-
-            assert workflow
 
             configuration_id = utils.find_id_in_entity(workflow, "EModelConfiguration", "hasPart")
 
             configuration = all_data_by_id.get(configuration_id)
 
-            assert configuration
-            
             exemplar_morphology_id = utils.find_id_in_entity(
                 configuration, "NeuronMorphology", "uses"
             )
@@ -438,12 +433,9 @@ class ImportEModels(Import):
                 exemplar_morphology_id, ReconstructionMorphology, db
             )
 
-            if not morphology:
-                L.warning(f"Cannot find exemplar morphology for EModel {data['@id']} skipping")
-                continue
+            assert morphology
 
             emodel_script_id = utils.find_id_in_entity(workflow, "EModelScript", "generates")
-
             emodel_script = all_data_by_id.get(emodel_script_id)
 
             assert emodel_script

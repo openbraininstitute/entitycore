@@ -21,7 +21,7 @@ from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
 
 
 class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[int]
+    id: InstrumentedAttribute[uuid.UUID]
     label: InstrumentedAttribute[str]
     type: NotRequired[InstrumentedAttribute[str]]
 
@@ -46,7 +46,7 @@ def read(
             )
             .filter(SingleNeuronSimulation.id == id_)
             .options(joinedload(SingleNeuronSimulation.me_model))
-            .options(joinedload(SingleNeuronSimulationRead.brain_region))
+            .options(joinedload(SingleNeuronSimulation.brain_region))
         )
 
         row = db.execute(query).unique().scalar_one()
@@ -54,12 +54,15 @@ def read(
     return SingleNeuronSimulationRead.model_validate(row)
 
 
-@router.post("")
+@router.post(
+    "",
+    response_model=SingleNeuronSimulationRead,
+)
 def create(
     project_context: VerifiedProjectContextHeader,
     json_model: SingleNeuronSimulationCreate,
     db: SessionDep,
-) -> SingleNeuronSimulationRead:
+):
     kwargs = json_model.model_dump() | {"authorized_project_id": project_context.project_id}
 
     db_model = SingleNeuronSimulation(**kwargs)

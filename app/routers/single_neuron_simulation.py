@@ -117,6 +117,7 @@ def query(
     with_facets: bool = False,
 ):
     agent_alias = aliased(Agent, flat=True)
+    me_model_alias = aliased(MEModel, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
             "id": agent_alias.id,
@@ -132,13 +133,13 @@ def query(
         )
         .outerjoin(Contribution, SingleNeuronSimulation.id == Contribution.entity_id)
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(MEModel, SingleNeuronSimulation.me_model_id == MEModel.id)
+        .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)
     )
 
     if search:
         filter_query = filter_query.where(SingleNeuronSimulation.description_vector.match(search))
 
-    filter_query = filter_model.filter(filter_query, aliases={Agent: agent_alias})
+    filter_query = filter_model.filter(filter_query, aliases={Agent: agent_alias, MEModel: me_model_alias})
 
     if with_facets:
         facets = _get_facets(

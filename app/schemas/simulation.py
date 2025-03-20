@@ -2,6 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
+from app.db.types import SingleNeuronSimulationStatus
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -17,7 +18,7 @@ class SingleNeuronSimulationBase(BaseModel):
     name: str
     description: str
     seed: int
-    status: str
+    status: SingleNeuronSimulationStatus
     injectionLocation: list[str]
     recordingLocation: list[str]
 

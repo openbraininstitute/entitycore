@@ -7,7 +7,7 @@ from fastapi_filter import FilterDepends
 from sqlalchemy.orm import InstrumentedAttribute, Session, aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_accessible_entities
-from app.db.model import Agent, Contribution, SingleNeuronSimulation, MEModel
+from app.db.model import Agent, Contribution, MEModel, SingleNeuronSimulation
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -138,7 +138,7 @@ def query(
     if search:
         filter_query = filter_query.where(SingleNeuronSimulation.description_vector.match(search))
 
-    filter_query = filter_model.filter(filter_query)
+    filter_query = filter_model.filter(filter_query, aliases={Agent: agent_alias})
 
     if with_facets:
         facets = _get_facets(
@@ -161,7 +161,7 @@ def query(
     data_query = (
         filter_model.sort(sa.Select(SingleNeuronSimulation))  # sort without filtering
         .join(distinct_ids_subquery, SingleNeuronSimulation.id == distinct_ids_subquery.c.id)
-        .options(joinedload(SingleNeuronSimulation.me_model))
+        .options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.brain_region))
         .options(joinedload(SingleNeuronSimulation.brain_region))
         .options(raiseload("*"))
     )

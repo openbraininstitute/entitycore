@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
@@ -5,6 +7,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    IdentifiableMixin,
 )
 from app.schemas.me_model import MEModelRead
 
@@ -23,13 +26,14 @@ class SingleNeuronSimulationCreate(
     SingleNeuronSimulationBase,
     AuthorizationOptionalPublicMixin,
 ):
-    me_model_id: int
+    me_model_id: uuid.UUID
     brain_region_id: int
 
 
 class SingleNeuronSimulationRead(
     SingleNeuronSimulationBase,
     AuthorizationMixin,
+    IdentifiableMixin,
     CreationMixin,
 ):
     me_model: MEModelRead

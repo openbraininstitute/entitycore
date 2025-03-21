@@ -1,8 +1,8 @@
 """MEModel
 
-Revision ID: c16c357fa295
-Revises: 5dc740111ebf
-Create Date: 2025-03-20 13:27:20.156783
+Revision ID: f7ef3a28e11e
+Revises: 928c1b2f7cf8
+Create Date: 2025-03-21 19:21:25.991597
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "c16c357fa295"
-down_revision: str | None = "5dc740111ebf"
+revision: str = "f7ef3a28e11e"
+down_revision: str | None = "928c1b2f7cf8"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -77,8 +77,8 @@ def upgrade() -> None:
         ["strain_id", "species_id"],
         ["id", "species_id"],
     )
-    op.drop_column("memodel", "validated")
     op.drop_column("memodel", "status")
+    op.drop_column("memodel", "validated")
     public_memodel_memodel_description_vector = PGTrigger(
         schema="public",
         signature="memodel_description_vector",
@@ -91,7 +91,7 @@ def upgrade() -> None:
     public_unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.mmodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'authorized_project_id mismatch or entity is not public';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.mmodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.create_entity(
         public_unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology
@@ -100,7 +100,7 @@ def upgrade() -> None:
     public_unauthorized_private_reference_function_memodel_emodel_id_emodel = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_memodel_emodel_id_emodel()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.emodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'authorized_project_id mismatch or entity is not public';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.emodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.create_entity(public_unauthorized_private_reference_function_memodel_emodel_id_emodel)
 
@@ -152,14 +152,14 @@ def downgrade() -> None:
     public_unauthorized_private_reference_function_memodel_emodel_id_emodel = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_memodel_emodel_id_emodel()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.emodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'authorized_project_id mismatch or entity is not public';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.emodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.drop_entity(public_unauthorized_private_reference_function_memodel_emodel_id_emodel)
 
     public_unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.mmodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'authorized_project_id mismatch or entity is not public';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.mmodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.drop_entity(
         public_unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology
@@ -174,10 +174,10 @@ def downgrade() -> None:
     )
     op.drop_entity(public_memodel_memodel_description_vector)
 
-    op.add_column("memodel", sa.Column("status", sa.VARCHAR(), autoincrement=False, nullable=False))
     op.add_column(
         "memodel", sa.Column("validated", sa.BOOLEAN(), autoincrement=False, nullable=False)
     )
+    op.add_column("memodel", sa.Column("status", sa.VARCHAR(), autoincrement=False, nullable=False))
     op.drop_constraint("fk_memodel_strain_id_species_id", "memodel", type_="foreignkey")
     op.drop_constraint(op.f("fk_memodel_species_id_species"), "memodel", type_="foreignkey")
     op.drop_constraint(op.f("fk_memodel_emodel_id_emodel"), "memodel", type_="foreignkey")

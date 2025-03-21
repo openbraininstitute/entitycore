@@ -20,17 +20,15 @@ class MEModelBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
+    validation_status: ValidationStatus = ValidationStatus.created
 
 
 class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
-    name: str
-    description: str
     brain_region_id: int
     mmodel_id: uuid.UUID
     emodel_id: uuid.UUID
     species_id: uuid.UUID
-    strain_id: uuid.UUID
-    validation_status: ValidationStatus = ValidationStatus.created
+    strain_id: uuid.UUID | None = None
 
 
 class MEModelRead(
@@ -47,4 +45,3 @@ class MEModelRead(
     etypes: list[ETypeClassRead] | None
     mmodel: MModel
     emodel: EModelBase
-    validation_status: ValidationStatus

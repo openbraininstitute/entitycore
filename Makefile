@@ -99,7 +99,7 @@ migration:  ## Create or update the alembic migration
 dump:  # Dump the local database to file
 	docker compose up --wait db
 	docker compose exec \
-		-e DUMPFILE=$${DUMPFILE:-/data/db.dump} \
+		-e DUMPFILE=$${DUMPFILE:-/data/db_$$APP_VERSION.dump} \
 		-e PGUSER=$${PGUSER:-entitycore} -e PGPASSWORD=$${PGPASSWORD:-entitycore} \
 		-e PGHOST=$${PGHOST:-db} -e PGPORT=$${PGPORT:-5432} -e PGDATABASE=$${PGDATABASE:-entitycore} \
 		db bash -c '\
@@ -109,7 +109,7 @@ dump:  # Dump the local database to file
 restore:  # Delete and restore the local database from file
 	docker compose up --wait db
 	docker compose exec \
-		-e DUMPFILE=$${DUMPFILE:-/data/db.dump} \
+		-e DUMPFILE=$${DUMPFILE:-/data/db_$$APP_VERSION.dump} \
 		-e PGUSER=$${PGUSER:-entitycore} -e PGPASSWORD=$${PGPASSWORD:-entitycore} \
 		-e PGHOST=$${PGHOST:-db} -e PGPORT=$${PGPORT:-5432} -e PGDATABASE=$${PGDATABASE:-entitycore} \
 		db bash -c '\

@@ -1,3 +1,4 @@
+import uuid
 import datetime
 import glob
 import json
@@ -8,6 +9,8 @@ from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
+from typing import Any
+
 
 import click
 import sqlalchemy as sa
@@ -22,7 +25,8 @@ from app.db.model import (
     BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
-    ETypeAnnotationBody,
+    ETypeClass,
+    ETypeClassification,
     ExperimentalBoutonDensity,
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
@@ -65,7 +69,7 @@ def ensurelist(x):
 def get_or_create_annotation_body(annotation_body, db):
     annotation_body = curate.curate_annotation_body(annotation_body)
     annotation_types = {
-        "EType": ETypeAnnotationBody,
+        "EType": ETypeClass,
         "MType": MTypeClass,
         "DataMaturity": DataMaturityAnnotationBody,
         "DataScope": None,
@@ -88,6 +92,11 @@ def get_or_create_annotation_body(annotation_body, db):
         if annotation_type is MTypeClass:
             msg = f"Missing mtype in annotation body {annotation_body}"
             raise ValueError(msg)
+
+        if annotation_type is ETypeClass:
+            msg = f"Missing etype in annotation body {annotation_body}"
+            raise ValueError(msg)
+
         ab = annotation_type(pref_label=annotation_body["label"])
         db.add(ab)
         db.commit()
@@ -100,9 +109,8 @@ def create_annotation(annotation_, entity_id, db):
     if not annotation_body_id:
         return None
 
-    if annotation_type is MTypeClass:
-        createdBy_id = None
-        updatedBy_id = None
+    def get_agent_id_from_contribution(annotation_) -> int | None:
+        agent = None
 
         if "contribution" in annotation_:
             # Example contribution, in this case
@@ -117,15 +125,31 @@ def create_annotation(annotation_, entity_id, db):
             agent = utils._find_by_legacy_id(legacy_id, Person, db)
             assert agent
 
-            createdBy_id = agent.id
-            updatedBy_id = agent.id
+        return agent and agent.id
 
+    agent_id = None
+
+    if annotation_type in [MTypeClass, ETypeClass]:
+        agent_id = get_agent_id_from_contribution(annotation_)
+
+    assert agent_id is None or isinstance(agent_id, uuid.UUID)
+
+    if annotation_type is MTypeClass:
         row = MTypeClassification(
             entity_id=entity_id,
             mtype_class_id=annotation_body_id,
-            createdBy_id=createdBy_id,
-            updatedBy_id=updatedBy_id,
+            createdBy_id=agent_id,
+            updatedBy_id=agent_id,
         )
+
+    elif annotation_type is ETypeClass:
+        row = ETypeClassification(
+            entity_id=entity_id,
+            etype_class_id=annotation_body_id,
+            createdBy_id=agent_id,
+            updatedBy_id=agent_id,
+        )
+
     else:
         row = Annotation(
             entity_id=entity_id,
@@ -167,7 +191,7 @@ def import_licenses(data, db):
 
 def _import_annotation_body(data, db_type_, db):
     for class_elem in tqdm(data):
-        if db_type_ == ETypeAnnotationBody:
+        if db_type_ == ETypeClass:
             class_elem = curate.curate_etype(class_elem)
 
         db_elem = db.query(db_type_).filter(db_type_.pref_label == class_elem["label"]).first()
@@ -223,7 +247,7 @@ def import_mtype_annotation_body(data, db):
 
 
 def import_etype_annotation_body(data, db):
-    _import_annotation_body(data, ETypeAnnotationBody, db)
+    _import_annotation_body(data, ETypeClass, db)
 
 
 class Import(ABC):
@@ -237,7 +261,7 @@ class Import(ABC):
 
     @staticmethod
     @abstractmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any] | None):
         """data that is passes `is_correct_type` will be fed to this to ingest into `db`"""
 
 
@@ -250,7 +274,7 @@ class ImportAgent(Import):
         return {"Person", "Organization"} & set(ensurelist(data.get("@type", [])))
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             if "Person" in ensurelist(data["@type"]):
                 legacy_id = data["@id"]
@@ -329,7 +353,7 @@ class ImportAnalysisSoftwareSourceCode(Import):
         return "AnalysisSoftwareSourceCode" in ensurelist(data["@type"])
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -375,7 +399,7 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -390,6 +414,48 @@ class ImportEModels(Import):
             species_id, strain_id = utils.get_species_mixin(data, db)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
+
+            generation = data.get("generation")
+            activity = generation and generation.get("activity")
+            followed_workflow = activity and activity.get("followedWorkflow")
+            workflow_id = followed_workflow and followed_workflow.get("@id")
+            workflow = workflow_id and all_data_by_id.get(workflow_id)
+
+            configuration_id = workflow and next(
+                (
+                    part.get("@id")
+                    for part in ensurelist(workflow.get("hasPart", []))
+                    if part.get("@type") == "EModelConfiguration"
+                ),
+                None,
+            )
+
+            configuration = all_data_by_id.get(configuration_id)
+
+            exemplar_morphology_id = configuration and next(
+                (
+                    item.get("@id")
+                    for item in configuration.get("uses", [])
+                    if isinstance(item, dict) and item.get("@type") == "NeuronMorphology"
+                ),
+                None,
+            )
+
+            morphology = exemplar_morphology_id and utils._find_by_legacy_id(
+                exemplar_morphology_id, ReconstructionMorphology, db
+            )
+
+            assert morphology
+
+            # TODO: Import as Asset?
+            thumbnail_id = next(
+                (
+                    image["@id"]
+                    for image in ensurelist(data.get("image", {}))
+                    if "thumbnail" in image.get("about", {})
+                ),
+                None,
+            )
 
             db_item = EModel(
                 legacy_id=[legacy_id],
@@ -410,6 +476,7 @@ class ImportEModels(Import):
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
+                exemplar_morphology_id=morphology.id,
             )
 
             db.add(db_item)
@@ -429,7 +496,7 @@ class ImportBrainRegionMeshes(Import):
         return "BrainParcellationMesh" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -464,7 +531,7 @@ class ImportMorphologies(Import):
         return {"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types)
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             curate.curate_morphology(data)
             legacy_id = data["@id"]
@@ -513,7 +580,7 @@ class ImportExperimentalNeuronDensities(Import):
         return "ExperimentalNeuronDensity" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         _import_experimental_densities(
             db,
             project_context,
@@ -532,7 +599,7 @@ class ImportExperimentalBoutonDensity(Import):
         return "ExperimentalBoutonDensity" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         _import_experimental_densities(
             db,
             project_context,
@@ -551,7 +618,7 @@ class ImportExperimentalSynapsesPerConnection(Import):
         return "ExperimentalSynapsesPerConnection" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id):
         _import_experimental_densities(
             db,
             project_context,
@@ -570,7 +637,7 @@ class ImportSingleCellExperimentalTrace(Import):
         return "SingleCellExperimentalTrace" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -621,7 +688,7 @@ class ImportMEModel(Import):
         return "MEModel" in types or "https://neuroshapes.org/MEModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -667,7 +734,7 @@ class ImportSingleNeuronSimulation(Import):
         return "SingleNeuronSimulation" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -708,7 +775,7 @@ class ImportDistribution(Import):
         return "distribution" in data
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         ignored = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
@@ -733,7 +800,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
         return "NeuronMorphologyFeatureAnnotation" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list):
+    def ingest(db, project_context, data_list, all_data_by_id=None):
         annotations = defaultdict(list)
         missing_morphology = 0
         duplicate_annotation = 0
@@ -882,9 +949,9 @@ def _do_import(db, input_dir, project_context):
     importers = [
         ImportAgent,
         ImportAnalysisSoftwareSourceCode,
-        ImportEModels,
         ImportBrainRegionMeshes,
         ImportMorphologies,
+        ImportEModels,
         ImportExperimentalNeuronDensities,
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
@@ -902,17 +969,27 @@ def _do_import(db, input_dir, project_context):
 
     import_data = defaultdict(list)
 
-    print("Loading files")
     all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
+
+    all_data_by_id = {}
+
     for file_path in tqdm(all_files):
         with open(file_path) as f:
             data = json.load(f)
-            for importer in importers:
-                import_data[importer].extend(d for d in data if importer.is_correct_type(d))
+
+            for d in data:
+                id = d["@id"]
+
+                all_data_by_id[id] = d
+
+    for importer in importers:
+        import_data[importer].extend(
+            d for d in all_data_by_id.values() if importer.is_correct_type(d)
+        )
 
     for importer, data in import_data.items():
         print(f"ingesting {importer.name}")
-        importer.ingest(db, project_context, data)
+        importer.ingest(db, project_context, data, all_data_by_id)
 
 
 def _analyze() -> None:

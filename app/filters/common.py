@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi_filter import FilterDepends, with_prefix
 
-from app.db.model import Agent, MTypeClass, Species, Strain
+from app.db.model import Agent, ETypeClass, MTypeClass, Species, Strain
 from app.filters.base import CustomFilter
 
 
@@ -15,6 +15,18 @@ class MTypeClassFilter(CustomFilter):
 
     class Constants(CustomFilter.Constants):
         model = MTypeClass
+        ordering_model_fields = ["id", "pref_label"]  # noqa: RUF012
+
+
+class ETypeClassFilter(CustomFilter):
+    id: int | None = None
+    pref_label: str | None = None
+    pref_label__in: list[str] | None = None
+
+    order_by: list[str] = ["pref_label"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = ETypeClass
         ordering_model_fields = ["id", "pref_label"]  # noqa: RUF012
 
 

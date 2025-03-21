@@ -69,7 +69,7 @@ def create_reconstruction_morphology_id(
         json={
             "name": name,
             "description": description,
-            "brain_region_id": str(brain_region_id) if brain_region_id else None,
+            "brain_region_id": str(brain_region_id) if isinstance(brain_region_id, int) else None,
             "species_id": str(species_id) if species_id else None,
             "strain_id": str(strain_id) if strain_id else None,
             "location": {"x": 10, "y": 20, "z": 30},
@@ -77,6 +77,7 @@ def create_reconstruction_morphology_id(
             "authorized_public": authorized_public,
         },
     )
+
     assert response.status_code == 200
     return response.json()["id"]
 

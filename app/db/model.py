@@ -161,6 +161,7 @@ class SpeciesMixin:
                 ["strain.id", "strain.species_id"],
                 name=f"fk_{cls.__tablename__}_strain_id_species_id",
             ),
+            *getattr(super(), "__table_args__", ()),
         )
 
 
@@ -204,32 +205,38 @@ class AnnotationBody(LegacyMixin, TimestampMixin, Base):
     }
 
 
-class MTypeClass(LegacyMixin, TimestampMixin, Base):
-    __tablename__ = "mtype_class"
+class AnnotationMixin:
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     pref_label: Mapped[str] = mapped_column(unique=True, index=True)
     definition: Mapped[str]
     alt_label: Mapped[str | None]
 
 
-class MTypeClassification(TimestampMixin, Base):
-    __tablename__ = "mtype_classification"
+class ClassificationMixin:
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    createdBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updatedBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
-class ETypeAnnotationBody(AnnotationBody):
-    __tablename__ = "etype_annotation_body"
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("annotation_body.id"), primary_key=True)
-    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
-    definition: Mapped[str | None]
-    alt_label: Mapped[str | None]
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": "etype_annotation_body",
-    }
+class MTypeClass(AnnotationMixin, LegacyMixin, TimestampMixin, Base):
+    __tablename__ = "mtype_class"
+
+
+class ETypeClass(AnnotationMixin, LegacyMixin, TimestampMixin, Base):
+    __tablename__ = "etype_class"
+
+
+class MTypeClassification(ClassificationMixin, TimestampMixin, Base):
+    __tablename__ = "mtype_classification"
+
+    mtype_class_id: Mapped[int] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+
+
+class ETypeClassification(ClassificationMixin, TimestampMixin, Base):
+    __tablename__ = "etype_classification"
+
+    etype_class_id: Mapped[int] = mapped_column(ForeignKey("etype_class.id"), index=True)
 
 
 class DataMaturityAnnotationBody(AnnotationBody):
@@ -251,6 +258,22 @@ class Annotation(LegacyMixin, TimestampMixin, Base):
         ForeignKey("annotation_body.id"), index=True
     )
     annotation_body = relationship("AnnotationBody", uselist=False)
+
+
+class DescriptionVectorMixin:
+    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        return (
+            Index(
+                f"ix_{cls.__tablename__}_description_vector",
+                cls.description_vector,
+                postgresql_using="gin",
+            ),
+            *getattr(super(), "__table_args__", ()),
+        )
 
 
 class Entity(TimestampMixin, Root):
@@ -318,7 +341,7 @@ class Contribution(TimestampMixin, Base):
     )
 
 
-class EModel(SpeciesMixin, LocationMixin, Entity):
+class EModel(DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
     __tablename__ = "emodel"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
@@ -331,6 +354,28 @@ class EModel(SpeciesMixin, LocationMixin, Entity):
     iteration: Mapped[str] = mapped_column(default="")
     score: Mapped[float] = mapped_column(default=-1)
     seed: Mapped[int] = mapped_column(default=-1)
+
+    exemplar_morphology_id: Mapped[int] = mapped_column(
+        ForeignKey("reconstruction_morphology.id"), nullable=False
+    )
+
+    exemplar_morphology = relationship(
+        "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
+    )
+
+    mtypes: Mapped[list["MTypeClass"]] = relationship(
+        primaryjoin="EModel.id == MTypeClassification.entity_id",
+        secondary="join(mtype_classification, mtype_class)",
+        uselist=True,
+        viewonly=True,
+    )
+
+    etypes: Mapped[list["ETypeClass"]] = relationship(
+        primaryjoin="EModel.id == ETypeClassification.entity_id",
+        secondary="join(etype_classification, etype_class)",
+        uselist=True,
+        viewonly=True,
+    )
 
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
 
@@ -352,14 +397,15 @@ class MEModel(LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "memodel"}  # noqa: RUF012
 
 
-class ReconstructionMorphology(LicensedMixin, LocationMixin, SpeciesMixin, Entity):
+class ReconstructionMorphology(
+    DescriptionVectorMixin, LicensedMixin, LocationMixin, SpeciesMixin, Entity
+):
     __tablename__ = "reconstruction_morphology"
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str]
     # name is not unique
     name: Mapped[str] = mapped_column(index=True)
-    morphology_description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
     location: Mapped[PointLocation | None]

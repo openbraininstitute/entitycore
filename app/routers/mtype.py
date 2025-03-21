@@ -10,7 +10,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.common import MTypeClassFilter
-from app.schemas.mtype import MTypeClassRead
+from app.schemas.annotation import MTypeClassRead
 from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(

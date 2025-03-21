@@ -3,6 +3,7 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.annotation import MTypeClassRead
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -18,7 +19,6 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.mtype import MTypeClassRead
 
 
 class ReconstructionMorphologyBase(BaseModel):

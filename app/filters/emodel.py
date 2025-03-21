@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import Annotated
 
@@ -15,15 +16,13 @@ from app.filters.morphology import MorphologyFilter
 
 
 class EModelFilter(CustomFilter):
-    id: int | None = None
     creation_date__lte: datetime | None = None
     creation_date__gte: datetime | None = None
     update_date__lte: datetime | None = None
     update_date__gte: datetime | None = None
     name__ilike: str | None = None
-    brain_location_id: int | None = None
     brain_region_id: int | None = None
-    species_id__in: list[int] | None = None
+    species_id__in: list[uuid.UUID] | None = None
 
     score__lte: int | None = None
     score__gte: int | None = None

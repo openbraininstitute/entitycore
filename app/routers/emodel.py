@@ -4,6 +4,8 @@ from http import HTTPStatus
 import sqlalchemy as sa
 from fastapi import APIRouter
 from sqlalchemy.exc import InternalError
+from psycopg2.errors import RaiseException
+
 from sqlalchemy.orm import (
     aliased,
     joinedload,
@@ -27,7 +29,7 @@ from app.db.model import (
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode, ensure_result
+from app.errors import ApiError, ApiErrorCode, ensure_result, PostgresInternalErrorCode
 from app.filters.emodel import EModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
 from app.schemas.emodel import EModelCreate, EModelRead
@@ -97,11 +99,18 @@ def create_emodel(
         return db.execute(query).unique().scalar_one()
 
     except InternalError as err:
-        raise ApiError(
-            message="Exemplar morphology isn't public or owned by user",
-            error_code=ApiErrorCode.INVALID_REQUEST,
-            http_status_code=HTTPStatus.FORBIDDEN,
-        ) from err
+        if (
+            isinstance(err.orig, RaiseException)
+            and err.orig.args
+            and PostgresInternalErrorCode.UNAUTHORIZED_PRIVATE_REFERENCE in err.orig.args[0]
+        ):
+            raise ApiError(
+                message="Exemplar morphology isn't public or owned by user",
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.FORBIDDEN,
+            ) from err
+
+        raise
 
 
 @router.get("")

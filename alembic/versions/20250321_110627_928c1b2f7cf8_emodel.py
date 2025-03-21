@@ -1,8 +1,8 @@
-"""emodel
+"""EModel
 
-Revision ID: eab1b6ab7baf
+Revision ID: 928c1b2f7cf8
 Revises: 652f1f3ffb80
-Create Date: 2025-03-21 10:35:36.448734
+Create Date: 2025-03-21 11:06:27.770309
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "eab1b6ab7baf"
+revision: str = "928c1b2f7cf8"
 down_revision: str | None = "652f1f3ffb80"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -175,10 +175,19 @@ def upgrade() -> None:
     )
     op.create_entity(public_emodel_emodel_description_vector)
 
+    public_single_neuron_simulation_single_neuron_simulation_description_vector = PGTrigger(
+        schema="public",
+        signature="single_neuron_simulation_description_vector",
+        on_entity="public.single_neuron_simulation",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON single_neuron_simulation\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.create_entity(public_single_neuron_simulation_single_neuron_simulation_description_vector)
+
     public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.exemplar_morphology_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'authorized_project_id mismatch or entity is not public';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.exemplar_morphology_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.create_entity(
         public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology
@@ -214,11 +223,20 @@ def downgrade() -> None:
     public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.exemplar_morphology_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'authorized_project_id mismatch or entity is not public';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.exemplar_morphology_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.drop_entity(
         public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology
     )
+
+    public_single_neuron_simulation_single_neuron_simulation_description_vector = PGTrigger(
+        schema="public",
+        signature="single_neuron_simulation_description_vector",
+        on_entity="public.single_neuron_simulation",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON single_neuron_simulation\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.drop_entity(public_single_neuron_simulation_single_neuron_simulation_description_vector)
 
     public_emodel_emodel_description_vector = PGTrigger(
         schema="public",

@@ -7,7 +7,7 @@ from enum import auto
 from http import HTTPStatus
 from typing import Any
 
-from psycopg2.errors import UniqueViolation
+from psycopg2.errors import UniqueViolation, RaiseException
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from app.utils.enum import UpperStrEnum
@@ -22,6 +22,10 @@ class ApiErrorCode(UpperStrEnum):
     ENTITY_DUPLICATED = auto()
     ASSET_NOT_FOUND = auto()
     ASSET_DUPLICATED = auto()
+
+
+class PostgresInternalErrorCode(UpperStrEnum):
+    UNAUTHORIZED_PRIVATE_REFERENCE = auto()
 
 
 @dataclasses.dataclass(kw_only=True)

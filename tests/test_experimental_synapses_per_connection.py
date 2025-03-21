@@ -1,11 +1,8 @@
-import pytest
-
-from .utils import MISSING_ID, MISSING_ID_COMPACT, PROJECT_HEADERS
+from .utils import MISSING_ID, MISSING_ID_COMPACT
 
 ROUTE = "/experimental-synapses-per-connection"
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_experimental_synapses_per_connection(
     client, species_id, strain_id, license_id, brain_region_id
 ):
@@ -13,7 +10,6 @@ def test_experimental_synapses_per_connection(
     bouton_name = "Test bouton Name"
     response = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
         json={
             "brain_region_id": brain_region_id,
             "species_id": species_id,
@@ -47,7 +43,7 @@ def test_experimental_synapses_per_connection(
         f"Failed to get license for  experimental bouton density: {data}"
     )
 
-    response = client.get(f"{ROUTE}/{data['id']}", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{data['id']}")
     assert response.status_code == 200
     data = response.json()
     assert data["brain_region"]["id"] == brain_region_id
@@ -55,12 +51,11 @@ def test_experimental_synapses_per_connection(
     assert data["strain"]["id"] == strain_id
     assert data["description"] == bouton_description
 
-    response = client.get(ROUTE, headers=PROJECT_HEADERS)
+    response = client.get(ROUTE)
     assert response.status_code == 200
     assert len(response.json()["data"]) == 1
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
     response = client.get(f"{ROUTE}/{MISSING_ID}")
     assert response.status_code == 404
@@ -75,8 +70,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-@pytest.mark.usefixtures("skip_project_check")
-def test_authorization(client, species_id, strain_id, license_id, brain_region_id):
+def test_authorization(client_1, client_2, species_id, strain_id, license_id, brain_region_id):
     js = {
         "brain_region_id": brain_region_id,
         "species_id": species_id,
@@ -86,49 +80,24 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "license_id": license_id,
     }
 
-    public_obj = client.post(
-        ROUTE,
-        headers=PROJECT_HEADERS,
-        json=js
-        | {
-            "name": "public obj",
-            "authorized_public": True,
-        },
-    )
+    public_obj = client_1.post(ROUTE, json=js | {"name": "public obj", "authorized_public": True})
     assert public_obj.status_code == 200
     public_obj = public_obj.json()
 
-    inaccessible_obj = client.post(
-        ROUTE,
-        headers={
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
-        json=js
-        | {
-            "name": "unaccessable obj",
-        },
-    )
+    inaccessible_obj = client_2.post(ROUTE, json=js | {"name": "inaccessible obj"})
     assert inaccessible_obj.status_code == 200
     inaccessible_obj = inaccessible_obj.json()
 
-    private_obj0 = client.post(ROUTE, headers=PROJECT_HEADERS, json=js | {"name": "private obj 0"})
+    private_obj0 = client_1.post(ROUTE, json=js | {"name": "private obj 0"})
     assert private_obj0.status_code == 200
     private_obj0 = private_obj0.json()
 
-    private_obj1 = client.post(
-        ROUTE,
-        headers=PROJECT_HEADERS,
-        json=js
-        | {
-            "name": "private obj 1",
-        },
-    )
+    private_obj1 = client_1.post(ROUTE, json=js | {"name": "private obj 1"})
     assert private_obj1.status_code == 200
     private_obj1 = private_obj1.json()
 
     # only return results that matches the desired project, and public ones
-    response = client.get(ROUTE, headers=PROJECT_HEADERS)
+    response = client_1.get(ROUTE)
     data = response.json()["data"]
     assert len(data) == 3
 
@@ -139,5 +108,5 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         private_obj1["id"],
     }
 
-    response = client.get(f"{ROUTE}/{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
+    response = client_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
     assert response.status_code == 404

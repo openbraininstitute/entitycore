@@ -1,6 +1,7 @@
 import itertools as it
 import os
 from collections.abc import Iterator
+from uuid import UUID
 
 import boto3
 import pytest
@@ -24,9 +25,21 @@ from app.db.model import (
     Strain,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
+from app.dependencies import auth
+from app.schemas.auth import UserContext
 
-from .utils import PROJECT_HEADERS, PROJECT_ID, add_db
-from tests import utils
+from . import utils
+from .utils import (
+    BEARER_TOKEN,
+    PROJECT_HEADERS,
+    PROJECT_ID,
+    UNRELATED_PROJECT_HEADERS,
+    UNRELATED_PROJECT_ID,
+    UNRELATED_VIRTUAL_LAB_ID,
+    VIRTUAL_LAB_ID,
+    ClientProxy,
+    add_db,
+)
 
 
 @pytest.fixture(scope="session")
@@ -51,19 +64,98 @@ def _create_buckets(s3):
     s3.create_bucket(Bucket=settings.S3_BUCKET_NAME)
 
 
+@pytest.fixture
+def user_context_1():
+    """Admin authenticated user."""
+    return UserContext(
+        subject=UUID(int=1),
+        email=None,
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=True,
+        virtual_lab_id=VIRTUAL_LAB_ID,
+        project_id=PROJECT_ID,
+    )
+
+
+@pytest.fixture
+def user_context_2():
+    """Regular authenticated user with different project-id."""
+    return UserContext(
+        subject=UUID(int=2),
+        email=None,
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=False,
+        virtual_lab_id=UNRELATED_VIRTUAL_LAB_ID,
+        project_id=UNRELATED_PROJECT_ID,
+    )
+
+
+@pytest.fixture
+def user_context_no_auth():
+    """Not authenticated user."""
+    return UserContext(
+        subject=UUID(int=3),
+        email=None,
+        expiration=None,
+        is_authorized=False,
+        is_service_admin=False,
+        virtual_lab_id=None,
+        project_id=None,
+    )
+
+
+@pytest.fixture
+def _override_check_user_info(monkeypatch, user_context_1, user_context_2, user_context_no_auth):
+    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+        if project_context.project_id == UUID(PROJECT_ID):
+            return user_context_1
+        if project_context.project_id == UUID(UNRELATED_PROJECT_ID):
+            return user_context_2
+        return user_context_no_auth
+
+    monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
+
+
 @pytest.fixture(scope="session")
-def client(_create_buckets):
-    """Yield a web client instance.
+def session_client(_create_buckets):
+    """Run the lifespan events.
 
     The fixture is session-scoped so that the lifespan events are executed only once per session.
     """
-    with TestClient(app, headers=utils.BEARER_TOKEN) as client:
+    with TestClient(app) as client:
         yield client
 
 
+@pytest.fixture
+def client_no_auth(session_client, _override_check_user_info):
+    """Return a web client instance, not authenticated."""
+    return session_client
+
+
+@pytest.fixture
+def client_1(client_no_auth):
+    """Return a web client instance, authenticated as service admin."""
+    return ClientProxy(client_no_auth, headers=BEARER_TOKEN | PROJECT_HEADERS)
+
+
+@pytest.fixture
+def client_2(client_no_auth):
+    """Return a web client instance, authenticated as regular user with different project-id."""
+    return ClientProxy(client_no_auth, headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS)
+
+
+@pytest.fixture
+def client(client_1):
+    return client_1
+
+
 @pytest.fixture(scope="session")
-def database_session_manager() -> DatabaseSessionManager:
-    return configure_database_session_manager()
+def database_session_manager() -> Iterator[DatabaseSessionManager]:
+    manager = configure_database_session_manager()
+    yield manager
+    manager.close()
 
 
 @pytest.fixture
@@ -182,13 +274,12 @@ def brain_region_id(client):
 
 
 @pytest.fixture
-def exemplar_morphology_id(client, species_id, strain_id, brain_region_id, skip_project_check):  # noqa: ARG001
+def exemplar_morphology_id(client, species_id, strain_id, brain_region_id):
     return utils.create_reconstruction_morphology_id(
         client,
-        species_id,
-        strain_id,
-        brain_region_id,
-        utils.PROJECT_HEADERS | utils.BEARER_TOKEN,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
 
@@ -286,7 +377,6 @@ def create_faceted_emodel_ids(db: Session, client: TestClient):
                 species_id=species_ids[i],
                 strain_id=strain_ids[i],
                 brain_region_id=brain_region_ids[i],
-                headers=PROJECT_HEADERS,
                 authorized_public=False,
                 name=f"test exemplar morphology {i}",
             )
@@ -319,9 +409,3 @@ def create_faceted_emodel_ids(db: Session, client: TestClient):
         brain_region_ids=brain_region_ids,
         morphology_ids=morphology_ids,
     )
-
-
-@pytest.fixture
-def skip_project_check():
-    with utils.skip_project_check():
-        yield

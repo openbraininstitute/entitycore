@@ -1,9 +1,10 @@
 import uuid
 
 import sqlalchemy as sa
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.db.model import License
+from app.dependencies.auth import user_with_service_admin_role
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -50,7 +51,7 @@ def read_license(id_: uuid.UUID, db: SessionDep):
     return LicenseRead.model_validate(row)
 
 
-@router.post("", response_model=LicenseRead)
+@router.post("", dependencies=[Depends(user_with_service_admin_role)], response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: SessionDep):
     row = License(name=license.name, description=license.description, label=license.label)
     db.add(row)

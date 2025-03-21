@@ -2,10 +2,11 @@ import uuid
 from typing import Annotated
 
 import sqlalchemy as sa
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi_filter import FilterDepends
 
 from app.db.model import Strain
+from app.dependencies.auth import user_with_service_admin_role
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -55,7 +56,7 @@ def read_strain(id_: uuid.UUID, db: SessionDep):
     return StrainRead.model_validate(row)
 
 
-@router.post("", response_model=StrainRead)
+@router.post("", dependencies=[Depends(user_with_service_admin_role)], response_model=StrainRead)
 def create_strain(strain: StrainCreate, db: SessionDep):
     row = Strain(name=strain.name, taxonomy_id=strain.taxonomy_id, species_id=strain.species_id)
     db.add(row)

@@ -9,7 +9,7 @@ COMPOSITION_SUMMARY = (
 
 router = APIRouter(
     prefix="/cell-composition",
-    tags=["/cell-composition"],
+    tags=["cell-composition"],
 )
 
 

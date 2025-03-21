@@ -22,8 +22,6 @@ def me_model_id(db, brain_region_id):
     row = MEModel(
         name="my-me-model",
         description="my-description",
-        status="started",
-        validated=False,
         brain_region_id=brain_region_id,
         authorized_project_id=PROJECT_ID,
     )
@@ -184,8 +182,6 @@ def test_pagination(db, client, brain_region_id):
         MEModel(
             name="me-model-1",
             description="my-description-1",
-            status="foo",
-            validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
         ),
@@ -195,8 +191,6 @@ def test_pagination(db, client, brain_region_id):
         MEModel(
             name="my-me-model",
             description="my-description",
-            status="foo",
-            validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
         ),

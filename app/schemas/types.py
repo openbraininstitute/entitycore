@@ -1,9 +1,7 @@
 import uuid
 from typing import Annotated
 
-import sqlalchemy as sa
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from sqlalchemy.orm import InstrumentedAttribute, Query, Session
 
 
 class PaginationRequest(BaseModel):
@@ -16,20 +14,6 @@ class PaginationRequest(BaseModel):
     @property
     def offset(self) -> int:
         return (self.page - 1) * self.page_size
-
-    def paginate_query(self, q: Query | sa.Select):
-        return q.limit(self.page_size).offset(self.offset)
-
-    def paginated_rows(self, db: Session, q: Query | sa.Select):
-        q = self.paginate_query(q)
-        return db.execute(q)
-
-    def pagination(self, db: Session, q: sa.Select, distinct_col: InstrumentedAttribute):
-        total_items = db.execute(
-            q.with_only_columns(sa.func.count(sa.func.distinct(distinct_col)).label("count"))
-        ).scalar_one()
-
-        return PaginationResponse(page=self.page, page_size=self.page_size, total_items=total_items)
 
 
 class PaginationResponse(BaseModel):

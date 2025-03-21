@@ -7,7 +7,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.schemas.base import PointLocationBase
-from app.utils.enum import HyphenStrEnum
+from app.utils.enum import HyphenStrEnum, StrEnum
 
 
 class PointLocationType(TypeDecorator):
@@ -55,3 +55,9 @@ class EntityType(HyphenStrEnum):
 class AssetStatus(HyphenStrEnum):
     CREATED = auto()
     DELETED = auto()
+
+
+class SingleNeuronSimulationStatus(StrEnum):
+    started = auto()
+    failure = auto()
+    success = auto()

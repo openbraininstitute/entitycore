@@ -20,6 +20,7 @@ from app.routers import (
     person,
     role,
     root,
+    single_neuron_simulation,
     species,
     strain,
 )
@@ -36,6 +37,7 @@ router.include_router(experimental_neuron_density.router)
 router.include_router(experimental_synapses_per_connection.router)
 router.include_router(license.router)
 router.include_router(morphology.router)
+router.include_router(emodel.router)
 router.include_router(morphology_feature_annotation.router)
 router.include_router(emodel.router)
 router.include_router(memodel.router)
@@ -43,6 +45,7 @@ router.include_router(mtype.router)
 router.include_router(organization.router)
 router.include_router(person.router)
 router.include_router(role.router)
+router.include_router(single_neuron_simulation.router)
 router.include_router(species.router)
 router.include_router(strain.router)
 

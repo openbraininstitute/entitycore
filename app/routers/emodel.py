@@ -3,6 +3,7 @@ from http import HTTPStatus
 
 import sqlalchemy as sa
 from fastapi import APIRouter
+from psycopg2.errors import RaiseException
 from sqlalchemy.exc import InternalError
 from sqlalchemy.orm import (
     aliased,
@@ -27,11 +28,11 @@ from app.db.model import (
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode, ensure_result
+from app.errors import ApiError, ApiErrorCode, PostgresInternalErrorCode, ensure_result
 from app.filters.emodel import EModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
 from app.schemas.emodel import EModelCreate, EModelRead
-from app.schemas.types import ListResponse
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/emodel",
@@ -97,11 +98,18 @@ def create_emodel(
         return db.execute(query).unique().scalar_one()
 
     except InternalError as err:
-        raise ApiError(
-            message="Exemplar morphology isn't public or owned by user",
-            error_code=ApiErrorCode.INVALID_REQUEST,
-            http_status_code=HTTPStatus.FORBIDDEN,
-        ) from err
+        if (
+            isinstance(err.orig, RaiseException)
+            and err.orig.args
+            and PostgresInternalErrorCode.UNAUTHORIZED_PRIVATE_REFERENCE in err.orig.args[0]
+        ):
+            raise ApiError(
+                message="Exemplar morphology isn't public or owned by user",
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.FORBIDDEN,
+            ) from err
+
+        raise
 
 
 @router.get("")
@@ -152,11 +160,24 @@ def emodel_query(
     )
     filter_query = with_search(filter_query, EModel.description_vector)
 
-    data_query = emodel_joinedloads(emodel_filter.sort(filter_query).distinct())
+    data_query = emodel_joinedloads(
+        emodel_filter.sort(filter_query)
+        .limit(pagination_request.page_size)
+        .offset(pagination_request.offset)
+        .distinct()
+    )
+
+    total_items = db.execute(
+        filter_query.with_only_columns(sa.func.count(sa.func.distinct(EModel.id)).label("count"))
+    ).scalar_one()
 
     response = ListResponse[EModelRead](
-        data=pagination_request.paginated_rows(db, data_query).scalars().unique(),
-        pagination=pagination_request.pagination(db, filter_query, EModel.id),
+        data=db.execute(data_query).scalars().unique(),
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
         facets=facets(db, filter_query, name_to_facet_query_params, EModel.id),
     )
 

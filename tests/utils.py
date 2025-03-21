@@ -95,3 +95,9 @@ def add_all_db(db, rows):
     for row in rows:
         db.refresh(row)
     return rows
+
+
+def assert_request(client_method, *, expected_status_code=200, **kwargs):
+    response = client_method(**kwargs)
+    assert response.status_code == expected_status_code, response.content
+    return response

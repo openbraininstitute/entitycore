@@ -21,7 +21,6 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
             "strain_id": strain_id,
             "description": "Test EModel Description",
             "name": "Test EModel Name",
-            "legacy_id": "Test Legacy ID",
             "iteration": "test iteration",
             "score": -1,
             "seed": -1,

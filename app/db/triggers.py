@@ -2,7 +2,8 @@ from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
-from app.db.model import EModel, Entity, MEModel, ReconstructionMorphology
+from app.db.model import EModel, Entity, MEModel, ReconstructionMorphology, SingleNeuronSimulation
+from app.errors import PostgresInternalErrorCode
 
 
 def description_vector_trigger(
@@ -48,7 +49,7 @@ def unauthorized_private_reference_function(
                     WHERE e1.id = NEW.{field_name}
                     AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)
                 ) THEN
-                    RAISE EXCEPTION 'authorized_project_id mismatch or entity is not public';
+                    RAISE EXCEPTION '{PostgresInternalErrorCode.UNAUTHORIZED_PRIVATE_REFERENCE}';
                 END IF;
                 RETURN NEW;
             END;
@@ -91,6 +92,12 @@ entities = [
     description_vector_trigger(
         MEModel,
         "memodel_description_vector",
+        "description_vector",
+        ["description", "name"],
+    ),
+    description_vector_trigger(
+        SingleNeuronSimulation,
+        "single_neuron_simulation_description_vector",
         "description_vector",
         ["description", "name"],
     ),

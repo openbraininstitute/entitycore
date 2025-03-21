@@ -24,6 +24,10 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_DUPLICATED = auto()
 
 
+class PostgresInternalErrorCode(UpperStrEnum):
+    UNAUTHORIZED_PRIVATE_REFERENCE = auto()
+
+
 @dataclasses.dataclass(kw_only=True)
 class ApiError(Exception):
     """API Error."""

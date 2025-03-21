@@ -101,3 +101,96 @@ def assert_request(client_method, *, expected_status_code=200, **kwargs):
     response = client_method(**kwargs)
     assert response.status_code == expected_status_code, response.content
     return response
+
+
+def assert_dict_equal(data, expected_dict: dict) -> None:
+    for entry, expected_value in expected_dict.items():
+        value = data
+        keys = entry.split(".")
+        str_key = "data" + "".join(f'["{k}"]' for k in keys)
+
+        for key in keys:
+            try:
+                value = value[key]
+            except TypeError:
+                message = (
+                    f"Attmpted accesing '{key}' in {str_key} "
+                    f"but instead of dict found {type(value)}"
+                )
+                raise AssertionError(message) from None
+            except KeyError:
+                message = f"{str_key} does not exist."
+                raise AssertionError(message) from None
+
+        assert value == expected_value, (
+            f"Value mismatch for {str_key}\nExpected: {expected_value}\nActual  : {value}"
+        )
+
+
+def assert_authorization(*, client, route, json_data):
+    """Assert authorization filtering works."""
+
+    response = assert_request(
+        client.post,
+        url=route,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=json_data
+        | {
+            "name": "Public Entity",
+            "authorized_public": True,
+        },
+    )
+    public_obj = response.json()
+
+    inaccessible_obj = assert_request(
+        client.post,
+        url=route,
+        headers=BEARER_TOKEN
+        | {
+            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
+            "project-id": "42424242-4242-4000-9000-424242424242",
+        },
+        json=json_data | {"name": "unaccessable morphology 1"},
+    )
+    inaccessible_obj = inaccessible_obj.json()
+
+    private_obj0 = assert_request(
+        client.post,
+        url=route,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=json_data | {"name": "private morphology 0"},
+    )
+    private_obj0 = private_obj0.json()
+
+    private_obj1 = assert_request(
+        client.post,
+        url=route,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        json=json_data
+        | {
+            "name": "private morphology 1",
+        },
+    )
+    private_obj1 = private_obj1.json()
+
+    # only return results that matches the desired project, and public ones
+    response = assert_request(
+        client.get,
+        url=route,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    data = response.json()["data"]
+
+    ids = {row["id"] for row in data}
+    assert ids == {
+        public_obj["id"],
+        private_obj0["id"],
+        private_obj1["id"],
+    }, data
+
+    assert_request(
+        client.get,
+        url=f"{route}/{inaccessible_obj['id']}",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        expected_status_code=404,
+    )

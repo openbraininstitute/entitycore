@@ -11,6 +11,8 @@ from .utils import (
     PROJECT_HEADERS,
     PROJECT_ID,
     add_db,
+    assert_authorization,
+    assert_dict_equal,
     assert_request,
 )
 
@@ -49,34 +51,38 @@ def test_single_neuron_simulation(client, brain_region_id, me_model_id):
             "brain_region_id": str(brain_region_id),
         },
     )
-
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, (
-        f"Failed to get id for reconstruction morphology: {data}"
+    assert_dict_equal(
+        data,
+        {
+            "name": "foo",
+            "description": "my-description",
+            "brain_region.id": brain_region_id,
+            "injectionLocation": ["soma[0]"],
+            "recordingLocation": ["soma[0]_0.5"],
+            "me_model.id": str(me_model_id),
+            "status": "success",
+            "authorized_project_id": PROJECT_ID,
+        },
     )
-    assert data["description"] == "my-description"
-    assert data["name"] == "foo"
-    assert data["injectionLocation"] == ["soma[0]"]
-    assert data["recordingLocation"] == ["soma[0]_0.5"]
-    assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
-    assert data["status"] == "success"
-    assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
-
     response = assert_request(
         client.get,
         url=f"{ROUTE}/{data['id']}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
-    assert data["brain_region"]["id"] == brain_region_id, (
-        f"Failed to get id for reconstruction morphology: {data}"
+    assert_dict_equal(
+        response.json(),
+        {
+            "name": "foo",
+            "description": "my-description",
+            "brain_region.id": brain_region_id,
+            "injectionLocation": ["soma[0]"],
+            "recordingLocation": ["soma[0]_0.5"],
+            "me_model.id": str(me_model_id),
+            "status": "success",
+            "authorized_project_id": PROJECT_ID,
+        },
     )
-    assert data["description"] == "my-description"
-    assert data["name"] == "foo"
-    assert data["injectionLocation"] == ["soma[0]"]
-    assert data["recordingLocation"] == ["soma[0]_0.5"]
-    assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
-    assert data["status"] == "success"
-    assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -110,71 +116,7 @@ def test_authorization(client, me_model_id, brain_region_id):
         "seed": 1,
         "brain_region_id": str(brain_region_id),
     }
-
-    response = assert_request(
-        client.post,
-        url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=json_data
-        | {
-            "name": "Public Entity",
-            "authorized_public": True,
-        },
-    )
-    public_morph = response.json()
-
-    inaccessible_obj = assert_request(
-        client.post,
-        url=ROUTE,
-        headers=BEARER_TOKEN
-        | {
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
-        json=json_data | {"name": "unaccessable morphology 1"},
-    )
-    inaccessible_obj = inaccessible_obj.json()
-
-    private_obj0 = assert_request(
-        client.post,
-        url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=json_data | {"name": "private morphology 0"},
-    )
-    private_obj0 = private_obj0.json()
-
-    private_obj1 = assert_request(
-        client.post,
-        url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=json_data
-        | {
-            "name": "private morphology 1",
-        },
-    )
-    private_obj1 = private_obj1.json()
-
-    # only return results that matches the desired project, and public ones
-    response = assert_request(
-        client.get,
-        url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
-    data = response.json()["data"]
-
-    ids = {row["id"] for row in data}
-    assert ids == {
-        public_morph["id"],
-        private_obj0["id"],
-        private_obj1["id"],
-    }, data
-
-    assert_request(
-        client.get,
-        url=f"{ROUTE}/{inaccessible_obj['id']}",
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        expected_status_code=404,
-    )
+    assert_authorization(client=client, route=ROUTE, json_data=json_data)
 
 
 @pytest.mark.usefixtures("skip_project_check")

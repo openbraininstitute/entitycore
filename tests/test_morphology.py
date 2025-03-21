@@ -10,6 +10,9 @@ from .utils import (
     MISSING_ID_COMPACT,
     PROJECT_HEADERS,
     add_db,
+    assert_authorization,
+    assert_dict_equal,
+    assert_request,
     create_reconstruction_morphology_id,
 )
 
@@ -22,8 +25,9 @@ def test_create_reconstruction_morphology(
 ):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
-    response = client.post(
-        ROUTE,
+    response = assert_request(
+        client.post,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "brain_region_id": brain_region_id,
@@ -36,50 +40,55 @@ def test_create_reconstruction_morphology(
             "license_id": license_id,
         },
     )
-    assert response.status_code == 200, (
-        f"Failed to create reconstruction morphology: {response.text}"
-    )
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, (
-        f"Failed to get id for reconstruction morphology: {data}"
+    assert_dict_equal(
+        data,
+        {
+            "name": morph_name,
+            "description": morph_description,
+            "brain_region.id": brain_region_id,
+            "species.id": species_id,
+            "strain.id": strain_id,
+            "license.name": "Test License",
+        },
     )
-    assert data["species"]["id"] == species_id, (
-        f"Failed to get species_id for reconstruction morphology: {data}"
+    response = assert_request(
+        client.get, url=f"{ROUTE}/{data['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
     )
-    assert data["strain"]["id"] == strain_id, (
-        f"Failed to get strain_id for reconstruction morphology: {data}"
-    )
-    assert data["description"] == morph_description, (
-        f"Failed to get description for reconstruction morphology: {data}"
-    )
-    assert data["name"] == morph_name, f"Failed to get name for reconstruction morphology: {data}"
-    assert data["license"]["name"] == "Test License", (
-        f"Failed to get license for reconstruction morphology: {data}"
-    )
-
-    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
-    assert response.status_code == 200, (
-        f"Failed to get reconstruction morphologies: {response.text}"
+    assert_dict_equal(
+        response.json(),
+        {
+            "name": morph_name,
+            "description": morph_description,
+            "brain_region.id": brain_region_id,
+            "species.id": species_id,
+            "strain.id": strain_id,
+            "license.name": "Test License",
+        },
     )
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_missing(client):
-    response = client.get(f"{ROUTE}/{MISSING_ID}", headers=BEARER_TOKEN | PROJECT_HEADERS)
-    assert response.status_code == 404
-
-    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}", headers=BEARER_TOKEN | PROJECT_HEADERS)
-    assert response.status_code == 404
-
-    response = client.get(f"{ROUTE}/42424242", headers=BEARER_TOKEN | PROJECT_HEADERS)
-    assert response.status_code == 422
-
-    response = client.get(f"{ROUTE}/notanumber", headers=BEARER_TOKEN | PROJECT_HEADERS)
-    assert response.status_code == 422
+@pytest.mark.parametrize(
+    ("route_id", "expected_status_code"),
+    [
+        (MISSING_ID, 404),
+        (MISSING_ID_COMPACT, 404),
+        ("42424242", 422),
+        ("notanumber", 422),
+    ],
+)
+def test_missing(client, route_id, expected_status_code):
+    assert_request(
+        client.get,
+        url=f"{ROUTE}/{route_id}",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        expected_status_code=expected_status_code,
+    )
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: PLR0915
+def test_query_reconstruction_morphology(db, client, brain_region_id):
     species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
     species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
 
@@ -113,64 +122,66 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     count = 11
     create_morphologies(count)
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         params={"page_size": 10},
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
-    assert response.status_code == 200
     response_json = response.json()
     assert "facets" in response_json
     assert "data" in response_json
     assert response_json["facets"] is None
     assert len(response_json["data"]) == 10
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"page_size": 100, "order_by": "+creation_date"},
     )
-    assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 11
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"order_by": "+creation_date", "page_size": 100},
     )
-    assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count
     assert all(
         elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
 
-    response = client.get(
-        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "-creation_date"}
+    response = assert_request(
+        client.get,
+        url=ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"order_by": "-creation_date"},
     )
-    assert response.status_code == 200
     data = response.json()["data"]
     assert all(
         elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"order_by": "+creation_date", "page": 1, "page_size": 3},
     )
-    assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 3
     assert [row["id"] for row in data] == [morphology_ids[i] for i in [0, 1, 2]]
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"with_facets": True},
     )
-    assert response.status_code == 200
     data = response.json()
 
     assert "facets" in data
@@ -188,12 +199,12 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
         ],
     }
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"search": "Test", "with_facets": True},
     )
-    assert response.status_code == 200
     data = response.json()
 
     assert "facets" in data
@@ -211,12 +222,12 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
         ],
     }
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"species__name": "TestSpecies1", "with_facets": True},
     )
-    assert response.status_code == 200
     data = response.json()
     assert len(data["data"]) == 6
 
@@ -254,8 +265,9 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
         ),
     )
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"with_facets": True},
     )
@@ -284,66 +296,7 @@ def test_authorization(client, species_id, strain_id, license_id, brain_region_i
         "species_id": species_id,
         "strain_id": strain_id,
     }
-
-    public_morph = client.post(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=morph_json
-        | {
-            "name": "public morphology",
-            "authorized_public": True,
-        },
-    )
-    assert public_morph.status_code == 200
-    public_morph = public_morph.json()
-
-    inaccessible_obj = client.post(
-        ROUTE,
-        headers=BEARER_TOKEN
-        | {
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
-        json=morph_json | {"name": "unaccessable morphology 1"},
-    )
-    assert inaccessible_obj.status_code == 200
-    inaccessible_obj = inaccessible_obj.json()
-
-    private_morph0 = client.post(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=morph_json | {"name": "private morphology 0"},
-    )
-    assert private_morph0.status_code == 200
-    private_morph0 = private_morph0.json()
-
-    private_morph1 = client.post(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=morph_json
-        | {
-            "name": "private morphology 1",
-        },
-    )
-    assert private_morph1.status_code == 200
-    private_morph1 = private_morph1.json()
-
-    # only return results that matches the desired project, and public ones
-    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
-    data = response.json()["data"]
-    assert len(data) == 3
-
-    ids = {row["id"] for row in data}
-    assert ids == {
-        public_morph["id"],
-        private_morph0["id"],
-        private_morph1["id"],
-    }
-
-    response = client.get(
-        f"{ROUTE}/{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
-    )
-    assert response.status_code == 404
+    assert_authorization(client=client, route=ROUTE, json_data=morph_json)
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -367,19 +320,23 @@ def test_pagination(db, client, brain_region_id):
             authorized_public=False,
         )
 
-    response = client.get(
-        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
+    response = assert_request(
+        client.get,
+        url=ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        params={"page_size": total_items + 1},
     )
 
-    assert response.status_code == 200
     assert len(response.json()["data"]) == total_items
 
     for i in range(1, total_items + 10, 2):
-        response = client.get(
-            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": i}
+        response = assert_request(
+            client.get,
+            url=ROUTE,
+            headers=BEARER_TOKEN | PROJECT_HEADERS,
+            params={"page_size": i},
         )
 
-        assert response.status_code == 200
         data = response.json()["data"]
         expected_items = min(i, total_items)
         assert len(data) == expected_items
@@ -388,11 +345,13 @@ def test_pagination(db, client, brain_region_id):
 
     items = []
     for i in range(1, total_items + 1):
-        response = client.get(
-            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page": i, "page_size": 1}
+        response = assert_request(
+            client.get,
+            url=ROUTE,
+            headers=BEARER_TOKEN | PROJECT_HEADERS,
+            params={"page": i, "page_size": 1},
         )
 
-        assert response.status_code == 200
         data = response.json()["data"]
         assert len(data) == 1
         items.append(data[0])

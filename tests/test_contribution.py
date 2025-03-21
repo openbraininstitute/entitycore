@@ -9,6 +9,8 @@ from .utils import (
     PROJECT_HEADERS,
     UNRELATED_PROJECT_HEADERS,
     add_db,
+    assert_dict_equal,
+    assert_request,
     create_reconstruction_morphology_id,
 )
 
@@ -35,8 +37,9 @@ def test_create_contribution(
         authorized_public=False,
     )
 
-    response = client.post(
-        ROUTE,
+    response = assert_request(
+        client.post,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
@@ -44,35 +47,46 @@ def test_create_contribution(
             "entity_id": str(reconstruction_morphology_id),
         },
     )
-    response.raise_for_status()
     data = response.json()
-    assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["givenName"] == "jd"
-    assert data["agent"]["familyName"] == "courcol"
-    assert data["agent"]["pref_label"] == "jd courcol"
-    assert data["agent"]["type"] == "person"
-    assert data["role"]["id"] == str(role_id)
-    assert data["role"]["name"] == "important role"
-    assert data["role"]["role_id"] == "important role id"
-    assert data["entity"]["id"] == reconstruction_morphology_id
+    assert_dict_equal(
+        data,
+        {
+            "agent.id": str(person_id),
+            "agent.givenName": "jd",
+            "agent.pref_label": "jd courcol",
+            "agent.type": "person",
+            "role.id": str(role_id),
+            "role.name": "important role",
+            "role.role_id": "important role id",
+            "entity.id": reconstruction_morphology_id,
+        },
+    )
 
     contribution_id = data["id"]
 
-    response = client.get(f"{ROUTE}/{contribution_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["givenName"] == "jd"
-    assert data["agent"]["familyName"] == "courcol"
-    assert data["agent"]["type"] == "person"
-    assert data["role"]["id"] == str(role_id)
-    assert data["role"]["name"] == "important role"
-    assert data["role"]["role_id"] == "important role id"
-    assert data["entity"]["id"] == reconstruction_morphology_id
-    assert data["id"] == contribution_id
+    response = assert_request(
+        client.get,
+        url=f"{ROUTE}/{contribution_id}",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+    )
+    assert_dict_equal(
+        response.json(),
+        {
+            "agent.id": str(person_id),
+            "agent.givenName": "jd",
+            "agent.familyName": "courcol",
+            "agent.type": "person",
+            "role.id": str(role_id),
+            "role.name": "important role",
+            "role.role_id": "important role id",
+            "entity.id": reconstruction_morphology_id,
+            "id": contribution_id,
+        },
+    )
 
-    response = client.post(
-        ROUTE,
+    response = assert_request(
+        client.post,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": str(organization_id),
@@ -80,34 +94,38 @@ def test_create_contribution(
             "entity_id": str(reconstruction_morphology_id),
         },
     )
-    response.raise_for_status()
-    data = response.json()
-    assert data["agent"]["id"] == str(organization_id)
-    assert data["agent"]["pref_label"] == "ACME"
-    assert data["agent"]["alternative_name"] == "A Company Making Everything"
-    assert data["agent"]["type"] == "organization"
+    assert_dict_equal(
+        response.json(),
+        {
+            "agent.id": str(organization_id),
+            "agent.pref_label": "ACME",
+            "agent.alternative_name": "A Company Making Everything",
+            "agent.type": "organization",
+        },
+    )
 
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     assert len(response.json()["data"]) == 2
 
-    response = client.get(
-        f"{ROUTE_MORPH}/{reconstruction_morphology_id}",
+    response = assert_request(
+        client.get,
+        url=f"{ROUTE_MORPH}/{reconstruction_morphology_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
-    response.raise_for_status()
     data = response.json()
     assert "contributions" in data
     assert len(data["contributions"]) == 2
 
-    response = client.get(
-        ROUTE_MORPH,
+    response = assert_request(
+        client.get,
+        url=ROUTE_MORPH,
         params={"with_facets": True},
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
-    response.raise_for_status()
     data = response.json()["data"]
     assert len(data) == 1
     assert len(data[0]["contributions"]) == 2
@@ -121,18 +139,22 @@ def test_create_contribution(
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_missing(client):
-    response = client.get(f"{ROUTE}/{MISSING_ID}", headers=PROJECT_HEADERS)
-    assert response.status_code == 404
-
-    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}", headers=PROJECT_HEADERS)
-    assert response.status_code == 404
-
-    response = client.get(f"{ROUTE}/42424242", headers=PROJECT_HEADERS)
-    assert response.status_code == 422
-
-    response = client.get(f"{ROUTE}/notanumber", headers=PROJECT_HEADERS)
-    assert response.status_code == 422
+@pytest.mark.parametrize(
+    ("route_id", "expected_status_code"),
+    [
+        (MISSING_ID, 404),
+        (MISSING_ID_COMPACT, 404),
+        ("42424242", 422),
+        ("notanumber", 422),
+    ],
+)
+def test_missing(client, route_id, expected_status_code):
+    assert_request(
+        client.get,
+        url=f"{ROUTE}/{route_id}",
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        expected_status_code=expected_status_code,
+    )
 
 
 @pytest.mark.usefixtures("skip_project_check")
@@ -146,35 +168,38 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
         authorized_public=False,
     )
 
-    response = client.post(
-        ROUTE,
+    # can't attach contributions to projects unrelated to us
+    response = assert_request(
+        client.post,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
             "entity_id": str(inaccessible_entity_id),
         },
+        expected_status_code=404,
     )
-    # can't attach contributions to projects unrelated to us
-    assert response.status_code == 404
 
-    response = client.post(
-        ROUTE,
+    response = assert_request(
+        client.post,
+        url=ROUTE,
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
             "entity_id": str(inaccessible_entity_id),
         },
+        expected_status_code=200,
     )
-    assert response.status_code == 200
     inaccessible_annotation_id = response.json()["id"]
 
-    response = client.get(
-        f"{ROUTE}/{inaccessible_annotation_id}",
+    response = assert_request(
+        client.get,
+        url=f"{ROUTE}/{inaccessible_annotation_id}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
+        expected_status_code=404,
     )
-    assert response.status_code == 404
 
     public_entity_id = create_reconstruction_morphology_id(
         client,
@@ -184,42 +209,46 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         authorized_public=True,
     )
-    response = client.post(
-        ROUTE,
+    # can't attach contributions to projects unrelated to us, even if public
+    response = assert_request(
+        client.post,
+        url=ROUTE,
         headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
             "entity_id": str(public_entity_id),
         },
+        expected_status_code=404,
     )
-    # can't attach contributions to projects unrelated to us, even if public
-    assert response.status_code == 404
 
-    public_obj = client.post(
-        ROUTE,
+    public_obj = assert_request(
+        client.post,
+        url=ROUTE,
         headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
             "entity_id": str(public_entity_id),
         },
+        expected_status_code=200,
     )
-    assert public_obj.status_code == 200
     public_obj = public_obj.json()
 
-    response = client.get(
-        f"{ROUTE}/{public_obj['id']}",
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
     # can get the contribution if the entity is public
-    assert response.status_code == 200
-
-    response = client.get(
-        ROUTE,
+    response = assert_request(
+        client.get,
+        url=f"{ROUTE}/{public_obj['id']}",
         headers=BEARER_TOKEN | PROJECT_HEADERS,
+        expected_status_code=200,
     )
-    assert response.status_code == 200
+
+    response = assert_request(
+        client.get,
+        url=ROUTE,
+        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        expected_status_code=200,
+    )
     data = response.json()["data"]
     assert len(data) == 1  # only public entity is available
     assert data[0]["id"] == public_obj["id"]
@@ -283,8 +312,9 @@ def test_contribution_facets(
     assert len(morphology_ids) == 12
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
-    response = client.get(
-        ROUTE_MORPH,
+    response = assert_request(
+        client.get,
+        url=ROUTE_MORPH,
         params={"with_facets": True, "page_size": 10},
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
@@ -310,8 +340,9 @@ def test_contribution_facets(
     expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
     assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
 
-    response = client.get(
-        f"{ROUTE_MORPH}",
+    response = assert_request(
+        client.get,
+        url=f"{ROUTE_MORPH}",
         params={"with_facets": True, "contribution__pref_label": "person_pref_label"},
         headers=BEARER_TOKEN | PROJECT_HEADERS,
     )

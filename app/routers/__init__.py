@@ -20,6 +20,7 @@ from app.routers import (
     role,
     root,
     single_neuron_simulation,
+    single_neuron_synaptome,
     species,
     strain,
 )
@@ -43,6 +44,7 @@ router.include_router(organization.router)
 router.include_router(person.router)
 router.include_router(role.router)
 router.include_router(single_neuron_simulation.router)
+router.include_router(single_neuron_synaptome.router)
 router.include_router(species.router)
 router.include_router(strain.router)
 

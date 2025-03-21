@@ -25,7 +25,7 @@ from app.db.model import (
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 
-from .utils import PROJECT_HEADERS, PROJECT_ID, add_db
+from .utils import PROJECT_HEADERS, PROJECT_ID, add_db, create_brain_region_id
 from tests import utils
 
 
@@ -158,21 +158,6 @@ def license_id(client):
     assert response.status_code == 200
     data = response.json()
     assert "id" in data, f"Failed to get id for license: {data}"
-    return data["id"]
-
-
-def create_brain_region_id(client: TestClient, id_: int, name: str):
-    js = {
-        "id": id_,
-        "acronym": f"acronym{id_}",
-        "name": name,
-        "color_hex_triplet": "FF0000",
-        "children": [],
-    }
-    response = client.post("/brain-region", json=js)
-    assert response.status_code == 200, f"Failed to create brain region: {response.text}"
-    data = response.json()
-    assert "id" in data, f"Failed to get id for brain region: {data}"
     return data["id"]
 
 

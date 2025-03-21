@@ -469,7 +469,7 @@ class SingleCellExperimentalTrace(LocationMixin, SpeciesMixin, LicensedMixin, En
     __mapper_args__ = {"polymorphic_identity": "single_cell_experimental_trace"}  # noqa: RUF012
 
 
-class SingleNeuronSynaptome(LocationMixin, Entity):
+class SingleNeuronSynaptome(DescriptionVectorMixin, LocationMixin, Entity):
     __tablename__ = "single_neuron_synaptome"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
@@ -480,11 +480,10 @@ class SingleNeuronSynaptome(LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "single_neuron_synaptome"}  # noqa: RUF012
 
 
-class SingleNeuronSimulation(LocationMixin, Entity):
+class SingleNeuronSimulation(DescriptionVectorMixin, LocationMixin, Entity):
     __tablename__ = "single_neuron_simulation"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
-    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
     name: Mapped[str] = mapped_column(default="")
     seed: Mapped[int] = mapped_column(default=-1)
     injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])

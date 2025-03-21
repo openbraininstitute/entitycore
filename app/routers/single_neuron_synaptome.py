@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated, NotRequired, TypedDict
+from typing import Annotated
 
 import sqlalchemy as sa
 from fastapi import APIRouter
@@ -7,65 +7,59 @@ from fastapi_filter import FilterDepends
 from sqlalchemy.orm import InstrumentedAttribute, Session, aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_accessible_entities
-from app.db.model import Agent, Contribution, MEModel, SingleNeuronSimulation
+from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSynaptome
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.filters.single_neuron_simulation import SingleNeuronSimulationFilter
-from app.schemas.simulation import (
-    SingleNeuronSimulationCreate,
-    SingleNeuronSimulationRead,
+from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeFilter
+from app.routers.common import FacetQueryParams
+from app.schemas.synaptome import (
+    SingleNeuronSynaptomeCreate,
+    SingleNeuronSynaptomeRead,
 )
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
 
-
-class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[uuid.UUID]
-    label: InstrumentedAttribute[str]
-    type: NotRequired[InstrumentedAttribute[str]]
-
-
 router = APIRouter(
-    prefix="/single-neuron-simulation",
-    tags=["single-neuron-simulation"],
+    prefix="/single-neuron-synaptome",
+    tags=["single-neuron-synaptome"],
 )
 
 
 @router.get("/{id_}")
-def read(
+def read_one(
     db: SessionDep,
     id_: uuid.UUID,
     project_context: VerifiedProjectContextHeader,
-) -> SingleNeuronSimulationRead:
-    with ensure_result(error_message="SingleNeuronSimulation not found"):
+) -> SingleNeuronSynaptomeRead:
+    with ensure_result(error_message="SingleNeuronSynaptome not found"):
         query = (
             constrain_to_accessible_entities(
-                sa.select(SingleNeuronSimulation),
+                sa.select(SingleNeuronSynaptome),
                 project_context.project_id,
             )
-            .filter(SingleNeuronSimulation.id == id_)
-            .options(joinedload(SingleNeuronSimulation.me_model))
-            .options(joinedload(SingleNeuronSimulation.brain_region))
+            .filter(SingleNeuronSynaptome.id == id_)
+            .options(joinedload(SingleNeuronSynaptome.me_model))
+            .options(joinedload(SingleNeuronSynaptome.brain_region))
         )
 
         row = db.execute(query).unique().scalar_one()
 
-    return SingleNeuronSimulationRead.model_validate(row)
+    return SingleNeuronSynaptomeRead.model_validate(row)
 
 
 @router.post("")
-def create(
+def create_one(
     project_context: VerifiedProjectContextHeader,
-    json_model: SingleNeuronSimulationCreate,
+    json_model: SingleNeuronSynaptomeCreate,
     db: SessionDep,
-) -> SingleNeuronSimulationRead:
+) -> SingleNeuronSynaptomeRead:
     data = json_model.model_dump() | {"authorized_project_id": project_context.project_id}
-    row = SingleNeuronSimulation(**data)
+    row = SingleNeuronSynaptome(**data)
     db.add(row)
     db.commit()
     db.refresh(row)
-    return SingleNeuronSimulationRead.model_validate(row)
+    return SingleNeuronSynaptomeRead.model_validate(row)
 
 
 def _get_facets(
@@ -104,11 +98,11 @@ def query(
     project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     filter_model: Annotated[
-        SingleNeuronSimulationFilter, FilterDepends(SingleNeuronSimulationFilter)
+        SingleNeuronSynaptomeFilter, FilterDepends(SingleNeuronSynaptomeFilter)
     ],
     search: str | None = None,
     with_facets: bool | None = None,  # noqa: FBT001
-) -> ListResponse[SingleNeuronSimulationRead]:
+) -> ListResponse[SingleNeuronSynaptomeRead]:
     agent_alias = aliased(Agent, flat=True)
     me_model_alias = aliased(MEModel, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -117,20 +111,23 @@ def query(
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
+        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
+        "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
     }
 
     filter_query = (
         constrain_to_accessible_entities(
-            sa.select(SingleNeuronSimulation),
+            sa.select(SingleNeuronSynaptome),
             project_id=project_context.project_id,
         )
-        .outerjoin(Contribution, SingleNeuronSimulation.id == Contribution.entity_id)
+        .join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)
+        .outerjoin(Contribution, SingleNeuronSynaptome.id == Contribution.entity_id)
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)
+        .outerjoin(me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id)
     )
 
     if search:
-        filter_query = filter_query.where(SingleNeuronSimulation.description_vector.match(search))
+        filter_query = filter_query.where(SingleNeuronSynaptome.description_vector.match(search))
 
     filter_query = filter_model.filter(
         filter_query, aliases={Agent: agent_alias, MEModel: me_model_alias}
@@ -141,24 +138,24 @@ def query(
             db,
             filter_query,
             name_to_facet_query_params=name_to_facet_query_params,
-            count_distinct_field=SingleNeuronSimulation.id,
+            count_distinct_field=SingleNeuronSynaptome.id,
         )
     else:
         facets = None
 
     distinct_ids_subquery = (
         filter_model.sort(filter_query)
-        .with_only_columns(SingleNeuronSimulation)
+        .with_only_columns(SingleNeuronSynaptome)
         .distinct()
         .offset(pagination_request.offset)
         .limit(pagination_request.page_size)
     ).subquery("distinct_ids")
 
     data_query = (
-        filter_model.sort(sa.Select(SingleNeuronSimulation))  # sort without filtering
-        .join(distinct_ids_subquery, SingleNeuronSimulation.id == distinct_ids_subquery.c.id)
-        .options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.brain_region))
-        .options(joinedload(SingleNeuronSimulation.brain_region))
+        filter_model.sort(sa.Select(SingleNeuronSynaptome))  # sort without filtering
+        .join(distinct_ids_subquery, SingleNeuronSynaptome.id == distinct_ids_subquery.c.id)
+        .options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.brain_region))
+        .options(joinedload(SingleNeuronSynaptome.brain_region))
         .options(raiseload("*"))
     )
 
@@ -167,11 +164,11 @@ def query(
 
     total_items = db.execute(
         filter_query.with_only_columns(
-            sa.func.count(sa.func.distinct(SingleNeuronSimulation.id)).label("count")
+            sa.func.count(sa.func.distinct(SingleNeuronSynaptome.id)).label("count")
         )
     ).scalar_one()
 
-    response = ListResponse[SingleNeuronSimulationRead](
+    response = ListResponse[SingleNeuronSynaptomeRead](
         data=data,
         pagination=PaginationResponse(
             page=pagination_request.page,

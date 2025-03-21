@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime
 from typing import ClassVar
@@ -5,6 +6,7 @@ from typing import ClassVar
 from sqlalchemy import (
     BigInteger,
     DateTime,
+    Enum,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
@@ -135,7 +137,10 @@ class LocationMixin:
 
 
 class SpeciesMixin:
-    species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
+    species_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("species.id"),
+        index=True,
+    )
 
     @declared_attr
     @classmethod
@@ -237,6 +242,38 @@ class ETypeClassification(ClassificationMixin, TimestampMixin, Base):
     __tablename__ = "etype_classification"
 
     etype_class_id: Mapped[int] = mapped_column(ForeignKey("etype_class.id"), index=True)
+
+
+class MTypesMixin:
+    @declared_attr
+    @classmethod
+    def mtypes(cls) -> Mapped[list["MTypeClass"]]:
+        if not hasattr(cls, "id"):
+            msg = f"{cls} does not have an 'id' column."
+            raise ValueError(msg)
+
+        return relationship(
+            primaryjoin=f"{cls.__name__}.id == MTypeClassification.entity_id",
+            secondary="mtype_classification",
+            uselist=True,
+            viewonly=True,
+        )
+
+
+class ETypesMixin:
+    @declared_attr
+    @classmethod
+    def etypes(cls) -> Mapped[list["ETypeClass"]]:
+        if not issubclass(cls, Entity):
+            msg = f"{cls} should be an Entity"
+            raise TypeError(msg)
+
+        return relationship(
+            primaryjoin=f"{cls.__name__}.id == ETypeClassification.entity_id",
+            secondary="etype_classification",
+            uselist=True,
+            viewonly=True,
+        )
 
 
 class DataMaturityAnnotationBody(AnnotationBody):
@@ -341,7 +378,7 @@ class Contribution(TimestampMixin, Base):
     )
 
 
-class EModel(DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
+class EModel(MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
     __tablename__ = "emodel"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
@@ -363,20 +400,6 @@ class EModel(DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
         "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
-    mtypes: Mapped[list["MTypeClass"]] = relationship(
-        primaryjoin="EModel.id == MTypeClassification.entity_id",
-        secondary="join(mtype_classification, mtype_class)",
-        uselist=True,
-        viewonly=True,
-    )
-
-    etypes: Mapped[list["ETypeClass"]] = relationship(
-        primaryjoin="EModel.id == ETypeClassification.entity_id",
-        secondary="join(etype_classification, etype_class)",
-        uselist=True,
-        viewonly=True,
-    )
-
     __mapper_args__ = {"polymorphic_identity": "emodel"}  # noqa: RUF012
 
 
@@ -386,19 +409,43 @@ class Mesh(LocationMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": "mesh"}  # noqa: RUF012
 
 
-class MEModel(LocationMixin, Entity):
+class ValidationStatus(enum.Enum):
+    created = "created"
+    initialized = "initialized"
+    running = "running"
+    done = "done"
+    error = "error"
+
+
+class MEModel(
+    MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity
+):
     __tablename__ = "memodel"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
-    status: Mapped[str] = mapped_column(default="")
-    validated: Mapped[bool] = mapped_column(default=False)
-    # TODO: see how it relates to other created by properties
+
+    validation_status: Mapped[ValidationStatus] = mapped_column(
+        Enum(ValidationStatus, name="me_model_validation_status"),
+        nullable=False,
+        default=ValidationStatus.created,
+    )
+
+    mmodel_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("reconstruction_morphology.id"), nullable=False
+    )
+
+    mmodel = relationship("ReconstructionMorphology", foreign_keys=[mmodel_id], uselist=False)
+
+    emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("emodel.id"), nullable=False)
+
+    emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
+
     __mapper_args__ = {"polymorphic_identity": "memodel"}  # noqa: RUF012
 
 
 class ReconstructionMorphology(
-    DescriptionVectorMixin, LicensedMixin, LocationMixin, SpeciesMixin, Entity
+    MTypesMixin, DescriptionVectorMixin, LicensedMixin, LocationMixin, SpeciesMixin, Entity
 ):
     __tablename__ = "reconstruction_morphology"
 
@@ -409,13 +456,6 @@ class ReconstructionMorphology(
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
     location: Mapped[PointLocation | None]
-
-    mtypes: Mapped[list["MTypeClass"]] = relationship(
-        primaryjoin="ReconstructionMorphology.id == MTypeClassification.entity_id",
-        secondary="join(mtype_classification, mtype_class)",
-        uselist=True,
-        viewonly=True,
-    )
 
     __mapper_args__ = {"polymorphic_identity": "reconstruction_morphology"}  # noqa: RUF012
 

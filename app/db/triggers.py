@@ -2,7 +2,7 @@ from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
-from app.db.model import EModel, Entity, ReconstructionMorphology, SingleNeuronSimulation
+from app.db.model import EModel, Entity, MEModel, ReconstructionMorphology, SingleNeuronSimulation
 from app.errors import PostgresInternalErrorCode
 
 
@@ -90,6 +90,12 @@ entities = [
         ["description", "name"],
     ),
     description_vector_trigger(
+        MEModel,
+        "memodel_description_vector",
+        "description_vector",
+        ["description", "name"],
+    ),
+    description_vector_trigger(
         SingleNeuronSimulation,
         "single_neuron_simulation_description_vector",
         "description_vector",
@@ -101,4 +107,16 @@ entities = [
     unauthorized_private_reference_trigger(
         EModel, "exemplar_morphology_id", ReconstructionMorphology
     ),
+    unauthorized_private_reference_function(
+        MEModel,
+        "mmodel_id",
+        ReconstructionMorphology,
+    ),
+    unauthorized_private_reference_trigger(MEModel, "mmodel_id", ReconstructionMorphology),
+    unauthorized_private_reference_function(
+        MEModel,
+        "emodel_id",
+        EModel,
+    ),
+    unauthorized_private_reference_trigger(MEModel, "emodel_id", EModel),
 ]

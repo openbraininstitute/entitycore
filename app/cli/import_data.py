@@ -956,7 +956,6 @@ def _do_import(db, input_dir, project_context):
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         ImportSingleCellExperimentalTrace,
-        ImportMEModel,
         ImportSingleNeuronSimulation,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,

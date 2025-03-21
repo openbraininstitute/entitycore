@@ -12,6 +12,7 @@ from app.routers import (
     experimental_neuron_density,
     experimental_synapses_per_connection,
     license,
+    memodel,
     morphology,
     morphology_feature_annotation,
     mtype,
@@ -38,6 +39,8 @@ router.include_router(license.router)
 router.include_router(morphology.router)
 router.include_router(emodel.router)
 router.include_router(morphology_feature_annotation.router)
+router.include_router(emodel.router)
+router.include_router(memodel.router)
 router.include_router(mtype.router)
 router.include_router(organization.router)
 router.include_router(person.router)

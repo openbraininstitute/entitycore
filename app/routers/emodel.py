@@ -3,9 +3,8 @@ from http import HTTPStatus
 
 import sqlalchemy as sa
 from fastapi import APIRouter
-from sqlalchemy.exc import InternalError
 from psycopg2.errors import RaiseException
-
+from sqlalchemy.exc import InternalError
 from sqlalchemy.orm import (
     aliased,
     joinedload,
@@ -29,7 +28,7 @@ from app.db.model import (
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode, ensure_result, PostgresInternalErrorCode
+from app.errors import ApiError, ApiErrorCode, PostgresInternalErrorCode, ensure_result
 from app.filters.emodel import EModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
 from app.schemas.emodel import EModelCreate, EModelRead

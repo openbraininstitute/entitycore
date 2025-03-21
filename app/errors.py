@@ -7,7 +7,7 @@ from enum import auto
 from http import HTTPStatus
 from typing import Any
 
-from psycopg2.errors import UniqueViolation, RaiseException
+from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError, NoResultFound
 
 from app.utils.enum import UpperStrEnum

@@ -1,3 +1,7 @@
+from datetime import datetime
+
+from fastapi_filter import FilterDepends, with_prefix
+
 from app.db.model import Agent, ETypeClass, MTypeClass, Species, Strain
 from app.filters.base import CustomFilter
 
@@ -60,3 +64,14 @@ class AgentFilter(CustomFilter):
     class Constants(CustomFilter.Constants):
         model = Agent
         ordering_model_fields = ["id", "pref_label"]  # noqa: RUF012
+
+
+class ContributionFilterMixin:
+    contribution: AgentFilter | None = FilterDepends(with_prefix("contribution", AgentFilter))
+
+
+class CreationFilterMixin:
+    creation_date__lte: datetime | None = None
+    creation_date__gte: datetime | None = None
+    update_date__lte: datetime | None = None
+    update_date__gte: datetime | None = None

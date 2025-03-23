@@ -94,7 +94,7 @@ migration:  ## Create or update the alembic migration
 	@$(call load_env,run-local)
 	docker compose up --wait db
 	uv run -m alembic upgrade head
-	uv run -m alembic revision --autogenerate -m "$(message)"
+	uv run -m alembic revision --autogenerate -m $(message)
 
 dump:  # Dump the local database to file
 	docker compose up --wait db

@@ -101,3 +101,21 @@ def assert_request(client_method, *, expected_status_code=200, **kwargs):
     response = client_method(**kwargs)
     assert response.status_code == expected_status_code, response.content
     return response
+
+
+def create_brain_region_id(client, id_: int, name: str):
+    js = {
+        "id": id_,
+        "acronym": f"acronym{id_}",
+        "name": name,
+        "color_hex_triplet": "FF0000",
+        "children": [],
+    }
+    response = assert_request(
+        client.post,
+        url="/brain-region",
+        json=js,
+    )
+    data = response.json()
+    assert "id" in data, f"Failed to get id for brain region: {data}"
+    return data["id"]

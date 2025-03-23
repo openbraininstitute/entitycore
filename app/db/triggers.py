@@ -3,7 +3,6 @@ from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
 from app.db.model import EModel, Entity, MEModel, ReconstructionMorphology, SingleNeuronSimulation
-from app.errors import PostgresInternalErrorCode
 
 
 def description_vector_trigger(
@@ -49,7 +48,8 @@ def unauthorized_private_reference_function(
                     WHERE e1.id = NEW.{field_name}
                     AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)
                 ) THEN
-                    RAISE EXCEPTION '{PostgresInternalErrorCode.UNAUTHORIZED_PRIVATE_REFERENCE}';
+                    RAISE EXCEPTION 'unauthorized private reference'
+                        USING ERRCODE = '42501'; -- Insufficient Privilege
                 END IF;
                 RETURN NEW;
             END;

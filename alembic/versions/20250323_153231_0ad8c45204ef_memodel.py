@@ -1,8 +1,8 @@
-"""MEModel
+"""memodel
 
-Revision ID: f7ef3a28e11e
+Revision ID: 0ad8c45204ef
 Revises: 928c1b2f7cf8
-Create Date: 2025-03-21 19:21:25.991597
+Create Date: 2025-03-23 15:32:31.929038
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "f7ef3a28e11e"
+revision: str = "0ad8c45204ef"
 down_revision: str | None = "928c1b2f7cf8"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -58,17 +58,17 @@ def upgrade() -> None:
     op.create_index(op.f("ix_memodel_species_id"), "memodel", ["species_id"], unique=False)
     op.create_index(op.f("ix_memodel_strain_id"), "memodel", ["strain_id"], unique=False)
     op.create_foreign_key(
-        op.f("fk_memodel_mmodel_id_reconstruction_morphology"),
-        "memodel",
-        "reconstruction_morphology",
-        ["mmodel_id"],
-        ["id"],
+        op.f("fk_memodel_species_id_species"), "memodel", "species", ["species_id"], ["id"]
     )
     op.create_foreign_key(
         op.f("fk_memodel_emodel_id_emodel"), "memodel", "emodel", ["emodel_id"], ["id"]
     )
     op.create_foreign_key(
-        op.f("fk_memodel_species_id_species"), "memodel", "species", ["species_id"], ["id"]
+        op.f("fk_memodel_mmodel_id_reconstruction_morphology"),
+        "memodel",
+        "reconstruction_morphology",
+        ["mmodel_id"],
+        ["id"],
     )
     op.create_foreign_key(
         "fk_memodel_strain_id_species_id",
@@ -77,8 +77,8 @@ def upgrade() -> None:
         ["strain_id", "species_id"],
         ["id", "species_id"],
     )
-    op.drop_column("memodel", "status")
     op.drop_column("memodel", "validated")
+    op.drop_column("memodel", "status")
     public_memodel_memodel_description_vector = PGTrigger(
         schema="public",
         signature="memodel_description_vector",
@@ -88,10 +88,19 @@ def upgrade() -> None:
     )
     op.create_entity(public_memodel_memodel_description_vector)
 
+    public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology = PGFunction(
+        schema="public",
+        signature="unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology()",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.exemplar_morphology_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+    )
+    op.replace_entity(
+        public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology
+    )
+
     public_unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.mmodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.mmodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.create_entity(
         public_unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology
@@ -100,7 +109,7 @@ def upgrade() -> None:
     public_unauthorized_private_reference_function_memodel_emodel_id_emodel = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_memodel_emodel_id_emodel()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.emodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.emodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.create_entity(public_unauthorized_private_reference_function_memodel_emodel_id_emodel)
 
@@ -152,19 +161,25 @@ def downgrade() -> None:
     public_unauthorized_private_reference_function_memodel_emodel_id_emodel = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_memodel_emodel_id_emodel()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.emodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.emodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.drop_entity(public_unauthorized_private_reference_function_memodel_emodel_id_emodel)
 
     public_unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology = PGFunction(
         schema="public",
         signature="unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology()",
-        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.mmodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
+        definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.mmodel_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.drop_entity(
         public_unauthorized_private_reference_function_memodel_mmodel_id_reconstruction_morphology
     )
 
+    public_unauthorized_private_reference_function_emodel_exemplar_morphol = PGFunction(
+        schema="public",
+        signature="unauthorized_private_reference_function_emodel_exemplar_morphol()",
+        definition="returns trigger\n LANGUAGE plpgsql\nAS $function$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.exemplar_morphology_id\n                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)\n                ) THEN\n                    RAISE EXCEPTION 'UNAUTHORIZED_PRIVATE_REFERENCE';\n                END IF;\n                RETURN NEW;\n            END;\n            $function$",
+    )
+    op.replace_entity(public_unauthorized_private_reference_function_emodel_exemplar_morphol)
     public_memodel_memodel_description_vector = PGTrigger(
         schema="public",
         signature="memodel_description_vector",
@@ -174,16 +189,16 @@ def downgrade() -> None:
     )
     op.drop_entity(public_memodel_memodel_description_vector)
 
+    op.add_column("memodel", sa.Column("status", sa.VARCHAR(), autoincrement=False, nullable=False))
     op.add_column(
         "memodel", sa.Column("validated", sa.BOOLEAN(), autoincrement=False, nullable=False)
     )
-    op.add_column("memodel", sa.Column("status", sa.VARCHAR(), autoincrement=False, nullable=False))
     op.drop_constraint("fk_memodel_strain_id_species_id", "memodel", type_="foreignkey")
-    op.drop_constraint(op.f("fk_memodel_species_id_species"), "memodel", type_="foreignkey")
-    op.drop_constraint(op.f("fk_memodel_emodel_id_emodel"), "memodel", type_="foreignkey")
     op.drop_constraint(
         op.f("fk_memodel_mmodel_id_reconstruction_morphology"), "memodel", type_="foreignkey"
     )
+    op.drop_constraint(op.f("fk_memodel_emodel_id_emodel"), "memodel", type_="foreignkey")
+    op.drop_constraint(op.f("fk_memodel_species_id_species"), "memodel", type_="foreignkey")
     op.drop_index(op.f("ix_memodel_strain_id"), table_name="memodel")
     op.drop_index(op.f("ix_memodel_species_id"), table_name="memodel")
     op.drop_index("ix_memodel_description_vector", table_name="memodel", postgresql_using="gin")

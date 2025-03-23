@@ -1,9 +1,7 @@
 import uuid
-from http import HTTPStatus
 
 import sqlalchemy as sa
 from fastapi import APIRouter
-from sqlalchemy.exc import InternalError
 from sqlalchemy.orm import (
     aliased,
     joinedload,
@@ -29,7 +27,7 @@ from app.db.model import (
 from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode, ensure_result
+from app.errors import ensure_authorized_references, ensure_result
 from app.filters.memodel import MEModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
 from app.schemas.me_model import MEModelCreate, MEModelRead
@@ -80,7 +78,7 @@ def create_emodel(
     memodel: MEModelCreate,
     db: SessionDep,
 ):
-    try:
+    with ensure_authorized_references("Morphology or emodel aren't public or owned by user"):
         db_em = MEModel(
             name=memodel.name,
             description=memodel.description,
@@ -100,13 +98,6 @@ def create_emodel(
 
         query = memodel_joinedloads(sa.select(MEModel).filter(MEModel.id == db_em.id))
         return db.execute(query).unique().scalar_one()
-
-    except InternalError as err:
-        raise ApiError(
-            message="Exemplar morphology isn't public or owned by user",
-            error_code=ApiErrorCode.INVALID_REQUEST,
-            http_status_code=HTTPStatus.FORBIDDEN,
-        ) from err
 
 
 @router.get("")

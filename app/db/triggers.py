@@ -107,16 +107,8 @@ entities = [
     unauthorized_private_reference_trigger(
         EModel, "exemplar_morphology_id", ReconstructionMorphology
     ),
-    unauthorized_private_reference_function(
-        MEModel,
-        "mmodel_id",
-        ReconstructionMorphology,
-    ),
+    unauthorized_private_reference_function(MEModel, "mmodel_id", ReconstructionMorphology),
     unauthorized_private_reference_trigger(MEModel, "mmodel_id", ReconstructionMorphology),
-    unauthorized_private_reference_function(
-        MEModel,
-        "emodel_id",
-        EModel,
-    ),
+    unauthorized_private_reference_function(MEModel, "emodel_id", EModel),
     unauthorized_private_reference_trigger(MEModel, "emodel_id", EModel),
 ]

@@ -137,10 +137,7 @@ class LocationMixin:
 
 
 class SpeciesMixin:
-    species_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("species.id"),
-        index=True,
-    )
+    species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
 
     @declared_attr
     @classmethod

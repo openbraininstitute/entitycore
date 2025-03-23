@@ -33,7 +33,7 @@ from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.memodel import MEModelFilterDep
 from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
 from app.schemas.me_model import MEModelCreate, MEModelRead
-from app.schemas.types import ListResponse
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/memodel",
@@ -114,7 +114,7 @@ def memodel_query(
     *,
     db: SessionDep,
     project_context: VerifiedProjectContextHeader,
-    pagination: PaginationQuery,
+    pagination_request: PaginationQuery,
     memodel_filter: MEModelFilterDep,
     search: SearchDep,
     facets: FacetsDep,
@@ -169,12 +169,23 @@ def memodel_query(
     )
     filter_query = search(filter_query, MEModel.description_vector)
 
-    data_query = memodel_joinedloads(memodel_filter.sort(filter_query).distinct())
-
-    response = ListResponse[MEModelRead](
-        data=pagination.paginated_rows(db, data_query).scalars().unique(),
-        pagination=pagination.pagination(db, filter_query, MEModel.id),
-        facets=facets(db, filter_query, name_to_facet_query_params, MEModel.id),
+    data_query = memodel_joinedloads(
+        memodel_filter.sort(filter_query)
+        .limit(pagination_request.page_size)
+        .offset(pagination_request.offset)
+        .distinct()
     )
 
-    return response
+    total_items = db.execute(
+        filter_query.with_only_columns(sa.func.count(sa.func.distinct(MEModel.id)).label("count"))
+    ).scalar_one()
+
+    return ListResponse[MEModelRead](
+        data=db.execute(data_query).scalars().unique(),
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=facets(db, filter_query, name_to_facet_query_params, MEModel.id),
+    )

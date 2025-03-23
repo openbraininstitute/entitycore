@@ -10,7 +10,11 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
-from app.schemas.me_model import MEModelRead
+from app.schemas.me_model import MEModelBase
+
+
+class MEModelRead(MEModelBase):
+    id: uuid.UUID
 
 
 class SingleNeuronSimulationBase(BaseModel):

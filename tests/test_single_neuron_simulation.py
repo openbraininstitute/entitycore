@@ -17,20 +17,8 @@ from .utils import (
 ROUTE = "/single-neuron-simulation"
 
 
-@pytest.fixture
-def me_model_id(db, brain_region_id):
-    row = MEModel(
-        name="my-me-model",
-        description="my-description",
-        brain_region_id=brain_region_id,
-        authorized_project_id=PROJECT_ID,
-    )
-    add_db(db, row)
-    return row.id
-
-
 @pytest.mark.usefixtures("skip_project_check")
-def test_single_neuron_simulation(client, brain_region_id, me_model_id):
+def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     response = assert_request(
         client.post,
         url=ROUTE,
@@ -40,7 +28,7 @@ def test_single_neuron_simulation(client, brain_region_id, me_model_id):
             "description": "my-description",
             "injectionLocation": ["soma[0]"],
             "recordingLocation": ["soma[0]_0.5"],
-            "me_model_id": str(me_model_id),
+            "me_model_id": memodel_id,
             "status": "success",
             "seed": 1,
             "authorized_public": False,
@@ -56,7 +44,7 @@ def test_single_neuron_simulation(client, brain_region_id, me_model_id):
     assert data["name"] == "foo"
     assert data["injectionLocation"] == ["soma[0]"]
     assert data["recordingLocation"] == ["soma[0]_0.5"]
-    assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
+    assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
 
@@ -72,7 +60,7 @@ def test_single_neuron_simulation(client, brain_region_id, me_model_id):
     assert data["name"] == "foo"
     assert data["injectionLocation"] == ["soma[0]"]
     assert data["recordingLocation"] == ["soma[0]_0.5"]
-    assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
+    assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
 
@@ -97,13 +85,13 @@ def test_missing(client, route_id, expected_status_code):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_authorization(client, me_model_id, brain_region_id):
+def test_authorization(client, memodel_id, brain_region_id):
     json_data = {
         "name": "foo",
         "description": "my-description",
         "injectionLocation": ["soma[0]"],
         "recordingLocation": ["soma[0]_0.5"],
-        "me_model_id": str(me_model_id),
+        "me_model_id": memodel_id,
         "status": "failure",
         "seed": 1,
         "brain_region_id": str(brain_region_id),
@@ -176,7 +164,7 @@ def test_authorization(client, me_model_id, brain_region_id):
 
 
 @pytest.mark.usefixtures("skip_project_check")
-def test_pagination(db, client, brain_region_id):
+def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id):
     me_model_1 = add_db(
         db,
         MEModel(
@@ -184,6 +172,9 @@ def test_pagination(db, client, brain_region_id):
             description="my-description-1",
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            emodel_id=emodel_id,
+            mmodel_id=morphology_id,
+            species_id=species_id,
         ),
     )
     me_model_2 = add_db(
@@ -193,6 +184,9 @@ def test_pagination(db, client, brain_region_id):
             description="my-description",
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            emodel_id=emodel_id,
+            mmodel_id=morphology_id,
+            species_id=species_id,
         ),
     )
 

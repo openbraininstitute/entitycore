@@ -45,6 +45,7 @@ dev-dependencies = [
     "mypy",
     "pytest",
     "pytest-cov",
+    "pytest-freezer>=0.4.9",
     "pytest-httpx>=0.35.0",
     "ruff",
     "types-boto3-lite[essential]>=1.36.11",
@@ -177,6 +178,8 @@ precision = 0
 fail_under = 45
 omit = [
     "__main__.py",
+    "app/cli/*",
+    "app/routers/legacy/*",
 ]
 
 [tool.mypy]

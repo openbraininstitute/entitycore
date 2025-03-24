@@ -42,9 +42,9 @@ from .utils import (
 )
 
 
-@pytest.fixture(scope="session")
-def _aws_credentials():
-    """Mocked AWS Credentials for moto."""
+@pytest.fixture(scope="session", autouse=True)
+def _setup_env_variables():
+    # Mock AWS Credentials for moto
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # noqa: S105
     os.environ["AWS_SECURITY_TOKEN"] = "testing"  # noqa: S105
@@ -53,7 +53,7 @@ def _aws_credentials():
 
 
 @pytest.fixture(scope="session")
-def s3(_aws_credentials):
+def s3():
     """Return a mocked S3 client."""
     with mock_aws():
         yield boto3.client("s3")

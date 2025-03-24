@@ -91,7 +91,7 @@ class UserInfoResponse(BaseModel):
 
     def is_service_admin(self, service_name: str) -> bool:
         """Return True if admin for the specified service."""
-        return self.groups.isdisjoint(
+        return not self.groups.isdisjoint(
             [
                 f"/service/{service_name}/admin",
                 "/service/*/admin",

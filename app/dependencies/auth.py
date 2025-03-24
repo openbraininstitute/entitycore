@@ -22,6 +22,7 @@ from app.schemas.auth import (
     UserInfoResponse,
 )
 from app.schemas.base import OptionalProjectContext
+from app.utils.common import is_ascii
 from app.utils.http import deserialize_response, make_http_request
 
 # auto_error=False because of https://github.com/fastapi/fastapi/issues/10177
@@ -127,30 +128,30 @@ def _check_user_info(
         )
 
     user_info_response = deserialize_response(response, model_class=UserInfoResponse)
+    is_authorized = user_info_response.is_authorized_for(
+        virtual_lab_id=project_context.virtual_lab_id,
+        project_id=project_context.project_id,
+    )
+    is_service_admin = user_info_response.is_service_admin(settings.APP_NAME)
     user_context = UserContext(
         subject=user_info_response.sub,
         email=user_info_response.email,
         expiration=decoded.exp if decoded else None,
-        is_authorized=user_info_response.is_authorized_for(
-            virtual_lab_id=project_context.virtual_lab_id,
-            project_id=project_context.project_id,
-        ),
-        is_service_admin=user_info_response.is_service_admin(settings.APP_NAME),
+        is_authorized=is_authorized,
+        is_service_admin=is_service_admin,
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
+        auth_error_reason=AuthErrorReason.NOT_AUTHORIZED if not is_authorized else None,
     )
 
     if not user_context.is_authorized:
-        L.opt(lazy=True).info(
-            "User {sub} <{email}> attempted to use {virtual_lab_id=} {project_id=}, "
+        L.opt(lazy=True, capture=False).info(
+            "User <{email}> attempted to use {virtual_lab_id}/{project_id}, "
             "but they're only a member of {groups}",
-            lambda: {
-                "sub": user_context.subject,
-                "email": user_context.email,
-                "virtual_lab_id": project_context.virtual_lab_id,
-                "project_id": project_context.project_id,
-                "groups": sorted(user_info_response.groups),
-            },
+            email=lambda: user_context.email,
+            virtual_lab_id=lambda: project_context.virtual_lab_id,
+            project_id=lambda: project_context.project_id,
+            groups=lambda: sorted(user_info_response.groups),
         )
 
     return user_context
@@ -182,6 +183,13 @@ def user_verified(
     if not token:
         raise ApiError(
             message=AuthErrorReason.AUTH_TOKEN_MISSING,
+            error_code=ApiErrorCode.NOT_AUTHENTICATED,
+            http_status_code=401,
+        )
+    if not token.credentials or not is_ascii(token.credentials):
+        # non-ascii headers would raise an error in httpx when calling KeyCloak
+        raise ApiError(
+            message=AuthErrorReason.AUTH_TOKEN_INVALID,
             error_code=ApiErrorCode.NOT_AUTHENTICATED,
             http_status_code=401,
         )

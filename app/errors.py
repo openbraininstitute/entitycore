@@ -15,6 +15,7 @@ from app.utils.enum import UpperStrEnum
 
 class AuthErrorReason(UpperStrEnum):
     AUTH_TOKEN_MISSING = auto()
+    AUTH_TOKEN_INVALID = auto()
     AUTH_TOKEN_EXPIRED = auto()
     NOT_AUTHENTICATED = auto()
     NOT_AUTHORIZED = auto()

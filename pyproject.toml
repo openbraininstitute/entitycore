@@ -38,6 +38,10 @@ build-backend = "setuptools.build_meta"
 include = ["app"]
 
 [tool.uv]
+# Temporarily pin setuptools, see:
+# https://github.com/astral-sh/uv/issues/12434
+# https://github.com/olirice/alembic_utils/issues/153
+build-constraint-dependencies = ["setuptools<78"]
 dev-dependencies = [
     "coverage[toml]",
     "httpx",

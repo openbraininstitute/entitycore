@@ -38,10 +38,13 @@ build-backend = "setuptools.build_meta"
 include = ["app"]
 
 [tool.uv]
-# Temporarily pin setuptools, see:
+# Use exclude-newer to temporarily pin setuptools, see:
+# https://github.com/pypa/setuptools/issues/4910
 # https://github.com/astral-sh/uv/issues/12434
 # https://github.com/olirice/alembic_utils/issues/153
-build-constraint-dependencies = ["setuptools<78"]
+#build-constraint-dependencies = ["setuptools<78"]
+exclude-newer = "2025-03-24T00:00:00Z"
+
 dev-dependencies = [
     "coverage[toml]",
     "httpx",

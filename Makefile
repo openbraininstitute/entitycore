@@ -1,5 +1,4 @@
 SHELL := /bin/bash
-message ?= "Default migration message"
 
 export ENVIRONMENT ?= dev
 export APP_NAME := entitycore
@@ -90,11 +89,12 @@ destroy: export COMPOSE_PROFILES=run,test
 destroy:  ## Take down the application and remove the volumes
 	docker compose down --remove-orphans --volumes
 
+migration: MESSAGE ?= Default migration message
 migration:  ## Create or update the alembic migration
 	@$(call load_env,run-local)
 	docker compose up --wait db
 	uv run -m alembic upgrade head
-	uv run -m alembic revision --autogenerate -m $(message)
+	uv run -m alembic revision --autogenerate -m "$(MESSAGE)"
 
 dump:  # Dump the local database to file
 	docker compose up --wait db

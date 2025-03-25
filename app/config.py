@@ -37,7 +37,7 @@ class Settings(BaseSettings):
 
     KEYCLOAK_URL: str = "https://example.openbluebrain.com/auth/realms/SBO"
     AUTH_CACHE_MAXSIZE: int = 128  # items
-    AUTH_CACHE_MAX_TTL: int = 600  # seconds
+    AUTH_CACHE_MAX_TTL: int = 300  # seconds
     AUTH_CACHE_INFO: bool = False
 
     S3_BUCKET_NAME: str = "entitycore-data-dev"

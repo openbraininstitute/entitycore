@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated, NotRequired, TypedDict
+from typing import Annotated
 
 import sqlalchemy as sa
 from fastapi import APIRouter
@@ -7,24 +7,18 @@ from fastapi_filter import FilterDepends
 from sqlalchemy.orm import InstrumentedAttribute, Session, aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_accessible_entities
-from app.db.model import Agent, Contribution, MEModel, SingleNeuronSimulation
+from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSimulation
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.single_neuron_simulation import SingleNeuronSimulationFilter
+from app.routers.common import FacetQueryParams
 from app.schemas.simulation import (
     SingleNeuronSimulationCreate,
     SingleNeuronSimulationRead,
 )
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
-
-
-class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[uuid.UUID]
-    label: InstrumentedAttribute[str]
-    type: NotRequired[InstrumentedAttribute[str]]
-
 
 router = APIRouter(
     prefix="/single-neuron-simulation",
@@ -116,12 +110,15 @@ def query(
 ) -> ListResponse[SingleNeuronSimulationRead]:
     agent_alias = aliased(Agent, flat=True)
     me_model_alias = aliased(MEModel, flat=True)
+
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
             "id": agent_alias.id,
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
+        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
+        "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
     }
 
     filter_query = (
@@ -129,6 +126,7 @@ def query(
             sa.select(SingleNeuronSimulation),
             project_id=user_context.project_id,
         )
+        .join(BrainRegion, SingleNeuronSimulation.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, SingleNeuronSimulation.id == Contribution.entity_id)
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
         .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)

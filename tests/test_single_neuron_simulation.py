@@ -10,23 +10,33 @@ from .utils import (
     PROJECT_ID,
     add_db,
     assert_request,
+    create_brain_region_id,
 )
 
 ROUTE = "/single-neuron-simulation"
 
 
+def _create_me_model_id(db, data):
+    return add_db(db, MEModel(**data)).id
+
+
+def _create_single_neuron_simulation_id(db, data):
+    return add_db(db, SingleNeuronSimulation(**data)).id
+
+
 @pytest.fixture
 def me_model_id(db, brain_region_id):
-    row = MEModel(
-        name="my-me-model",
-        description="my-description",
-        status="started",
-        validated=False,
-        brain_region_id=brain_region_id,
-        authorized_project_id=PROJECT_ID,
+    return _create_me_model_id(
+        db,
+        {
+            "name": "my-me-model",
+            "description": "my-description",
+            "status": "started",
+            "validated": False,
+            "brain_region_id": brain_region_id,
+            "authorized_project_id": PROJECT_ID,
+        },
     )
-    add_db(db, row)
-    return row.id
 
 
 def test_single_neuron_simulation(client, brain_region_id, me_model_id):
@@ -206,3 +216,99 @@ def test_pagination(db, client, brain_region_id):
     assert "data" in response_json
     assert response_json["facets"] is None
     assert len(response_json["data"]) == 3
+
+
+@pytest.fixture
+def faceted_ids(db, client_admin):
+    brain_region_ids = [
+        create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
+    ]
+    me_model_ids = [
+        _create_me_model_id(
+            db,
+            {
+                "name": f"me-model-{i}",
+                "description": f"description-{i}",
+                "validated": False,
+                "brain_region_id": brain_region_ids[i],
+                "authorized_project_id": PROJECT_ID,
+            },
+        )
+        for i in range(2)
+    ]
+    single_simulation_synaptome_ids = [
+        _create_single_neuron_simulation_id(
+            db,
+            {
+                "name": f"sim-{i}",
+                "description": f"brain-region-{brain_region_id} me-model-{me_model_id}",
+                "me_model_id": str(me_model_id),
+                "status": "success",
+                "injectionLocation": ["soma[0]"],
+                "recordingLocation": ["soma[0]_0.5"],
+                "seed": i,
+                "brain_region_id": str(brain_region_id),
+                "authorized_project_id": PROJECT_ID,
+            },
+        )
+        for i, (me_model_id, brain_region_id) in enumerate(
+            it.product(me_model_ids, brain_region_ids)
+        )
+    ]
+    return brain_region_ids, me_model_ids, single_simulation_synaptome_ids
+
+
+def test_facets(client, faceted_ids):
+    brain_region_ids, me_model_ids, _ = faceted_ids
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"with_facets": True},
+    ).json()
+
+    assert "facets" in data
+    facets = data["facets"]
+
+    assert facets["contribution"] == []
+    assert facets["brain_region"] == [
+        {"id": brain_region_ids[0], "label": "region-0", "count": 2, "type": "brain_region"},
+        {"id": brain_region_ids[1], "label": "region-1", "count": 2, "type": "brain_region"},
+    ]
+    assert facets["me_model"] == [
+        {
+            "id": str(me_model_ids[0]),
+            "label": "me-model-0",
+            "count": 2,
+            "type": "me_model",
+        },
+        {
+            "id": str(me_model_ids[1]),
+            "label": "me-model-1",
+            "count": 2,
+            "type": "me_model",
+        },
+    ]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"search": f"me-model-{me_model_ids[0]}", "with_facets": True},
+    ).json()
+
+    assert "facets" in data
+    facets = data["facets"]
+
+    assert facets["me_model"] == [
+        {
+            "id": str(me_model_ids[0]),
+            "label": "me-model-0",
+            "count": 2,
+            "type": "me_model",
+        }
+    ]
+
+    assert facets["brain_region"] == [
+        {"id": 0, "label": "region-0", "count": 1, "type": "brain_region"},
+        {"id": 1, "label": "region-1", "count": 1, "type": "brain_region"},
+    ]

@@ -294,24 +294,9 @@ def license_id(client_admin):
     return data["id"]
 
 
-def create_brain_region_id(client, id_: int, name: str):
-    js = {
-        "id": id_,
-        "acronym": f"acronym{id_}",
-        "name": name,
-        "color_hex_triplet": "FF0000",
-        "children": [],
-    }
-    response = client.post("/brain-region", json=js)
-    assert response.status_code == 200, f"Failed to create brain region: {response.text}"
-    data = response.json()
-    assert "id" in data, f"Failed to get id for brain region: {data}"
-    return data["id"]
-
-
 @pytest.fixture
 def brain_region_id(client_admin):
-    return create_brain_region_id(client_admin, 64, "RedRegion")
+    return utils.create_brain_region_id(client_admin, 64, "RedRegion")
 
 
 @pytest.fixture
@@ -409,7 +394,9 @@ def create_faceted_emodel_ids(db: Session, client, client_admin):
         )
         for i in range(2)
     ]
-    brain_region_ids = [create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)]
+    brain_region_ids = [
+        utils.create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)
+    ]
 
     morphology_ids = [
         str(

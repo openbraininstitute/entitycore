@@ -4,7 +4,7 @@ import pytest
 
 from app.db.model import MEModel, SingleNeuronSimulation
 
-from .utils import (
+from tests.utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     PROJECT_ID,
@@ -219,8 +219,10 @@ def test_pagination(db, client, brain_region_id):
 
 
 @pytest.fixture
-def faceted_ids(db, client):
-    brain_region_ids = [create_brain_region_id(client, id_=i, name=f"region-{i}") for i in range(2)]
+def faceted_ids(db, client_admin):
+    brain_region_ids = [
+        create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
+    ]
     me_model_ids = [
         _create_me_model_id(
             db,
@@ -256,14 +258,12 @@ def faceted_ids(db, client):
     return brain_region_ids, me_model_ids, single_simulation_synaptome_ids
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_facets(client, faceted_ids):
     brain_region_ids, me_model_ids, _ = faceted_ids
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"with_facets": True},
     ).json()
 
@@ -293,7 +293,6 @@ def test_facets(client, faceted_ids):
     data = assert_request(
         client.get,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"search": f"me-model-{me_model_ids[0]}", "with_facets": True},
     ).json()
 

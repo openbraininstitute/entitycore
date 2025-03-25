@@ -28,7 +28,6 @@ from app.db.session import DatabaseSessionManager, configure_database_session_ma
 from app.dependencies import auth
 from app.schemas.auth import UserContext
 
-from tests import utils
 from .utils import (
     AUTH_HEADER_ADMIN,
     AUTH_HEADER_USER_1,
@@ -44,8 +43,8 @@ from .utils import (
     VIRTUAL_LAB_ID,
     ClientProxy,
     add_db,
-    create_bran_region_id,
 )
+from tests import utils
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -297,7 +296,7 @@ def license_id(client_admin):
 
 @pytest.fixture
 def brain_region_id(client_admin):
-    return create_brain_region_id(client_admin, 64, "RedRegion")
+    return utils.create_brain_region_id(client_admin, 64, "RedRegion")
 
 
 @pytest.fixture
@@ -395,7 +394,9 @@ def create_faceted_emodel_ids(db: Session, client, client_admin):
         )
         for i in range(2)
     ]
-    brain_region_ids = [create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)]
+    brain_region_ids = [
+        utils.create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)
+    ]
 
     morphology_ids = [
         str(

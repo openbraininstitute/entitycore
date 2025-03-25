@@ -5,7 +5,7 @@ from collections.abc import Callable
 from fastapi.testclient import TestClient
 
 from .conftest import Ids
-from .utils import create_reconstruction_morphology_id
+from tests.utils import create_reconstruction_morphology_id
 
 ROUTE = "/emodel"
 

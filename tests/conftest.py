@@ -79,7 +79,7 @@ def user_context_no_auth():
 
 
 @pytest.fixture
-def user_context_1():
+def user_context_admin():
     """Admin authenticated user."""
     return UserContext(
         subject=UUID(int=1),
@@ -93,7 +93,7 @@ def user_context_1():
 
 
 @pytest.fixture
-def user_context_2():
+def user_context_user():
     """Regular authenticated user with different project-id."""
     return UserContext(
         subject=UUID(int=2),
@@ -122,13 +122,17 @@ def user_context_no_project():
 
 @pytest.fixture
 def _override_check_user_info(
-    monkeypatch, user_context_no_auth, user_context_1, user_context_2, user_context_no_project
+    monkeypatch,
+    user_context_no_auth,
+    user_context_admin,
+    user_context_user,
+    user_context_no_project,
 ):
     def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
         if project_context.project_id == UUID(PROJECT_ID):
-            return user_context_1
+            return user_context_admin
         if project_context.project_id == UUID(UNRELATED_PROJECT_ID):
-            return user_context_2
+            return user_context_user
         if project_context.project_id is None:
             return user_context_no_project
         return user_context_no_auth

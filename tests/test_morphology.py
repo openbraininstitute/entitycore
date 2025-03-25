@@ -234,7 +234,13 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
 
 
 def test_authorization(
-    client_admin, client_user, client_no_project, species_id, strain_id, license_id, brain_region_id
+    client_user_1,
+    client_user_2,
+    client_no_project,
+    species_id,
+    strain_id,
+    license_id,
+    brain_region_id,
 ):
     morph_json = {
         "location": {"x": 10, "y": 20, "z": 30},
@@ -247,28 +253,28 @@ def test_authorization(
         "strain_id": strain_id,
     }
 
-    public_morph = client_admin.post(
+    public_morph = client_user_1.post(
         ROUTE, json=morph_json | {"name": "public morphology", "authorized_public": True}
     )
     assert public_morph.status_code == 200
     public_morph = public_morph.json()
 
-    inaccessible_obj = client_user.post(
+    inaccessible_obj = client_user_2.post(
         ROUTE, json=morph_json | {"name": "inaccessible morphology 1"}
     )
     assert inaccessible_obj.status_code == 200
     inaccessible_obj = inaccessible_obj.json()
 
-    private_morph0 = client_admin.post(ROUTE, json=morph_json | {"name": "private morphology 0"})
+    private_morph0 = client_user_1.post(ROUTE, json=morph_json | {"name": "private morphology 0"})
     assert private_morph0.status_code == 200
     private_morph0 = private_morph0.json()
 
-    private_morph1 = client_admin.post(ROUTE, json=morph_json | {"name": "private morphology 1"})
+    private_morph1 = client_user_1.post(ROUTE, json=morph_json | {"name": "private morphology 1"})
     assert private_morph1.status_code == 200
     private_morph1 = private_morph1.json()
 
     # only return results that matches the desired project, and public ones
-    response = client_admin.get(ROUTE)
+    response = client_user_1.get(ROUTE)
     data = response.json()["data"]
     assert len(data) == 3
 
@@ -279,7 +285,7 @@ def test_authorization(
         private_morph1["id"],
     }
 
-    response = client_admin.get(f"{ROUTE}/{inaccessible_obj['id']}")
+    response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
     assert response.status_code == 404
 
     # only return public results

@@ -31,11 +31,13 @@ from app.schemas.auth import UserContext
 from . import utils
 from .utils import (
     AUTH_HEADER_ADMIN,
-    AUTH_HEADER_USER,
+    AUTH_HEADER_USER_1,
+    AUTH_HEADER_USER_2,
     PROJECT_HEADERS,
     PROJECT_ID,
     TOKEN_ADMIN,
-    TOKEN_USER,
+    TOKEN_USER_1,
+    TOKEN_USER_2,
     UNRELATED_PROJECT_HEADERS,
     UNRELATED_PROJECT_ID,
     UNRELATED_VIRTUAL_LAB_ID,
@@ -68,20 +70,6 @@ def _create_buckets(s3):
 
 
 @pytest.fixture
-def user_context_no_auth():
-    """Not authenticated user."""
-    return UserContext(
-        subject=UUID(int=0),
-        email=None,
-        expiration=None,
-        is_authorized=False,
-        is_service_admin=False,
-        virtual_lab_id=None,
-        project_id=None,
-    )
-
-
-@pytest.fixture
 def user_context_admin():
     """Admin authenticated user."""
     return UserContext(
@@ -90,13 +78,27 @@ def user_context_admin():
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
+        virtual_lab_id=None,
+        project_id=None,
+    )
+
+
+@pytest.fixture
+def user_context_user_1():
+    """Admin authenticated user."""
+    return UserContext(
+        subject=UUID(int=1),
+        email=None,
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=False,
         virtual_lab_id=VIRTUAL_LAB_ID,
         project_id=PROJECT_ID,
     )
 
 
 @pytest.fixture
-def user_context_user():
+def user_context_user_2():
     """Regular authenticated user with different project-id."""
     return UserContext(
         subject=UUID(int=2),
@@ -126,16 +128,17 @@ def user_context_no_project():
 @pytest.fixture
 def _override_check_user_info(
     monkeypatch,
-    user_context_no_auth,
     user_context_admin,
-    user_context_user,
+    user_context_user_1,
+    user_context_user_2,
     user_context_no_project,
 ):
+    # map (token, project-id) to the expected user_context
     mapping = {
-        (TOKEN_ADMIN, UUID(PROJECT_ID)): user_context_admin,
-        (TOKEN_USER, UUID(UNRELATED_PROJECT_ID)): user_context_user,
-        (TOKEN_USER, None): user_context_no_project,
-        (None, None): user_context_no_auth,
+        (TOKEN_ADMIN, None): user_context_admin,
+        (TOKEN_USER_1, None): user_context_no_project,
+        (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
+        (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
     }
 
     def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
@@ -162,25 +165,31 @@ def client_no_auth(session_client, _override_check_user_info):
 
 @pytest.fixture
 def client_admin(client_no_auth):
-    """Return a web client instance, authenticated as service admin with a specific project-id."""
-    return ClientProxy(client_no_auth, headers=AUTH_HEADER_ADMIN | PROJECT_HEADERS)
+    """Return a web client instance, authenticated as service admin without a project-id."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_ADMIN)
 
 
 @pytest.fixture
-def client_user(client_no_auth):
+def client_user_1(client_no_auth):
+    """Return a web client instance, authenticated as regular user with a specific project-id."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1 | PROJECT_HEADERS)
+
+
+@pytest.fixture
+def client_user_2(client_no_auth):
     """Return a web client instance, authenticated as regular user with different project-id."""
-    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER | UNRELATED_PROJECT_HEADERS)
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_2 | UNRELATED_PROJECT_HEADERS)
 
 
 @pytest.fixture
 def client_no_project(client_no_auth):
-    """Return a web client instance, authenticated as regular user with different project-id."""
-    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER)
+    """Return a web client instance, authenticated as regular user without a project-id."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1)
 
 
 @pytest.fixture
-def client(client_admin):
-    return client_admin
+def client(client_user_1):
+    return client_user_1
 
 
 @pytest.fixture(scope="session")
@@ -243,8 +252,8 @@ def role_id(db):
 
 
 @pytest.fixture
-def species_id(client):
-    response = client.post("/species", json={"name": "Test Species", "taxonomy_id": "12345"})
+def species_id(client_admin):
+    response = client_admin.post("/species", json={"name": "Test Species", "taxonomy_id": "12345"})
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     assert data["name"] == "Test Species"
@@ -253,8 +262,8 @@ def species_id(client):
 
 
 @pytest.fixture
-def strain_id(client, species_id):
-    response = client.post(
+def strain_id(client_admin, species_id):
+    response = client_admin.post(
         "/strain",
         json={
             "name": "Test Strain",
@@ -270,8 +279,8 @@ def strain_id(client, species_id):
 
 
 @pytest.fixture
-def license_id(client):
-    response = client.post(
+def license_id(client_admin):
+    response = client_admin.post(
         "/license",
         json={
             "name": "Test License",
@@ -279,13 +288,13 @@ def license_id(client):
             "label": "test label",
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Failed to create license: {response.text}"
     data = response.json()
     assert "id" in data, f"Failed to get id for license: {data}"
     return data["id"]
 
 
-def create_brain_region_id(client: TestClient, id_: int, name: str):
+def create_brain_region_id(client, id_: int, name: str):
     js = {
         "id": id_,
         "acronym": f"acronym{id_}",
@@ -301,8 +310,8 @@ def create_brain_region_id(client: TestClient, id_: int, name: str):
 
 
 @pytest.fixture
-def brain_region_id(client):
-    return create_brain_region_id(client, 64, "RedRegion")
+def brain_region_id(client_admin):
+    return create_brain_region_id(client_admin, 64, "RedRegion")
 
 
 @pytest.fixture
@@ -387,7 +396,7 @@ class Ids(BaseModel):
 
 
 @pytest.fixture
-def create_faceted_emodel_ids(db: Session, client: TestClient):
+def create_faceted_emodel_ids(db: Session, client, client_admin):
     species_ids = [
         str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
     ]
@@ -400,7 +409,7 @@ def create_faceted_emodel_ids(db: Session, client: TestClient):
         )
         for i in range(2)
     ]
-    brain_region_ids = [create_brain_region_id(client, i, f"region{i}") for i in range(2)]
+    brain_region_ids = [create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)]
 
     morphology_ids = [
         str(

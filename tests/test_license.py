@@ -3,8 +3,8 @@ from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 ROUTE = "/license"
 
 
-def test_create_license(client):
-    response = client.post(
+def test_create_license(client, client_admin):
+    response = client_admin.post(
         ROUTE,
         json={
             "name": "Test License",

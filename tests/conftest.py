@@ -153,13 +153,13 @@ def client_no_auth(session_client, _override_check_user_info):
 
 
 @pytest.fixture
-def client_1(client_no_auth):
-    """Return a web client instance, authenticated as service admin."""
+def client_admin(client_no_auth):
+    """Return a web client instance, authenticated as service admin with a specific project-id."""
     return ClientProxy(client_no_auth, headers=BEARER_TOKEN | PROJECT_HEADERS)
 
 
 @pytest.fixture
-def client_2(client_no_auth):
+def client_user(client_no_auth):
     """Return a web client instance, authenticated as regular user with different project-id."""
     return ClientProxy(client_no_auth, headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS)
 
@@ -171,8 +171,8 @@ def client_no_project(client_no_auth):
 
 
 @pytest.fixture
-def client(client_1):
-    return client_1
+def client(client_admin):
+    return client_admin
 
 
 @pytest.fixture(scope="session")

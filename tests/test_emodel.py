@@ -179,8 +179,8 @@ def test_facets(client: TestClient, create_faceted_emodel_ids: Ids):
 
 
 def test_authorization(
-    client_1,
-    client_2,
+    client_admin,
+    client_user,
     client_no_project,
     species_id,
     strain_id,
@@ -200,7 +200,7 @@ def test_authorization(
         "seed": 0,
     }
 
-    public_emodel = client_1.post(
+    public_emodel = client_admin.post(
         ROUTE,
         json=emodel_json
         | {
@@ -211,19 +211,19 @@ def test_authorization(
     assert public_emodel.status_code == 200
     public_emodel = public_emodel.json()
 
-    unauthorized_exemplar_morphology = client_2.post(ROUTE, json=emodel_json)
+    unauthorized_exemplar_morphology = client_user.post(ROUTE, json=emodel_json)
 
     assert unauthorized_exemplar_morphology.status_code == 403
 
     exemplar_morphology_id = create_reconstruction_morphology_id(
-        client_2,
+        client_user,
         species_id=species_id,
         strain_id=strain_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
 
-    inaccessible_obj = client_2.post(
+    inaccessible_obj = client_user.post(
         ROUTE,
         json=emodel_json
         | {"name": "inaccessible emodel", "exemplar_morphology_id": exemplar_morphology_id},
@@ -233,16 +233,16 @@ def test_authorization(
 
     inaccessible_obj = inaccessible_obj.json()
 
-    private_emodel0 = client_1.post(ROUTE, json=emodel_json | {"name": "private emodel 0"})
+    private_emodel0 = client_admin.post(ROUTE, json=emodel_json | {"name": "private emodel 0"})
     assert private_emodel0.status_code == 200
     private_emodel0 = private_emodel0.json()
 
-    private_emodel1 = client_1.post(ROUTE, json=emodel_json | {"name": "private emodel 1"})
+    private_emodel1 = client_admin.post(ROUTE, json=emodel_json | {"name": "private emodel 1"})
     assert private_emodel1.status_code == 200
     private_emodel1 = private_emodel1.json()
 
     # only return results that matches the desired project, and public ones
-    response = client_1.get(ROUTE)
+    response = client_admin.get(ROUTE)
     data = response.json()["data"]
     assert len(data) == 3
 
@@ -253,7 +253,7 @@ def test_authorization(
         private_emodel1["id"],
     }
 
-    response = client_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
+    response = client_admin.get(f"{ROUTE}/{inaccessible_obj['id']}")
     assert response.status_code == 404
 
     # only return public results

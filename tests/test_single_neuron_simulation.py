@@ -89,7 +89,7 @@ def test_missing(client, route_id, expected_status_code):
     )
 
 
-def test_authorization(client_1, client_2, client_no_project, me_model_id, brain_region_id):
+def test_authorization(client_admin, client_user, client_no_project, me_model_id, brain_region_id):
     json_data = {
         "name": "foo",
         "description": "my-description",
@@ -102,35 +102,35 @@ def test_authorization(client_1, client_2, client_no_project, me_model_id, brain
     }
 
     response = assert_request(
-        client_1.post,
+        client_admin.post,
         url=ROUTE,
         json=json_data | {"name": "Public Entity", "authorized_public": True},
     )
     public_morph = response.json()
 
     inaccessible_obj = assert_request(
-        client_2.post,
+        client_user.post,
         url=ROUTE,
         json=json_data | {"name": "inaccessible morphology 1"},
     )
     inaccessible_obj = inaccessible_obj.json()
 
     private_obj0 = assert_request(
-        client_1.post,
+        client_admin.post,
         url=ROUTE,
         json=json_data | {"name": "private morphology 0"},
     )
     private_obj0 = private_obj0.json()
 
     private_obj1 = assert_request(
-        client_1.post,
+        client_admin.post,
         url=ROUTE,
         json=json_data | {"name": "private morphology 1"},
     )
     private_obj1 = private_obj1.json()
 
     # only return results that matches the desired project, and public ones
-    response = assert_request(client_1.get, url=ROUTE)
+    response = assert_request(client_admin.get, url=ROUTE)
     data = response.json()["data"]
 
     ids = {row["id"] for row in data}
@@ -141,7 +141,7 @@ def test_authorization(client_1, client_2, client_no_project, me_model_id, brain
     }, data
 
     assert_request(
-        client_1.get,
+        client_admin.get,
         url=f"{ROUTE}/{inaccessible_obj['id']}",
         expected_status_code=404,
     )

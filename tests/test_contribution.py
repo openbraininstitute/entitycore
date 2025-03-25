@@ -116,8 +116,8 @@ def test_missing(client):
 
 
 def test_authorization(
-    client_1,
-    client_2,
+    client_admin,
+    client_user,
     client_no_project,
     brain_region_id,
     species_id,
@@ -126,14 +126,14 @@ def test_authorization(
     role_id,
 ):
     inaccessible_entity_id = create_reconstruction_morphology_id(
-        client_2,
+        client_user,
         species_id=species_id,
         strain_id=strain_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
 
-    response = client_1.post(
+    response = client_admin.post(
         ROUTE,
         json={
             "agent_id": str(person_id),
@@ -144,7 +144,7 @@ def test_authorization(
     # can't attach contributions to projects unrelated to us
     assert response.status_code == 404
 
-    response = client_2.post(
+    response = client_user.post(
         ROUTE,
         json={
             "agent_id": str(person_id),
@@ -155,17 +155,17 @@ def test_authorization(
     assert response.status_code == 200
     inaccessible_annotation_id = response.json()["id"]
 
-    response = client_1.get(f"{ROUTE}/{inaccessible_annotation_id}")
+    response = client_admin.get(f"{ROUTE}/{inaccessible_annotation_id}")
     assert response.status_code == 404
 
     public_entity_id = create_reconstruction_morphology_id(
-        client_2,
+        client_user,
         species_id=species_id,
         strain_id=strain_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
-    response = client_1.post(
+    response = client_admin.post(
         ROUTE,
         json={
             "agent_id": str(person_id),
@@ -176,7 +176,7 @@ def test_authorization(
     # can't attach contributions to projects unrelated to us, even if public
     assert response.status_code == 404
 
-    public_obj = client_2.post(
+    public_obj = client_user.post(
         ROUTE,
         json={
             "agent_id": str(person_id),
@@ -187,11 +187,11 @@ def test_authorization(
     assert public_obj.status_code == 200
     public_obj = public_obj.json()
 
-    response = client_1.get(f"{ROUTE}/{public_obj['id']}")
+    response = client_admin.get(f"{ROUTE}/{public_obj['id']}")
     # can get the contribution if the entity is public
     assert response.status_code == 200
 
-    response = client_1.get(ROUTE)
+    response = client_admin.get(ROUTE)
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1  # only public entity is available

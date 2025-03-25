@@ -119,7 +119,7 @@ def test_missing(client):
 
 
 def test_authorization(
-    client_1, client_2, client_no_project, species_id, strain_id, brain_region_id
+    client_admin, client_user, client_no_project, species_id, strain_id, brain_region_id
 ):
     annotation_js = {
         "measurements": [
@@ -140,14 +140,14 @@ def test_authorization(
     }
 
     reconstruction_morphology_id_public = create_reconstruction_morphology_id(
-        client_1,
+        client_admin,
         species_id=species_id,
         strain_id=strain_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
 
-    response = client_1.post(
+    response = client_admin.post(
         ROUTE,
         json=annotation_js | {"reconstruction_morphology_id": reconstruction_morphology_id_public},
     )
@@ -155,7 +155,7 @@ def test_authorization(
     morphology_feature_annotation_id_public = response.json()["id"]
 
     reconstruction_morphology_id_inaccessible = create_reconstruction_morphology_id(
-        client_2,
+        client_user,
         species_id=species_id,
         strain_id=strain_id,
         brain_region_id=brain_region_id,
@@ -163,7 +163,7 @@ def test_authorization(
     )
 
     # try to add annotation to inaccessible reconstruction
-    response = client_1.post(
+    response = client_admin.post(
         ROUTE,
         json=annotation_js
         | {"reconstruction_morphology_id": reconstruction_morphology_id_inaccessible},
@@ -171,31 +171,31 @@ def test_authorization(
     assert response.status_code == 404
 
     # succeed to add annotation to inaccessible reconstruction with a different client
-    response = client_2.post(
+    response = client_user.post(
         ROUTE,
         json=annotation_js
         | {"reconstruction_morphology_id": reconstruction_morphology_id_inaccessible},
     )
     assert response.status_code == 200
 
-    response = client_1.get(f"{ROUTE}/{response.json()['id']}")
+    response = client_admin.get(f"{ROUTE}/{response.json()['id']}")
     assert response.status_code == 404
 
     reconstruction_morphology_id_public_inaccessible = create_reconstruction_morphology_id(
-        client_2,
+        client_user,
         species_id=species_id,
         strain_id=strain_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
-    response = client_1.post(
+    response = client_admin.post(
         ROUTE,
         json=annotation_js
         | {"reconstruction_morphology_id": reconstruction_morphology_id_public_inaccessible},
     )
     assert response.status_code == 404
 
-    response = client_1.get(ROUTE)
+    response = client_admin.get(ROUTE)
     assert response.status_code == 200
     assert len(response.json()["data"]) == 1
 

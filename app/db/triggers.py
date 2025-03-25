@@ -8,6 +8,7 @@ from app.db.model import (
     ReconstructionMorphology,
     SingleNeuronSimulation,
     SingleNeuronSynaptome,
+    SingleNeuronSynaptomeSimulation,
 )
 from app.errors import PostgresInternalErrorCode
 
@@ -104,6 +105,12 @@ entities = [
     description_vector_trigger(
         SingleNeuronSynaptome,
         "single_neuron_synaptome_description_vector",
+        "description_vector",
+        ["description", "name"],
+    ),
+    description_vector_trigger(
+        SingleNeuronSynaptomeSimulation,
+        "single_neuron_synaptome_simulation_description_vector",
         "description_vector",
         ["description", "name"],
     ),

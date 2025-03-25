@@ -68,6 +68,16 @@ class BrainRegionRead(BrainRegionCreate, CreationMixin):
     pass
 
 
+class BrainRegionCreateMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    brain_region_id: int
+
+
+class BrainRegionReadMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    brain_region: BrainRegionRead
+
+
 class StrainCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str

@@ -6,7 +6,11 @@ from starlette.testclient import TestClient
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
-BEARER_TOKEN = {"Authorization": "Bearer this is a fake token"}
+TOKEN_ADMIN = "I'm admin"  # noqa: S105
+TOKEN_USER = "I'm user"  # noqa: S105
+
+AUTH_HEADER_ADMIN = {"Authorization": f"Bearer {TOKEN_ADMIN}"}
+AUTH_HEADER_USER = {"Authorization": f"Bearer {TOKEN_USER}"}
 
 VIRTUAL_LAB_ID = "9c6fba01-2c6f-4eac-893f-f0dc665605c5"
 PROJECT_ID = "ee86d4a0-eaca-48ca-9788-ddc450250b15"

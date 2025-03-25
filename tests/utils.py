@@ -84,24 +84,6 @@ def create_reconstruction_morphology_id(
     return response.json()["id"]
 
 
-def create_brain_region_id(client, id_: int, name: str):
-    data = {
-        "id": id_,
-        "acronym": f"acronym{id_}",
-        "name": name,
-        "color_hex_triplet": "FF0000",
-        "children": [],
-    }
-    response = assert_request(
-        client.post,
-        url="/brain-region",
-        json=data,
-    )
-    data = response.json()
-    assert "id" in data, f"Failed to get id for brain region: {data}"
-    return data["id"]
-
-
 def add_db(db, row):
     db.add(row)
     db.commit()

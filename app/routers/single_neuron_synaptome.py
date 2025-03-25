@@ -8,12 +8,11 @@ from sqlalchemy.orm import InstrumentedAttribute, Session, aliased, joinedload, 
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSynaptome
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ensure_result
 from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeFilter
-from app.routers.common import FacetQueryParams
+from app.routers.common import FacetQueryParams, router_create_one, router_read_one
 from app.schemas.synaptome import (
     SingleNeuronSynaptomeCreate,
     SingleNeuronSynaptomeRead,
@@ -28,38 +27,36 @@ router = APIRouter(
 
 @router.get("/{id_}")
 def read_one(
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    project_context: VerifiedProjectContextHeader,
 ) -> SingleNeuronSynaptomeRead:
-    with ensure_result(error_message="SingleNeuronSynaptome not found"):
-        query = (
-            constrain_to_accessible_entities(
-                sa.select(SingleNeuronSynaptome),
-                project_context.project_id,
-            )
-            .filter(SingleNeuronSynaptome.id == id_)
-            .options(joinedload(SingleNeuronSynaptome.me_model))
-            .options(joinedload(SingleNeuronSynaptome.brain_region))
-        )
-
-        row = db.execute(query).unique().scalar_one()
-
-    return SingleNeuronSynaptomeRead.model_validate(row)
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=SingleNeuronSynaptome,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=SingleNeuronSynaptomeRead,
+        operations=[
+            joinedload(SingleNeuronSynaptome.me_model),
+            joinedload(SingleNeuronSynaptome.brain_region),
+        ],
+    )
 
 
 @router.post("")
 def create_one(
-    project_context: VerifiedProjectContextHeader,
-    json_model: SingleNeuronSynaptomeCreate,
     db: SessionDep,
+    json_model: SingleNeuronSynaptomeCreate,
+    user_context: UserContextWithProjectIdDep,
 ) -> SingleNeuronSynaptomeRead:
-    data = json_model.model_dump() | {"authorized_project_id": project_context.project_id}
-    row = SingleNeuronSynaptome(**data)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return SingleNeuronSynaptomeRead.model_validate(row)
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        db_model_class=SingleNeuronSynaptome,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=SingleNeuronSynaptomeRead,
+    )
 
 
 def _get_facets(
@@ -94,8 +91,8 @@ def _get_facets(
 
 @router.get("")
 def query(
+    user_context: UserContextDep,
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     filter_model: Annotated[
         SingleNeuronSynaptomeFilter, FilterDepends(SingleNeuronSynaptomeFilter)
@@ -118,7 +115,7 @@ def query(
     filter_query = (
         constrain_to_accessible_entities(
             sa.select(SingleNeuronSynaptome),
-            project_id=project_context.project_id,
+            project_id=user_context.project_id,
         )
         .join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, SingleNeuronSynaptome.id == Contribution.entity_id)

@@ -5,10 +5,8 @@ import pytest
 from app.db.model import MEModel, SingleNeuronSynaptome
 
 from .utils import (
-    BEARER_TOKEN,
     MISSING_ID,
     MISSING_ID_COMPACT,
-    PROJECT_HEADERS,
     PROJECT_ID,
     add_db,
     assert_request,
@@ -57,12 +55,10 @@ def single_neuron_synaptome_id(db, json_data):
     return _create_single_neuron_synaptome_id(db, data)
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_create_one(client, brain_region_id, me_model_id, json_data):
     data = assert_request(
         client.post,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json=json_data,
     ).json()
 
@@ -72,15 +68,13 @@ def test_create_one(client, brain_region_id, me_model_id, json_data):
     assert data["description"] == "my-description"
     assert data["name"] == "my-synaptome"
     assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
-    assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
+    assert data["authorized_project_id"] == PROJECT_ID
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_read_one(client, brain_region_id, single_neuron_synaptome_id, me_model_id):
     data = assert_request(
         client.get,
         url=f"{ROUTE}/{single_neuron_synaptome_id}",
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
     ).json()
     assert data["brain_region"]["id"] == brain_region_id, (
         f"Failed to get id for reconstruction morphology: {data}"
@@ -88,10 +82,9 @@ def test_read_one(client, brain_region_id, single_neuron_synaptome_id, me_model_
     assert data["description"] == "my-description"
     assert data["name"] == "my-synaptome"
     assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
-    assert data["authorized_project_id"] == PROJECT_HEADERS["project-id"]
+    assert data["authorized_project_id"] == PROJECT_ID
 
 
-@pytest.mark.usefixtures("skip_project_check")
 @pytest.mark.parametrize(
     ("route_id", "expected_status_code"),
     [
@@ -105,17 +98,14 @@ def test_missing(client, route_id, expected_status_code):
     assert_request(
         client.get,
         url=f"{ROUTE}/{route_id}",
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         expected_status_code=expected_status_code,
     )
 
 
-@pytest.mark.usefixtures("skip_project_check")
-def test_authorization(client, json_data):
+def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
     response = assert_request(
-        client.post,
+        client_user_1.post,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json=json_data
         | {
             "name": "Public Entity",
@@ -125,29 +115,22 @@ def test_authorization(client, json_data):
     public_morph = response.json()
 
     inaccessible_obj = assert_request(
-        client.post,
+        client_user_2.post,
         url=ROUTE,
-        headers=BEARER_TOKEN
-        | {
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
-        json=json_data | {"name": "unaccessable morphology 1"},
+        json=json_data | {"name": "inaccessable morphology 1"},
     )
     inaccessible_obj = inaccessible_obj.json()
 
     private_obj0 = assert_request(
-        client.post,
+        client_user_1.post,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json=json_data | {"name": "private morphology 0"},
     )
     private_obj0 = private_obj0.json()
 
     private_obj1 = assert_request(
-        client.post,
+        client_user_1.post,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json=json_data
         | {
             "name": "private morphology 1",
@@ -157,9 +140,8 @@ def test_authorization(client, json_data):
 
     # only return results that matches the desired project, and public ones
     response = assert_request(
-        client.get,
+        client_user_1.get,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()["data"]
 
@@ -171,14 +153,21 @@ def test_authorization(client, json_data):
     }, data
 
     assert_request(
-        client.get,
+        client_user_1.get,
         url=f"{ROUTE}/{inaccessible_obj['id']}",
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         expected_status_code=404,
     )
 
+    # only returns public results
+    response = assert_request(
+        client_no_project.get,
+        url=ROUTE,
+    )
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == public_morph["id"]
 
-@pytest.mark.usefixtures("skip_project_check")
+
 def test_pagination(db, client, brain_region_id):
     me_model_1 = add_db(
         db,
@@ -225,7 +214,6 @@ def test_pagination(db, client, brain_region_id):
         client.get,
         url=ROUTE,
         params={"page_size": 3},
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     response_json = response.json()
     assert "facets" in response_json
@@ -235,8 +223,10 @@ def test_pagination(db, client, brain_region_id):
 
 
 @pytest.fixture
-def faceted_ids(db, client):
-    brain_region_ids = [create_brain_region_id(client, id_=i, name=f"region-{i}") for i in range(2)]
+def faceted_ids(db, client_admin):
+    brain_region_ids = [
+        create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
+    ]
     me_model_ids = [
         _create_me_model_id(
             db,
@@ -269,14 +259,12 @@ def faceted_ids(db, client):
     return brain_region_ids, me_model_ids, single_simulation_synaptome_ids
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_facets(client, faceted_ids):
     brain_region_ids, me_model_ids, _ = faceted_ids
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"with_facets": True},
     ).json()
 
@@ -306,7 +294,6 @@ def test_facets(client, faceted_ids):
     data = assert_request(
         client.get,
         url=ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         params={"search": f"me-model-{me_model_ids[0]}", "with_facets": True},
     ).json()
 

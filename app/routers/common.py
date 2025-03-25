@@ -9,7 +9,47 @@ from sqlalchemy.orm import (
     Session,
 )
 
+from app.db.auth import constrain_to_accessible_entities
+from app.errors import ensure_result
 from app.schemas.types import Facet, Facets
+
+
+def router_read_one(
+    *,
+    id_,
+    db,
+    db_model_class,
+    authorized_project_id,
+    response_schema_class,
+    operations,
+):
+    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
+        query = constrain_to_accessible_entities(
+            sa.select(db_model_class),
+            authorized_project_id,
+        ).filter(db_model_class.id == id_)
+        for operation in operations:
+            query = query.options(operation)
+
+        row = db.execute(query).unique().scalar_one()
+
+    return response_schema_class.model_validate(row)
+
+
+def router_create_one(
+    *,
+    db,
+    db_model_class,
+    json_model,
+    authorized_project_id,
+    response_schema_class,
+):
+    data = json_model.model_dump() | {"authorized_project_id": authorized_project_id}
+    row = db_model_class(**data)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return response_schema_class.model_validate(row)
 
 
 class FacetQueryParams(TypedDict):

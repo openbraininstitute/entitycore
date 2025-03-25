@@ -11,9 +11,8 @@ from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuron
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ensure_result
 from app.filters.single_neuron_simulation import SingleNeuronSimulationFilter
-from app.routers.common import FacetQueryParams
+from app.routers.common import FacetQueryParams, router_create_one, router_read_one
 from app.schemas.simulation import (
     SingleNeuronSimulationCreate,
     SingleNeuronSimulationRead,
@@ -32,20 +31,17 @@ def read(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> SingleNeuronSimulationRead:
-    with ensure_result(error_message="SingleNeuronSimulation not found"):
-        query = (
-            constrain_to_accessible_entities(
-                sa.select(SingleNeuronSimulation),
-                user_context.project_id,
-            )
-            .filter(SingleNeuronSimulation.id == id_)
-            .options(joinedload(SingleNeuronSimulation.me_model))
-            .options(joinedload(SingleNeuronSimulation.brain_region))
-        )
-
-        row = db.execute(query).unique().scalar_one()
-
-    return SingleNeuronSimulationRead.model_validate(row)
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=SingleNeuronSimulation,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=SingleNeuronSimulationRead,
+        operations=[
+            joinedload(SingleNeuronSimulation.me_model),
+            joinedload(SingleNeuronSimulation.brain_region),
+        ],
+    )
 
 
 @router.post("")
@@ -54,12 +50,13 @@ def create(
     db: SessionDep,
     json_model: SingleNeuronSimulationCreate,
 ) -> SingleNeuronSimulationRead:
-    data = json_model.model_dump() | {"authorized_project_id": project_context.project_id}
-    row = SingleNeuronSimulation(**data)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return SingleNeuronSimulationRead.model_validate(row)
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        db_model_class=SingleNeuronSimulation,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=SingleNeuronSimulationRead,
+    )
 
 
 def _get_facets(

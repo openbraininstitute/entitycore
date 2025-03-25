@@ -1,13 +1,8 @@
-import pytest
-
 from app.db.model import Contribution, Organization, Person, Role
 
 from .utils import (
-    BEARER_TOKEN,
     MISSING_ID,
     MISSING_ID_COMPACT,
-    PROJECT_HEADERS,
-    UNRELATED_PROJECT_HEADERS,
     add_db,
     create_reconstruction_morphology_id,
 )
@@ -16,7 +11,6 @@ ROUTE = "/contribution"
 ROUTE_MORPH = "/reconstruction-morphology"
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_create_contribution(
     client,
     person_id,
@@ -28,16 +22,14 @@ def test_create_contribution(
 ):
     reconstruction_morphology_id = create_reconstruction_morphology_id(
         client,
-        species_id,
-        strain_id,
-        brain_region_id,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
 
     response = client.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
@@ -58,7 +50,7 @@ def test_create_contribution(
 
     contribution_id = data["id"]
 
-    response = client.get(f"{ROUTE}/{contribution_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{contribution_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == str(person_id)
@@ -73,7 +65,6 @@ def test_create_contribution(
 
     response = client.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": str(organization_id),
             "role_id": str(role_id),
@@ -87,26 +78,16 @@ def test_create_contribution(
     assert data["agent"]["alternative_name"] == "A Company Making Everything"
     assert data["agent"]["type"] == "organization"
 
-    response = client.get(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
+    response = client.get(ROUTE)
     assert len(response.json()["data"]) == 2
 
-    response = client.get(
-        f"{ROUTE_MORPH}/{reconstruction_morphology_id}",
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
+    response = client.get(f"{ROUTE_MORPH}/{reconstruction_morphology_id}")
     response.raise_for_status()
     data = response.json()
     assert "contributions" in data
     assert len(data["contributions"]) == 2
 
-    response = client.get(
-        ROUTE_MORPH,
-        params={"with_facets": True},
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
+    response = client.get(ROUTE_MORPH, params={"with_facets": True})
     response.raise_for_status()
     data = response.json()["data"]
     assert len(data) == 1
@@ -120,35 +101,40 @@ def test_create_contribution(
     ]
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(f"{ROUTE}/{MISSING_ID}", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{MISSING_ID}")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/42424242", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/42424242")
     assert response.status_code == 422
 
-    response = client.get(f"{ROUTE}/notanumber", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
 
 
-@pytest.mark.usefixtures("skip_project_check")
-def test_authorization(client, brain_region_id, species_id, strain_id, person_id, role_id):
+def test_authorization(
+    client_user_1,
+    client_user_2,
+    client_no_project,
+    brain_region_id,
+    species_id,
+    strain_id,
+    person_id,
+    role_id,
+):
     inaccessible_entity_id = create_reconstruction_morphology_id(
-        client,
-        species_id,
-        strain_id,
-        brain_region_id,
-        headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
+        client_user_2,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
 
-    response = client.post(
+    response = client_user_1.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
@@ -158,9 +144,8 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     # can't attach contributions to projects unrelated to us
     assert response.status_code == 404
 
-    response = client.post(
+    response = client_user_2.post(
         ROUTE,
-        headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
@@ -170,23 +155,18 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     assert response.status_code == 200
     inaccessible_annotation_id = response.json()["id"]
 
-    response = client.get(
-        f"{ROUTE}/{inaccessible_annotation_id}",
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
+    response = client_user_1.get(f"{ROUTE}/{inaccessible_annotation_id}")
     assert response.status_code == 404
 
     public_entity_id = create_reconstruction_morphology_id(
-        client,
-        species_id,
-        strain_id,
-        brain_region_id,
-        headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
+        client_user_2,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
         authorized_public=True,
     )
-    response = client.post(
+    response = client_user_1.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
@@ -196,9 +176,8 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     # can't attach contributions to projects unrelated to us, even if public
     assert response.status_code == 404
 
-    public_obj = client.post(
+    public_obj = client_user_2.post(
         ROUTE,
-        headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS,
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
@@ -208,17 +187,11 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     assert public_obj.status_code == 200
     public_obj = public_obj.json()
 
-    response = client.get(
-        f"{ROUTE}/{public_obj['id']}",
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
+    response = client_user_1.get(f"{ROUTE}/{public_obj['id']}")
     # can get the contribution if the entity is public
     assert response.status_code == 200
 
-    response = client.get(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
+    response = client_user_1.get(ROUTE)
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1  # only public entity is available
@@ -226,8 +199,13 @@ def test_authorization(client, brain_region_id, species_id, strain_id, person_id
     assert data[0]["entity"]["id"] == public_entity_id
     assert data[0]["entity"]["authorized_public"]
 
+    # only return public results
+    response = client_no_project.get(ROUTE)
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == public_obj["id"]
 
-@pytest.mark.usefixtures("skip_project_check")
+
 def test_contribution_facets(
     db,
     client,
@@ -263,10 +241,9 @@ def test_contribution_facets(
     ):
         reconstruction_morphology_id = create_reconstruction_morphology_id(
             client,
-            species_id,
-            strain_id,
-            brain_region_id,
-            headers=BEARER_TOKEN | PROJECT_HEADERS,
+            species_id=species_id,
+            strain_id=strain_id,
+            brain_region_id=brain_region_id,
             name=f"TestMorphologyName{i}",
             authorized_public=False,
         )
@@ -283,11 +260,7 @@ def test_contribution_facets(
     assert len(morphology_ids) == 12
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
-    response = client.get(
-        ROUTE_MORPH,
-        params={"with_facets": True, "page_size": 10},
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
+    response = client.get(ROUTE_MORPH, params={"with_facets": True, "page_size": 10})
     data = response.json()
     facets = data["facets"]
     assert facets == {
@@ -313,7 +286,6 @@ def test_contribution_facets(
     response = client.get(
         f"{ROUTE_MORPH}",
         params={"with_facets": True, "contribution__pref_label": "person_pref_label"},
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
     )
     data = response.json()
     facets = data["facets"]

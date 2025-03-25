@@ -1,14 +1,10 @@
 from unittest.mock import ANY
 
-import pytest
-
 from app.db.model import MTypeClass, MTypeClassification
 
 from .utils import (
-    BEARER_TOKEN,
     MISSING_ID,
     MISSING_ID_COMPACT,
-    PROJECT_HEADERS,
     add_all_db,
     add_db,
     create_reconstruction_morphology_id,
@@ -84,14 +80,12 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
     morph_id = create_reconstruction_morphology_id(
         client,
         species_id,
         strain_id,
         brain_region_id,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         authorized_public=False,
     )
 
@@ -101,11 +95,7 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
     add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype1.id))
     add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype2.id))
 
-    response = client.get(
-        ROUTE_MORPH,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"with_facets": True},
-    )
+    response = client.get(ROUTE_MORPH, params={"with_facets": True})
     assert response.status_code == 200
     facets = response.json()["facets"]
     assert facets["mtype"] == [
@@ -113,7 +103,7 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
         {"id": str(mtype2.id), "label": "m2", "count": 1, "type": "mtype"},
     ]
 
-    response = client.get(f"{ROUTE_MORPH}/{morph_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE_MORPH}/{morph_id}")
     assert response.status_code == 200
     data = response.json()
     assert "mtypes" in data
@@ -139,11 +129,7 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
         },
     ]
 
-    response = client.get(
-        ROUTE_MORPH,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"with_facets": True, "mtype__pref_label": "m1"},
-    )
+    response = client.get(ROUTE_MORPH, params={"with_facets": True, "mtype__pref_label": "m1"})
     assert response.status_code == 200
     facets = response.json()["facets"]
     assert facets["mtype"] == [

@@ -8,7 +8,7 @@ from sqlalchemy.orm import InstrumentedAttribute, Session, aliased, joinedload, 
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSimulation
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -28,15 +28,15 @@ router = APIRouter(
 
 @router.get("/{id_}")
 def read(
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    project_context: VerifiedProjectContextHeader,
 ) -> SingleNeuronSimulationRead:
     with ensure_result(error_message="SingleNeuronSimulation not found"):
         query = (
             constrain_to_accessible_entities(
                 sa.select(SingleNeuronSimulation),
-                project_context.project_id,
+                user_context.project_id,
             )
             .filter(SingleNeuronSimulation.id == id_)
             .options(joinedload(SingleNeuronSimulation.me_model))
@@ -53,11 +53,11 @@ def read(
     response_model=SingleNeuronSimulationRead,
 )
 def create(
-    project_context: VerifiedProjectContextHeader,
-    json_model: SingleNeuronSimulationCreate,
+    user_context: UserContextWithProjectIdDep,
     db: SessionDep,
+    json_model: SingleNeuronSimulationCreate,
 ):
-    kwargs = json_model.model_dump() | {"authorized_project_id": project_context.project_id}
+    kwargs = json_model.model_dump() | {"authorized_project_id": user_context.project_id}
 
     db_model = SingleNeuronSimulation(**kwargs)
     db.add(db_model)
@@ -99,8 +99,8 @@ def _get_facets(
 
 @router.get("")
 def query(
+    user_context: UserContextDep,
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     filter_model: Annotated[
         SingleNeuronSimulationFilter, FilterDepends(SingleNeuronSimulationFilter)
@@ -124,7 +124,7 @@ def query(
     filter_query = (
         constrain_to_accessible_entities(
             sa.select(SingleNeuronSimulation),
-            project_id=project_context.project_id,
+            project_id=user_context.project_id,
         )
         .join(BrainRegion, SingleNeuronSimulation.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, SingleNeuronSimulation.id == Contribution.entity_id)

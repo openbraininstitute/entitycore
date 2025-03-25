@@ -12,7 +12,6 @@ from app.utils.s3 import build_s3_path
 
 from tests.utils import (
     MISSING_ID,
-    PROJECT_HEADERS,
     PROJECT_ID,
     TEST_DATA_DIR,
     VIRTUAL_LAB_ID,
@@ -24,15 +23,6 @@ DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 FILE_EXAMPLE_DIGEST = "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91"
 FILE_EXAMPLE_SIZE = 31
-
-# Apply the fixture to all tests in this module
-pytestmark = pytest.mark.usefixtures("skip_project_check")
-
-
-@pytest.fixture
-def client(client):
-    client.headers.update(PROJECT_HEADERS)
-    return client
 
 
 def _route(entity_type: str) -> str:
@@ -64,10 +54,9 @@ def entity(client, species_id, strain_id, brain_region_id) -> Entity:
     entity_type = EntityType.reconstruction_morphology.name
     entity_id = create_reconstruction_morphology_id(
         client,
-        species_id,
-        strain_id,
-        brain_region_id,
-        headers=PROJECT_HEADERS,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
     return Entity(id=entity_id, type=entity_type)

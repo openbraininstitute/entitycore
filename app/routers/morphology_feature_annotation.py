@@ -10,7 +10,7 @@ from app.db.model import (
     MorphologyMeasurementSerieElement,
     ReconstructionMorphology,
 )
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -29,13 +29,13 @@ router = APIRouter(
 
 @router.get("")
 def read_morphology_feature_annotations(
+    user_context: UserContextDep,
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
 ) -> ListResponse[MorphologyFeatureAnnotationRead]:
     query = constrain_to_accessible_entities(
         sa.select(MorphologyFeatureAnnotation).join(ReconstructionMorphology),
-        project_context.project_id,
+        user_context.project_id,
     )
 
     data = db.execute(
@@ -61,16 +61,16 @@ def read_morphology_feature_annotations(
 
 @router.get("/{id_}", response_model=MorphologyFeatureAnnotationRead)
 def read_morphology_feature_annotation_id(
-    id_: uuid.UUID,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextDep,
     db: SessionDep,
+    id_: uuid.UUID,
 ):
     with ensure_result(error_message="MorphologyFeatureAnnotation not found"):
         stmt = constrain_to_accessible_entities(
             sa.select(MorphologyFeatureAnnotation)
             .filter(MorphologyFeatureAnnotation.id == id_)
             .join(ReconstructionMorphology),
-            project_context.project_id,
+            user_context.project_id,
         )
         row = db.execute(stmt).scalar_one()
 
@@ -79,9 +79,9 @@ def read_morphology_feature_annotation_id(
 
 @router.post("", response_model=MorphologyFeatureAnnotationRead)
 def create_morphology_feature_annotation(
-    project_context: VerifiedProjectContextHeader,
-    morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
+    user_context: UserContextWithProjectIdDep,
     db: SessionDep,
+    morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
 ):
     reconstruction_morphology_id = morphology_feature_annotation.reconstruction_morphology_id
 
@@ -89,7 +89,7 @@ def create_morphology_feature_annotation(
         sa.select(sa.func.count(ReconstructionMorphology.id)).where(
             ReconstructionMorphology.id == reconstruction_morphology_id
         ),
-        project_context.project_id,
+        user_context.project_id,
     )
 
     if db.execute(stmt).scalar_one() == 0:

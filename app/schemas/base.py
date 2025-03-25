@@ -18,6 +18,11 @@ class ProjectContext(BaseModel):
     project_id: UUID4
 
 
+class OptionalProjectContext(BaseModel):
+    virtual_lab_id: UUID4 | None = None
+    project_id: UUID4 | None = None
+
+
 class IdentifiableMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID

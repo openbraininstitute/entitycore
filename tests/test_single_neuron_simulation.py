@@ -4,7 +4,7 @@ import pytest
 
 from app.db.model import MEModel, SingleNeuronSimulation
 
-from tests.utils import (
+from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     PROJECT_ID,

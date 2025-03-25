@@ -28,6 +28,7 @@ from app.db.session import DatabaseSessionManager, configure_database_session_ma
 from app.dependencies import auth
 from app.schemas.auth import UserContext
 
+from . import utils
 from .utils import (
     AUTH_HEADER_ADMIN,
     AUTH_HEADER_USER_1,
@@ -44,7 +45,6 @@ from .utils import (
     ClientProxy,
     add_db,
 )
-from tests import utils
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -20,7 +20,7 @@ from app.db.model import (
     Species,
     Strain,
 )
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -44,14 +44,14 @@ router = APIRouter(
     response_model=ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead,
 )
 def read_reconstruction_morphology(
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    project_context: VerifiedProjectContextHeader,
     expand: str | None = None,
 ):
     with ensure_result(error_message="ReconstructionMorphology not found"):
         query = constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), project_context.project_id
+            sa.select(ReconstructionMorphology), user_context.project_id
         ).filter(ReconstructionMorphology.id == id_)
 
         if expand and "morphology_feature_annotation" in expand:
@@ -78,9 +78,9 @@ def read_reconstruction_morphology(
 
 @router.post("", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
-    project_context: VerifiedProjectContextHeader,
-    reconstruction: ReconstructionMorphologyCreate,
+    user_context: UserContextWithProjectIdDep,
     db: SessionDep,
+    reconstruction: ReconstructionMorphologyCreate,
 ):
     db_rm = ReconstructionMorphology(
         name=reconstruction.name,
@@ -90,7 +90,7 @@ def create_reconstruction_morphology(
         species_id=reconstruction.species_id,
         strain_id=reconstruction.strain_id,
         license_id=reconstruction.license_id,
-        authorized_project_id=project_context.project_id,
+        authorized_project_id=user_context.project_id,
         authorized_public=reconstruction.authorized_public,
     )
     db.add(db_rm)
@@ -103,8 +103,8 @@ def create_reconstruction_morphology(
 @router.get("")
 def morphology_query(
     *,
+    user_context: UserContextDep,
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
     search: str | None = None,
@@ -124,7 +124,7 @@ def morphology_query(
 
     filter_query = (
         constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), project_id=project_context.project_id
+            sa.select(ReconstructionMorphology), project_id=user_context.project_id
         )
         .join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)

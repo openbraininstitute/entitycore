@@ -3,8 +3,8 @@ from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 ROUTE = "/person"
 
 
-def test_create_person(client):
-    response = client.post(
+def test_create_person(client, client_admin):
+    response = client_admin.post(
         ROUTE,
         json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"},
     )

@@ -1,7 +1,8 @@
 """Web api."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.dependencies.auth import user_verified
 from app.routers import (
     asset,
     brain_region,
@@ -25,33 +26,30 @@ from app.routers import (
     species,
     strain,
 )
-from app.routers.legacy import _search, files, resources, sbo
 
 router = APIRouter()
 router.include_router(root.router)
-router.include_router(asset.router)
-router.include_router(brain_region.router)
-router.include_router(cell_composition.router)
-router.include_router(contribution.router)
-router.include_router(experimental_bouton_density.router)
-router.include_router(experimental_neuron_density.router)
-router.include_router(experimental_synapses_per_connection.router)
-router.include_router(license.router)
-router.include_router(morphology.router)
-router.include_router(emodel.router)
-router.include_router(morphology_feature_annotation.router)
-router.include_router(mtype.router)
-router.include_router(organization.router)
-router.include_router(person.router)
-router.include_router(role.router)
-router.include_router(single_neuron_simulation.router)
-router.include_router(single_neuron_synaptome.router)
-router.include_router(single_neuron_synaptome_simulation.router)
-router.include_router(species.router)
-router.include_router(strain.router)
-
-# legacy routes
-router.include_router(_search.router)
-router.include_router(sbo.router)
-router.include_router(resources.router)
-router.include_router(files.router)
+authenticated_routers = [
+    asset.router,
+    brain_region.router,
+    cell_composition.router,
+    contribution.router,
+    experimental_bouton_density.router,
+    experimental_neuron_density.router,
+    experimental_synapses_per_connection.router,
+    license.router,
+    morphology.router,
+    emodel.router,
+    morphology_feature_annotation.router,
+    mtype.router,
+    organization.router,
+    person.router,
+    role.router,
+    single_neuron_simulation.router,
+    single_neuron_synaptome.router,
+    single_neuron_synaptome_simulation.router,
+    species.router,
+    strain.router,
+]
+for r in authenticated_routers:
+    router.include_router(r, dependencies=[Depends(user_verified)])

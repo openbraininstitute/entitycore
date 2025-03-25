@@ -6,7 +6,7 @@ from sqlalchemy.orm import contains_eager
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -22,13 +22,13 @@ router = APIRouter(
 
 @router.get("")
 def read_contributions(
+    user_context: UserContextDep,
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
 ) -> ListResponse[ContributionRead]:
     query = constrain_to_accessible_entities(
         sa.select(Contribution).join(Entity).options(contains_eager(Contribution.entity)),
-        project_context.project_id,
+        user_context.project_id,
     )
 
     data = db.execute(
@@ -52,7 +52,9 @@ def read_contributions(
 
 @router.get("/{id_}")
 def read_contribution(
-    id_: uuid.UUID, project_context: VerifiedProjectContextHeader, db: SessionDep
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
 ) -> ContributionRead:
     with ensure_result(error_message="Contribution not found"):
         stmt = constrain_to_accessible_entities(
@@ -60,7 +62,7 @@ def read_contribution(
             .filter(Contribution.id == id_)
             .join(Contribution.entity)
             .options(contains_eager(Contribution.entity)),
-            project_context.project_id,
+            user_context.project_id,
         )
 
         row = db.execute(stmt).scalar_one()
@@ -70,11 +72,13 @@ def read_contribution(
 
 @router.post("")
 def create_contribution(
-    contribution: ContributionCreate, project_context: VerifiedProjectContextHeader, db: SessionDep
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    contribution: ContributionCreate,
 ) -> ContributionRead:
     stmt = constrain_entity_query_to_project(
         sa.select(sa.func.count(Entity.id)).where(Entity.id == contribution.entity_id),
-        project_context.project_id,
+        user_context.project_id,
     )
     if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")

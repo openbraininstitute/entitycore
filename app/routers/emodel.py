@@ -5,11 +5,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter
 from psycopg2.errors import RaiseException
 from sqlalchemy.exc import InternalError
-from sqlalchemy.orm import (
-    aliased,
-    joinedload,
-    raiseload,
-)
+from sqlalchemy.orm import aliased, joinedload, raiseload
 from sqlalchemy.sql.selectable import Select
 
 from app.db.auth import constrain_to_accessible_entities
@@ -25,7 +21,7 @@ from app.db.model import (
     ReconstructionMorphology,
     Species,
 )
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode, PostgresInternalErrorCode, ensure_result
@@ -58,14 +54,14 @@ def emodel_joinedloads(select: Select):
     "/{id_}",
 )
 def read_emodel(
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    project_context: VerifiedProjectContextHeader,
 ) -> EModelRead:
     with ensure_result("EModel not found"):
-        query = constrain_to_accessible_entities(
-            sa.select(EModel), project_context.project_id
-        ).filter(EModel.id == id_)
+        query = constrain_to_accessible_entities(sa.select(EModel), user_context.project_id).filter(
+            EModel.id == id_
+        )
 
         query = emodel_joinedloads(query)
 
@@ -74,9 +70,9 @@ def read_emodel(
 
 @router.post("", response_model=EModelRead)
 def create_emodel(
-    project_context: VerifiedProjectContextHeader,
-    emodel: EModelCreate,
+    user_context: UserContextWithProjectIdDep,
     db: SessionDep,
+    emodel: EModelCreate,
 ):
     try:
         db_em = EModel(
@@ -86,7 +82,7 @@ def create_emodel(
             species_id=emodel.species_id,
             strain_id=emodel.strain_id,
             exemplar_morphology_id=emodel.exemplar_morphology_id,
-            authorized_project_id=project_context.project_id,
+            authorized_project_id=user_context.project_id,
             authorized_public=emodel.authorized_public,
         )
 
@@ -115,8 +111,8 @@ def create_emodel(
 @router.get("")
 def emodel_query(
     *,
+    user_context: UserContextDep,
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
     pagination_request: PaginationQuery,
     emodel_filter: EModelFilterDep,
     with_search: SearchDep,
@@ -142,7 +138,7 @@ def emodel_query(
     }
 
     filter_query = (
-        constrain_to_accessible_entities(sa.select(EModel), project_id=project_context.project_id)
+        constrain_to_accessible_entities(sa.select(EModel), project_id=user_context.project_id)
         .join(Species, EModel.species_id == Species.id)
         .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
         .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)

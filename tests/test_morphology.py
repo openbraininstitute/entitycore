@@ -233,7 +233,9 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     }
 
 
-def test_authorization(client_1, client_2, species_id, strain_id, license_id, brain_region_id):
+def test_authorization(
+    client_1, client_2, client_no_project, species_id, strain_id, license_id, brain_region_id
+):
     morph_json = {
         "location": {"x": 10, "y": 20, "z": 30},
         "brain_region_id": brain_region_id,
@@ -277,6 +279,12 @@ def test_authorization(client_1, client_2, species_id, strain_id, license_id, br
 
     response = client_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
     assert response.status_code == 404
+
+    # only return public results
+    response = client_no_project.get(ROUTE)
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == public_morph["id"]
 
 
 def test_pagination(db, client, brain_region_id):

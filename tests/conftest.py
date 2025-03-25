@@ -65,6 +65,20 @@ def _create_buckets(s3):
 
 
 @pytest.fixture
+def user_context_no_auth():
+    """Not authenticated user."""
+    return UserContext(
+        subject=UUID(int=0),
+        email=None,
+        expiration=None,
+        is_authorized=False,
+        is_service_admin=False,
+        virtual_lab_id=None,
+        project_id=None,
+    )
+
+
+@pytest.fixture
 def user_context_1():
     """Admin authenticated user."""
     return UserContext(
@@ -93,13 +107,13 @@ def user_context_2():
 
 
 @pytest.fixture
-def user_context_no_auth():
-    """Not authenticated user."""
+def user_context_no_project():
+    """Regular authenticated user without project-id."""
     return UserContext(
         subject=UUID(int=3),
         email=None,
         expiration=None,
-        is_authorized=False,
+        is_authorized=True,
         is_service_admin=False,
         virtual_lab_id=None,
         project_id=None,
@@ -107,12 +121,16 @@ def user_context_no_auth():
 
 
 @pytest.fixture
-def _override_check_user_info(monkeypatch, user_context_1, user_context_2, user_context_no_auth):
+def _override_check_user_info(
+    monkeypatch, user_context_no_auth, user_context_1, user_context_2, user_context_no_project
+):
     def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
         if project_context.project_id == UUID(PROJECT_ID):
             return user_context_1
         if project_context.project_id == UUID(UNRELATED_PROJECT_ID):
             return user_context_2
+        if project_context.project_id is None:
+            return user_context_no_project
         return user_context_no_auth
 
     monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
@@ -144,6 +162,12 @@ def client_1(client_no_auth):
 def client_2(client_no_auth):
     """Return a web client instance, authenticated as regular user with different project-id."""
     return ClientProxy(client_no_auth, headers=BEARER_TOKEN | UNRELATED_PROJECT_HEADERS)
+
+
+@pytest.fixture
+def client_no_project(client_no_auth):
+    """Return a web client instance, authenticated as regular user with different project-id."""
+    return ClientProxy(client_no_auth, headers=BEARER_TOKEN)
 
 
 @pytest.fixture

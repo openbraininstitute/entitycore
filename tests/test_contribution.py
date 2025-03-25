@@ -116,7 +116,14 @@ def test_missing(client):
 
 
 def test_authorization(
-    client_1, client_2, brain_region_id, species_id, strain_id, person_id, role_id
+    client_1,
+    client_2,
+    client_no_project,
+    brain_region_id,
+    species_id,
+    strain_id,
+    person_id,
+    role_id,
 ):
     inaccessible_entity_id = create_reconstruction_morphology_id(
         client_2,
@@ -191,6 +198,12 @@ def test_authorization(
     assert data[0]["id"] == public_obj["id"]
     assert data[0]["entity"]["id"] == public_entity_id
     assert data[0]["entity"]["authorized_public"]
+
+    # only return public results
+    response = client_no_project.get(ROUTE)
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == public_obj["id"]
 
 
 def test_contribution_facets(

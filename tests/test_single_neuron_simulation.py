@@ -89,7 +89,7 @@ def test_missing(client, route_id, expected_status_code):
     )
 
 
-def test_authorization(client_1, client_2, me_model_id, brain_region_id):
+def test_authorization(client_1, client_2, client_no_project, me_model_id, brain_region_id):
     json_data = {
         "name": "foo",
         "description": "my-description",
@@ -145,6 +145,12 @@ def test_authorization(client_1, client_2, me_model_id, brain_region_id):
         url=f"{ROUTE}/{inaccessible_obj['id']}",
         expected_status_code=404,
     )
+
+    # only return public results
+    response = client_no_project.get(ROUTE)
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == public_morph["id"]
 
 
 def test_pagination(db, client, brain_region_id):

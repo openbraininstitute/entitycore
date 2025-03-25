@@ -179,7 +179,13 @@ def test_facets(client: TestClient, create_faceted_emodel_ids: Ids):
 
 
 def test_authorization(
-    client_1, client_2, species_id, strain_id, brain_region_id, exemplar_morphology_id
+    client_1,
+    client_2,
+    client_no_project,
+    species_id,
+    strain_id,
+    brain_region_id,
+    exemplar_morphology_id,
 ):
     emodel_json = {
         "brain_region_id": brain_region_id,
@@ -248,8 +254,13 @@ def test_authorization(
     }
 
     response = client_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
-
     assert response.status_code == 404
+
+    # only return public results
+    response = client_no_project.get(ROUTE)
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == public_emodel["id"]
 
 
 def test_pagination(client, create_emodel_ids):

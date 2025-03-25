@@ -93,7 +93,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
         == "Test Measurement Name"
     )
 
-    # Try and create a second annotation
+    # Try to create a second annotation
     with pytest.raises(sqlalchemy.exc.IntegrityError):
         response = client.post(
             ROUTE,
@@ -118,7 +118,9 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_authorization(client_1, client_2, species_id, strain_id, brain_region_id):
+def test_authorization(
+    client_1, client_2, client_no_project, species_id, strain_id, brain_region_id
+):
     annotation_js = {
         "measurements": [
             {
@@ -150,8 +152,8 @@ def test_authorization(client_1, client_2, species_id, strain_id, brain_region_i
         json=annotation_js | {"reconstruction_morphology_id": reconstruction_morphology_id_public},
     )
     assert response.status_code == 200
+    morphology_feature_annotation_id_public = response.json()["id"]
 
-    # try and add annotation to inaccessible reconstruction
     reconstruction_morphology_id_inaccessible = create_reconstruction_morphology_id(
         client_2,
         species_id=species_id,
@@ -159,6 +161,8 @@ def test_authorization(client_1, client_2, species_id, strain_id, brain_region_i
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
+
+    # try to add annotation to inaccessible reconstruction
     response = client_1.post(
         ROUTE,
         json=annotation_js
@@ -166,13 +170,14 @@ def test_authorization(client_1, client_2, species_id, strain_id, brain_region_i
     )
     assert response.status_code == 404
 
-    # try and add annotation to inaccessible reconstruction
+    # succeed to add annotation to inaccessible reconstruction with a different client
     response = client_2.post(
         ROUTE,
         json=annotation_js
         | {"reconstruction_morphology_id": reconstruction_morphology_id_inaccessible},
     )
     assert response.status_code == 200
+
     response = client_1.get(f"{ROUTE}/{response.json()['id']}")
     assert response.status_code == 404
 
@@ -193,3 +198,9 @@ def test_authorization(client_1, client_2, species_id, strain_id, brain_region_i
     response = client_1.get(ROUTE)
     assert response.status_code == 200
     assert len(response.json()["data"]) == 1
+
+    # only return public results
+    response = client_no_project.get(ROUTE)
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == morphology_feature_annotation_id_public

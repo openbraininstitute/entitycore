@@ -17,7 +17,7 @@ class EntityRepository(BaseRepository):
         self,
         entity_type: EntityType,
         entity_id: uuid.UUID,
-        project_id: uuid.UUID,
+        project_id: uuid.UUID | None,
     ) -> Entity:
         """Return a specific entity by type and id, readable by the given project.
 

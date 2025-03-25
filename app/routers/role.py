@@ -1,9 +1,10 @@
 import uuid
 
 import sqlalchemy as sa
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.db.model import Role
+from app.dependencies.auth import user_with_service_admin_role
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -49,7 +50,7 @@ def read_role(id_: uuid.UUID, db: SessionDep):
     return RoleRead.model_validate(row)
 
 
-@router.post("", response_model=RoleRead)
+@router.post("", dependencies=[Depends(user_with_service_admin_role)], response_model=RoleRead)
 def create_role(role: RoleCreate, db: SessionDep):
     row = Role(name=role.name, role_id=role.role_id)
     db.add(row)

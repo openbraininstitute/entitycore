@@ -5,21 +5,21 @@ from app.db.types import AssetStatus, EntityType
 from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import AssetCreate, AssetRead
-from app.schemas.base import ProjectContext
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.service import entity as entity_service
 from app.utils.s3 import build_s3_path
 
 
 def get_entity_assets(
     repos: RepositoryGroup,
-    project_context: ProjectContext,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
 ) -> list[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     _ = entity_service.get_readable_entity(
         repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )
@@ -31,7 +31,7 @@ def get_entity_assets(
 
 def get_entity_asset(
     repos: RepositoryGroup,
-    project_context: ProjectContext,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -39,7 +39,7 @@ def get_entity_asset(
     """Return an asset associated with a specific entity."""
     _ = entity_service.get_readable_entity(
         repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )
@@ -52,7 +52,7 @@ def get_entity_asset(
 
 def create_entity_asset(
     repos: RepositoryGroup,
-    project_context: ProjectContext,
+    user_context: UserContextWithProjectId,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     filename: str,
@@ -64,14 +64,14 @@ def create_entity_asset(
     """Create an asset for an entity."""
     entity = entity_service.get_writable_entity(
         repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )
     bucket_name = settings.S3_BUCKET_NAME
     full_path = build_s3_path(
-        vlab_id=project_context.virtual_lab_id,
-        proj_id=project_context.project_id,
+        vlab_id=user_context.virtual_lab_id,
+        proj_id=user_context.project_id,
         entity_type=entity_type,
         entity_id=entity_id,
         filename=filename,
@@ -100,7 +100,7 @@ def create_entity_asset(
 
 def delete_entity_asset(
     repos: RepositoryGroup,
-    project_context: ProjectContext,
+    user_context: UserContextWithProjectId,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -108,7 +108,7 @@ def delete_entity_asset(
     """Mark an entity asset as deleted."""
     _ = entity_service.get_writable_entity(
         repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )

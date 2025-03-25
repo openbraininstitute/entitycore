@@ -35,7 +35,10 @@ class Settings(BaseSettings):
     LOG_CATCH: bool = True
     LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO"}
 
-    KEYCLOAK_URL: str = "https://example.openbluebrain.com/auth/realms/SBO/"
+    KEYCLOAK_URL: str = "https://example.openbluebrain.com/auth/realms/SBO"
+    AUTH_CACHE_MAXSIZE: int = 128  # items
+    AUTH_CACHE_MAX_TTL: int = 300  # seconds
+    AUTH_CACHE_INFO: bool = False
 
     S3_BUCKET_NAME: str = "entitycore-data-dev"
     S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value

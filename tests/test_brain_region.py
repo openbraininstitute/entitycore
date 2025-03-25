@@ -39,7 +39,7 @@ hierarchy = {
 }
 
 
-def test_brain_region_id(client):
+def test_brain_region_id(client_admin, client):
     regions = []
 
     def recurse(i):
@@ -53,7 +53,7 @@ def test_brain_region_id(client):
     recurse(hierarchy)
 
     for region in regions:
-        response = client.post(
+        response = client_admin.post(
             ROUTE,
             json=region,
         )

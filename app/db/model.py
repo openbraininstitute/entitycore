@@ -181,7 +181,10 @@ class Person(Agent):
     givenName: Mapped[str]
     familyName: Mapped[str]
 
-    __mapper_args__ = {"polymorphic_identity": "person"}  # noqa: RUF012
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": "person",
+        "polymorphic_load": "selectin",
+    }
     __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
 
 
@@ -192,7 +195,10 @@ class Organization(Agent):
     # what is the difference between name and label here ?
     alternative_name: Mapped[str]
 
-    __mapper_args__ = {"polymorphic_identity": "organization"}  # noqa: RUF012
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": "organization",
+        "polymorphic_load": "selectin",
+    }
 
 
 class AnnotationBody(LegacyMixin, TimestampMixin, Base):

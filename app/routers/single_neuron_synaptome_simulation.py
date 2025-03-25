@@ -18,7 +18,7 @@ from app.dependencies.auth import VerifiedProjectContextHeader
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeSimulationFilter
+from app.filters.single_neuron_synaptome_simulation import SingleNeuronSynaptomeSimulationFilter
 from app.routers.common import FacetQueryParams
 from app.schemas.simulation import (
     SingleNeuronSynaptomeSimulationCreate,

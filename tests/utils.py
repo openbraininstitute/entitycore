@@ -75,7 +75,7 @@ def create_reconstruction_morphology_id(
             "species_id": str(species_id) if species_id else None,
             "strain_id": str(strain_id) if strain_id else None,
             "location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": "Test Legacy ID",
+            "legacy_id": ["Test Legacy ID"],
             "authorized_public": authorized_public,
         },
     )

@@ -1,27 +1,25 @@
 import uuid
-from typing import Annotated, NotRequired, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 import sqlalchemy as sa
 from fastapi import Depends
 from pydantic import BaseModel
-from sqlalchemy.orm import (
-    InstrumentedAttribute,
-    Session,
-)
+from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from app.db.auth import constrain_to_accessible_entities
+from app.db.model import Entity
 from app.errors import ensure_result
 from app.schemas.types import Facet, Facets
 
 
 def router_read_one(
     *,
-    id_,
-    db,
-    db_model_class,
-    authorized_project_id,
-    response_schema_class,
-    operations,
+    id_: uuid.UUID,
+    db: Session,
+    db_model_class: type[Entity],
+    authorized_project_id: uuid.UUID | None,
+    response_schema_class: type[BaseModel],
+    operations: list[Any],
 ):
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         query = constrain_to_accessible_entities(
@@ -38,11 +36,11 @@ def router_read_one(
 
 def router_create_one(
     *,
-    db,
-    db_model_class,
-    json_model,
-    authorized_project_id,
-    response_schema_class,
+    db: Session,
+    db_model_class: type[Entity],
+    json_model: BaseModel,
+    authorized_project_id: uuid.UUID | None,
+    response_schema_class: type[BaseModel],
 ):
     data = json_model.model_dump() | {"authorized_project_id": authorized_project_id}
     row = db_model_class(**data)

@@ -303,7 +303,7 @@ def brain_region_id(client_admin):
 
 
 @pytest.fixture
-def morphology_id(client, species_id, strain_id, brain_region_id, skip_project_check):  # noqa: ARG001
+def morphology_id(client, species_id, strain_id, brain_region_id):
     return utils.create_reconstruction_morphology_id(
         client,
         species_id=species_id,
@@ -420,7 +420,7 @@ class MEModels:
 
 
 @pytest.fixture
-def create_faceted_emodel_ids(db: Session, client, client_admin):
+def faceted_emodel_ids(db: Session, client, client_admin):
     species_ids = [
         str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
     ]
@@ -560,9 +560,3 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
         brain_region_ids=brain_region_ids,
         agent_ids=agent_ids,
     )
-
-
-@pytest.fixture
-def skip_project_check():
-    with utils.skip_project_check():
-        yield

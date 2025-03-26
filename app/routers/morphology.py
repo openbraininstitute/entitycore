@@ -2,18 +2,21 @@ import uuid
 from typing import Annotated
 
 import sqlalchemy as sa
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi_filter import FilterDepends
 from sqlalchemy.orm import (
     aliased,
     joinedload,
     raiseload,
+    selectinload,
 )
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
     Contribution,
+    MorphologyFeatureAnnotation,
+    MorphologyMeasurement,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
@@ -47,7 +50,7 @@ def read_reconstruction_morphology(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: str | None = None,
+    expand: Annotated[set[str] | None, Query()] = None,
 ):
     with ensure_result(error_message="ReconstructionMorphology not found"):
         query = constrain_to_accessible_entities(
@@ -57,14 +60,26 @@ def read_reconstruction_morphology(
         if expand and "morphology_feature_annotation" in expand:
             query = query.options(
                 joinedload(ReconstructionMorphology.morphology_feature_annotation)
+                .selectinload(MorphologyFeatureAnnotation.measurements)
+                .selectinload(MorphologyMeasurement.measurement_serie)
             )
 
         query = (
             query.options(joinedload(ReconstructionMorphology.brain_region))
-            .options(joinedload(ReconstructionMorphology.contributions))
+            .options(
+                selectinload(ReconstructionMorphology.contributions).selectinload(
+                    Contribution.agent
+                )
+            )
+            .options(
+                selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role)
+            )
+            .options(joinedload(ReconstructionMorphology.mtypes))
             .options(joinedload(ReconstructionMorphology.license))
             .options(joinedload(ReconstructionMorphology.species))
             .options(joinedload(ReconstructionMorphology.strain))
+            .options(selectinload(ReconstructionMorphology.assets))
+            .options(raiseload("*"))
         )
 
         row = db.execute(query).unique().scalar_one()
@@ -165,11 +180,16 @@ def morphology_query(
         .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
         .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
         .options(joinedload(ReconstructionMorphology.strain))
-        .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.agent))
-        .options(joinedload(ReconstructionMorphology.contributions).joinedload(Contribution.role))
+        .options(
+            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.agent)
+        )
+        .options(
+            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role)
+        )
         .options(joinedload(ReconstructionMorphology.mtypes))
         .options(joinedload(ReconstructionMorphology.brain_region))
         .options(joinedload(ReconstructionMorphology.license))
+        .options(selectinload(ReconstructionMorphology.assets))
         .options(raiseload("*"))
     )
 

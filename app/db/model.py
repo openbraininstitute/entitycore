@@ -251,15 +251,16 @@ class MTypesMixin:
     @declared_attr
     @classmethod
     def mtypes(cls) -> Mapped[list["MTypeClass"]]:
-        if not hasattr(cls, "id"):
-            msg = f"{cls} does not have an 'id' column."
-            raise ValueError(msg)
+        if not issubclass(cls, Entity):
+            msg = f"{cls} should be an Entity"
+            raise TypeError(msg)
 
         return relationship(
             primaryjoin=f"{cls.__name__}.id == MTypeClassification.entity_id",
             secondary="mtype_classification",
             uselist=True,
             viewonly=True,
+            order_by="MTypeClass.pref_label",
         )
 
 
@@ -276,6 +277,7 @@ class ETypesMixin:
             secondary="etype_classification",
             uselist=True,
             viewonly=True,
+            order_by="ETypeClass.pref_label",
         )
 
 

@@ -13,9 +13,20 @@ from sqlalchemy.exc import IntegrityError, NoResultFound, ProgrammingError
 from app.utils.enum import UpperStrEnum
 
 
+class AuthErrorReason(UpperStrEnum):
+    AUTH_TOKEN_MISSING = auto()
+    AUTH_TOKEN_INVALID = auto()
+    AUTH_TOKEN_EXPIRED = auto()
+    NOT_AUTHENTICATED = auto()
+    NOT_AUTHORIZED = auto()
+
+
 class ApiErrorCode(UpperStrEnum):
     """API Error codes."""
 
+    GENERIC_ERROR = auto()
+    NOT_AUTHENTICATED = auto()
+    NOT_AUTHORIZED = auto()
     INVALID_REQUEST = auto()
     ENTITY_NOT_FOUND = auto()
     ENTITY_FORBIDDEN = auto()
@@ -30,7 +41,7 @@ class ApiError(Exception):
 
     message: str
     error_code: ApiErrorCode
-    http_status_code: HTTPStatus = HTTPStatus.BAD_REQUEST
+    http_status_code: HTTPStatus | int = HTTPStatus.BAD_REQUEST
     details: Any = None
 
     def __repr__(self) -> str:

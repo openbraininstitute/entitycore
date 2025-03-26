@@ -8,14 +8,14 @@ from sqlalchemy.orm import Session
 from app.db.model import EModel
 
 from .conftest import CreateIds, MEModels
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
+from .utils import PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
 
 ROUTE = "/memodel"
 
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_get_memodel(client: TestClient, memodel_id):
-    response = client.get(f"{ROUTE}/{memodel_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{memodel_id}", headers=PROJECT_HEADERS)
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == memodel_id
@@ -30,10 +30,10 @@ def test_get_memodel(client: TestClient, memodel_id):
 
 @pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(f"{ROUTE}/{uuid.uuid4()}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{uuid.uuid4()}", headers=PROJECT_HEADERS)
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/notauuid", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notauuid", headers=PROJECT_HEADERS)
     assert response.status_code == 422
 
 
@@ -48,7 +48,7 @@ def test_create_memodel(
 ):
     response = client.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         json={
             "brain_region_id": brain_region_id,
             "species_id": species_id,
@@ -65,7 +65,7 @@ def test_create_memodel(
     assert data["species"]["id"] == species_id, f"Failed to get species_id for memodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
 
-    response = client.get(f"{ROUTE}/{data['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{data['id']}", headers=PROJECT_HEADERS)
     assert response.status_code == 200, f"Failed to get mmodels: {response.text}"
 
 
@@ -75,7 +75,7 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
 
     response = client.get(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         params={"with_facets": True},
     )
     assert response.status_code == 200
@@ -157,7 +157,7 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
 
     response = client.get(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         params={
             "species__id": ids.species_ids[0],
             "emodel__name__ilike": "%0%",
@@ -230,7 +230,7 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
 
     response = client.get(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         params={"search": "foo", "with_facets": True},
     )
     assert response.status_code == 200
@@ -304,18 +304,14 @@ def test_pagination(client, create_memodel_ids: CreateIds):
     total_items = 29
     create_memodel_ids(total_items)
 
-    response = client.get(
-        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
-    )
+    response = client.get(ROUTE, headers=PROJECT_HEADERS, params={"page_size": total_items + 1})
 
     assert response.status_code == 200
     assert len(response.json()["data"]) == total_items
 
     for i in range(1, total_items + 1):
         expected_items = i
-        response = client.get(
-            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": expected_items}
-        )
+        response = client.get(ROUTE, headers=PROJECT_HEADERS, params={"page_size": expected_items})
 
         assert response.status_code == 200
         data = response.json()["data"]
@@ -327,9 +323,7 @@ def test_pagination(client, create_memodel_ids: CreateIds):
 
     items = []
     for i in range(1, total_items + 1):
-        response = client.get(
-            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page": i, "page_size": 1}
-        )
+        response = client.get(ROUTE, headers=PROJECT_HEADERS, params={"page": i, "page_size": 1})
 
         assert response.status_code == 200
         data = response.json()["data"]
@@ -349,7 +343,7 @@ def test_query_memodel(client: TestClient, create_memodel_ids: CreateIds):
     response = client.get(
         ROUTE,
         params={"page_size": 10},
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
     response_json = response.json()
@@ -360,7 +354,7 @@ def test_query_memodel(client: TestClient, create_memodel_ids: CreateIds):
 
     response = client.get(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         params={"page_size": 100},
     )
     assert response.status_code == 200
@@ -377,7 +371,7 @@ def test_sorted(client: TestClient, create_memodel_ids: CreateIds):
     response = client.get(
         ROUTE,
         params={"order_by": "-name"},
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
     data = response.json()["data"]
@@ -395,7 +389,7 @@ def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
             "species__id": mmodels.species_ids[0],
             "emodel__name__ilike": "%0%",
         },
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
     response_json = response.json()
@@ -413,7 +407,7 @@ def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa
     response = client.get(
         ROUTE,
         params={"search": "foo"},
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
     response_json = response.json()
@@ -442,7 +436,7 @@ def test_authorization(
 
     public_obj = client.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         json=emodel_json
         | {
             "name": "public obj",
@@ -454,8 +448,7 @@ def test_authorization(
 
     unauthorized_relations = client.post(
         ROUTE,
-        headers=BEARER_TOKEN
-        | {
+        headers={
             "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
             "project-id": "42424242-4242-4000-9000-424242424242",
         },
@@ -469,18 +462,12 @@ def test_authorization(
         species_id,
         strain_id,
         brain_region_id,
-        headers=BEARER_TOKEN
-        | {
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
         authorized_public=False,
     )
 
     unauthorized_emodel = client.post(
         ROUTE,
-        headers=BEARER_TOKEN
-        | {
+        headers={
             "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
             "project-id": "42424242-4242-4000-9000-424242424242",
         },
@@ -504,8 +491,7 @@ def test_authorization(
 
     inaccessible_obj = client.post(
         ROUTE,
-        headers=BEARER_TOKEN
-        | {
+        headers={
             "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
             "project-id": "42424242-4242-4000-9000-424242424242",
         },
@@ -518,7 +504,7 @@ def test_authorization(
 
     private_obj0 = client.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         json=emodel_json | {"name": "private obj 0"},
     )
     assert private_obj0.status_code == 200
@@ -526,7 +512,7 @@ def test_authorization(
 
     private_obj1 = client.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
+        headers=PROJECT_HEADERS,
         json=emodel_json
         | {
             "name": "private obj 1",
@@ -537,8 +523,7 @@ def test_authorization(
 
     public_obj_diff_project = client.post(
         ROUTE,
-        headers=BEARER_TOKEN
-        | {
+        headers={
             "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
             "project-id": "42424242-4242-4000-9000-424242424242",
         },
@@ -555,7 +540,7 @@ def test_authorization(
     public_obj_diff_project = public_obj_diff_project.json()
 
     # only return results that matches the desired project, and public ones
-    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(ROUTE, headers=PROJECT_HEADERS)
     data = response.json()["data"]
     assert len(data) == 4
 
@@ -567,8 +552,6 @@ def test_authorization(
         public_obj_diff_project["id"],
     }
 
-    response = client.get(
-        f"{ROUTE}/{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
-    )
+    response = client.get(f"{ROUTE}/{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
 
     assert response.status_code == 404

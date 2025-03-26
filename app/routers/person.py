@@ -1,9 +1,10 @@
 import uuid
 
 import sqlalchemy as sa
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.db.model import Person
+from app.dependencies.auth import user_with_service_admin_role
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -47,7 +48,7 @@ def read_person(id_: uuid.UUID, db: SessionDep):
     return PersonRead.model_validate(row)
 
 
-@router.post("", response_model=PersonRead)
+@router.post("", dependencies=[Depends(user_with_service_admin_role)], response_model=PersonRead)
 def create_person(person: PersonCreate, db: SessionDep):
     row = Person(**person.model_dump())
     db.add(row)

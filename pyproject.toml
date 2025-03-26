@@ -10,6 +10,7 @@ dependencies = [
     "alembic-postgresql-enum>=1.5.0",
     "alembic-utils>=0.8.6",
     "boto3>=1.36.3",
+    "cachetools>=5.5.2",
     "fastapi",
     "fastapi-filter>=2.0.0",
     "loguru>=0.7.3",
@@ -22,8 +23,8 @@ dependencies = [
     "deepdiff",
     "click>=8.1.7",
     "pydantic-settings>=2.7.1",
+    "pyjwt>=2.10.1",
     "python-multipart>=0.0.20",
-    "types-boto3-lite[essential]>=1.36.11",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -44,7 +45,11 @@ dev-dependencies = [
     "mypy",
     "pytest",
     "pytest-cov",
+    "pytest-freezer>=0.4.9",
+    "pytest-httpx>=0.35.0",
     "ruff",
+    "types-boto3-lite[essential]>=1.36.11",
+    "types-cachetools>=5.5.0.20240820",
     "types-PyYAML",
 ]
 
@@ -173,6 +178,8 @@ precision = 0
 fail_under = 45
 omit = [
     "__main__.py",
+    "app/cli/*",
+    "app/routers/legacy/*",
 ]
 
 [tool.mypy]

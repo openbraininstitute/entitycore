@@ -8,7 +8,7 @@ from starlette.responses import RedirectResponse
 
 from app.config import settings
 from app.db.types import EntityType
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode
@@ -33,14 +33,14 @@ router = APIRouter(
 @router.get("/{entity_type}/{entity_id}/assets")
 def get_entity_assets(
     repos: RepoGroupDep,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextDep,
     entity_type: EntityType,
     entity_id: uuid.UUID,
 ) -> ListResponse[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     assets = asset_service.get_entity_assets(
         repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )
@@ -52,7 +52,7 @@ def get_entity_assets(
 @router.get("/{entity_type}/{entity_id}/assets/{asset_id}")
 def get_entity_asset(
     repos: RepoGroupDep,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextDep,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -60,7 +60,7 @@ def get_entity_asset(
     """Return the metadata of an assets associated with a specific entity."""
     return asset_service.get_entity_asset(
         repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
         asset_id=asset_id,
@@ -71,7 +71,7 @@ def get_entity_asset(
 def upload_entity_asset(
     *,
     repos: RepoGroupDep,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextWithProjectIdDep,
     s3_client: S3ClientDep,
     entity_type: EntityType,
     entity_id: uuid.UUID,
@@ -92,7 +92,7 @@ def upload_entity_asset(
     sha256_digest = calculate_sha256_digest(file)
     asset_read = asset_service.create_entity_asset(
         repos=repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
         filename=file.filename,
@@ -114,7 +114,7 @@ def upload_entity_asset(
 @router.get("/{entity_type}/{entity_id}/assets/{asset_id}/download")
 def download_entity_asset(
     repos: RepoGroupDep,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextDep,
     s3_client: S3ClientDep,
     entity_type: EntityType,
     entity_id: uuid.UUID,
@@ -122,7 +122,7 @@ def download_entity_asset(
 ) -> RedirectResponse:
     asset = asset_service.get_entity_asset(
         repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
         asset_id=asset_id,
@@ -138,7 +138,7 @@ def download_entity_asset(
 @router.delete("/{entity_type}/{entity_id}/assets/{asset_id}")
 def delete_entity_asset(
     repos: RepoGroupDep,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextWithProjectIdDep,
     s3_client: S3ClientDep,
     entity_type: EntityType,
     entity_id: uuid.UUID,
@@ -151,7 +151,7 @@ def delete_entity_asset(
     """
     asset = asset_service.delete_entity_asset(
         repos,
-        project_context=project_context,
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
         asset_id=asset_id,
@@ -161,10 +161,10 @@ def delete_entity_asset(
     return AssetRead.model_validate(asset)
 
 
-@router.post("/{entity_type}/{entity_id}/assets/upload/initiate")
+@router.post("/{entity_type}/{entity_id}/assets/upload/initiate", include_in_schema=False)
 def initiate_entity_asset_upload(
     repos: RepoGroupDep,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextWithProjectIdDep,
     entity_type: EntityType,
     entity_id: int,
 ):
@@ -172,10 +172,10 @@ def initiate_entity_asset_upload(
     raise NotImplementedError
 
 
-@router.post("/{entity_type}/{entity_id}/assets/upload/complete")
+@router.post("/{entity_type}/{entity_id}/assets/upload/complete", include_in_schema=False)
 def complete_entity_asset_upload(
     repos: RepoGroupDep,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextDep,
     entity_type: EntityType,
     entity_id: int,
 ):

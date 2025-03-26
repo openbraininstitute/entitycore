@@ -24,7 +24,7 @@ from app.db.model import (
     Species,
     Strain,
 )
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_authorized_references, ensure_result
@@ -57,14 +57,10 @@ def memodel_joinedloads(select: Select):
 @router.get(
     "/{id_}",
 )
-def read_memodel(
-    db: SessionDep,
-    id_: uuid.UUID,
-    project_context: VerifiedProjectContextHeader,
-) -> MEModelRead:
+def read_memodel(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> MEModelRead:
     with ensure_result("MEModel not found"):
         query = constrain_to_accessible_entities(
-            sa.select(MEModel), project_context.project_id
+            sa.select(MEModel), user_context.project_id
         ).filter(MEModel.id == id_)
 
         query = memodel_joinedloads(query)
@@ -74,7 +70,7 @@ def read_memodel(
 
 @router.post("", response_model=MEModelRead)
 def create_emodel(
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextWithProjectIdDep,
     memodel: MEModelCreate,
     db: SessionDep,
 ):
@@ -87,7 +83,7 @@ def create_emodel(
             strain_id=memodel.strain_id,
             emodel_id=memodel.emodel_id,
             mmodel_id=memodel.mmodel_id,
-            authorized_project_id=project_context.project_id,
+            authorized_project_id=user_context.project_id,
             authorized_public=memodel.authorized_public,
             validation_status=memodel.validation_status,
         )
@@ -104,7 +100,7 @@ def create_emodel(
 def memodel_query(
     *,
     db: SessionDep,
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextDep,
     pagination_request: PaginationQuery,
     memodel_filter: MEModelFilterDep,
     search: SearchDep,
@@ -136,7 +132,7 @@ def memodel_query(
     }
 
     filter_query = (
-        constrain_to_accessible_entities(sa.select(MEModel), project_id=project_context.project_id)
+        constrain_to_accessible_entities(sa.select(MEModel), project_id=user_context.project_id)
         .join(Species, MEModel.species_id == Species.id)
         .outerjoin(Strain, MEModel.strain_id == Strain.id)
         .join(morphology_alias, MEModel.mmodel_id == morphology_alias.id)

@@ -183,7 +183,10 @@ class Person(Agent):
     givenName: Mapped[str]
     familyName: Mapped[str]
 
-    __mapper_args__ = {"polymorphic_identity": "person"}  # noqa: RUF012
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": "person",
+        "polymorphic_load": "selectin",
+    }
     __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
 
 
@@ -194,7 +197,10 @@ class Organization(Agent):
     # what is the difference between name and label here ?
     alternative_name: Mapped[str]
 
-    __mapper_args__ = {"polymorphic_identity": "organization"}  # noqa: RUF012
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": "organization",
+        "polymorphic_load": "selectin",
+    }
 
 
 class AnnotationBody(LegacyMixin, TimestampMixin, Base):
@@ -329,6 +335,12 @@ class Entity(TimestampMixin, Root):
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
     contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+    assets: Mapped[list["Asset"]] = relationship(
+        "Asset",
+        foreign_keys="Asset.entity_id",
+        uselist=True,
+        viewonly=True,
+    )
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",

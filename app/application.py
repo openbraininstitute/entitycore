@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from http import HTTPStatus
 from typing import Any
 
+import httpx
 from fastapi import Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -31,13 +32,18 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         settings.ENVIRONMENT,
     )
     database_session_manager = configure_database_session_manager()
+    http_client = httpx.Client()
     try:
-        yield {"database_session_manager": database_session_manager}
+        yield {
+            "database_session_manager": database_session_manager,
+            "http_client": http_client,
+        }
     except asyncio.CancelledError as err:
         # this can happen if the task is cancelled without sending SIGINT
         L.info("Ignored {} in lifespan", err)
     finally:
         database_session_manager.close()
+        http_client.close()
         L.info("Stopping application")
 
 

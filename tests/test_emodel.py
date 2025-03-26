@@ -1,20 +1,17 @@
 import itertools as it
 import uuid
 
-import pytest
 from fastapi.testclient import TestClient
 
 from .conftest import CreateIds, EModelIds
-from .utils import BEARER_TOKEN, PROJECT_HEADERS, create_reconstruction_morphology_id
+from .utils import create_reconstruction_morphology_id
 
 ROUTE = "/emodel"
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, morphology_id):
     response = client.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json={
             "brain_region_id": brain_region_id,
             "species_id": species_id,
@@ -33,36 +30,31 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     assert data["species"]["id"] == species_id, f"Failed to get species_id for emodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for emodel: {data}"
 
-    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(ROUTE)
     assert response.status_code == 200, f"Failed to get emodels: {response.text}"
 
 
-@pytest.mark.usefixtures("skip_project_check")
-def test_get_emodel(client: TestClient, emodel_id):
-    response = client.get(f"{ROUTE}/{emodel_id}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+def test_get_emodel(client: TestClient, create_emodel_ids: CreateIds):
+    emodel_id = str(create_emodel_ids(1)[0])
+    response = client.get(f"{ROUTE}/{emodel_id}")
+
     assert response.status_code == 200
     assert response.json()["id"] == emodel_id
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
-    response = client.get(f"{ROUTE}/{uuid.uuid4()}", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{uuid.uuid4()}")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/notauuid", headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notauuid")
     assert response.status_code == 422
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     count = 11
     create_emodel_ids(count)
 
-    response = client.get(
-        ROUTE,
-        params={"page_size": 10},
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-    )
+    response = client.get(ROUTE, params={"page_size": 10})
     assert response.status_code == 200
     response_json = response.json()
     assert "facets" in response_json
@@ -70,26 +62,17 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     assert response_json["facets"] is None
     assert len(response_json["data"]) == 10
 
-    response = client.get(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"page_size": 100},
-    )
+    response = client.get(ROUTE, params={"page_size": 100})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 11
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):
     count = 11
     emodel_ids = create_emodel_ids(count)
 
-    response = client.get(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"order_by": "+creation_date", "page_size": 100},
-    )
+    response = client.get(ROUTE, params={"order_by": "+creation_date", "page_size": 100})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count
@@ -97,9 +80,7 @@ def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):
         elem["creation_date"] > prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
 
-    response = client.get(
-        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"order_by": "-creation_date"}
-    )
+    response = client.get(ROUTE, params={"order_by": "-creation_date"})
     assert response.status_code == 200
     data = response.json()["data"]
 
@@ -107,26 +88,16 @@ def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):
         elem["creation_date"] < prev_elem["creation_date"] for prev_elem, elem in it.pairwise(data)
     )
 
-    response = client.get(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"order_by": "+creation_date", "page": 1, "page_size": 3},
-    )
+    response = client.get(ROUTE, params={"order_by": "+creation_date", "page": 1, "page_size": 3})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 3
     assert [row["id"] for row in data] == [str(id_) for id_ in emodel_ids][:3]
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
     ids = faceted_emodel_ids
-
-    response = client.get(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"with_facets": True},
-    )
+    response = client.get(ROUTE, params={"with_facets": True})
     assert response.status_code == 200
     data = response.json()
 
@@ -162,9 +133,7 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
     }
 
     response = client.get(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        params={"search": f"species{ids.species_ids[0]}", "with_facets": True},
+        ROUTE, params={"search": f"species{ids.species_ids[0]}", "with_facets": True}
     )
     assert response.status_code == 200
     data = response.json()
@@ -204,8 +173,15 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
     }
 
 
-@pytest.mark.usefixtures("skip_project_check")
-def test_authorization(client, species_id, strain_id, brain_region_id, morphology_id):
+def test_authorization(
+    client_user_1,
+    client_user_2,
+    client_no_project,
+    species_id,
+    strain_id,
+    brain_region_id,
+    morphology_id,
+):
     emodel_json = {
         "brain_region_id": brain_region_id,
         "description": "morph description",
@@ -219,9 +195,8 @@ def test_authorization(client, species_id, strain_id, brain_region_id, morpholog
         "seed": 0,
     }
 
-    public_emodel = client.post(
+    public_emodel = client_user_1.post(
         ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
         json=emodel_json
         | {
             "name": "public emodel",
@@ -231,38 +206,20 @@ def test_authorization(client, species_id, strain_id, brain_region_id, morpholog
     assert public_emodel.status_code == 200
     public_emodel = public_emodel.json()
 
-    unauthorized_exemplar_morphology = client.post(
-        ROUTE,
-        headers=BEARER_TOKEN
-        | {
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
-        json=emodel_json,
-    )
+    unauthorized_exemplar_morphology = client_user_2.post(ROUTE, json=emodel_json)
 
     assert unauthorized_exemplar_morphology.status_code == 403
 
     exemplar_morphology_id = create_reconstruction_morphology_id(
-        client,
-        species_id,
-        strain_id,
-        brain_region_id,
-        headers=BEARER_TOKEN
-        | {
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
+        client_user_2,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
 
-    inaccessible_obj = client.post(
+    inaccessible_obj = client_user_2.post(
         ROUTE,
-        headers=BEARER_TOKEN
-        | {
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
         json=emodel_json
         | {"name": "inaccessible emodel", "exemplar_morphology_id": exemplar_morphology_id},
     )
@@ -271,27 +228,16 @@ def test_authorization(client, species_id, strain_id, brain_region_id, morpholog
 
     inaccessible_obj = inaccessible_obj.json()
 
-    private_emodel0 = client.post(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=emodel_json | {"name": "private emodel 0"},
-    )
+    private_emodel0 = client_user_1.post(ROUTE, json=emodel_json | {"name": "private emodel 0"})
     assert private_emodel0.status_code == 200
     private_emodel0 = private_emodel0.json()
 
-    private_emodel1 = client.post(
-        ROUTE,
-        headers=BEARER_TOKEN | PROJECT_HEADERS,
-        json=emodel_json
-        | {
-            "name": "private emodel 1",
-        },
-    )
+    private_emodel1 = client_user_1.post(ROUTE, json=emodel_json | {"name": "private emodel 1"})
     assert private_emodel1.status_code == 200
     private_emodel1 = private_emodel1.json()
 
     # only return results that matches the desired project, and public ones
-    response = client.get(ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS)
+    response = client_user_1.get(ROUTE)
     data = response.json()["data"]
     assert len(data) == 3
 
@@ -302,30 +248,28 @@ def test_authorization(client, species_id, strain_id, brain_region_id, morpholog
         private_emodel1["id"],
     }
 
-    response = client.get(
-        f"{ROUTE}/{inaccessible_obj['id']}", headers=BEARER_TOKEN | PROJECT_HEADERS
-    )
-
+    response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
     assert response.status_code == 404
 
+    # only return public results
+    response = client_no_project.get(ROUTE)
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == public_emodel["id"]
 
-@pytest.mark.usefixtures("skip_project_check")
+
 def test_pagination(client, create_emodel_ids):
     total_items = 29
     create_emodel_ids(total_items)
 
-    response = client.get(
-        ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": total_items + 1}
-    )
+    response = client.get(ROUTE, params={"page_size": total_items + 1})
 
     assert response.status_code == 200
     assert len(response.json()["data"]) == total_items
 
     for i in range(1, total_items + 1):
         expected_items = i
-        response = client.get(
-            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page_size": expected_items}
-        )
+        response = client.get(ROUTE, params={"page_size": expected_items})
 
         assert response.status_code == 200
         data = response.json()["data"]
@@ -337,9 +281,7 @@ def test_pagination(client, create_emodel_ids):
 
     items = []
     for i in range(1, total_items + 1):
-        response = client.get(
-            ROUTE, headers=BEARER_TOKEN | PROJECT_HEADERS, params={"page": i, "page_size": 1}
-        )
+        response = client.get(ROUTE, params={"page": i, "page_size": 1})
 
         assert response.status_code == 200
         data = response.json()["data"]

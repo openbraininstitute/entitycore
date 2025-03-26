@@ -3,10 +3,10 @@ from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 ROUTE = "/organization"
 
 
-def test_create_organization(client):
+def test_create_organization(client, client_admin):
     label = "test_organization label"
     alternative_name = "test organization alternative name"
-    response = client.post(
+    response = client_admin.post(
         ROUTE,
         json={"pref_label": label, "alternative_name": alternative_name},
     )

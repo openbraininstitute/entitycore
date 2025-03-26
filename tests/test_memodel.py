@@ -1,19 +1,22 @@
 import operator as op
 import uuid
 
-import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.db.model import EModel
+from app.db.model import EModel, ReconstructionMorphology
 
 from .conftest import CreateIds, MEModels
-from .utils import PROJECT_HEADERS, add_db, create_reconstruction_morphology_id
+from .utils import (
+    PROJECT_HEADERS,
+    UNRELATED_PROJECT_ID,
+    add_db,
+    create_reconstruction_morphology_id,
+)
 
 ROUTE = "/memodel"
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_get_memodel(client: TestClient, memodel_id):
     response = client.get(f"{ROUTE}/{memodel_id}", headers=PROJECT_HEADERS)
     assert response.status_code == 200
@@ -28,7 +31,6 @@ def test_get_memodel(client: TestClient, memodel_id):
     assert "etypes" in data
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_missing(client):
     response = client.get(f"{ROUTE}/{uuid.uuid4()}", headers=PROJECT_HEADERS)
     assert response.status_code == 404
@@ -37,7 +39,6 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_create_memodel(
     client: TestClient,
     species_id: str,
@@ -69,13 +70,11 @@ def test_create_memodel(
     assert response.status_code == 200, f"Failed to get mmodels: {response.text}"
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_facets(client: TestClient, faceted_memodels: MEModels):
     ids = faceted_memodels
 
     response = client.get(
         ROUTE,
-        headers=PROJECT_HEADERS,
         params={"with_facets": True},
     )
     assert response.status_code == 200
@@ -151,7 +150,6 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
     }
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
     ids = faceted_memodels
 
@@ -224,7 +222,6 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
     }
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
     ids = faceted_memodels
 
@@ -299,7 +296,6 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
     }
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_pagination(client, create_memodel_ids: CreateIds):
     total_items = 29
     create_memodel_ids(total_items)
@@ -335,7 +331,6 @@ def test_pagination(client, create_memodel_ids: CreateIds):
     assert list(reversed(data_ids)) == list(range(total_items))
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_query_memodel(client: TestClient, create_memodel_ids: CreateIds):
     count = 11
     create_memodel_ids(count)
@@ -363,7 +358,6 @@ def test_query_memodel(client: TestClient, create_memodel_ids: CreateIds):
     assert data == sorted(data, key=op.itemgetter("creation_date"), reverse=True)
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_sorted(client: TestClient, create_memodel_ids: CreateIds):
     count = 10
     create_memodel_ids(count)
@@ -379,7 +373,6 @@ def test_sorted(client: TestClient, create_memodel_ids: CreateIds):
     assert data == sorted(data, key=op.itemgetter("name"), reverse=True)
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
     mmodels = faceted_memodels
 
@@ -402,7 +395,6 @@ def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
     assert all(d["emodel"]["name"] == "0" for d in data)
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa: ARG001
     response = client.get(
         ROUTE,
@@ -419,9 +411,15 @@ def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa
     assert all(d["description"] == "foo" for d in data)
 
 
-@pytest.mark.usefixtures("skip_project_check")
 def test_authorization(
-    db: Session, client, species_id, strain_id, brain_region_id, morphology_id, emodel_id
+    db: Session,
+    client_user_1: TestClient,
+    client_user_2: TestClient,
+    species_id,
+    strain_id,
+    brain_region_id,
+    morphology_id,
+    emodel_id,
 ):
     emodel_json = {
         "brain_region_id": brain_region_id,
@@ -434,7 +432,7 @@ def test_authorization(
         "mmodel_id": morphology_id,
     }
 
-    public_obj = client.post(
+    public_obj = client_user_1.post(
         ROUTE,
         headers=PROJECT_HEADERS,
         json=emodel_json
@@ -446,35 +444,41 @@ def test_authorization(
     assert public_obj.status_code == 200
     public_obj = public_obj.json()
 
-    unauthorized_relations = client.post(
+    unauthorized_relations = client_user_2.post(
         ROUTE,
-        headers={
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
         json=emodel_json,
     )
 
     assert unauthorized_relations.status_code == 403
 
     mmodel_id = create_reconstruction_morphology_id(
-        client,
+        client_user_2,
         species_id,
         strain_id,
         brain_region_id,
         authorized_public=False,
     )
 
-    unauthorized_emodel = client.post(
+    unauthorized_emodel = client_user_2.post(
         ROUTE,
-        headers={
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
         json=emodel_json | {"mmodel_id": mmodel_id},
     )
 
     assert unauthorized_emodel.status_code == 403
+
+    mmodel_id_2 = str(
+        add_db(
+            db,
+            ReconstructionMorphology(
+                name="test",
+                description="test",
+                species_id=species_id,
+                brain_region_id=brain_region_id,
+                authorized_public=False,
+                authorized_project_id=UNRELATED_PROJECT_ID,
+            ),
+        ).id
+    )
 
     emodel_id = str(
         add_db(
@@ -483,26 +487,22 @@ def test_authorization(
                 authorized_public=False,
                 brain_region_id=brain_region_id,
                 species_id=species_id,
-                exemplar_morphology_id=mmodel_id,
-                authorized_project_id="42424242-4242-4000-9000-424242424242",
+                exemplar_morphology_id=mmodel_id_2,
+                authorized_project_id=UNRELATED_PROJECT_ID,
             ),
         ).id
     )
 
-    inaccessible_obj = client.post(
+    inaccessible_obj = client_user_2.post(
         ROUTE,
-        headers={
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
-        json=emodel_json | {"mmodel_id": mmodel_id, "emodel_id": emodel_id},
+        json=emodel_json | {"mmodel_id": mmodel_id_2, "emodel_id": emodel_id},
     )
 
     assert inaccessible_obj.status_code == 200
 
     inaccessible_obj = inaccessible_obj.json()
 
-    private_obj0 = client.post(
+    private_obj0 = client_user_1.post(
         ROUTE,
         headers=PROJECT_HEADERS,
         json=emodel_json | {"name": "private obj 0"},
@@ -510,7 +510,7 @@ def test_authorization(
     assert private_obj0.status_code == 200
     private_obj0 = private_obj0.json()
 
-    private_obj1 = client.post(
+    private_obj1 = client_user_1.post(
         ROUTE,
         headers=PROJECT_HEADERS,
         json=emodel_json
@@ -521,12 +521,8 @@ def test_authorization(
     assert private_obj1.status_code == 200
     private_obj1 = private_obj1.json()
 
-    public_obj_diff_project = client.post(
+    public_obj_diff_project = client_user_2.post(
         ROUTE,
-        headers={
-            "virtual-lab-id": "42424242-4242-4000-9000-424242424242",
-            "project-id": "42424242-4242-4000-9000-424242424242",
-        },
         json=emodel_json
         | {
             "mmodel_id": mmodel_id,
@@ -540,7 +536,7 @@ def test_authorization(
     public_obj_diff_project = public_obj_diff_project.json()
 
     # only return results that matches the desired project, and public ones
-    response = client.get(ROUTE, headers=PROJECT_HEADERS)
+    response = client_user_1.get(ROUTE, headers=PROJECT_HEADERS)
     data = response.json()["data"]
     assert len(data) == 4
 
@@ -552,6 +548,6 @@ def test_authorization(
         public_obj_diff_project["id"],
     }
 
-    response = client.get(f"{ROUTE}/{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
+    response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
 
     assert response.status_code == 404

@@ -480,7 +480,9 @@ def faceted_emodel_ids(db: Session, client, client_admin):
 
 
 @pytest.fixture
-def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent, Role]):
+def faceted_memodels(
+    db: Session, client: TestClient, client_admin: TestClient, agents: tuple[Agent, Agent, Role]
+):
     species_ids = [
         str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
     ]
@@ -493,7 +495,9 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
         )
         for i in range(2)
     ]
-    brain_region_ids = [utils.create_brain_region_id(client, i, f"region{i}") for i in range(2)]
+    brain_region_ids = [
+        utils.create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)
+    ]
 
     morphology_ids = [
         str(

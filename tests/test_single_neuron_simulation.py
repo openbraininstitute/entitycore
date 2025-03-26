@@ -206,7 +206,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
 
 
 @pytest.fixture
-def faceted_ids(db, client_admin):
+def faceted_ids(db, client_admin, emodel_id, morphology_id, species_id):
     brain_region_ids = [
         create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
     ]
@@ -216,9 +216,11 @@ def faceted_ids(db, client_admin):
             {
                 "name": f"me-model-{i}",
                 "description": f"description-{i}",
-                "validated": False,
                 "brain_region_id": brain_region_ids[i],
                 "authorized_project_id": PROJECT_ID,
+                "emodel_id": emodel_id,
+                "mmodel_id": morphology_id,
+                "species_id": species_id,
             },
         )
         for i in range(2)

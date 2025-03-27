@@ -1,10 +1,11 @@
 import uuid
-from typing import Annotated, Any, NotRequired, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
 from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import InstrumentedAttribute, Session
+from sqlalchemy.sql.base import ExecutableOption
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Entity
@@ -19,7 +20,7 @@ def router_read_one(
     db_model_class: type[Entity],
     authorized_project_id: uuid.UUID | None,
     response_schema_class: type[BaseModel],
-    operations: list[Any],
+    operations: list[ExecutableOption],
 ):
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         query = constrain_to_accessible_entities(

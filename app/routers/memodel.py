@@ -69,7 +69,7 @@ def read_memodel(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -
 
 
 @router.post("", response_model=MEModelRead)
-def create_emodel(
+def create_memodel(
     user_context: UserContextWithProjectIdDep,
     memodel: MEModelCreate,
     db: SessionDep,

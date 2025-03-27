@@ -485,8 +485,8 @@ class SingleNeuronSynaptome(DescriptionVectorMixin, LocationMixin, Entity):
     __tablename__ = "single_neuron_synaptome"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
-    name: Mapped[str] = mapped_column(default="")
-    seed: Mapped[int] = mapped_column(default=-1)
+    name: Mapped[str]
+    seed: Mapped[int]
     me_model_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
     __mapper_args__ = {"polymorphic_identity": "single_neuron_synaptome"}  # noqa: RUF012
@@ -497,7 +497,7 @@ class SingleNeuronSimulation(DescriptionVectorMixin, LocationMixin, Entity):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str]
-    seed: Mapped[int] = mapped_column(default=-1)
+    seed: Mapped[int]
     injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
@@ -512,7 +512,7 @@ class SingleNeuronSynaptomeSimulation(DescriptionVectorMixin, LocationMixin, Ent
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str]
-    seed: Mapped[int] = mapped_column(default=-1)
+    seed: Mapped[int]
     injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]

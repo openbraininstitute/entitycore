@@ -74,7 +74,7 @@ def create_memodel(
     memodel: MEModelCreate,
     db: SessionDep,
 ):
-    with ensure_authorized_references("Morphology or emodel aren't public or owned by user"):
+    with ensure_authorized_references("Either morphology or emodel is not public or not owned by the user"):
         db_em = MEModel(
             name=memodel.name,
             description=memodel.description,

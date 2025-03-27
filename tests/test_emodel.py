@@ -182,6 +182,10 @@ def test_authorization(
     brain_region_id,
     morphology_id,
 ):
+    public_morphology_id = create_reconstruction_morphology_id(
+        client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
+    )
+
     emodel_json = {
         "brain_region_id": brain_region_id,
         "description": "morph description",
@@ -198,6 +202,7 @@ def test_authorization(
     public_emodel = client_user_1.post(
         ROUTE,
         json=emodel_json
+        | {"exemplar_morphology_id": public_morphology_id}
         | {
             "name": "public emodel",
             "authorized_public": True,

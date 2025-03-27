@@ -406,7 +406,28 @@ def test_authorization(
     morphology_id,
     emodel_id,
 ):
-    emodel_json = {
+    public_morphology_id = create_reconstruction_morphology_id(
+        client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
+    )
+
+    public_emodel_id = client_user_1.post(
+        "/emodel",
+        json={
+            "brain_region_id": brain_region_id,
+            "description": "morph description",
+            "legacy_id": "Test Legacy ID",
+            "name": "Test Morphology Name",
+            "species_id": species_id,
+            "strain_id": strain_id,
+            "exemplar_morphology_id": public_morphology_id,
+            "score": 0,
+            "iteration": "0",
+            "seed": 0,
+            "authorized_public": True,
+        },
+    ).json()["id"]
+
+    mmodel_json = {
         "brain_region_id": brain_region_id,
         "description": "description",
         "legacy_id": "Test Legacy ID",
@@ -419,7 +440,8 @@ def test_authorization(
 
     public_obj = client_user_1.post(
         ROUTE,
-        json=emodel_json
+        json=mmodel_json
+        | {"emodel_id": public_emodel_id, "mmodel_id": public_morphology_id}
         | {
             "name": "public obj",
             "authorized_public": True,
@@ -430,7 +452,7 @@ def test_authorization(
 
     unauthorized_relations = client_user_2.post(
         ROUTE,
-        json=emodel_json,
+        json=mmodel_json,
     )
 
     assert unauthorized_relations.status_code == 403
@@ -445,7 +467,7 @@ def test_authorization(
 
     unauthorized_emodel = client_user_2.post(
         ROUTE,
-        json=emodel_json | {"mmodel_id": mmodel_id},
+        json=mmodel_json | {"mmodel_id": mmodel_id},
     )
 
     assert unauthorized_emodel.status_code == 403
@@ -461,6 +483,7 @@ def test_authorization(
                 "brain_region_id": brain_region_id,
                 "location": None,
                 "legacy_id": None,
+                "authorized_public": True,
             },
         )
     ).json()["id"]
@@ -477,13 +500,14 @@ def test_authorization(
                 "iteration": "test",
                 "seed": 0,
                 "score": 0,
+                "authorized_public": True,
             },
         )
     ).json()["id"]
 
     inaccessible_obj = client_user_2.post(
         ROUTE,
-        json=emodel_json | {"mmodel_id": mmodel_id_2, "emodel_id": emodel_id},
+        json=mmodel_json | {"mmodel_id": mmodel_id_2, "emodel_id": emodel_id},
     )
 
     assert inaccessible_obj.status_code == 200
@@ -492,14 +516,14 @@ def test_authorization(
 
     private_obj0 = client_user_1.post(
         ROUTE,
-        json=emodel_json | {"name": "private obj 0"},
+        json=mmodel_json | {"name": "private obj 0"},
     )
     assert private_obj0.status_code == 200
     private_obj0 = private_obj0.json()
 
     private_obj1 = client_user_1.post(
         ROUTE,
-        json=emodel_json
+        json=mmodel_json
         | {
             "name": "private obj 1",
         },
@@ -507,11 +531,11 @@ def test_authorization(
     assert private_obj1.status_code == 200
     private_obj1 = private_obj1.json()
 
-    public_obj_diff_project = client_user_2.post(
+    public_obj_diff_project = client_user_1.post(
         ROUTE,
-        json=emodel_json
+        json=mmodel_json
         | {
-            "mmodel_id": mmodel_id,
+            "mmodel_id": mmodel_id_2,
             "emodel_id": emodel_id,
             "authorized_public": True,
         },

@@ -46,7 +46,11 @@ def unauthorized_private_reference_function(
                     SELECT 1 FROM entity e1
                     JOIN entity e2 ON e2.id = NEW.id
                     WHERE e1.id = NEW.{field_name}
-                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)
+                    AND (e1.authorized_public = TRUE
+                        OR (e2.authorized_public = FALSE
+                            AND e1.authorized_project_id = e2.authorized_project_id
+                        )
+                    )
                 ) THEN
                     RAISE EXCEPTION 'unauthorized private reference'
                         USING ERRCODE = '42501'; -- Insufficient Privilege
@@ -54,7 +58,7 @@ def unauthorized_private_reference_function(
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-        """,  # noqa: S608, E501
+        """,  # noqa: S608
     )
 
 

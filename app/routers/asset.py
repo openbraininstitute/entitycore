@@ -1,6 +1,7 @@
 """Generic asset routes."""
 
 import uuid
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
@@ -119,6 +120,7 @@ def download_entity_asset(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
+    asset_path: str | None = None,
 ) -> RedirectResponse:
     asset = asset_service.get_entity_asset(
         repos,
@@ -127,8 +129,19 @@ def download_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
+    if asset.is_directory:
+        if asset_path is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required parameter for downloading a directory file: asset_path",
+            )
+        full_path = str(Path(asset.full_path, asset_path))
+    else:
+        full_path = asset.full_path
     url = generate_presigned_url(
-        s3_client=s3_client, bucket_name=asset.bucket_name, s3_key=asset.full_path
+        s3_client=s3_client,
+        bucket_name=asset.bucket_name,
+        s3_key=full_path,
     )
     if not url:
         raise HTTPException(status_code=500, detail="Failed to generate presigned url")

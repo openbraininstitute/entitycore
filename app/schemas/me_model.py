@@ -16,6 +16,10 @@ from app.schemas.contribution import ContributionReadWithoutEntity
 from app.schemas.emodel import EModelBase, ExemplarMorphology as MModel
 
 
+class EModel(EModelBase, CreationMixin):
+    id: uuid.UUID
+
+
 class MEModelBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
@@ -44,4 +48,4 @@ class MEModelRead(
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     mmodel: MModel
-    emodel: EModelBase
+    emodel: EModel

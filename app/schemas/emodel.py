@@ -16,7 +16,7 @@ from app.schemas.morphology import ReconstructionMorphologyBase
 
 
 class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase):
-    pass
+    id: uuid.UUID
 
 
 class EModelBase(BaseModel):
@@ -30,7 +30,7 @@ class EModelBase(BaseModel):
 
 class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     species_id: uuid.UUID
-    strain_id: uuid.UUID | None
+    strain_id: uuid.UUID | None = None
     brain_region_id: int
     exemplar_morphology_id: uuid.UUID
 

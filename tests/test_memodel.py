@@ -2,15 +2,9 @@ import operator as op
 import uuid
 
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import Session
-
-from app.db.model import EModel, ReconstructionMorphology
 
 from .conftest import CreateIds, MEModels
 from .utils import (
-    PROJECT_HEADERS,
-    UNRELATED_PROJECT_ID,
-    add_db,
     create_reconstruction_morphology_id,
 )
 
@@ -18,7 +12,7 @@ ROUTE = "/memodel"
 
 
 def test_get_memodel(client: TestClient, memodel_id):
-    response = client.get(f"{ROUTE}/{memodel_id}", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{memodel_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == memodel_id
@@ -32,10 +26,10 @@ def test_get_memodel(client: TestClient, memodel_id):
 
 
 def test_missing(client):
-    response = client.get(f"{ROUTE}/{uuid.uuid4()}", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{uuid.uuid4()}")
     assert response.status_code == 404
 
-    response = client.get(f"{ROUTE}/notauuid", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/notauuid")
     assert response.status_code == 422
 
 
@@ -49,7 +43,6 @@ def test_create_memodel(
 ):
     response = client.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
         json={
             "brain_region_id": brain_region_id,
             "species_id": species_id,
@@ -66,7 +59,7 @@ def test_create_memodel(
     assert data["species"]["id"] == species_id, f"Failed to get species_id for memodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
 
-    response = client.get(f"{ROUTE}/{data['id']}", headers=PROJECT_HEADERS)
+    response = client.get(f"{ROUTE}/{data['id']}")
     assert response.status_code == 200, f"Failed to get mmodels: {response.text}"
 
 
@@ -155,7 +148,6 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
 
     response = client.get(
         ROUTE,
-        headers=PROJECT_HEADERS,
         params={
             "species__id": ids.species_ids[0],
             "emodel__name__ilike": "%0%",
@@ -227,7 +219,6 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
 
     response = client.get(
         ROUTE,
-        headers=PROJECT_HEADERS,
         params={"search": "foo", "with_facets": True},
     )
     assert response.status_code == 200
@@ -300,14 +291,14 @@ def test_pagination(client, create_memodel_ids: CreateIds):
     total_items = 29
     create_memodel_ids(total_items)
 
-    response = client.get(ROUTE, headers=PROJECT_HEADERS, params={"page_size": total_items + 1})
+    response = client.get(ROUTE, params={"page_size": total_items + 1})
 
     assert response.status_code == 200
     assert len(response.json()["data"]) == total_items
 
     for i in range(1, total_items + 1):
         expected_items = i
-        response = client.get(ROUTE, headers=PROJECT_HEADERS, params={"page_size": expected_items})
+        response = client.get(ROUTE, params={"page_size": expected_items})
 
         assert response.status_code == 200
         data = response.json()["data"]
@@ -319,7 +310,7 @@ def test_pagination(client, create_memodel_ids: CreateIds):
 
     items = []
     for i in range(1, total_items + 1):
-        response = client.get(ROUTE, headers=PROJECT_HEADERS, params={"page": i, "page_size": 1})
+        response = client.get(ROUTE, params={"page": i, "page_size": 1})
 
         assert response.status_code == 200
         data = response.json()["data"]
@@ -338,7 +329,6 @@ def test_query_memodel(client: TestClient, create_memodel_ids: CreateIds):
     response = client.get(
         ROUTE,
         params={"page_size": 10},
-        headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
     response_json = response.json()
@@ -349,7 +339,6 @@ def test_query_memodel(client: TestClient, create_memodel_ids: CreateIds):
 
     response = client.get(
         ROUTE,
-        headers=PROJECT_HEADERS,
         params={"page_size": 100},
     )
     assert response.status_code == 200
@@ -365,7 +354,6 @@ def test_sorted(client: TestClient, create_memodel_ids: CreateIds):
     response = client.get(
         ROUTE,
         params={"order_by": "-name"},
-        headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
     data = response.json()["data"]
@@ -382,7 +370,6 @@ def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
             "species__id": mmodels.species_ids[0],
             "emodel__name__ilike": "%0%",
         },
-        headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
     response_json = response.json()
@@ -399,7 +386,6 @@ def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa
     response = client.get(
         ROUTE,
         params={"search": "foo"},
-        headers=PROJECT_HEADERS,
     )
     assert response.status_code == 200
     response_json = response.json()
@@ -412,7 +398,6 @@ def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa
 
 
 def test_authorization(
-    db: Session,
     client_user_1: TestClient,
     client_user_2: TestClient,
     species_id,
@@ -434,7 +419,6 @@ def test_authorization(
 
     public_obj = client_user_1.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
         json=emodel_json
         | {
             "name": "public obj",
@@ -466,32 +450,36 @@ def test_authorization(
 
     assert unauthorized_emodel.status_code == 403
 
-    mmodel_id_2 = str(
-        add_db(
-            db,
-            ReconstructionMorphology(
-                name="test",
-                description="test",
-                species_id=species_id,
-                brain_region_id=brain_region_id,
-                authorized_public=False,
-                authorized_project_id=UNRELATED_PROJECT_ID,
-            ),
-        ).id
-    )
+    mmodel_id_2 = (
+        client_user_2.post(
+            "/reconstruction-morphology",
+            json={
+                "name": "test",
+                "description": "test",
+                "species_id": species_id,
+                "strain_id": strain_id,
+                "brain_region_id": brain_region_id,
+                "location": None,
+                "legacy_id": None,
+            },
+        )
+    ).json()["id"]
 
-    emodel_id = str(
-        add_db(
-            db,
-            EModel(
-                authorized_public=False,
-                brain_region_id=brain_region_id,
-                species_id=species_id,
-                exemplar_morphology_id=mmodel_id_2,
-                authorized_project_id=UNRELATED_PROJECT_ID,
-            ),
-        ).id
-    )
+    emodel_id = (
+        client_user_2.post(
+            "/emodel",
+            json={
+                "brain_region_id": brain_region_id,
+                "species_id": species_id,
+                "exemplar_morphology_id": mmodel_id_2,
+                "description": "test",
+                "name": "test",
+                "iteration": "test",
+                "seed": 0,
+                "score": 0,
+            },
+        )
+    ).json()["id"]
 
     inaccessible_obj = client_user_2.post(
         ROUTE,
@@ -504,7 +492,6 @@ def test_authorization(
 
     private_obj0 = client_user_1.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
         json=emodel_json | {"name": "private obj 0"},
     )
     assert private_obj0.status_code == 200
@@ -512,7 +499,6 @@ def test_authorization(
 
     private_obj1 = client_user_1.post(
         ROUTE,
-        headers=PROJECT_HEADERS,
         json=emodel_json
         | {
             "name": "private obj 1",
@@ -536,7 +522,7 @@ def test_authorization(
     public_obj_diff_project = public_obj_diff_project.json()
 
     # only return results that matches the desired project, and public ones
-    response = client_user_1.get(ROUTE, headers=PROJECT_HEADERS)
+    response = client_user_1.get(ROUTE)
     data = response.json()["data"]
     assert len(data) == 4
 
@@ -548,6 +534,6 @@ def test_authorization(
         public_obj_diff_project["id"],
     }
 
-    response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}", headers=PROJECT_HEADERS)
+    response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
 
     assert response.status_code == 404

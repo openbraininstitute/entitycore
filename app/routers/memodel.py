@@ -6,6 +6,7 @@ from sqlalchemy.orm import (
     aliased,
     joinedload,
     raiseload,
+    selectinload,
 )
 from sqlalchemy.sql.selectable import Select
 
@@ -46,8 +47,8 @@ def memodel_joinedloads(select: Select):
         joinedload(MEModel.emodel),
         joinedload(MEModel.mmodel),
         joinedload(MEModel.brain_region),
-        joinedload(MEModel.contributions).joinedload(Contribution.agent),
-        joinedload(MEModel.contributions).joinedload(Contribution.role),
+        selectinload(MEModel.contributions).joinedload(Contribution.agent),
+        selectinload(MEModel.contributions).joinedload(Contribution.role),
         joinedload(MEModel.mtypes),
         joinedload(MEModel.etypes),
         raiseload("*"),

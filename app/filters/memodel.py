@@ -16,10 +16,9 @@ class MEModelFilter(CustomFilter):
     update_date__lte: datetime | None = None
     update_date__gte: datetime | None = None
     name__ilike: str | None = None
-    brain_location_id: int | None = None
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None
-    valdation_status: ValidationStatus | None = None
+    validation_status: ValidationStatus | None = None
 
     mtype: MTypeClassFilter = FilterDepends(with_prefix("mtype", MTypeClassFilter))
     etype: ETypeClassFilter = FilterDepends(with_prefix("etype", ETypeClassFilter))

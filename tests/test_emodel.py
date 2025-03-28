@@ -215,6 +215,12 @@ def test_authorization(
 
     assert unauthorized_exemplar_morphology.status_code == 403
 
+    unauthorized_public_with_private_exemplar_morphology = client_user_1.post(
+        ROUTE, json=emodel_json | {"authorized_public": True}
+    )
+
+    assert unauthorized_public_with_private_exemplar_morphology.status_code == 403
+
     exemplar_morphology_id = create_reconstruction_morphology_id(
         client_user_2,
         species_id=species_id,
@@ -233,7 +239,12 @@ def test_authorization(
 
     inaccessible_obj = inaccessible_obj.json()
 
-    private_emodel0 = client_user_1.post(ROUTE, json=emodel_json | {"name": "private emodel 0"})
+    # Public Morphology reference authorized from private emodel
+    private_emodel0 = client_user_1.post(
+        ROUTE,
+        json=emodel_json
+        | {"name": "private emodel 0", "exemplar_morphology_id": public_morphology_id},
+    )
     assert private_emodel0.status_code == 200
     private_emodel0 = private_emodel0.json()
 

@@ -397,7 +397,7 @@ def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa
     assert all(d["description"] == "foo" for d in data)
 
 
-def test_authorization(
+def test_authorization(  # noqa: PLR0914
     client_user_1: TestClient,
     client_user_2: TestClient,
     species_id,
@@ -410,7 +410,8 @@ def test_authorization(
         client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
     )
 
-    public_emodel_id = client_user_1.post(
+    # Different user but public accessible
+    public_emodel_id = client_user_2.post(
         "/emodel",
         json={
             "brain_region_id": brain_region_id,
@@ -456,6 +457,13 @@ def test_authorization(
     )
 
     assert unauthorized_relations.status_code == 403
+
+    unauthorized_public_with_private_relations = client_user_1.post(
+        ROUTE,
+        json=mmodel_json | {"authorized_public": True},
+    )
+
+    assert unauthorized_public_with_private_relations.status_code == 403
 
     mmodel_id = create_reconstruction_morphology_id(
         client_user_2,
@@ -514,9 +522,15 @@ def test_authorization(
 
     inaccessible_obj = inaccessible_obj.json()
 
+    # Public reference from private entity authorized
     private_obj0 = client_user_1.post(
         ROUTE,
-        json=mmodel_json | {"name": "private obj 0"},
+        json=mmodel_json
+        | {
+            "name": "private obj 0",
+            "mmodel_id": public_morphology_id,
+            "emodel_id": public_emodel_id,
+        },
     )
     assert private_obj0.status_code == 200
     private_obj0 = private_obj0.json()

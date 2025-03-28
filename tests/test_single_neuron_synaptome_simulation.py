@@ -2,7 +2,7 @@ import itertools as it
 
 import pytest
 
-from app.db.model import MEModel, SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation
+from app.db.model import SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation
 
 from .utils import (
     MISSING_ID,

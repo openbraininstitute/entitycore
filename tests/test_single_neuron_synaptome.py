@@ -3,7 +3,6 @@ import itertools as it
 import pytest
 
 from app.db.model import MEModel, SingleNeuronSynaptome
-from tests.conftest import CreateIds
 
 from .utils import (
     MISSING_ID,
@@ -13,6 +12,7 @@ from .utils import (
     assert_request,
     create_brain_region_id,
 )
+from tests.conftest import CreateIds
 
 ROUTE = "/single-neuron-synaptome"
 

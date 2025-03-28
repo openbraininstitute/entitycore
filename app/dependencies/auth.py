@@ -105,8 +105,8 @@ def _check_user_info(
         )
 
     http_status_errors = {
-        401: AuthErrorReason.NOT_AUTHENTICATED,
-        403: AuthErrorReason.NOT_AUTHORIZED,
+        401: AuthErrorReason.NOT_AUTHENTICATED_USER,
+        403: AuthErrorReason.NOT_AUTHORIZED_USER,
     }
     response = make_http_request(
         KEYCLOAK_GROUPS_URL,
@@ -141,12 +141,13 @@ def _check_user_info(
         is_service_admin=is_service_admin,
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
-        auth_error_reason=AuthErrorReason.NOT_AUTHORIZED if not is_authorized else None,
+        auth_error_reason=AuthErrorReason.NOT_AUTHORIZED_PROJECT if not is_authorized else None,
     )
 
     if not user_context.is_authorized:
         L.opt(lazy=True, capture=False).info(
-            "User <{email}> attempted to use {virtual_lab_id}/{project_id}, "
+            "User <{email}> attempted to use: "
+            "virtual-lab-id={virtual_lab_id}, project-id={project_id} "
             "but they're only a member of {groups}",
             email=lambda: user_context.email,
             virtual_lab_id=lambda: project_context.virtual_lab_id,
@@ -202,7 +203,7 @@ def user_verified(
 
     if not user_context.is_authorized:
         match user_context.auth_error_reason:
-            case AuthErrorReason.NOT_AUTHORIZED:
+            case AuthErrorReason.NOT_AUTHORIZED_USER | AuthErrorReason.NOT_AUTHORIZED_PROJECT:
                 raise ApiError(
                     message=user_context.auth_error_reason,
                     error_code=ApiErrorCode.NOT_AUTHORIZED,
@@ -210,7 +211,7 @@ def user_verified(
                 )
             case _:
                 raise ApiError(
-                    message=user_context.auth_error_reason or "",
+                    message=user_context.auth_error_reason or AuthErrorReason.UNKNOWN,
                     error_code=ApiErrorCode.NOT_AUTHENTICATED,
                     http_status_code=401,
                 )
@@ -222,7 +223,7 @@ def user_with_project_id(user_context: "UserContextDep") -> UserContextWithProje
     """Ensure that the authenticated user has valid virtual_lab_id and project_id."""
     if not user_context.virtual_lab_id or not user_context.project_id:
         raise ApiError(
-            message="virtual-lab-id and project-id are required",
+            message=AuthErrorReason.PROJECT_REQUIRED,
             error_code=ApiErrorCode.NOT_AUTHORIZED,
             http_status_code=403,
         )
@@ -233,7 +234,7 @@ def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
     """Ensure that the authenticated user has a service admin role."""
     if not user_context.is_service_admin:
         raise ApiError(
-            message="Service admin role required",
+            message=AuthErrorReason.ADMIN_REQUIRED,
             error_code=ApiErrorCode.NOT_AUTHORIZED,
             http_status_code=403,
         )

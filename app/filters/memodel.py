@@ -24,7 +24,7 @@ class MEModelFilter(CustomFilter):
     etype: ETypeClassFilter = FilterDepends(with_prefix("etype", ETypeClassFilter))
     species: SpeciesFilter = FilterDepends(with_prefix("species", SpeciesFilter))
     contribution: AgentFilter = FilterDepends(with_prefix("contribution", AgentFilter))
-    mmodel: MorphologyFilter = FilterDepends(with_prefix("mmodel", MorphologyFilter))
+    morphology: MorphologyFilter = FilterDepends(with_prefix("morphology", MorphologyFilter))
     emodel: EModelFilter = FilterDepends(with_prefix("emodel", EModelFilter))
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

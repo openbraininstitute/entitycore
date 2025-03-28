@@ -381,7 +381,7 @@ def create_memodel_ids(
                     brain_region_id=brain_region_id,
                     species_id=species_id,
                     strain_id=strain_id,
-                    mmodel_id=morphology_id,
+                    morphology_id=morphology_id,
                     emodel_id=emodel_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
@@ -414,7 +414,7 @@ class MEModels:
     memodels: list[MEModel]
     species_ids: list[str]
     brain_region_ids: list[int]
-    mmodel_ids: list[str]
+    morphology_ids: list[str]
     emodel_ids: list[str]
     agent_ids: list[str]
 
@@ -507,7 +507,7 @@ def faceted_memodels(
                 strain_id=strain_ids[i],
                 brain_region_id=brain_region_ids[i],
                 authorized_public=False,
-                name=f"test mmodel {i}",
+                name=f"test morphology {i}",
             )
         )
         for i in range(2)
@@ -534,7 +534,7 @@ def faceted_memodels(
 
     memodels = []
 
-    for species_id, brain_region_id, mmodel_id, emodel_id in it.product(
+    for species_id, brain_region_id, morphology_id, emodel_id in it.product(
         species_ids, brain_region_ids, morphology_ids, emodel_ids
     ):
         memodel = add_db(
@@ -545,7 +545,7 @@ def faceted_memodels(
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=None,
-                mmodel_id=mmodel_id,
+                morphology_id=morphology_id,
                 emodel_id=emodel_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
@@ -559,7 +559,7 @@ def faceted_memodels(
     return MEModels(
         memodels=memodels,
         emodel_ids=emodel_ids,
-        mmodel_ids=morphology_ids,
+        morphology_ids=morphology_ids,
         species_ids=species_ids,
         brain_region_ids=brain_region_ids,
         agent_ids=agent_ids,

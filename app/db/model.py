@@ -442,11 +442,13 @@ class MEModel(
         default=ValidationStatus.created,
     )
 
-    mmodel_id: Mapped[uuid.UUID] = mapped_column(
+    morphology_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("reconstruction_morphology.id"), nullable=False
     )
 
-    mmodel = relationship("ReconstructionMorphology", foreign_keys=[mmodel_id], uselist=False)
+    morphology = relationship(
+        "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
+    )
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("emodel.id"), nullable=False)
 

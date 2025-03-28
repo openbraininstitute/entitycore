@@ -13,7 +13,7 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.emodel import EModelBase, ExemplarMorphology as MModel
+from app.schemas.emodel import EModelBase, ExemplarMorphology as Morphology
 
 
 class EModel(EModelBase, CreationMixin):
@@ -29,7 +29,7 @@ class MEModelBase(BaseModel):
 
 class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
     brain_region_id: int
-    mmodel_id: uuid.UUID
+    morphology_id: uuid.UUID
     emodel_id: uuid.UUID
     species_id: uuid.UUID
     strain_id: uuid.UUID | None = None
@@ -47,5 +47,5 @@ class MEModelRead(
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
-    mmodel: MModel
+    morphology: Morphology
     emodel: EModel

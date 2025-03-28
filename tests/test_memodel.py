@@ -16,7 +16,7 @@ def test_get_memodel(client: TestClient, memodel_id):
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == memodel_id
-    assert "mmodel" in data
+    assert "morphology" in data
     assert "emodel" in data
     assert "brain_region" in data
     assert "species" in data
@@ -49,7 +49,7 @@ def test_create_memodel(
             "strain_id": strain_id,
             "description": "Test MEModel Description",
             "name": "Test MEModel Name",
-            "mmodel_id": morphology_id,
+            "morphology_id": morphology_id,
             "emodel_id": emodel_id,
         },
     )
@@ -60,7 +60,7 @@ def test_create_memodel(
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
 
     response = client.get(f"{ROUTE}/{data['id']}")
-    assert response.status_code == 200, f"Failed to get mmodels: {response.text}"
+    assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):
@@ -112,18 +112,18 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
             {"id": 0, "label": "region0", "count": 8, "type": "brain_region"},
             {"id": 1, "label": "region1", "count": 8, "type": "brain_region"},
         ],
-        "mmodel": [
+        "morphology": [
             {
-                "id": ids.mmodel_ids[0],
-                "label": "test mmodel 0",
+                "id": ids.morphology_ids[0],
+                "label": "test morphology 0",
                 "count": 8,
-                "type": "mmodel",
+                "type": "morphology",
             },
             {
-                "id": ids.mmodel_ids[1],
-                "label": "test mmodel 1",
+                "id": ids.morphology_ids[1],
+                "label": "test morphology 1",
                 "count": 8,
-                "type": "mmodel",
+                "type": "morphology",
             },
         ],
         "emodel": [
@@ -189,18 +189,18 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
             {"id": 0, "label": "region0", "count": 2, "type": "brain_region"},
             {"id": 1, "label": "region1", "count": 2, "type": "brain_region"},
         ],
-        "mmodel": [
+        "morphology": [
             {
-                "id": ids.mmodel_ids[0],
-                "label": "test mmodel 0",
+                "id": ids.morphology_ids[0],
+                "label": "test morphology 0",
                 "count": 2,
-                "type": "mmodel",
+                "type": "morphology",
             },
             {
-                "id": ids.mmodel_ids[1],
-                "label": "test mmodel 1",
+                "id": ids.morphology_ids[1],
+                "label": "test morphology 1",
                 "count": 2,
-                "type": "mmodel",
+                "type": "morphology",
             },
         ],
         "emodel": [
@@ -256,18 +256,18 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
             {"id": 0, "label": "region0", "count": 4, "type": "brain_region"},
             {"id": 1, "label": "region1", "count": 4, "type": "brain_region"},
         ],
-        "mmodel": [
+        "morphology": [
             {
-                "id": ids.mmodel_ids[0],
-                "label": "test mmodel 0",
+                "id": ids.morphology_ids[0],
+                "label": "test morphology 0",
                 "count": 4,
-                "type": "mmodel",
+                "type": "morphology",
             },
             {
-                "id": ids.mmodel_ids[1],
-                "label": "test mmodel 1",
+                "id": ids.morphology_ids[1],
+                "label": "test morphology 1",
                 "count": 4,
-                "type": "mmodel",
+                "type": "morphology",
             },
         ],
         "emodel": [
@@ -362,12 +362,12 @@ def test_sorted(client: TestClient, create_memodel_ids: CreateIds):
 
 
 def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
-    mmodels = faceted_memodels
+    morphologys = faceted_memodels
 
     response = client.get(
         ROUTE,
         params={
-            "species__id": mmodels.species_ids[0],
+            "species__id": morphologys.species_ids[0],
             "emodel__name__ilike": "%0%",
         },
     )
@@ -378,7 +378,7 @@ def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
 
     data = response_json["data"]
 
-    assert all(d["species"]["id"] == mmodels.species_ids[0] for d in data)
+    assert all(d["species"]["id"] == morphologys.species_ids[0] for d in data)
     assert all(d["emodel"]["name"] == "0" for d in data)
 
 
@@ -428,7 +428,7 @@ def test_authorization(  # noqa: PLR0914
         },
     ).json()["id"]
 
-    mmodel_json = {
+    morphology_json = {
         "brain_region_id": brain_region_id,
         "description": "description",
         "legacy_id": "Test Legacy ID",
@@ -436,13 +436,13 @@ def test_authorization(  # noqa: PLR0914
         "species_id": species_id,
         "strain_id": strain_id,
         "emodel_id": emodel_id,
-        "mmodel_id": morphology_id,
+        "morphology_id": morphology_id,
     }
 
     public_obj = client_user_1.post(
         ROUTE,
-        json=mmodel_json
-        | {"emodel_id": public_emodel_id, "mmodel_id": public_morphology_id}
+        json=morphology_json
+        | {"emodel_id": public_emodel_id, "morphology_id": public_morphology_id}
         | {
             "name": "public obj",
             "authorized_public": True,
@@ -453,19 +453,19 @@ def test_authorization(  # noqa: PLR0914
 
     unauthorized_relations = client_user_2.post(
         ROUTE,
-        json=mmodel_json,
+        json=morphology_json,
     )
 
     assert unauthorized_relations.status_code == 403
 
     unauthorized_public_with_private_relations = client_user_1.post(
         ROUTE,
-        json=mmodel_json | {"authorized_public": True},
+        json=morphology_json | {"authorized_public": True},
     )
 
     assert unauthorized_public_with_private_relations.status_code == 403
 
-    mmodel_id = create_reconstruction_morphology_id(
+    morphology_id = create_reconstruction_morphology_id(
         client_user_2,
         species_id,
         strain_id,
@@ -475,12 +475,12 @@ def test_authorization(  # noqa: PLR0914
 
     unauthorized_emodel = client_user_2.post(
         ROUTE,
-        json=mmodel_json | {"mmodel_id": mmodel_id},
+        json=morphology_json | {"morphology_id": morphology_id},
     )
 
     assert unauthorized_emodel.status_code == 403
 
-    mmodel_id_2 = (
+    morphology_id_2 = (
         client_user_2.post(
             "/reconstruction-morphology",
             json={
@@ -502,7 +502,7 @@ def test_authorization(  # noqa: PLR0914
             json={
                 "brain_region_id": brain_region_id,
                 "species_id": species_id,
-                "exemplar_morphology_id": mmodel_id_2,
+                "exemplar_morphology_id": morphology_id_2,
                 "description": "test",
                 "name": "test",
                 "iteration": "test",
@@ -515,7 +515,7 @@ def test_authorization(  # noqa: PLR0914
 
     inaccessible_obj = client_user_2.post(
         ROUTE,
-        json=mmodel_json | {"mmodel_id": mmodel_id_2, "emodel_id": emodel_id},
+        json=morphology_json | {"morphology_id": morphology_id_2, "emodel_id": emodel_id},
     )
 
     assert inaccessible_obj.status_code == 200
@@ -525,10 +525,10 @@ def test_authorization(  # noqa: PLR0914
     # Public reference from private entity authorized
     private_obj0 = client_user_1.post(
         ROUTE,
-        json=mmodel_json
+        json=morphology_json
         | {
             "name": "private obj 0",
-            "mmodel_id": public_morphology_id,
+            "morphology_id": public_morphology_id,
             "emodel_id": public_emodel_id,
         },
     )
@@ -537,7 +537,7 @@ def test_authorization(  # noqa: PLR0914
 
     private_obj1 = client_user_1.post(
         ROUTE,
-        json=mmodel_json
+        json=morphology_json
         | {
             "name": "private obj 1",
         },
@@ -547,9 +547,9 @@ def test_authorization(  # noqa: PLR0914
 
     public_obj_diff_project = client_user_1.post(
         ROUTE,
-        json=mmodel_json
+        json=morphology_json
         | {
-            "mmodel_id": mmodel_id_2,
+            "morphology_id": morphology_id_2,
             "emodel_id": emodel_id,
             "authorized_public": True,
         },

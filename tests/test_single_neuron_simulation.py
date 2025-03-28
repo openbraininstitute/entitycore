@@ -159,7 +159,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
             emodel_id=emodel_id,
-            mmodel_id=morphology_id,
+            morphology_id=morphology_id,
             species_id=species_id,
         ),
     )
@@ -171,7 +171,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
             emodel_id=emodel_id,
-            mmodel_id=morphology_id,
+            morphology_id=morphology_id,
             species_id=species_id,
         ),
     )
@@ -219,7 +219,7 @@ def faceted_ids(db, client_admin, emodel_id, morphology_id, species_id):
                 "brain_region_id": brain_region_ids[i],
                 "authorized_project_id": PROJECT_ID,
                 "emodel_id": emodel_id,
-                "mmodel_id": morphology_id,
+                "morphology_id": morphology_id,
                 "species_id": species_id,
             },
         )

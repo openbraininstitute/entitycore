@@ -722,7 +722,7 @@ class ImportMEModel(Import):
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
                 species_id=morphology.species_id,
-                mmodel_id=morphology.id,
+                morphology_id=morphology.id,
                 emodel_id=emodel.id,
                 strain_id=morphology.strain_id,
                 creation_date=createdAt,

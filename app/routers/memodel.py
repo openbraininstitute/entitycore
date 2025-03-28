@@ -45,7 +45,7 @@ def memodel_joinedloads(select: Select):
         joinedload(MEModel.species),
         joinedload(MEModel.strain),
         joinedload(MEModel.emodel),
-        joinedload(MEModel.mmodel),
+        joinedload(MEModel.morphology),
         joinedload(MEModel.brain_region),
         selectinload(MEModel.contributions).joinedload(Contribution.agent),
         selectinload(MEModel.contributions).joinedload(Contribution.role),
@@ -85,7 +85,7 @@ def create_memodel(
             species_id=memodel.species_id,
             strain_id=memodel.strain_id,
             emodel_id=memodel.emodel_id,
-            mmodel_id=memodel.mmodel_id,
+            morphology_id=memodel.morphology_id,
             authorized_project_id=user_context.project_id,
             authorized_public=memodel.authorized_public,
             validation_status=memodel.validation_status,
@@ -124,7 +124,7 @@ def memodel_query(
             "type": agent_alias.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "mmodel": {
+        "morphology": {
             "id": morphology_alias.id,
             "label": morphology_alias.name,
         },
@@ -138,7 +138,7 @@ def memodel_query(
         constrain_to_accessible_entities(sa.select(MEModel), project_id=user_context.project_id)
         .join(Species, MEModel.species_id == Species.id)
         .outerjoin(Strain, MEModel.strain_id == Strain.id)
-        .join(morphology_alias, MEModel.mmodel_id == morphology_alias.id)
+        .join(morphology_alias, MEModel.morphology_id == morphology_alias.id)
         .join(emodel_alias, MEModel.emodel_id == emodel_alias.id)
         .join(BrainRegion, MEModel.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, MEModel.id == Contribution.entity_id)

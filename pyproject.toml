@@ -91,6 +91,7 @@ ignore = [
     "D106",    # Missing docstring in public nested class
     "ERA001",  # Found commented-out code
     "N815",    # Variable in class scope should not be mixedCase
+    "E731",    # Do not assign a `lambda` expression, use a `def`
 ]
 
 [tool.ruff.lint.isort]

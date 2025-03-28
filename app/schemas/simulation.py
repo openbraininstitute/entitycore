@@ -6,11 +6,13 @@ from app.db.types import SingleNeuronSimulationStatus
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainRegionRead,
+    BrainRegionCreateMixin,
+    BrainRegionReadMixin,
     CreationMixin,
     IdentifiableMixin,
 )
 from app.schemas.me_model import MEModelRead
+from app.schemas.synaptome import SingleNeuronSynaptomeRead
 
 
 class SingleNeuronSimulationBase(BaseModel):
@@ -26,16 +28,34 @@ class SingleNeuronSimulationBase(BaseModel):
 class SingleNeuronSimulationCreate(
     SingleNeuronSimulationBase,
     AuthorizationOptionalPublicMixin,
+    BrainRegionCreateMixin,
 ):
     me_model_id: uuid.UUID
-    brain_region_id: int
 
 
 class SingleNeuronSimulationRead(
     SingleNeuronSimulationBase,
+    BrainRegionReadMixin,
     AuthorizationMixin,
     IdentifiableMixin,
     CreationMixin,
 ):
     me_model: MEModelRead
-    brain_region: BrainRegionRead
+
+
+class SingleNeuronSynaptomeSimulationCreate(
+    SingleNeuronSimulationBase,
+    AuthorizationOptionalPublicMixin,
+    BrainRegionCreateMixin,
+):
+    synaptome_id: uuid.UUID
+
+
+class SingleNeuronSynaptomeSimulationRead(
+    SingleNeuronSimulationBase,
+    BrainRegionReadMixin,
+    AuthorizationMixin,
+    IdentifiableMixin,
+    CreationMixin,
+):
+    synaptome: SingleNeuronSynaptomeRead

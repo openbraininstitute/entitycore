@@ -131,12 +131,22 @@ def download_entity_asset(
     )
     if asset.is_directory:
         if asset_path is None:
-            raise HTTPException(
-                status_code=400,
-                detail="Missing required parameter for downloading a directory file: asset_path",
+            msg = "Missing required parameter for downloading a directory file: asset_path"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.INVALID_REQUEST,
             )
+        if not validate_filename(asset_path):
+            msg = f"Invalid file name {asset_path!r}"
+            raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
         full_path = str(Path(asset.full_path, asset_path))
     else:
+        if asset_path:
+            msg = "asset_path is only applicable when asset is a directory"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.INVALID_REQUEST,
+            )
         full_path = asset.full_path
     url = generate_presigned_url(
         s3_client=s3_client,

@@ -28,6 +28,11 @@ class MEModelBase(BaseModel):
     validation_status: ValidationStatus = ValidationStatus.created
 
 
+# To be used by entities who reference MEModel
+class NestedMEModel(MEModelBase, CreationMixin, IdentifiableMixin):
+    pass
+
+
 class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
     brain_region_id: int
     morphology_id: uuid.UUID

@@ -11,12 +11,8 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
-from app.schemas.me_model import MEModelBase
+from app.schemas.me_model import NestedMEModel as MEModelRead
 from app.schemas.synaptome import SingleNeuronSynaptomeRead
-
-
-class MEModelRead(MEModelBase, IdentifiableMixin):
-    id: uuid.UUID
 
 
 class SingleNeuronSimulationBase(BaseModel):

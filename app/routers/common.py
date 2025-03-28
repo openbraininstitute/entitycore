@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Callable
 from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
@@ -6,7 +7,6 @@ from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from sqlalchemy.sql.base import ExecutableOption
-from sqlalchemy.sql.elements import ColumnElement
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Entity
@@ -129,8 +129,8 @@ def router_read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     aliases: dict[type[DeclarativeBase], type[DeclarativeBase]],
-    filter_query_operations: list[tuple[str, type[DeclarativeBase], ColumnElement]],
-    data_query_operations: list[ExecutableOption],
+    apply_filter_query_operations: Callable,
+    apply_data_query_operations: Callable,
     pagination_request: PaginationQuery,
     response_schema_class: type[ListResponse],
     name_to_facet_query_params: dict[str, FacetQueryParams],
@@ -140,8 +140,8 @@ def router_read_many(
         sa.select(db_model_class),
         project_id=user_context.project_id,
     )
-    for method_name, model_cls, condition in filter_query_operations:
-        filter_query = getattr(filter_query, method_name)(model_cls, condition)
+    filter_query = apply_filter_query_operations(filter_query)
+
     filter_query = filter_model.filter(
         filter_query,
         aliases=aliases,
@@ -161,8 +161,7 @@ def router_read_many(
     data_query = filter_model.sort(sa.Select(db_model_class)).join(
         distinct_ids_subquery, db_model_class.id == distinct_ids_subquery.c.id
     )
-    for operation in data_query_operations:
-        data_query = data_query.options(operation)
+    data_query = apply_data_query_operations(data_query)
 
     # unique is needed b/c it contains results that include joined eager loads against collections
     data = db.execute(data_query).scalars().unique()

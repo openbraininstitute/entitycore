@@ -21,15 +21,17 @@ def _create_me_model_id(db, data):
 
 
 @pytest.fixture
-def me_model_id(db, brain_region_id):
+def me_model_id(db, brain_region_id, emodel_id, morphology_id, species_id):
     return _create_me_model_id(
         db,
         {
             "name": "my-me-model",
             "description": "my-description",
-            "validated": False,
             "brain_region_id": brain_region_id,
             "authorized_project_id": PROJECT_ID,
+            "emodel_id": emodel_id,
+            "morphology_id": morphology_id,
+            "species_id": species_id,
         },
     )
 
@@ -168,16 +170,17 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
     assert data[0]["id"] == public_morph["id"]
 
 
-def test_pagination(db, client, brain_region_id):
+def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id):
     me_model_1 = add_db(
         db,
         MEModel(
             name="me-model-1",
             description="my-description-1",
-            status="foo",
-            validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            emodel_id=emodel_id,
+            morphology_id=morphology_id,
+            species_id=species_id
         ),
     )
     me_model_2 = add_db(
@@ -185,10 +188,11 @@ def test_pagination(db, client, brain_region_id):
         MEModel(
             name="my-me-model",
             description="my-description",
-            status="foo",
-            validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            emodel_id=emodel_id,
+            morphology_id=morphology_id,
+            species_id=species_id
         ),
     )
 
@@ -233,7 +237,6 @@ def faceted_ids(db, client_admin):
             {
                 "name": f"me-model-{i}",
                 "description": f"description-{i}",
-                "validated": False,
                 "brain_region_id": brain_region_ids[i],
                 "authorized_project_id": PROJECT_ID,
             },

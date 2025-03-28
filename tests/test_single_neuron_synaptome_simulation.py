@@ -22,8 +22,6 @@ def _create_me_model_id(
     brain_region_id,
     name="my-me-model",
     description="my-me-model-description",
-    status="success",
-    validated=False,
     authorized_project_id=PROJECT_ID,
 ):
     return add_db(
@@ -31,8 +29,6 @@ def _create_me_model_id(
         MEModel(
             name=name,
             description=description,
-            status=status,
-            validated=validated,
             brain_region_id=brain_region_id,
             authorized_project_id=authorized_project_id,
         ),

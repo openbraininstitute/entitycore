@@ -9,6 +9,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    IdentifiableMixin,
     SpeciesRead,
     StrainRead,
 )
@@ -16,8 +17,8 @@ from app.schemas.contribution import ContributionReadWithoutEntity
 from app.schemas.emodel import EModelBase, ExemplarMorphology as Morphology
 
 
-class EModel(EModelBase, CreationMixin):
-    id: uuid.UUID
+class EModel(EModelBase, CreationMixin, IdentifiableMixin):
+    pass
 
 
 class MEModelBase(BaseModel):

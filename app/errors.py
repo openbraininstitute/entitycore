@@ -3,7 +3,7 @@
 import dataclasses
 from collections.abc import Iterator
 from contextlib import contextmanager
-from enum import auto
+from enum import StrEnum, auto
 from http import HTTPStatus
 from typing import Any
 
@@ -13,12 +13,18 @@ from sqlalchemy.exc import IntegrityError, NoResultFound
 from app.utils.enum import UpperStrEnum
 
 
-class AuthErrorReason(UpperStrEnum):
-    AUTH_TOKEN_MISSING = auto()
-    AUTH_TOKEN_INVALID = auto()
-    AUTH_TOKEN_EXPIRED = auto()
-    NOT_AUTHENTICATED = auto()
-    NOT_AUTHORIZED = auto()
+class AuthErrorReason(StrEnum):
+    """Authentication and authorization errors."""
+
+    AUTH_TOKEN_MISSING = "The authorization token is missing"  # noqa: S105
+    AUTH_TOKEN_INVALID = "The authorization token is invalid"  # noqa: S105
+    AUTH_TOKEN_EXPIRED = "The authorization token is expired"  # noqa: S105
+    NOT_AUTHENTICATED_USER = "User not authenticated"
+    NOT_AUTHORIZED_USER = "User not authorized"
+    NOT_AUTHORIZED_PROJECT = "User not authorized for the given virtual-lab-id or project-id"
+    PROJECT_REQUIRED = "The headers virtual-lab-id and project-id are required"
+    ADMIN_REQUIRED = "Service admin role required"
+    UNKNOWN = "Unknown reason"
 
 
 class ApiErrorCode(UpperStrEnum):

@@ -1,8 +1,8 @@
-"""Default migration message
+"""MEModel
 
-Revision ID: 9a8448787e16
-Revises: 928c1b2f7cf8
-Create Date: 2025-03-28 01:10:35.911017
+Revision ID: 7182cf8f7b50
+Revises: eba7d0b636c5
+Create Date: 2025-03-28 12:15:38.117917
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "9a8448787e16"
-down_revision: str | None = "928c1b2f7cf8"
+revision: str = "7182cf8f7b50"
+down_revision: str | None = "eba7d0b636c5"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -58,11 +58,17 @@ def upgrade() -> None:
     op.create_index(op.f("ix_memodel_species_id"), "memodel", ["species_id"], unique=False)
     op.create_index(op.f("ix_memodel_strain_id"), "memodel", ["strain_id"], unique=False)
     op.create_foreign_key(
+        op.f("fk_memodel_emodel_id_emodel"), "memodel", "emodel", ["emodel_id"], ["id"]
+    )
+    op.create_foreign_key(
         "fk_memodel_strain_id_species_id",
         "memodel",
         "strain",
         ["strain_id", "species_id"],
         ["id", "species_id"],
+    )
+    op.create_foreign_key(
+        op.f("fk_memodel_species_id_species"), "memodel", "species", ["species_id"], ["id"]
     )
     op.create_foreign_key(
         op.f("fk_memodel_morphology_id_reconstruction_morphology"),
@@ -71,14 +77,8 @@ def upgrade() -> None:
         ["morphology_id"],
         ["id"],
     )
-    op.create_foreign_key(
-        op.f("fk_memodel_emodel_id_emodel"), "memodel", "emodel", ["emodel_id"], ["id"]
-    )
-    op.create_foreign_key(
-        op.f("fk_memodel_species_id_species"), "memodel", "species", ["species_id"], ["id"]
-    )
-    op.drop_column("memodel", "validated")
     op.drop_column("memodel", "status")
+    op.drop_column("memodel", "validated")
     public_memodel_memodel_description_vector = PGTrigger(
         schema="public",
         signature="memodel_description_vector",
@@ -189,16 +189,16 @@ def downgrade() -> None:
     )
     op.drop_entity(public_memodel_memodel_description_vector)
 
-    op.add_column("memodel", sa.Column("status", sa.VARCHAR(), autoincrement=False, nullable=False))
     op.add_column(
         "memodel", sa.Column("validated", sa.BOOLEAN(), autoincrement=False, nullable=False)
     )
-    op.drop_constraint(op.f("fk_memodel_species_id_species"), "memodel", type_="foreignkey")
-    op.drop_constraint(op.f("fk_memodel_emodel_id_emodel"), "memodel", type_="foreignkey")
+    op.add_column("memodel", sa.Column("status", sa.VARCHAR(), autoincrement=False, nullable=False))
     op.drop_constraint(
         op.f("fk_memodel_morphology_id_reconstruction_morphology"), "memodel", type_="foreignkey"
     )
+    op.drop_constraint(op.f("fk_memodel_species_id_species"), "memodel", type_="foreignkey")
     op.drop_constraint("fk_memodel_strain_id_species_id", "memodel", type_="foreignkey")
+    op.drop_constraint(op.f("fk_memodel_emodel_id_emodel"), "memodel", type_="foreignkey")
     op.drop_index(op.f("ix_memodel_strain_id"), table_name="memodel")
     op.drop_index(op.f("ix_memodel_species_id"), table_name="memodel")
     op.drop_index("ix_memodel_description_vector", table_name="memodel", postgresql_using="gin")

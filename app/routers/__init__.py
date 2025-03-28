@@ -22,6 +22,8 @@ from app.routers import (
     role,
     root,
     single_neuron_simulation,
+    single_neuron_synaptome,
+    single_neuron_synaptome_simulation,
     species,
     strain,
 )
@@ -46,6 +48,8 @@ authenticated_routers = [
     person.router,
     role.router,
     single_neuron_simulation.router,
+    single_neuron_synaptome.router,
+    single_neuron_synaptome_simulation.router,
     species.router,
     strain.router,
 ]

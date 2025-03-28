@@ -161,7 +161,7 @@ def test_user_verified_with_expired_token(request_mock, project_context):
         (
             401,
             ApiError(
-                message=ApiErrorCode.NOT_AUTHENTICATED,
+                message=AuthErrorReason.NOT_AUTHENTICATED_USER,
                 error_code=ApiErrorCode.NOT_AUTHENTICATED,
                 http_status_code=401,
             ),
@@ -169,7 +169,7 @@ def test_user_verified_with_expired_token(request_mock, project_context):
         (
             403,
             ApiError(
-                message=ApiErrorCode.NOT_AUTHORIZED,
+                message=AuthErrorReason.NOT_AUTHORIZED_USER,
                 error_code=ApiErrorCode.NOT_AUTHORIZED,
                 http_status_code=403,
             ),
@@ -241,7 +241,7 @@ def test_user_verified_not_authorized_for_project(httpx_mock, request_mock, proj
             project_context=project_context, token=token, request=request_mock
         )
     assert excinfo.value == ApiError(
-        message=ApiErrorCode.NOT_AUTHORIZED,
+        message=AuthErrorReason.NOT_AUTHORIZED_PROJECT,
         error_code=ApiErrorCode.NOT_AUTHORIZED,
         http_status_code=403,
     )
@@ -286,7 +286,7 @@ def test_user_with_project_id_raises(project_context):
     with pytest.raises(ApiError) as excinfo:
         test_module.user_with_project_id(user_context)
     assert excinfo.value == ApiError(
-        message="virtual-lab-id and project-id are required",
+        message=AuthErrorReason.PROJECT_REQUIRED,
         error_code=ApiErrorCode.NOT_AUTHORIZED,
         http_status_code=403,
     )
@@ -320,7 +320,7 @@ def test_user_with_service_admin_role_raises():
     with pytest.raises(ApiError) as excinfo:
         test_module.user_with_service_admin_role(user_context)
     assert excinfo.value == ApiError(
-        message="Service admin role required",
+        message=AuthErrorReason.ADMIN_REQUIRED,
         error_code=ApiErrorCode.NOT_AUTHORIZED,
         http_status_code=403,
     )

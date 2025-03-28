@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from typing import Any, Literal
 
 import sqlalchemy as sa
 from sqlalchemy import any_
@@ -308,3 +309,20 @@ def import_distribution(data, db_item_id, db_item_type, db, project_context):
     distribution = curate.curate_distribution(distribution, project_context)
     if distribution:
         get_or_create_distribution(distribution, db_item_id, db_item_type, db, project_context)
+
+
+def find_part_id(data: dict[str, Any], type_: Literal["NeuronMorphology", "EModel"]) -> str | None:
+    has_part = data.get("hasPart")
+
+    if not has_part:
+        return None
+
+    if isinstance(has_part, dict):
+        return has_part.get("@id", None) if has_part.get("@type") == type_ else None
+
+    if isinstance(has_part, list):
+        for part in has_part:
+            if isinstance(part, dict) and part.get("@type") == type_:
+                return part.get("@id", None)
+
+    return None

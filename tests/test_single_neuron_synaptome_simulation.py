@@ -2,7 +2,7 @@ import itertools as it
 
 import pytest
 
-from app.db.model import MEModel, SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation
+from app.db.model import SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation
 
 from .utils import (
     MISSING_ID,
@@ -16,41 +16,10 @@ from .utils import (
 ROUTE = "/single-neuron-synaptome-simulation"
 
 
-def _create_me_model_id(
-    db,
-    *,
-    brain_region_id,
-    name="my-me-model",
-    description="my-me-model-description",
-    status="success",
-    validated=False,
-    authorized_project_id=PROJECT_ID,
-):
-    return add_db(
-        db,
-        MEModel(
-            name=name,
-            description=description,
-            status=status,
-            validated=validated,
-            brain_region_id=brain_region_id,
-            authorized_project_id=authorized_project_id,
-        ),
-    ).id
-
-
-@pytest.fixture
-def me_model_id(db, brain_region_id):
-    return _create_me_model_id(
-        db,
-        brain_region_id=brain_region_id,
-    )
-
-
 def _create_synaptome_id(
     db,
     *,
-    me_model_id,
+    memodel_id,
     brain_region_id,
     name="my-synaptome",
     description="my-synaptome-description",
@@ -63,7 +32,7 @@ def _create_synaptome_id(
         SingleNeuronSynaptome(
             name=name,
             description=description,
-            me_model_id=str(me_model_id),
+            me_model_id=str(memodel_id),
             brain_region_id=brain_region_id,
             seed=seed,
             authorized_public=authorized_public,
@@ -73,10 +42,10 @@ def _create_synaptome_id(
 
 
 @pytest.fixture
-def synaptome_id(db, me_model_id, brain_region_id):
+def synaptome_id(db, memodel_id, brain_region_id):
     return _create_synaptome_id(
         db,
-        me_model_id=me_model_id,
+        memodel_id=memodel_id,
         brain_region_id=brain_region_id,
     )
 
@@ -253,14 +222,14 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
     assert data[0]["id"] == public_morph["id"]
 
 
-def test_pagination(db, client, brain_region_id, me_model_id):
+def test_pagination(db, client, brain_region_id, memodel_id):
     synaptome_1_id = _create_synaptome_id(
-        db, name="syn-1", me_model_id=me_model_id, brain_region_id=brain_region_id
+        db, name="syn-1", memodel_id=memodel_id, brain_region_id=brain_region_id
     )
     synaptome_2_id = _create_synaptome_id(
         db,
         name="syn-2",
-        me_model_id=me_model_id,
+        memodel_id=memodel_id,
         brain_region_id=brain_region_id,
     )
 
@@ -291,7 +260,7 @@ def test_pagination(db, client, brain_region_id, me_model_id):
 
 
 @pytest.fixture
-def faceted_ids(db, client_admin, me_model_id):
+def faceted_ids(db, client_admin, memodel_id):
     brain_region_ids = [
         create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
     ]
@@ -301,7 +270,7 @@ def faceted_ids(db, client_admin, me_model_id):
             name=f"synaptome-{i}",
             description=f"description-{i}",
             brain_region_id=brain_region_ids[i],
-            me_model_id=me_model_id,
+            memodel_id=memodel_id,
         )
         for i in range(2)
     ]

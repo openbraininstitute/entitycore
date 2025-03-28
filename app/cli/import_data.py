@@ -699,30 +699,44 @@ class ImportMEModel(Import):
             _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             assert _brain_location is None
 
+            morphology_id = utils.find_part_id(data, "NeuronMorphology")
+            morphology = utils._find_by_legacy_id(morphology_id, ReconstructionMorphology, db)
+
+            emodel_id = utils.find_part_id(data, "EModel")
+            emodel = utils._find_by_legacy_id(emodel_id, EModel, db)
+
+            assert morphology
+            assert emodel
+
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
-            # TO DO: add species and strain mixin ?
-            # species_id, strain_id = utils.get_species_mixin(data, db)
-            rm = MEModel(
+            db_item = MEModel(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data.get("name", None),
                 description=data.get("description", None),
-                validated=data.get("validated", None),
-                status=data.get("status", None),
+                validation_status=data.get("status", None),
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,
                 updatedBy_id=updated_by_id,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
-                # species_id=species_id,
-                # strain_id=strain_id
+                species_id=morphology.species_id,
+                morphology_id=morphology.id,
+                emodel_id=emodel.id,
+                strain_id=morphology.strain_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
             )
-            db.add(rm)
+            db.add(db_item)
+            db.flush()
+
+            utils.import_contribution(data, db_item.id, db)
+
+            for annotation in ensurelist(data.get("annotation", [])):
+                create_annotation(annotation, db_item.id, db)
+
         db.commit()
-        # create_annotation(data, rm.id, db)
 
 
 class ImportSingleNeuronSimulation(Import):
@@ -952,11 +966,11 @@ def _do_import(db, input_dir, project_context):
         ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
+        ImportMEModel,
         ImportExperimentalNeuronDensities,
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         ImportSingleCellExperimentalTrace,
-        ImportMEModel,
         ImportSingleNeuronSimulation,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,

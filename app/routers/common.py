@@ -44,6 +44,7 @@ def _get_facets(
             .group_by(*groupby_ids)
             .order_by(*orderby_keys)
         )
+
         facets[facet_type] = [
             Facet.model_validate(row, from_attributes=True)
             for row in db.execute(facet_q).all()

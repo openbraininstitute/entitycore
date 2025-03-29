@@ -218,7 +218,9 @@ def test_download_entity_asset(client, entity, asset):
         params={"asset_path": "foo"},
         follow_redirects=False,
     )
-    assert response.status_code == 400, "Failed to forbid asset_path when downloading a file."
+    assert response.status_code == 400, (
+        f"Failed to forbid asset_path when downloading a file: {response.text}"
+    )
 
 
 def test_delete_entity_asset(client, entity, asset):
@@ -280,4 +282,6 @@ def test_download_directory_file(client, entity, asset_directory):
         url=f"{_route(entity.type)}/{entity.id}/assets/{asset_directory.id}/download",
         follow_redirects=False,
     )
-    assert response.status_code == 400
+    assert response.status_code == 400, (
+        f"Failed to send invalid response due to missing asset_path: {response.text}"
+    )

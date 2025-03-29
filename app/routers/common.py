@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Callable
+from sqlalchemy import Select
 from typing import Annotated, NotRequired, TypedDict
 
 import sqlalchemy as sa
@@ -7,14 +8,19 @@ from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from sqlalchemy.sql.base import ExecutableOption
+from sqlalchemy.orm import DeclarativeMeta
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Entity
 from app.dependencies.common import PaginationQuery
-from app.errors import ensure_result
+from app.errors import ensure_result, ensure_authorized_references
 from app.filters.base import CustomFilter
 from app.schemas.auth import UserContext
+from app.dependencies.auth import UserContextDep
+from app.dependencies.db import SessionDep
+
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
+from contextlib import _GeneratorContextManager, contextmanager
 
 
 class FacetQueryParams(TypedDict):
@@ -83,6 +89,9 @@ class Search(BaseModel):
 FacetsDep = Annotated[_FacetsDep, Depends()]
 SearchDep = Annotated[Search, Depends()]
 
+ApplyOperations = Callable[[Select], Select]
+ContextManager = _GeneratorContextManager[None, None, None]
+
 
 def router_read_one(
     *,
@@ -91,35 +100,47 @@ def router_read_one(
     db_model_class: type[Entity],
     authorized_project_id: uuid.UUID | None,
     response_schema_class: type[BaseModel],
-    operations: list[ExecutableOption],
+    apply_operations: ApplyOperations | None,
 ):
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         query = constrain_to_accessible_entities(
             sa.select(db_model_class),
             authorized_project_id,
         ).filter(db_model_class.id == id_)
-        for operation in operations:
-            query = query.options(operation)
+
+        if apply_operations:
+            query = apply_operations(query)
 
         row = db.execute(query).unique().scalar_one()
 
     return response_schema_class.model_validate(row)
 
 
+ReadRouter = Callable[[UserContextDep, SessionDep, uuid.UUID], BaseModel]
+
+
 def router_create_one(
     *,
     db: Session,
+    user_context: UserContext,
     db_model_class: type[Entity],
     json_model: BaseModel,
-    authorized_project_id: uuid.UUID | None,
-    response_schema_class: type[BaseModel],
+    read_router: ReadRouter,
+    context_manager: ContextManager | None,
 ):
-    data = json_model.model_dump() | {"authorized_project_id": authorized_project_id}
-    row = db_model_class(**data)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return response_schema_class.model_validate(row)
+    @contextmanager
+    def dummy_context_manger():
+        yield
+
+    context_manager = context_manager or dummy_context_manger()
+
+    with context_manager:
+        data = json_model.model_dump() | {"authorized_project_id": user_context.project_id}
+        row = db_model_class(**data)
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+        return read_router(user_context, db, row.id)
 
 
 def router_read_many(
@@ -127,11 +148,11 @@ def router_read_many(
     db: Session,
     db_model_class,
     user_context: UserContext,
-    with_search: SearchDep,
-    facets: FacetsDep,
-    aliases: dict[type[DeclarativeBase], type[DeclarativeBase]],
-    apply_filter_query_operations: Callable,
-    apply_data_query_operations: Callable,
+    with_search: Search,
+    facets: _FacetsDep,
+    aliases: dict[type[DeclarativeMeta], type[DeclarativeMeta]],
+    apply_filter_query_operations: ApplyOperations,
+    apply_data_query_operations: ApplyOperations,
     pagination_request: PaginationQuery,
     response_schema_class: type[ListResponse],
     name_to_facet_query_params: dict[str, FacetQueryParams],
@@ -174,7 +195,7 @@ def router_read_many(
     ).scalar_one()
 
     response = response_schema_class(
-        data=data,
+        data=data,  # type: ignore
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

@@ -30,11 +30,11 @@ def _route(entity_type: str) -> str:
     return f"/{EntityType[entity_type]}"
 
 
-def _upload_entity_asset(client, entity_type, entity_id, path="a/b/c.txt"):
+def _upload_entity_asset(client, entity_type, entity_id):
     with FILE_EXAMPLE_PATH.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
-            "file": (path, f, "text/plain")
+            "file": ("a/b/c.txt", f, "text/plain")
         }
         return client.post(f"{_route(entity_type)}/{entity_id}/assets", files=files)
 

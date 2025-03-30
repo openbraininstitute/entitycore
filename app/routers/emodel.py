@@ -1,8 +1,9 @@
 import uuid
 
 from fastapi import APIRouter
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, selectinload, raiseload
 from sqlalchemy.sql.selectable import Select
+from typing import cast
 
 from app.db.model import (
     Agent,
@@ -40,7 +41,7 @@ router = APIRouter(
 )
 
 
-def emodel_joinedloads(select: Select[tuple[EModel]]):
+def load(select: Select):
     return select.options(
         joinedload(EModel.species),
         joinedload(EModel.strain),
@@ -68,7 +69,7 @@ def read_emodel(
         db_model_class=EModel,
         authorized_project_id=user_context.project_id,
         response_schema_class=EModelRead,
-        apply_operations=emodel_joinedloads,
+        apply_operations=load,
     )
 
 
@@ -83,7 +84,8 @@ def create_emodel(
         user_context=user_context,
         db_model_class=EModel,
         json_model=emodel,
-        read_router=read_emodel,
+        response_schema_class=EModelRead,
+        apply_operations=load,
         context_manager=ensure_authorized_references(
             "Exemplar morphology isn't public or owned by user"
         ),
@@ -103,7 +105,10 @@ def emodel_query(
     agent_alias = aliased(Agent, flat=True)
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
 
-    aliases = {Agent: agent_alias, ReconstructionMorphology: morphology_alias}
+    aliases = {
+        Agent: agent_alias,
+        ReconstructionMorphology: morphology_alias,
+    }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
@@ -121,7 +126,20 @@ def emodel_query(
         },
     }
 
-    def filter_query_operations(q: Select[tuple[EModel]]) -> Select[tuple[EModel]]:
+    def load(q: Select):
+        return q.options(
+            joinedload(EModel.species),
+            joinedload(EModel.strain),
+            joinedload(EModel.exemplar_morphology),
+            joinedload(EModel.brain_region),
+            selectinload(EModel.contributions).joinedload(Contribution.agent),
+            selectinload(EModel.contributions).joinedload(Contribution.role),
+            joinedload(EModel.mtypes),
+            joinedload(EModel.etypes),
+            raiseload("*"),
+        )
+
+    def filter_query_operations(q: Select):
         return (
             q.join(Species, EModel.species_id == Species.id)
             .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
@@ -142,7 +160,7 @@ def emodel_query(
         facets=facets,
         aliases=aliases,
         apply_filter_query_operations=filter_query_operations,
-        apply_data_query_operations=emodel_joinedloads,
+        apply_data_query_operations=load,
         pagination_request=pagination_request,
         response_schema_class=ListResponse[EModelRead],
         name_to_facet_query_params=name_to_facet_query_params,

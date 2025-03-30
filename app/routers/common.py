@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy import Select
-from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
+from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import DescriptionVectorMixin, Entity, Root
@@ -115,7 +115,7 @@ def router_read_one[T: BaseModel](
 def router_create_one[T: BaseModel](
     *,
     db: Session,
-    user_context: UserContext,
+    authorized_project_id: uuid.UUID,
     db_model_class: type[Entity],
     json_model: BaseModel,
     response_schema_class: type[T],
@@ -123,7 +123,7 @@ def router_create_one[T: BaseModel](
     context_manager: ContextManager | None = None,
 ):
     def run():
-        data = json_model.model_dump() | {"authorized_project_id": user_context.project_id}
+        data = json_model.model_dump() | {"authorized_project_id": authorized_project_id}
         row = db_model_class(**data)
         db.add(row)
         db.commit()

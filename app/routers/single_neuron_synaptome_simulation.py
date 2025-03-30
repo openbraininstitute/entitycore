@@ -49,10 +49,10 @@ def read_one(
         authorized_project_id=user_context.project_id,
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
-        operations=[
+        apply_operations=lambda q: q.options(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome),
             joinedload(SingleNeuronSynaptomeSimulation.brain_region),
-        ],
+        ),
     )
 
 

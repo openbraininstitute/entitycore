@@ -1,9 +1,8 @@
 import uuid
 
 from fastapi import APIRouter
-from sqlalchemy.orm import aliased, joinedload, selectinload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 from sqlalchemy.sql.selectable import Select
-from typing import cast
 
 from app.db.model import (
     Agent,
@@ -81,7 +80,7 @@ def create_emodel(
 ):
     return router_create_one(
         db=db,
-        user_context=user_context,
+        authorized_project_id=user_context.project_id,
         db_model_class=EModel,
         json_model=emodel,
         response_schema_class=EModelRead,

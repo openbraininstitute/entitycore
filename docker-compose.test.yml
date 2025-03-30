@@ -8,7 +8,7 @@ services:
     - |
       alembic downgrade base &&
       alembic upgrade head &&
-      python -m pytest tests/test_emodel.py
+      python -m pytest
     env_file: .env.test-docker
     volumes:
     - ./tests:/code/tests

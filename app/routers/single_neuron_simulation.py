@@ -42,10 +42,10 @@ def read(
         db_model_class=SingleNeuronSimulation,
         authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSimulationRead,
-        operations=[
+        apply_operations=lambda q: q.options(
             joinedload(SingleNeuronSimulation.me_model),
             joinedload(SingleNeuronSimulation.brain_region),
-        ],
+        ),
     )
 
 

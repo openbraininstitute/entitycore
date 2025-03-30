@@ -1,88 +1,20 @@
 import uuid
 from collections.abc import Callable
 from contextlib import _GeneratorContextManager  # noqa: PLC2701
-from typing import Annotated, NotRequired, TypedDict, cast
+from typing import cast
 
 import sqlalchemy as sa
-from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy import Select
-from sqlalchemy.orm import InstrumentedAttribute, Session
+from sqlalchemy.orm import Session
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import DescriptionVectorMixin, Entity, Root
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets
 from app.errors import ensure_result
 from app.filters.base import CustomFilter
 from app.schemas.auth import UserContext
-from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
-
-
-class FacetQueryParams(TypedDict):
-    id: InstrumentedAttribute[uuid.UUID] | InstrumentedAttribute[int]
-    label: InstrumentedAttribute[str]
-    type: NotRequired[InstrumentedAttribute[str]]
-
-
-def _get_facets(
-    db: Session,
-    query: sa.Select,
-    name_to_facet_query_params: dict[str, FacetQueryParams],
-    count_distinct_field: InstrumentedAttribute,
-) -> Facets:
-    facets = {}
-    groupby_keys = ["id", "label", "type"]
-    orderby_keys = ["label"]
-    for facet_type, fields in name_to_facet_query_params.items():
-        groupby_fields = {"type": sa.literal(facet_type), **fields}
-        groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]  # type: ignore[attr-defined]
-        groupby_ids = [sa.literal(i + 1) for i in range(len(groupby_columns))]
-        facet_q = (
-            query.with_only_columns(
-                *groupby_columns,
-                sa.func.count(sa.func.distinct(count_distinct_field)).label("count"),
-            )
-            .group_by(*groupby_ids)
-            .order_by(*orderby_keys)
-        )
-
-        facets[facet_type] = [
-            Facet.model_validate(row, from_attributes=True)
-            for row in db.execute(facet_q).all()
-            if row.id is not None  # exclude null rows if present
-        ]
-
-    return facets
-
-
-class _FacetsDep(BaseModel):
-    with_facets: bool = False
-
-    def __call__(
-        self,
-        db: Session,
-        query: sa.Select,
-        name_to_facet_query_params: dict[str, FacetQueryParams],
-        count_distinct_field: InstrumentedAttribute,
-    ):
-        if not self.with_facets:
-            return None
-
-        return _get_facets(db, query, name_to_facet_query_params, count_distinct_field)
-
-
-class Search(BaseModel):
-    search: str | None = None
-
-    def __call__(self, q: sa.Select, vector_col: InstrumentedAttribute):
-        if not self.search:
-            return q
-
-        return q.where(vector_col.match(self.search))
-
-
-FacetsDep = Annotated[_FacetsDep, Depends()]
-SearchDep = Annotated[Search, Depends()]
+from app.schemas.types import ListResponse, PaginationResponse
 
 ApplyOperations = Callable[[Select], Select]
 Aliases = dict[type[Root], type[Root]]
@@ -151,7 +83,7 @@ def router_read_many[T: BaseModel](
     db_model_class: type[Entity],
     user_context: UserContext,
     with_search: Search,
-    facets: _FacetsDep,
+    facets: WithFacets,
     aliases: Aliases,
     apply_filter_query_operations: ApplyOperations,
     apply_data_query_operations: ApplyOperations,

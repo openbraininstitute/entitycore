@@ -1,26 +1,23 @@
 import uuid
 from collections.abc import Callable
-from sqlalchemy import Select
-from typing import Annotated, NotRequired, TypedDict
+from contextlib import _GeneratorContextManager, contextmanager  # noqa: PLC2701
+from typing import Annotated, NotRequired, TypedDict, cast
 
 import sqlalchemy as sa
 from fastapi import Depends
 from pydantic import BaseModel
+from sqlalchemy import Select
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
-from sqlalchemy.sql.base import ExecutableOption
-from sqlalchemy.orm import DeclarativeMeta
 
 from app.db.auth import constrain_to_accessible_entities
-from app.db.model import Entity
+from app.db.model import Entity, Root
+from app.dependencies.auth import UserContextDep
 from app.dependencies.common import PaginationQuery
-from app.errors import ensure_result, ensure_authorized_references
+from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.filters.base import CustomFilter
 from app.schemas.auth import UserContext
-from app.dependencies.auth import UserContextDep
-from app.dependencies.db import SessionDep
-
 from app.schemas.types import Facet, Facets, ListResponse, PaginationResponse
-from contextlib import _GeneratorContextManager, contextmanager
 
 
 class FacetQueryParams(TypedDict):
@@ -76,10 +73,10 @@ class _FacetsDep(BaseModel):
         return _get_facets(db, query, name_to_facet_query_params, count_distinct_field)
 
 
-class Search(BaseModel):
+class Search[T: DeclarativeBase](BaseModel):
     search: str | None = None
 
-    def __call__(self, q: sa.Select, vector_col: InstrumentedAttribute):
+    def __call__(self, q: sa.Select[tuple[T]], vector_col: InstrumentedAttribute):
         if not self.search:
             return q
 
@@ -89,18 +86,19 @@ class Search(BaseModel):
 FacetsDep = Annotated[_FacetsDep, Depends()]
 SearchDep = Annotated[Search, Depends()]
 
-ApplyOperations = Callable[[Select], Select]
+type ApplyOperations[T: DeclarativeBase] = Callable[[Select[tuple[T]]], Select[tuple[T]]]
+type Aliases[T: DeclarativeBase | Root] = dict[type[T], type[T]]
 ContextManager = _GeneratorContextManager[None, None, None]
 
 
-def router_read_one(
+def router_read_one[T: BaseModel, M: DeclarativeBase](
     *,
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[Entity],
     authorized_project_id: uuid.UUID | None,
-    response_schema_class: type[BaseModel],
-    apply_operations: ApplyOperations | None,
+    response_schema_class: type[T],
+    apply_operations: ApplyOperations[M] | None,
 ):
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         query = constrain_to_accessible_entities(
@@ -143,18 +141,18 @@ def router_create_one(
         return read_router(user_context, db, row.id)
 
 
-def router_read_many(
+def router_read_many[T: DeclarativeBase, M: BaseModel](
     *,
     db: Session,
     db_model_class,
     user_context: UserContext,
-    with_search: Search,
+    with_search: Search[T],
     facets: _FacetsDep,
-    aliases: dict[type[DeclarativeMeta], type[DeclarativeMeta]],
-    apply_filter_query_operations: ApplyOperations,
-    apply_data_query_operations: ApplyOperations,
+    aliases: Aliases,
+    apply_filter_query_operations: ApplyOperations[T],
+    apply_data_query_operations: ApplyOperations[T],
     pagination_request: PaginationQuery,
-    response_schema_class: type[ListResponse],
+    response_schema_class: type[ListResponse[M]],
     name_to_facet_query_params: dict[str, FacetQueryParams],
     filter_model: CustomFilter,
 ):
@@ -172,16 +170,12 @@ def router_read_many(
         filter_query,
         db_model_class.description_vector,
     )
-    distinct_ids_subquery = (
-        filter_model.sort(filter_query)
-        .with_only_columns(db_model_class)
-        .distinct()
+
+    data_query = (
+        filter_query.with_only_columns(db_model_class)
+        .distinct(db_model_class.id)
         .offset(pagination_request.offset)
         .limit(pagination_request.page_size)
-    ).subquery("distinct_ids")
-
-    data_query = filter_model.sort(sa.Select(db_model_class)).join(
-        distinct_ids_subquery, db_model_class.id == distinct_ids_subquery.c.id
     )
     data_query = apply_data_query_operations(data_query)
 
@@ -195,7 +189,7 @@ def router_read_many(
     ).scalar_one()
 
     response = response_schema_class(
-        data=data,  # type: ignore
+        data=cast("list[M]", data),
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

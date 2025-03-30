@@ -1,13 +1,9 @@
 import uuid
 
-import sqlalchemy as sa
 from fastapi import APIRouter
 from sqlalchemy.orm import aliased, joinedload, raiseload
 from sqlalchemy.sql.selectable import Select
-from typing import Callable
-from pydantic import BaseModel
 
-from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
     BrainRegion,
@@ -25,19 +21,18 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import (
     ensure_authorized_references,
-    ensure_result,
 )
 from app.filters.emodel import EModelFilterDep
 from app.routers.common import (
     FacetQueryParams,
     FacetsDep,
     SearchDep,
-    router_read_one,
     router_create_one,
     router_read_many,
+    router_read_one,
 )
 from app.schemas.emodel import EModelCreate, EModelRead
-from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.types import ListResponse
 
 router = APIRouter(
     prefix="/emodel",
@@ -45,7 +40,7 @@ router = APIRouter(
 )
 
 
-def emodel_joinedloads(select: Select):
+def emodel_joinedloads(select: Select[tuple[EModel]]):
     return select.options(
         joinedload(EModel.species),
         joinedload(EModel.strain),
@@ -126,7 +121,7 @@ def emodel_query(
         },
     }
 
-    def filter_query_operations(q: Select):
+    def filter_query_operations(q: Select[tuple[EModel]]) -> Select[tuple[EModel]]:
         return (
             q.join(Species, EModel.species_id == Species.id)
             .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
@@ -145,7 +140,7 @@ def emodel_query(
         user_context=user_context,
         with_search=with_search,
         facets=facets,
-        aliases=aliases,  # type: ignore
+        aliases=aliases,
         apply_filter_query_operations=filter_query_operations,
         apply_data_query_operations=emodel_joinedloads,
         pagination_request=pagination_request,

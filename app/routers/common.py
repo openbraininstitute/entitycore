@@ -103,11 +103,9 @@ def router_read_many[T: BaseModel](
         aliases=aliases,
     )
 
-    if issubclass(db_model_class, DescriptionVectorMixin):
-        filter_query = with_search(
-            filter_query,
-            db_model_class.description_vector,  # type:ignore[attr-defined]
-        )
+    if description_vector := getattr(db_model_class, "description_vector", None):
+        filter_query = with_search(filter_query, description_vector)
+
 
     data_query = (
         filter_model.sort(filter_query)

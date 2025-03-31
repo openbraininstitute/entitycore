@@ -2,10 +2,9 @@ from bidict import bidict
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from sqlalchemy import func
+from sqlalchemy import any_, func
 from sqlalchemy.orm import aliased
 
-from app import L
 from app.db.model import (
     Agent,
     AnalysisSoftwareSourceCode,
@@ -14,21 +13,21 @@ from app.db.model import (
     Contribution,
     EModel,
     Entity,
-    ETypeAnnotationBody,
+    ETypeClass,
     ExperimentalBoutonDensity,
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
     License,
     MEModel,
     Mesh,
-    MTypeAnnotationBody,
+    # MTypeAnnotationBody,
     ReconstructionMorphology,
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
     SingleNeuronSynaptome,
     Species,
-    StringList,
 )
+from app.logger import L
 
 MAP_TYPES = bidict(
     {
@@ -60,14 +59,14 @@ MAPPING_PER_TYPE = {
         "description": "description",
         "label": "label",
     },
-    ETypeAnnotationBody: {
+    ETypeClass: {
         "pref_label": "label",
         "definition": "definition",
     },
-    MTypeAnnotationBody: {
-        "pref_label": "label",
-        "definition": "definition",
-    },
+    # MTypeAnnotationBody: {
+    #    "pref_label": "label",
+    #    "definition": "definition",
+    # },
 }
 
 
@@ -89,12 +88,12 @@ def get_db_type(query):
 
 
 QUERY_PATH = {
-    "mType": {
-        "models": [Annotation, MTypeAnnotationBody],
-        "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
-    },
+    # "mType": {
+    #    "models": [Annotation, MTypeAnnotationBody],
+    #    "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
+    # },
     "eType": {
-        "models": [Annotation, ETypeAnnotationBody],
+        "models": [Annotation, ETypeClass],
         "joins": [("id", "entity_id"), ("annotation_body_id", "id")],
     },
     "brainRegion": {"models": [BrainRegion], "joins": [("brain_region_id", "id")]},
@@ -174,16 +173,13 @@ def build_response_elem(elem):
         mapping = {**MAPPING_PER_TYPE.get(elem.__class__, {}), **MAPPING_GLOBAL}
         for key, value in mapping.items():
             initial_dict[value] = jsonable_encoder(getattr(elem, key, ""))
-        if elem.__class__ in {
-            MTypeAnnotationBody,
-            ETypeAnnotationBody,
-        }:
+        if elem.__class__ == ETypeClass:
             initial_dict["@type"] = "Class"
         else:
             initial_dict["@type"] = [MAP_TYPES[elem.__class__]]
         initial_dict["@id"] = elem.legacy_id[0]
     except Exception:
-        L.exception("elem: %s", elem)
+        L.exception("elem: {}", elem)
         raise
     return {
         "_id": elem.legacy_id[0],
@@ -234,7 +230,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: C9
             }:
                 continue
             if key == "@id":
-                query = query.filter(StringList.in_(initial_alias.legacy_id, [value]))
+                query = query.filter(value == any_(initial_alias.legacy_id))
             else:
                 query = query.filter(getattr(db_type, key) == value)
         elif "terms" in must_term:
@@ -288,14 +284,14 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: C9
             if type(value) is not list:
                 value = [value]
             if property_ == "legacy_id":
-                query = query.filter(StringList.in_(column, value))
+                query = query.filter(value == any_(column))
             else:
                 query = query.filter(column.in_(value))
         elif "wildcard" in must_term:
             # TODO check if this is always hardcoded
             value = must_term["wildcard"]["name.keyword"]["value"]
             # TODO: remove hardcoded morphology_description_vector
-            query = query.filter(db_type.morphology_description_vector.match(value))
+            query = query.filter(db_type.description_vector.match(value))
 
         else:
             raise HTTPException(

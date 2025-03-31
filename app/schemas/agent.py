@@ -1,44 +1,40 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
     CreationMixin,
+    IdentifiableMixin,
 )
-
-# LNMC contributions
-# Reconstructor full name,
-# Experimenter full name,
-# LNMC/BBP,
-# EPFL, Switzerland
 
 
 class PersonBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     givenName: str
     familyName: str
     pref_label: str
-
-    class Config:
-        from_attributes = True
 
 
 class PersonCreate(PersonBase):
     legacy_id: str | None = None
 
 
-class PersonRead(PersonBase, CreationMixin):
-    pass
+class PersonRead(PersonBase, CreationMixin, IdentifiableMixin):
+    type: str
 
 
 class OrganizationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     pref_label: str
     alternative_name: str | None = None
-
-    class Config:
-        from_attributes = True
 
 
 class OrganizationCreate(OrganizationBase):
     legacy_id: str | None = None
 
 
-class OrganizationRead(OrganizationBase, CreationMixin):
-    pass
+class OrganizationRead(OrganizationBase, CreationMixin, IdentifiableMixin):
+    type: str
+
+
+type AgentRead = PersonRead | OrganizationRead

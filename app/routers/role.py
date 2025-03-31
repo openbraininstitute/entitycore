@@ -1,8 +1,15 @@
-from fastapi import APIRouter, HTTPException
+import uuid
+
+import sqlalchemy as sa
+from fastapi import APIRouter, Depends
 
 from app.db.model import Role
+from app.dependencies.auth import user_with_service_admin_role
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.schemas.role import RoleCreate, RoleRead
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/role",
@@ -10,27 +17,43 @@ router = APIRouter(
 )
 
 
-@router.get("/{role_id}", response_model=RoleRead)
-def read_person(role_id: int, db: SessionDep):
-    role = db.query(Role).filter(Role.id == role_id).first()
+@router.get("")
+def read_roles(db: SessionDep, pagination_request: PaginationQuery) -> ListResponse[RoleRead]:
+    query = sa.select(Role)
 
-    if role is None:
-        raise HTTPException(status_code=404, detail="role not found")
-    return RoleRead.model_validate(role)
-
-
-@router.post("/", response_model=RoleRead)
-def create_role(role: RoleCreate, db: SessionDep):
-    db_role = Role(
-        name=role.name,
-        role_id=role.role_id,
+    data = (
+        db.execute(query.offset(pagination_request.offset).limit(pagination_request.page_size))
+        .scalars()
+        .all()
     )
-    db.add(db_role)
+
+    total_items = db.execute(query.with_only_columns(sa.func.count(Role.id))).scalar_one()
+
+    response = ListResponse[RoleRead](
+        data=[RoleRead.model_validate(d) for d in data],
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
+
+
+@router.get("/{id_}", response_model=RoleRead)
+def read_role(id_: uuid.UUID, db: SessionDep):
+    with ensure_result(error_message="Role not found"):
+        stmt = sa.select(Role).filter(Role.id == id_)
+        row = db.execute(stmt).scalar_one()
+    return RoleRead.model_validate(row)
+
+
+@router.post("", dependencies=[Depends(user_with_service_admin_role)], response_model=RoleRead)
+def create_role(role: RoleCreate, db: SessionDep):
+    row = Role(name=role.name, role_id=role.role_id)
+    db.add(row)
     db.commit()
-    db.refresh(db_role)
-    return RoleRead.model_validate(db_role)
-
-
-@router.get("/", response_model=list[RoleRead])
-def read_role(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(Role).offset(skip).limit(limit).all()
+    db.refresh(row)
+    return row

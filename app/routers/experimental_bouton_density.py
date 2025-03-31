@@ -1,52 +1,83 @@
-from fastapi import APIRouter, HTTPException
+import uuid
 
-from app.db.model import (
-    BrainLocation,
-    ExperimentalBoutonDensity,
-)
+import sqlalchemy as sa
+from fastapi import APIRouter
+
+from app.db.auth import constrain_to_accessible_entities
+from app.db.model import ExperimentalBoutonDensity
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.schemas.density import (
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
 )
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
-    prefix="/experimental_bouton_density",
-    tags=["experimental_bouton_density"],
-    responses={404: {"description": "Not found"}},
+    prefix="/experimental-bouton-density",
+    tags=["experimental-bouton-density"],
 )
 
 
-@router.get("/", response_model=list[ExperimentalBoutonDensityRead])
-def read_experimental_bouton_densities(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(ExperimentalBoutonDensity).offset(skip).limit(limit).all()
-
-
-@router.get(
-    "/{experimental_bouton_density_id}",
-    response_model=ExperimentalBoutonDensityRead,
-)
-def read_experimental_bouton_density(experimental_bouton_density_id: int, db: SessionDep):
-    experimental_bouton_density = (
-        db.query(ExperimentalBoutonDensity)
-        .filter(ExperimentalBoutonDensity.id == experimental_bouton_density_id)
-        .first()
+@router.get("")
+def read_experimental_bouton_densities(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+) -> ListResponse[ExperimentalBoutonDensityRead]:
+    query = constrain_to_accessible_entities(
+        sa.select(ExperimentalBoutonDensity), user_context.project_id
     )
 
-    if experimental_bouton_density is None:
-        raise HTTPException(status_code=404, detail="experimental_bouton_density not found")
-    return ExperimentalBoutonDensityRead.model_validate(experimental_bouton_density)
+    data = db.execute(
+        query.offset(pagination_request.offset).limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(
+        query.with_only_columns(sa.func.count(ExperimentalBoutonDensity.id))
+    ).scalar_one()
+
+    response = ListResponse[ExperimentalBoutonDensityRead](
+        data=data,
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
 
 
-@router.post("/", response_model=ExperimentalBoutonDensityRead)
-def create_experimental_bouton_density(density: ExperimentalBoutonDensityCreate, db: SessionDep):
+@router.get("/{id_}", response_model=ExperimentalBoutonDensityRead)
+def read_experimental_bouton_density(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+):
+    with ensure_result(error_message="ExperimentalBoutonDensity not found"):
+        stmt = constrain_to_accessible_entities(
+            sa.select(ExperimentalBoutonDensity).filter(ExperimentalBoutonDensity.id == id_),
+            user_context.project_id,
+        )
+        row = db.execute(stmt).scalar_one()
+
+    return ExperimentalBoutonDensityRead.model_validate(row)
+
+
+@router.post("", response_model=ExperimentalBoutonDensityRead)
+def create_experimental_bouton_density(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    density: ExperimentalBoutonDensityCreate,
+):
     dump = density.model_dump()
 
-    if density.brain_location:
-        dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
-
-    db_experimental_bouton_density = ExperimentalBoutonDensity(**dump)
-    db.add(db_experimental_bouton_density)
+    row = ExperimentalBoutonDensity(**dump, authorized_project_id=user_context.project_id)
+    db.add(row)
     db.commit()
-    db.refresh(db_experimental_bouton_density)
-    return db_experimental_bouton_density
+    db.refresh(row)
+    return row

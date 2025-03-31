@@ -9,10 +9,11 @@ services:
       - APP_NAME
       - APP_VERSION
       - COMMIT_SHA
+      tags:
+      - "${IMAGE_NAME}:${IMAGE_TAG_ALIAS}"
     ports:
     - "127.0.0.1:8000:8000"
-    environment:
-    - APP_DEBUG=true
+    env_file: .env.run-docker
     develop:
       watch:
       - action: sync+restart
@@ -23,10 +24,12 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      minio:
+        condition: service_started
 
   db:
     profiles: [run]
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     environment:
     - POSTGRES_USER=entitycore
     - POSTGRES_PASSWORD=entitycore
@@ -42,11 +45,30 @@ services:
     restart: unless-stopped
     volumes:
     - pgdata:/var/lib/postgresql/data
+    - ./data:/data
     command:
     - postgres
-    - -clog_statement=all
+#    - -clog_statement=all
     - -clog_min_duration_statement=100ms
     - -clog_lock_waits=on
 
+  minio:
+    image: minio/minio:latest
+    environment:
+      MINIO_ROOT_USER: entitycore
+      MINIO_ROOT_PASSWORD: entitycore
+    ports:
+      - 127.0.0.1:9000:9000
+      - 127.0.0.1:9001:9001
+    volumes:
+    - s3data:/data
+    entrypoint: sh
+    command:
+      - -cx
+      - |
+        mkdir -p /data/entitycore-data-dev &&
+        minio server /data --console-address :9001
+
 volumes:
   pgdata: {}
+  s3data: {}

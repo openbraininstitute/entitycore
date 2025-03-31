@@ -1,81 +1,106 @@
+import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import UUID4, BaseModel, ConfigDict, Field
+
+
+class AuthorizationMixin(BaseModel):
+    authorized_project_id: UUID4
+    authorized_public: bool = False
+
+
+class AuthorizationOptionalPublicMixin(BaseModel):
+    authorized_public: bool = False
+
+
+class ProjectContext(BaseModel):
+    virtual_lab_id: UUID4
+    project_id: UUID4
+
+
+class OptionalProjectContext(BaseModel):
+    virtual_lab_id: UUID4 | None = None
+    project_id: UUID4 | None = None
+
+
+class IdentifiableMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
 
 
 class CreationMixin(BaseModel):
-    id: int
+    model_config = ConfigDict(from_attributes=True)
     creation_date: datetime
     update_date: datetime
 
     def dict(self, **kwargs):
-        result = super().dict(**kwargs)
+        result = super().model_dump(**kwargs)
         result["creation_date"] = (
             result["creation_date"].isoformat() if result["creation_date"] else None
         )
         result["update_date"] = result["update_date"].isoformat() if result["update_date"] else None
         return result
 
-    class Config:
-        from_attributes = True
-
 
 class LicenseCreate(BaseModel):
-    name: str
+    model_config = ConfigDict(from_attributes=True)
+    pref_label: str
+    alt_label: str | None = None
     description: str
 
-    class Config:
-        from_attributes = True
 
-
-class LicenseRead(LicenseCreate, CreationMixin):
+class LicenseRead(LicenseCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
-class BrainLocationCreate(BaseModel):
+class PointLocationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     x: float
     y: float
     z: float
 
-    class Config:
-        from_attributes = True
-
 
 class BrainRegionCreate(BaseModel):
-    ontology_id: str
+    model_config = ConfigDict(from_attributes=True)
+    id: int
     name: str
-    acronym: str | None = Field(None, description="should be allen notation acronym if it exists")
-
-    class Config:
-        from_attributes = True
+    acronym: str
+    children: list[int]
 
 
 class BrainRegionRead(BrainRegionCreate, CreationMixin):
     pass
 
 
+class BrainRegionCreateMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    brain_region_id: int
+
+
+class BrainRegionReadMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    brain_region: BrainRegionRead
+
+
 class StrainCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     taxonomy_id: str
-    species_id: int
-
-    class Config:
-        from_attributes = True
+    species_id: uuid.UUID
 
 
-class StrainRead(StrainCreate, CreationMixin):
+class StrainRead(StrainCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
 class SpeciesCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     taxonomy_id: str
 
-    class Config:
-        from_attributes = True
 
-
-class SpeciesRead(SpeciesCreate, CreationMixin):
+class SpeciesRead(SpeciesCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
@@ -112,40 +137,26 @@ class SubjectRead(CreationMixin):
 
 
 class LicensedCreateMixin(BaseModel):
-    license_id: int | None = None
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+    license_id: uuid.UUID | None = None
 
 
 class LicensedReadMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     license: LicenseRead | None
-
-    class Config:
-        from_attributes = True
 
 
 class MorphologyMeasurementSerieBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     value: float
 
-    class Config:
-        from_attributes = True
-
 
 class MeasurementCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     measurement_of: str
     measurement_serie: list[MorphologyMeasurementSerieBase]
 
-    class Config:
-        from_attributes = True
-
 
 class MeasurementRead(MeasurementCreate):
-    id: int
-
-
-class File(BaseModel):
-    path: str = Field(..., title="File Path", description="Path or URL to the file.")
-    format: str = Field(..., title="File Format", description="Format of the file (e.g., nwb, h5).")
-    size: int | None = Field(None, title="File Size", description="Size of the file in bytes.")
+    id: uuid.UUID

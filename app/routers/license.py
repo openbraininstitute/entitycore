@@ -1,38 +1,60 @@
-from fastapi import APIRouter, HTTPException
+import uuid
 
-from app.db.model import (
-    License,
-)
+import sqlalchemy as sa
+from fastapi import APIRouter, Depends
+
+from app.db.model import License
+from app.dependencies.auth import user_with_service_admin_role
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.schemas.base import (
-    LicenseCreate,
-    LicenseRead,
-)
+from app.errors import ensure_result
+from app.schemas.base import LicenseCreate, LicenseRead
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/license",
     tags=["license"],
-    responses={404: {"description": "Not found"}},
 )
 
 
-@router.get("/", response_model=list[LicenseRead])
-def read_licenses(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(License).offset(skip).limit(limit).all()
+@router.get("")
+def read_licenses(
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+) -> ListResponse[LicenseRead]:
+    query = sa.select(License)
+
+    data = db.execute(
+        query.offset(pagination_request.offset).limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(query.with_only_columns(sa.func.count(License.id))).scalar_one()
+
+    response = ListResponse[LicenseRead](
+        data=[LicenseRead.model_validate(d) for d in data],
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
 
 
-@router.get("/{license_id}", response_model=LicenseRead)
-def read_license(license_id: int, db: SessionDep):
-    license = db.query(License).filter(License.id == license_id).first()
-    if license is None:
-        raise HTTPException(status_code=404, detail="License not found")
-    return license
+@router.get("/{id_}", response_model=LicenseRead)
+def read_license(id_: uuid.UUID, db: SessionDep):
+    with ensure_result(error_message="License not found"):
+        stmt = sa.select(License).filter(License.id == id_)
+        row = db.execute(stmt).scalar_one()
+    return LicenseRead.model_validate(row)
 
 
-@router.post("/", response_model=LicenseRead)
+@router.post("", dependencies=[Depends(user_with_service_admin_role)], response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: SessionDep):
-    db_license = License(name=license.name, description=license.description)
-    db.add(db_license)
+    row = License(**license)
+    db.add(row)
     db.commit()
-    db.refresh(db_license)
-    return db_license
+    db.refresh(row)
+    return row

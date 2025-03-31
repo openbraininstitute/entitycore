@@ -1,49 +1,80 @@
-from fastapi import APIRouter, HTTPException
+import uuid
 
-from app.db.model import BrainLocation, ExperimentalNeuronDensity
+import sqlalchemy as sa
+from fastapi import APIRouter
+
+from app.db.auth import constrain_to_accessible_entities
+from app.db.model import ExperimentalNeuronDensity
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.schemas.density import (
-    ExperimentalNeuronDensityCreate,
-    ExperimentalNeuronDensityRead,
-)
+from app.errors import ensure_result
+from app.schemas.density import ExperimentalNeuronDensityCreate, ExperimentalNeuronDensityRead
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
-    prefix="/experimental_neuron_density",
-    tags=["experimental_neuron_density"],
-    responses={404: {"description": "Not found"}},
+    prefix="/experimental-neuron-density",
+    tags=["experimental-neuron-density"],
 )
 
 
-@router.get("/", response_model=list[ExperimentalNeuronDensityRead])
-def read_experimental_neuron_densities(db: SessionDep, skip: int = 0, limit: int = 10):
-    return db.query(ExperimentalNeuronDensity).offset(skip).limit(limit).all()
-
-
-@router.get(
-    "/{experimental_neuron_density_id}",
-    response_model=ExperimentalNeuronDensityRead,
-)
-def read_experimental_neuron_density(experimental_neuron_density_id: int, db: SessionDep):
-    experimental_neuron_density = (
-        db.query(ExperimentalNeuronDensity)
-        .filter(ExperimentalNeuronDensity.id == experimental_neuron_density_id)
-        .first()
+@router.get("")
+def read_experimental_neuron_densities(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+) -> ListResponse[ExperimentalNeuronDensityRead]:
+    query = constrain_to_accessible_entities(
+        sa.select(ExperimentalNeuronDensity), user_context.project_id
     )
 
-    if experimental_neuron_density is None:
-        raise HTTPException(status_code=404, detail="experimental_neuron_density not found")
-    return ExperimentalNeuronDensityRead.model_validate(experimental_neuron_density)
+    data = db.execute(
+        query.offset(pagination_request.offset).limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(
+        query.with_only_columns(sa.func.count(ExperimentalNeuronDensity.id))
+    ).scalar_one()
+
+    response = ListResponse[ExperimentalNeuronDensityRead](
+        data=data,
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+
+    return response
 
 
-@router.post("/", response_model=ExperimentalNeuronDensityRead)
-def create_experimental_neuron_density(density: ExperimentalNeuronDensityCreate, db: SessionDep):
+@router.get("/{id_}", response_model=ExperimentalNeuronDensityRead)
+def read_experimental_neuron_density(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+):
+    with ensure_result(error_message="ExperimentalNeuronDensity not found"):
+        stmt = constrain_to_accessible_entities(
+            sa.select(ExperimentalNeuronDensity).filter(ExperimentalNeuronDensity.id == id_),
+            user_context.project_id,
+        )
+        row = db.execute(stmt).scalar_one()
+
+    return ExperimentalNeuronDensityRead.model_validate(row)
+
+
+@router.post("", response_model=ExperimentalNeuronDensityRead)
+def create_experimental_neuron_density(
+    user_context: UserContextWithProjectIdDep,
+    density: ExperimentalNeuronDensityCreate,
+    db: SessionDep,
+):
     dump = density.model_dump()
 
-    if density.brain_location:
-        dump["brain_location"] = BrainLocation(**density.brain_location.model_dump())
-
-    db_experimental_neuron_density = ExperimentalNeuronDensity(**dump)
-    db.add(db_experimental_neuron_density)
+    row = ExperimentalNeuronDensity(**dump, authorized_project_id=user_context.project_id)
+    db.add(row)
     db.commit()
-    db.refresh(db_experimental_neuron_density)
-    return db_experimental_neuron_density
+    db.refresh(row)
+    return row

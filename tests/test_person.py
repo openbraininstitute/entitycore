@@ -1,6 +1,11 @@
-def test_create_person(client):
-    response = client.post(
-        "/person/",
+from tests.utils import MISSING_ID, MISSING_ID_COMPACT
+
+ROUTE = "/person"
+
+
+def test_create_person(client, client_admin):
+    response = client_admin.post(
+        ROUTE,
         json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"},
     )
     assert response.status_code == 200
@@ -9,22 +14,30 @@ def test_create_person(client):
     assert data["familyName"] == "courcol"
     assert "id" in data
     id_ = data["id"]
-    response = client.get(f"/person/{id_}")
+
+    response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
     assert data["givenName"] == "jd"
     assert data["id"] == id_
-    response = client.get("/person/")
+
+    response = client.get(ROUTE)
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert data[0]["givenName"] == "jd"
     assert data[0]["id"] == id_
     assert len(data) == 1
 
 
-def test_missing_person(client):
-    response = client.get("/person/42424242")
+def test_missing(client):
+    response = client.get(f"{ROUTE}/{MISSING_ID}")
     assert response.status_code == 404
 
-    response = client.get("/person/notanumber")
+    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}")
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/42424242")
+    assert response.status_code == 422
+
+    response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422

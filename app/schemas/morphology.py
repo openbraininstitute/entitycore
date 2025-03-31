@@ -1,51 +1,72 @@
-from pydantic import BaseModel
+import uuid
+from collections.abc import Sequence
 
+from pydantic import BaseModel, ConfigDict
+
+from app.schemas.annotation import MTypeClassRead
+from app.schemas.asset import AssetRead
 from app.schemas.base import (
-    BrainLocationCreate,
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
     MeasurementCreate,
     MeasurementRead,
+    PointLocationBase,
     SpeciesRead,
     StrainRead,
 )
+from app.schemas.contribution import ContributionReadWithoutEntity
 
 
 class ReconstructionMorphologyBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
-    brain_location: BrainLocationCreate | None
-
-    class Config:
-        from_attributes = True
+    location: PointLocationBase | None
+    legacy_id: list[str] | None
 
 
-class ReconstructionMorphologyCreate(ReconstructionMorphologyBase, LicensedCreateMixin):
-    species_id: int
-    strain_id: int
+class ReconstructionMorphologyCreate(
+    ReconstructionMorphologyBase,
+    LicensedCreateMixin,
+    AuthorizationOptionalPublicMixin,
+):
+    species_id: uuid.UUID
+    strain_id: uuid.UUID | None
     brain_region_id: int
-    legacy_id: str | None
+    legacy_id: list[str] | None
 
 
 class MorphologyFeatureAnnotationCreate(BaseModel):
-    reconstruction_morphology_id: int
-    measurements: list[MeasurementCreate]
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+    reconstruction_morphology_id: uuid.UUID
+    measurements: Sequence[MeasurementCreate]
 
 
-class MorphologyFeatureAnnotationRead(MorphologyFeatureAnnotationCreate, CreationMixin):
-    measurements: list[MeasurementRead]
+class MorphologyFeatureAnnotationRead(
+    MorphologyFeatureAnnotationCreate, CreationMixin, IdentifiableMixin
+):
+    measurements: Sequence[MeasurementRead]
 
 
-class ReconstructionMorphologyRead(ReconstructionMorphologyBase, CreationMixin, LicensedReadMixin):
+class ReconstructionMorphologyRead(
+    ReconstructionMorphologyBase,
+    CreationMixin,
+    IdentifiableMixin,
+    LicensedReadMixin,
+    AuthorizationMixin,
+):
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
+    contributions: list[ContributionReadWithoutEntity] | None
+    mtypes: list[MTypeClassRead] | None
+    assets: list[AssetRead] | None
 
 
-class ReconstructionMorphologyExpand(ReconstructionMorphologyRead):
-    morphology_feature_annotation: MorphologyFeatureAnnotationCreate | None
+class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):
+    morphology_feature_annotation: MorphologyFeatureAnnotationRead

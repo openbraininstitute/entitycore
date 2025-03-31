@@ -1,10 +1,10 @@
-from pydantic import BaseModel
+import uuid
 
-from app.schemas.agent import PersonRead
-from app.schemas.base import (
-    CreationMixin,
-)
-from app.schemas.morphology import ReconstructionMorphologyRead
+from pydantic import BaseModel, ConfigDict
+
+from app.schemas.agent import AgentRead
+from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.entity import EntityRead
 from app.schemas.role import RoleRead
 
 # LNMC contributions
@@ -15,17 +15,21 @@ from app.schemas.role import RoleRead
 
 
 class ContributionBase(BaseModel):
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ContributionCreate(ContributionBase):
-    agent_id: int
-    role_id: int
-    entity_id: int
+    agent_id: uuid.UUID
+    role_id: uuid.UUID
+    entity_id: uuid.UUID
 
 
-class ContributionRead(ContributionBase, CreationMixin):
-    agent: PersonRead
+class ContributionRead(ContributionBase, CreationMixin, IdentifiableMixin):
+    agent: AgentRead
     role: RoleRead
-    entity: ReconstructionMorphologyRead
+    entity: EntityRead
+
+
+class ContributionReadWithoutEntity(ContributionBase, CreationMixin, IdentifiableMixin):
+    agent: AgentRead
+    role: RoleRead

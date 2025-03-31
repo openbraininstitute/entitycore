@@ -1,130 +1,215 @@
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+import sqlalchemy as sa
+from fastapi import APIRouter, Query
 from fastapi_filter import FilterDepends
-from sqlalchemy import func
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import (
+    aliased,
+    joinedload,
+    raiseload,
+    selectinload,
+)
 
+from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
-    BrainLocation,
+    Agent,
+    Contribution,
+    MorphologyFeatureAnnotation,
+    MorphologyMeasurement,
+    MTypeClass,
+    MTypeClassification,
     ReconstructionMorphology,
     Species,
     Strain,
 )
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
+from app.routers.common import FacetQueryParams, _get_facets
 from app.schemas.morphology import (
+    ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
-    ReconstructionMorphologyExpand,
     ReconstructionMorphologyRead,
 )
+from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
-    prefix="/reconstruction_morphology",
-    tags=["reconstruction_morphology"],
-    responses={404: {"description": "Not found"}},
+    prefix="/reconstruction-morphology",
+    tags=["reconstruction-morphology"],
 )
 
 
 @router.get(
-    "/{rm_id}",
-    response_model=ReconstructionMorphologyExpand | ReconstructionMorphologyRead,
+    "/{id_}",
+    response_model=ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead,
 )
-def read_reconstruction_morphology(db: SessionDep, rm_id: int, expand: str | None = None):
-    rm = db.query(ReconstructionMorphology).filter(ReconstructionMorphology.id == rm_id).first()
+def read_reconstruction_morphology(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    expand: Annotated[set[str] | None, Query()] = None,
+):
+    with ensure_result(error_message="ReconstructionMorphology not found"):
+        query = constrain_to_accessible_entities(
+            sa.select(ReconstructionMorphology), user_context.project_id
+        ).filter(ReconstructionMorphology.id == id_)
 
-    if rm is None:
-        raise HTTPException(status_code=404, detail="ReconstructionMorphology not found")
+        if expand and "morphology_feature_annotation" in expand:
+            query = query.options(
+                joinedload(ReconstructionMorphology.morphology_feature_annotation)
+                .selectinload(MorphologyFeatureAnnotation.measurements)
+                .selectinload(MorphologyMeasurement.measurement_serie)
+            )
+
+        query = (
+            query.options(joinedload(ReconstructionMorphology.brain_region))
+            .options(
+                selectinload(ReconstructionMorphology.contributions).selectinload(
+                    Contribution.agent
+                )
+            )
+            .options(
+                selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role)
+            )
+            .options(joinedload(ReconstructionMorphology.mtypes))
+            .options(joinedload(ReconstructionMorphology.license))
+            .options(joinedload(ReconstructionMorphology.species))
+            .options(joinedload(ReconstructionMorphology.strain))
+            .options(selectinload(ReconstructionMorphology.assets))
+            .options(raiseload("*"))
+        )
+
+        row = db.execute(query).unique().scalar_one()
 
     if expand and "morphology_feature_annotation" in expand:
-        return ReconstructionMorphologyExpand.model_validate(rm)
+        return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)
+
     # added back with None by the response_model
-    return ReconstructionMorphologyRead.model_validate(rm)
+    return ReconstructionMorphologyRead.model_validate(row)
 
 
-@router.post("/", response_model=ReconstructionMorphologyRead)
+@router.post("", response_model=ReconstructionMorphologyRead)
 def create_reconstruction_morphology(
-    reconstruction: ReconstructionMorphologyCreate,
+    user_context: UserContextWithProjectIdDep,
     db: SessionDep,
+    reconstruction: ReconstructionMorphologyCreate,
 ):
-    brain_location = None
-
-    if reconstruction.brain_location:
-        brain_location = BrainLocation(**reconstruction.brain_location.model_dump())
-
-    db_reconstruction_morphology = ReconstructionMorphology(
+    db_rm = ReconstructionMorphology(
         name=reconstruction.name,
         description=reconstruction.description,
-        brain_location=brain_location,
+        location=reconstruction.location,
         brain_region_id=reconstruction.brain_region_id,
         species_id=reconstruction.species_id,
         strain_id=reconstruction.strain_id,
         license_id=reconstruction.license_id,
+        authorized_project_id=user_context.project_id,
+        authorized_public=reconstruction.authorized_public,
     )
-    db.add(db_reconstruction_morphology)
+    db.add(db_rm)
     db.commit()
-    db.refresh(db_reconstruction_morphology)
-    return db_reconstruction_morphology
+    db.refresh(db_rm)
+
+    return db_rm
 
 
-@router.get("/", response_model=list[ReconstructionMorphologyRead])
-def read_reconstruction_morphologies(
-    morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
-    db: SessionDep,
-    skip: int = 0,
-    limit: int = 10,
-):
-    query = db.query(ReconstructionMorphology)
-    query = morphology_filter.filter(query)
-    return morphology_filter.sort(query).offset(skip).limit(limit).all()
-
-
-@router.get("/q/")
+@router.get("")
 def morphology_query(
-    req: Request,
-    session: SessionDep,
-    term: str | None = None,
-    skip: int = 0,
-    limit: int = 10,
-):
-    # brain_region_id, species_id, strain_id
-    args = req.query_params
-    name_to_table = {
-        "species": Species,
-        "strain": Strain,
+    *,
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    morphology_filter: Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)],
+    search: str | None = None,
+    with_facets: bool = False,
+) -> ListResponse[ReconstructionMorphologyRead]:
+    agent_alias = aliased(Agent, flat=True)
+    name_to_facet_query_params: dict[str, FacetQueryParams] = {
+        "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
+        "species": {"id": Species.id, "label": Species.name},
+        "strain": {"id": Strain.id, "label": Strain.name},
+        "contribution": {
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
+        },
     }
-    facets = {}
-    for ty, table in name_to_table.items():
-        types = aliased(table)
-        facet_q = (
-            session.query(types.name, func.count().label("count"))
-            .join(
-                ReconstructionMorphology,
-                getattr(ReconstructionMorphology, ty + "_id") == types.id,
-            )
-            .filter(ReconstructionMorphology.morphology_description_vector.match(term))
-            .group_by(types.name)
-        )
 
-        for other_ty, other_table in name_to_table.items():
-            if value := args.get(other_ty, None):
-                other_types = aliased(other_table)
-                facet_q = facet_q.join(
-                    other_types,
-                    getattr(ReconstructionMorphology, other_ty + "_id") == other_types.id,
-                ).where(other_types.name == value)
-        facets[ty] = {r.name: r.count for r in facet_q.all()}
-    rms = (
-        session.query(ReconstructionMorphology)
-        .where(ReconstructionMorphology.morphology_description_vector.match(term))
-        .offset(skip)
-        .limit(limit)
-        .all()
+    filter_query = (
+        constrain_to_accessible_entities(
+            sa.select(ReconstructionMorphology), project_id=user_context.project_id
+        )
+        .join(Species, ReconstructionMorphology.species_id == Species.id)
+        .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
+        .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
+        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+        .outerjoin(
+            MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id
+        )
+        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
-    res = {
-        "data": [ReconstructionMorphologyRead.model_validate(rm) for rm in rms],
-        "facets": facets,
-    }
-    return JSONResponse(content=jsonable_encoder(res))
+
+    if search:
+        filter_query = filter_query.where(ReconstructionMorphology.description_vector.match(search))
+
+    filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
+
+    if with_facets:
+        facets = _get_facets(
+            db,
+            filter_query,
+            name_to_facet_query_params=name_to_facet_query_params,
+            count_distinct_field=ReconstructionMorphology.id,
+        )
+    else:
+        facets = None
+
+    distinct_ids_subquery = (
+        morphology_filter.sort(filter_query)
+        .with_only_columns(ReconstructionMorphology)
+        .distinct()
+        .offset(pagination_request.offset)
+        .limit(pagination_request.page_size)
+    ).subquery("distinct_ids")
+
+    # TODO: load person.* and organization.* eagerly
+    data_query = (
+        morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
+        .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
+        .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
+        .options(joinedload(ReconstructionMorphology.strain))
+        .options(
+            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.agent)
+        )
+        .options(
+            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role)
+        )
+        .options(joinedload(ReconstructionMorphology.mtypes))
+        .options(joinedload(ReconstructionMorphology.brain_region))
+        .options(joinedload(ReconstructionMorphology.license))
+        .options(selectinload(ReconstructionMorphology.assets))
+        .options(raiseload("*"))
+    )
+
+    # unique is needed b/c it contains results that include joined eager loads against collections
+    data = db.execute(data_query).scalars().unique()
+
+    total_items = db.execute(
+        filter_query.with_only_columns(
+            sa.func.count(sa.func.distinct(ReconstructionMorphology.id)).label("count")
+        )
+    ).scalar_one()
+
+    response = ListResponse[ReconstructionMorphologyRead](
+        data=data,
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=facets,
+    )
+
+    return response

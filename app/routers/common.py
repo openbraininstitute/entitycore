@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.auth import constrain_to_accessible_entities
-from app.db.model import DescriptionVectorMixin, Entity, Root
+from app.db.model import Entity, Root
 from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets
 from app.errors import ensure_result
 from app.filters.base import CustomFilter
@@ -98,7 +98,6 @@ def router_read_many[T: BaseModel](
 
     if description_vector := getattr(db_model_class, "description_vector", None):
         filter_query = with_search(filter_query, description_vector)
-
 
     data_query = (
         filter_model.sort(filter_query)

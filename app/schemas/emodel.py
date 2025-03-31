@@ -8,6 +8,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    IdentifiableMixin,
     SpeciesRead,
     StrainRead,
 )
@@ -15,7 +16,7 @@ from app.schemas.contribution import ContributionReadWithoutEntity
 from app.schemas.morphology import ReconstructionMorphologyBase
 
 
-class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase):
+class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase, IdentifiableMixin):
     pass
 
 
@@ -30,7 +31,7 @@ class EModelBase(BaseModel):
 
 class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     species_id: uuid.UUID
-    strain_id: uuid.UUID | None
+    strain_id: uuid.UUID | None = None
     brain_region_id: int
     exemplar_morphology_id: uuid.UUID
 

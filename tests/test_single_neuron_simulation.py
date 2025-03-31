@@ -24,22 +24,7 @@ def _create_single_neuron_simulation_id(db, data):
     return add_db(db, SingleNeuronSimulation(**data)).id
 
 
-@pytest.fixture
-def me_model_id(db, brain_region_id):
-    return _create_me_model_id(
-        db,
-        {
-            "name": "my-me-model",
-            "description": "my-description",
-            "status": "started",
-            "validated": False,
-            "brain_region_id": brain_region_id,
-            "authorized_project_id": PROJECT_ID,
-        },
-    )
-
-
-def test_single_neuron_simulation(client, brain_region_id, me_model_id):
+def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     response = assert_request(
         client.post,
         url=ROUTE,
@@ -48,7 +33,7 @@ def test_single_neuron_simulation(client, brain_region_id, me_model_id):
             "description": "my-description",
             "injectionLocation": ["soma[0]"],
             "recordingLocation": ["soma[0]_0.5"],
-            "me_model_id": str(me_model_id),
+            "me_model_id": memodel_id,
             "status": "success",
             "seed": 1,
             "authorized_public": False,
@@ -64,7 +49,7 @@ def test_single_neuron_simulation(client, brain_region_id, me_model_id):
     assert data["name"] == "foo"
     assert data["injectionLocation"] == ["soma[0]"]
     assert data["recordingLocation"] == ["soma[0]_0.5"]
-    assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
+    assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
 
@@ -77,7 +62,7 @@ def test_single_neuron_simulation(client, brain_region_id, me_model_id):
     assert data["name"] == "foo"
     assert data["injectionLocation"] == ["soma[0]"]
     assert data["recordingLocation"] == ["soma[0]_0.5"]
-    assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
+    assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
 
@@ -100,14 +85,14 @@ def test_missing(client, route_id, expected_status_code):
 
 
 def test_authorization(
-    client_user_1, client_user_2, client_no_project, me_model_id, brain_region_id
+    client_user_1, client_user_2, client_no_project, memodel_id, brain_region_id
 ):
     json_data = {
         "name": "foo",
         "description": "my-description",
         "injectionLocation": ["soma[0]"],
         "recordingLocation": ["soma[0]_0.5"],
-        "me_model_id": str(me_model_id),
+        "me_model_id": memodel_id,
         "status": "failure",
         "seed": 1,
         "brain_region_id": str(brain_region_id),
@@ -165,16 +150,17 @@ def test_authorization(
     assert data[0]["id"] == public_morph["id"]
 
 
-def test_pagination(db, client, brain_region_id):
+def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id):
     me_model_1 = add_db(
         db,
         MEModel(
             name="me-model-1",
             description="my-description-1",
-            status="foo",
-            validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            emodel_id=emodel_id,
+            morphology_id=morphology_id,
+            species_id=species_id,
         ),
     )
     me_model_2 = add_db(
@@ -182,10 +168,11 @@ def test_pagination(db, client, brain_region_id):
         MEModel(
             name="my-me-model",
             description="my-description",
-            status="foo",
-            validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            emodel_id=emodel_id,
+            morphology_id=morphology_id,
+            species_id=species_id,
         ),
     )
 
@@ -219,7 +206,7 @@ def test_pagination(db, client, brain_region_id):
 
 
 @pytest.fixture
-def faceted_ids(db, client_admin):
+def faceted_ids(db, client_admin, emodel_id, morphology_id, species_id):
     brain_region_ids = [
         create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
     ]
@@ -229,9 +216,11 @@ def faceted_ids(db, client_admin):
             {
                 "name": f"me-model-{i}",
                 "description": f"description-{i}",
-                "validated": False,
                 "brain_region_id": brain_region_ids[i],
                 "authorized_project_id": PROJECT_ID,
+                "emodel_id": emodel_id,
+                "morphology_id": morphology_id,
+                "species_id": species_id,
             },
         )
         for i in range(2)

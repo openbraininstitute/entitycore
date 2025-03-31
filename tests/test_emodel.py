@@ -1,20 +1,15 @@
 import itertools as it
 import uuid
-from collections.abc import Callable
 
 from fastapi.testclient import TestClient
 
-from .conftest import Ids
+from .conftest import CreateIds, EModelIds
 from .utils import create_reconstruction_morphology_id
 
 ROUTE = "/emodel"
 
-CreateEModelIds = Callable[[int], list[uuid.UUID]]
 
-
-def test_create_emodel(
-    client: TestClient, species_id, strain_id, brain_region_id, exemplar_morphology_id
-):
+def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, morphology_id):
     response = client.post(
         ROUTE,
         json={
@@ -26,7 +21,7 @@ def test_create_emodel(
             "iteration": "test iteration",
             "score": -1,
             "seed": -1,
-            "exemplar_morphology_id": exemplar_morphology_id,
+            "exemplar_morphology_id": morphology_id,
         },
     )
     assert response.status_code == 200, f"Failed to create emodel: {response.text}"
@@ -39,9 +34,10 @@ def test_create_emodel(
     assert response.status_code == 200, f"Failed to get emodels: {response.text}"
 
 
-def test_get_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
+def test_get_emodel(client: TestClient, create_emodel_ids: CreateIds):
     emodel_id = str(create_emodel_ids(1)[0])
     response = client.get(f"{ROUTE}/{emodel_id}")
+
     assert response.status_code == 200
     assert response.json()["id"] == emodel_id
 
@@ -54,7 +50,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_query_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
+def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     count = 11
     create_emodel_ids(count)
 
@@ -72,7 +68,7 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateEModelIds):
     assert len(data) == 11
 
 
-def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateEModelIds):
+def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):
     count = 11
     emodel_ids = create_emodel_ids(count)
 
@@ -99,9 +95,8 @@ def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateEModelIds):
     assert [row["id"] for row in data] == [str(id_) for id_ in emodel_ids][:3]
 
 
-def test_facets(client: TestClient, create_faceted_emodel_ids: Ids):
-    ids = create_faceted_emodel_ids
-
+def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
+    ids = faceted_emodel_ids
     response = client.get(ROUTE, params={"with_facets": True})
     assert response.status_code == 200
     data = response.json()
@@ -185,8 +180,12 @@ def test_authorization(
     species_id,
     strain_id,
     brain_region_id,
-    exemplar_morphology_id,
+    morphology_id,
 ):
+    public_morphology_id = create_reconstruction_morphology_id(
+        client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
+    )
+
     emodel_json = {
         "brain_region_id": brain_region_id,
         "description": "morph description",
@@ -194,7 +193,7 @@ def test_authorization(
         "name": "Test Morphology Name",
         "species_id": species_id,
         "strain_id": strain_id,
-        "exemplar_morphology_id": exemplar_morphology_id,
+        "exemplar_morphology_id": morphology_id,
         "score": 0,
         "iteration": "0",
         "seed": 0,
@@ -203,6 +202,7 @@ def test_authorization(
     public_emodel = client_user_1.post(
         ROUTE,
         json=emodel_json
+        | {"exemplar_morphology_id": public_morphology_id}
         | {
             "name": "public emodel",
             "authorized_public": True,
@@ -214,6 +214,12 @@ def test_authorization(
     unauthorized_exemplar_morphology = client_user_2.post(ROUTE, json=emodel_json)
 
     assert unauthorized_exemplar_morphology.status_code == 403
+
+    unauthorized_public_with_private_exemplar_morphology = client_user_1.post(
+        ROUTE, json=emodel_json | {"authorized_public": True}
+    )
+
+    assert unauthorized_public_with_private_exemplar_morphology.status_code == 403
 
     exemplar_morphology_id = create_reconstruction_morphology_id(
         client_user_2,
@@ -233,7 +239,12 @@ def test_authorization(
 
     inaccessible_obj = inaccessible_obj.json()
 
-    private_emodel0 = client_user_1.post(ROUTE, json=emodel_json | {"name": "private emodel 0"})
+    # Public Morphology reference authorized from private emodel
+    private_emodel0 = client_user_1.post(
+        ROUTE,
+        json=emodel_json
+        | {"name": "private emodel 0", "exemplar_morphology_id": public_morphology_id},
+    )
     assert private_emodel0.status_code == 200
     private_emodel0 = private_emodel0.json()
 

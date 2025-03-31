@@ -5,12 +5,12 @@ from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 from app.db.model import (
     EModel,
     Entity,
+    MEModel,
     ReconstructionMorphology,
     SingleNeuronSimulation,
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
 )
-from app.errors import PostgresInternalErrorCode
 
 
 def description_vector_trigger(
@@ -54,14 +54,19 @@ def unauthorized_private_reference_function(
                     SELECT 1 FROM entity e1
                     JOIN entity e2 ON e2.id = NEW.id
                     WHERE e1.id = NEW.{field_name}
-                    AND (e1.authorized_public = TRUE OR e1.authorized_project_id = e2.authorized_project_id)
+                    AND (e1.authorized_public = TRUE
+                        OR (e2.authorized_public = FALSE
+                            AND e1.authorized_project_id = e2.authorized_project_id
+                        )
+                    )
                 ) THEN
-                    RAISE EXCEPTION '{PostgresInternalErrorCode.UNAUTHORIZED_PRIVATE_REFERENCE}';
+                    RAISE EXCEPTION 'unauthorized private reference'
+                        USING ERRCODE = '42501'; -- Insufficient Privilege
                 END IF;
                 RETURN NEW;
             END;
             $$ LANGUAGE plpgsql;
-        """,  # noqa: S608, E501
+        """,  # noqa: S608
     )
 
 
@@ -97,6 +102,12 @@ entities = [
         ["description", "name"],
     ),
     description_vector_trigger(
+        MEModel,
+        "memodel_description_vector",
+        "description_vector",
+        ["description", "name"],
+    ),
+    description_vector_trigger(
         SingleNeuronSimulation,
         "single_neuron_simulation_description_vector",
         "description_vector",
@@ -120,4 +131,8 @@ entities = [
     unauthorized_private_reference_trigger(
         EModel, "exemplar_morphology_id", ReconstructionMorphology
     ),
+    unauthorized_private_reference_function(MEModel, "morphology_id", ReconstructionMorphology),
+    unauthorized_private_reference_trigger(MEModel, "morphology_id", ReconstructionMorphology),
+    unauthorized_private_reference_function(MEModel, "emodel_id", EModel),
+    unauthorized_private_reference_trigger(MEModel, "emodel_id", EModel),
 ]

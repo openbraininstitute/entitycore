@@ -4,11 +4,7 @@ from app.db.model import SingleNeuronSimulation
 from app.db.types import SingleNeuronSimulationStatus
 from app.filters.base import CustomFilter
 from app.filters.common import ContributionFilterMixin, CreationFilterMixin
-
-
-class MEModelFilter(CustomFilter):
-    # TODO: Replace this with actual filter when merged
-    id: int | None = None
+from app.filters.memodel import MEModelFilter
 
 
 class SingleNeuronSimulationFilter(

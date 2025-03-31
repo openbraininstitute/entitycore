@@ -7,8 +7,8 @@ from enum import StrEnum, auto
 from http import HTTPStatus
 from typing import Any
 
-from psycopg2.errors import UniqueViolation
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from psycopg2.errors import InsufficientPrivilege, UniqueViolation
+from sqlalchemy.exc import IntegrityError, NoResultFound, ProgrammingError
 
 from app.utils.enum import UpperStrEnum
 
@@ -39,10 +39,6 @@ class ApiErrorCode(UpperStrEnum):
     ENTITY_DUPLICATED = auto()
     ASSET_NOT_FOUND = auto()
     ASSET_DUPLICATED = auto()
-
-
-class PostgresInternalErrorCode(UpperStrEnum):
-    UNAUTHORIZED_PRIVATE_REFERENCE = auto()
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -102,5 +98,20 @@ def ensure_uniqueness(
                 message=error_message,
                 error_code=error_code,
                 http_status_code=HTTPStatus.CONFLICT,
+            ) from err
+        raise
+
+
+@contextmanager
+def ensure_authorized_references(
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
+) -> Iterator[None]:
+    """Context manager that raises ApiError when an InsufficientPrivilage error is raised."""
+    try:
+        yield
+    except ProgrammingError as err:
+        if isinstance(err.orig, InsufficientPrivilege):
+            raise ApiError(
+                message=error_message, error_code=error_code, http_status_code=HTTPStatus.FORBIDDEN
             ) from err
         raise

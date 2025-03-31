@@ -12,34 +12,17 @@ from .utils import (
     assert_request,
     create_brain_region_id,
 )
+from tests.conftest import CreateIds
 
 ROUTE = "/single-neuron-synaptome"
 
 
-def _create_me_model_id(db, data):
-    return add_db(db, MEModel(**data)).id
-
-
 @pytest.fixture
-def me_model_id(db, brain_region_id):
-    return _create_me_model_id(
-        db,
-        {
-            "name": "my-me-model",
-            "description": "my-description",
-            "validated": False,
-            "brain_region_id": brain_region_id,
-            "authorized_project_id": PROJECT_ID,
-        },
-    )
-
-
-@pytest.fixture
-def json_data(brain_region_id, me_model_id):
+def json_data(brain_region_id, memodel_id):
     return {
         "name": "my-synaptome",
         "description": "my-description",
-        "me_model_id": str(me_model_id),
+        "me_model_id": str(memodel_id),
         "seed": 1,
         "brain_region_id": str(brain_region_id),
     }
@@ -55,7 +38,7 @@ def single_neuron_synaptome_id(db, json_data):
     return _create_single_neuron_synaptome_id(db, data)
 
 
-def test_create_one(client, brain_region_id, me_model_id, json_data):
+def test_create_one(client, brain_region_id, memodel_id, json_data):
     data = assert_request(
         client.post,
         url=ROUTE,
@@ -67,11 +50,11 @@ def test_create_one(client, brain_region_id, me_model_id, json_data):
     )
     assert data["description"] == "my-description"
     assert data["name"] == "my-synaptome"
-    assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
+    assert data["me_model"]["id"] == str(memodel_id), f"Failed to get id frmo me model; {data}"
     assert data["authorized_project_id"] == PROJECT_ID
 
 
-def test_read_one(client, brain_region_id, single_neuron_synaptome_id, me_model_id):
+def test_read_one(client, brain_region_id, single_neuron_synaptome_id, memodel_id):
     data = assert_request(
         client.get,
         url=f"{ROUTE}/{single_neuron_synaptome_id}",
@@ -81,7 +64,7 @@ def test_read_one(client, brain_region_id, single_neuron_synaptome_id, me_model_
     )
     assert data["description"] == "my-description"
     assert data["name"] == "my-synaptome"
-    assert data["me_model"]["id"] == str(me_model_id), f"Failed to get id frmo me model; {data}"
+    assert data["me_model"]["id"] == str(memodel_id), f"Failed to get id frmo me model; {data}"
     assert data["authorized_project_id"] == PROJECT_ID
 
 
@@ -168,16 +151,17 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
     assert data[0]["id"] == public_morph["id"]
 
 
-def test_pagination(db, client, brain_region_id):
+def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id):
     me_model_1 = add_db(
         db,
         MEModel(
             name="me-model-1",
             description="my-description-1",
-            status="foo",
-            validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            emodel_id=emodel_id,
+            morphology_id=morphology_id,
+            species_id=species_id,
         ),
     )
     me_model_2 = add_db(
@@ -185,10 +169,11 @@ def test_pagination(db, client, brain_region_id):
         MEModel(
             name="my-me-model",
             description="my-description",
-            status="foo",
-            validated=False,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            emodel_id=emodel_id,
+            morphology_id=morphology_id,
+            species_id=species_id,
         ),
     )
 
@@ -223,44 +208,30 @@ def test_pagination(db, client, brain_region_id):
 
 
 @pytest.fixture
-def faceted_ids(db, client_admin):
+def faceted_ids(db, client_admin, create_memodel_ids: CreateIds):
     brain_region_ids = [
         create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
     ]
-    me_model_ids = [
-        _create_me_model_id(
-            db,
-            {
-                "name": f"me-model-{i}",
-                "description": f"description-{i}",
-                "validated": False,
-                "brain_region_id": brain_region_ids[i],
-                "authorized_project_id": PROJECT_ID,
-            },
-        )
-        for i in range(2)
-    ]
+    memodel_ids = create_memodel_ids(2)
     single_simulation_synaptome_ids = [
         _create_single_neuron_synaptome_id(
             db,
             {
                 "name": f"synaptome-{i}",
-                "description": f"brain-region-{brain_region_id} me-model-{me_model_id}",
-                "me_model_id": str(me_model_id),
+                "description": f"brain-region-{brain_region_id} me-model-{memodel_id}",
+                "me_model_id": str(memodel_id),
                 "seed": i,
                 "brain_region_id": str(brain_region_id),
                 "authorized_project_id": PROJECT_ID,
             },
         )
-        for i, (me_model_id, brain_region_id) in enumerate(
-            it.product(me_model_ids, brain_region_ids)
-        )
+        for i, (memodel_id, brain_region_id) in enumerate(it.product(memodel_ids, brain_region_ids))
     ]
-    return brain_region_ids, me_model_ids, single_simulation_synaptome_ids
+    return brain_region_ids, memodel_ids, single_simulation_synaptome_ids
 
 
 def test_facets(client, faceted_ids):
-    brain_region_ids, me_model_ids, _ = faceted_ids
+    brain_region_ids, memodel_ids, _ = faceted_ids
 
     data = assert_request(
         client.get,
@@ -278,14 +249,14 @@ def test_facets(client, faceted_ids):
     ]
     assert facets["me_model"] == [
         {
-            "id": str(me_model_ids[0]),
-            "label": "me-model-0",
+            "id": str(memodel_ids[0]),
+            "label": "0",
             "count": 2,
             "type": "me_model",
         },
         {
-            "id": str(me_model_ids[1]),
-            "label": "me-model-1",
+            "id": str(memodel_ids[1]),
+            "label": "1",
             "count": 2,
             "type": "me_model",
         },
@@ -294,7 +265,7 @@ def test_facets(client, faceted_ids):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"search": f"me-model-{me_model_ids[0]}", "with_facets": True},
+        params={"search": f"me-model-{memodel_ids[0]}", "with_facets": True},
     ).json()
 
     assert "facets" in data
@@ -302,8 +273,8 @@ def test_facets(client, faceted_ids):
 
     assert facets["me_model"] == [
         {
-            "id": str(me_model_ids[0]),
-            "label": "me-model-0",
+            "id": str(memodel_ids[0]),
+            "label": "0",
             "count": 2,
             "type": "me_model",
         }

@@ -37,7 +37,7 @@ def test_experimental_neuron_density(client, species_id, strain_id, brain_region
     assert data["name"] == neuron_name, (
         f"Failed to get name for  experimental neuron density: {data}"
     )
-    assert data["license"]["name"] == "Test License", (
+    assert data["license"]["pref_label"] == "Test License", (
         f"Failed to get license for  experimental neuron density: {data}"
     )
 

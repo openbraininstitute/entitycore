@@ -37,7 +37,7 @@ def test_experimental_bouton_density(client, species_id, strain_id, license_id, 
     assert data["name"] == bouton_name, (
         f"Failed to get name for  experimental bouton density: {data}"
     )
-    assert data["license"]["name"] == "Test License", (
+    assert data["license"]["pref_label"] == "Test License", (
         f"Failed to get license for  experimental bouton density: {data}"
     )
 

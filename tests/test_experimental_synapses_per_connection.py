@@ -39,7 +39,7 @@ def test_experimental_synapses_per_connection(
     assert data["name"] == bouton_name, (
         f"Failed to get name for  experimental bouton density: {data}"
     )
-    assert data["license"]["name"] == "Test License", (
+    assert data["license"]["pref_label"] == "Test License", (
         f"Failed to get license for  experimental bouton density: {data}"
     )
 

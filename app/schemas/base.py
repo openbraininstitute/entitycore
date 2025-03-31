@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime
 
-from pydantic import UUID4, BaseModel, ConfigDict, Field
+from pydantic import UUID4, BaseModel, ConfigDict
+
+from app.db.types import Sex
 
 
 class AuthorizationMixin(BaseModel):
@@ -104,36 +106,18 @@ class SpeciesRead(SpeciesCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
-class SubjectCreate(BaseModel):
-    strain_id: int = Field(
-        None,
-        title="Strain ID",
-        description="ID of the strain associated with the subject.",
-    )
-    age: int | None = Field(
-        None,
-        title="Age",
-        description="Age of the subject in days.",
-    )
-    sex: str | None = Field(
-        None,
-        title="Sex",
-        description="Sex of the subject (e.g., 'male', 'female').",
-    )
-    weight: float | None = Field(
-        None,
-        title="Weight",
-        description="Weight of the subject in grams.",
-    )
+class SubjectBase(BaseModel):
+    age: int | None = None
+    sex: Sex | None = None
+    weight: float | None = None
 
 
-class SubjectRead(CreationMixin):
-    strain: StrainRead = Field(
-        ..., title="Strain", description="Detailed information about the subject's strain."
-    )
-    age: int | None
-    sex: str | None
-    weight: float | None
+class SubjectCreate(SubjectBase):
+    species_id: uuid.UUID
+
+
+class SubjectRead(SubjectBase, CreationMixin, IdentifiableMixin):
+    species: SpeciesRead
 
 
 class LicensedCreateMixin(BaseModel):

@@ -2,6 +2,7 @@ out/**
 schema/**
 **/__pycache__/**
 venv/**
+.venv
 nexus_use_case_dump/**
 **/.coverage
 coverage.xml

@@ -26,6 +26,7 @@ from app.db.model import (
     Role,
     Species,
     Strain,
+    Subject,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.dependencies import auth
@@ -282,11 +283,24 @@ def strain_id(client_admin, species_id):
 
 
 @pytest.fixture
+def subject_id(db, species_id):
+    return add_db(
+        db,
+        Subject(
+            species_id=species_id,
+            age=2,
+            sex="female",
+            weight=1.5,
+        ),
+    ).id
+
+
+@pytest.fixture
 def license_id(client_admin):
     response = client_admin.post(
         "/license",
         json={
-            "name": "Test License",
+            "pref_label": "Test License",
             "description": "a license description",
         },
     )

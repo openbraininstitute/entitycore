@@ -42,7 +42,7 @@ from app.db.model import (
     Person,
     ReconstructionMorphology,
     Root,
-    SingleCellExperimentalTrace,
+    # SingleCellExperimentalTrace,
     SingleNeuronSimulation,
 )
 from app.db.session import configure_database_session_manager

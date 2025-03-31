@@ -53,7 +53,7 @@ def read_license(id_: uuid.UUID, db: SessionDep):
 
 @router.post("", dependencies=[Depends(user_with_service_admin_role)], response_model=LicenseRead)
 def create_license(license: LicenseCreate, db: SessionDep):
-    row = License(**license)
+    row = License(**license.model_dump(mode="json"))
     db.add(row)
     db.commit()
     db.refresh(row)

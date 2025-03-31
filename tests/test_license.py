@@ -7,13 +7,13 @@ def test_create_license(client, client_admin):
     response = client_admin.post(
         ROUTE,
         json={
-            "name": "Test License",
+            "pref_label": "Test License",
             "description": "a license description",
         },
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "Test License"
+    assert data["pref_label"] == "Test License"
     assert "id" in data
     assert data["description"] == "a license description"
     id_ = data["id"]
@@ -21,14 +21,14 @@ def test_create_license(client, client_admin):
     response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "Test License"
+    assert data["pref_label"] == "Test License"
     assert data["description"] == "a license description"
 
     response = client.get(ROUTE)
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1
-    assert data[0]["name"] == "Test License"
+    assert data[0]["pref_label"] == "Test License"
     assert data[0]["description"] == "a license description"
 
 

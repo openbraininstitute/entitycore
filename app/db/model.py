@@ -23,8 +23,10 @@ from app.db.types import (
     JSON_DICT,
     STRING_LIST,
     AssetStatus,
+    ElectricalRecordingType,
     PointLocation,
     PointLocationType,
+    Sex,
     SingleNeuronSimulationStatus,
 )
 from app.utils.uuid import create_uuid
@@ -102,12 +104,6 @@ class Strain(TimestampMixin, Base):
         # needed for the composite foreign key in SpeciesMixin
         UniqueConstraint("id", "species_id", name="uq_strain_id_species_id"),
     )
-
-
-class Subject(TimestampMixin, Base):
-    __tablename__ = "subject"
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
-    name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class License(TimestampMixin, LegacyMixin, Base):
@@ -318,6 +314,23 @@ class DescriptionVectorMixin:
         )
 
 
+class Subject(TimestampMixin, SpeciesMixin, Base):
+    __tablename__ = "subject"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
+    age: Mapped[int | None]
+    sex: Mapped[Sex | None]
+    weight: Mapped[float | None]
+
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False)
+
+
 class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("root.id"), primary_key=True)
@@ -514,12 +527,17 @@ class Role(LegacyMixin, TimestampMixin, Base):
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class SingleCellExperimentalTrace(LocationMixin, SpeciesMixin, LicensedMixin, Entity):
-    __tablename__ = "single_cell_experimental_trace"
+class ElectricalCellRecording(
+    DescriptionVectorMixin, LocationMixin, SubjectMixin, LicensedMixin, Entity
+):
+    __tablename__ = "electrical_cell_recording"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str]
-    __mapper_args__ = {"polymorphic_identity": "single_cell_experimental_trace"}  # noqa: RUF012
+    description: Mapped[str] = mapped_column(default="")
+    recordingType: Mapped[ElectricalRecordingType]
+    recordingLocation: Mapped[STRING_LIST]
+    ljp: Mapped[float] = mapped_column(default=0.0)
+    __mapper_args__ = {"polymorphic_identity": "electrical_cell_recording"}  # noqa: RUF012
 
 
 class SingleNeuronSynaptome(DescriptionVectorMixin, LocationMixin, Entity):
@@ -562,6 +580,19 @@ class SingleNeuronSynaptomeSimulation(DescriptionVectorMixin, LocationMixin, Ent
     )
     synaptome = relationship("SingleNeuronSynaptome", uselist=False, foreign_keys=[synaptome_id])
     __mapper_args__ = {"polymorphic_identity": "single_neuron_synaptome_simulation"}  # noqa: RUF012
+
+
+class SubCellularModelScript(LocationMixin, SubjectMixin, LicensedMixin, Entity):
+    __tablename__ = "sub_cellular_model_script"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    description: Mapped[str] = mapped_column(default="")
+    temperature: Mapped[float]
+    is_temperature_dependent: Mapped[bool]
+    is_jjp_corrected: Mapped[bool] = mapped_column(default=False)
+    is_stochastic: Mapped[bool] = mapped_column(default=False)
+
+    __mapper_args__ = {"polymorphic_identity": "sub_cellular_model_script"}  # noqa: RUF012
 
 
 class ExperimentalNeuronDensity(LocationMixin, SpeciesMixin, LicensedMixin, Entity):

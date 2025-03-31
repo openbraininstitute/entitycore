@@ -36,9 +36,9 @@ class ReconstructionMorphologyCreate(
     AuthorizationOptionalPublicMixin,
 ):
     species_id: uuid.UUID
-    strain_id: uuid.UUID | None
+    strain_id: uuid.UUID | None = None
     brain_region_id: int
-    legacy_id: list[str] | None
+    legacy_id: list[str] | None = None
 
 
 class MorphologyFeatureAnnotationCreate(BaseModel):

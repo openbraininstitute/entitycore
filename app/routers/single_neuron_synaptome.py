@@ -7,13 +7,10 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSynaptome
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeFilter
 from app.routers.common import (
-    FacetQueryParams,
-    FacetsDep,
-    SearchDep,
     router_create_one,
     router_read_many,
     router_read_one,
@@ -42,10 +39,10 @@ def read_one(
         db_model_class=SingleNeuronSynaptome,
         authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSynaptomeRead,
-        operations=[
+        apply_operations=lambda q: q.options(
             joinedload(SingleNeuronSynaptome.me_model),
             joinedload(SingleNeuronSynaptome.brain_region),
-        ],
+        ),
     )
 
 

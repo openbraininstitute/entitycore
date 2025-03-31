@@ -10,7 +10,6 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql.selectable import Select
 
-from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
     BrainRegion,
@@ -26,13 +25,13 @@ from app.db.model import (
     Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
-from app.errors import ensure_authorized_references, ensure_result
+from app.errors import ensure_authorized_references
 from app.filters.memodel import MEModelFilterDep
-from app.routers.common import FacetQueryParams, FacetsDep, SearchDep
+from app.routers.common import router_create_one, router_read_many, router_read_one
 from app.schemas.me_model import MEModelCreate, MEModelRead
-from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.types import ListResponse
 
 router = APIRouter(
     prefix="/memodel",
@@ -47,8 +46,8 @@ def memodel_joinedloads(select: Select):
         joinedload(MEModel.emodel),
         joinedload(MEModel.morphology),
         joinedload(MEModel.brain_region),
-        selectinload(MEModel.contributions).joinedload(Contribution.agent),
-        selectinload(MEModel.contributions).joinedload(Contribution.role),
+        joinedload(MEModel.contributions).joinedload(Contribution.agent),
+        joinedload(MEModel.contributions).joinedload(Contribution.role),
         joinedload(MEModel.mtypes),
         joinedload(MEModel.etypes),
         raiseload("*"),
@@ -58,45 +57,34 @@ def memodel_joinedloads(select: Select):
 @router.get(
     "/{id_}",
 )
-def read_memodel(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> MEModelRead:
-    with ensure_result("MEModel not found"):
-        query = constrain_to_accessible_entities(
-            sa.select(MEModel), user_context.project_id
-        ).filter(MEModel.id == id_)
+def read_memodel(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep):
+    return router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=MEModel,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=MEModelRead,
+        apply_operations=memodel_joinedloads,
+    )
 
-        query = memodel_joinedloads(query)
 
-        return db.execute(query).unique().scalar_one()
-
-
-@router.post("", response_model=MEModelRead)
+@router.post("")
 def create_memodel(
     user_context: UserContextWithProjectIdDep,
     memodel: MEModelCreate,
     db: SessionDep,
 ):
-    with ensure_authorized_references(
-        "Either morphology or emodel is not public or not owned by the user"
-    ):
-        db_em = MEModel(
-            name=memodel.name,
-            description=memodel.description,
-            brain_region_id=memodel.brain_region_id,
-            species_id=memodel.species_id,
-            strain_id=memodel.strain_id,
-            emodel_id=memodel.emodel_id,
-            morphology_id=memodel.morphology_id,
-            authorized_project_id=user_context.project_id,
-            authorized_public=memodel.authorized_public,
-            validation_status=memodel.validation_status,
-        )
-
-        db.add(db_em)
-        db.commit()
-        db.refresh(db_em)
-
-        query = memodel_joinedloads(sa.select(MEModel).filter(MEModel.id == db_em.id))
-        return db.execute(query).unique().scalar_one()
+    return router_create_one(
+        db=db,
+        db_model_class=MEModel,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=MEModelRead,
+        json_model=memodel,
+        apply_operations=memodel_joinedloads,
+        context_manager=ensure_authorized_references(
+            "Either morphology or emodel is not public or not owned by the user"
+        ),
+    )
 
 
 @router.get("")
@@ -112,6 +100,12 @@ def memodel_query(
     agent_alias = aliased(Agent, flat=True)
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
     emodel_alias = aliased(EModel, flat=True)
+
+    aliases = {
+        Agent: agent_alias,
+        ReconstructionMorphology: morphology_alias,
+        EModel: emodel_alias,
+    }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
@@ -134,48 +128,46 @@ def memodel_query(
         },
     }
 
-    filter_query = (
-        constrain_to_accessible_entities(sa.select(MEModel), project_id=user_context.project_id)
-        .join(Species, MEModel.species_id == Species.id)
-        .outerjoin(Strain, MEModel.strain_id == Strain.id)
-        .join(morphology_alias, MEModel.morphology_id == morphology_alias.id)
-        .join(emodel_alias, MEModel.emodel_id == emodel_alias.id)
-        .join(BrainRegion, MEModel.brain_region_id == BrainRegion.id)
-        .outerjoin(Contribution, MEModel.id == Contribution.entity_id)
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(MTypeClassification, MEModel.id == MTypeClassification.entity_id)
-        .outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id)
-        .outerjoin(ETypeClassification, MEModel.id == ETypeClassification.entity_id)
-        .outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id)
-    )
+    def filter_query_operations(q: sa.Select):
+        return (
+            q.join(Species, MEModel.species_id == Species.id)
+            .outerjoin(Strain, MEModel.strain_id == Strain.id)
+            .join(morphology_alias, MEModel.morphology_id == morphology_alias.id)
+            .join(emodel_alias, MEModel.emodel_id == emodel_alias.id)
+            .join(BrainRegion, MEModel.brain_region_id == BrainRegion.id)
+            .outerjoin(Contribution, MEModel.id == Contribution.entity_id)
+            .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+            .outerjoin(MTypeClassification, MEModel.id == MTypeClassification.entity_id)
+            .outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id)
+            .outerjoin(ETypeClassification, MEModel.id == ETypeClassification.entity_id)
+            .outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id)
+        )
 
-    filter_query = memodel_filter.filter(
-        filter_query,
-        aliases={
-            Agent: agent_alias,
-            ReconstructionMorphology: morphology_alias,
-            EModel: emodel_alias,
-        },
-    )
-    filter_query = search(filter_query, MEModel.description_vector)
+    def data_query_operations(q: sa.Select):
+        return q.options(
+            joinedload(MEModel.species),
+            joinedload(MEModel.strain),
+            joinedload(MEModel.emodel),
+            joinedload(MEModel.morphology),
+            joinedload(MEModel.brain_region),
+            selectinload(MEModel.contributions).joinedload(Contribution.agent),
+            selectinload(MEModel.contributions).joinedload(Contribution.role),
+            joinedload(MEModel.mtypes),
+            joinedload(MEModel.etypes),
+            raiseload("*"),
+        )
 
-    data_query = memodel_joinedloads(
-        memodel_filter.sort(filter_query)
-        .limit(pagination_request.page_size)
-        .offset(pagination_request.offset)
-        .distinct()
-    )
-
-    total_items = db.execute(
-        filter_query.with_only_columns(sa.func.count(sa.func.distinct(MEModel.id)).label("count"))
-    ).scalar_one()
-
-    return ListResponse[MEModelRead](
-        data=db.execute(data_query).scalars().unique(),
-        pagination=PaginationResponse(
-            page=pagination_request.page,
-            page_size=pagination_request.page_size,
-            total_items=total_items,
-        ),
-        facets=facets(db, filter_query, name_to_facet_query_params, MEModel.id),
+    return router_read_many(
+        db=db,
+        db_model_class=MEModel,
+        user_context=user_context,
+        with_search=search,
+        facets=facets,
+        aliases=aliases,
+        apply_data_query_operations=data_query_operations,
+        apply_filter_query_operations=filter_query_operations,
+        pagination_request=pagination_request,
+        response_schema_class=ListResponse[MEModelRead],
+        name_to_facet_query_params=name_to_facet_query_params,
+        filter_model=memodel_filter,
     )

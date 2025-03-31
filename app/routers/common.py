@@ -1,11 +1,10 @@
 import uuid
 from collections.abc import Callable
-from contextlib import _GeneratorContextManager  # noqa: PLC2701
+from contextlib import _GeneratorContextManager, nullcontext  # noqa: PLC2701
 from typing import cast
 
 import sqlalchemy as sa
 from pydantic import BaseModel
-from sqlalchemy import Select
 from sqlalchemy.orm import Session
 
 from app.db.auth import constrain_to_accessible_entities
@@ -16,7 +15,7 @@ from app.filters.base import CustomFilter
 from app.schemas.auth import UserContext
 from app.schemas.types import ListResponse, PaginationResponse
 
-ApplyOperations = Callable[[Select], Select]
+ApplyOperations = Callable[[sa.Select], sa.Select]
 Aliases = dict[type[Root], type[Root]]
 ContextManager = _GeneratorContextManager[None, None, None]
 
@@ -54,7 +53,7 @@ def router_create_one[T: BaseModel](
     apply_operations: ApplyOperations | None = None,
     context_manager: ContextManager | None = None,
 ):
-    def run():
+    with context_manager or nullcontext():
         data = json_model.model_dump() | {"authorized_project_id": authorized_project_id}
         row = db_model_class(**data)
         db.add(row)
@@ -69,12 +68,6 @@ def router_create_one[T: BaseModel](
         row = db.execute(q).unique().scalar_one()
 
         return response_schema_class.model_validate(row)
-
-    if context_manager is None:
-        return run()
-
-    with context_manager:
-        return run()
 
 
 def router_read_many[T: BaseModel](

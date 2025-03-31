@@ -14,17 +14,10 @@ from app.db.model import (
     SingleNeuronSynaptomeSimulation,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_synaptome_simulation import SingleNeuronSynaptomeSimulationFilter
-from app.routers.common import (
-    FacetQueryParams,
-    FacetsDep,
-    SearchDep,
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
+from app.routers.common import router_create_one, router_read_many, router_read_one
 from app.schemas.simulation import (
     SingleNeuronSynaptomeSimulationCreate,
     SingleNeuronSynaptomeSimulationRead,
@@ -49,10 +42,10 @@ def read_one(
         authorized_project_id=user_context.project_id,
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
-        operations=[
+        apply_operations=lambda q: q.options(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome),
             joinedload(SingleNeuronSynaptomeSimulation.brain_region),
-        ],
+        ),
     )
 
 

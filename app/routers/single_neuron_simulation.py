@@ -7,21 +7,11 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSimulation
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_simulation import SingleNeuronSimulationFilter
-from app.routers.common import (
-    FacetQueryParams,
-    FacetsDep,
-    SearchDep,
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
-from app.schemas.simulation import (
-    SingleNeuronSimulationCreate,
-    SingleNeuronSimulationRead,
-)
+from app.routers.common import router_create_one, router_read_many, router_read_one
+from app.schemas.simulation import SingleNeuronSimulationCreate, SingleNeuronSimulationRead
 from app.schemas.types import ListResponse
 
 router = APIRouter(
@@ -42,10 +32,10 @@ def read(
         db_model_class=SingleNeuronSimulation,
         authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSimulationRead,
-        operations=[
+        apply_operations=lambda q: q.options(
             joinedload(SingleNeuronSimulation.me_model),
             joinedload(SingleNeuronSimulation.brain_region),
-        ],
+        ),
     )
 
 

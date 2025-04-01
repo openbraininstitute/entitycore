@@ -593,8 +593,8 @@ class SubCellularModelScript(LocationMixin, SubjectMixin, LicensedMixin, Entity)
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     description: Mapped[str] = mapped_column(default="")
-    temperature: Mapped[float]
-    is_temperature_dependent: Mapped[bool]
+    temperature: Mapped[float | None] = mapped_column(default=None)
+    is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     is_jjp_corrected: Mapped[bool] = mapped_column(default=False)
     is_stochastic: Mapped[bool] = mapped_column(default=False)
 

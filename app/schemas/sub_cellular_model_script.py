@@ -21,14 +21,14 @@ class SubCellularModelScriptBase(BaseModel):
     name: str
     description: str
     temperature: Annotated[
-        float,
+        float | None,
         Field(
             title="temperature",
             description=(
                 "The temperature at which the mechanism has been built to work on, in Celsius."
             ),
         ),
-    ]
+    ] = None
     is_temperature_dependent: Annotated[
         bool,
         Field(

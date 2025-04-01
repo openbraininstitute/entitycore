@@ -1,6 +1,7 @@
 """Generic asset routes."""
 
 import uuid
+from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated
 
@@ -85,10 +86,18 @@ def upload_entity_asset(
     """
     if not file.size or not validate_filesize(file.size):
         msg = f"File bigger than {settings.API_ASSET_POST_MAX_SIZE}, please use delegation"
-        raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_FILE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     if not file.filename or not validate_filename(file.filename):
         msg = f"Invalid file name {file.filename!r}"
-        raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     content_type = get_content_type(file)
     sha256_digest = calculate_sha256_digest(file)
     asset_read = asset_service.create_entity_asset(
@@ -134,18 +143,24 @@ def download_entity_asset(
             msg = "Missing required parameter for downloading a directory file: asset_path"
             raise ApiError(
                 message=msg,
-                error_code=ApiErrorCode.INVALID_REQUEST,
+                error_code=ApiErrorCode.ASSET_MISSING_PATH,
+                http_status_code=HTTPStatus.CONFLICT,
             )
         if not validate_filename(asset_path):
             msg = f"Invalid file name {asset_path!r}"
-            raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_INVALID_PATH,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
         full_path = str(Path(asset.full_path, asset_path))
     else:
         if asset_path:
             msg = "asset_path is only applicable when asset is a directory"
             raise ApiError(
                 message=msg,
-                error_code=ApiErrorCode.INVALID_REQUEST,
+                error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
+                http_status_code=HTTPStatus.CONFLICT,
             )
         full_path = asset.full_path
     url = generate_presigned_url(

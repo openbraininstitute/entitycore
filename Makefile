@@ -90,21 +90,31 @@ destroy: export COMPOSE_PROFILES=run,test
 destroy:  ## Take down the application and remove the volumes
 	docker compose down --remove-orphans --volumes
 
+migration: MESSAGE ?= Default migration message
 migration:  ## Create or update the alembic migration
 	@$(call load_env,run-local)
 	docker compose up --wait db
 	uv run -m alembic upgrade head
-	uv run -m alembic revision --autogenerate -m "$(message)"
+	uv run -m alembic revision --autogenerate -m "$(MESSAGE)"
 
 dump:  # Dump the local database to file
-	@$(call load_env,run-docker)
 	docker compose up --wait db
-	docker compose exec -e PGUSER=entitycore -e PGPASSWORD=entitycore -e PGHOST=db -e PGPORT=5432 db \
-	pg_dump --dbname entitycore -Fc -f /data/db.dump
+	docker compose exec \
+		-e DUMPFILE=$${DUMPFILE:-/data/db_$$APP_VERSION.dump} \
+		-e PGUSER=$${PGUSER:-entitycore} -e PGPASSWORD=$${PGPASSWORD:-entitycore} \
+		-e PGHOST=$${PGHOST:-db} -e PGPORT=$${PGPORT:-5432} -e PGDATABASE=$${PGDATABASE:-entitycore} \
+		db bash -c '\
+		echo "Dumping database $$PGDATABASE from $$PGHOST:$$PGPORT to $$DUMPFILE" && \
+		pg_dump --dbname $$PGDATABASE -Fc -f $$DUMPFILE'
 
 restore:  # Delete and restore the local database from file
-	@$(call load_env,run-docker)
 	docker compose up --wait db
-	docker compose exec -e PGUSER=entitycore -e PGPASSWORD=entitycore -e PGHOST=db -e PGPORT=5432 db bash -c '\
-		pg_restore --clean --if-exists --exit-on-error --no-owner --single-transaction --dbname entitycore /data/db.dump \
+	docker compose exec \
+		-e DUMPFILE=$${DUMPFILE:-/data/db_$$APP_VERSION.dump} \
+		-e PGUSER=$${PGUSER:-entitycore} -e PGPASSWORD=$${PGPASSWORD:-entitycore} \
+		-e PGHOST=$${PGHOST:-db} -e PGPORT=$${PGPORT:-5432} -e PGDATABASE=$${PGDATABASE:-entitycore} \
+		db bash -c '\
+		echo "Restoring database $$PGDATABASE from $$DUMPFILE to $$PGHOST:$$PGPORT" && \
+		dropdb --force $$PGDATABASE && createdb $$PGDATABASE && \
+		pg_restore --clean --if-exists --exit-on-error --no-owner --dbname $$PGDATABASE $$DUMPFILE \
 		&& psql -c "ANALYZE;"'

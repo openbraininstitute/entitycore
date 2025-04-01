@@ -43,7 +43,7 @@ class PaginationResponse(BaseModel):
 class Facet(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: uuid.UUID | int
+    id: uuid.UUID | int  # int is for brain region
     label: str
     count: int
     type: str | None

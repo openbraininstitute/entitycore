@@ -5,7 +5,7 @@ from fastapi import APIRouter
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import ExperimentalSynapsesPerConnection
-from app.dependencies.auth import VerifiedProjectContextHeader
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -17,18 +17,18 @@ from app.schemas.types import ListResponse, PaginationResponse
 
 router = APIRouter(
     prefix="/experimental-synapses-per-connection",
-    tags=["experimental_synapses_per_connection"],
+    tags=["experimental-synapses-per-connection"],
 )
 
 
 @router.get("")
 def get(
-    project_context: VerifiedProjectContextHeader,
+    user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
 ) -> ListResponse[ExperimentalSynapsesPerConnectionRead]:
     query = constrain_to_accessible_entities(
-        sa.select(ExperimentalSynapsesPerConnection), project_context.project_id
+        sa.select(ExperimentalSynapsesPerConnection), user_context.project_id
     )
 
     data = db.execute(
@@ -54,16 +54,16 @@ def get(
 
 @router.get("/{id_}", response_model=ExperimentalSynapsesPerConnectionRead)
 def read_experimental_synapses_per_connection(
-    project_context: VerifiedProjectContextHeader,
-    id_: uuid.UUID,
+    user_context: UserContextDep,
     db: SessionDep,
+    id_: uuid.UUID,
 ):
     with ensure_result(error_message="ExperimentalSynapsesPerConnection not found"):
         stmt = constrain_to_accessible_entities(
             sa.select(ExperimentalSynapsesPerConnection).filter(
                 ExperimentalSynapsesPerConnection.id == id_
             ),
-            project_context.project_id,
+            user_context.project_id,
         )
         row = db.execute(stmt).scalar_one()
 
@@ -72,15 +72,13 @@ def read_experimental_synapses_per_connection(
 
 @router.post("", response_model=ExperimentalSynapsesPerConnectionRead)
 def create_experimental_synapses_per_connection(
-    project_context: VerifiedProjectContextHeader,
-    density: ExperimentalSynapsesPerConnectionCreate,
+    user_context: UserContextWithProjectIdDep,
     db: SessionDep,
+    density: ExperimentalSynapsesPerConnectionCreate,
 ):
     dump = density.model_dump()
 
-    row = ExperimentalSynapsesPerConnection(
-        **dump, authorized_project_id=project_context.project_id
-    )
+    row = ExperimentalSynapsesPerConnection(**dump, authorized_project_id=user_context.project_id)
     db.add(row)
     db.commit()
     db.refresh(row)

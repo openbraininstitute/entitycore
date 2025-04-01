@@ -1,10 +1,11 @@
 from pathlib import Path
 
 import sqlalchemy as sa
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Depends, Response
 from fastapi.responses import JSONResponse
 
 from app.db.model import BrainRegion
+from app.dependencies.auth import user_with_service_admin_role
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.schemas.base import BrainRegionCreate, BrainRegionRead
@@ -39,7 +40,7 @@ def get_region_tree(db, start_id=None):
 
 
 @router.get("")
-def get(db: SessionDep, flat: bool = False) -> Response:  # noqa: FBT001, FBT002
+def get(*, db: SessionDep, flat: bool = False) -> Response:
     response: Response
     if flat:
         # TODO: this depends on 997 existing; which is bad
@@ -59,7 +60,9 @@ def read_brain_region(db: SessionDep, id_: int):
     return BrainRegionRead.model_validate(row)
 
 
-@router.post("", response_model=BrainRegionRead)
+@router.post(
+    "", dependencies=[Depends(user_with_service_admin_role)], response_model=BrainRegionRead
+)
 def create_brain_region(brain_region: BrainRegionCreate, db: SessionDep):
     row = BrainRegion(**brain_region.model_dump())
     db.add(row)

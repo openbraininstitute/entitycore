@@ -1,9 +1,10 @@
 import uuid
 
 import sqlalchemy as sa
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.db.model import Organization
+from app.dependencies.auth import user_with_service_admin_role
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -50,7 +51,9 @@ def read_organization(id_: uuid.UUID, db: SessionDep):
     return OrganizationRead.model_validate(row)
 
 
-@router.post("", response_model=OrganizationRead)
+@router.post(
+    "", dependencies=[Depends(user_with_service_admin_role)], response_model=OrganizationRead
+)
 def create_organization(organization: OrganizationCreate, db: SessionDep):
     row = Organization(**organization.model_dump())
     db.add(row)

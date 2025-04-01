@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.annotation import MTypeClassRead
+from app.schemas.asset import AssetRead
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -26,6 +27,7 @@ class ReconstructionMorphologyBase(BaseModel):
     name: str
     description: str
     location: PointLocationBase | None
+    legacy_id: list[str] | None
 
 
 class ReconstructionMorphologyCreate(
@@ -36,7 +38,7 @@ class ReconstructionMorphologyCreate(
     species_id: uuid.UUID
     strain_id: uuid.UUID | None
     brain_region_id: int
-    legacy_id: str | None
+    legacy_id: list[str] | None
 
 
 class MorphologyFeatureAnnotationCreate(BaseModel):
@@ -63,6 +65,7 @@ class ReconstructionMorphologyRead(
     brain_region: BrainRegionRead
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
+    assets: list[AssetRead] | None
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

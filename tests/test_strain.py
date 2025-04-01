@@ -3,13 +3,13 @@ from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 ROUTE = "/strain"
 
 
-def test_create_strain(client, species_id):
+def test_create_strain(client, client_admin, species_id):
     count = 3
     items = []
     for i in range(count):
         name = f"Test Strain {i}"
         taxonomy_id = f"TaxonomyID_{i}"
-        response = client.post(
+        response = client_admin.post(
             ROUTE,
             json={
                 "name": name,

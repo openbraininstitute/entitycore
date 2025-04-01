@@ -3,7 +3,7 @@ from collections.abc import Callable
 
 import sqlalchemy as sa
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import DeclarativeBase, Session
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Entity, Identifiable, Root
@@ -12,18 +12,18 @@ from app.errors import ensure_authorized_references, ensure_result, ensure_uniqu
 from app.filters.base import CustomFilter
 from app.schemas.types import ListResponse, PaginationResponse
 
-ApplyOperations = Callable[[sa.Select], sa.Select]
+type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[tuple[T]]], sa.Select[tuple[T]]]
 Aliases = dict[type[Root], type[Root]]
 
 
-def router_read_one[T: BaseModel](
+def router_read_one[T: BaseModel, M: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
-    db_model_class: type[Identifiable],
+    db_model_class: type[M],
     authorized_project_id: uuid.UUID | None,
     response_schema_class: type[T],
-    apply_operations: ApplyOperations | None,
+    apply_operations: ApplyOperations[M] | None,
 ) -> T:
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if issubclass(db_model_class, Entity):
@@ -35,10 +35,10 @@ def router_read_one[T: BaseModel](
     return response_schema_class.model_validate(row)
 
 
-def router_create_one[T: BaseModel](
+def router_create_one[T: BaseModel, M: Identifiable](
     *,
     db: Session,
-    db_model_class: type[Identifiable],
+    db_model_class: type[M],
     authorized_project_id: uuid.UUID | None,
     json_model: BaseModel,
     response_schema_class: type[T],
@@ -66,18 +66,18 @@ def router_create_one[T: BaseModel](
     return response_schema_class.model_validate(row)
 
 
-def router_read_many[T: BaseModel](
+def router_read_many[T: BaseModel, M: Identifiable](
     *,
     db: Session,
-    db_model_class: type[Identifiable],
+    db_model_class: type[M],
     authorized_project_id: uuid.UUID | None,
-    with_search: Search | None,
+    with_search: Search[M] | None,
     facets: WithFacets | None,
     aliases: Aliases | None,
-    apply_filter_query_operations: ApplyOperations | None,
-    apply_data_query_operations: ApplyOperations | None,
+    apply_filter_query_operations: ApplyOperations[M] | None,
+    apply_data_query_operations: ApplyOperations[M] | None,
     pagination_request: PaginationQuery,
-    response_schema_class: type[ListResponse[T]],
+    response_schema_class: type[T],
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
     filter_model: CustomFilter,
 ) -> ListResponse[T]:
@@ -117,8 +117,12 @@ def router_read_many[T: BaseModel](
         )
     ).scalar_one()
 
-    response = response_schema_class(
-        data=data,
+    # reveal_type(data) # information: Type of "data" is "ScalarResult[M@router_read_many]"
+
+    response = ListResponse(
+        data=[
+            response_schema_class.model_validate(row) for row in data
+        ],  # Manual validation to please pyright
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

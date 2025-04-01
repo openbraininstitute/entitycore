@@ -2,10 +2,10 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
 from pydantic import field_validator
 from sqlalchemy import Select, or_
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import DeclarativeBase
 
 
-class CustomFilter(Filter):
+class CustomFilter[T: DeclarativeBase](Filter):
     """Custom common filter."""
 
     class Constants(Filter.Constants):
@@ -29,7 +29,7 @@ class CustomFilter(Filter):
 
         return value
 
-    def filter(self, query: Query | Select, aliases=None):
+    def filter(self, query: Select[tuple[T]], aliases=None):  # type:ignore[override]
         """Allow passing aliases to the filter.
 
         Due to the complications of handling the inheritance between models, sometimes an alias is
@@ -71,5 +71,21 @@ class CustomFilter(Filter):
                         model_field = getattr(self.Constants.model, field_name)
 
                     query = query.filter(getattr(model_field, operator)(value))
+
+        return query
+
+    def sort(self, query: Select[tuple[T]]):  # type:ignore[override]
+        if not self.ordering_values:
+            return query
+
+        for field_name in self.ordering_values:
+            direction = Filter.Direction.asc
+            if field_name.startswith("-"):
+                direction = Filter.Direction.desc
+            field_name = field_name.replace("-", "").replace("+", "")  # noqa: PLW2901
+
+            order_by_field = getattr(self.Constants.model, field_name)
+
+            query = query.order_by(getattr(order_by_field, direction)())
 
         return query

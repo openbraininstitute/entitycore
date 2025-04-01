@@ -25,6 +25,7 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
     "python-multipart>=0.0.20",
+    "pyright>=1.1.398",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"

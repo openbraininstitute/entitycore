@@ -28,7 +28,6 @@ from app.dependencies.common import FacetQueryParams, PaginationQuery, _get_face
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilter
-from app.routers.common import FacetQueryParams, _get_facets
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,

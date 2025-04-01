@@ -31,18 +31,6 @@ class ETypeClassFilter(CustomFilter):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
 
 
-class ETypeClassFilter(CustomFilter):
-    id: int | None = None
-    pref_label: str | None = None
-    pref_label__in: list[str] | None = None
-
-    order_by: list[str] = ["pref_label"]  # noqa: RUF012
-
-    class Constants(CustomFilter.Constants):
-        model = ETypeClass
-        ordering_model_fields = ["id", "pref_label"]  # noqa: RUF012
-
-
 class SpeciesFilter(CustomFilter):
     id: uuid.UUID | None = None
     name: str | None = None

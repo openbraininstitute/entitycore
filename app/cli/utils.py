@@ -13,11 +13,11 @@ from app.db.model import (
     Asset,
     BrainRegion,
     Contribution,
+    EModel,
     License,
     Role,
     Species,
     Strain,
-    EModel,
 )
 from app.db.types import AssetStatus, EntityType
 from app.logger import L

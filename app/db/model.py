@@ -537,6 +537,7 @@ class ElectricalCellRecording(
     recordingType: Mapped[ElectricalRecordingType]
     recordingLocation: Mapped[STRING_LIST]
     ljp: Mapped[float] = mapped_column(default=0.0)
+    comment: Mapped[str] = mapped_column(default="")
     __mapper_args__ = {"polymorphic_identity": "electrical_cell_recording"}  # noqa: RUF012
 
 

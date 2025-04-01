@@ -57,6 +57,13 @@ class ElectricalCellRecordingBase(BaseModel):
             description="Recording type. One of intracellular|extracellular|both.",
         ),
     ]
+    comment: Annotated[
+        str | None,
+        Field(
+            title="Comment",
+            description="Comment with further details.",
+        ),
+    ] = None
 
 
 class ElectricalCellRecordingCreate(
@@ -87,9 +94,6 @@ class TraceCreate(SingleCellData):
         ...,
         title="Stimuli",
         description="List of stimuli applied to the cell with their respective time steps",
-    )
-    comment: str | None = Field(
-        "", title="Comment", description="Additional information or observations"
     )
     derivation: int | None = Field(
         None,

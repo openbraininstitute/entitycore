@@ -39,15 +39,15 @@ router = APIRouter(
 )
 
 
-def memodel_joinedloads(select: Select):
+def load(select: Select):
     return select.options(
         joinedload(MEModel.species),
         joinedload(MEModel.strain),
         joinedload(MEModel.emodel),
         joinedload(MEModel.morphology),
         joinedload(MEModel.brain_region),
-        joinedload(MEModel.contributions).joinedload(Contribution.agent),
-        joinedload(MEModel.contributions).joinedload(Contribution.role),
+        selectinload(MEModel.contributions).joinedload(Contribution.agent),
+        selectinload(MEModel.contributions).joinedload(Contribution.role),
         joinedload(MEModel.mtypes),
         joinedload(MEModel.etypes),
         raiseload("*"),
@@ -64,7 +64,7 @@ def read_memodel(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep):
         db_model_class=MEModel,
         authorized_project_id=user_context.project_id,
         response_schema_class=MEModelRead,
-        apply_operations=memodel_joinedloads,
+        apply_operations=load,
     )
 
 
@@ -80,7 +80,7 @@ def create_memodel(
         authorized_project_id=user_context.project_id,
         response_schema_class=MEModelRead,
         json_model=memodel,
-        apply_operations=memodel_joinedloads,
+        apply_operations=load,
         context_manager=ensure_authorized_references(
             "Either morphology or emodel is not public or not owned by the user"
         ),
@@ -143,20 +143,6 @@ def memodel_query(
             .outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id)
         )
 
-    def data_query_operations(q: sa.Select):
-        return q.options(
-            joinedload(MEModel.species),
-            joinedload(MEModel.strain),
-            joinedload(MEModel.emodel),
-            joinedload(MEModel.morphology),
-            joinedload(MEModel.brain_region),
-            selectinload(MEModel.contributions).joinedload(Contribution.agent),
-            selectinload(MEModel.contributions).joinedload(Contribution.role),
-            joinedload(MEModel.mtypes),
-            joinedload(MEModel.etypes),
-            raiseload("*"),
-        )
-
     return router_read_many(
         db=db,
         db_model_class=MEModel,
@@ -164,7 +150,7 @@ def memodel_query(
         with_search=search,
         facets=facets,
         aliases=aliases,
-        apply_data_query_operations=data_query_operations,
+        apply_data_query_operations=load,
         apply_filter_query_operations=filter_query_operations,
         pagination_request=pagination_request,
         response_schema_class=ListResponse[MEModelRead],

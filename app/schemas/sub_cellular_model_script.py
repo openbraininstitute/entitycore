@@ -35,7 +35,7 @@ class SubCellularModelScriptBase(BaseModel):
             title="is temperature dependent",
             description="Whether the mechanism changes depending on temperature or not",
         ),
-    ] = True
+    ] = False
     is_ljp_corrected: Annotated[
         bool,
         Field(

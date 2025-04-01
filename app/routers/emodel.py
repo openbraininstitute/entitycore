@@ -39,8 +39,8 @@ def load(select: Select):
         joinedload(EModel.strain),
         joinedload(EModel.exemplar_morphology),
         joinedload(EModel.brain_region),
-        joinedload(EModel.contributions).joinedload(Contribution.agent),
-        joinedload(EModel.contributions).joinedload(Contribution.role),
+        selectinload(EModel.contributions).joinedload(Contribution.agent),
+        selectinload(EModel.contributions).joinedload(Contribution.role),
         joinedload(EModel.mtypes),
         joinedload(EModel.etypes),
         raiseload("*"),
@@ -117,19 +117,6 @@ def emodel_query(
             "label": morphology_alias.name,
         },
     }
-
-    def load(q: Select):
-        return q.options(
-            joinedload(EModel.species),
-            joinedload(EModel.strain),
-            joinedload(EModel.exemplar_morphology),
-            joinedload(EModel.brain_region),
-            selectinload(EModel.contributions).joinedload(Contribution.agent),
-            selectinload(EModel.contributions).joinedload(Contribution.role),
-            joinedload(EModel.mtypes),
-            joinedload(EModel.etypes),
-            raiseload("*"),
-        )
 
     def filter_query_operations(q: Select):
         return (

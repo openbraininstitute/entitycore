@@ -528,7 +528,7 @@ class Role(LegacyMixin, TimestampMixin, Base):
 
 
 class ElectricalCellRecording(
-    DescriptionVectorMixin, LocationMixin, SubjectMixin, LicensedMixin, Entity
+    DescriptionVectorMixin, LocationMixin, SubjectMixin, LicensedMixin, LegacyMixin, Entity
 ):
     __tablename__ = "electrical_cell_recording"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)

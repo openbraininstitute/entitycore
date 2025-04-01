@@ -64,6 +64,7 @@ class ElectricalCellRecordingBase(BaseModel):
             description="Comment with further details.",
         ),
     ] = None
+    legacy_id: list[str] | None = None
 
 
 class ElectricalCellRecordingCreate(

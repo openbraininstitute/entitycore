@@ -440,6 +440,10 @@ class ImportEModels(Import):
 
             assert emodel_script
 
+            utils.import_emodelscript_distribution(
+                emodel_script, db, project_context, all_data_by_id
+            )
+
             db_item = EModel(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
@@ -463,11 +467,15 @@ class ImportEModels(Import):
             )
 
             db.add(db_item)
-            db.commit()
-            utils.import_contribution(data, db_item.id, db)
+
+            db.flush()
+
+            utils.import_contribution(emodel_script, db_item.id, db)
 
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_item.id, db)
+
+        db.commit()
 
 
 class ImportBrainRegionMeshes(Import):
@@ -784,12 +792,7 @@ class ImportDistribution(Import):
             root = utils._find_by_legacy_id(legacy_id, Root, db)
 
             if root:
-                continue
                 utils.import_distribution(data, root.id, root.type, db, project_context)
-
-            # EModelScripts are not imported but will be added to the EModel
-            elif "EModelScript" in ensurelist(data.get("@type")):
-                utils.import_emodelscript_distribution(data, db, project_context, all_data_by_id)
             else:
                 dt = data["@type"]
                 types = tuple(sorted(dt)) if isinstance(dt, list) else (dt,)

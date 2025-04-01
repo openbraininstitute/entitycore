@@ -347,55 +347,6 @@ def import_distribution(
         get_or_create_distribution(distribution, db_item_id, db_item_type, db, project_context)
 
 
-def import_emodelscript_distribution(
-    emodelscript: dict, db: Session, project_context: ProjectContext, all_data_by_id=dict
-):
-    if not is_type(emodelscript, "EModelScript"):
-        msg = "Invalid type, should be an EModelScript"
-        raise TypeError(msg)
-
-    workflow_id = (
-        emodelscript.get("generation", {})
-        .get("activity", {})
-        .get("followedWorkflow", {})
-        .get("@id")
-    )
-
-    workflow = all_data_by_id.get(workflow_id)
-
-    if not workflow:
-        L.warning(
-            f"Cannot find EModelWorkflow id {workflow_id}. Skipping EModelScript import: {emodelscript.get('@id')}"  # noqa: E501
-        )
-        return
-
-    emodel_id = find_id_in_entity(workflow, "EModel", "generates")
-
-    if not emodel_id:
-        L.warning(
-            f"Cannot find EModel id in EModelWorkflow {workflow_id}. Skipping EModelScript import: {emodelscript.get('@id')}"  # noqa: E501
-        )
-        return
-
-    emodel = _find_by_legacy_id(
-        emodel_id,
-        EModel,
-        db,
-    )
-
-    if not emodel:
-        L.warning(
-            f"Cannot find EModel {emodel_id}. Skipping EModelScript import: {emodelscript.get('@id')}"  # noqa: E501
-        )
-        return
-
-    assert emodel
-
-    L.info(f"Attempting import {emodelscript['@id']}")
-
-    # import_distribution(emodelscript, emodel.id, EntityType.emodel, db, project_context)
-
-
 def find_part_id(data: dict[str, Any], type_: Literal["NeuronMorphology", "EModel"]) -> str | None:
     has_part = data.get("hasPart")
 

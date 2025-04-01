@@ -50,7 +50,7 @@ class EntityType(HyphenStrEnum):
     experimental_synapses_per_connection = auto()
     mesh = auto()
     reconstruction_morphology = auto()
-    single_cell_experimental_trace = auto()
+    electrical_cell_recording = auto()
 
 
 class AssetStatus(HyphenStrEnum):
@@ -73,3 +73,4 @@ class ElectricalRecordingType(StrEnum):
     intracellular = auto()
     extracellular = auto()
     both = auto()
+    unknown = auto()

@@ -110,7 +110,7 @@ def get_license_id(license, db, _cache={}):
         return _cache[id_]
 
     # Check if the license already exists in the database
-    li = db.query(License).filter(License.name == id_).first()
+    li = db.query(License).filter(License.pref_label == id_).first()
     if not li:
         msg = f"License {license} not found"
         raise ValueError(msg)

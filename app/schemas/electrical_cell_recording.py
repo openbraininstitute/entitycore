@@ -72,7 +72,6 @@ class ElectricalCellRecordingCreate(
 ):
     subject_id: uuid.UUID
     brain_region_id: int | None = None
-    legacy_id: list[str] | None = None
 
 
 class ElectricalCellRecordingRead(

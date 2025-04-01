@@ -24,6 +24,7 @@ def json_data(brain_region_id, subject_id, license_id):
         "license_id": str(license_id),
         "recordingLocation": ["soma[0.5]"],
         "recordingType": "intracellular",
+        "authorized_public": False,
     }
 
 
@@ -56,6 +57,8 @@ def _create_electrical_cell_recording_id(
             recordingType="intracellular",
             authorized_public=authorized_public,
             authorized_project_id=authorized_project_id,
+            legacy_id=[],
+            comment="my-comment",
         ),
     ).id
 

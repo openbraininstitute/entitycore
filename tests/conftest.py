@@ -291,6 +291,8 @@ def subject_id(db, species_id):
             age=2,
             sex="female",
             weight=1.5,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
         ),
     ).id
 

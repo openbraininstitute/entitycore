@@ -314,23 +314,6 @@ class DescriptionVectorMixin:
         )
 
 
-class Subject(TimestampMixin, SpeciesMixin, Base):
-    __tablename__ = "subject"
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
-    age: Mapped[int | None]
-    sex: Mapped[Sex | None]
-    weight: Mapped[float | None]
-
-
-class SubjectMixin:
-    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
-
-    @declared_attr
-    @classmethod
-    def subject(cls):
-        return relationship("Subject", uselist=False)
-
-
 class Entity(TimestampMixin, Root):
     __tablename__ = "entity"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("root.id"), primary_key=True)
@@ -360,6 +343,24 @@ class Entity(TimestampMixin, Root):
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": "entity",
     }
+
+
+class Subject(SpeciesMixin, Entity):
+    __tablename__ = "subject"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    age: Mapped[int | None]
+    sex: Mapped[Sex | None]
+    weight: Mapped[float | None]
+    __mapper_args__ = {"polymorphic_identity": "subject"}  # noqa: RUF012
+
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
 class AnalysisSoftwareSourceCode(Entity):
@@ -528,7 +529,11 @@ class Role(LegacyMixin, TimestampMixin, Base):
 
 
 class ElectricalCellRecording(
-    DescriptionVectorMixin, LocationMixin, SubjectMixin, LicensedMixin, LegacyMixin, Entity
+    DescriptionVectorMixin,
+    LocationMixin,
+    SubjectMixin,
+    LicensedMixin,
+    Entity,
 ):
     __tablename__ = "electrical_cell_recording"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)

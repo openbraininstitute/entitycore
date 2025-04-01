@@ -24,6 +24,7 @@ from app.db.model import (
     Asset,
     BrainRegion,
     DataMaturityAnnotationBody,
+    ElectricalCellRecording,
     EModel,
     ETypeClass,
     ETypeClassification,
@@ -42,12 +43,13 @@ from app.db.model import (
     Person,
     ReconstructionMorphology,
     Root,
-    # SingleCellExperimentalTrace,
     SingleNeuronSimulation,
+    Subject,
 )
 from app.db.session import configure_database_session_manager
 from app.logger import L
 from app.schemas.base import PointLocationBase, ProjectContext
+from app.db.types import ElectricalRecordingType
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -641,7 +643,7 @@ class ImportSingleCellExperimentalTrace(Import):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
-            rm = utils._find_by_legacy_id(legacy_id, SingleCellExperimentalTrace, db)
+            rm = utils._find_by_legacy_id(legacy_id, ElectricalCellRecording, db)
             if rm:
                 continue
 
@@ -654,15 +656,30 @@ class ImportSingleCellExperimentalTrace(Import):
             species_id, strain_id = utils.get_species_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
-            db_item = SingleCellExperimentalTrace(
+            age = data.get("subject", {}).get("age", {}).get("value", None)
+            comment = data.get("note", None)
+
+            subject = Subject(
+                age=age,
+                species_id=species_id,
+                strain_id=strain_id,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+            )
+            db.add(subject)
+            db.commit()
+            db.refresh(subject)
+            db_item = ElectricalCellRecording(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data["name"],
                 description=data["description"],
+                comment=comment,
                 brain_region_id=brain_region_id,
-                species_id=species_id,
-                strain_id=strain_id,
+                subject_id=subject.id,
                 license_id=license_id,
+                recordingType=ElectricalRecordingType.unknown,
+                recordingLocation=[],
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,

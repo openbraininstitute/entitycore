@@ -12,3 +12,4 @@ out.tar
 .DS_Store
 mba_hierarchy.json
 notes.md
+.env.local

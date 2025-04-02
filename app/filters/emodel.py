@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
@@ -8,18 +7,22 @@ from app.db.model import EModel
 from app.filters.base import CustomFilter
 from app.filters.common import (
     AgentFilter,
+    CreationFilterMixin,
     ETypeClassFilter,
     MTypeClassFilter,
+    NestedAgentFilterDep,
+    NestedETypeClassFilterDep,
+    NestedMTypeClassFilterDep,
+    NestedSpeciesFilterDep,
     SpeciesFilter,
 )
-from app.filters.morphology import MorphologyFilter
+from app.filters.morphology import MorphologyFilter, NestedExemplarMorphologyFilterDep
 
 
-class EModelFilter(CustomFilter):
-    creation_date__lte: datetime | None = None
-    creation_date__gte: datetime | None = None
-    update_date__lte: datetime | None = None
-    update_date__gte: datetime | None = None
+class EModelFilter(
+    CustomFilter,
+    CreationFilterMixin,
+):
     name__ilike: str | None = None
     brain_region_id: int | None = None
     species_id__in: list[uuid.UUID] | None = None
@@ -27,12 +30,12 @@ class EModelFilter(CustomFilter):
     score__lte: int | None = None
     score__gte: int | None = None
 
-    mtype: MTypeClassFilter = FilterDepends(with_prefix("mtype", MTypeClassFilter))
-    etype: ETypeClassFilter = FilterDepends(with_prefix("etype", ETypeClassFilter))
-    species: SpeciesFilter = FilterDepends(with_prefix("species", SpeciesFilter))
-    contribution: AgentFilter = FilterDepends(with_prefix("contribution", AgentFilter))
-    exemplar_morphology: MorphologyFilter = FilterDepends(
-        with_prefix("exemplar_morphology", MorphologyFilter)
+    mtype: Annotated[MTypeClassFilter | None, NestedMTypeClassFilterDep] = None
+    etype: Annotated[ETypeClassFilter | None, NestedETypeClassFilterDep] = None
+    species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
+    contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
+    exemplar_morphology: Annotated[MorphologyFilter | None, NestedExemplarMorphologyFilterDep] = (
+        None
     )
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
@@ -42,4 +45,7 @@ class EModelFilter(CustomFilter):
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
 
 
+# Dependencies
 EModelFilterDep = Annotated[EModelFilter, FilterDepends(EModelFilter)]
+# Nested dependencies
+NestedEModelFilterDep = FilterDepends(with_prefix("emodel", EModelFilter))

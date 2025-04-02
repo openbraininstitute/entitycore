@@ -17,7 +17,7 @@ def test_create_strain(client, client_admin, species_id):
                 "species_id": species_id,
             },
         )
-        response.raise_for_status()
+        assert response.status_code == 200
         data = response.json()
         assert data["taxonomy_id"] == taxonomy_id
         assert data["species_id"] == species_id

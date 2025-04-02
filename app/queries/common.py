@@ -1,6 +1,5 @@
 import uuid
 from collections.abc import Callable
-from typing import cast
 
 import sqlalchemy as sa
 from pydantic import BaseModel

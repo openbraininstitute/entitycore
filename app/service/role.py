@@ -41,7 +41,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> RoleRead:
     return RoleRead.model_validate(row)
 
 
-def create(role: RoleCreate, db: SessionDep) -> RoleRead:
+def create_one(role: RoleCreate, db: SessionDep) -> RoleRead:
     row = Role(name=role.name, role_id=role.role_id)
     db.add(row)
     db.commit()

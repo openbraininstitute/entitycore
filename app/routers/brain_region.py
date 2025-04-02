@@ -10,6 +10,6 @@ router = APIRouter(
 
 read_hierarchy = router.get("")(app.service.brain_region.read_hierarchy)
 read_one = router.get("/{id_}")(app.service.brain_region.read_one)
-create = router.post("", dependencies=[Depends(user_with_service_admin_role)])(
-    app.service.brain_region.create
+create_one = router.post("", dependencies=[Depends(user_with_service_admin_role)])(
+    app.service.brain_region.create_one
 )

@@ -24,7 +24,7 @@ def read_one(
     )
 
 
-def create(
+def create_one(
     *,
     db: SessionDep,
     species: SpeciesCreate,

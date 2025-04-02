@@ -60,7 +60,7 @@ def read_one(
     return ExperimentalBoutonDensityRead.model_validate(row)
 
 
-def create(
+def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
     density: ExperimentalBoutonDensityCreate,

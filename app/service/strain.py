@@ -45,7 +45,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
     return StrainRead.model_validate(row)
 
 
-def create(strain: StrainCreate, db: SessionDep) -> StrainRead:
+def create_one(strain: StrainCreate, db: SessionDep) -> StrainRead:
     row = Strain(name=strain.name, taxonomy_id=strain.taxonomy_id, species_id=strain.species_id)
     db.add(row)
     db.commit()

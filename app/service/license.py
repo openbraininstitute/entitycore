@@ -42,7 +42,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> LicenseRead:
     return LicenseRead.model_validate(row)
 
 
-def create(license: LicenseCreate, db: SessionDep) -> LicenseRead:
+def create_one(license: LicenseCreate, db: SessionDep) -> LicenseRead:
     row = License(name=license.name, description=license.description, label=license.label)
     db.add(row)
     db.commit()

@@ -42,7 +42,7 @@ def read_one(
     )
 
 
-def create(
+def create_one(
     user_context: UserContextWithProjectIdDep,
     json_model: SingleNeuronSynaptomeSimulationCreate,
     db: SessionDep,

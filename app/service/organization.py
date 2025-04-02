@@ -42,7 +42,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> OrganizationRead:
     return OrganizationRead.model_validate(row)
 
 
-def create(organization: OrganizationCreate, db: SessionDep) -> OrganizationRead:
+def create_one(organization: OrganizationCreate, db: SessionDep) -> OrganizationRead:
     row = Organization(**organization.model_dump())
     db.add(row)
     db.commit()

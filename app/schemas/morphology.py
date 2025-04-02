@@ -66,6 +66,7 @@ class ReconstructionMorphologyRead(
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     assets: list[AssetRead] | None
+    type: str = "reconstruction_morphology"
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

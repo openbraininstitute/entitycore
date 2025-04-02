@@ -1,8 +1,10 @@
+import urllib.parse
 import uuid
+from http import HTTPStatus
 from typing import Annotated
 
 import sqlalchemy as sa
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Path, Query
 from fastapi_filter import FilterDepends
 from sqlalchemy.orm import (
     aliased,
@@ -26,7 +28,7 @@ from app.db.model import (
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ensure_result
+from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.morphology import MorphologyFilter
 from app.routers.common import FacetQueryParams, _get_facets
 from app.schemas.morphology import (
@@ -40,55 +42,6 @@ router = APIRouter(
     prefix="/reconstruction-morphology",
     tags=["reconstruction-morphology"],
 )
-
-
-@router.get(
-    "/{id_}",
-    response_model=ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead,
-)
-def read_reconstruction_morphology(
-    user_context: UserContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-    expand: Annotated[set[str] | None, Query()] = None,
-):
-    with ensure_result(error_message="ReconstructionMorphology not found"):
-        query = constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), user_context.project_id
-        ).filter(ReconstructionMorphology.id == id_)
-
-        if expand and "morphology_feature_annotation" in expand:
-            query = query.options(
-                joinedload(ReconstructionMorphology.morphology_feature_annotation)
-                .selectinload(MorphologyFeatureAnnotation.measurements)
-                .selectinload(MorphologyMeasurement.measurement_serie)
-            )
-
-        query = (
-            query.options(joinedload(ReconstructionMorphology.brain_region))
-            .options(
-                selectinload(ReconstructionMorphology.contributions).selectinload(
-                    Contribution.agent
-                )
-            )
-            .options(
-                selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role)
-            )
-            .options(joinedload(ReconstructionMorphology.mtypes))
-            .options(joinedload(ReconstructionMorphology.license))
-            .options(joinedload(ReconstructionMorphology.species))
-            .options(joinedload(ReconstructionMorphology.strain))
-            .options(selectinload(ReconstructionMorphology.assets))
-            .options(raiseload("*"))
-        )
-
-        row = db.execute(query).unique().scalar_one()
-
-    if expand and "morphology_feature_annotation" in expand:
-        return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)
-
-    # added back with None by the response_model
-    return ReconstructionMorphologyRead.model_validate(row)
 
 
 @router.post("", response_model=ReconstructionMorphologyRead)
@@ -213,3 +166,92 @@ def morphology_query(
     )
 
     return response
+
+
+def validate_id(
+    id_: str = Path(...),
+    *,
+    is_legacy: Annotated[bool, Query()] = False,
+) -> tuple[str, bool]:
+    if not is_legacy:
+        try:
+            uuid.UUID(id_)
+        except ValueError as err:
+            raise ApiError(
+                message=f"Invalid UUID format: {id_}",
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            ) from err
+    else:
+        try:
+            decoded_id = urllib.parse.unquote(id_)
+            parsed = urllib.parse.urlparse(decoded_id)
+            if not parsed.scheme or not parsed.netloc:
+                msg = "Missing scheme or host in URL"
+                raise ValueError(msg)  # noqa: TRY301
+        except ValueError as err:
+            raise ApiError(
+                message=f"Invalid URL format for legacy ID: {id_}",
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            ) from err
+
+    return id_, is_legacy
+
+
+@router.get(
+    "/{id_:path}",
+    response_model=ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead,
+)
+def read_reconstruction_morphology(
+    user_context: UserContextDep,
+    db: SessionDep,
+    validated_id: Annotated[tuple[str, bool], Depends(validate_id)],
+    expand: Annotated[set[str] | None, Query()] = None,
+):
+    id_, is_legacy = validated_id
+
+    with ensure_result(error_message="ReconstructionMorphology not found"):
+        if is_legacy:
+            decoded_id = urllib.parse.unquote(id_)
+            query = constrain_to_accessible_entities(
+                sa.select(ReconstructionMorphology), user_context.project_id
+            ).filter(decoded_id == sa.any_(ReconstructionMorphology.legacy_id))
+        else:
+            uuid_id = uuid.UUID(id_)
+            query = constrain_to_accessible_entities(
+                sa.select(ReconstructionMorphology), user_context.project_id
+            ).filter(ReconstructionMorphology.id == uuid_id)
+
+        if expand and "morphology_feature_annotation" in expand:
+            query = query.options(
+                joinedload(ReconstructionMorphology.morphology_feature_annotation)
+                .selectinload(MorphologyFeatureAnnotation.measurements)
+                .selectinload(MorphologyMeasurement.measurement_serie)
+            )
+
+        query = (
+            query.options(joinedload(ReconstructionMorphology.brain_region))
+            .options(
+                selectinload(ReconstructionMorphology.contributions).selectinload(
+                    Contribution.agent
+                )
+            )
+            .options(
+                selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role)
+            )
+            .options(joinedload(ReconstructionMorphology.mtypes))
+            .options(joinedload(ReconstructionMorphology.license))
+            .options(joinedload(ReconstructionMorphology.species))
+            .options(joinedload(ReconstructionMorphology.strain))
+            .options(selectinload(ReconstructionMorphology.assets))
+            .options(raiseload("*"))
+        )
+
+        row = db.execute(query).unique().scalar_one()
+
+    if expand and "morphology_feature_annotation" in expand:
+        return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)
+
+    # added back with None by the response_model
+    return ReconstructionMorphologyRead.model_validate(row)

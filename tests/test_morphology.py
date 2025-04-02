@@ -1,4 +1,5 @@
 import itertools as it
+import urllib.parse
 
 from app.db.model import ReconstructionMorphology, Species, Strain
 
@@ -341,3 +342,81 @@ def test_pagination(db, client, brain_region_id):
     assert len(items) == total_items
     names = [int(d["name"].removeprefix("TestMorphologyName")) for d in items]
     assert list(reversed(names)) == list(range(total_items))
+
+
+def test_get_morphology_by_uuid_success(client, db, brain_region_id):
+    """Test successful retrieval of a morphology using its UUID."""
+
+    species = add_db(db, Species(name="UUIDTestSpecies", taxonomy_id="0"))
+    strain = add_db(db, Strain(name="UUIDTestStrain", species_id=species.id, taxonomy_id="0"))
+
+    morphology_id = create_reconstruction_morphology_id(
+        client,
+        species_id=species.id,
+        strain_id=strain.id,
+        brain_region_id=brain_region_id,
+        name="UUID Test Morphology",
+        description="Test morphology for UUID access",
+        authorized_public=True,
+    )
+
+    response = client.get(f"{ROUTE}/{morphology_id}", params={"is_legacy": False})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == morphology_id
+    assert data["name"] == "UUID Test Morphology"
+    assert data["species"]["name"] == "UUIDTestSpecies"
+
+
+def test_get_morphology_by_legacy_id_success(client, db, brain_region_id):
+    """Test successful retrieval of a morphology using its legacy ID."""
+
+    species = add_db(db, Species(name="LegacyTestSpecies", taxonomy_id="0"))
+    strain = add_db(db, Strain(name="LegacyTestStrain", species_id=species.id, taxonomy_id="0"))
+
+    legacy_id = "https://example.org/morphology/12345"
+
+    # Add a morphology with the legacy ID directly to the database
+    morphology = add_db(
+        db,
+        ReconstructionMorphology(
+            brain_region_id=brain_region_id,
+            species_id=species.id,
+            strain_id=strain.id,
+            name="Legacy ID Test Morphology",
+            description="Test morphology for legacy ID access",
+            authorized_public=True,
+            legacy_id=[legacy_id],
+            authorized_project_id=PROJECT_ID,
+        ),
+    )
+
+    encoded_legacy_id = urllib.parse.quote(legacy_id, safe="")
+    response = client.get(f"{ROUTE}/{encoded_legacy_id}", params={"is_legacy": True})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert str(morphology.id) == data["id"]
+    assert data["name"] == "Legacy ID Test Morphology"
+    assert legacy_id in data["legacy_id"]
+
+
+def test_get_morphology_by_invalid_uuid(client):
+    """Test that an invalid UUID returns a 422 error."""
+    invalid_id = "not-a-valid-uuid"
+    response = client.get(f"{ROUTE}/{invalid_id}")
+
+    assert response.status_code == 422
+    data = response.json()
+    assert "Invalid UUID format" in data["message"]
+
+
+def test_get_morphology_by_invalid_legacy_id(client):
+    """Test that an invalid legacy ID returns a 422 error."""
+    invalid_legacy_id = "invalid-legacy-id-no-url-format"
+    response = client.get(f"{ROUTE}/{invalid_legacy_id}", params={"is_legacy": True})
+
+    assert response.status_code == 422
+    data = response.json()
+    assert "Invalid URL format for legacy ID" in data["message"]

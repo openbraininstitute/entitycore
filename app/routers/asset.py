@@ -1,6 +1,8 @@
 """Generic asset routes."""
 
 import uuid
+from http import HTTPStatus
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
@@ -84,10 +86,18 @@ def upload_entity_asset(
     """
     if not file.size or not validate_filesize(file.size):
         msg = f"File bigger than {settings.API_ASSET_POST_MAX_SIZE}, please use delegation"
-        raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_FILE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     if not file.filename or not validate_filename(file.filename):
         msg = f"Invalid file name {file.filename!r}"
-        raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     content_type = get_content_type(file)
     sha256_digest = calculate_sha256_digest(file)
     asset_read = asset_service.create_entity_asset(
@@ -119,6 +129,7 @@ def download_entity_asset(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
+    asset_path: str | None = None,
 ) -> RedirectResponse:
     asset = asset_service.get_entity_asset(
         repos,
@@ -127,8 +138,35 @@ def download_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
+    if asset.is_directory:
+        if asset_path is None:
+            msg = "Missing required parameter for downloading a directory file: asset_path"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_MISSING_PATH,
+                http_status_code=HTTPStatus.CONFLICT,
+            )
+        if not validate_filename(asset_path):
+            msg = f"Invalid file name {asset_path!r}"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_INVALID_PATH,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
+        full_path = str(Path(asset.full_path, asset_path))
+    else:
+        if asset_path:
+            msg = "asset_path is only applicable when asset is a directory"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
+                http_status_code=HTTPStatus.CONFLICT,
+            )
+        full_path = asset.full_path
     url = generate_presigned_url(
-        s3_client=s3_client, bucket_name=asset.bucket_name, s3_key=asset.full_path
+        s3_client=s3_client,
+        bucket_name=asset.bucket_name,
+        s3_key=full_path,
     )
     if not url:
         raise HTTPException(status_code=500, detail="Failed to generate presigned url")

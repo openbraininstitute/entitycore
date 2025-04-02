@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
+from app.db.types import Sex
+
 
 class AuthorizationMixin(BaseModel):
     authorized_project_id: UUID4
@@ -44,9 +46,9 @@ class CreationMixin(BaseModel):
 
 class LicenseCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    name: str
+    pref_label: str
+    alt_label: str | None = None
     description: str
-    label: str
 
 
 class LicenseRead(LicenseCreate, CreationMixin, IdentifiableMixin):
@@ -102,6 +104,20 @@ class SpeciesCreate(BaseModel):
 
 class SpeciesRead(SpeciesCreate, CreationMixin, IdentifiableMixin):
     pass
+
+
+class SubjectBase(BaseModel):
+    age: int | None = None
+    sex: Sex | None = None
+    weight: float | None = None
+
+
+class SubjectCreate(SubjectBase):
+    species_id: uuid.UUID
+
+
+class SubjectRead(SubjectBase, CreationMixin, IdentifiableMixin):
+    species: SpeciesRead
 
 
 class LicensedCreateMixin(BaseModel):

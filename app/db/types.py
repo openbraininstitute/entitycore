@@ -6,7 +6,6 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
-from app.schemas.base import PointLocationBase
 from app.utils.enum import HyphenStrEnum, StrEnum
 
 
@@ -23,6 +22,8 @@ class PointLocationType(TypeDecorator):
     def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301
         if value is None:
             return None
+
+        from app.schemas.base import PointLocationBase  # noqa: PLC0415
 
         return PointLocationBase(**value)
 
@@ -49,7 +50,7 @@ class EntityType(HyphenStrEnum):
     experimental_synapses_per_connection = auto()
     mesh = auto()
     reconstruction_morphology = auto()
-    single_cell_experimental_trace = auto()
+    electrical_cell_recording = auto()
 
 
 class AssetStatus(HyphenStrEnum):
@@ -61,3 +62,15 @@ class SingleNeuronSimulationStatus(StrEnum):
     started = auto()
     failure = auto()
     success = auto()
+
+
+class Sex(StrEnum):
+    male = auto()
+    female = auto()
+
+
+class ElectricalRecordingType(StrEnum):
+    intracellular = auto()
+    extracellular = auto()
+    both = auto()
+    unknown = auto()

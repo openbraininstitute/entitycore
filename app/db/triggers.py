@@ -3,6 +3,7 @@ from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
 from app.db.model import (
+    ElectricalCellRecording,
     EModel,
     Entity,
     MEModel,
@@ -92,6 +93,12 @@ entities = [
     description_vector_trigger(
         ReconstructionMorphology,
         "morphology_description_vector",
+        "description_vector",
+        ["description", "name"],
+    ),
+    description_vector_trigger(
+        ElectricalCellRecording,
+        "electrical_cell_recording_description_vector",
         "description_vector",
         ["description", "name"],
     ),

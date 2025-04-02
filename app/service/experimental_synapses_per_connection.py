@@ -1,4 +1,5 @@
 import uuid
+from typing import cast
 
 import sqlalchemy as sa
 from fastapi import APIRouter
@@ -39,7 +40,7 @@ def read_many(
     ).scalar_one()
 
     response = ListResponse[ExperimentalSynapsesPerConnectionRead](
-        data=data,
+        data=cast("list[ExperimentalSynapsesPerConnectionRead]", data),
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

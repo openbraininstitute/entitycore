@@ -1,4 +1,5 @@
 import uuid
+from typing import cast
 
 import sqlalchemy as sa
 
@@ -33,7 +34,7 @@ def read_many(
     ).scalar_one()
 
     response = ListResponse[ExperimentalBoutonDensityRead](
-        data=data,
+        data=cast("list[ExperimentalBoutonDensityRead]", data),
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

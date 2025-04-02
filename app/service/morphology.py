@@ -1,5 +1,5 @@
 import uuid
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, cast
 
 import sqlalchemy as sa
 from fastapi import Query
@@ -193,7 +193,7 @@ def read_many(
     ).scalar_one()
 
     response = ListResponse[ReconstructionMorphologyRead](
-        data=data,
+        data=cast("list[ReconstructionMorphologyRead]", data),
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

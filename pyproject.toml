@@ -25,7 +25,6 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
     "python-multipart>=0.0.20",
-    "pyright>=1.1.398",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -43,7 +42,7 @@ dev-dependencies = [
     "coverage[toml]",
     "httpx",
     "moto[s3]>=5.0.28",
-    "mypy",
+    "pyright>=1.1.398",
     "pytest",
     "pytest-cov",
     "pytest-freezer>=0.4.9",
@@ -184,7 +183,5 @@ omit = [
     "app/routers/legacy/*",
 ]
 
-[tool.mypy]
-show_error_codes = true
-ignore_missing_imports = true
-allow_redefinition = true
+[tool.pyright]
+exclude = ["app/routers/legacy"]

@@ -19,7 +19,17 @@ class CacheKey(BaseModel):
     token_digest: str
 
 
-class UserContext(BaseModel):
+class UserContextBase(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    subject: UUID | None
+    email: str | None
+    expiration: float | None
+    is_authorized: bool
+    is_service_admin: bool = False
+    auth_error_reason: AuthErrorReason | None = None
+
+
+class UserContext(UserContextBase):
     """User Context."""
 
     model_config = ConfigDict(frozen=True)
@@ -30,10 +40,9 @@ class UserContext(BaseModel):
     is_service_admin: bool = False
     virtual_lab_id: UUID | None = None
     project_id: UUID | None = None
-    auth_error_reason: AuthErrorReason | None = None
 
 
-class UserContextWithProjectId(UserContext):
+class UserContextWithProjectId(UserContextBase):
     """User Context with valid virtual_lab_id and project_id."""
 
     virtual_lab_id: UUID

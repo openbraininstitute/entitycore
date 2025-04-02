@@ -14,6 +14,7 @@ import operator as op
 from app.cli.utils import ensurelist
 from sqlalchemy.orm import Session
 from app.schemas.base import ProjectContext
+from app.db.types import AssetStatus, EntityType
 
 
 import click
@@ -440,10 +441,6 @@ class ImportEModels(Import):
 
             assert emodel_script
 
-            utils.import_emodelscript_distribution(
-                emodel_script, db, project_context, all_data_by_id
-            )
-
             db_item = EModel(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
@@ -471,6 +468,10 @@ class ImportEModels(Import):
             db.flush()
 
             utils.import_contribution(emodel_script, db_item.id, db)
+            
+            utils.import_distribution(
+                emodel_script, db_item.id, EntityType.emodel, db, project_context
+            )
 
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_item.id, db)

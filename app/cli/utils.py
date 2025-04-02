@@ -13,7 +13,6 @@ from app.db.model import (
     Asset,
     BrainRegion,
     Contribution,
-    EModel,
     License,
     Role,
     Species,

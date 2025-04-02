@@ -8,7 +8,17 @@ from sqlalchemy.orm import Session
 
 from app.cli import curate
 from app.config import settings
-from app.db.model import Agent, Asset, BrainRegion, Contribution, License, Role, Species, Strain
+from app.db.model import (
+    Agent,
+    Asset,
+    BrainRegion,
+    Contribution,
+    ElectricalRecordingStimulus,
+    License,
+    Role,
+    Species,
+    Strain,
+)
 from app.db.types import AssetStatus, EntityType
 from app.logger import L
 from app.schemas.base import ProjectContext
@@ -68,6 +78,15 @@ def get_or_create_species(species, db, _cache={}):
     _cache[id_] = sp.id
 
     return sp.id
+
+
+def create_stimulus(data, entity_id, db):
+    row = ElectricalRecordingStimulus(
+        protocol=data["label"],
+        recording_id=entity_id,
+    )
+    db.add(row)
+    db.commit()
 
 
 def get_brain_location_mixin(data, db):

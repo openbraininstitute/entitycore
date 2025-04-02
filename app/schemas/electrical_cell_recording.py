@@ -16,18 +16,19 @@ from app.schemas.base import (
     SubjectRead,
 )
 
-
-class StimulusCreate(BaseModel):
+"""
+class ElectricalRecordingStimulusCreate(BaseModel):
     stimulus_id: int
     dt: float = Field(
         ...,
         title="Time Step (dt)",
         description="Time step for this stimulus, in ms.",
     )
+"""
 
 
-class StimulusRead(StimulusCreate, CreationMixin):
-    pass
+class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin):
+    protocol: str
 
 
 class ElectricalCellRecordingBase(BaseModel):
@@ -84,17 +85,19 @@ class ElectricalCellRecordingRead(
     subject: SubjectRead
     brain_region: BrainRegionRead
     assets: list[AssetRead] | None
+    stimuli: Annotated[
+        list[ElectricalRecordingStimulusRead] | None,
+        Field(
+            title="Electrical Recording Stimuli",
+            description="List of stimuli applied to the cell with their respective time steps",
+        ),
+    ] = None
 
 
 """
 # Trace Model for Electrophysiology Data
 class TraceCreate(SingleCellData):
     file: File = Field(..., title="File", description="File associated with the trace.")
-    stimuli: StimulusCreate = Field(
-        ...,
-        title="Stimuli",
-        description="List of stimuli applied to the cell with their respective time steps",
-    )
     derivation: int | None = Field(
         None,
         title="Derivation ID",

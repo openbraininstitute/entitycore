@@ -630,13 +630,17 @@ class ImportExperimentalSynapsesPerConnection(Import):
         )
 
 
-class ImportSingleCellExperimentalTrace(Import):
+class ImportElectricalCellRecording(Import):
     name = "SingleCellExperimentalTrace"
 
     @staticmethod
     def is_correct_type(data):
         types = ensurelist(data["@type"])
-        return "SingleCellExperimentalTrace" in types
+        return (
+            "SingleCellExperimentalTrace" in types
+            or "Trace" in types
+            or "ExperimentalTrace" in types
+        )
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
@@ -694,6 +698,14 @@ class ImportSingleCellExperimentalTrace(Import):
 
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_item.id, db)
+
+            for stimulus in ensurelist(data.get("stimulus", [])):
+                stimulus_type = stimulus["stimulusType"]
+                if "@id" in stimulus_type and stimulus_type["@id"] in all_data_by_id:
+                    stimulus_type = all_data_by_id[stimulus_type["@id"]]
+
+                # create a stimulus for each stimulus in the data
+                utils.create_stimulus(stimulus_type, db_item.id, db)
 
 
 class ImportMEModel(Import):
@@ -987,7 +999,7 @@ def _do_import(db, input_dir, project_context):
         ImportExperimentalNeuronDensities,
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
-        ImportSingleCellExperimentalTrace,
+        ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,

@@ -5,7 +5,14 @@ from fastapi import APIRouter
 from fastapi_filter import FilterDepends
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, BrainRegion, Contribution, ElectricalCellRecording, Subject
+from app.db.model import (
+    Agent,
+    BrainRegion,
+    Contribution,
+    ElectricalCellRecording,
+    ElectricalRecordingStimulus,
+    Subject,
+)
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
@@ -44,6 +51,7 @@ def read_one(
             joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
             joinedload(ElectricalCellRecording.brain_region),
             selectinload(ElectricalCellRecording.assets),
+            selectinload(ElectricalCellRecording.stimuli),
             raiseload("*"),
         ),
     )
@@ -87,6 +95,10 @@ def read_many(
     apply_filter_query = lambda query: (
         query.join(BrainRegion, ElectricalCellRecording.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, ElectricalCellRecording.id == Contribution.entity_id)
+        .outerjoin(
+            ElectricalRecordingStimulus,
+            ElectricalCellRecording.id == ElectricalRecordingStimulus.recording_id,
+        )
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
     )
     apply_data_query = lambda query: (
@@ -94,6 +106,7 @@ def read_many(
         .options(joinedload(ElectricalCellRecording.brain_region))
         .options(joinedload(ElectricalCellRecording.license))
         .options(selectinload(ElectricalCellRecording.assets))
+        .options(selectinload(ElectricalCellRecording.stimuli))
         .options(raiseload("*"))
     )
     return router_read_many(

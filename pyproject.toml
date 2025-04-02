@@ -25,6 +25,7 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
     "python-multipart>=0.0.20",
+    "strawberry-graphql[fastapi]>=0.262.5",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -117,6 +118,9 @@ builtins-ignorelist = ["license"]
 "app/cli/utils.py" = [
     "B006",    # Do not use mutable data structures for argument defaults
 ]
+"app/graphql/resolvers/**.py" = [
+    "PLR6301", # Method could be a function, class method, or static method
+]
 "test_dump/**.py" = ["ALL"]
 "test_legacy/**.py" = ["ALL"]
 "tests/**.py" = [
@@ -187,3 +191,7 @@ omit = [
 show_error_codes = true
 ignore_missing_imports = true
 allow_redefinition = true
+plugins = [
+    "pydantic.mypy",
+    "strawberry.ext.mypy_plugin",
+]

@@ -17,6 +17,7 @@ from app.config import settings
 from app.db.session import configure_database_session_manager
 from app.dependencies.common import forbid_extra_query_params
 from app.errors import ApiError, ApiErrorCode
+from app.graphql.router import graphql_router
 from app.logger import L
 from app.routers import router
 from app.schemas.api import ErrorResponse
@@ -106,3 +107,4 @@ app.include_router(
     },
     dependencies=[Depends(forbid_extra_query_params)],
 )
+app.include_router(graphql_router)

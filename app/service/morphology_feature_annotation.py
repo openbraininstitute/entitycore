@@ -70,7 +70,7 @@ def read_one(
     return MorphologyFeatureAnnotationRead.model_validate(row)
 
 
-def create(
+def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,

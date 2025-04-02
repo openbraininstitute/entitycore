@@ -11,6 +11,6 @@ router = APIRouter(
 
 read_many = router.get("")(app.service.person.read_many)
 read_one = router.get("/{id_}")(app.service.person.read_one)
-create = router.post("", dependencies=[Depends(user_with_service_admin_role)])(
-    app.service.person.create
+create_one = router.post("", dependencies=[Depends(user_with_service_admin_role)])(
+    app.service.person.create_one
 )

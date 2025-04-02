@@ -9,4 +9,4 @@ router = APIRouter(
 
 read_many = router.get("")(app.service.single_neuron_synaptome.read_many)
 read_one = router.get("/{id_}")(app.service.single_neuron_synaptome.read_one)
-create = router.post("")(app.service.single_neuron_synaptome.create)
+create_one = router.post("")(app.service.single_neuron_synaptome.create_one)

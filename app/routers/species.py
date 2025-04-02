@@ -10,6 +10,6 @@ router = APIRouter(
 
 read_many = router.get("")(app.service.species.read_many)
 read_one = router.get("/{id_}")(app.service.species.read_one)
-create = router.post("", dependencies=[Depends(user_with_service_admin_role)])(
-    app.service.species.create
+create_one = router.post("", dependencies=[Depends(user_with_service_admin_role)])(
+    app.service.species.create_one
 )

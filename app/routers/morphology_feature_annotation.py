@@ -9,4 +9,4 @@ router = APIRouter(
 
 read_many = router.get("")(app.service.morphology_feature_annotation.read_many)
 read_one = router.get("/{id_}")(app.service.morphology_feature_annotation.read_one)
-create = router.post("")(app.service.morphology_feature_annotation.create)
+create_one = router.post("")(app.service.morphology_feature_annotation.create_one)

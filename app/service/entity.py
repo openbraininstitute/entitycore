@@ -1,11 +1,16 @@
 import uuid
 
 import app.queries.entity
-from app.db.model import Entity
+from app.db.model import Base, Entity
 from app.db.types import EntityType
-from app.db.utils import ENTITY_TYPE_TO_CLASS
 from app.repository.group import RepositoryGroup
 from app.schemas.auth import UserContext, UserContextWithProjectId
+
+ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
+    EntityType[mapper.class_.__tablename__]: mapper.class_
+    for mapper in Base.registry.mappers
+    if hasattr(EntityType, mapper.class_.__tablename__)
+}
 
 
 def get_readable_entity(

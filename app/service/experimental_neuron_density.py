@@ -57,7 +57,7 @@ def read_one(
     return ExperimentalNeuronDensityRead.model_validate(row)
 
 
-def create(
+def create_one(
     user_context: UserContextWithProjectIdDep,
     density: ExperimentalNeuronDensityCreate,
     db: SessionDep,

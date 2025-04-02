@@ -51,7 +51,7 @@ def read_one(db: SessionDep, id_: int) -> BrainRegionRead:
     return BrainRegionRead.model_validate(row)
 
 
-def create(brain_region: BrainRegionCreate, db: SessionDep) -> BrainRegionRead:
+def create_one(brain_region: BrainRegionCreate, db: SessionDep) -> BrainRegionRead:
     row = BrainRegion(**brain_region.model_dump())
     db.add(row)
     db.commit()

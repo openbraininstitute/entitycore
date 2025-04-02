@@ -39,7 +39,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> PersonRead:
     return PersonRead.model_validate(row)
 
 
-def create(person: PersonCreate, db: SessionDep) -> PersonRead:
+def create_one(person: PersonCreate, db: SessionDep) -> PersonRead:
     row = Person(**person.model_dump())
     db.add(row)
     db.commit()

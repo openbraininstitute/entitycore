@@ -30,7 +30,7 @@ def read_one(
     )
 
 
-def create(
+def create_one(
     db: SessionDep,
     json_model: SingleNeuronSynaptomeCreate,
     user_context: UserContextWithProjectIdDep,

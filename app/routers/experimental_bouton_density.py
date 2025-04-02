@@ -9,4 +9,4 @@ router = APIRouter(
 
 read_many = router.get("")(app.service.experimental_bouton_density.read_many)
 read_onw = router.get("/{id_}")(app.service.experimental_bouton_density.read_one)
-create = router.post("")(app.service.experimental_bouton_density.create)
+create_one = router.post("")(app.service.experimental_bouton_density.create_one)

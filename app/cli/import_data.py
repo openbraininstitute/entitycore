@@ -468,7 +468,7 @@ class ImportEModels(Import):
             db.flush()
 
             utils.import_contribution(emodel_script, db_item.id, db)
-            
+
             utils.import_distribution(
                 emodel_script, db_item.id, EntityType.emodel, db, project_context
             )

@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
+from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -49,3 +50,7 @@ class EModelRead(
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
+
+
+class EModelWAssetsRead(EModelRead, AssetsMixin):
+    pass

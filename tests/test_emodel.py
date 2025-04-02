@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from .conftest import CreateIds, EModelIds
 from .utils import create_reconstruction_morphology_id
+from tests.routers.test_asset import _upload_entity_asset
 
 ROUTE = "/emodel"
 
@@ -34,12 +35,16 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     assert response.status_code == 200, f"Failed to get emodels: {response.text}"
 
 
-def test_get_emodel(client: TestClient, create_emodel_ids: CreateIds):
-    emodel_id = str(create_emodel_ids(1)[0])
+def test_get_emodel(client: TestClient, emodel_id: str):
+    _upload_entity_asset(client, "emodel", emodel_id)
+
     response = client.get(f"{ROUTE}/{emodel_id}")
 
     assert response.status_code == 200
-    assert response.json()["id"] == emodel_id
+    json = response.json()
+    assert json["id"] == emodel_id
+    assert "assets" in json
+    assert len(json["assets"]) == 1
 
 
 def test_missing(client):
@@ -66,6 +71,7 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 11
+    assert "assets" not in data[0]
 
 
 def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):

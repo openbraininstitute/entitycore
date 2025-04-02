@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.annotation import MTypeClassRead
-from app.schemas.asset import AssetRead
+from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -59,13 +59,13 @@ class ReconstructionMorphologyRead(
     IdentifiableMixin,
     LicensedReadMixin,
     AuthorizationMixin,
+    AssetsMixin,
 ):
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
-    assets: list[AssetRead] | None
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

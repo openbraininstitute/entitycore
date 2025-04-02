@@ -35,3 +35,7 @@ class AssetRead(AssetBase):
 
 class AssetCreate(AssetBase):
     """Asset model for creation."""
+
+
+class AssetsMixin(BaseModel):
+    assets: list[AssetRead] | None

@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Callable
+from typing import cast
 
 import sqlalchemy as sa
 from pydantic import BaseModel
@@ -117,12 +118,8 @@ def router_read_many[T: BaseModel, M: Identifiable](
         )
     ).scalar_one()
 
-    # reveal_type(data) # information: Type of "data" is "ScalarResult[M@router_read_many]"
-
     response = ListResponse(
-        data=[
-            response_schema_class.model_validate(row) for row in data
-        ],  # Manual validation to please pyright
+        data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

@@ -1,4 +1,3 @@
-import uuid
 import datetime
 import glob
 import json
@@ -10,7 +9,6 @@ from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
 from typing import Any
-
 
 import click
 import sqlalchemy as sa
@@ -25,6 +23,7 @@ from app.db.model import (
     BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
+    Entity,
     ETypeClass,
     ETypeClassification,
     ExperimentalBoutonDensity,
@@ -41,7 +40,6 @@ from app.db.model import (
     Organization,
     Person,
     ReconstructionMorphology,
-    Root,
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
 )
@@ -793,7 +791,7 @@ class ImportDistribution(Import):
         ignored = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
-            root = utils._find_by_legacy_id(legacy_id, Root, db)
+            root = utils._find_by_legacy_id(legacy_id, Entity, db)
             if root:
                 utils.import_distribution(data, root.id, root.type, db, project_context)
             else:

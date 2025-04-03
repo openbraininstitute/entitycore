@@ -7,7 +7,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.schemas.base import PointLocationBase
-from app.utils.enum import HyphenStrEnum, StrEnum
+from app.utils.enum import StrEnum
 
 
 class PointLocationType(TypeDecorator):
@@ -34,25 +34,37 @@ JSON_DICT = Annotated[dict[str, Any], mapped_column(JSONB)]
 STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 
 
-class EntityType(HyphenStrEnum):
-    """Entities that are directly exposed through the API.
+class EntityType(StrEnum):
+    """Entity types."""
 
-    For each entry:
-
-    - name (underscore separated): for table names and S3 keys
-    - value (hyphen separated): for endpoints
-    """
-
+    analysis_software_source_code = auto()
     emodel = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
+    memodel = auto()
     mesh = auto()
     reconstruction_morphology = auto()
     single_cell_experimental_trace = auto()
+    single_neuron_simulation = auto()
+    single_neuron_synaptome = auto()
+    single_neuron_synaptome_simulation = auto()
 
 
-class AssetStatus(HyphenStrEnum):
+class AgentType(StrEnum):
+    """Agent types."""
+
+    person = auto()
+    organization = auto()
+
+
+class AnnotationType(StrEnum):
+    """Annotation types."""
+
+    datamaturity_annotation_body = auto()
+
+
+class AssetStatus(StrEnum):
     CREATED = auto()
     DELETED = auto()
 

@@ -127,4 +127,4 @@ class MeasurementCreate(BaseModel):
 
 
 class MeasurementRead(MeasurementCreate):
-    id: uuid.UUID
+    id: int

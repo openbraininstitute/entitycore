@@ -36,19 +36,15 @@ class Facet(BaseModel):
 type Facets = dict[str, list[Facet]]
 
 
-# Type 'data' conditionally for Pyright or Pydantic
-#
-# If running Pyright:
-# data: Any, The type passed to data can be anything that we're wanting to validate,
-# not necessarily a list[M]
-#
-#  At runtime
-# data: list[M] Pydantic will use the type annotation to validate 'data'
-# https://docs.pydantic.dev/latest/integrations/visual_studio_code/#strict-errors
 class ListResponse[M: BaseModel](BaseModel):
+    # When using a static type checker (e.g., Pyright, MyPy), 'data' is set to Any.
+    # This prevents issues with generic types in Pydantic, since the data that
+    # is passed to the model is not necessarily  a list[M] but anythig we might
+    # want to validate.
+    #
+    # At runtime, 'data' is explicitly defined as list[M] so that Pydantic
+    # can enforce validation, ensuring that 'data' is always a list of M instances.
     if TYPE_CHECKING:
-        data: Any
+        data: Any  # Allows flexibility for static type checkers
     else:
-        data: list[M]
-    pagination: PaginationResponse
-    facets: Facets | None = None
+        data: list[M]  # Ensures Pydantic validation at runtime

@@ -38,7 +38,7 @@ type Facets = dict[str, list[Facet]]
 
 class ListResponse[M: BaseModel](BaseModel):
     # When using a static type checker (e.g., Pyright, MyPy), 'data' is set to Any.
-    # This prevents issues with generic types in Pydantic, since that data might by
+    # This prevents issues with generic types in Pydantic, since 'data' might by
     # of any type that we're wanting to validate, not necessarily list[M].
     #
     # At runtime, 'data' is explicitly defined as list[M] so that Pydantic

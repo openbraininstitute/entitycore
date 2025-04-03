@@ -117,16 +117,18 @@ def router_read_many[T: BaseModel, M: Identifiable](
         )
     ).scalar_one()
 
-    response = ListResponse(
-        data=[response_schema_class.model_validate(row) for row in data],
-        pagination=PaginationResponse(
-            page=pagination_request.page,
-            page_size=pagination_request.page_size,
-            total_items=total_items,
-        ),
-        facets=facets(db, filter_query, name_to_facet_query_params, db_model_class.id)
-        if facets and name_to_facet_query_params
-        else None,
+    response = ListResponse[response_schema_class].model_validate(
+        {
+            "data": data,
+            "pagination": PaginationResponse(
+                page=pagination_request.page,
+                page_size=pagination_request.page_size,
+                total_items=total_items,
+            ),
+            "facets": facets(db, filter_query, name_to_facet_query_params, db_model_class.id)
+            if facets and name_to_facet_query_params
+            else None,
+        }
     )
 
     return response

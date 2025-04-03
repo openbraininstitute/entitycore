@@ -32,12 +32,6 @@ class UserContextBase(BaseModel):
 class UserContext(UserContextBase):
     """User Context."""
 
-    model_config = ConfigDict(frozen=True)
-    subject: UUID | None
-    email: str | None
-    expiration: float | None
-    is_authorized: bool
-    is_service_admin: bool = False
     virtual_lab_id: UUID | None = None
     project_id: UUID | None = None
 

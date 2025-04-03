@@ -27,6 +27,7 @@ from app.dependencies.common import PaginationQuery, _get_facets
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilterDep
+from app.queries.common import router_create_one
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
@@ -88,22 +89,13 @@ def create_one(
     db: SessionDep,
     reconstruction: ReconstructionMorphologyCreate,
 ) -> ReconstructionMorphologyRead:
-    db_rm = ReconstructionMorphology(
-        name=reconstruction.name,
-        description=reconstruction.description,
-        location=reconstruction.location,
-        brain_region_id=reconstruction.brain_region_id,
-        species_id=reconstruction.species_id,
-        strain_id=reconstruction.strain_id,
-        license_id=reconstruction.license_id,
+    return router_create_one(
+        db=db,
+        db_model_class=ReconstructionMorphology,
         authorized_project_id=user_context.project_id,
-        authorized_public=reconstruction.authorized_public,
+        json_model=reconstruction,
+        response_schema_class=ReconstructionMorphologyRead,
     )
-    db.add(db_rm)
-    db.commit()
-    db.refresh(db_rm)
-
-    return ReconstructionMorphologyRead.model_validate(db_rm)
 
 
 def read_many(

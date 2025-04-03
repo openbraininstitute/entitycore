@@ -1,5 +1,5 @@
 import uuid
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated
 
 import sqlalchemy as sa
 from fastapi import Query
@@ -23,17 +23,17 @@ from app.db.model import (
     Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery, _get_facets
+from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilterDep
-from app.queries.common import router_create_one
+from app.queries.common import router_create_one, router_read_many
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
 )
-from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
     from app.queries.common import FacetQueryParams
@@ -104,8 +104,8 @@ def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     morphology_filter: MorphologyFilterDep,
-    search: str | None = None,
-    with_facets: bool = False,
+    search: SearchDep,
+    with_facets: FacetsDep,
 ) -> ListResponse[ReconstructionMorphologyRead]:
     agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -119,11 +119,8 @@ def read_many(
         },
     }
 
-    filter_query = (
-        constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), project_id=user_context.project_id
-        )
-        .join(Species, ReconstructionMorphology.species_id == Species.id)
+    filter_query_ops = lambda q: (
+        q.join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
@@ -133,34 +130,9 @@ def read_many(
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
 
-    if search:
-        filter_query = filter_query.where(ReconstructionMorphology.description_vector.match(search))
-
-    filter_query = morphology_filter.filter(filter_query, aliases={Agent: agent_alias})
-
-    if with_facets:
-        facets = _get_facets(
-            db,
-            filter_query,
-            name_to_facet_query_params=name_to_facet_query_params,
-            count_distinct_field=ReconstructionMorphology.id,
-        )
-    else:
-        facets = None
-
-    distinct_ids_subquery = (
-        morphology_filter.sort(filter_query)
-        .with_only_columns(ReconstructionMorphology)
-        .distinct()
-        .offset(pagination_request.offset)
-        .limit(pagination_request.page_size)
-    ).subquery("distinct_ids")
-
     # TODO: load person.* and organization.* eagerly
-    data_query = (
-        morphology_filter.sort(sa.Select(ReconstructionMorphology))  # sort without filtering
-        .join(distinct_ids_subquery, ReconstructionMorphology.id == distinct_ids_subquery.c.id)
-        .options(joinedload(ReconstructionMorphology.species, innerjoin=True))
+    data_query_ops = lambda q: (
+        q.options(joinedload(ReconstructionMorphology.species, innerjoin=True))
         .options(joinedload(ReconstructionMorphology.strain))
         .options(
             selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.agent)
@@ -175,23 +147,17 @@ def read_many(
         .options(raiseload("*"))
     )
 
-    # unique is needed b/c it contains results that include joined eager loads against collections
-    data = db.execute(data_query).scalars().unique()
-
-    total_items = db.execute(
-        filter_query.with_only_columns(
-            sa.func.count(sa.func.distinct(ReconstructionMorphology.id)).label("count")
-        )
-    ).scalar_one()
-
-    response = ListResponse[ReconstructionMorphologyRead](
-        data=cast("list[ReconstructionMorphologyRead]", data),
-        pagination=PaginationResponse(
-            page=pagination_request.page,
-            page_size=pagination_request.page_size,
-            total_items=total_items,
-        ),
-        facets=facets,
+    return router_read_many(
+        db=db,
+        db_model_class=ReconstructionMorphology,
+        authorized_project_id=user_context.project_id,
+        with_search=search,
+        facets=with_facets,
+        aliases={Agent: agent_alias},
+        apply_filter_query_operations=filter_query_ops,
+        apply_data_query_operations=data_query_ops,
+        pagination_request=pagination_request,
+        response_schema_class=ReconstructionMorphologyRead,
+        name_to_facet_query_params=name_to_facet_query_params,
+        filter_model=morphology_filter,
     )
-
-    return response

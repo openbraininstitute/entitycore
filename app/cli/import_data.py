@@ -400,14 +400,14 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id: dict):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
             db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
 
-            if db_item:
-                continue
+            # if db_item:
+            #     continue
 
             _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             assert _brain_location is None
@@ -429,6 +429,20 @@ class ImportEModels(Import):
             exemplar_morphology_id = utils.find_id_in_entity(
                 configuration, "NeuronMorphology", "uses"
             )
+
+            subcellular_model_script_ids = configuration and [
+                script["@id"]
+                for script in configuration.get("uses")
+                if utils.is_type(script, "SubCellularModelScript")
+            ]
+
+            subcellular_model_scripts = [
+                all_data_by_id.get(id) for id in subcellular_model_script_ids or {}
+            ]
+
+            print(subcellular_model_scripts[0])
+
+            raise KeyError
 
             morphology = utils._find_by_legacy_id(
                 exemplar_morphology_id, ReconstructionMorphology, db

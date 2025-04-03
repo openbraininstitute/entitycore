@@ -37,10 +37,13 @@ type Facets = dict[str, list[Facet]]
 
 
 # Type 'data' conditionally for Pyright or Pydantic
+#
 # If running Pyright:
-# data: Any the type passed to data can be anything that we're wanting to validate
-# At runtime
-# data: list[M] Pydantic will use this type to validate the data
+# data: Any, The type passed to data can be anything that we're wanting to validate,
+# not necessarily a list[M]
+#
+#  At runtime
+# data: list[M] Pydantic will use the type annotation to validate 'data'
 # https://docs.pydantic.dev/latest/integrations/visual_studio_code/#strict-errors
 class ListResponse[M: BaseModel](BaseModel):
     if TYPE_CHECKING:

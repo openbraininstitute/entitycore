@@ -16,14 +16,14 @@ type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[tuple[T]]], sa.Se
 Aliases = dict[type[Root], type[Root]]
 
 
-def router_read_one[T: BaseModel, M: Identifiable](
+def router_read_one[T: BaseModel, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
-    db_model_class: type[M],
+    db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
     response_schema_class: type[T],
-    apply_operations: ApplyOperations[M] | None,
+    apply_operations: ApplyOperations[I] | None,
 ) -> T:
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if issubclass(db_model_class, Entity):
@@ -35,10 +35,10 @@ def router_read_one[T: BaseModel, M: Identifiable](
     return response_schema_class.model_validate(row)
 
 
-def router_create_one[T: BaseModel, M: Identifiable](
+def router_create_one[T: BaseModel, I: Identifiable](
     *,
     db: Session,
-    db_model_class: type[M],
+    db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
     json_model: BaseModel,
     response_schema_class: type[T],
@@ -66,16 +66,16 @@ def router_create_one[T: BaseModel, M: Identifiable](
     return response_schema_class.model_validate(row)
 
 
-def router_read_many[T: BaseModel, M: Identifiable](
+def router_read_many[T: BaseModel, I: Identifiable](
     *,
     db: Session,
-    db_model_class: type[M],
+    db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
-    with_search: Search[M] | None,
+    with_search: Search[I] | None,
     facets: WithFacets | None,
     aliases: Aliases | None,
-    apply_filter_query_operations: ApplyOperations[M] | None,
-    apply_data_query_operations: ApplyOperations[M] | None,
+    apply_filter_query_operations: ApplyOperations[I] | None,
+    apply_data_query_operations: ApplyOperations[I] | None,
     pagination_request: PaginationQuery,
     response_schema_class: type[T],
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,

@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
 from pydantic import field_validator
@@ -75,17 +77,4 @@ class CustomFilter[T: DeclarativeBase](Filter):
         return query
 
     def sort(self, query: Select[tuple[T]]):  # type:ignore[override]
-        if not self.ordering_values:
-            return query
-
-        for field_name in self.ordering_values:
-            direction = Filter.Direction.asc
-            if field_name.startswith("-"):
-                direction = Filter.Direction.desc
-            field_name = field_name.replace("-", "").replace("+", "")  # noqa: PLW2901
-
-            order_by_field = getattr(self.Constants.model, field_name)
-
-            query = query.order_by(getattr(order_by_field, direction)())
-
-        return query
+        return cast("Select[tuple[T]]", super().sort(query))

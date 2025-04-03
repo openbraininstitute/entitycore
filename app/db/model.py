@@ -1,7 +1,8 @@
 import enum
 import uuid
 from datetime import datetime
-from typing import ClassVar
+from typing import ClassVar, Any
+from sqlalchemy.dialects.postgresql import JSONB
 
 from sqlalchemy import (
     BigInteger,
@@ -586,6 +587,26 @@ class ExperimentalSynapsesPerConnection(LocationMixin, SpeciesMixin, LicensedMix
     name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str]
     __mapper_args__ = {"polymorphic_identity": "experimental_synapses_per_connection"}  # noqa: RUF012
+
+
+class IonChannelModel(LocationMixin, SpeciesMixin, Entity):
+    __tablename__ = "ion_chanel_model"
+    name: Mapped[str] = mapped_column(index=True)  # Should it be searchable (Description vector?)
+    identifier: Mapped[str]  # Do we need name and identifier?
+    modelId: Mapped[str]  # another identifier
+    description: Mapped[str] = mapped_column(default="")
+    is_ljp_corrected: Mapped[bool]  # Default value for booleans?
+    is_temperature_dependen: Mapped[bool]
+    temperature_celsius: Mapped[int]
+    exposes_parameter: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB
+    )  # Is there a schema or can be anything
+    ion_id: Mapped[str]
+    ion_label: Mapped[str]  # Or JSON? Do we need  another table for ions?
+
+    nmodl_parameters: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB
+    )  # Is there a schema or can be anything? Do we need another table
 
 
 class Asset(TimestampMixin, Base):

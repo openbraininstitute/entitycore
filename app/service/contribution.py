@@ -1,5 +1,4 @@
 import uuid
-from typing import cast
 
 import sqlalchemy as sa
 from fastapi import HTTPException
@@ -33,7 +32,7 @@ def read_many(
     total_items = db.execute(query.with_only_columns(sa.func.count(Contribution.id))).scalar_one()
 
     response = ListResponse[ContributionRead](
-        data=cast("list[ContributionRead]", data),
+        data=data,
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

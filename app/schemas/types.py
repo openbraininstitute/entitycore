@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 
@@ -36,7 +36,14 @@ class Facet(BaseModel):
 type Facets = dict[str, list[Facet]]
 
 
+# Type data conditionally for Pyright or Pydantic
+# The type passed as data might by anything, that is being validated into a list[M]
+# but pydantic uses the type annotation to automatically validate the nested models
+# in list
 class ListResponse[M: BaseModel](BaseModel):
-    data: list[M]
+    if TYPE_CHECKING:
+        data: Any
+    else:
+        data: list[M]
     pagination: PaginationResponse
     facets: Facets | None = None

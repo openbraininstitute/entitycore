@@ -1,5 +1,4 @@
 import uuid
-from typing import cast
 
 import sqlalchemy as sa
 
@@ -27,7 +26,7 @@ def read_many(
     ).scalars()
 
     response = ListResponse[StrainRead](
-        data=cast("list[StrainRead]", data),
+        data=data,
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

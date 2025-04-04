@@ -97,15 +97,15 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
         "contribution": [
             {
                 "id": ids.agent_ids[0],
-                "label": "test_agent_1",
+                "label": "test_organization_1",
                 "count": 16,
-                "type": "agent",
+                "type": "organization",
             },
             {
                 "id": ids.agent_ids[1],
-                "label": "test_agent_2",
+                "label": "test_person_1",
                 "count": 16,
-                "type": "agent",
+                "type": "person",
             },
         ],
         "brain_region": [
@@ -174,15 +174,15 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
         "contribution": [
             {
                 "id": ids.agent_ids[0],
-                "label": "test_agent_1",
+                "label": "test_organization_1",
                 "count": 4,
-                "type": "agent",
+                "type": "organization",
             },
             {
                 "id": ids.agent_ids[1],
-                "label": "test_agent_2",
+                "label": "test_person_1",
                 "count": 4,
-                "type": "agent",
+                "type": "person",
             },
         ],
         "brain_region": [
@@ -241,15 +241,15 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
         "contribution": [
             {
                 "id": ids.agent_ids[0],
-                "label": "test_agent_1",
+                "label": "test_organization_1",
                 "count": 8,
-                "type": "agent",
+                "type": "organization",
             },
             {
                 "id": ids.agent_ids[1],
-                "label": "test_agent_2",
+                "label": "test_person_1",
                 "count": 8,
-                "type": "agent",
+                "type": "person",
             },
         ],
         "brain_region": [

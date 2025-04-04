@@ -401,6 +401,8 @@ class ImportEModels(Import):
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id: dict):
+        ions: dict[str, dict] = {}
+
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -430,19 +432,25 @@ class ImportEModels(Import):
                 configuration, "NeuronMorphology", "uses"
             )
 
-            subcellular_model_script_ids = configuration and [
-                script["@id"]
-                for script in configuration.get("uses")
-                if utils.is_type(script, "SubCellularModelScript")
-            ]
+            subcellular_model_script_ids = (
+                [
+                    script["@id"]
+                    for script in configuration.get("uses")
+                    if utils.is_type(script, "SubCellularModelScript")
+                ]
+                if configuration
+                else []
+            )
 
-            subcellular_model_scripts = [
-                all_data_by_id.get(id) for id in subcellular_model_script_ids or {}
-            ]
+            for id in subcellular_model_script_ids:
+                if (script := all_data_by_id.get(id)) and (ion := script.get("ion")):
+                    ions_ = ensurelist(ion)
+                    for ion in ions_:
+                        id_ = ion["@id"]
+                        if id_ in ions:
+                            assert ions[id_] == ion
 
-            print(subcellular_model_scripts[0])
-
-            raise KeyError
+                        ions[ion["@id"]] = ion
 
             morphology = utils._find_by_legacy_id(
                 exemplar_morphology_id, ReconstructionMorphology, db
@@ -491,6 +499,8 @@ class ImportEModels(Import):
                 create_annotation(annotation, db_item.id, db)
 
         db.commit()
+
+        print(ions)
 
 
 class ImportBrainRegionMeshes(Import):

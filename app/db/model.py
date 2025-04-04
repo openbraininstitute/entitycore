@@ -591,22 +591,25 @@ class ExperimentalSynapsesPerConnection(LocationMixin, SpeciesMixin, LicensedMix
 
 class IonChannelModel(LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "ion_chanel_model"
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
     name: Mapped[str] = mapped_column(index=True)  # Should it be searchable (Description vector?)
     identifier: Mapped[str]  # Do we need name and identifier?
     modelId: Mapped[str]  # another identifier
     description: Mapped[str] = mapped_column(default="")
-    is_ljp_corrected: Mapped[bool]  # Default value for booleans?
-    is_temperature_dependen: Mapped[bool]
+    is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
+    is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
-    exposes_parameter: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSONB
-    )  # Is there a schema or can be anything
+
     ion_id: Mapped[str]
     ion_label: Mapped[str]  # Or JSON? Do we need  another table for ions?
 
     nmodl_parameters: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB
     )  # Is there a schema or can be anything? Do we need another table
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class Asset(TimestampMixin, Base):

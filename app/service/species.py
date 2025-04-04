@@ -54,7 +54,7 @@ def read_many(
         apply_filter_query_operations=None,
         apply_data_query_operations=None,
         pagination_request=pagination_request,
-        response_schema_class=ListResponse[SpeciesRead],
+        response_schema_class=SpeciesRead,
         name_to_facet_query_params=None,
         filter_model=species_filter,
     )

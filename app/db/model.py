@@ -136,7 +136,8 @@ class LocationMixin:
         return relationship("BrainRegion", uselist=False)
 
 
-class SpeciesMixin:
+class SpeciesMixin(Base):
+    __abstract__ = True
     species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
 
     @declared_attr
@@ -298,7 +299,8 @@ class Annotation(LegacyMixin, TimestampMixin, Identifiable):
     annotation_body = relationship("AnnotationBody", uselist=False)
 
 
-class DescriptionVectorMixin:
+class DescriptionVectorMixin(Base):
+    __abstract__ = True
     description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
 
     @declared_attr.directive

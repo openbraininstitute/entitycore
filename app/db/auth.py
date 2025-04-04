@@ -2,12 +2,14 @@
 
 from pydantic import UUID4
 from sqlalchemy import Select, false, or_, true
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import DeclarativeBase, Query
 
 from app.db.model import Entity
 
 
-def constrain_to_accessible_entities(query: Query | Select, project_id: UUID4 | None):
+def constrain_to_accessible_entities[T: DeclarativeBase](
+    query: Select[tuple[T]], project_id: UUID4 | None
+):
     """Ensure a query is filtered to rows that are viewable by the user."""
     query = query.where(
         or_(

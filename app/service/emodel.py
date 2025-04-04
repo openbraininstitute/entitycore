@@ -124,7 +124,7 @@ def read_many(
         apply_filter_query_operations=filter_query_operations,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,
-        response_schema_class=ListResponse[EModelRead],
+        response_schema_class=EModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=emodel_filter,
     )

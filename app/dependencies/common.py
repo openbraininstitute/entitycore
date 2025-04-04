@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from fastapi import Depends, Query
 from fastapi.dependencies.models import Dependant
 from pydantic import BaseModel
-from sqlalchemy.orm import InstrumentedAttribute, Session
+from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
 from app.errors import ApiError, ApiErrorCode
@@ -112,10 +112,10 @@ class WithFacets(BaseModel):
         return _get_facets(db, query, name_to_facet_query_params, count_distinct_field)
 
 
-class Search(BaseModel):
+class Search[T: DeclarativeBase](BaseModel):
     search: str | None = None
 
-    def __call__(self, q: sa.Select, vector_col: InstrumentedAttribute):
+    def __call__(self, q: sa.Select[tuple[T]], vector_col: InstrumentedAttribute):
         if not self.search:
             return q
 

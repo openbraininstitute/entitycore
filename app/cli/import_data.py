@@ -442,18 +442,17 @@ class ImportEModels(Import):
                 else []
             )
 
-            for id in subcellular_model_script_ids:
-                if (script := all_data_by_id.get(id)) and (ion := script.get("ion")):
-                    if not (script.get("modelId") == script.get("name") == script.get("identifier")):
-                        print(script.get("modelId"), script.get("name"), script.get("identifier"))
+            # Register the ions
 
-                    ions_ = ensurelist(ion)
-                    for ion in ions_:
-                        id_ = ion["@id"]
-                        if id_ in ions:
-                            assert ions[id_] == ion
+            # for id in subcellular_model_script_ids:
+            #     if (script := all_data_by_id.get(id)) and (ion := script.get("ion")):
+            #         ions_ = ensurelist(ion)
+            #         for ion in ions_:
+            #             id_ = ion["@id"]
+            #             if id_ in ions:
+            #                 assert ions[id_] == ion
 
-                        ions[ion["@id"]] = ion
+            #             ions[ion["@id"]] = ion
 
             morphology = utils._find_by_legacy_id(
                 exemplar_morphology_id, ReconstructionMorphology, db

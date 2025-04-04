@@ -8,7 +8,6 @@ coverage.xml
 .idea
 *.egg-info
 tmp
-out.tar
 .DS_Store
 export.tar
 files.txt

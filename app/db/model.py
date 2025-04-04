@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime
 from typing import ClassVar
@@ -24,12 +23,13 @@ from app.db.types import (
     JSON_DICT,
     STRING_LIST,
     AgentType,
-    AnnotationType,
+    AnnotationBodyType,
     AssetStatus,
     EntityType,
     PointLocation,
     PointLocationType,
     SingleNeuronSimulationStatus,
+    ValidationStatus,
 )
 from app.utils.uuid import create_uuid
 
@@ -173,7 +173,7 @@ class Agent(LegacyMixin, Identifiable):
 
 
 class Person(Agent):
-    __tablename__ = "person"
+    __tablename__ = AgentType.person.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     givenName: Mapped[str]
@@ -187,7 +187,7 @@ class Person(Agent):
 
 
 class Organization(Agent):
-    __tablename__ = "organization"
+    __tablename__ = AgentType.organization.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     # what is the difference between name and label here ?
@@ -201,7 +201,7 @@ class Organization(Agent):
 
 class AnnotationBody(LegacyMixin, Identifiable):
     __tablename__ = "annotation_body"
-    type: Mapped[AnnotationType]
+    type: Mapped[AnnotationBodyType]
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
@@ -275,7 +275,7 @@ class ETypesMixin:
 
 
 class DataMaturityAnnotationBody(AnnotationBody):
-    __tablename__ = "datamaturity_annotation_body"
+    __tablename__ = AnnotationBodyType.datamaturity_annotation_body.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("annotation_body.id"), primary_key=True)
     pref_label: Mapped[str] = mapped_column(unique=True, index=True)
     __mapper_args__ = {  # noqa: RUF012
@@ -342,7 +342,7 @@ class Entity(LegacyMixin, Identifiable):
 
 
 class AnalysisSoftwareSourceCode(Entity):
-    __tablename__ = "analysis_software_source_code"
+    __tablename__ = EntityType.analysis_software_source_code.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     # TODO: identify what is mandatory
     branch: Mapped[str] = mapped_column(default="")
@@ -380,7 +380,7 @@ class Contribution(Identifiable):
 
 
 class EModel(MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity):
-    __tablename__ = "emodel"
+    __tablename__ = EntityType.emodel.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
@@ -394,7 +394,7 @@ class EModel(MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, Loc
     seed: Mapped[int] = mapped_column(default=-1)
 
     exemplar_morphology_id: Mapped[int] = mapped_column(
-        ForeignKey("reconstruction_morphology.id"), nullable=False
+        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
     )
 
     exemplar_morphology = relationship(
@@ -405,42 +405,33 @@ class EModel(MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, Loc
 
 
 class Mesh(LocationMixin, Entity):
-    __tablename__ = "mesh"
+    __tablename__ = EntityType.mesh.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class ValidationStatus(enum.Enum):
-    created = "created"
-    initialized = "initialized"
-    running = "running"
-    done = "done"
-    error = "error"
 
 
 class MEModel(
     MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, LocationMixin, Entity
 ):
-    __tablename__ = "memodel"
+    __tablename__ = EntityType.memodel.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str] = mapped_column(default="")
 
     validation_status: Mapped[ValidationStatus] = mapped_column(
         Enum(ValidationStatus, name="me_model_validation_status"),
-        nullable=False,
         default=ValidationStatus.created,
     )
 
     morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("reconstruction_morphology.id"), nullable=False
+        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
     )
 
     morphology = relationship(
         "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
-    emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("emodel.id"), nullable=False)
+    emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
 
@@ -450,7 +441,7 @@ class MEModel(
 class ReconstructionMorphology(
     MTypesMixin, DescriptionVectorMixin, LicensedMixin, LocationMixin, SpeciesMixin, Entity
 ):
-    __tablename__ = "reconstruction_morphology"
+    __tablename__ = EntityType.reconstruction_morphology.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str]
@@ -468,7 +459,7 @@ class MorphologyFeatureAnnotation(Identifiable):
     # name = mapped_column(String, unique=True, index=True)
     # description = mapped_column(String)
     reconstruction_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("reconstruction_morphology.id"), index=True, unique=True
+        ForeignKey(f"{EntityType.reconstruction_morphology}.id"), index=True, unique=True
     )
     reconstruction_morphology = relationship(
         "ReconstructionMorphology",
@@ -503,7 +494,7 @@ class Role(LegacyMixin, Identifiable):
 
 
 class SingleCellExperimentalTrace(LocationMixin, SpeciesMixin, LicensedMixin, Entity):
-    __tablename__ = "single_cell_experimental_trace"
+    __tablename__ = EntityType.single_cell_experimental_trace.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str]
@@ -511,18 +502,20 @@ class SingleCellExperimentalTrace(LocationMixin, SpeciesMixin, LicensedMixin, En
 
 
 class SingleNeuronSynaptome(DescriptionVectorMixin, LocationMixin, Entity):
-    __tablename__ = "single_neuron_synaptome"
+    __tablename__ = EntityType.single_neuron_synaptome.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str]
     seed: Mapped[int]
-    me_model_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
+    me_model_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.memodel}.id"), index=True
+    )
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class SingleNeuronSimulation(DescriptionVectorMixin, LocationMixin, Entity):
-    __tablename__ = "single_neuron_simulation"
+    __tablename__ = EntityType.single_neuron_simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str]
@@ -531,13 +524,15 @@ class SingleNeuronSimulation(DescriptionVectorMixin, LocationMixin, Entity):
     recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
     # TODO: called used ?
-    me_model_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
+    me_model_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.memodel}.id"), index=True
+    )
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class SingleNeuronSynaptomeSimulation(DescriptionVectorMixin, LocationMixin, Entity):
-    __tablename__ = "single_neuron_synaptome_simulation"
+    __tablename__ = EntityType.single_neuron_synaptome_simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     description: Mapped[str] = mapped_column(default="")
     name: Mapped[str]
@@ -546,14 +541,14 @@ class SingleNeuronSynaptomeSimulation(DescriptionVectorMixin, LocationMixin, Ent
     recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
     synaptome_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("single_neuron_synaptome.id"), index=True
+        ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True
     )
     synaptome = relationship("SingleNeuronSynaptome", uselist=False, foreign_keys=[synaptome_id])
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class ExperimentalNeuronDensity(LocationMixin, SpeciesMixin, LicensedMixin, Entity):
-    __tablename__ = "experimental_neuron_density"
+    __tablename__ = EntityType.experimental_neuron_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str]
@@ -561,7 +556,7 @@ class ExperimentalNeuronDensity(LocationMixin, SpeciesMixin, LicensedMixin, Enti
 
 
 class ExperimentalBoutonDensity(LocationMixin, SpeciesMixin, LicensedMixin, Entity):
-    __tablename__ = "experimental_bouton_density"
+    __tablename__ = EntityType.experimental_bouton_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str]
@@ -569,7 +564,7 @@ class ExperimentalBoutonDensity(LocationMixin, SpeciesMixin, LicensedMixin, Enti
 
 
 class ExperimentalSynapsesPerConnection(LocationMixin, SpeciesMixin, LicensedMixin, Entity):
-    __tablename__ = "experimental_synapses_per_connection"
+    __tablename__ = EntityType.experimental_synapses_per_connection.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str]

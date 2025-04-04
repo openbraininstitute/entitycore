@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: f016e7a007ac
+Revision ID: 34b450f37cbb
 Revises:
-Create Date: 2025-04-03 11:44:59.052368
+Create Date: 2025-04-04 10:29:47.447296
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "f016e7a007ac"
+revision: str = "34b450f37cbb"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -46,7 +46,7 @@ def upgrade() -> None:
         "single_neuron_synaptome_simulation",
         name="entitytype",
     ).create(op.get_bind())
-    sa.Enum("datamaturity_annotation_body", name="annotationtype").create(op.get_bind())
+    sa.Enum("datamaturity_annotation_body", name="annotationbodytype").create(op.get_bind())
     sa.Enum("person", "organization", name="agenttype").create(op.get_bind())
     op.create_table(
         "agent",
@@ -81,7 +81,7 @@ def upgrade() -> None:
         sa.Column(
             "type",
             postgresql.ENUM(
-                "datamaturity_annotation_body", name="annotationtype", create_type=False
+                "datamaturity_annotation_body", name="annotationbodytype", create_type=False
             ),
             nullable=False,
         ),
@@ -1588,7 +1588,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_agent_creation_date"), table_name="agent")
     op.drop_table("agent")
     sa.Enum("person", "organization", name="agenttype").drop(op.get_bind())
-    sa.Enum("datamaturity_annotation_body", name="annotationtype").drop(op.get_bind())
+    sa.Enum("datamaturity_annotation_body", name="annotationbodytype").drop(op.get_bind())
     sa.Enum(
         "analysis_software_source_code",
         "emodel",

@@ -58,8 +58,8 @@ class AgentType(StrEnum):
     organization = auto()
 
 
-class AnnotationType(StrEnum):
-    """Annotation types."""
+class AnnotationBodyType(StrEnum):
+    """AnnotationBody types."""
 
     datamaturity_annotation_body = auto()
 
@@ -73,3 +73,11 @@ class SingleNeuronSimulationStatus(StrEnum):
     started = auto()
     failure = auto()
     success = auto()
+
+
+class ValidationStatus(StrEnum):
+    created = auto()
+    initialized = auto()
+    running = auto()
+    done = auto()
+    error = auto()

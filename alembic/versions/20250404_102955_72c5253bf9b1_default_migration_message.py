@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 8b233c9213cf
-Revises: f016e7a007ac
-Create Date: 2025-04-03 11:45:04.555240
+Revision ID: 72c5253bf9b1
+Revises: 34b450f37cbb
+Create Date: 2025-04-04 10:29:55.593672
 
 """
 
@@ -14,8 +14,8 @@ from alembic_utils.pg_trigger import PGTrigger
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "8b233c9213cf"
-down_revision: str | None = "f016e7a007ac"
+revision: str = "72c5253bf9b1"
+down_revision: str | None = "34b450f37cbb"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

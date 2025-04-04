@@ -10,5 +10,9 @@ coverage.xml
 tmp
 out.tar
 .DS_Store
+export.tar
+files.txt
+out.tar
+out.tar.gz
 mba_hierarchy.json
 notes.md

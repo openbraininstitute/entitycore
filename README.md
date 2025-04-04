@@ -1,4 +1,4 @@
-# Test DB
+# entitycore
 
 ## Requirements
 

@@ -1,6 +1,6 @@
 import pytest
 
-from app.db.model import ElectricalCellRecording
+from app.db.model import ElectricalCellRecording, ElectricalRecordingProtocol
 
 from .utils import (
     PROJECT_ID,
@@ -8,6 +8,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_missing,
+    create_asset_file,
     create_brain_region_id,
 )
 
@@ -26,6 +27,27 @@ def json_data(brain_region_id, subject_id, license_id):
         "recordingType": "intracellular",
         "authorized_public": False,
     }
+
+
+def _create_electical_recording_protocol_id(
+    db,
+    recording_id,
+):
+    return add_db(
+        db,
+        ElectricalRecordingProtocol(
+            name="protocol",
+            description="protocol-description",
+            dt=0.1,
+            stimulus_injection_type="current_clamp",
+            stimulus_shape="sinusoidal",
+            stimulus_start_time=0.0,
+            stimulus_end_time=1.0,
+            recording_id=recording_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
+        ),
+    ).id
 
 
 def _create_electrical_cell_recording_id(
@@ -64,13 +86,30 @@ def _create_electrical_cell_recording_id(
 
 
 @pytest.fixture
-def trace_id(db, subject_id, brain_region_id, license_id):
-    return _create_electrical_cell_recording_id(
+def trace_id(tmp_path, client, db, subject_id, brain_region_id, license_id):
+    trace_id = _create_electrical_cell_recording_id(
         db,
         subject_id=subject_id,
         license_id=license_id,
         brain_region_id=brain_region_id,
     )
+    # add two protocols that refer to it
+    _create_electical_recording_protocol_id(db, trace_id)
+    _create_electical_recording_protocol_id(db, trace_id)
+
+    filepath = tmp_path / "trace.nwb"
+    filepath.write_bytes(b"trace")
+
+    # add an asset too
+    create_asset_file(
+        client=client,
+        entity_type="electrical_cell_recording",
+        entity_id=trace_id,
+        file_name="my-trace.nwb",
+        file_obj=filepath.read_bytes(),
+    )
+
+    return trace_id
 
 
 def test_create_one(client, subject_id, license_id, brain_region_id, json_data):
@@ -93,6 +132,7 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
         client.get,
         url=f"{ROUTE}/{trace_id}",
     ).json()
+
     assert data["name"] == "my-name"
     assert data["description"] == "my-description"
     assert data["brain_region"]["id"] == brain_region_id
@@ -100,6 +140,8 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
     assert data["subject"]["id"] == str(subject_id)
     assert data["license"]["id"] == str(license_id)
     assert data["authorized_project_id"] == PROJECT_ID
+    assert len(data["protocols"]) == 2
+    assert len(data["assets"]) == 1
 
 
 def test_missing(client):

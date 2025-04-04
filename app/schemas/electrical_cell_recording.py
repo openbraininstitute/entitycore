@@ -3,7 +3,11 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.db.types import ElectricalRecordingType
+from app.db.types import (
+    ElectricalRecordingStimulusShape,
+    ElectricalRecordingStimulusType,
+    ElectricalRecordingType,
+)
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
     AuthorizationMixin,
@@ -16,19 +20,15 @@ from app.schemas.base import (
     SubjectRead,
 )
 
-"""
-class ElectricalRecordingStimulusCreate(BaseModel):
-    stimulus_id: int
-    dt: float = Field(
-        ...,
-        title="Time Step (dt)",
-        description="Time step for this stimulus, in ms.",
-    )
-"""
 
-
-class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin):
-    protocol: str
+class ElectricalRecordingProtocolRead(CreationMixin, IdentifiableMixin):
+    name: str
+    description: str
+    dt: float | None = None
+    stimulus_injection_type: ElectricalRecordingStimulusType
+    stimulus_shape: ElectricalRecordingStimulusShape
+    stimulus_start_time: float | None = None
+    stimulus_end_time: float | None = None
 
 
 class ElectricalCellRecordingBase(BaseModel):
@@ -85,8 +85,8 @@ class ElectricalCellRecordingRead(
     subject: SubjectRead
     brain_region: BrainRegionRead
     assets: list[AssetRead] | None
-    stimuli: Annotated[
-        list[ElectricalRecordingStimulusRead] | None,
+    protocols: Annotated[
+        list[ElectricalRecordingProtocolRead] | None,
         Field(
             title="Electrical Recording Stimuli",
             description="List of stimuli applied to the cell with their respective time steps",

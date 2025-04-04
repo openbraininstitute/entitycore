@@ -705,7 +705,7 @@ class ImportElectricalCellRecording(Import):
                     stimulus_type = all_data_by_id[stimulus_type["@id"]]
 
                 # create a stimulus for each stimulus in the data
-                utils.create_stimulus(stimulus_type, db_item.id, db)
+                utils.create_stimulus(stimulus_type, db_item.id, project_context, db)
 
 
 class ImportMEModel(Import):
@@ -991,18 +991,18 @@ def _do_import(db, input_dir, project_context):
 
     importers = [
         ImportAgent,
-        ImportAnalysisSoftwareSourceCode,
-        ImportBrainRegionMeshes,
-        ImportMorphologies,
-        ImportEModels,
-        ImportMEModel,
-        ImportExperimentalNeuronDensities,
-        ImportExperimentalBoutonDensity,
-        ImportExperimentalSynapsesPerConnection,
+        # ImportAnalysisSoftwareSourceCode,
+        # ImportBrainRegionMeshes,
+        # ImportMorphologies,
+        # ImportEModels,
+        # ImportMEModel,
+        # ImportExperimentalNeuronDensities,
+        # ImportExperimentalBoutonDensity,
+        # ImportExperimentalSynapsesPerConnection,
         ImportElectricalCellRecording,
-        ImportSingleNeuronSimulation,
-        ImportDistribution,
-        ImportNeuronMorphologyFeatureAnnotation,
+        # ImportSingleNeuronSimulation,
+        # ImportDistribution,
+        # ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:

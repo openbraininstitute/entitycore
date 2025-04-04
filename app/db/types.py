@@ -74,3 +74,21 @@ class ElectricalRecordingType(StrEnum):
     extracellular = auto()
     both = auto()
     unknown = auto()
+
+
+class ElectricalRecordingStimulusType(StrEnum):
+    voltage_clamp = auto()
+    current_clamp = auto()
+    conductance_clamp = auto()
+    extracellular = auto()
+    other = auto()
+    unknown = auto()
+
+
+class ElectricalRecordingStimulusShape(StrEnum):
+    step = auto()
+    ramp = auto()
+    noise = auto()
+    sinusoidal = auto()
+    other = auto()
+    unknown = auto()

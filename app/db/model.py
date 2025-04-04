@@ -23,6 +23,8 @@ from app.db.types import (
     JSON_DICT,
     STRING_LIST,
     AssetStatus,
+    ElectricalRecordingStimulusShape,
+    ElectricalRecordingStimulusType,
     ElectricalRecordingType,
     PointLocation,
     PointLocationType,
@@ -528,16 +530,25 @@ class Role(LegacyMixin, TimestampMixin, Base):
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class ElectricalRecordingStimulus(TimestampMixin, Base):
-    __tablename__ = "electrical_recording_stimulus"
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
+class ElectricalRecordingProtocol(Entity):
+    __tablename__ = "electrical_recording_protocol"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    protocol: Mapped[str]
+    name: Mapped[str]
+    description: Mapped[str] = mapped_column(default="")
+
+    dt: Mapped[float | None]
+    stimulus_injection_type: Mapped[ElectricalRecordingStimulusType]
+    stimulus_shape: Mapped[ElectricalRecordingStimulusShape]
+    stimulus_start_time: Mapped[float | None]
+    stimulus_end_time: Mapped[float | None]
 
     recording_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("electrical_cell_recording.id"),
         index=True,
     )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class ElectricalCellRecording(
@@ -556,12 +567,12 @@ class ElectricalCellRecording(
     ljp: Mapped[float] = mapped_column(default=0.0)
     comment: Mapped[str] = mapped_column(default="")
 
-    stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(
+    protocols: Mapped[list[ElectricalRecordingProtocol]] = relationship(
         uselist=True,
-        foreign_keys="ElectricalRecordingStimulus.recording_id",
+        foreign_keys="ElectricalRecordingProtocol.recording_id",
     )
 
-    __mapper_args__ = {"polymorphic_identity": "electrical_cell_recording"}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class SingleNeuronSynaptome(DescriptionVectorMixin, LocationMixin, Entity):

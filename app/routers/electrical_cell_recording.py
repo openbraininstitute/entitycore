@@ -10,7 +10,7 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     ElectricalCellRecording,
-    ElectricalRecordingStimulus,
+    ElectricalRecordingProtocol,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -51,7 +51,7 @@ def read_one(
             joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
             joinedload(ElectricalCellRecording.brain_region),
             selectinload(ElectricalCellRecording.assets),
-            selectinload(ElectricalCellRecording.stimuli),
+            selectinload(ElectricalCellRecording.protocols),
             raiseload("*"),
         ),
     )
@@ -84,6 +84,7 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[ElectricalCellRecordingRead]:
     agent_alias = aliased(Agent, flat=True)
+    protocol_alias = aliased(ElectricalRecordingProtocol, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
             "id": agent_alias.id,
@@ -96,8 +97,8 @@ def read_many(
         query.join(BrainRegion, ElectricalCellRecording.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, ElectricalCellRecording.id == Contribution.entity_id)
         .outerjoin(
-            ElectricalRecordingStimulus,
-            ElectricalCellRecording.id == ElectricalRecordingStimulus.recording_id,
+            protocol_alias,
+            ElectricalCellRecording.id == protocol_alias.recording_id,
         )
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
     )
@@ -106,7 +107,7 @@ def read_many(
         .options(joinedload(ElectricalCellRecording.brain_region))
         .options(joinedload(ElectricalCellRecording.license))
         .options(selectinload(ElectricalCellRecording.assets))
-        .options(selectinload(ElectricalCellRecording.stimuli))
+        .options(selectinload(ElectricalCellRecording.protocols))
         .options(raiseload("*"))
     )
     return router_read_many(
@@ -119,7 +120,7 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,
         apply_data_query_operations=apply_data_query,
-        aliases={Agent: agent_alias},
+        aliases={Agent: agent_alias, ElectricalRecordingProtocol: protocol_alias},
         pagination_request=pagination_request,
         response_schema_class=ListResponse[ElectricalCellRecordingRead],
     )

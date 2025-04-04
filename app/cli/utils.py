@@ -13,7 +13,9 @@ from app.db.model import (
     Asset,
     BrainRegion,
     Contribution,
-    ElectricalRecordingStimulus,
+    ElectricalRecordingProtocol,
+    ElectricalRecordingStimulusShape,
+    ElectricalRecordingStimulusType,
     License,
     Role,
     Species,
@@ -80,10 +82,18 @@ def get_or_create_species(species, db, _cache={}):
     return sp.id
 
 
-def create_stimulus(data, entity_id, db):
-    row = ElectricalRecordingStimulus(
-        protocol=data["label"],
+def create_stimulus(data, entity_id, project_context, db):
+    row = ElectricalRecordingProtocol(
+        name=data["label"],
+        description=data.get("definition", None),
+        dt=None,
+        stimulus_injection_type=ElectricalRecordingStimulusType.unknown,
+        stimulus_shape=ElectricalRecordingStimulusShape.unknown,
+        stimulus_start_time=None,
+        stimulus_end_time=None,
         recording_id=entity_id,
+        authorized_public=AUTHORIZED_PUBLIC,
+        authorized_project_id=project_context.project_id,
     )
     db.add(row)
     db.commit()

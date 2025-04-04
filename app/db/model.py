@@ -589,25 +589,35 @@ class ExperimentalSynapsesPerConnection(LocationMixin, SpeciesMixin, LicensedMix
     __mapper_args__ = {"polymorphic_identity": "experimental_synapses_per_connection"}  # noqa: RUF012
 
 
-class IonChannelModel(LocationMixin, SpeciesMixin, Entity):
+class Ion(TimestampMixin, Base):
+    __tablename__ = "ion"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
+    name: Mapped[str] = mapped_column(unique=True, index=True)
+
+
+class IonChannelAssociation(Base):
+    __tablename__ = "ion_channel_association"
+
+    ion_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ion.id"), primary_key=True)
+    ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ion_chanel_model.id"), primary_key=True
+    )
+
+
+class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = "ion_chanel_model"
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    name: Mapped[str] = mapped_column(index=True)  # Should it be searchable (Description vector?)
-    identifier: Mapped[str]  # Do we need name and identifier?
-    modelId: Mapped[str]  # another identifier
+    name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str] = mapped_column(default="")
+    identifier: Mapped[str]
+    modelId: Mapped[str]
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
 
-    ion_id: Mapped[str]
-    ion_label: Mapped[str]  # Or JSON? Do we need  another table for ions?
-
-    nmodl_parameters: Mapped[list[dict[str, Any]]] = mapped_column(
-        JSONB
-    )  # Is there a schema or can be anything? Do we need another table
+    nmodl_parameters: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

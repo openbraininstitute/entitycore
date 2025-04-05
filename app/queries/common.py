@@ -9,11 +9,10 @@ from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Entity, Identifiable
 from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets
 from app.errors import ensure_authorized_references, ensure_result, ensure_uniqueness
-from app.filters.base import CustomFilter
+from app.filters.base import Aliases, CustomFilter
 from app.schemas.types import ListResponse, PaginationResponse
 
 ApplyOperations = Callable[[sa.Select], sa.Select]
-Aliases = dict[type[Identifiable], type[Identifiable]]
 
 
 def router_read_one[T: BaseModel](

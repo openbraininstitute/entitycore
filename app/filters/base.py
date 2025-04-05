@@ -2,7 +2,9 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
 from pydantic import field_validator
 from sqlalchemy import Select, or_
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import DeclarativeBase, Query
+
+type Aliases[T: DeclarativeBase] = dict[type[T], type[T]]
 
 
 class CustomFilter(Filter):
@@ -29,7 +31,7 @@ class CustomFilter(Filter):
 
         return value
 
-    def filter(self, query: Query | Select, aliases=None):
+    def filter(self, query: Query | Select, aliases: Aliases | None = None):
         """Allow passing aliases to the filter.
 
         Due to the complications of handling the inheritance between models, sometimes an alias is

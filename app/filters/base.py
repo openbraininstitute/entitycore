@@ -2,9 +2,11 @@ from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
 from pydantic import field_validator
 from sqlalchemy import Select, or_
-from sqlalchemy.orm import DeclarativeBase, Query
+from sqlalchemy.orm import Query
 
-type Aliases[T: DeclarativeBase] = dict[type[T], type[T]]
+from app.db.model import Identifiable
+
+Aliases = dict[type[Identifiable], type[Identifiable]]
 
 
 class CustomFilter(Filter):

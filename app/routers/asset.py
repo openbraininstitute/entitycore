@@ -4,7 +4,7 @@ import uuid
 from enum import StrEnum
 from http import HTTPStatus
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from starlette.responses import RedirectResponse
@@ -32,10 +32,13 @@ router = APIRouter(
     tags=["assets"],
 )
 
-# EntityRoute (hyphen-separated) <-> EntityType (underscore_separated)
-EntityRoute = StrEnum(  # type: ignore[misc]
-    "EntityRoute", {item.name: item.name.replace("_", "-") for item in EntityType}
-)
+if not TYPE_CHECKING:
+    # EntityRoute (hyphen-separated) <-> EntityType (underscore_separated)
+    EntityRoute = StrEnum(
+        "EntityRoute", {item.name: item.name.replace("_", "-") for item in EntityType}
+    )
+else:
+    EntityRoute = StrEnum
 
 
 def _entity_route_to_type(entity_route: EntityRoute) -> EntityType:

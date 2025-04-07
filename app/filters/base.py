@@ -1,15 +1,17 @@
+from typing import cast
+
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
 from pydantic import field_validator
 from sqlalchemy import Select, or_
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import DeclarativeBase
 
 from app.db.model import Identifiable
 
 Aliases = dict[type[Identifiable], type[Identifiable]]
 
 
-class CustomFilter(Filter):
+class CustomFilter[T: DeclarativeBase](Filter):
     """Custom common filter."""
 
     class Constants(Filter.Constants):
@@ -33,7 +35,7 @@ class CustomFilter(Filter):
 
         return value
 
-    def filter(self, query: Query | Select, aliases: Aliases | None = None):
+    def filter[T: DeclarativeBase](self, query: Select[tuple[T]], aliases: Aliases | None = None):  # type:ignore[override]
         """Allow passing aliases to the filter.
 
         Due to the complications of handling the inheritance between models, sometimes an alias is
@@ -77,3 +79,6 @@ class CustomFilter(Filter):
                     query = query.filter(getattr(model_field, operator)(value))
 
         return query
+
+    def sort(self, query: Select[tuple[T]]):  # type:ignore[override]
+        return cast("Select[tuple[T]]", super().sort(query))

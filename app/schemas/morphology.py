@@ -41,14 +41,17 @@ class ReconstructionMorphologyCreate(
     legacy_id: list[str] | None = None
 
 
-class MorphologyFeatureAnnotationCreate(BaseModel):
+class MorphologyFeatureAnnotationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     reconstruction_morphology_id: uuid.UUID
+
+
+class MorphologyFeatureAnnotationCreate(MorphologyFeatureAnnotationBase):
     measurements: Sequence[MeasurementCreate]
 
 
 class MorphologyFeatureAnnotationRead(
-    MorphologyFeatureAnnotationCreate, CreationMixin, IdentifiableMixin
+    MorphologyFeatureAnnotationBase, CreationMixin, IdentifiableMixin
 ):
     measurements: Sequence[MeasurementRead]
 

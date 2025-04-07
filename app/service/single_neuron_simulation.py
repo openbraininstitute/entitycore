@@ -85,6 +85,6 @@ def read_many(
         apply_data_query_operations=apply_data_options,
         aliases={MEModel: me_model_alias},
         pagination_request=pagination_request,
-        response_schema_class=ListResponse[SingleNeuronSimulationRead],
+        response_schema_class=SingleNeuronSimulationRead,
         authorized_project_id=user_context.project_id,
     )

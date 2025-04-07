@@ -107,6 +107,6 @@ def read_many(
         apply_data_query_operations=apply_data_query,
         aliases={SingleNeuronSynaptome: synaptome_alias},
         pagination_request=pagination_request,
-        response_schema_class=ListResponse[SingleNeuronSynaptomeSimulationRead],
+        response_schema_class=SingleNeuronSynaptomeSimulationRead,
         authorized_project_id=user_context.project_id,
     )

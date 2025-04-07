@@ -254,12 +254,12 @@ class Import(ABC):
 
     @staticmethod
     @abstractmethod
-    def is_correct_type(data):
+    def is_correct_type(data) -> bool:
         """filter if the `data` is applicable to this `Import`"""
 
     @staticmethod
     @abstractmethod
-    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any] | None):
+    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any]):
         """data that is passes `is_correct_type` will be fed to this to ingest into `db`"""
 
 
@@ -269,7 +269,7 @@ class ImportAgent(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return {"Person", "Organization"} & set(ensurelist(data.get("@type", [])))
+        return bool({"Person", "Organization"} & set(ensurelist(data.get("@type", []))))
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
@@ -397,7 +397,7 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any]):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -428,7 +428,7 @@ class ImportEModels(Import):
                 None,
             )
 
-            configuration = all_data_by_id.get(configuration_id)
+            configuration = configuration_id and all_data_by_id.get(configuration_id)
 
             exemplar_morphology_id = configuration and next(
                 (
@@ -526,7 +526,7 @@ class ImportMorphologies(Import):
     @staticmethod
     def is_correct_type(data):
         types = ensurelist(data["@type"])
-        return {"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types)
+        return bool({"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types))
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):

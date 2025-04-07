@@ -30,7 +30,7 @@ def read_many(
     ).scalar_one()
 
     response = ListResponse[ExperimentalNeuronDensityRead](
-        data=data,
+        data=[ExperimentalNeuronDensityRead.model_validate(row) for row in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

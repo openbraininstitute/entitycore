@@ -18,6 +18,9 @@ class PointLocationType(TypeDecorator):
         if value is None:
             return None
 
+        if isinstance(value, dict):
+            return value
+
         return value.model_dump()
 
     def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301

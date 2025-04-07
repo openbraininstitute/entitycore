@@ -140,7 +140,7 @@ def read_many(
         apply_data_query_operations=_load,
         apply_filter_query_operations=filter_query_operations,
         pagination_request=pagination_request,
-        response_schema_class=ListResponse[MEModelRead],
+        response_schema_class=MEModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=memodel_filter,
     )

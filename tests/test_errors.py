@@ -2,7 +2,7 @@ import pytest
 import sqlalchemy as sa
 
 from app import errors as test_module
-from app.db.model import Root
+from app.db.model import Subject
 
 from tests.utils import MISSING_ID
 
@@ -33,7 +33,7 @@ def test_ensure_result(db):
         pytest.raises(test_module.ApiError) as exc_info,
         test_module.ensure_result(error_message="Custom error"),
     ):
-        db.execute(sa.select(Root)).scalar_one()
+        db.execute(sa.select(Subject)).scalar_one()
 
     assert exc_info.value.http_status_code == 404
     assert exc_info.value.error_code == test_module.ApiErrorCode.ENTITY_NOT_FOUND
@@ -41,7 +41,7 @@ def test_ensure_result(db):
 
 
 def test_ensure_uniqueness(db):
-    query = sa.insert(Root).values(id=MISSING_ID, type="root")
+    query = sa.insert(Subject).values(id=MISSING_ID, name="Test name")
     db.execute(query)
 
     with (

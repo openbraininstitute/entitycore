@@ -1,4 +1,5 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
@@ -22,6 +23,9 @@ from app.filters.emodel import EModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.types import ListResponse
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load(select: sa.Select):
@@ -77,11 +81,8 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[EModelRead]:
-    agent_alias = aliased(Agent, flat=True)
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
-
-    aliases = {
-        Agent: agent_alias,
+    aliases: Aliases = {
         ReconstructionMorphology: morphology_alias,
     }
 
@@ -90,9 +91,9 @@ def read_many(
         "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
+            "id": Agent.id,
+            "label": Agent.pref_label,
+            "type": Agent.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "exemplar_morphology": {
@@ -107,7 +108,7 @@ def read_many(
             .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
             .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)
             .outerjoin(Contribution, EModel.id == Contribution.entity_id)
-            .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+            .outerjoin(Agent, Contribution.agent_id == Agent.id)
             .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
             .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
             .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)

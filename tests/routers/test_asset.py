@@ -1,4 +1,5 @@
 from unittest.mock import ANY
+from uuid import UUID
 
 import pytest
 
@@ -6,6 +7,7 @@ from app.config import settings
 from app.db.model import Asset, Entity
 from app.db.types import AssetStatus, EntityType
 from app.errors import ApiErrorCode
+from app.routers.asset import EntityRoute
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
 from app.utils.s3 import build_s3_path
@@ -26,11 +28,15 @@ FILE_EXAMPLE_DIGEST = "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c759
 FILE_EXAMPLE_SIZE = 31
 
 
-def _route(entity_type: str) -> str:
-    return f"/{EntityType[entity_type]}"
+def _entity_type_to_route(entity_type: EntityType) -> EntityRoute:
+    return EntityRoute[entity_type.name]
 
 
-def _upload_entity_asset(client, entity_type, entity_id):
+def _route(entity_type: EntityType) -> str:
+    return f"/{_entity_type_to_route(entity_type)}"
+
+
+def _upload_entity_asset(client, entity_type: EntityType, entity_id: UUID):
     with FILE_EXAMPLE_PATH.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
@@ -52,7 +58,7 @@ def _get_expected_full_path(entity, path):
 
 @pytest.fixture
 def entity(client, species_id, strain_id, brain_region_id) -> Entity:
-    entity_type = EntityType.reconstruction_morphology.name
+    entity_type = EntityType.reconstruction_morphology
     entity_id = create_reconstruction_morphology_id(
         client,
         species_id=species_id,
@@ -122,7 +128,9 @@ def test_upload_entity_asset(client, entity):
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to upload to valid entity id, but different entity type
-    response = _upload_entity_asset(client, entity_type=DIFFERENT_ENTITY_TYPE, entity_id=entity.id)
+    response = _upload_entity_asset(
+        client, entity_type=EntityType[DIFFERENT_ENTITY_TYPE], entity_id=entity.id
+    )
     assert response.status_code == 404, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND

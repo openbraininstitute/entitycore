@@ -32,10 +32,14 @@ router = APIRouter(
     tags=["assets"],
 )
 
-# EntityRoute (hyphen-separated) <-> EntityType (underscore_separated)
-EntityRoute = StrEnum(  # type: ignore[misc]
-    "EntityRoute", {item.name: item.name.replace("_", "-") for item in EntityType}
-)
+
+class EntityRoute(StrEnum):
+    """Hyphen-separated version of EntityType (underscore_separated)."""
+
+
+# Dynamically add members to EntityRoute based on EntityType
+for item in EntityType:
+    setattr(EntityRoute, item.name, item.name.replace("_", "-"))
 
 
 def _entity_route_to_type(entity_route: EntityRoute) -> EntityType:

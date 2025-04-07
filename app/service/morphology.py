@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Annotated
 import sqlalchemy as sa
 from fastapi import Query
 from sqlalchemy.orm import (
-    aliased,
     joinedload,
     raiseload,
     selectinload,
@@ -107,15 +106,14 @@ def read_many(
     search: SearchDep,
     with_facets: FacetsDep,
 ) -> ListResponse[ReconstructionMorphologyRead]:
-    agent_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},
         "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
+            "id": Agent.id,
+            "label": Agent.pref_label,
+            "type": Agent.type,
         },
     }
 
@@ -123,7 +121,7 @@ def read_many(
         q.join(Species, ReconstructionMorphology.species_id == Species.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+        .outerjoin(Agent, Contribution.agent_id == Agent.id)
         .outerjoin(
             MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id
         )
@@ -153,7 +151,7 @@ def read_many(
         authorized_project_id=user_context.project_id,
         with_search=search,
         facets=with_facets,
-        aliases={Agent: agent_alias},
+        aliases=None,
         apply_filter_query_operations=filter_query_ops,
         apply_data_query_operations=data_query_ops,
         pagination_request=pagination_request,

@@ -1,4 +1,5 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import (
@@ -30,6 +31,9 @@ from app.filters.memodel import MEModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.schemas.me_model import MEModelCreate, MEModelRead
 from app.schemas.types import ListResponse
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load(select: Select):
@@ -82,12 +86,10 @@ def read_many(
     search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[MEModelRead]:
-    agent_alias = aliased(Agent, flat=True)
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
     emodel_alias = aliased(EModel, flat=True)
 
-    aliases = {
-        Agent: agent_alias,
+    aliases: Aliases = {
         ReconstructionMorphology: morphology_alias,
         EModel: emodel_alias,
     }
@@ -98,9 +100,9 @@ def read_many(
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},
         "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
+            "id": Agent.id,
+            "label": Agent.pref_label,
+            "type": Agent.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "morphology": {
@@ -121,7 +123,7 @@ def read_many(
             .join(emodel_alias, MEModel.emodel_id == emodel_alias.id)
             .join(BrainRegion, MEModel.brain_region_id == BrainRegion.id)
             .outerjoin(Contribution, MEModel.id == Contribution.entity_id)
-            .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+            .outerjoin(Agent, Contribution.agent_id == Agent.id)
             .outerjoin(MTypeClassification, MEModel.id == MTypeClassification.entity_id)
             .outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id)
             .outerjoin(ETypeClassification, MEModel.id == ETypeClassification.entity_id)

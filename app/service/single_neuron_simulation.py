@@ -52,13 +52,12 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[SingleNeuronSimulationRead]:
-    agent_alias = aliased(Agent, flat=True)
     me_model_alias = aliased(MEModel, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
+            "id": Agent.id,
+            "label": Agent.pref_label,
+            "type": Agent.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
@@ -67,7 +66,7 @@ def read_many(
     apply_filter_query = lambda query: (
         query.join(BrainRegion, SingleNeuronSimulation.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, SingleNeuronSimulation.id == Contribution.entity_id)
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+        .outerjoin(Agent, Contribution.agent_id == Agent.id)
         .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)
     )
     apply_data_options = lambda query: (
@@ -84,7 +83,7 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,
         apply_data_query_operations=apply_data_options,
-        aliases={Agent: agent_alias, MEModel: me_model_alias},
+        aliases={MEModel: me_model_alias},
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSimulationRead,
         authorized_project_id=user_context.project_id,

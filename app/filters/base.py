@@ -6,6 +6,10 @@ from pydantic import field_validator
 from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
+from app.db.model import Identifiable
+
+Aliases = dict[type[Identifiable], type[Identifiable]]
+
 
 class CustomFilter[T: DeclarativeBase](Filter):
     """Custom common filter."""
@@ -31,7 +35,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
         return value
 
-    def filter(self, query: Select[tuple[T]], aliases=None):  # type:ignore[override]
+    def filter[T: DeclarativeBase](self, query: Select[tuple[T]], aliases: Aliases | None = None):  # type:ignore[override]
         """Allow passing aliases to the filter.
 
         Due to the complications of handling the inheritance between models, sometimes an alias is

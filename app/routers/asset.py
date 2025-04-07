@@ -37,7 +37,6 @@ class EntityRoute(StrEnum):
     """Hyphen-separated version of EntityType (underscore_separated)."""
 
 
-# Dynamically add members to EntityRoute based on EntityType
 for item in EntityType:
     setattr(EntityRoute, item.name, item.name.replace("_", "-"))
 

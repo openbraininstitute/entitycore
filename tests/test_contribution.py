@@ -36,7 +36,7 @@ def test_create_contribution(
             "entity_id": str(reconstruction_morphology_id),
         },
     )
-    response.raise_for_status()
+    assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == str(person_id)
     assert data["agent"]["givenName"] == "jd"
@@ -71,7 +71,7 @@ def test_create_contribution(
             "entity_id": str(reconstruction_morphology_id),
         },
     )
-    response.raise_for_status()
+    assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == str(organization_id)
     assert data["agent"]["pref_label"] == "ACME"
@@ -79,16 +79,17 @@ def test_create_contribution(
     assert data["agent"]["type"] == "organization"
 
     response = client.get(ROUTE)
+    assert response.status_code == 200
     assert len(response.json()["data"]) == 2
 
     response = client.get(f"{ROUTE_MORPH}/{reconstruction_morphology_id}")
-    response.raise_for_status()
+    assert response.status_code == 200
     data = response.json()
     assert "contributions" in data
     assert len(data["contributions"]) == 2
 
     response = client.get(ROUTE_MORPH, params={"with_facets": True})
-    response.raise_for_status()
+    assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1
     assert len(data[0]["contributions"]) == 2
@@ -261,6 +262,7 @@ def test_contribution_facets(
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
     response = client.get(ROUTE_MORPH, params={"with_facets": True, "page_size": 10})
+    assert response.status_code == 200
     data = response.json()
     facets = data["facets"]
     assert facets == {
@@ -287,6 +289,7 @@ def test_contribution_facets(
         f"{ROUTE_MORPH}",
         params={"with_facets": True, "contribution__pref_label": "person_pref_label"},
     )
+    assert response.status_code == 200
     data = response.json()
     facets = data["facets"]
     assert facets == {

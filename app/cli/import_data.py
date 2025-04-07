@@ -1,4 +1,3 @@
-import uuid
 import datetime
 import glob
 import json
@@ -16,7 +15,6 @@ from sqlalchemy.orm import Session
 from app.schemas.base import ProjectContext
 from app.db.types import AssetStatus, EntityType
 
-
 import click
 import sqlalchemy as sa
 from tqdm import tqdm
@@ -30,6 +28,7 @@ from app.db.model import (
     BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
+    Entity,
     ETypeClass,
     ETypeClassification,
     ExperimentalBoutonDensity,
@@ -46,7 +45,6 @@ from app.db.model import (
     Organization,
     Person,
     ReconstructionMorphology,
-    Root,
     SingleCellExperimentalTrace,
     SingleNeuronSimulation,
 )
@@ -257,12 +255,12 @@ class Import(ABC):
 
     @staticmethod
     @abstractmethod
-    def is_correct_type(data):
+    def is_correct_type(data) -> bool:
         """filter if the `data` is applicable to this `Import`"""
 
     @staticmethod
     @abstractmethod
-    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any] | None):
+    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any]):
         """data that is passes `is_correct_type` will be fed to this to ingest into `db`"""
 
 
@@ -272,7 +270,7 @@ class ImportAgent(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return {"Person", "Organization"} & set(ensurelist(data.get("@type", [])))
+        return bool({"Person", "Organization"} & set(ensurelist(data.get("@type", []))))
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
@@ -546,7 +544,7 @@ class ImportMorphologies(Import):
     @staticmethod
     def is_correct_type(data):
         types = ensurelist(data["@type"])
-        return {"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types)
+        return bool({"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types))
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
@@ -816,8 +814,7 @@ class ImportDistribution(Import):
         ignored: dict[tuple[dict], int] = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
-            root = utils._find_by_legacy_id(legacy_id, Root, db)
-
+            root = utils._find_by_legacy_id(legacy_id, Entity, db)
             if root:
                 utils.import_distribution(data, root.id, root.type, db, project_context)
             else:

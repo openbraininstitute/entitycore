@@ -1,11 +1,13 @@
 from unittest.mock import ANY
+from uuid import UUID
 
 import pytest
 
 from app.config import settings
-from app.db.model import Entity
+from app.db.model import Asset, Entity
 from app.db.types import AssetStatus, EntityType
 from app.errors import ApiErrorCode
+from app.routers.asset import EntityRoute
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
 from app.utils.s3 import build_s3_path
@@ -15,6 +17,7 @@ from tests.utils import (
     PROJECT_ID,
     TEST_DATA_DIR,
     VIRTUAL_LAB_ID,
+    add_db,
     create_reconstruction_morphology_id,
 )
 
@@ -25,11 +28,15 @@ FILE_EXAMPLE_DIGEST = "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c759
 FILE_EXAMPLE_SIZE = 31
 
 
-def _route(entity_type: str) -> str:
-    return f"/{EntityType[entity_type]}"
+def _entity_type_to_route(entity_type: EntityType) -> EntityRoute:
+    return EntityRoute[entity_type.name]
 
 
-def _upload_entity_asset(client, entity_type, entity_id):
+def _route(entity_type: EntityType) -> str:
+    return f"/{_entity_type_to_route(entity_type)}"
+
+
+def _upload_entity_asset(client, entity_type: EntityType, entity_id: UUID):
     with FILE_EXAMPLE_PATH.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
@@ -51,7 +58,7 @@ def _get_expected_full_path(entity, path):
 
 @pytest.fixture
 def entity(client, species_id, strain_id, brain_region_id) -> Entity:
-    entity_type = EntityType.reconstruction_morphology.name
+    entity_type = EntityType.reconstruction_morphology
     entity_id = create_reconstruction_morphology_id(
         client,
         species_id=species_id,
@@ -68,6 +75,25 @@ def asset(client, entity) -> AssetRead:
     assert response.status_code == 201, f"Failed to create asset: {response.text}"
     data = response.json()
     return AssetRead.model_validate(data)
+
+
+@pytest.fixture
+def asset_directory(db, entity) -> AssetRead:
+    s3_path = _get_expected_full_path(entity=entity, path="my-directory")
+    asset = Asset(
+        path="my-directory",
+        full_path=s3_path,
+        status="created",
+        bucket_name=settings.S3_BUCKET_NAME,
+        is_directory=True,
+        content_type="directory/image",
+        size=0,
+        sha256_digest=None,
+        meta={},
+        entity_id=entity.id,
+    )
+    add_db(db, asset)
+    return asset
 
 
 def test_upload_entity_asset(client, entity):
@@ -102,7 +128,9 @@ def test_upload_entity_asset(client, entity):
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to upload to valid entity id, but different entity type
-    response = _upload_entity_asset(client, entity_type=DIFFERENT_ENTITY_TYPE, entity_id=entity.id)
+    response = _upload_entity_asset(
+        client, entity_type=EntityType[DIFFERENT_ENTITY_TYPE], entity_id=entity.id
+    )
     assert response.status_code == 404, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
@@ -192,6 +220,16 @@ def test_download_entity_asset(client, entity, asset):
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
+    # when downloading a single file asset_path should not be passed as a parameter
+    response = client.get(
+        f"{_route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        params={"asset_path": "foo"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 409, (
+        f"Failed to forbid asset_path when downloading a file: {response.text}"
+    )
+
 
 def test_delete_entity_asset(client, entity, asset):
     response = client.delete(f"{_route(entity.type)}/{entity.id}/assets/{asset.id}")
@@ -237,3 +275,21 @@ def test_upload_delete_upload_entity_asset(client, entity):
     assert data[0]["id"] == str(asset1.id)
     assert data[0]["path"] == "a/b/c.txt"
     assert data[0]["status"] == "created"
+
+
+def test_download_directory_file(client, entity, asset_directory):
+    response = client.get(
+        url=f"{_route(entity.type)}/{entity.id}/assets/{asset_directory.id}/download",
+        params={"asset_path": "file1.txt"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 307, f"Failed to download directory file: {response.text}"
+
+    # asset_path is mandatory if the asset is a direcotory
+    response = client.get(
+        url=f"{_route(entity.type)}/{entity.id}/assets/{asset_directory.id}/download",
+        follow_redirects=False,
+    )
+    assert response.status_code == 409, (
+        f"Failed to send invalid response due to missing asset_path: {response.text}"
+    )

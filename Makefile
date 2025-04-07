@@ -44,7 +44,7 @@ format:  ## Run formatters
 lint:  ## Run linters
 	uv run -m ruff format --check
 	uv run -m ruff check
-	uv run -m mypy app
+	uv run -m pyright app
 
 build:  ## Build the Docker image
 	docker compose --progress=plain build app
@@ -58,7 +58,7 @@ import:  ## Run the import on a database, assumes mba_hierarchy.json and out are
 	uv run -m app.cli.import_data --seed 0 hierarchy mba_hierarchy.json
 	uv run -m app.cli.import_data --seed 1 run ./out --virtual-lab-id $(VIRTUAL_LAB_ID_IMPORT) --project-id $(PROJECT_ID_IMPORT)
 
-organize-files:  ## Organize files locally by copying them from the backup to the expected location
+organize-files:  ## Organize files locally by creating symlinks from the backup to the expected location
 	@$(call load_env,run-local)
 	docker compose up --wait db
 	uv run -m app.cli.import_data organize-files files.txt

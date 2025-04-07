@@ -317,7 +317,9 @@ def ensurelist(x):
     return x if isinstance(x, list) else [x]
 
 
-def find_id_in_entity(entity: dict, type_: str, entity_list_key: str):
+def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):
+    if not entity:
+        return None
     return next(
         (
             part.get("@id")

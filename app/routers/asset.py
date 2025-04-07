@@ -1,7 +1,10 @@
 """Generic asset routes."""
 
 import uuid
-from typing import Annotated
+from enum import StrEnum
+from http import HTTPStatus
+from pathlib import Path
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from starlette.responses import RedirectResponse
@@ -29,19 +32,31 @@ router = APIRouter(
     tags=["assets"],
 )
 
+if not TYPE_CHECKING:
+    # EntityRoute (hyphen-separated) <-> EntityType (underscore_separated)
+    EntityRoute = StrEnum(
+        "EntityRoute", {item.name: item.name.replace("_", "-") for item in EntityType}
+    )
+else:
+    EntityRoute = StrEnum
 
-@router.get("/{entity_type}/{entity_id}/assets")
+
+def _entity_route_to_type(entity_route: EntityRoute) -> EntityType:
+    return EntityType[entity_route.name]
+
+
+@router.get("/{entity_route}/{entity_id}/assets")
 def get_entity_assets(
     repos: RepoGroupDep,
     user_context: UserContextDep,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: uuid.UUID,
 ) -> ListResponse[AssetRead]:
     """Return the list of assets associated with a specific entity."""
     assets = asset_service.get_entity_assets(
         repos,
         user_context=user_context,
-        entity_type=entity_type,
+        entity_type=_entity_route_to_type(entity_route),
         entity_id=entity_id,
     )
     # TODO: proper pagination
@@ -49,11 +64,11 @@ def get_entity_assets(
     return ListResponse[AssetRead](data=assets, pagination=pagination)
 
 
-@router.get("/{entity_type}/{entity_id}/assets/{asset_id}")
+@router.get("/{entity_route}/{entity_id}/assets/{asset_id}")
 def get_entity_asset(
     repos: RepoGroupDep,
     user_context: UserContextDep,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
 ) -> AssetRead:
@@ -61,19 +76,19 @@ def get_entity_asset(
     return asset_service.get_entity_asset(
         repos,
         user_context=user_context,
-        entity_type=entity_type,
+        entity_type=_entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
     )
 
 
-@router.post("/{entity_type}/{entity_id}/assets", status_code=status.HTTP_201_CREATED)
+@router.post("/{entity_route}/{entity_id}/assets", status_code=status.HTTP_201_CREATED)
 def upload_entity_asset(
     *,
     repos: RepoGroupDep,
     user_context: UserContextWithProjectIdDep,
     s3_client: S3ClientDep,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: uuid.UUID,
     file: UploadFile,
     meta: Annotated[dict | None, Form()] = None,
@@ -84,16 +99,24 @@ def upload_entity_asset(
     """
     if not file.size or not validate_filesize(file.size):
         msg = f"File bigger than {settings.API_ASSET_POST_MAX_SIZE}, please use delegation"
-        raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_FILE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     if not file.filename or not validate_filename(file.filename):
         msg = f"Invalid file name {file.filename!r}"
-        raise ApiError(message=msg, error_code=ApiErrorCode.INVALID_REQUEST)
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     content_type = get_content_type(file)
     sha256_digest = calculate_sha256_digest(file)
     asset_read = asset_service.create_entity_asset(
         repos=repos,
         user_context=user_context,
-        entity_type=entity_type,
+        entity_type=_entity_route_to_type(entity_route),
         entity_id=entity_id,
         filename=file.filename,
         content_type=content_type,
@@ -111,36 +134,64 @@ def upload_entity_asset(
     return asset_read
 
 
-@router.get("/{entity_type}/{entity_id}/assets/{asset_id}/download")
+@router.get("/{entity_route}/{entity_id}/assets/{asset_id}/download")
 def download_entity_asset(
     repos: RepoGroupDep,
     user_context: UserContextDep,
     s3_client: S3ClientDep,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
+    asset_path: str | None = None,
 ) -> RedirectResponse:
     asset = asset_service.get_entity_asset(
         repos,
         user_context=user_context,
-        entity_type=entity_type,
+        entity_type=_entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
     )
+    if asset.is_directory:
+        if asset_path is None:
+            msg = "Missing required parameter for downloading a directory file: asset_path"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_MISSING_PATH,
+                http_status_code=HTTPStatus.CONFLICT,
+            )
+        if not validate_filename(asset_path):
+            msg = f"Invalid file name {asset_path!r}"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_INVALID_PATH,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
+        full_path = str(Path(asset.full_path, asset_path))
+    else:
+        if asset_path:
+            msg = "asset_path is only applicable when asset is a directory"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
+                http_status_code=HTTPStatus.CONFLICT,
+            )
+        full_path = asset.full_path
     url = generate_presigned_url(
-        s3_client=s3_client, bucket_name=asset.bucket_name, s3_key=asset.full_path
+        s3_client=s3_client,
+        bucket_name=asset.bucket_name,
+        s3_key=full_path,
     )
     if not url:
         raise HTTPException(status_code=500, detail="Failed to generate presigned url")
     return RedirectResponse(url=url)
 
 
-@router.delete("/{entity_type}/{entity_id}/assets/{asset_id}")
+@router.delete("/{entity_route}/{entity_id}/assets/{asset_id}")
 def delete_entity_asset(
     repos: RepoGroupDep,
     user_context: UserContextWithProjectIdDep,
     s3_client: S3ClientDep,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
 ) -> AssetRead:
@@ -152,7 +203,7 @@ def delete_entity_asset(
     asset = asset_service.delete_entity_asset(
         repos,
         user_context=user_context,
-        entity_type=entity_type,
+        entity_type=_entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
     )
@@ -161,22 +212,22 @@ def delete_entity_asset(
     return AssetRead.model_validate(asset)
 
 
-@router.post("/{entity_type}/{entity_id}/assets/upload/initiate", include_in_schema=False)
+@router.post("/{entity_route}/{entity_id}/assets/upload/initiate", include_in_schema=False)
 def initiate_entity_asset_upload(
     repos: RepoGroupDep,
     user_context: UserContextWithProjectIdDep,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: int,
 ):
     """Generate a signed URL with expiration that can be used to upload the file directly to S3."""
     raise NotImplementedError
 
 
-@router.post("/{entity_type}/{entity_id}/assets/upload/complete", include_in_schema=False)
+@router.post("/{entity_route}/{entity_id}/assets/upload/complete", include_in_schema=False)
 def complete_entity_asset_upload(
     repos: RepoGroupDep,
     user_context: UserContextDep,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: int,
 ):
     """Register the uploaded file."""

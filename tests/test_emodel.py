@@ -3,6 +3,8 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.db.types import EntityType
+
 from .conftest import CreateIds, EModelIds
 from .utils import create_reconstruction_morphology_id
 from tests.routers.test_asset import _upload_entity_asset
@@ -36,7 +38,7 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
 
 
 def test_get_emodel(client: TestClient, emodel_id: str):
-    _upload_entity_asset(client, "emodel", emodel_id)
+    _upload_entity_asset(client, EntityType.emodel, uuid.UUID(emodel_id))
 
     response = client.get(f"{ROUTE}/{emodel_id}")
 

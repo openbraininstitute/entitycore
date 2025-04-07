@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 61f02d21022a
-Revises: 7182cf8f7b50
-Create Date: 2025-04-04 11:11:29.085317
+Revision ID: b05c03401442
+Revises: 72c5253bf9b1
+Create Date: 2025-04-07 17:27:03.372296
 
 """
 
@@ -14,8 +14,8 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "61f02d21022a"
-down_revision: str | None = "7182cf8f7b50"
+revision: str = "b05c03401442"
+down_revision: str | None = "72c5253bf9b1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -32,7 +32,7 @@ def read_many(
     total_items = db.execute(query.with_only_columns(sa.func.count(Contribution.id))).scalar_one()
 
     response = ListResponse[ContributionRead](
-        data=data,
+        data=[ContributionRead.model_validate(row) for row in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

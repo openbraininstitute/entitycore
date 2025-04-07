@@ -26,7 +26,7 @@ def read_many(
     ).scalars()
 
     response = ListResponse[MTypeClassRead](
-        data=data,
+        data=[MTypeClassRead.model_validate(row) for row in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

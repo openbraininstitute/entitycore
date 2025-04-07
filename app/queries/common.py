@@ -118,7 +118,7 @@ def router_read_many[T: BaseModel, I: Identifiable](
     ).scalar_one()
 
     return ListResponse[response_schema_class](
-        data=data,
+        data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,

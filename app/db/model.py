@@ -8,7 +8,6 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     ForeignKeyConstraint,
-    Identity,
     Index,
     LargeBinary,
     MetaData,
@@ -21,13 +20,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from app.db.types import (
     BIGINT,
     JSON_DICT,
+    MEASUREMENT_COLLECTION,
+    POINT_LOCATION,
     STRING_LIST,
     AgentType,
     AnnotationBodyType,
     AssetStatus,
     EntityType,
-    PointLocation,
-    PointLocationType,
     SingleNeuronSimulationStatus,
     ValidationStatus,
 )
@@ -37,7 +36,6 @@ from app.utils.uuid import create_uuid
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
         datetime: DateTime(timezone=True),
-        PointLocation: PointLocationType,
     }
     # See https://alembic.sqlalchemy.org/en/latest/naming.html
     metadata = MetaData(
@@ -446,7 +444,7 @@ class ReconstructionMorphology(
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
 
-    location: Mapped[PointLocation | None]
+    location: Mapped[POINT_LOCATION | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -463,25 +461,7 @@ class MorphologyFeatureAnnotation(Identifiable):
         uselist=False,
         back_populates="morphology_feature_annotation",
     )
-    measurements = relationship("MorphologyMeasurement", uselist=True)
-
-
-class MorphologyMeasurement(Base):
-    __tablename__ = "measurement"
-    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    measurement_of: Mapped[str] = mapped_column(index=True)
-    morphology_feature_annotation_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("morphology_feature_annotation.id"), index=True
-    )
-    measurement_serie = relationship("MorphologyMeasurementSerieElement", uselist=True)
-
-
-class MorphologyMeasurementSerieElement(Base):
-    __tablename__ = "measurement_serie_element"
-    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    name: Mapped[str | None]
-    value: Mapped[float | None]
-    measurement_id: Mapped[int] = mapped_column(ForeignKey("measurement.id"), index=True)
+    measurements: Mapped[MEASUREMENT_COLLECTION]
 
 
 class Role(LegacyMixin, Identifiable):

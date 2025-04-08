@@ -114,17 +114,20 @@ class LicensedReadMixin(BaseModel):
     license: LicenseRead | None
 
 
-class MorphologyMeasurementSerieBase(BaseModel):
+class MeasurementItem(BaseModel):
+    """Single measurement item."""
+
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    value: float
+    name: str | None
+    value: float | None
+    unit: str | None = None
 
 
-class MeasurementCreate(BaseModel):
+class MeasurementGroup(BaseModel):
+    """Group of measurements with the same label."""
+
     model_config = ConfigDict(from_attributes=True)
-    measurement_of: str
-    measurement_serie: list[MorphologyMeasurementSerieBase]
-
-
-class MeasurementRead(MeasurementCreate):
-    id: int
+    label: str
+    pref_label: str | None = None
+    compartment: str | None = None
+    items: list[MeasurementItem]

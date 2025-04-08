@@ -6,8 +6,6 @@ from fastapi import HTTPException
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import (
     MorphologyFeatureAnnotation,
-    MorphologyMeasurement,
-    MorphologyMeasurementSerieElement,
     ReconstructionMorphology,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -94,17 +92,10 @@ def create_one(
             detail=f"Cannot access entity {reconstruction_morphology_id}",
         )
 
-    row = MorphologyFeatureAnnotation(reconstruction_morphology_id=reconstruction_morphology_id)
-
-    for measurement in morphology_feature_annotation.measurements:
-        db_measurement = MorphologyMeasurement()
-        row.measurements.append(db_measurement)
-        db_measurement.measurement_of = measurement.measurement_of
-
-        for serie in measurement.measurement_serie:
-            db_measurement.measurement_serie.append(
-                MorphologyMeasurementSerieElement(**serie.model_dump())
-            )
+    row = MorphologyFeatureAnnotation(
+        reconstruction_morphology_id=reconstruction_morphology_id,
+        measurements=morphology_feature_annotation.measurements,
+    )
 
     db.add(row)
     db.commit()

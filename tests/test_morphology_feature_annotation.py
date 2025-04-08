@@ -24,8 +24,8 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
         "reconstruction_morphology_id": reconstruction_morphology_id,
         "measurements": [
             {
-                "measurement_of": measurement_of,
-                "measurement_serie": [
+                "label": measurement_of,
+                "items": [
                     {
                         "name": "Test Measurement Name",
                         "value": 10,
@@ -37,8 +37,8 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
                 ],
             },
             {
-                "measurement_of": measurement_of + " 2",
-                "measurement_serie": [
+                "label": measurement_of + " 2",
+                "items": [
                     {
                         "name": "Test Measurement Name",
                         "value": 10,
@@ -89,7 +89,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     data = response.json()
     assert "morphology_feature_annotation" in data
     assert (
-        data["morphology_feature_annotation"]["measurements"][0]["measurement_serie"][0]["name"]
+        data["morphology_feature_annotation"]["measurements"][0]["items"][0]["name"]
         == "Test Measurement Name"
     )
 
@@ -124,8 +124,8 @@ def test_authorization(
     annotation_js = {
         "measurements": [
             {
-                "measurement_of": "Test Measurement Of ID",
-                "measurement_serie": [
+                "label": "Test Measurement Of ID",
+                "items": [
                     {
                         "name": "Test Measurement Name",
                         "value": 10,

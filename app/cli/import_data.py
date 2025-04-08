@@ -407,8 +407,8 @@ class ImportEModels(Import):
             legacy_self = data["_self"]
             db_item = utils._find_by_legacy_id(legacy_id, EModel, db)
 
-            # if db_item:
-            #     continue
+            if db_item:
+                continue
 
             _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             assert _brain_location is None
@@ -426,6 +426,8 @@ class ImportEModels(Import):
             configuration_id = utils.find_id_in_entity(workflow, "EModelConfiguration", "hasPart")
 
             configuration = configuration_id and all_data_by_id.get(configuration_id)
+
+            assert configuration
 
             exemplar_morphology_id = utils.find_id_in_entity(
                 configuration, "NeuronMorphology", "uses"
@@ -467,6 +469,15 @@ class ImportEModels(Import):
             db.add(db_item)
 
             db.flush()
+
+            ion_channel_models = utils.import_ion_channel_models(
+                configuration, db_item.id, all_data_by_id, db
+            )
+
+            for icm in ion_channel_models:
+                utils.import_distribution(
+                    icm[0], icm[1], EntityType.ion_channel_model, db, project_context
+                )
 
             utils.import_contribution(emodel_script, db_item.id, db)
 

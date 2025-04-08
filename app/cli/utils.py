@@ -1,7 +1,6 @@
 import datetime
 import uuid
 from typing import Any, Literal
-from functools import cache
 
 import sqlalchemy as sa
 from sqlalchemy import any_
@@ -14,18 +13,18 @@ from app.db.model import (
     Asset,
     BrainRegion,
     Contribution,
+    Ion,
+    IonChannelAssociation,
+    IonChannelModel,
     License,
     Role,
     Species,
     Strain,
-    IonChannelModel,
-    IonChannelAssociation,
 )
-from app.db.model import DeclarativeBase, Ion
 from app.db.types import AssetStatus, EntityType
-from app.schemas.ion_channel_model import NmodlParameters
 from app.logger import L
 from app.schemas.base import ProjectContext
+from app.schemas.ion_channel_model import NmodlParameters
 from app.utils.s3 import build_s3_path
 
 AUTHORIZED_PUBLIC = True
@@ -396,16 +395,18 @@ def import_ion_channel_models(
         if is_type(script, "SubCellularModelScript")
     ]
 
+    ion_channel_models: list[tuple[dict[str, Any], uuid.UUID]] = []
+
     for id_ in subcellular_model_script_ids:
         if (script := all_data_by_id.get(id_)) and (ion := script.get("ion")):
             temperature = script.get("temperature", {})
             temp_unit = str(temperature.get("unitCode", "")).lower()
 
-            assert temp_unit == "c"
+            assert temp_unit == "c"  # noqa: S101
 
             temperature_value = temperature.get("value")
 
-            assert temperature_value
+            assert temperature_value  # noqa: S101
 
             db_ion_channel_model = IonChannelModel(
                 name=script["name"],
@@ -433,3 +434,7 @@ def import_ion_channel_models(
             db.add_all(ion_associations)
 
             db.flush()
+
+            ion_channel_models.append((script, db_ion_channel_model.id))
+
+    return ion_channel_models

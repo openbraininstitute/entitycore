@@ -52,6 +52,7 @@ class EntityType(StrEnum):
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()
     single_neuron_synaptome_simulation = auto()
+    ion_channel_model = auto()
 
 
 class AgentType(StrEnum):

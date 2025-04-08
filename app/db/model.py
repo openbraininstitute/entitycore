@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from sqlalchemy import (
     BigInteger,
@@ -15,7 +15,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, TSVECTOR
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 
 from app.db.types import (

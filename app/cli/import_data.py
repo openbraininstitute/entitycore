@@ -508,6 +508,8 @@ class ImportBrainRegionMeshes(Import):
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
             db_item = Mesh(
+                name=data["name"],
+                description=data["description"],
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 brain_region_id=brain_region_id,
@@ -990,6 +992,7 @@ def _do_import(db, input_dir, project_context):
             data = json.load(f)
 
             for d in data:
+                # d["_filename"] = file_path
                 id = d["@id"]
 
                 all_data_by_id[id] = d

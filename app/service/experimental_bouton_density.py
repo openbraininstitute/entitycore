@@ -1,48 +1,87 @@
 import uuid
 
-import sqlalchemy as sa
-
-from app.db.auth import constrain_to_accessible_entities
-from app.db.model import ExperimentalBoutonDensity
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery
-from app.dependencies.db import SessionDep
-from app.errors import ensure_result
-from app.schemas.density import (
-    ExperimentalBoutonDensityCreate,
-    ExperimentalBoutonDensityRead,
+from sqlalchemy.orm import (
+    joinedload,
+    raiseload,
+    selectinload,
 )
-from app.schemas.types import ListResponse, PaginationResponse
+
+from app.db.model import (
+    Agent,
+    BrainRegion,
+    Contribution,
+    ExperimentalBoutonDensity,
+    MTypeClass,
+    MTypeClassification,
+    Species,
+    Strain,
+)
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.db import SessionDep
+from app.filters.density import ExperimentalBoutonDensityFilterDep
+from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.schemas.density import ExperimentalBoutonDensityCreate, ExperimentalBoutonDensityRead
+from app.schemas.types import ListResponse
 
 
 def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
+    filter_model: ExperimentalBoutonDensityFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
 ) -> ListResponse[ExperimentalBoutonDensityRead]:
-    query = constrain_to_accessible_entities(
-        sa.select(ExperimentalBoutonDensity), user_context.project_id
+    name_to_facet_query_params: dict[str, FacetQueryParams] = {
+        "contribution": {
+            "id": Agent.id,
+            "label": Agent.pref_label,
+            "type": Agent.type,
+        },
+        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
+    }
+    apply_filter_query = lambda query: (
+        query.join(BrainRegion, ExperimentalBoutonDensity.brain_region_id == BrainRegion.id)
+        .outerjoin(Species, ExperimentalBoutonDensity.species_id == Species.id)
+        .outerjoin(Strain, ExperimentalBoutonDensity.strain_id == Strain.id)
+        .outerjoin(Contribution, ExperimentalBoutonDensity.id == Contribution.entity_id)
+        .outerjoin(Agent, Contribution.agent_id == Agent.id)
+        .outerjoin(
+            MTypeClassification, ExperimentalBoutonDensity.id == MTypeClassification.entity_id
+        )
+        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
     )
-
-    data = db.execute(
-        query.offset(pagination_request.offset).limit(pagination_request.page_size)
-    ).scalars()
-
-    total_items = db.execute(
-        query.with_only_columns(sa.func.count(ExperimentalBoutonDensity.id))
-    ).scalar_one()
-
-    response = ListResponse[ExperimentalBoutonDensityRead](
-        data=[ExperimentalBoutonDensityRead.model_validate(row) for row in data],
-        pagination=PaginationResponse(
-            page=pagination_request.page,
-            page_size=pagination_request.page_size,
-            total_items=total_items,
-        ),
-        facets=None,
+    apply_data_options = lambda query: (
+        query.options(joinedload(ExperimentalBoutonDensity.brain_region))
+        .options(joinedload(ExperimentalBoutonDensity.species, innerjoin=True))
+        .options(
+            selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.agent)
+        )
+        .options(
+            selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.role)
+        )
+        .options(joinedload(ExperimentalBoutonDensity.mtypes))
+        .options(joinedload(ExperimentalBoutonDensity.license))
+        .options(joinedload(ExperimentalBoutonDensity.strain))
+        .options(selectinload(ExperimentalBoutonDensity.assets))
+        .options(selectinload(ExperimentalBoutonDensity.measurements))
+        .options(raiseload("*"))
     )
-
-    return response
+    return router_read_many(
+        db=db,
+        filter_model=filter_model,
+        db_model_class=ExperimentalBoutonDensity,
+        with_search=with_search,
+        facets=facets,
+        name_to_facet_query_params=name_to_facet_query_params,
+        apply_filter_query_operations=apply_filter_query,
+        apply_data_query_operations=apply_data_options,
+        aliases={},
+        pagination_request=pagination_request,
+        response_schema_class=ExperimentalBoutonDensityRead,
+        authorized_project_id=user_context.project_id,
+    )
 
 
 def read_one(
@@ -50,26 +89,36 @@ def read_one(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> ExperimentalBoutonDensityRead:
-    with ensure_result(error_message="ExperimentalBoutonDensity not found"):
-        stmt = constrain_to_accessible_entities(
-            sa.select(ExperimentalBoutonDensity).filter(ExperimentalBoutonDensity.id == id_),
-            user_context.project_id,
-        )
-        row = db.execute(stmt).scalar_one()
-
-    return ExperimentalBoutonDensityRead.model_validate(row)
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=ExperimentalBoutonDensity,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=ExperimentalBoutonDensityRead,
+        apply_operations=lambda q: q.options(
+            joinedload(ExperimentalBoutonDensity.brain_region),
+            joinedload(ExperimentalBoutonDensity.mtypes),
+            joinedload(ExperimentalBoutonDensity.species),
+            joinedload(ExperimentalBoutonDensity.strain),
+            joinedload(ExperimentalBoutonDensity.assets),
+            joinedload(ExperimentalBoutonDensity.license),
+            selectinload(ExperimentalBoutonDensity.measurements),
+            selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.agent),
+            selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.role),
+            raiseload("*"),
+        ),
+    )
 
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
+    json_model: ExperimentalBoutonDensityCreate,
     db: SessionDep,
-    density: ExperimentalBoutonDensityCreate,
 ) -> ExperimentalBoutonDensityRead:
-    dump = density.model_dump()
-
-    row = ExperimentalBoutonDensity(**dump, authorized_project_id=user_context.project_id)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-
-    return ExperimentalBoutonDensityRead.model_validate(row)
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        db_model_class=ExperimentalBoutonDensity,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=ExperimentalBoutonDensityRead,
+    )

@@ -1,10 +1,36 @@
-from .utils import MISSING_ID, MISSING_ID_COMPACT
+import pytest
+
+from app.db.model import SynapticPathway
+
+from .utils import MISSING_ID, MISSING_ID_COMPACT, PROJECT_ID, add_db
 
 ROUTE = "/experimental-synapses-per-connection"
 
 
+@pytest.fixture
+def synaptic_pathway_id(db, brain_region_id, mtype_class_id):
+    return str(
+        add_db(
+            db,
+            SynapticPathway(
+                pre_mtype_id=mtype_class_id,
+                post_mtype_id=mtype_class_id,
+                pre_region_id=brain_region_id,
+                post_region_id=brain_region_id,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        ).id
+    )
+
+
 def test_experimental_synapses_per_connection(
-    client, species_id, strain_id, license_id, brain_region_id
+    client,
+    species_id,
+    strain_id,
+    license_id,
+    brain_region_id,
+    synaptic_pathway_id,
 ):
     bouton_description = "Test bouton Description"
     bouton_name = "Test bouton Name"
@@ -18,6 +44,7 @@ def test_experimental_synapses_per_connection(
             "name": bouton_name,
             "legacy_id": "Test Legacy ID",
             "license_id": license_id,
+            "synaptic_pathway_id": synaptic_pathway_id,
         },
     )
     assert response.status_code == 200, (
@@ -78,6 +105,7 @@ def test_authorization(
     strain_id,
     license_id,
     brain_region_id,
+    synaptic_pathway_id,
 ):
     js = {
         "brain_region_id": brain_region_id,
@@ -86,6 +114,7 @@ def test_authorization(
         "description": "a worthy description",
         "legacy_id": "Test Legacy ID",
         "license_id": license_id,
+        "synaptic_pathway_id": synaptic_pathway_id,
     }
 
     public_obj = client_user_1.post(
@@ -109,7 +138,7 @@ def test_authorization(
     # only return results that matches the desired project, and public ones
     response = client_user_1.get(ROUTE)
     data = response.json()["data"]
-    assert len(data) == 3
+    assert len(data) == 3, [d["name"] for d in data]
 
     ids = {row["id"] for row in data}
     assert ids == {

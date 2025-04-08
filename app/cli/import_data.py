@@ -4,6 +4,7 @@ import json
 import os
 import random
 import uuid
+from functools import partial
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
@@ -31,6 +32,7 @@ from app.db.model import (
     ExperimentalSynapsesPerConnection,
     License,
     MEModel,
+    Measurement,
     Mesh,
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
@@ -915,25 +917,56 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
 
         createdAt, updatedAt = utils.get_created_and_updated(data)
 
-        db_element = model_type(
-            legacy_id=[legacy_id],
-            legacy_self=[legacy_self],
-            name=data.get("name"),
-            description=data.get("description", data.get("name")),
-            species_id=species_id,
-            strain_id=strain_id,
-            license_id=license_id,
-            brain_region_id=brain_region_id,
-            createdBy_id=createdBy_id,
-            updatedBy_id=updatedBy_id,
-            creation_date=createdAt,
-            update_date=updatedAt,
-            authorized_project_id=project_context.project_id,
-            authorized_public=AUTHORIZED_PUBLIC,
-        )
-        db.add(db_element)
+        kwargs = {
+            "legacy_id": [legacy_id],
+            "legacy_self": [legacy_self],
+            "name": data.get("name"),
+            "description": data.get("description", data.get("name")),
+            "species_id": species_id,
+            "strain_id": strain_id,
+            "license_id": license_id,
+            "brain_region_id": brain_region_id,
+            "createdBy_id": createdBy_id,
+            "updatedBy_id": updatedBy_id,
+            "creation_date": createdAt,
+            "update_date": updatedAt,
+            "authorized_project_id": project_context.project_id,
+            "authorized_public": AUTHORIZED_PUBLIC,
+        }
+
+        if model_type is ExperimentalSynapsesPerConnection:
+            try:
+                pathway_id = utils.get_or_create_synaptic_pathway(
+                    data["synapticPathway"], project_context, db
+                )
+                kwargs["synaptic_pathway_id"] = pathway_id
+            except:
+                L.warning(f"Failed to create synaptic pathway: {data['synapticPathway']}")
+
+        db_item = model_type(**kwargs)
+        db.add(db_item)
         db.commit()
-        utils.import_contribution(data, db_element.id, db)
+        utils.import_contribution(data, db_item.id, db)
+
+        if "annotation" in data:
+            print(db_item.id)
+
+        for annotation in ensurelist(data.get("annotation", [])):
+            create_annotation(annotation, db_item.id, db)
+
+        for measurement in ensurelist(data.get("series", [])):
+            create_measurement(measurement, db_item.id, db)
+
+
+def create_measurement(data, entity_id, db):
+    db_item = Measurement(
+        name=data["statistic"],
+        unit=data["unitCode"],
+        value=data["value"],
+        entity_id=entity_id,
+    )
+    db.add(db_item)
+    db.commit()
 
 
 def _do_import(db, input_dir, project_context):
@@ -962,18 +995,18 @@ def _do_import(db, input_dir, project_context):
 
     importers = [
         ImportAgent,
-        ImportAnalysisSoftwareSourceCode,
-        ImportBrainRegionMeshes,
-        ImportMorphologies,
-        ImportEModels,
-        ImportMEModel,
-        ImportExperimentalNeuronDensities,
-        ImportExperimentalBoutonDensity,
+        # ImportAnalysisSoftwareSourceCode,
+        # ImportBrainRegionMeshes,
+        # ImportMorphologies,
+        # ImportEModels,
+        # ImportMEModel,
+        # ImportExperimentalNeuronDensities,
+        # ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
-        ImportSingleCellExperimentalTrace,
-        ImportSingleNeuronSimulation,
-        ImportDistribution,
-        ImportNeuronMorphologyFeatureAnnotation,
+        # ImportSingleCellExperimentalTrace,
+        # ImportSingleNeuronSimulation,
+        # ImportDistribution,
+        # ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:

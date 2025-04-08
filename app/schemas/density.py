@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.annotation import ETypeClassRead, MTypeClassRead
+from app.schemas.asset import AssetRead
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -13,6 +15,14 @@ from app.schemas.base import (
     SpeciesRead,
     StrainRead,
 )
+
+
+class MeasurementRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    unit: str
+    value: float
 
 
 class ExperimentalDensityBase(BaseModel):
@@ -36,6 +46,8 @@ class ExperimentalDensityRead(
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
+    measurements: list[MeasurementRead] | None
+    assets: list[AssetRead] | None
 
 
 class ExperimentalNeuronDensityCreate(ExperimentalDensityCreate):
@@ -47,16 +59,26 @@ class ExperimentalBoutonDensityCreate(ExperimentalDensityCreate):
 
 
 class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
-    pass
+    synaptic_pathway_id: uuid.UUID
 
 
 class ExperimentalNeuronDensityRead(ExperimentalDensityRead):
-    pass
+    mtypes: list[MTypeClassRead] | None
+    etypes: list[ETypeClassRead] | None
 
 
 class ExperimentalBoutonDensityRead(ExperimentalDensityRead):
-    pass
+    mtypes: list[MTypeClassRead] | None
+
+
+class SynapticPathwayRead(CreationMixin, IdentifiableMixin):
+    id: uuid.UUID
+    pre_mtype: MTypeClassRead
+    post_mtype: MTypeClassRead
+    pre_region: BrainRegionRead
+    post_region: BrainRegionRead
 
 
 class ExperimentalSynapsesPerConnectionRead(ExperimentalDensityRead):
-    pass
+    mtypes: list[MTypeClassRead] | None
+    synaptic_pathway: SynapticPathwayRead

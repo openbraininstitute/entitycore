@@ -21,6 +21,7 @@ from app.db.model import (
     Contribution,
     EModel,
     MEModel,
+    MTypeClass,
     Organization,
     Person,
     Role,
@@ -310,6 +311,20 @@ def morphology_id(client, species_id, strain_id, brain_region_id):
         strain_id=strain_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
+    )
+
+
+@pytest.fixture
+def mtype_class_id(db):
+    return str(
+        add_db(
+            db,
+            MTypeClass(
+                pref_label="mtype-pref-label",
+                alt_label="mtype-alt-label",
+                definition="mtype-definition",
+            ),
+        ).id
     )
 
 

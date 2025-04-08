@@ -624,7 +624,7 @@ class SubCellularModelScript(LocationMixin, SubjectMixin, LicensedMixin, Entity)
     description: Mapped[str] = mapped_column(default="")
     temperature: Mapped[float | None] = mapped_column(default=None)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
-    is_jjp_corrected: Mapped[bool] = mapped_column(default=False)
+    is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_stochastic: Mapped[bool] = mapped_column(default=False)
 
     __mapper_args__ = {"polymorphic_identity": "sub_cellular_model_script"}  # noqa: RUF012

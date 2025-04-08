@@ -4,6 +4,8 @@ from pathlib import Path
 from httpx import Headers
 from starlette.testclient import TestClient
 
+from app.db.types import EntityType
+
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
 TOKEN_ADMIN = "I'm admin"  # noqa: S105
@@ -127,7 +129,11 @@ def create_brain_region_id(client, id_: int, name: str):
 
 
 def check_missing(route, client):
-    assert_request(client.get, url=f"{route}/{MISSING_ID}", expected_status_code=404)
+    assert_request(
+        client.get,
+        url=f"{route}/{MISSING_ID}",
+        expected_status_code=404,
+    )
     assert_request(
         client.get,
         url=f"{route}/{MISSING_ID_COMPACT}",
@@ -228,3 +234,17 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     data = response.json()["data"]
     assert len(data) == 1
     assert data[0]["id"] == public_morph["id"]
+
+
+def create_asset_file(client, entity_type, entity_id, file_name, file_obj):
+    route = EntityType[entity_type].replace("_", "-")
+    files = {
+        # (filename, file (or bytes), content_type, headers)
+        "file": (str(file_name), file_obj, "text/plain")
+    }
+    assert_request(
+        client.post,
+        url=f"{route}/{entity_id}/assets",
+        files=files,
+        expected_status_code=201,
+    )

@@ -601,7 +601,9 @@ class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entit
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
 
-    nmodl_parameters: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    nmodl_parameters: Mapped[JSON_DICT]
+
+    emodel_id: Mapped[int] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

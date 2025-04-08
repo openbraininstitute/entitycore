@@ -28,6 +28,9 @@ from app.db.model import (
     BrainRegion,
     DataMaturityAnnotationBody,
     EModel,
+    Ion,
+    IonChannelModel,
+    IonChannelAssociation,
     Entity,
     ETypeClass,
     ETypeClassification,
@@ -398,9 +401,7 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id: dict):
-        ions: dict[str, dict] = {}
-
+    def ingest(db, project_context, data_list: list[dict], all_data_by_id: dict[str, dict]):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -424,33 +425,12 @@ class ImportEModels(Import):
 
             configuration_id = utils.find_id_in_entity(workflow, "EModelConfiguration", "hasPart")
 
-            configuration = all_data_by_id.get(configuration_id)
+            configuration = configuration_id and all_data_by_id.get(configuration_id)
 
             exemplar_morphology_id = utils.find_id_in_entity(
                 configuration, "NeuronMorphology", "uses"
             )
 
-            subcellular_model_script_ids = (
-                [
-                    script["@id"]
-                    for script in configuration.get("uses")
-                    if utils.is_type(script, "SubCellularModelScript")
-                ]
-                if configuration
-                else []
-            )
-
-            # Register the ions
-
-            # for id in subcellular_model_script_ids:
-            #     if (script := all_data_by_id.get(id)) and (ion := script.get("ion")):
-            #         ions_ = ensurelist(ion)
-            #         for ion in ions_:
-            #             id_ = ion["@id"]
-            #             if id_ in ions:
-            #                 assert ions[id_] == ion
-
-            #             ions[ion["@id"]] = ion
 
             morphology = utils._find_by_legacy_id(
                 exemplar_morphology_id, ReconstructionMorphology, db
@@ -459,7 +439,7 @@ class ImportEModels(Import):
             assert morphology
 
             emodel_script_id = utils.find_id_in_entity(workflow, "EModelScript", "generates")
-            emodel_script = all_data_by_id.get(emodel_script_id)
+            emodel_script = emodel_script_id and all_data_by_id.get(emodel_script_id)
 
             assert emodel_script
 
@@ -488,6 +468,9 @@ class ImportEModels(Import):
             db.add(db_item)
 
             db.flush()
+
+
+            
 
             utils.import_contribution(emodel_script, db_item.id, db)
 

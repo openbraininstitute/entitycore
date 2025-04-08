@@ -1,6 +1,7 @@
 import datetime
 import uuid
 from typing import Any, Literal
+from functools import cache
 
 import sqlalchemy as sa
 from sqlalchemy import any_
@@ -17,8 +18,12 @@ from app.db.model import (
     Role,
     Species,
     Strain,
+    IonChannelModel,
+    IonChannelAssociation,
 )
+from app.db.model import DeclarativeBase, Ion
 from app.db.types import AssetStatus, EntityType
+from app.schemas.ion_channel_model import NmodlParameters
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.utils.s3 import build_s3_path
@@ -363,3 +368,79 @@ def find_part_id(data: dict[str, Any], type_: Literal["NeuronMorphology", "EMode
                 return part.get("@id", None)
 
     return None
+
+
+def get_or_create_ion(ion: dict[str, Any], db: Session, _cache=set()):
+    label = ion["label"]
+    if label in _cache:
+        return _cache[label]
+
+    q = sa.select(Ion).where(Ion.name == label)
+    db_ion = db.execute(q).scalar_one_or_none() or Ion(name=ion.get("label"))
+    db.flush()
+
+    _cache.set(db_ion.id)
+
+    return db_ion.id
+
+    # class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+    #     __tablename__ = "ion_chanel_model"
+
+    #     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    #     name: Mapped[str] = mapped_column(index=True)
+    #     description: Mapped[str] = mapped_column(default="")
+    #     identifier: Mapped[str]
+    #     modelId: Mapped[str]
+    #     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
+    #     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
+    #     temperature_celsius: Mapped[int]
+
+    nmodl_parameters: Mapped[JSON_DICT]
+
+
+def import_ion_channel_models(
+    emodel_config: dict,
+    emodel_id: uuid.UUID,
+    all_data_by_id: dict[str, dict[str, Any]],
+    db: Session,
+):
+    subcellular_model_script_ids = [
+        script["@id"]
+        for script in emodel_config.get("uses") or []
+        if is_type(script, "SubCellularModelScript")
+    ]
+
+    # Register the ions
+
+    for id_ in subcellular_model_script_ids:
+        if (script := all_data_by_id.get(id_)) and (ion := script.get("ion")):
+            temperature = script.get("temperature", {})
+            temp_unit = str(temperature.get("unitCode", "")).lower()
+
+            assert temp_unit == "c"
+
+            temperature_value = temperature.get("value")
+
+            assert temperature_value
+
+            db_ion_channel_model = IonChannelModel(
+                name=script["name"],
+                description=script.get("descripton", ""),
+                identifier=script.get("identifier", ""),
+                modelId=script.get("modelId", ""),
+                is_ljp_corrected=script.get("isLjpCorrected", False),
+                is_temperature_dependent=script.get("isTemperatureDependent", False),
+                temperature_celsius=int(temperature_value),
+                nmodel_parameters=NmodlParameters.model_validate(script.get("nmodlParameters")),
+                emodel_id=emodel_id,
+            )
+
+            db.flush()
+
+            db_ion_ids = [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
+
+            for ion_id in db_ion_ids:
+                IonChannelAssociation(ion_id=ion_id, ion_channel_model_id=db_ion_channel_model.id)
+
+            db.flush()

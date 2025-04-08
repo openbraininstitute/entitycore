@@ -580,7 +580,6 @@ class Asset(Identifiable):
     status: Mapped[AssetStatus] = mapped_column()
     path: Mapped[str]  # relative path
     full_path: Mapped[str]  # full path on S3
-    bucket_name: Mapped[str]
     is_directory: Mapped[bool]
     content_type: Mapped[str]
     size: Mapped[BIGINT]

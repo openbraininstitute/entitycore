@@ -383,21 +383,6 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache=set()):
 
     return db_ion.id
 
-    # class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    #     __tablename__ = "ion_chanel_model"
-
-    #     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    #     name: Mapped[str] = mapped_column(index=True)
-    #     description: Mapped[str] = mapped_column(default="")
-    #     identifier: Mapped[str]
-    #     modelId: Mapped[str]
-    #     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
-    #     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
-    #     temperature_celsius: Mapped[int]
-
-    nmodl_parameters: Mapped[JSON_DICT]
-
 
 def import_ion_channel_models(
     emodel_config: dict,
@@ -410,8 +395,6 @@ def import_ion_channel_models(
         for script in emodel_config.get("uses") or []
         if is_type(script, "SubCellularModelScript")
     ]
-
-    # Register the ions
 
     for id_ in subcellular_model_script_ids:
         if (script := all_data_by_id.get(id_)) and (ion := script.get("ion")):
@@ -436,11 +419,17 @@ def import_ion_channel_models(
                 emodel_id=emodel_id,
             )
 
+            db.add(db_ion_channel_model)
+
             db.flush()
 
-            db_ion_ids = [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
+            ion_associations = [
+                IonChannelAssociation(
+                    ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id
+                )
+                for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
+            ]
 
-            for ion_id in db_ion_ids:
-                IonChannelAssociation(ion_id=ion_id, ion_channel_model_id=db_ion_channel_model.id)
+            db.add_all(ion_associations)
 
             db.flush()

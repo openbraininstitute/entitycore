@@ -431,7 +431,6 @@ class ImportEModels(Import):
                 configuration, "NeuronMorphology", "uses"
             )
 
-
             morphology = utils._find_by_legacy_id(
                 exemplar_morphology_id, ReconstructionMorphology, db
             )
@@ -469,9 +468,6 @@ class ImportEModels(Import):
 
             db.flush()
 
-
-            
-
             utils.import_contribution(emodel_script, db_item.id, db)
 
             utils.import_distribution(
@@ -482,8 +478,6 @@ class ImportEModels(Import):
                 create_annotation(annotation, db_item.id, db)
 
         db.commit()
-
-        print(ions)
 
 
 class ImportBrainRegionMeshes(Import):

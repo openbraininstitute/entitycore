@@ -216,9 +216,9 @@ class AnnotationMixin:
 
 
 class ClassificationMixin:
-    createdBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
+    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
 class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
@@ -232,13 +232,13 @@ class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
 class MTypeClassification(ClassificationMixin, Identifiable):
     __tablename__ = "mtype_classification"
 
-    mtype_class_id: Mapped[int] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
 
 
 class ETypeClassification(ClassificationMixin, Identifiable):
     __tablename__ = "etype_classification"
 
-    etype_class_id: Mapped[int] = mapped_column(ForeignKey("etype_class.id"), index=True)
+    etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
 
 
 class MTypesMixin:
@@ -395,7 +395,7 @@ class EModel(MTypesMixin, ETypesMixin, DescriptionVectorMixin, SpeciesMixin, Loc
     score: Mapped[float] = mapped_column(default=-1)
     seed: Mapped[int] = mapped_column(default=-1)
 
-    exemplar_morphology_id: Mapped[int] = mapped_column(
+    exemplar_morphology_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.reconstruction_morphology}.id")
     )
 
@@ -603,7 +603,7 @@ class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entit
 
     nmodl_parameters: Mapped[JSON_DICT]
 
-    emodel_id: Mapped[int] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
+    emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

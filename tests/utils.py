@@ -129,7 +129,11 @@ def create_brain_region_id(client, id_: int, name: str):
 
 
 def check_missing(route, client):
-    assert_request(client.get, url=f"{route}/{MISSING_ID}", expected_status_code=404)
+    assert_request(
+        client.get,
+        url=f"{route}/{MISSING_ID}",
+        expected_status_code=404,
+    )
     assert_request(
         client.get,
         url=f"{route}/{MISSING_ID_COMPACT}",
@@ -210,11 +214,16 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     data = response.json()["data"]
 
     ids = {row["id"] for row in data}
-    assert ids == {
+    expected = {
         public_morph["id"],
         private_obj0["id"],
         private_obj1["id"],
-    }, data
+    }
+    assert ids == expected, (
+        "Failed to fetch project-specific and public ids.\n"
+        f"Expected: {sorted(expected)}\n"
+        f"Actual  : {sorted(ids)}"
+    )
 
     assert_request(
         client_user_1.get,

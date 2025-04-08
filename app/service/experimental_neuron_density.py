@@ -1,45 +1,90 @@
 import uuid
 
-import sqlalchemy as sa
+from sqlalchemy.orm import (
+    aliased,
+    joinedload,
+    raiseload,
+    selectinload,
+)
 
-from app.db.auth import constrain_to_accessible_entities
-from app.db.model import ExperimentalNeuronDensity
+from app.db.model import (
+    Agent,
+    BrainRegion,
+    Contribution,
+    ETypeClass,
+    ETypeClassification,
+    ExperimentalNeuronDensity,
+    MTypeClass,
+    MTypeClassification,
+    Subject,
+)
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
-from app.errors import ensure_result
+from app.filters.density import ExperimentalNeuronDensityFilterDep
+from app.queries import facets as fc
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.schemas.density import ExperimentalNeuronDensityCreate, ExperimentalNeuronDensityRead
-from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.types import ListResponse
 
 
 def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
+    filter_model: ExperimentalNeuronDensityFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
 ) -> ListResponse[ExperimentalNeuronDensityRead]:
-    query = constrain_to_accessible_entities(
-        sa.select(ExperimentalNeuronDensity), user_context.project_id
+    subject_alias = aliased(Subject, flat=True)
+    name_to_facet_query_params: dict[str, FacetQueryParams] = (
+        fc.brain_region | fc.contribution | fc.etype | fc.mtype | fc.species | fc.strain
     )
-
-    data = db.execute(
-        query.offset(pagination_request.offset).limit(pagination_request.page_size)
-    ).scalars()
-
-    total_items = db.execute(
-        query.with_only_columns(sa.func.count(ExperimentalNeuronDensity.id))
-    ).scalar_one()
-
-    response = ListResponse[ExperimentalNeuronDensityRead](
-        data=[ExperimentalNeuronDensityRead.model_validate(row) for row in data],
-        pagination=PaginationResponse(
-            page=pagination_request.page,
-            page_size=pagination_request.page_size,
-            total_items=total_items,
-        ),
-        facets=None,
+    apply_filter_query = lambda query: (
+        query.join(BrainRegion, ExperimentalNeuronDensity.brain_region_id == BrainRegion.id)
+        .outerjoin(subject_alias, ExperimentalNeuronDensity.subject_id == subject_alias.id)
+        .outerjoin(Contribution, ExperimentalNeuronDensity.id == Contribution.entity_id)
+        .outerjoin(Agent, Contribution.agent_id == Agent.id)
+        .outerjoin(
+            MTypeClassification, ExperimentalNeuronDensity.id == MTypeClassification.entity_id
+        )
+        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
+        .outerjoin(
+            ETypeClassification, ExperimentalNeuronDensity.id == ETypeClassification.entity_id
+        )
+        .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
     )
-
-    return response
+    apply_data_options = lambda query: (
+        query.options(joinedload(ExperimentalNeuronDensity.brain_region))
+        .options(
+            selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.agent)
+        )
+        .options(
+            selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.role)
+        )
+        .options(joinedload(ExperimentalNeuronDensity.mtypes))
+        .options(joinedload(ExperimentalNeuronDensity.etypes))
+        .options(joinedload(ExperimentalNeuronDensity.license))
+        .options(joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.species))
+        .options(joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.strain))
+        .options(selectinload(ExperimentalNeuronDensity.assets))
+        .options(selectinload(ExperimentalNeuronDensity.measurements))
+        .options(raiseload("*"))
+    )
+    return router_read_many(
+        db=db,
+        filter_model=filter_model,
+        db_model_class=ExperimentalNeuronDensity,
+        with_search=with_search,
+        facets=facets,
+        name_to_facet_query_params=name_to_facet_query_params,
+        apply_filter_query_operations=apply_filter_query,
+        apply_data_query_operations=apply_data_options,
+        aliases={Subject: subject_alias},
+        pagination_request=pagination_request,
+        response_schema_class=ExperimentalNeuronDensityRead,
+        authorized_project_id=user_context.project_id,
+    )
 
 
 def read_one(
@@ -47,26 +92,37 @@ def read_one(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> ExperimentalNeuronDensityRead:
-    with ensure_result(error_message="ExperimentalNeuronDensity not found"):
-        stmt = constrain_to_accessible_entities(
-            sa.select(ExperimentalNeuronDensity).filter(ExperimentalNeuronDensity.id == id_),
-            user_context.project_id,
-        )
-        row = db.execute(stmt).scalar_one()
-
-    return ExperimentalNeuronDensityRead.model_validate(row)
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=ExperimentalNeuronDensity,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=ExperimentalNeuronDensityRead,
+        apply_operations=lambda q: q.options(
+            joinedload(ExperimentalNeuronDensity.brain_region),
+            joinedload(ExperimentalNeuronDensity.mtypes),
+            joinedload(ExperimentalNeuronDensity.etypes),
+            joinedload(ExperimentalNeuronDensity.assets),
+            joinedload(ExperimentalNeuronDensity.license),
+            joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.strain),
+            joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.species),
+            selectinload(ExperimentalNeuronDensity.measurements),
+            selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.agent),
+            selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.role),
+            raiseload("*"),
+        ),
+    )
 
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
-    density: ExperimentalNeuronDensityCreate,
+    json_model: ExperimentalNeuronDensityCreate,
     db: SessionDep,
 ) -> ExperimentalNeuronDensityRead:
-    dump = density.model_dump()
-
-    row = ExperimentalNeuronDensity(**dump, authorized_project_id=user_context.project_id)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-
-    return ExperimentalNeuronDensityRead.model_validate(row)
+    return router_create_one(
+        db=db,
+        json_model=json_model,
+        db_model_class=ExperimentalNeuronDensity,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=ExperimentalNeuronDensityRead,
+    )

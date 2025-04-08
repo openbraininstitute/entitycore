@@ -22,12 +22,14 @@ from app.db.model import (
     Contribution,
     EModel,
     MEModel,
+    MTypeClass,
     Organization,
     Person,
     Role,
     Species,
     Strain,
     Subject,
+    SynapticPathway,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.dependencies import auth
@@ -336,6 +338,20 @@ def morphology_id(client, species_id, strain_id, brain_region_id):
     )
 
 
+@pytest.fixture
+def mtype_class_id(db):
+    return str(
+        add_db(
+            db,
+            MTypeClass(
+                pref_label="mtype-pref-label",
+                alt_label="mtype-alt-label",
+                definition="mtype-definition",
+            ),
+        ).id
+    )
+
+
 CreateIds = Callable[[int], list[str]]
 
 
@@ -590,4 +606,42 @@ def faceted_memodels(
         species_ids=species_ids,
         brain_region_ids=brain_region_ids,
         agent_ids=agent_ids,
+    )
+
+
+@pytest.fixture
+def synaptic_pathway_id(db, brain_region_id, mtype_class_id):
+    return str(
+        add_db(
+            db,
+            SynapticPathway(
+                pre_mtype_id=mtype_class_id,
+                post_mtype_id=mtype_class_id,
+                pre_region_id=brain_region_id,
+                post_region_id=brain_region_id,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        ).id
+    )
+
+
+@pytest.fixture
+def subject_id(db, species_id):
+    return str(
+        add_db(
+            db,
+            Subject(
+                name="my-subject",
+                description="my-description",
+                species_id=species_id,
+                strain_id=None,
+                age_value=timedelta(days=14),
+                age_period="postnatal",
+                sex="female",
+                weight=1.5,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        ).id
     )

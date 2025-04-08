@@ -63,6 +63,7 @@ class EntityType(StrEnum):
     single_neuron_synaptome = auto()
     single_neuron_synaptome_simulation = auto()
     subject = auto()
+    synaptic_pathway = auto()
 
 
 class AgentType(StrEnum):
@@ -143,3 +144,20 @@ class AgePeriod(StrEnum):
     prenatal = auto()
     postnatal = auto()
     unknown = auto()
+
+
+class MeasurementStatistic(StrEnum):
+    mean = auto()
+    median = auto()
+    mode = auto()
+    variance = auto()
+    data_point = auto()
+    sample_size = auto()
+    standard_error = auto()
+    standard_deviation = auto()
+
+
+class MeasurementUnit(StrEnum):
+    dimensionless = auto()
+    linear_density__1_um = auto()
+    volume_density__1_mm3 = auto()

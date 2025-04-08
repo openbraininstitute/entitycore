@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
 
-from app.db.model import Agent, ETypeClass, MTypeClass, Species, Strain, Subject
+from app.db.model import Agent, ETypeClass, MTypeClass, Species, Strain, Subject, SynapticPathway
 from app.filters.base import CustomFilter
 
 
@@ -92,7 +92,12 @@ NestedAgentFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
 
 
 class SpeciesFilterMixin:
+    species_id_in: list[int] | None = None
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
+
+
+class StrainFilterMixin:
+    strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
 
 
 class ContributionFilterMixin:
@@ -111,3 +116,38 @@ class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin
 
 SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
 NestedSubjectFilterDep = FilterDepends(with_prefix("subject", SubjectFilter))
+
+
+class BrainRegionFilterMixin:
+    brain_region_id: int | None = None
+
+
+class MTypeClassFilterMixin:
+    mtype: Annotated[MTypeClassFilter | None, NestedMTypeClassFilterDep] = None
+
+
+class ETypeClassFilterMixin:
+    etype: Annotated[ETypeClassFilter | None, NestedETypeClassFilterDep] = None
+
+
+class SynapticPathwayFilter(CustomFilter):
+    pre_mtype: Annotated[MTypeClassFilter | None, NestedMTypeClassFilterDep] = None
+    post_mtype: Annotated[MTypeClassFilter | None, NestedMTypeClassFilterDep] = None
+    pre_region: int | None = None
+    post_region: int | None = None
+
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = SynapticPathway
+        ordering_model_fields = ["name"]  # noqa: RUF012
+
+
+SynapticPathwayFilterDep = Annotated[SynapticPathwayFilter, FilterDepends(SynapticPathwayFilter)]
+NestedSynapticPathwayFilterDep = FilterDepends(
+    with_prefix("synaptic_pathway", SynapticPathwayFilter)
+)
+
+
+class SynapticPathwayFilterMixin:
+    synaptic_pathway: Annotated[SynapticPathwayFilter | None, NestedSynapticPathwayFilterDep] = None

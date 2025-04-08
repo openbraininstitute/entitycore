@@ -85,6 +85,7 @@ def router_read_many[T: BaseModel, I: Identifiable](
         filter_query = constrain_to_accessible_entities(
             filter_query, project_id=authorized_project_id
         )
+
     if apply_filter_query_operations:
         filter_query = apply_filter_query_operations(filter_query)
 

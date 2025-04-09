@@ -406,7 +406,28 @@ def import_ion_channel_models(
 
             temperature_value = temperature.get("value")
 
-            assert temperature_value  # noqa: S101
+            nmodl_parameters: dict[str, Any] | None = script.get("nmodlParameters")
+            nmodl_parameters_validated: NmodlParameters | None = None
+            if nmodl_parameters:
+                range_ = nmodl_parameters.get("range")
+                read = nmodl_parameters.get("read")
+                useion = nmodl_parameters.get("useion")
+                write = nmodl_parameters.get("write")
+                nonspecific = nmodl_parameters.get("nonspecific")
+
+                d = {
+                    **nmodl_parameters,
+                    "range": range_ and ensurelist(range_),
+                    "read": read and ensurelist(read),
+                    "useion": useion and ensurelist(useion),
+                    "write": write and ensurelist(write),
+                    "nonspecific": nonspecific and ensurelist(nonspecific),
+                }
+
+                nmodl_parameters_validated = NmodlParameters.model_validate(d)
+
+            if nmodl_parameters_validated is None:
+                print("None value")
 
             db_ion_channel_model = IonChannelModel(
                 name=script["name"],
@@ -416,7 +437,9 @@ def import_ion_channel_models(
                 is_ljp_corrected=script.get("isLjpCorrected", False),
                 is_temperature_dependent=script.get("isTemperatureDependent", False),
                 temperature_celsius=int(temperature_value),
-                nmodel_parameters=NmodlParameters.model_validate(script.get("nmodlParameters")),
+                nmodl_parameters=nmodl_parameters_validated.model_dump()
+                if nmodl_parameters_validated is not None
+                else None,
                 emodel_id=emodel_id,
             )
 

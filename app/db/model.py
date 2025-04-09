@@ -582,14 +582,16 @@ class Ion(Identifiable):
 class IonChannelAssociation(Base):
     __tablename__ = "ion_channel_association"
 
-    ion_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ion.id"), primary_key=True)
+    ion_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ion.id", ondelete="CASCADE"), primary_key=True
+    )
     ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("ion_chanel_model.id"), primary_key=True
+        ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
     )
 
 
 class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    __tablename__ = "ion_chanel_model"
+    __tablename__ = EntityType.ion_channel_model.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -601,7 +603,7 @@ class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entit
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
 
-    nmodl_parameters: Mapped[JSON_DICT]
+    nmodl_parameters: Mapped[JSON_DICT | None]
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 

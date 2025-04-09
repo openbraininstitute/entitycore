@@ -2,6 +2,7 @@ import uuid
 
 import sqlalchemy as sa
 from fastapi import HTTPException
+from sqlalchemy.orm import selectinload
 
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import (
@@ -64,6 +65,11 @@ def read_one(
             .filter(MorphologyFeatureAnnotation.id == id_)
             .join(ReconstructionMorphology),
             user_context.project_id,
+        )
+        stmt = stmt.options(
+            selectinload(MorphologyFeatureAnnotation.measurements).selectinload(
+                MorphologyMeasurement.measurement_serie
+            )
         )
         row = db.execute(stmt).scalar_one()
 

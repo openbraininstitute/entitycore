@@ -816,18 +816,29 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
         annotations = defaultdict(list)
-        missing_morphology = 0
-        duplicate_annotation = 0
+        info = {
+            "missing_morphology_id": 0,
+            "missing_morphology": 0,
+            "duplicate_annotation": 0,
+            "already_registered": 0,
+        }
 
         for data in tqdm(data_list):
-            legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
-            if not legacy_id:
+            morphology_legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
+            if not morphology_legacy_id:
                 print("Skipping morphology feature annotation due to missing legacy id.")
+                info["missing_morphology_id"] += 1
                 continue
 
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+            legacy_id = data["@id"]
+            legacy_self = data["_self"]
+            db_element = utils._find_by_legacy_id(legacy_id, MorphologyFeatureAnnotation, db)
+            if db_element:
+                continue
+
+            rm = utils._find_by_legacy_id(morphology_legacy_id, ReconstructionMorphology, db)
             if not rm:
-                missing_morphology += 1
+                info["missing_morphology"] += 1
                 continue
 
             all_measurements = []
@@ -838,14 +849,17 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                     MorphologyMeasurementSerieElement(
                         name=serie_elem.get("statistic", None),
                         value=serie_elem.get("value", None),
+                        unit=serie_elem.get("unitCode", None),
                     )
                     for serie_elem in serie
                 ]
-
+                measurement_meta = measurement.get("isMeasurementOf", {})
                 all_measurements.append(
                     MorphologyMeasurement(
-                        measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
+                        label=measurement_meta.get("label", None),
+                        pref_label=measurement_meta.get("prefLabel", None),
                         measurement_serie=measurement_serie,
+                        structural_domain=measurement.get("compartment", None),
                     )
                 )
 
@@ -857,13 +871,15 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                     measurements=all_measurements,
                     creation_date=createdAt,
                     update_date=updatedAt,
+                    legacy_id=[legacy_id],
+                    legacy_self=[legacy_self],
                 )
             )
 
         if not annotations:
             return
 
-        already_registered = 0
+        # rows = []
         for rm_id, annotation in tqdm(annotations.items()):
             mfa = (
                 db.query(MorphologyFeatureAnnotation)
@@ -871,30 +887,33 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                 .first()
             )
             if mfa:
-                already_registered += len(annotation)
-                continue
+                info["already_registered"] += len(annotation)
+                # continue
 
             if len(annotation) > 1:
-                duplicate_annotation += len(annotation) - 1
+                info["duplicate_annotation"] += len(annotation) - 1
 
             # TODO:
             # JDC wants to look into why there are multiple annotations:
             # https://github.com/openbraininstitute/entitycore/pull/16#discussion_r1940740060
-            data = annotation[0]
+            # data = annotation[0]
 
-            try:
-                db.add(data)
-            except Exception as e:
-                print(f"Error: {e!r}")
-                print(data)
-                raise
-
+            # rows.extend(annotation)
+            db.add_all(annotation)
+            db.flush()
         db.commit()
-        print(
-            f"    Annotations related to a morphology that isn't registered: {missing_morphology}\n",
-            f"    Duplicate_annotation: {duplicate_annotation}\n",
-            f"    Previously registered: {already_registered}\n",
-            f"    Total Duplicate: {duplicate_annotation + already_registered}",
+        L.warning(
+            "NeuronMorphologyFeatureAnnotation report:\n"
+            "    Annotations not related to any morphology: {}\n"
+            "    Annotations related to a morphology that isn't registered: {}\n"
+            "    Duplicate_annotation: {}\n"
+            "    Previously registered: {}\n"
+            "    Total Duplicate: {}",
+            info["missing_morphology_id"],
+            info["missing_morphology"],
+            info["duplicate_annotation"],
+            info["already_registered"],
+            info["duplicate_annotation"] + info["already_registered"],
         )
 
 

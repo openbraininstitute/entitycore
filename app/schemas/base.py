@@ -116,8 +116,9 @@ class LicensedReadMixin(BaseModel):
 
 class MorphologyMeasurementSerieBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    value: float
+    name: str | None
+    value: float | None
+    unit: str | None
 
 
 class MeasurementCreate(BaseModel):

@@ -3,6 +3,7 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
+from app.db.types import PointLocationBase
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
@@ -15,7 +16,6 @@ from app.schemas.base import (
     LicensedReadMixin,
     MeasurementCreate,
     MeasurementRead,
-    PointLocationBase,
     SpeciesRead,
     StrainRead,
 )
@@ -36,19 +36,22 @@ class ReconstructionMorphologyCreate(
     AuthorizationOptionalPublicMixin,
 ):
     species_id: uuid.UUID
-    strain_id: uuid.UUID | None
+    strain_id: uuid.UUID | None = None
     brain_region_id: int
-    legacy_id: list[str] | None
+    legacy_id: list[str] | None = None
 
 
-class MorphologyFeatureAnnotationCreate(BaseModel):
+class MorphologyFeatureAnnotationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     reconstruction_morphology_id: uuid.UUID
+
+
+class MorphologyFeatureAnnotationCreate(MorphologyFeatureAnnotationBase):
     measurements: Sequence[MeasurementCreate]
 
 
 class MorphologyFeatureAnnotationRead(
-    MorphologyFeatureAnnotationCreate, CreationMixin, IdentifiableMixin
+    MorphologyFeatureAnnotationBase, CreationMixin, IdentifiableMixin
 ):
     measurements: Sequence[MeasurementRead]
 

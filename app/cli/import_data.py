@@ -1,4 +1,3 @@
-import uuid
 import datetime
 import glob
 import json
@@ -10,7 +9,6 @@ from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
 from typing import Any
-
 
 import click
 import sqlalchemy as sa
@@ -26,6 +24,7 @@ from app.db.model import (
     DataMaturityAnnotationBody,
     ElectricalCellRecording,
     EModel,
+    Entity,
     ETypeClass,
     ETypeClassification,
     ExperimentalBoutonDensity,
@@ -42,13 +41,13 @@ from app.db.model import (
     Organization,
     Person,
     ReconstructionMorphology,
-    Root,
     SingleNeuronSimulation,
     Subject,
 )
 from app.db.session import configure_database_session_manager
 from app.logger import L
-from app.schemas.base import PointLocationBase, ProjectContext
+from app.schemas.base import ProjectContext
+from app.db.types import PointLocationBase
 from app.db.types import ElectricalRecordingType
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
@@ -165,7 +164,7 @@ def create_annotation(annotation_, entity_id, db):
 
 def import_licenses(data, db):
     for license in data:
-        db_license = db.query(License).filter(License.pref_label == license["@id"]).first()
+        db_license = db.query(License).filter(License.name == license["@id"]).first()
         if db_license:
             continue
 
@@ -173,8 +172,8 @@ def import_licenses(data, db):
             createdAt, updatedAt = utils.get_created_and_updated(license)
 
             db_license = License(
-                pref_label=license["@id"],
-                alt_label=license["label"],
+                name=license["@id"],
+                label=license["label"],
                 description=license["description"],
                 legacy_id=[license["@id"]],
                 legacy_self=[license["_self"]],
@@ -258,12 +257,12 @@ class Import(ABC):
 
     @staticmethod
     @abstractmethod
-    def is_correct_type(data):
+    def is_correct_type(data) -> bool:
         """filter if the `data` is applicable to this `Import`"""
 
     @staticmethod
     @abstractmethod
-    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any] | None):
+    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any]):
         """data that is passes `is_correct_type` will be fed to this to ingest into `db`"""
 
 
@@ -273,7 +272,7 @@ class ImportAgent(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return {"Person", "Organization"} & set(ensurelist(data.get("@type", [])))
+        return bool({"Person", "Organization"} & set(ensurelist(data.get("@type", []))))
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
@@ -401,7 +400,7 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any]):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -432,7 +431,7 @@ class ImportEModels(Import):
                 None,
             )
 
-            configuration = all_data_by_id.get(configuration_id)
+            configuration = configuration_id and all_data_by_id.get(configuration_id)
 
             exemplar_morphology_id = configuration and next(
                 (
@@ -512,6 +511,8 @@ class ImportBrainRegionMeshes(Import):
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
             db_item = Mesh(
+                name=data["name"],
+                description=data["description"],
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 brain_region_id=brain_region_id,
@@ -530,7 +531,7 @@ class ImportMorphologies(Import):
     @staticmethod
     def is_correct_type(data):
         types = ensurelist(data["@type"])
-        return {"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types)
+        return bool({"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types))
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
@@ -822,7 +823,7 @@ class ImportDistribution(Import):
         ignored = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
-            root = utils._find_by_legacy_id(legacy_id, Root, db)
+            root = utils._find_by_legacy_id(legacy_id, Entity, db)
             if root:
                 utils.import_distribution(data, root.id, root.type, db, project_context)
             else:
@@ -991,18 +992,18 @@ def _do_import(db, input_dir, project_context):
 
     importers = [
         ImportAgent,
-        # ImportAnalysisSoftwareSourceCode,
-        # ImportBrainRegionMeshes,
-        # ImportMorphologies,
-        # ImportEModels,
-        # ImportMEModel,
-        # ImportExperimentalNeuronDensities,
-        # ImportExperimentalBoutonDensity,
-        # ImportExperimentalSynapsesPerConnection,
+        ImportAnalysisSoftwareSourceCode,
+        ImportBrainRegionMeshes,
+        ImportMorphologies,
+        ImportEModels,
+        ImportMEModel,
+        ImportExperimentalNeuronDensities,
+        ImportExperimentalBoutonDensity,
+        ImportExperimentalSynapsesPerConnection,
         ImportElectricalCellRecording,
-        # ImportSingleNeuronSimulation,
-        # ImportDistribution,
-        # ImportNeuronMorphologyFeatureAnnotation,
+        ImportSingleNeuronSimulation,
+        ImportDistribution,
+        ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:
@@ -1021,6 +1022,7 @@ def _do_import(db, input_dir, project_context):
             data = json.load(f)
 
             for d in data:
+                # d["_filename"] = file_path
                 id = d["@id"]
 
                 all_data_by_id[id] = d

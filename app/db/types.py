@@ -1,12 +1,21 @@
 from enum import auto
 from typing import Annotated, Any
 
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import ARRAY, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
-from app.utils.enum import HyphenStrEnum, StrEnum
+from app.utils.enum import StrEnum
+
+
+class PointLocationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    x: float
+    y: float
+    z: float
 
 
 class PointLocationType(TypeDecorator):
@@ -17,13 +26,14 @@ class PointLocationType(TypeDecorator):
         if value is None:
             return None
 
+        if isinstance(value, dict):
+            return value
+
         return value.model_dump()
 
     def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301
         if value is None:
             return None
-
-        from app.schemas.base import PointLocationBase  # noqa: PLC0415
 
         return PointLocationBase(**value)
 
@@ -35,25 +45,39 @@ JSON_DICT = Annotated[dict[str, Any], mapped_column(JSONB)]
 STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 
 
-class EntityType(HyphenStrEnum):
-    """Entities that are directly exposed through the API.
+class EntityType(StrEnum):
+    """Entity types."""
 
-    For each entry:
-
-    - name (underscore separated): for table names and S3 keys
-    - value (hyphen separated): for endpoints
-    """
-
+    analysis_software_source_code = auto()
     emodel = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
+    memodel = auto()
     mesh = auto()
     reconstruction_morphology = auto()
     electrical_cell_recording = auto()
+    electrical_recording_stimulus = auto()
+    single_neuron_simulation = auto()
+    single_neuron_synaptome = auto()
+    single_neuron_synaptome_simulation = auto()
+    subject = auto()
 
 
-class AssetStatus(HyphenStrEnum):
+class AgentType(StrEnum):
+    """Agent types."""
+
+    person = auto()
+    organization = auto()
+
+
+class AnnotationBodyType(StrEnum):
+    """AnnotationBody types."""
+
+    datamaturity_annotation_body = auto()
+
+
+class AssetStatus(StrEnum):
     CREATED = auto()
     DELETED = auto()
 
@@ -62,6 +86,14 @@ class SingleNeuronSimulationStatus(StrEnum):
     started = auto()
     failure = auto()
     success = auto()
+
+
+class ValidationStatus(StrEnum):
+    created = auto()
+    initialized = auto()
+    running = auto()
+    done = auto()
+    error = auto()
 
 
 class Sex(StrEnum):

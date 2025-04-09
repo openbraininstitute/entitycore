@@ -46,21 +46,13 @@ class CreationMixin(BaseModel):
 
 class LicenseCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    pref_label: str
-    alt_label: str | None = None
+    name: str
     description: str
+    label: str
 
 
 class LicenseRead(LicenseCreate, CreationMixin, IdentifiableMixin):
     pass
-
-
-class PointLocationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    x: float
-    y: float
-    z: float
 
 
 class BrainRegionCreate(BaseModel):
@@ -143,4 +135,4 @@ class MeasurementCreate(BaseModel):
 
 
 class MeasurementRead(MeasurementCreate):
-    id: uuid.UUID
+    id: int

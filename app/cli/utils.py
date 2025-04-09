@@ -7,13 +7,12 @@ from sqlalchemy import any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
-from app.config import settings
 from app.db.model import (
     Agent,
     Asset,
     BrainRegion,
     Contribution,
-    ElectricalRecordingProtocol,
+    ElectricalRecordingStimulus,
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     License,
@@ -83,7 +82,7 @@ def get_or_create_species(species, db, _cache={}):
 
 
 def create_stimulus(data, entity_id, project_context, db):
-    row = ElectricalRecordingProtocol(
+    row = ElectricalRecordingStimulus(
         name=data["label"],
         description=data.get("definition", None),
         dt=None,
@@ -139,7 +138,7 @@ def get_license_id(license, db, _cache={}):
         return _cache[id_]
 
     # Check if the license already exists in the database
-    li = db.query(License).filter(License.pref_label == id_).first()
+    li = db.query(License).filter(License.name == id_).first()
     if not li:
         msg = f"License {license} not found"
         raise ValueError(msg)
@@ -296,7 +295,6 @@ def get_or_create_distribution(
             get_or_create_distribution(c, entity_id, entity_type, db, project_context)
         return
 
-    bucket_name = settings.S3_BUCKET_NAME
     full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,
@@ -319,7 +317,6 @@ def get_or_create_distribution(
         status=AssetStatus.CREATED,
         path=distribution["name"],
         full_path=full_path,
-        bucket_name=bucket_name,
         is_directory=False,
         content_type=distribution["encodingFormat"],
         size=distribution["contentSize"]["value"],

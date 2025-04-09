@@ -5,7 +5,7 @@ from urllib.parse import unquote
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func
 
-from app.db.model import Root
+from app.db.model import Entity
 from app.dependencies.db import SessionDep
 from app.schemas.agent import PersonRead
 
@@ -48,7 +48,9 @@ def legacy_resources(path: str, db: SessionDep):
                 Path(__file__).parent / "resources_data" / RESOURCE_MAP[extracted_url]
             ).open() as f:
                 return json.load(f)
-        db_element = db.query(Root).filter(func.strpos(Root.legacy_id, extracted_url) > 0).first()
+        db_element = (
+            db.query(Entity).filter(func.strpos(Entity.legacy_id, extracted_url) > 0).first()
+        )
         if not db_element:
             return HTTPException(status_code=404, detail="Resource not found")
         return create_legacy_resource_body(db_element, extracted_url)

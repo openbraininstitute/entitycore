@@ -214,9 +214,14 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
 
 
 def create_asset_file(client, entity_type, entity_id, file_name, file_obj):
-    route = EntityType[entity_type]
+    route = EntityType[entity_type].replace("_", "-")
     files = {
         # (filename, file (or bytes), content_type, headers)
         "file": (str(file_name), file_obj, "text/plain")
     }
-    return client.post(f"{route}/{entity_id}/assets", files=files)
+    assert_request(
+        client.post,
+        url=f"{route}/{entity_id}/assets",
+        files=files,
+        expected_status_code=201,
+    )

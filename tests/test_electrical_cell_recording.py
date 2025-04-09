@@ -1,6 +1,6 @@
 import pytest
 
-from app.db.model import ElectricalCellRecording, ElectricalRecordingProtocol
+from app.db.model import ElectricalCellRecording, ElectricalRecordingStimulus
 
 from .utils import (
     PROJECT_ID,
@@ -20,7 +20,7 @@ def json_data(brain_region_id, subject_id, license_id):
     return {
         "name": "my-name",
         "description": "my-description",
-        "subject_id": str(subject_id),
+        "subject_id": subject_id,
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
         "recordingLocation": ["soma[0.5]"],
@@ -29,13 +29,13 @@ def json_data(brain_region_id, subject_id, license_id):
     }
 
 
-def _create_electical_recording_protocol_id(
+def _create_electrical_recording_stimulus_id(
     db,
     recording_id,
 ):
     return add_db(
         db,
-        ElectricalRecordingProtocol(
+        ElectricalRecordingStimulus(
             name="protocol",
             description="protocol-description",
             dt=0.1,
@@ -94,8 +94,8 @@ def trace_id(tmp_path, client, db, subject_id, brain_region_id, license_id):
         brain_region_id=brain_region_id,
     )
     # add two protocols that refer to it
-    _create_electical_recording_protocol_id(db, trace_id)
-    _create_electical_recording_protocol_id(db, trace_id)
+    _create_electrical_recording_stimulus_id(db, trace_id)
+    _create_electrical_recording_stimulus_id(db, trace_id)
 
     filepath = tmp_path / "trace.nwb"
     filepath.write_bytes(b"trace")
@@ -140,7 +140,7 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
     assert data["subject"]["id"] == str(subject_id)
     assert data["license"]["id"] == str(license_id)
     assert data["authorized_project_id"] == PROJECT_ID
-    assert len(data["protocols"]) == 2
+    assert len(data["stimuli"]) == 2
     assert len(data["assets"]) == 1
 
 

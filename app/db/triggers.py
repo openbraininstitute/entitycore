@@ -3,14 +3,12 @@ from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
 from app.db.model import (
-    ElectricalCellRecording,
+    Base,
     EModel,
     Entity,
     MEModel,
+    NameDescriptionVectorMixin,
     ReconstructionMorphology,
-    SingleNeuronSimulation,
-    SingleNeuronSynaptome,
-    SingleNeuronSynaptomeSimulation,
 )
 
 
@@ -91,47 +89,16 @@ def unauthorized_private_reference_trigger(
 
 entities = [
     description_vector_trigger(
-        ReconstructionMorphology,
-        "morphology_description_vector",
-        "description_vector",
-        ["description", "name"],
-    ),
-    description_vector_trigger(
-        ElectricalCellRecording,
-        "electrical_cell_recording_description_vector",
-        "description_vector",
-        ["description", "name"],
-    ),
-    description_vector_trigger(
-        EModel,
-        "emodel_description_vector",
-        "description_vector",
-        ["description", "name"],
-    ),
-    description_vector_trigger(
-        MEModel,
-        "memodel_description_vector",
-        "description_vector",
-        ["description", "name"],
-    ),
-    description_vector_trigger(
-        SingleNeuronSimulation,
-        "single_neuron_simulation_description_vector",
-        "description_vector",
-        ["description", "name"],
-    ),
-    description_vector_trigger(
-        SingleNeuronSynaptome,
-        "single_neuron_synaptome_description_vector",
-        "description_vector",
-        ["description", "name"],
-    ),
-    description_vector_trigger(
-        SingleNeuronSynaptomeSimulation,
-        "single_neuron_synaptome_simulation_description_vector",
-        "description_vector",
-        ["description", "name"],
-    ),
+        model=mapper.class_,
+        signature=f"{mapper.class_.__tablename__}_description_vector",
+        target_field="description_vector",
+        fields=["description", "name"],
+    )
+    for mapper in Base.registry.mappers
+    if issubclass(mapper.class_, NameDescriptionVectorMixin)
+]
+
+entities += [
     unauthorized_private_reference_function(
         EModel, "exemplar_morphology_id", ReconstructionMorphology
     ),

@@ -1,6 +1,5 @@
 import uuid
 
-from app.config import settings
 from app.db.types import AssetStatus, EntityType
 from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness
 from app.repository.group import RepositoryGroup
@@ -68,7 +67,6 @@ def create_entity_asset(
         entity_type=entity_type,
         entity_id=entity_id,
     )
-    bucket_name = settings.S3_BUCKET_NAME
     full_path = build_s3_path(
         vlab_id=user_context.virtual_lab_id,
         proj_id=user_context.project_id,
@@ -80,7 +78,6 @@ def create_entity_asset(
     asset_create = AssetCreate(
         path=filename,
         full_path=full_path,
-        bucket_name=bucket_name,
         is_directory=False,
         content_type=content_type,
         size=size,

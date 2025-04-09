@@ -5,7 +5,7 @@ from collections.abc import Sequence
 
 import sqlalchemy as sa
 
-from app.db.model import Asset, Root
+from app.db.model import Asset, Entity
 from app.db.types import AssetStatus, EntityType
 from app.repository.base import BaseRepository
 from app.schemas.asset import AssetCreate
@@ -22,11 +22,11 @@ class AssetRepository(BaseRepository):
         """Return a sequence of assets, potentially empty."""
         query = (
             sa.select(Asset)
-            .join(Root, Root.id == Asset.entity_id)
+            .join(Entity, Entity.id == Asset.entity_id)
             .where(
                 Asset.entity_id == entity_id,
                 Asset.status != AssetStatus.DELETED,
-                Root.type == entity_type.name,
+                Entity.type == entity_type.name,
             )
         )
         return self.db.execute(query).scalars().all()
@@ -40,12 +40,12 @@ class AssetRepository(BaseRepository):
         """Return a single asset, or raise an error."""
         query = (
             sa.select(Asset)
-            .join(Root, Root.id == Asset.entity_id)
+            .join(Entity, Entity.id == Asset.entity_id)
             .where(
                 Asset.entity_id == entity_id,
                 Asset.id == asset_id,
                 Asset.status != AssetStatus.DELETED,
-                Root.type == entity_type.name,
+                Entity.type == entity_type.name,
             )
         )
         return self.db.execute(query).scalar_one()
@@ -60,7 +60,6 @@ class AssetRepository(BaseRepository):
                 entity_id=entity_id,
                 path=asset.path,
                 full_path=asset.full_path,
-                bucket_name=asset.bucket_name,
                 is_directory=asset.is_directory,
                 content_type=asset.content_type,
                 size=asset.size,
@@ -92,8 +91,8 @@ class AssetRepository(BaseRepository):
                 Asset.entity_id == entity_id,
                 Asset.id == asset_id,
                 Asset.status != asset_status,
-                Root.type == entity_type.name,
-                Root.id == Asset.entity_id,
+                Entity.type == entity_type.name,
+                Entity.id == Asset.entity_id,
             )
             .returning(Asset)
         )

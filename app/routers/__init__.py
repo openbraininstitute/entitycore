@@ -42,6 +42,7 @@ authenticated_routers = [
     experimental_synapses_per_connection.router,
     license.router,
     morphology.router,
+    electrical_cell_recording.router,
     emodel.router,
     memodel.router,
     morphology_feature_annotation.router,

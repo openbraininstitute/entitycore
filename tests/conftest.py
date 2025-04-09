@@ -284,17 +284,19 @@ def strain_id(client_admin, species_id):
 
 @pytest.fixture
 def subject_id(db, species_id):
-    return add_db(
-        db,
-        Subject(
-            species_id=species_id,
-            age=2,
-            sex="female",
-            weight=1.5,
-            authorized_public=False,
-            authorized_project_id=PROJECT_ID,
-        ),
-    ).id
+    return str(
+        add_db(
+            db,
+            Subject(
+                species_id=species_id,
+                age=2,
+                sex="female",
+                weight=1.5,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        ).id
+    )
 
 
 @pytest.fixture
@@ -302,8 +304,9 @@ def license_id(client_admin):
     response = client_admin.post(
         "/license",
         json={
-            "pref_label": "Test License",
+            "name": "Test License",
             "description": "a license description",
+            "label": "test label",
         },
     )
     assert response.status_code == 200, f"Failed to create license: {response.text}"
@@ -333,11 +336,15 @@ CreateIds = Callable[[int], list[str]]
 
 @pytest.fixture
 def agents(db: Session):
-    agent_1 = add_db(db, Agent(pref_label="test_agent_1"))
-    agent_2 = add_db(db, Agent(pref_label="test_agent_2"))
+    organization_1 = add_db(
+        db, Organization(pref_label="test_organization_1", alternative_name="alt name 1")
+    )
+    person_1 = add_db(
+        db, Person(pref_label="test_person_1", givenName="given name 1", familyName="family name 1")
+    )
     role = add_db(db, Role(role_id=1, name="test role"))
 
-    return agent_1, agent_2, role
+    return organization_1, person_1, role
 
 
 def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID):

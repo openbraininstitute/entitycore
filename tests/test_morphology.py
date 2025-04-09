@@ -48,7 +48,7 @@ def test_create_reconstruction_morphology(
         f"Failed to get description for reconstruction morphology: {data}"
     )
     assert data["name"] == morph_name, f"Failed to get name for reconstruction morphology: {data}"
-    assert data["license"]["pref_label"] == "Test License", (
+    assert data["license"]["name"] == "Test License", (
         f"Failed to get license for reconstruction morphology: {data}"
     )
 

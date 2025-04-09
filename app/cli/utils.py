@@ -369,24 +369,99 @@ def find_part_id(data: dict[str, Any], type_: Literal["NeuronMorphology", "EMode
     return None
 
 
-def get_or_create_ion(ion: dict[str, Any], db: Session, _cache=set()):
+def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     label = ion["label"]
     if label in _cache:
         return _cache[label]
 
     q = sa.select(Ion).where(Ion.name == label)
-    db_ion = db.execute(q).scalar_one_or_none() or Ion(name=ion.get("label"))
-    db.flush()
+    db_ion = db.execute(q).scalar_one_or_none()
+    if not db_ion:
+        db_ion = Ion(name=ion.get("label"))
+        db.add(db_ion)
+        db.flush()
 
-    _cache.set(db_ion.id)
+    _cache[label] = db_ion.id
 
     return db_ion.id
+
+
+def import_ion_channel_model(
+    script: dict[str, Any], project_context: ProjectContext, db: Session, emodel_id: uuid.UUID
+):
+    legacy_id = script["@id"]
+    legacy_self = script["_self"]
+    temperature = script.get("temperature", {})
+    temp_unit = str(temperature.get("unitCode", "")).lower()
+
+    assert temp_unit == "c"  # noqa: S101
+
+    temperature_value = temperature.get("value")
+
+    nmodl_parameters: dict[str, Any] | None = script.get("nmodlParameters")
+    nmodl_parameters_validated: NmodlParameters | None = None
+    if nmodl_parameters:
+        range_ = nmodl_parameters.get("range")
+        read = nmodl_parameters.get("read")
+        useion = nmodl_parameters.get("useion")
+        write = nmodl_parameters.get("write")
+        nonspecific = nmodl_parameters.get("nonspecific")
+
+        d = {
+            **nmodl_parameters,
+            "range": range_ and ensurelist(range_),
+            "read": read and ensurelist(read),
+            "useion": useion and ensurelist(useion),
+            "write": write and ensurelist(write),
+            "nonspecific": nonspecific and ensurelist(nonspecific),
+        }
+
+        nmodl_parameters_validated = NmodlParameters.model_validate(d)
+
+    _, brain_region_id = get_brain_location_mixin(script, db)
+    species_id, strain_id = get_species_mixin(script, db)
+    created_at, updated_at = get_created_and_updated(script)
+
+    db_ion_channel_model = IonChannelModel(
+        legacy_id=[legacy_id],
+        legacy_self=[legacy_self],
+        name=script["name"],
+        description=script.get("descripton", ""),
+        identifier=script.get("identifier", ""),
+        modelId=script.get("modelId", ""),
+        is_ljp_corrected=script.get("isLjpCorrected", False),
+        is_temperature_dependent=script.get("isTemperatureDependent", False),
+        temperature_celsius=int(temperature_value),
+        nmodl_parameters=nmodl_parameters_validated.model_dump()
+        if nmodl_parameters_validated is not None
+        else None,
+        emodel_id=emodel_id,
+        brain_region_id=brain_region_id,
+        species_id=species_id,
+        strain_id=strain_id,
+        creation_date=created_at,
+        update_date=updated_at,
+        authorized_project_id=project_context.project_id,
+        authorized_public=AUTHORIZED_PUBLIC,
+    )
+
+    db.add(db_ion_channel_model)
+
+    db.flush()
+
+    import_contribution(script, db_ion_channel_model.id, db)
+    import_distribution(
+        script, db_ion_channel_model.id, EntityType.ion_channel_model, db, project_context
+    )
+
+    return db_ion_channel_model
 
 
 def import_ion_channel_models(
     emodel_config: dict,
     emodel_id: uuid.UUID,
     all_data_by_id: dict[str, dict[str, Any]],
+    project_context: ProjectContext,
     db: Session,
 ):
     subcellular_model_script_ids = [
@@ -395,69 +470,33 @@ def import_ion_channel_models(
         if is_type(script, "SubCellularModelScript")
     ]
 
-    ion_channel_models: list[tuple[dict[str, Any], uuid.UUID]] = []
+    print("\n", len(subcellular_model_script_ids))
 
     for id_ in subcellular_model_script_ids:
-        if (script := all_data_by_id.get(id_)) and (ion := script.get("ion")):
-            temperature = script.get("temperature", {})
-            temp_unit = str(temperature.get("unitCode", "")).lower()
+        script = all_data_by_id.get(id_)
+        if not script:
+            print("script not found")
+            continue
+        ion = script.get("ion")
 
-            assert temp_unit == "c"  # noqa: S101
+        if not ion:
+            print("ion not found")
+            continue
 
-            temperature_value = temperature.get("value")
+        legacy_id = script["@id"]
 
-            nmodl_parameters: dict[str, Any] | None = script.get("nmodlParameters")
-            nmodl_parameters_validated: NmodlParameters | None = None
-            if nmodl_parameters:
-                range_ = nmodl_parameters.get("range")
-                read = nmodl_parameters.get("read")
-                useion = nmodl_parameters.get("useion")
-                write = nmodl_parameters.get("write")
-                nonspecific = nmodl_parameters.get("nonspecific")
+        db_ion_channel_model = _find_by_legacy_id(legacy_id, IonChannelModel, db)
 
-                d = {
-                    **nmodl_parameters,
-                    "range": range_ and ensurelist(range_),
-                    "read": read and ensurelist(read),
-                    "useion": useion and ensurelist(useion),
-                    "write": write and ensurelist(write),
-                    "nonspecific": nonspecific and ensurelist(nonspecific),
-                }
+        if db_ion_channel_model:
+            continue
 
-                nmodl_parameters_validated = NmodlParameters.model_validate(d)
+        db_ion_channel_model = import_ion_channel_model(script, project_context, db, emodel_id)
 
-            if nmodl_parameters_validated is None:
-                print("None value")
+        ion_associations = [
+            IonChannelAssociation(ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id)
+            for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
+        ]
 
-            db_ion_channel_model = IonChannelModel(
-                name=script["name"],
-                description=script.get("descripton", ""),
-                identifier=script.get("identifier", ""),
-                modelId=script.get("modelId", ""),
-                is_ljp_corrected=script.get("isLjpCorrected", False),
-                is_temperature_dependent=script.get("isTemperatureDependent", False),
-                temperature_celsius=int(temperature_value),
-                nmodl_parameters=nmodl_parameters_validated.model_dump()
-                if nmodl_parameters_validated is not None
-                else None,
-                emodel_id=emodel_id,
-            )
+        db.add_all(ion_associations)
 
-            db.add(db_ion_channel_model)
-
-            db.flush()
-
-            ion_associations = [
-                IonChannelAssociation(
-                    ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id
-                )
-                for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
-            ]
-
-            db.add_all(ion_associations)
-
-            db.flush()
-
-            ion_channel_models.append((script, db_ion_channel_model.id))
-
-    return ion_channel_models
+        db.flush()

@@ -470,14 +470,9 @@ class ImportEModels(Import):
 
             db.flush()
 
-            ion_channel_models = utils.import_ion_channel_models(
-                configuration, db_item.id, all_data_by_id, db
+            utils.import_ion_channel_models(
+                configuration, db_item.id, all_data_by_id, project_context, db
             )
-
-            for icm in ion_channel_models:
-                utils.import_distribution(
-                    icm[0], icm[1], EntityType.ion_channel_model, db, project_context
-                )
 
             utils.import_contribution(emodel_script, db_item.id, db)
 

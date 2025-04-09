@@ -603,7 +603,7 @@ class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entit
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
 
-    nmodl_parameters: Mapped[JSON_DICT | None]
+    nmodl_parameters: Mapped[JSON_DICT]
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 

@@ -14,8 +14,9 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     Ion,
-    IonChannelAssociation,
     IonChannelModel,
+    IonChannelModelToEModel,
+    IonToIonChannelModel,
     License,
     Role,
     Species,
@@ -386,7 +387,7 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     return db_ion.id
 
 
-def import_ion_channel_model(
+def import_ion_channel_model(  # noqa: PLR0914
     script: dict[str, Any], project_context: ProjectContext, db: Session, emodel_id: uuid.UUID
 ):
     legacy_id = script["@id"]
@@ -470,33 +471,39 @@ def import_ion_channel_models(
         if is_type(script, "SubCellularModelScript")
     ]
 
-    print("\n", len(subcellular_model_script_ids))
+    ion_channel_model_ids: list[uuid.UUID] = []
 
     for id_ in subcellular_model_script_ids:
-        script = all_data_by_id.get(id_)
-        if not script:
-            print("script not found")
-            continue
+        script = all_data_by_id.get(id_) or {}
         ion = script.get("ion")
-
-        if not ion:
-            print("ion not found")
-            continue
 
         legacy_id = script["@id"]
 
         db_ion_channel_model = _find_by_legacy_id(legacy_id, IonChannelModel, db)
 
         if db_ion_channel_model:
+            ion_channel_model_ids.append(db_ion_channel_model.id)
             continue
 
         db_ion_channel_model = import_ion_channel_model(script, project_context, db, emodel_id)
 
-        ion_associations = [
-            IonChannelAssociation(ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id)
-            for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
-        ]
+        if ion:
+            ion_associations = [
+                IonToIonChannelModel(ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id)
+                for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
+            ]
 
-        db.add_all(ion_associations)
+            db.add_all(ion_associations)
+
+        ion_channel_model_ids.append(db_ion_channel_model.id)
 
         db.flush()
+
+    icm_associations = [
+        IonChannelModelToEModel(ion_channel_model_id=icm_id, emodel_id=emodel_id)
+        for icm_id in ion_channel_model_ids
+    ]
+
+    db.add_all(icm_associations)
+
+    db.flush()

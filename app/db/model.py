@@ -579,8 +579,8 @@ class Ion(Identifiable):
     name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class IonChannelAssociation(Base):
-    __tablename__ = "ion_channel_association"
+class IonToIonChannelModel(Base):
+    __tablename__ = "ion__ion_channel_model"
 
     ion_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("ion.id", ondelete="CASCADE"), primary_key=True
@@ -608,6 +608,17 @@ class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entit
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class IonChannelModelToEModel(Base):
+    __tablename__ = "ion_channel_model__emodel"
+
+    ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
+    )
+    emodel_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.emodel}.id", ondelete="CASCADE"), primary_key=True
+    )
 
 
 class Asset(Identifiable):

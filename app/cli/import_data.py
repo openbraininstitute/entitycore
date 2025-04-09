@@ -444,7 +444,7 @@ class ImportEModels(Import):
 
             assert emodel_script
 
-            db_item = EModel(
+            db_emodel = EModel(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data.get("name", None),
@@ -466,22 +466,23 @@ class ImportEModels(Import):
                 exemplar_morphology_id=morphology.id,
             )
 
-            db.add(db_item)
+            db.add(db_emodel)
 
             db.flush()
 
             utils.import_ion_channel_models(
-                configuration, db_item.id, all_data_by_id, project_context, db
+                configuration, db_emodel.id, all_data_by_id, project_context, db
             )
 
-            utils.import_contribution(emodel_script, db_item.id, db)
+            utils.import_contribution(data, db_emodel.id, db)
 
+            # Import hoc file
             utils.import_distribution(
-                emodel_script, db_item.id, EntityType.emodel, db, project_context
+                emodel_script, db_emodel.id, EntityType.emodel, db, project_context
             )
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db)
+                create_annotation(annotation, db_emodel.id, db)
 
         db.commit()
 
@@ -785,7 +786,7 @@ class ImportDistribution(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return "distribution" in data
+        return "distribution" in data and not utils.is_type(data, "SubCellularModelScript")
 
     @staticmethod
     def ingest(
@@ -976,7 +977,7 @@ def _do_import(db, input_dir, project_context):
         # ImportSingleCellExperimentalTrace,
         # ImportMEModel,
         # ImportSingleNeuronSimulation,
-        # ImportDistribution,
+        ImportDistribution,
         # ImportNeuronMorphologyFeatureAnnotation,
     ]
 

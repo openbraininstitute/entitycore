@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 7b879b21a6e0
+Revision ID: 5bdf101460a9
 Revises: 72c5253bf9b1
-Create Date: 2025-04-09 10:05:34.479244
+Create Date: 2025-04-09 16:30:19.116362
 
 """
 
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "7b879b21a6e0"
+revision: str = "5bdf101460a9"
 down_revision: str | None = "72c5253bf9b1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -54,7 +54,6 @@ def upgrade() -> None:
         sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
         sa.Column("temperature_celsius", sa.Integer(), nullable=False),
         sa.Column("nmodl_parameters", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("emodel_id", sa.Uuid(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
@@ -63,9 +62,6 @@ def upgrade() -> None:
             ["brain_region_id"],
             ["brain_region.id"],
             name=op.f("fk_ion_channel_model_brain_region_id_brain_region"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["emodel_id"], ["emodel.id"], name=op.f("fk_ion_channel_model_emodel_id_emodel")
         ),
         sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_ion_channel_model_id_entity")),
         sa.ForeignKeyConstraint(

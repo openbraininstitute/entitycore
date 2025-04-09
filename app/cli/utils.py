@@ -423,6 +423,8 @@ def import_ion_channel_model(  # noqa: PLR0914
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
 
+    assert nmodl_parameters_validated
+
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],
         legacy_self=[legacy_self],
@@ -433,10 +435,7 @@ def import_ion_channel_model(  # noqa: PLR0914
         is_ljp_corrected=script.get("isLjpCorrected", False),
         is_temperature_dependent=script.get("isTemperatureDependent", False),
         temperature_celsius=int(temperature_value),
-        nmodl_parameters=nmodl_parameters_validated.model_dump()
-        if nmodl_parameters_validated is not None
-        else None,
-        emodel_id=emodel_id,
+        nmodl_parameters=nmodl_parameters_validated.model_dump(),
         brain_region_id=brain_region_id,
         species_id=species_id,
         strain_id=strain_id,

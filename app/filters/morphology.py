@@ -16,6 +16,10 @@ from app.filters.common import (
     SpeciesFilter,
     StrainFilter,
 )
+from app.filters.measurement_annotation import (
+    MeasurementAnnotationFilter,
+    NestedMeasurementAnnotationFilterDep,
+)
 
 
 class MorphologyFilter(
@@ -30,6 +34,9 @@ class MorphologyFilter(
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
     strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
     contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
+    measurement_annotation: Annotated[
+        MeasurementAnnotationFilter | None, NestedMeasurementAnnotationFilterDep
+    ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

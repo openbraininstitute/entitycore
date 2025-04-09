@@ -1,4 +1,5 @@
 import uuid
+from functools import partial
 from typing import TYPE_CHECKING, Annotated
 
 import sqlalchemy as sa
@@ -9,12 +10,12 @@ from sqlalchemy.orm import (
     selectinload,
 )
 
-from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
     Contribution,
-    MorphologyFeatureAnnotation,
-    MorphologyMeasurement,
+    MeasurementAnnotation,
+    MeasurementItem,
+    MeasurementKind,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
@@ -24,9 +25,8 @@ from app.db.model import (
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
-from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilterDep
-from app.queries.common import router_create_one, router_read_many
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
@@ -38,49 +38,73 @@ if TYPE_CHECKING:
     from app.queries.common import FacetQueryParams
 
 
+def _filter_from_db(query: sa.Select) -> sa.Select:
+    """Return the query with the required joins to filter the result."""
+    return (
+        query.join(Species, ReconstructionMorphology.species_id == Species.id)
+        .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
+        .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
+        .outerjoin(Agent, Contribution.agent_id == Agent.id)
+        .outerjoin(
+            MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id
+        )
+        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
+        .outerjoin(
+            MeasurementAnnotation,
+            MeasurementAnnotation.id == ReconstructionMorphology.measurement_annotation_id,
+        )
+        .outerjoin(
+            MeasurementKind, MeasurementKind.measurement_annotation_id == MeasurementAnnotation.id
+        )
+        .outerjoin(MeasurementItem, MeasurementItem.measurement_kind_id == MeasurementKind.id)
+    )
+
+
+def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = False) -> sa.Select:
+    """Return the query with the required options to load the data."""
+    query = query.options(
+        joinedload(ReconstructionMorphology.brain_region),
+        selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.agent),
+        selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role),
+        joinedload(ReconstructionMorphology.mtypes),
+        joinedload(ReconstructionMorphology.license),
+        joinedload(ReconstructionMorphology.species, innerjoin=True),
+        joinedload(ReconstructionMorphology.strain),
+        selectinload(ReconstructionMorphology.assets),
+        raiseload("*"),
+    )
+    if expand_measurement_annotation:
+        query = query.options(
+            joinedload(ReconstructionMorphology.measurement_annotation)
+            .selectinload(MeasurementAnnotation.measurement_kinds)
+            .selectinload(MeasurementKind.measurement_items),
+            joinedload(ReconstructionMorphology.measurement_annotation).contains_eager(
+                MeasurementAnnotation.entity
+            ),
+        )
+    return query
+
+
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
     expand: Annotated[set[str] | None, Query()] = None,
 ) -> ReconstructionMorphologyRead | ReconstructionMorphologyAnnotationExpandedRead:
-    with ensure_result(error_message="ReconstructionMorphology not found"):
-        query = constrain_to_accessible_entities(
-            sa.select(ReconstructionMorphology), user_context.project_id
-        ).filter(ReconstructionMorphology.id == id_)
-
-        if expand and "morphology_feature_annotation" in expand:
-            query = query.options(
-                joinedload(ReconstructionMorphology.morphology_feature_annotation)
-                .selectinload(MorphologyFeatureAnnotation.measurements)
-                .selectinload(MorphologyMeasurement.measurement_serie)
-            )
-
-        query = (
-            query.options(joinedload(ReconstructionMorphology.brain_region))
-            .options(
-                selectinload(ReconstructionMorphology.contributions).selectinload(
-                    Contribution.agent
-                )
-            )
-            .options(
-                selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role)
-            )
-            .options(joinedload(ReconstructionMorphology.mtypes))
-            .options(joinedload(ReconstructionMorphology.license))
-            .options(joinedload(ReconstructionMorphology.species))
-            .options(joinedload(ReconstructionMorphology.strain))
-            .options(selectinload(ReconstructionMorphology.assets))
-            .options(raiseload("*"))
-        )
-
-        row = db.execute(query).unique().scalar_one()
-
-    if expand and "morphology_feature_annotation" in expand:
-        return ReconstructionMorphologyAnnotationExpandedRead.model_validate(row)
-
-    # added back with None by the response_model
-    return ReconstructionMorphologyRead.model_validate(row)
+    if expand and "measurement_annotation" in expand:
+        response_schema_class = ReconstructionMorphologyAnnotationExpandedRead
+        apply_operations = partial(_load_from_db, expand_measurement_annotation=True)
+    else:
+        response_schema_class = ReconstructionMorphologyRead
+        apply_operations = partial(_load_from_db, expand_measurement_annotation=False)
+    return router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=ReconstructionMorphology,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=response_schema_class,
+        apply_operations=apply_operations,
+    )
 
 
 def create_one(
@@ -116,35 +140,6 @@ def read_many(
             "type": Agent.type,
         },
     }
-
-    filter_query_ops = lambda q: (
-        q.join(Species, ReconstructionMorphology.species_id == Species.id)
-        .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
-        .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-        .outerjoin(
-            MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id
-        )
-        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-    )
-
-    # TODO: load person.* and organization.* eagerly
-    data_query_ops = lambda q: (
-        q.options(joinedload(ReconstructionMorphology.species, innerjoin=True))
-        .options(joinedload(ReconstructionMorphology.strain))
-        .options(
-            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.agent)
-        )
-        .options(
-            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role)
-        )
-        .options(joinedload(ReconstructionMorphology.mtypes))
-        .options(joinedload(ReconstructionMorphology.brain_region))
-        .options(joinedload(ReconstructionMorphology.license))
-        .options(selectinload(ReconstructionMorphology.assets))
-        .options(raiseload("*"))
-    )
-
     return router_read_many(
         db=db,
         db_model_class=ReconstructionMorphology,
@@ -152,8 +147,8 @@ def read_many(
         with_search=search,
         facets=with_facets,
         aliases=None,
-        apply_filter_query_operations=filter_query_ops,
-        apply_data_query_operations=data_query_ops,
+        apply_filter_query_operations=_filter_from_db,
+        apply_data_query_operations=_load_from_db,
         pagination_request=pagination_request,
         response_schema_class=ReconstructionMorphologyRead,
         name_to_facet_query_params=name_to_facet_query_params,

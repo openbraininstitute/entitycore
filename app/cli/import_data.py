@@ -1,27 +1,31 @@
-import shutil
 import datetime
 import glob
 import json
 import os
 import random
 import uuid
-from functools import partial
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
+from operator import attrgetter
 from pathlib import Path
 from typing import Any
-from app.cli.utils import ensurelist
-from sqlalchemy.orm import Session
-from app.schemas.base import ProjectContext
-from app.db.types import EntityType
 
 import click
 import sqlalchemy as sa
+from sqlalchemy.orm import Session
 from tqdm import tqdm
 
 from app.cli import curate, utils
-from app.cli.utils import AUTHORIZED_PUBLIC, ensurelist
+from app.cli.curation import electrical_cell_recording
+from app.cli.types import ContentType
+from app.cli.utils import (
+    AUTHORIZED_PUBLIC,
+    build_measurement_item,
+    build_measurement_kind,
+    ensurelist,
+    update_measurement_annotation_ids,
+)
 from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
@@ -37,12 +41,10 @@ from app.db.model import (
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
     License,
-    MEModel,
     Measurement,
+    MeasurementAnnotation,
+    MEModel,
     Mesh,
-    MorphologyFeatureAnnotation,
-    MorphologyMeasurement,
-    MorphologyMeasurementSerieElement,
     MTypeClass,
     MTypeClassification,
     Organization,
@@ -52,19 +54,16 @@ from app.db.model import (
     Subject,
 )
 from app.db.session import configure_database_session_manager
-from app.logger import L
-from app.schemas.base import ProjectContext
 from app.db.types import (
-    ElectricalRecordingType,
     ElectricalRecordingOrigin,
+    ElectricalRecordingType,
+    EntityType,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocationBase,
-    EntityType,
 )
-
-from app.cli.curation import electrical_cell_recording
-from app.cli.types import ContentType
+from app.logger import L
+from app.schemas.base import ProjectContext
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -882,85 +881,82 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
         annotations = defaultdict(list)
-        missing_morphology = 0
-        duplicate_annotation = 0
-
+        info = {
+            "missing_morphology_id": 0,
+            "missing_morphology": 0,
+            "duplicate_annotation": 0,
+        }
         for data in tqdm(data_list):
-            legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
-            if not legacy_id:
+            morphology_legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
+            if not morphology_legacy_id:
                 print("Skipping morphology feature annotation due to missing legacy id.")
+                info["missing_morphology_id"] += 1
                 continue
 
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+            legacy_id = data["@id"]
+            legacy_self = data["_self"]
+            db_element = utils._find_by_legacy_id(legacy_id, MeasurementAnnotation, db)
+            if db_element:
+                continue
+
+            rm = utils._find_by_legacy_id(morphology_legacy_id, ReconstructionMorphology, db)
             if not rm:
-                missing_morphology += 1
+                info["missing_morphology"] += 1
                 continue
 
-            all_measurements = []
+            measurement_kinds = []
             for measurement in data.get("hasBody", []):
-                serie = ensurelist(measurement.get("value", {}).get("series", []))
-
-                measurement_serie = [
-                    MorphologyMeasurementSerieElement(
-                        name=serie_elem.get("statistic", None),
-                        value=serie_elem.get("value", None),
-                    )
-                    for serie_elem in serie
-                ]
-
-                all_measurements.append(
-                    MorphologyMeasurement(
-                        measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
-                        measurement_serie=measurement_serie,
-                    )
-                )
+                measurement_items = []
+                for item in ensurelist(measurement.get("value", {}).get("series", [])):
+                    if measurement_item := build_measurement_item(item):
+                        measurement_items.append(measurement_item)
+                if measurement_kind := build_measurement_kind(
+                    measurement, measurement_items=measurement_items
+                ):
+                    measurement_kinds.append(measurement_kind)
 
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
             annotations[rm.id].append(
-                MorphologyFeatureAnnotation(
-                    reconstruction_morphology_id=rm.id,
-                    measurements=all_measurements,
+                MeasurementAnnotation(
+                    entity_id=rm.id,
                     creation_date=createdAt,
                     update_date=updatedAt,
+                    legacy_id=[legacy_id],
+                    legacy_self=[legacy_self],
+                    measurement_kinds=measurement_kinds,
                 )
             )
 
         if not annotations:
             return
 
-        already_registered = 0
-        for rm_id, annotation in tqdm(annotations.items()):
-            mfa = (
-                db.query(MorphologyFeatureAnnotation)
-                .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
-                .first()
-            )
-            if mfa:
-                already_registered += len(annotation)
-                continue
+        for entity_id, entity_annotations in tqdm(annotations.items()):
+            if len(entity_annotations) > 1:
+                info["duplicate_annotation"] += len(entity_annotations) - 1
+            db.add_all(entity_annotations)
 
-            if len(annotation) > 1:
-                duplicate_annotation += len(annotation) - 1
+        # ensure that the annotation ids are set
+        db.flush()
 
-            # TODO:
-            # JDC wants to look into why there are multiple annotations:
-            # https://github.com/openbraininstitute/entitycore/pull/16#discussion_r1940740060
-            data = annotation[0]
-
-            try:
-                db.add(data)
-            except Exception as e:
-                print(f"Error: {e!r}")
-                print(data)
-                raise
+        # activate the most recent annotations
+        measurement_annotation_ids = {}
+        for entity_id, entity_annotations in tqdm(annotations.items()):
+            measurement_annotation_id = max(entity_annotations, key=attrgetter("update_date")).id
+            assert measurement_annotation_id
+            measurement_annotation_ids[entity_id] = measurement_annotation_id
+        update_measurement_annotation_ids(db, ReconstructionMorphology, measurement_annotation_ids)
 
         db.commit()
-        print(
-            f"    Annotations related to a morphology that isn't registered: {missing_morphology}\n",
-            f"    Duplicate_annotation: {duplicate_annotation}\n",
-            f"    Previously registered: {already_registered}\n",
-            f"    Total Duplicate: {duplicate_annotation + already_registered}",
+
+        L.warning(
+            "NeuronMorphologyFeatureAnnotation report:\n"
+            "    Annotations not related to any morphology: {}\n"
+            "    Annotations related to a morphology that isn't registered: {}\n"
+            "    Duplicate_annotation: {}",
+            info["missing_morphology_id"],
+            info["missing_morphology"],
+            info["duplicate_annotation"],
         )
 
 

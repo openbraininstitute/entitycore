@@ -109,22 +109,6 @@ class LicensedReadMixin(BaseModel):
     license: LicenseRead | None
 
 
-class MorphologyMeasurementSerieBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    name: str
-    value: float
-
-
-class MeasurementCreate(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    measurement_of: str
-    measurement_serie: list[MorphologyMeasurementSerieBase]
-
-
-class MeasurementRead(MeasurementCreate):
-    id: int
-
-
 class SubjectBase(BaseModel):
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="float")
     name: str

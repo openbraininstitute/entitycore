@@ -388,7 +388,7 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
 
 
 def import_ion_channel_model(  # noqa: PLR0914
-    script: dict[str, Any], project_context: ProjectContext, db: Session, emodel_id: uuid.UUID
+    script: dict[str, Any], project_context: ProjectContext, db: Session
 ):
     legacy_id = script["@id"]
     legacy_self = script["_self"]
@@ -484,7 +484,7 @@ def import_ion_channel_models(
             ion_channel_model_ids.append(db_ion_channel_model.id)
             continue
 
-        db_ion_channel_model = import_ion_channel_model(script, project_context, db, emodel_id)
+        db_ion_channel_model = import_ion_channel_model(script, project_context, db)
 
         if ion:
             ion_associations = [

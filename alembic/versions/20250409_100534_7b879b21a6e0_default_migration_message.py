@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: bedbe97c0c36
+Revision ID: 7b879b21a6e0
 Revises: 72c5253bf9b1
-Create Date: 2025-04-09 03:57:52.170547
+Create Date: 2025-04-09 10:05:34.479244
 
 """
 
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "bedbe97c0c36"
+revision: str = "7b879b21a6e0"
 down_revision: str | None = "72c5253bf9b1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -99,23 +99,43 @@ def upgrade() -> None:
         op.f("ix_ion_channel_model_strain_id"), "ion_channel_model", ["strain_id"], unique=False
     )
     op.create_table(
-        "ion_channel_association",
+        "ion__ion_channel_model",
         sa.Column("ion_id", sa.Uuid(), nullable=False),
         sa.Column("ion_channel_model_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
             ["ion_channel_model_id"],
             ["ion_channel_model.id"],
-            name=op.f("fk_ion_channel_association_ion_channel_model_id_ion_channel_model"),
+            name=op.f("fk_ion__ion_channel_model_ion_channel_model_id_ion_channel_model"),
             ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
             ["ion_id"],
             ["ion.id"],
-            name=op.f("fk_ion_channel_association_ion_id_ion"),
+            name=op.f("fk_ion__ion_channel_model_ion_id_ion"),
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint(
-            "ion_id", "ion_channel_model_id", name=op.f("pk_ion_channel_association")
+            "ion_id", "ion_channel_model_id", name=op.f("pk_ion__ion_channel_model")
+        ),
+    )
+    op.create_table(
+        "ion_channel_model__emodel",
+        sa.Column("ion_channel_model_id", sa.Uuid(), nullable=False),
+        sa.Column("emodel_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["emodel_id"],
+            ["emodel.id"],
+            name=op.f("fk_ion_channel_model__emodel_emodel_id_emodel"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["ion_channel_model_id"],
+            ["ion_channel_model.id"],
+            name=op.f("fk_ion_channel_model__emodel_ion_channel_model_id_ion_channel_model"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint(
+            "ion_channel_model_id", "emodel_id", name=op.f("pk_ion_channel_model__emodel")
         ),
     )
     op.sync_enum_values(
@@ -168,7 +188,8 @@ def downgrade() -> None:
         ],
         enum_values_to_rename=[],
     )
-    op.drop_table("ion_channel_association")
+    op.drop_table("ion_channel_model__emodel")
+    op.drop_table("ion__ion_channel_model")
     op.drop_index(op.f("ix_ion_channel_model_strain_id"), table_name="ion_channel_model")
     op.drop_index(op.f("ix_ion_channel_model_species_id"), table_name="ion_channel_model")
     op.drop_index(op.f("ix_ion_channel_model_name"), table_name="ion_channel_model")

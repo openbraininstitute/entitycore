@@ -30,7 +30,7 @@ from app.db.model import (
     EModel,
     Ion,
     IonChannelModel,
-    IonChannelAssociation,
+    IonToIonChannelModel,
     Entity,
     ETypeClass,
     ETypeClassification,

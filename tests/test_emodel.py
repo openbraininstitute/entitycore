@@ -75,8 +75,8 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     data = response.json()["data"]
     assert len(data) == 11
 
-    assert "assets" in data[0]
-    assert "ion_channel_models" in data[0]
+    assert "assets" not in data[0]
+    assert "ion_channel_models" not in data[0]
 
 
 def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):

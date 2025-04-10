@@ -38,7 +38,7 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     exemplar_morphology_id: uuid.UUID
 
 
-class EModelRead(EModelBase, CreationMixin, AuthorizationMixin, AssetsMixin):
+class EModelRead(EModelBase, CreationMixin, AuthorizationMixin):
     id: uuid.UUID
     species: SpeciesRead
     strain: StrainRead | None
@@ -48,4 +48,6 @@ class EModelRead(EModelBase, CreationMixin, AuthorizationMixin, AssetsMixin):
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
 
+
+class EModelReadExpanded(EModelRead, AssetsMixin):
     ion_channel_models: list[IonChannelModel]

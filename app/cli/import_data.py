@@ -484,7 +484,7 @@ class ImportEModels(Import):
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_emodel.id, db)
 
-        # Import ProbAMPANMDA_EMS which is not lined to any EModel
+        # Import ProbAMPANMDA_EMS which is not linked to any EModel
         # https://github.com/openbraininstitute/entitycore/pull/121#discussion_r2037170127
         ProbAMPANMDA_EMS_imc = [
             d
@@ -983,14 +983,14 @@ def _do_import(db, input_dir, project_context):
         ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
-        # ImportExperimentalNeuronDensities,
-        # ImportExperimentalBoutonDensity,
-        # ImportExperimentalSynapsesPerConnection,
-        # ImportSingleCellExperimentalTrace,
-        # ImportMEModel,
-        # ImportSingleNeuronSimulation,
+        ImportExperimentalNeuronDensities,
+        ImportExperimentalBoutonDensity,
+        ImportExperimentalSynapsesPerConnection,
+        ImportSingleCellExperimentalTrace,
+        ImportMEModel,
+        ImportSingleNeuronSimulation,
         ImportDistribution,
-        # ImportNeuronMorphologyFeatureAnnotation,
+        ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:

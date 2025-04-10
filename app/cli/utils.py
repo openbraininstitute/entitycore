@@ -7,7 +7,6 @@ from sqlalchemy import any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
-from app.config import settings
 from app.db.model import (
     Agent,
     Asset,
@@ -281,7 +280,6 @@ def get_or_create_distribution(
             get_or_create_distribution(c, entity_id, entity_type, db, project_context)
         return
 
-    bucket_name = settings.S3_BUCKET_NAME
     full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,
@@ -304,7 +302,6 @@ def get_or_create_distribution(
         status=AssetStatus.CREATED,
         path=distribution["name"],
         full_path=full_path,
-        bucket_name=bucket_name,
         is_directory=False,
         content_type=distribution["encodingFormat"],
         size=distribution["contentSize"]["value"],

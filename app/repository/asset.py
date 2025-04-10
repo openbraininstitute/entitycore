@@ -60,7 +60,6 @@ class AssetRepository(BaseRepository):
                 entity_id=entity_id,
                 path=asset.path,
                 full_path=asset.full_path,
-                bucket_name=asset.bucket_name,
                 is_directory=asset.is_directory,
                 content_type=asset.content_type,
                 size=asset.size,

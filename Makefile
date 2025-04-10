@@ -37,12 +37,12 @@ check-deps:  ## Check that the dependencies in the existing lock file are valid
 	uv lock --locked
 
 format:  ## Run formatters
-	uv run -m ruff format
-	uv run -m ruff check --fix
+	uv run -m ruff format app
+	uv run -m ruff check --fix app
 
 lint:  ## Run linters
-	uv run -m ruff format --check
-	uv run -m ruff check
+	uv run -m ruff format --check app
+	uv run -m ruff check app
 	uv run -m pyright app
 
 build:  ## Build the Docker image

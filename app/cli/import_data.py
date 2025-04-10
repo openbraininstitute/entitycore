@@ -486,6 +486,49 @@ class ImportEModels(Import):
 
         db.commit()
 
+        # smc = [
+        #     (d["name"], d.get("brainLocation", {}).get("brainRegion"))
+        #     for d in all_data_by_id.values()
+        #     if utils.is_type(d, "SubCellularModelScript")
+        #     and utils._find_by_legacy_id(d["@id"], IonChannelModel, db) is None
+        # ]
+
+        # 'ProbAMPANMDA_EMS root
+        # Kv7  Cerebellum
+        # kamt Cerebellum
+        # kdrmt Cerebellum
+        # ks Cerebellum
+        # nax Cerebellum
+
+        # Already in db
+        # kdb Hippocampal formation
+        # kdrb Hippocampal formation
+
+        #          cacum | Hippocampal formation
+        #  cacum | Hippocampal formation
+        #  cagk  | Hippocampal formation
+        #  cagk  | Hippocampal formation
+        #  cal   | Hippocampal formation
+        #  cal   | Hippocampal formation
+        #  can   | Hippocampal formation
+        #  can   | Hippocampal formation
+        #  cat   | Hippocampal formation
+        #  cat   | Hippocampal formation
+        #  kad   | Hippocampal formation
+        #  kad   | Hippocampal formation
+        #  kap   | Hippocampal formation
+        #  kap   | Hippocampal formation
+        #  kca   | Hippocampal formation
+        #  kca   | Hippocampal formation
+        #  kdr   | Hippocampal formation
+        #  kdr   | Hippocampal formation
+        #  kmb   | Hippocampal formation
+        #  kmb   | Hippocampal formation
+        #  na3   | Hippocampal formation
+        #  na3   | Hippocampal formation
+        #  nax   | Hippocampal formation
+        #  nax   | Hippocampal formation
+
 
 class ImportBrainRegionMeshes(Import):
     name = "BrainRegionMeshes"
@@ -968,7 +1011,7 @@ def _do_import(db, input_dir, project_context):
     importers = [
         ImportAgent,
         ImportAnalysisSoftwareSourceCode,
-        ImportBrainRegionMeshes,
+        # ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
         # ImportExperimentalNeuronDensities,

@@ -1,8 +1,8 @@
-"""Default migration message
+"""IonChannelModel
 
-Revision ID: 5bdf101460a9
+Revision ID: 98a254adae71
 Revises: 72c5253bf9b1
-Create Date: 2025-04-09 16:30:19.116362
+Create Date: 2025-04-10 11:01:03.911020
 
 """
 
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "5bdf101460a9"
+revision: str = "98a254adae71"
 down_revision: str | None = "72c5253bf9b1"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -48,8 +48,6 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
-        sa.Column("identifier", sa.String(), nullable=False),
-        sa.Column("modelId", sa.String(), nullable=False),
         sa.Column("is_ljp_corrected", sa.Boolean(), nullable=False),
         sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
         sa.Column("temperature_celsius", sa.Integer(), nullable=False),

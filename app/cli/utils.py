@@ -430,8 +430,6 @@ def import_ion_channel_model(  # noqa: PLR0914
         legacy_self=[legacy_self],
         name=script["name"],
         description=script.get("descripton", ""),
-        identifier=script.get("identifier", ""),
-        modelId=script.get("modelId", ""),
         is_ljp_corrected=script.get("isLjpCorrected", False),
         is_temperature_dependent=script.get("isTemperatureDependent", False),
         temperature_celsius=int(temperature_value),

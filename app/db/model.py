@@ -597,8 +597,6 @@ class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entit
 
     name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str] = mapped_column(default="")
-    identifier: Mapped[str]
-    modelId: Mapped[str]
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]

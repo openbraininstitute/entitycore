@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
+from app.db.types import AgePeriod, AgeUnit, Sex
+
 
 class AuthorizationMixin(BaseModel):
     authorized_project_id: UUID4
@@ -42,6 +44,20 @@ class CreationMixin(BaseModel):
         return result
 
 
+class AgeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    value: int | None = None
+    min_value: int | None = None
+    max_value: int | None = None
+    unit: AgeUnit
+    period: AgePeriod
+
+
+class AgeCreate(AgeRead):
+    pass
+
+
 class LicenseCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
@@ -51,14 +67,6 @@ class LicenseCreate(BaseModel):
 
 class LicenseRead(LicenseCreate, CreationMixin, IdentifiableMixin):
     pass
-
-
-class PointLocationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    x: float
-    y: float
-    z: float
 
 
 class BrainRegionCreate(BaseModel):
@@ -102,6 +110,21 @@ class SpeciesCreate(BaseModel):
 
 class SpeciesRead(SpeciesCreate, CreationMixin, IdentifiableMixin):
     pass
+
+
+class SubjectBase(BaseModel):
+    sex: Sex | None = None
+    weight: float | None = None
+
+
+class SubjectCreate(SubjectBase):
+    species_id: uuid.UUID
+    age_id: uuid.UUID
+
+
+class SubjectRead(SubjectBase, CreationMixin, IdentifiableMixin):
+    species: SpeciesRead
+    age: AgeRead
 
 
 class LicensedCreateMixin(BaseModel):

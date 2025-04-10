@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.application import app
 from app.config import settings
 from app.db.model import (
+    Age,
     Agent,
     Base,
     Contribution,
@@ -26,6 +27,7 @@ from app.db.model import (
     Role,
     Species,
     Strain,
+    Subject,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.dependencies import auth
@@ -279,6 +281,38 @@ def strain_id(client_admin, species_id):
     assert data["taxonomy_id"] == "Taxonomy ID"
     assert "id" in data, f"Failed to get id for strain: {data}"
     return data["id"]
+
+
+@pytest.fixture
+def age_id(db):
+    return add_db(
+        db,
+        Age(
+            value=14,
+            min_value=None,
+            max_value=None,
+            unit="days",
+            period="postnatal",
+        ),
+    ).id
+
+
+@pytest.fixture
+def subject_id(db, species_id, age_id):
+    return str(
+        add_db(
+            db,
+            Subject(
+                species_id=species_id,
+                strain_id=None,
+                age_id=age_id,
+                sex="female",
+                weight=1.5,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        ).id
+    )
 
 
 @pytest.fixture

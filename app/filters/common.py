@@ -88,3 +88,7 @@ NestedETypeClassFilterDep = FilterDepends(with_prefix("etype", ETypeClassFilter)
 NestedSpeciesFilterDep = FilterDepends(with_prefix("species", SpeciesFilter))
 NestedStrainFilterDep = FilterDepends(with_prefix("strain", StrainFilter))
 NestedAgentFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
+
+
+class ContributionFilterMixin:
+    contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None

@@ -1,13 +1,21 @@
 from enum import auto
 from typing import Annotated, Any
 
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import ARRAY, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
-from app.schemas.base import PointLocationBase
 from app.utils.enum import StrEnum
+
+
+class PointLocationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    x: float
+    y: float
+    z: float
 
 
 class PointLocationType(TypeDecorator):
@@ -40,6 +48,7 @@ STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 class EntityType(StrEnum):
     """Entity types."""
 
+    age = auto()
     analysis_software_source_code = auto()
     emodel = auto()
     experimental_bouton_density = auto()
@@ -48,10 +57,12 @@ class EntityType(StrEnum):
     memodel = auto()
     mesh = auto()
     reconstruction_morphology = auto()
-    single_cell_experimental_trace = auto()
+    electrical_cell_recording = auto()
+    electrical_recording_stimulus = auto()
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()
     single_neuron_synaptome_simulation = auto()
+    subject = auto()
 
 
 class AgentType(StrEnum):
@@ -84,3 +95,51 @@ class ValidationStatus(StrEnum):
     running = auto()
     done = auto()
     error = auto()
+
+
+class Sex(StrEnum):
+    male = auto()
+    female = auto()
+
+
+class ElectricalRecordingType(StrEnum):
+    intracellular = auto()
+    extracellular = auto()
+    both = auto()
+    unknown = auto()
+
+
+class ElectricalRecordingStimulusType(StrEnum):
+    voltage_clamp = auto()
+    current_clamp = auto()
+    conductance_clamp = auto()
+    extracellular = auto()
+    other = auto()
+    unknown = auto()
+
+
+class ElectricalRecordingStimulusShape(StrEnum):
+    step = auto()
+    ramp = auto()
+    noise = auto()
+    sinusoidal = auto()
+    other = auto()
+    unknown = auto()
+
+
+class ElectricalRecordingOrigin(StrEnum):
+    in_vivo = auto()
+    in_vitro = auto()
+    in_silico = auto()
+    unknown = auto()
+
+
+class AgeUnit(StrEnum):
+    days = auto()
+    weeks = auto()
+    years = auto()
+
+
+class AgePeriod(StrEnum):
+    prenatal = auto()
+    postnatal = auto()

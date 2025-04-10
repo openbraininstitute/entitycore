@@ -484,58 +484,17 @@ class ImportEModels(Import):
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_emodel.id, db)
 
+        # Import ProbAMPANMDA_EMS which is not lined to any EModel
+        # https://github.com/openbraininstitute/entitycore/pull/121#discussion_r2037170127
+        ProbAMPANMDA_EMS_imc = [
+            d
+            for d in all_data_by_id.values()
+            if utils.is_type(d, "SubCellularModelScript") and d["name"] == "ProbAMPANMDA_EMS"
+        ][0]
+
+        utils.import_ion_channel_model(ProbAMPANMDA_EMS_imc, project_context, db)
+
         db.commit()
-
-        # smc = [
-        #     (
-        #         d["name"],
-        #         d.get("brainLocation", {}).get("brainRegion"),
-        #         d.get("subject", {}).get("species", {}),
-        #     )
-        #     for d in all_data_by_id.values()
-        #     if utils.is_type(d, "SubCellularModelScript")
-        #     and utils._find_by_legacy_id(d["@id"], IonChannelModel, db) is None
-        # ]
-
-        # from pprint import pprint
-
-        # pprint(smc)
-
-        # 'ProbAMPANMDA_EMS root
-        # Kv7  Cerebellum
-        # kamt Cerebellum
-        # kdrmt Cerebellum
-        # ks Cerebellum
-        # nax Cerebellum
-
-        # Already in db
-        # kdb Hippocampal formation
-        # kdrb Hippocampal formation
-
-        #          cacum | Hippocampal formation
-        #  cacum | Hippocampal formation
-        #  cagk  | Hippocampal formation
-        #  cagk  | Hippocampal formation
-        #  cal   | Hippocampal formation
-        #  cal   | Hippocampal formation
-        #  can   | Hippocampal formation
-        #  can   | Hippocampal formation
-        #  cat   | Hippocampal formation
-        #  cat   | Hippocampal formation
-        #  kad   | Hippocampal formation
-        #  kad   | Hippocampal formation
-        #  kap   | Hippocampal formation
-        #  kap   | Hippocampal formation
-        #  kca   | Hippocampal formation
-        #  kca   | Hippocampal formation
-        #  kdr   | Hippocampal formation
-        #  kdr   | Hippocampal formation
-        #  kmb   | Hippocampal formation
-        #  kmb   | Hippocampal formation
-        #  na3   | Hippocampal formation
-        #  na3   | Hippocampal formation
-        #  nax   | Hippocampal formation
-        #  nax   | Hippocampal formation
 
 
 class ImportBrainRegionMeshes(Import):

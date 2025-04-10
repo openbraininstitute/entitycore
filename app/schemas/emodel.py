@@ -14,6 +14,7 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.ion_channel_model import IonChannelModel
 from app.schemas.morphology import ReconstructionMorphologyBase
 
 
@@ -46,3 +47,5 @@ class EModelRead(EModelBase, CreationMixin, AuthorizationMixin, AssetsMixin):
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
+
+    ion_channel_models: list[IonChannelModel]

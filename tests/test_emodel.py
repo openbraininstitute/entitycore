@@ -47,6 +47,7 @@ def test_get_emodel(client: TestClient, emodel_id: str):
     assert json["id"] == emodel_id
     assert "assets" in json
     assert len(json["assets"]) == 1
+    assert "ion_channel_models" in json
 
 
 def test_missing(client):
@@ -73,7 +74,9 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 11
+
     assert "assets" in data[0]
+    assert "ion_channel_models" in data[0]
 
 
 def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):

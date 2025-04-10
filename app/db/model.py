@@ -403,6 +403,14 @@ class EModel(
         "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
+    ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
+        primaryjoin="EModel.id == IonChannelModelToEModel.emodel_id",
+        secondary="ion_channel_model__emodel",
+        uselist=True,
+        viewonly=True,
+        order_by="IonChannelModel.creation_date",
+    )
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
@@ -589,6 +597,14 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     temperature_celsius: Mapped[int]
 
     nmodl_parameters: Mapped[JSON_DICT]
+
+    ions: Mapped[list[Ion]] = relationship(
+        primaryjoin="IonChannelModel.id == IonToIonChannelModel.ion_channel_model_id",
+        secondary="ion__ion_channel_model",
+        uselist=True,
+        viewonly=True,
+        order_by="Ion.name",
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

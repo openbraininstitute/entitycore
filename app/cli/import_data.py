@@ -1132,7 +1132,7 @@ def organize_files(digest_path):
             ignored.pop(digest, None)
             if not dst.exists():
                 src = Path(src_paths[digest]).resolve()
-                assert src.exists()
+                assert src.exists(), f"src path doens't exist: {src}"
                 dst = Path(row.full_path)
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 dst.symlink_to(src)

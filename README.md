@@ -4,7 +4,9 @@
 
 - `uv`: https://docs.astral.sh/uv/getting-started/installation/
 - `docker` and `docker compose`: https://docs.docker.com/compose/install/
-
+- `postgresql` for building `psycopg2`:
+  - `brew install postgresql` on Mac
+  - `apt-get install gcc libc6-dev libpq-dev` on Linux (Ubuntu or Debian)
 
 ## Setup the virtualenv
 
@@ -12,68 +14,33 @@
 $ make install
 ```
 
-## Running and testing in Docker
+## Run the service in Docker
 
-This will execute everything in Docker, including the service.
+This will execute everything in Docker, without requiring authentication.
 
-### Optional, configure the service
-
-When running locally, the authentication is disabled.
-However, you can enable authentication with staging by setting in `.env.run-docker`:
-
-```
-export APP_DISABLE_AUTH=false
-export KEYCLOAK_URL=https://staging.openbraininstitute.org/auth/realms/SBO
-```
-
-### Run the server in Docker
-
-This will bring up a *persistent* database and run tests in Docker.
+This will bring up a *persistent* database.
 The service is automatically reloaded whenever the source code changes.
 
 ```
-$ make run-docker
+$ make run-docker  # or make run-local to run the service outside Docker
 ```
 
-### Run tests in Docker
+If everything worked correctly, you can access the openapi docs at http://127.0.0.1:8000
+
+Note that the following ports are required by entitycore, so they shouldn't be already allocated by other services:
+
+- `127.0.0.1:8000` for entitycore
+- `127.0.0.1:9000-9001` for minio
+- `127.0.0.1:5433` for postgresql
+
+## Run tests in Docker
 
 This will bring up a *non-persistent* database and run tests in Docker:
 
 ```
-$ make test-docker
+$ make test-docker  # or make test-local to run the tests outside Docker
 ```
 
-## Alternative: Running and testing locally from the source code
-
-This will execute everything in Docker, but the service is started locally.
-The service can be faster to start, because the Docker container for the service doesn't need to be built.
-
-### Optional, configure the service
-
-When running locally, the authentication is disabled.
-However, you can enable authentication with staging by setting in `.env.run-local`:
-
-```
-export APP_DISABLE_AUTH=false
-export KEYCLOAK_URL=https://staging.openbraininstitute.org/auth/realms/SBO
-```
-
-### Run the server locally from the source code
-
-This will bring up a *persistent* database and run tests locally:
-The service is automatically reloaded whenever the source code changes.
-
-```
-$ make run-local
-```
-
-### Run tests locally from the source code
-
-This will bring up a *non-persistent* database and run tests locally:
-
-```
-$ make test-local
-```
 
 ## Cleaning up
 

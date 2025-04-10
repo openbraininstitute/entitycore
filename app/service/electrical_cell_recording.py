@@ -42,6 +42,7 @@ def read_one(
         apply_operations=lambda q: q.options(
             joinedload(ElectricalCellRecording.license),
             joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
+            joinedload(ElectricalCellRecording.subject).joinedload(Subject.age),
             joinedload(ElectricalCellRecording.brain_region),
             selectinload(ElectricalCellRecording.assets),
             selectinload(ElectricalCellRecording.stimuli),
@@ -95,6 +96,7 @@ def read_many(
     )
     apply_data_query = lambda query: (
         query.options(joinedload(ElectricalCellRecording.subject).joinedload(Subject.species))
+        .options(joinedload(ElectricalCellRecording.subject).joinedload(Subject.age))
         .options(joinedload(ElectricalCellRecording.brain_region))
         .options(joinedload(ElectricalCellRecording.license))
         .options(selectinload(ElectricalCellRecording.assets))

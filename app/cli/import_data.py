@@ -658,22 +658,14 @@ class ImportElectricalCellRecording(Import):
             assert _brain_location is None
 
             license_id = utils.get_license_mixin(data, db)
-            species_id, strain_id = utils.get_species_mixin(data, db)
+            # species_id, strain_id = utils.get_species_mixin(data, db)
+
+            subject_id = utils.get_or_create_subject(data, project_context, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
             age = data.get("subject", {}).get("age", {}).get("value", None)
             comment = data.get("note", None)
 
-            subject = Subject(
-                age=age,
-                species_id=species_id,
-                strain_id=strain_id,
-                authorized_project_id=project_context.project_id,
-                authorized_public=AUTHORIZED_PUBLIC,
-            )
-            db.add(subject)
-            db.commit()
-            db.refresh(subject)
             db_item = ElectricalCellRecording(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
@@ -681,10 +673,11 @@ class ImportElectricalCellRecording(Import):
                 description=data["description"],
                 comment=comment,
                 brain_region_id=brain_region_id,
-                subject_id=subject.id,
+                subject_id=subject_id,
                 license_id=license_id,
-                recordingType=ElectricalRecordingType.unknown,
-                recordingLocation=[],
+                recording_type=ElectricalRecordingType.unknown,
+                recording_location=[],
+                recording_origin="unknown",
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -939,6 +932,7 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
 
         license_id = utils.get_license_mixin(data, db)
         species_id, strain_id = utils.get_species_mixin(data, db)
+
         _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
         assert _brain_location is None
         createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
@@ -992,14 +986,14 @@ def _do_import(db, input_dir, project_context):
 
     importers = [
         ImportAgent,
-        ImportAnalysisSoftwareSourceCode,
-        ImportBrainRegionMeshes,
-        ImportMorphologies,
-        ImportEModels,
-        ImportMEModel,
-        ImportExperimentalNeuronDensities,
-        ImportExperimentalBoutonDensity,
-        ImportExperimentalSynapsesPerConnection,
+        # ImportAnalysisSoftwareSourceCode,
+        # ImportBrainRegionMeshes,
+        # ImportMorphologies,
+        # ImportEModels,
+        # ImportMEModel,
+        # ImportExperimentalNeuronDensities,
+        # ImportExperimentalBoutonDensity,
+        # ImportExperimentalSynapsesPerConnection,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
         ImportDistribution,

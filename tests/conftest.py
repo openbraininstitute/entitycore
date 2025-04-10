@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.application import app
 from app.config import settings
 from app.db.model import (
+    Age,
     Agent,
     Base,
     Contribution,
@@ -283,13 +284,28 @@ def strain_id(client_admin, species_id):
 
 
 @pytest.fixture
-def subject_id(db, species_id):
+def age_id(db):
+    return add_db(
+        db,
+        Age(
+            value=14,
+            min_value=None,
+            max_value=None,
+            unit="days",
+            period="postnatal",
+        ),
+    ).id
+
+
+@pytest.fixture
+def subject_id(db, species_id, age_id):
     return str(
         add_db(
             db,
             Subject(
                 species_id=species_id,
-                age=2,
+                strain_id=None,
+                age_id=age_id,
                 sex="female",
                 weight=1.5,
                 authorized_public=False,

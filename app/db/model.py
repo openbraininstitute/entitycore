@@ -23,6 +23,8 @@ from app.db.types import (
     JSON_DICT,
     STRING_LIST,
     AgentType,
+    AgePeriod,
+    AgeUnit,
     AnnotationBodyType,
     AssetStatus,
     ElectricalRecordingOrigin,
@@ -345,12 +347,31 @@ class Entity(LegacyMixin, Identifiable):
     }
 
 
+class Age(Identifiable):
+    __tablename__ = EntityType.age.value
+
+    value: Mapped[int | None]
+    min_value: Mapped[int | None]
+    max_value: Mapped[int | None]
+    unit: Mapped[AgeUnit]
+    period: Mapped[AgePeriod]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+    __table_args__ = (
+        UniqueConstraint("id", "value", "min_value", "max_value", "unit", "period", name="uq_age"),
+    )
+
+
 class Subject(SpeciesMixin, Entity):
     __tablename__ = EntityType.subject.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    age: Mapped[int | None]
+    age_id: Mapped[Age | None] = mapped_column(ForeignKey("age.id"))
+    age = relationship(Age, uselist=False, foreign_keys=[age_id])
+
     sex: Mapped[Sex | None]
     weight: Mapped[float | None]
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

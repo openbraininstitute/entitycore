@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-from app.db.types import Sex
+from app.db.types import AgePeriod, AgeUnit, Sex
 
 
 class AuthorizationMixin(BaseModel):
@@ -42,6 +42,20 @@ class CreationMixin(BaseModel):
         )
         result["update_date"] = result["update_date"].isoformat() if result["update_date"] else None
         return result
+
+
+class AgeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    value: int | None = None
+    min_value: int | None = None
+    max_value: int | None = None
+    unit: AgeUnit
+    period: AgePeriod
+
+
+class AgeCreate(AgeRead):
+    pass
 
 
 class LicenseCreate(BaseModel):
@@ -99,17 +113,18 @@ class SpeciesRead(SpeciesCreate, CreationMixin, IdentifiableMixin):
 
 
 class SubjectBase(BaseModel):
-    age: int | None = None
     sex: Sex | None = None
     weight: float | None = None
 
 
 class SubjectCreate(SubjectBase):
     species_id: uuid.UUID
+    age_id: uuid.UUID
 
 
 class SubjectRead(SubjectBase, CreationMixin, IdentifiableMixin):
     species: SpeciesRead
+    age: AgeRead
 
 
 class LicensedCreateMixin(BaseModel):

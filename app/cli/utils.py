@@ -3,11 +3,12 @@ import uuid
 from typing import Any, Literal
 
 import sqlalchemy as sa
-from sqlalchemy import any_
+from sqlalchemy import and_, any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
 from app.db.model import (
+    Age,
     Agent,
     Asset,
     BrainRegion,
@@ -19,6 +20,7 @@ from app.db.model import (
     Role,
     Species,
     Strain,
+    Subject,
 )
 from app.db.types import AssetStatus, EntityType
 from app.logger import L
@@ -86,10 +88,10 @@ def create_stimulus(data, entity_id, project_context, db):
         name=data["label"],
         description=data.get("definition", None),
         dt=None,
-        stimulus_injection_type=ElectricalRecordingStimulusType.unknown,
-        stimulus_shape=ElectricalRecordingStimulusShape.unknown,
-        stimulus_start_time=None,
-        stimulus_end_time=None,
+        injection_type=ElectricalRecordingStimulusType.unknown,
+        shape=ElectricalRecordingStimulusShape.unknown,
+        start_time=None,
+        end_time=None,
         recording_id=entity_id,
         authorized_public=AUTHORIZED_PUBLIC,
         authorized_project_id=project_context.project_id,
@@ -185,6 +187,79 @@ def get_species_mixin(data, db):
     if strain:
         strain_id = get_or_create_strain(strain, species_id, db)
     return species_id, strain_id
+
+
+def get_or_create_subject(data, project_context, db):
+    species = data.get("subject", {}).get("species", {})
+    if not species:
+        msg = f"species is None: {data}"
+        raise RuntimeError(msg)
+    species_id = get_or_create_species(species, db)
+    strain = data.get("subject", {}).get("strain", {})
+    strain_id = None
+    if strain:
+        strain_id = get_or_create_strain(strain, species_id, db)
+
+    age_id = None
+    if age := data.get("subject", {}).get("age", {}):
+        age_id = get_or_create_age(age, db)
+
+    subject = Subject(
+        age_id=age_id,
+        species_id=species_id,
+        strain_id=strain_id,
+        sex=None,
+        weight=None,
+        authorized_project_id=project_context.project_id,
+        authorized_public=AUTHORIZED_PUBLIC,
+    )
+    db.add(subject)
+    db.commit()
+    return subject.id
+
+
+def get_or_create_age(data, db):
+    min_value = data.get("minValue", None)
+    max_value = data.get("maxValue", None)
+    unit = data.get("unitCode", None)
+    period = data.get("period", None)
+    value = data.get("value", None)
+
+    if period.lower() == "post-natal":
+        period = "postnatal"
+    elif period.lower() == "pre-natal":
+        period = "prenatal"
+    else:
+        msg = f"Unknown 'period' in Age: {data}"
+        L.warning(msg)
+
+    existing = (
+        db.query(Age)
+        .where(
+            and_(
+                Age.value == value,
+                Age.min_value == min_value,
+                Age.max_value == max_value,
+                Age.period == period,
+                Age.unit == unit,
+            )
+        )
+        .first()
+    )
+
+    if existing:
+        return existing.id
+
+    age = Age(
+        value=value,
+        min_value=min_value,
+        max_value=max_value,
+        unit=unit,
+        period=period,
+    )
+    db.add(age)
+    db.commit()
+    return age.id
 
 
 def get_license_mixin(data, db):

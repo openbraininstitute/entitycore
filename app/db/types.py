@@ -48,6 +48,7 @@ STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 class EntityType(StrEnum):
     """Entity types."""
 
+    age = auto()
     analysis_software_source_code = auto()
     emodel = auto()
     experimental_bouton_density = auto()
@@ -131,3 +132,14 @@ class ElectricalRecordingOrigin(StrEnum):
     in_vitro = auto()
     in_silico = auto()
     unknown = auto()
+
+
+class AgeUnit(StrEnum):
+    days = auto()
+    weeks = auto()
+    years = auto()
+
+
+class AgePeriod(StrEnum):
+    prenatal = auto()
+    postnatal = auto()

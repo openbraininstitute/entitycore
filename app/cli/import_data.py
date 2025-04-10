@@ -487,11 +487,19 @@ class ImportEModels(Import):
         db.commit()
 
         # smc = [
-        #     (d["name"], d.get("brainLocation", {}).get("brainRegion"))
+        #     (
+        #         d["name"],
+        #         d.get("brainLocation", {}).get("brainRegion"),
+        #         d.get("subject", {}).get("species", {}),
+        #     )
         #     for d in all_data_by_id.values()
         #     if utils.is_type(d, "SubCellularModelScript")
         #     and utils._find_by_legacy_id(d["@id"], IonChannelModel, db) is None
         # ]
+
+        # from pprint import pprint
+
+        # pprint(smc)
 
         # 'ProbAMPANMDA_EMS root
         # Kv7  Cerebellum

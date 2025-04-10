@@ -423,7 +423,7 @@ def import_ion_channel_model(  # noqa: PLR0914
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
 
-    assert nmodl_parameters_validated
+    assert nmodl_parameters_validated  # noqa: S101
 
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],

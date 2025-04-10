@@ -1021,7 +1021,7 @@ def _do_import(db, input_dir, project_context):
     importers = [
         ImportAgent,
         ImportAnalysisSoftwareSourceCode,
-        # ImportBrainRegionMeshes,
+        ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
         # ImportExperimentalNeuronDensities,

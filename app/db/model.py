@@ -579,13 +579,11 @@ class IonToIonChannelModel(Base):
     )
 
 
-class IonChannelModel(DescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.ion_channel_model.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str] = mapped_column(default="")
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]

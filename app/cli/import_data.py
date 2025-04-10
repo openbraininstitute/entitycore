@@ -8,12 +8,11 @@ from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
-from typing import Any, Callable, TypeVar
-import operator as op
+from typing import Any
 from app.cli.utils import ensurelist
 from sqlalchemy.orm import Session
 from app.schemas.base import ProjectContext
-from app.db.types import AssetStatus, EntityType
+from app.db.types import EntityType
 
 import click
 import sqlalchemy as sa

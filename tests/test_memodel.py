@@ -397,7 +397,7 @@ def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa
     assert all(d["description"] == "foo" for d in data)
 
 
-def test_authorization(  # noqa: PLR0914
+def test_authorization(
     client_user_1: TestClient,
     client_user_2: TestClient,
     species_id,

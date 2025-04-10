@@ -4,6 +4,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.types import (
+    ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
@@ -25,10 +26,10 @@ class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin):
     name: str
     description: str
     dt: float | None = None
-    stimulus_injection_type: ElectricalRecordingStimulusType
-    stimulus_shape: ElectricalRecordingStimulusShape
-    stimulus_start_time: float | None = None
-    stimulus_end_time: float | None = None
+    injection_type: ElectricalRecordingStimulusType
+    shape: ElectricalRecordingStimulusShape
+    start_time: float | None = None
+    end_time: float | None = None
 
 
 class ElectricalCellRecordingBase(BaseModel):
@@ -42,20 +43,27 @@ class ElectricalCellRecordingBase(BaseModel):
             description="Correction applied to the voltage trace, in mV",
         ),
     ] = 0.0
-    recordingLocation: Annotated[
+    recording_location: Annotated[
         list[str],
         Field(
             title="Recording Location",
             description=(
-                "location on the cell where recording was performed, in hoc-compatible format"
+                "Location on the cell where recording was performed, in hoc-compatible format."
             ),
         ),
     ]
-    recordingType: Annotated[
+    recording_type: Annotated[
         ElectricalRecordingType,
         Field(
             title="Recording Type",
-            description="Recording type. One of intracellular|extracellular|both.",
+            description=f"Recording type. One of: {sorted(ElectricalRecordingStimulusType)}",
+        ),
+    ]
+    recording_origin: Annotated[
+        ElectricalRecordingOrigin,
+        Field(
+            title="Recording Origin",
+            description=f"Recording origin. One of: {sorted(ElectricalRecordingOrigin)}",
         ),
     ]
     comment: Annotated[

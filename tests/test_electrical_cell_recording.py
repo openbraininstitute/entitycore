@@ -23,13 +23,14 @@ def json_data(brain_region_id, subject_id, license_id):
         "subject_id": subject_id,
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
-        "recordingLocation": ["soma[0.5]"],
-        "recordingType": "intracellular",
+        "recording_location": ["soma[0.5]"],
+        "recording_type": "intracellular",
+        "recording_origin": "in_vivo",
         "authorized_public": False,
     }
 
 
-def _create_electrical_recording_stimulus_id(
+def _create_electrical_recording_id(
     db,
     recording_id,
 ):
@@ -39,10 +40,10 @@ def _create_electrical_recording_stimulus_id(
             name="protocol",
             description="protocol-description",
             dt=0.1,
-            stimulus_injection_type="current_clamp",
-            stimulus_shape="sinusoidal",
-            stimulus_start_time=0.0,
-            stimulus_end_time=1.0,
+            injection_type="current_clamp",
+            shape="sinusoidal",
+            start_time=0.0,
+            end_time=1.0,
             recording_id=recording_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
@@ -60,6 +61,7 @@ def _create_electrical_cell_recording_id(
     ljp=11.5,
     description="my-description",
     recording_location=None,
+    recording_origin="in_vivo",
     authorized_public=False,
     authorized_project_id=PROJECT_ID,
 ):
@@ -75,8 +77,9 @@ def _create_electrical_cell_recording_id(
             brain_region_id=brain_region_id,
             subject_id=str(subject_id),
             ljp=ljp,
-            recordingLocation=recording_location,
-            recordingType="intracellular",
+            recording_location=recording_location,
+            recording_origin=recording_origin,
+            recording_type="intracellular",
             authorized_public=authorized_public,
             authorized_project_id=authorized_project_id,
             legacy_id=[],
@@ -94,8 +97,8 @@ def trace_id(tmp_path, client, db, subject_id, brain_region_id, license_id):
         brain_region_id=brain_region_id,
     )
     # add two protocols that refer to it
-    _create_electrical_recording_stimulus_id(db, trace_id)
-    _create_electrical_recording_stimulus_id(db, trace_id)
+    _create_electrical_recording_id(db, trace_id)
+    _create_electrical_recording_id(db, trace_id)
 
     filepath = tmp_path / "trace.nwb"
     filepath.write_bytes(b"trace")
@@ -136,7 +139,7 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
     assert data["name"] == "my-name"
     assert data["description"] == "my-description"
     assert data["brain_region"]["id"] == brain_region_id
-    assert data["recordingLocation"] == ["soma[0]_0.5"]
+    assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["subject"]["id"] == str(subject_id)
     assert data["license"]["id"] == str(license_id)
     assert data["authorized_project_id"] == PROJECT_ID

@@ -124,3 +124,10 @@ class ElectricalRecordingStimulusShape(StrEnum):
     sinusoidal = auto()
     other = auto()
     unknown = auto()
+
+
+class ElectricalRecordingOrigin(StrEnum):
+    in_vivo = auto()
+    in_vitro = auto()
+    in_silico = auto()
+    unknown = auto()

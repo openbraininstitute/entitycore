@@ -25,6 +25,7 @@ from app.db.types import (
     AgentType,
     AnnotationBodyType,
     AssetStatus,
+    ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
@@ -515,10 +516,10 @@ class ElectricalRecordingStimulus(Entity):
     description: Mapped[str] = mapped_column(default="")
 
     dt: Mapped[float | None]
-    stimulus_injection_type: Mapped[ElectricalRecordingStimulusType]
-    stimulus_shape: Mapped[ElectricalRecordingStimulusShape]
-    stimulus_start_time: Mapped[float | None]
-    stimulus_end_time: Mapped[float | None]
+    injection_type: Mapped[ElectricalRecordingStimulusType]
+    shape: Mapped[ElectricalRecordingStimulusShape]
+    start_time: Mapped[float | None]
+    end_time: Mapped[float | None]
 
     recording_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("electrical_cell_recording.id"),
@@ -537,8 +538,9 @@ class ElectricalCellRecording(
 ):
     __tablename__ = EntityType.electrical_cell_recording.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    recordingType: Mapped[ElectricalRecordingType]
-    recordingLocation: Mapped[STRING_LIST]
+    recording_type: Mapped[ElectricalRecordingType]
+    recording_origin: Mapped[ElectricalRecordingOrigin]
+    recording_location: Mapped[STRING_LIST]
     ljp: Mapped[float] = mapped_column(default=0.0)
     comment: Mapped[str] = mapped_column(default="")
 

@@ -4,6 +4,7 @@ from typing import ClassVar
 
 from sqlalchemy import (
     BigInteger,
+    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
@@ -21,11 +22,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from app.db.types import (
     BIGINT,
     JSON_DICT,
+    MEASUREMENT_UNITS,
     STRING_LIST,
     AgentType,
     AnnotationBodyType,
     AssetStatus,
     EntityType,
+    MeasurementStatistic,
     PointLocation,
     PointLocationType,
     SingleNeuronSimulationStatus,
@@ -542,10 +545,16 @@ class Measurement(Base):
     __tablename__ = "measurement_record"
 
     id: Mapped[BigInteger] = mapped_column(BigInteger, Identity(), primary_key=True)
-    name: Mapped[str]
+    name: Mapped[MeasurementStatistic]
     unit: Mapped[str]
     value: Mapped[float]
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            f"unit IN ({', '.join(MEASUREMENT_UNITS.values())})", name="valid_unit_check"
+        ),
+    )
 
 
 class MeasurementsMixin:

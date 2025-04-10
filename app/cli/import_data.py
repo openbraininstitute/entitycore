@@ -48,6 +48,7 @@ from app.db.model import (
 from app.db.session import configure_database_session_manager
 from app.logger import L
 from app.schemas.base import PointLocationBase, ProjectContext
+from app.db.types import MEASUREMENT_UNITS, MeasurementStatistic
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -942,14 +943,12 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
                 kwargs["synaptic_pathway_id"] = pathway_id
             except:
                 L.warning(f"Failed to create synaptic pathway: {data['synapticPathway']}")
+                continue
 
         db_item = model_type(**kwargs)
         db.add(db_item)
         db.commit()
         utils.import_contribution(data, db_item.id, db)
-
-        if "annotation" in data:
-            print(db_item.id)
 
         for annotation in ensurelist(data.get("annotation", [])):
             create_annotation(annotation, db_item.id, db)
@@ -959,14 +958,48 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
 
 
 def create_measurement(data, entity_id, db):
-    db_item = Measurement(
-        name=data["statistic"],
-        unit=data["unitCode"],
-        value=data["value"],
-        entity_id=entity_id,
-    )
-    db.add(db_item)
-    db.commit()
+    statistic = data["statistic"]
+
+    match data["statistic"]:
+        case "N":
+            statistic = MeasurementStatistic.sample_size
+        case "mean":
+            statistic = MeasurementStatistic.mean
+        case "standard deviation":
+            statistic = MeasurementStatistic.standard_deviation
+        case "standard error of the mean":
+            statistic = MeasurementStatistic.standard_error
+        case "data point":
+            statistic = MeasurementStatistic.data_point
+        case _:
+            statistic = None
+            msg = f"Statistic not captured: {data}"
+            L.warning(msg)
+
+    match data["unitCode"]:
+        case "dimensionless":
+            unit = MEASUREMENT_UNITS["dimensionless"]
+        case "1/μm":
+            unit = MEASUREMENT_UNITS["linear_density"]
+        case "neurons/mm³":
+            unit = MEASUREMENT_UNITS["volume_density"]
+        case _:
+            unit = None
+            msg = f"Unit code not captured: {data}"
+            L.warning(msg)
+
+    if unit and statistic:
+        db_item = Measurement(
+            name=statistic,
+            unit=unit,
+            value=float(data["value"]),
+            entity_id=entity_id,
+        )
+        db.add(db_item)
+        db.commit()
+    else:
+        msg = f"Measurement {data} was skipped."
+        L.warning(msg)
 
 
 def _do_import(db, input_dir, project_context):
@@ -1000,8 +1033,8 @@ def _do_import(db, input_dir, project_context):
         # ImportMorphologies,
         # ImportEModels,
         # ImportMEModel,
-        # ImportExperimentalNeuronDensities,
-        # ImportExperimentalBoutonDensity,
+        ImportExperimentalNeuronDensities,
+        ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         # ImportSingleCellExperimentalTrace,
         # ImportSingleNeuronSimulation,

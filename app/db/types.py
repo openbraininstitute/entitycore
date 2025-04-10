@@ -85,3 +85,21 @@ class ValidationStatus(StrEnum):
     running = auto()
     done = auto()
     error = auto()
+
+
+class MeasurementStatistic(StrEnum):
+    mean = auto()
+    median = auto()
+    mode = auto()
+    variance = auto()
+    data_point = auto()
+    sample_size = auto()
+    standard_error = auto()
+    standard_deviation = auto()
+
+
+MEASUREMENT_UNITS = {
+    "dimensionless": "dimensionless",
+    "linear_density": "1/μm",
+    "volume_density": "1/mm³",
+}

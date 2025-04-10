@@ -552,7 +552,8 @@ class Measurement(Base):
 
     __table_args__ = (
         CheckConstraint(
-            f"unit IN ({', '.join(MEASUREMENT_UNITS.values())})", name="valid_unit_check"
+            f"unit IN ({', '.join("'{unit}'" for unit in MEASUREMENT_UNITS.values())})",
+            name="valid_unit_check",
         ),
     )
 

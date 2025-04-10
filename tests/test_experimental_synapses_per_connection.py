@@ -1,157 +1,119 @@
+from functools import partial
+
 import pytest
 
-from app.db.model import SynapticPathway
+from app.db.model import ExperimentalSynapsesPerConnection
 
-from .utils import MISSING_ID, MISSING_ID_COMPACT, PROJECT_ID, add_db
+from .utils import (
+    PROJECT_ID,
+    add_db,
+    assert_request,
+    check_authorization,
+    check_missing,
+    check_pagination,
+)
 
 ROUTE = "/experimental-synapses-per-connection"
+MODEL_CLASS = ExperimentalSynapsesPerConnection
 
 
 @pytest.fixture
-def synaptic_pathway_id(db, brain_region_id, mtype_class_id):
+def json_data(brain_region_id, species_id, strain_id, license_id, synaptic_pathway_id):
+    return {
+        "brain_region_id": brain_region_id,
+        "species_id": species_id,
+        "strain_id": strain_id,
+        "description": "my-description",
+        "name": "my-name",
+        "legacy_id": "Test Legacy ID",
+        "license_id": license_id,
+        "synaptic_pathway_id": synaptic_pathway_id,
+    }
+
+
+def create_id(
+    db,
+    species_id,
+    strain_id,
+    brain_region_id,
+    license_id,
+    synaptic_pathway_id,
+    name="my-density",
+    description="my-description",
+    legacy_id="my-legacy-id",
+    authorized_public=False,  # noqa: FBT002
+    authorized_project_id=PROJECT_ID,
+):
     return str(
         add_db(
             db,
-            SynapticPathway(
-                pre_mtype_id=mtype_class_id,
-                post_mtype_id=mtype_class_id,
-                pre_region_id=brain_region_id,
-                post_region_id=brain_region_id,
-                authorized_public=False,
-                authorized_project_id=PROJECT_ID,
+            MODEL_CLASS(
+                name=name,
+                description=description,
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=strain_id,
+                license_id=license_id,
+                authorized_public=authorized_public,
+                authorized_project_id=authorized_project_id,
+                legacy_id=legacy_id,
+                synaptic_pathway_id=synaptic_pathway_id,
             ),
         ).id
     )
 
 
-def test_experimental_synapses_per_connection(
-    client,
-    species_id,
-    strain_id,
-    license_id,
-    brain_region_id,
-    synaptic_pathway_id,
-):
-    bouton_description = "Test bouton Description"
-    bouton_name = "Test bouton Name"
-    response = client.post(
-        ROUTE,
-        json={
-            "brain_region_id": brain_region_id,
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": bouton_description,
-            "name": bouton_name,
-            "legacy_id": "Test Legacy ID",
-            "license_id": license_id,
-            "synaptic_pathway_id": synaptic_pathway_id,
-        },
-    )
-    assert response.status_code == 200, (
-        f"Failed to create  experimental bouton density: {response.text}"
-    )
-    data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, (
-        f"Failed to get id for  experimental bouton density: {data}"
-    )
-    assert data["species"]["id"] == species_id, (
-        f"Failed to get species_id for  experimental bouton density: {data}"
-    )
-    assert data["strain"]["id"] == strain_id, (
-        f"Failed to get strain_id for  experimental bouton density: {data}"
-    )
-    assert data["description"] == bouton_description, (
-        f"Failed to get description for  experimental bouton density: {data}"
-    )
-    assert data["name"] == bouton_name, (
-        f"Failed to get name for  experimental bouton density: {data}"
-    )
-    assert data["license"]["name"] == "Test License", (
-        f"Failed to get license for  experimental bouton density: {data}"
-    )
+@pytest.fixture
+def model_id(db, json_data):
+    return create_id(db=db, **json_data)
 
-    response = client.get(f"{ROUTE}/{data['id']}")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id
-    assert data["species"]["id"] == species_id
-    assert data["strain"]["id"] == strain_id
-    assert data["description"] == bouton_description
 
-    response = client.get(ROUTE)
-    assert response.status_code == 200
-    assert len(response.json()["data"]) == 1
+def test_create_one(client, json_data):
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+    assert data["brain_region"]["id"] == json_data["brain_region_id"]
+    assert data["species"]["id"] == json_data["species_id"]
+    assert data["strain"]["id"] == json_data["strain_id"]
+    assert data["description"] == json_data["description"]
+    assert data["name"] == json_data["name"]
+    assert data["license"]["name"] == "Test License"
+    assert data["synaptic_pathway"]["id"] == json_data["synaptic_pathway_id"]
+
+
+def test_read_one(client, model_id, json_data):
+    data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
+    assert data["brain_region"]["id"] == json_data["brain_region_id"]
+    assert data["species"]["id"] == json_data["species_id"]
+    assert data["strain"]["id"] == json_data["strain_id"]
+    assert data["description"] == json_data["description"]
+    assert data["synaptic_pathway"]["id"] == json_data["synaptic_pathway_id"]
+
+    data = assert_request(client.get, url=ROUTE).json()
+    assert len(data["data"]) == 1
 
 
 def test_missing(client):
-    response = client.get(f"{ROUTE}/{MISSING_ID}")
-    assert response.status_code == 404
-
-    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}")
-    assert response.status_code == 404
-
-    response = client.get(f"{ROUTE}/42424242")
-    assert response.status_code == 422
-
-    response = client.get(f"{ROUTE}/notanumber")
-    assert response.status_code == 422
+    check_missing(ROUTE, client)
 
 
 def test_authorization(
     client_user_1,
     client_user_2,
     client_no_project,
-    species_id,
-    strain_id,
-    license_id,
-    brain_region_id,
-    synaptic_pathway_id,
+    json_data,
 ):
-    js = {
-        "brain_region_id": brain_region_id,
-        "species_id": species_id,
-        "strain_id": strain_id,
-        "description": "a worthy description",
-        "legacy_id": "Test Legacy ID",
-        "license_id": license_id,
-        "synaptic_pathway_id": synaptic_pathway_id,
-    }
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
 
-    public_obj = client_user_1.post(
-        ROUTE, json=js | {"name": "public obj", "authorized_public": True}
+
+def test_pagination(
+    client, db, species_id, strain_id, license_id, brain_region_id, synaptic_pathway_id
+):
+    constructor_func = partial(
+        create_id,
+        db=db,
+        species_id=species_id,
+        strain_id=strain_id,
+        license_id=license_id,
+        brain_region_id=brain_region_id,
+        synaptic_pathway_id=synaptic_pathway_id,
     )
-    assert public_obj.status_code == 200
-    public_obj = public_obj.json()
-
-    inaccessible_obj = client_user_2.post(ROUTE, json=js | {"name": "inaccessible obj"})
-    assert inaccessible_obj.status_code == 200
-    inaccessible_obj = inaccessible_obj.json()
-
-    private_obj0 = client_user_1.post(ROUTE, json=js | {"name": "private obj 0"})
-    assert private_obj0.status_code == 200
-    private_obj0 = private_obj0.json()
-
-    private_obj1 = client_user_1.post(ROUTE, json=js | {"name": "private obj 1"})
-    assert private_obj1.status_code == 200
-    private_obj1 = private_obj1.json()
-
-    # only return results that matches the desired project, and public ones
-    response = client_user_1.get(ROUTE)
-    data = response.json()["data"]
-    assert len(data) == 3, [d["name"] for d in data]
-
-    ids = {row["id"] for row in data}
-    assert ids == {
-        public_obj["id"],
-        private_obj0["id"],
-        private_obj1["id"],
-    }
-
-    response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
-    assert response.status_code == 404
-
-    # only return public results
-    response = client_no_project.get(ROUTE)
-    data = response.json()["data"]
-    assert len(data) == 1
-    assert data[0]["id"] == public_obj["id"]
+    check_pagination(ROUTE, client, constructor_func)

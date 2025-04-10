@@ -73,7 +73,7 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 11
-    assert "assets" not in data[0]
+    assert "assets" in data[0]
 
 
 def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):

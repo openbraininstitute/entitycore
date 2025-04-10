@@ -37,11 +37,7 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     exemplar_morphology_id: uuid.UUID
 
 
-class EModelRead(
-    EModelBase,
-    CreationMixin,
-    AuthorizationMixin,
-):
+class EModelRead(EModelBase, CreationMixin, AuthorizationMixin, AssetsMixin):
     id: uuid.UUID
     species: SpeciesRead
     strain: StrainRead | None
@@ -50,7 +46,3 @@ class EModelRead(
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
-
-
-class EModelWAssetsRead(EModelRead, AssetsMixin):
-    pass

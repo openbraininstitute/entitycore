@@ -21,7 +21,7 @@ from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.emodel import EModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
-from app.schemas.emodel import EModelCreate, EModelRead, EModelWAssetsRead
+from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -38,6 +38,7 @@ def _load(select: sa.Select):
         selectinload(EModel.contributions).joinedload(Contribution.role),
         joinedload(EModel.mtypes),
         joinedload(EModel.etypes),
+        selectinload(EModel.assets),
         raiseload("*"),
     )
 
@@ -46,18 +47,14 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> EModelWAssetsRead:
-    def load_with_assets(q: sa.Select[tuple[EModel]]):
-        q = _load(q)
-        return q.options(selectinload(EModel.assets))
-
+) -> EModelRead:
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=EModel,
         authorized_project_id=user_context.project_id,
-        response_schema_class=EModelWAssetsRead,
-        apply_operations=load_with_assets,
+        response_schema_class=EModelRead,
+        apply_operations=_load,
     )
 
 

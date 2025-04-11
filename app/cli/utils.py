@@ -21,7 +21,7 @@ from app.db.model import (
     Species,
     Strain,
 )
-from app.db.types import AssetStatus, EntityType
+from app.db.types import AssetStatus, EntityType, ICMType
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.schemas.ion_channel_model import NmodlParameters
@@ -422,7 +422,7 @@ def import_ion_channel_model(  # noqa: PLR0914
 
     assert nmodl_parameters_validated  # noqa: S101
 
-    stochastic = script.get("name", "").lower().startswith("stoch")
+    icm_type = ICMType(script.get("icm_type", ICMType.distributed))
 
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],
@@ -440,7 +440,8 @@ def import_ion_channel_model(  # noqa: PLR0914
         update_date=updated_at,
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
-        stochastic=stochastic,
+        stochastic=script.get("stochastic", False),
+        icm_type=icm_type,
     )
 
     db.add(db_ion_channel_model)

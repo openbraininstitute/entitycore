@@ -4,6 +4,7 @@ from typing import ClassVar
 
 from sqlalchemy import (
     BigInteger,
+    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
@@ -21,11 +22,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from app.db.types import (
     BIGINT,
     JSON_DICT,
+    MEASUREMENT_UNITS,
     STRING_LIST,
     AgentType,
     AnnotationBodyType,
     AssetStatus,
     EntityType,
+    MeasurementStatistic,
     PointLocation,
     PointLocationType,
     SingleNeuronSimulationStatus,
@@ -538,16 +541,86 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class Measurement(Base):
+    __tablename__ = "measurement_record"
+
+    id: Mapped[BigInteger] = mapped_column(BigInteger, Identity(), primary_key=True)
+    name: Mapped[MeasurementStatistic]
+    unit: Mapped[str]
+    value: Mapped[float]
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+
+    __table_args__ = (
+        CheckConstraint(
+            f"unit IN ({', '.join("'{unit}'" for unit in MEASUREMENT_UNITS.values())})",
+            name="valid_unit_check",
+        ),
+    )
+
+
+class MeasurementsMixin:
+    @declared_attr
+    @classmethod
+    def measurements(cls):
+        return relationship(
+            "Measurement",
+            foreign_keys=Measurement.entity_id,
+            uselist=True,
+        )
+
+
 class ExperimentalNeuronDensity(
-    LocationMixin, SpeciesMixin, LicensedMixin, NameDescriptionVectorMixin, Entity
+    NameDescriptionVectorMixin,
+    MeasurementsMixin,
+    MTypesMixin,
+    ETypesMixin,
+    LocationMixin,
+    SpeciesMixin,
+    LicensedMixin,
+    Entity,
 ):
     __tablename__ = EntityType.experimental_neuron_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class SynapticPathway(Entity):
+    __tablename__ = EntityType.synaptic_pathway.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    pre_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    pre_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[pre_mtype_id])
+
+    post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
+
+    pre_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    pre_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[pre_region_id])
+
+    post_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    post_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[post_region_id])
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __table_args__ = (
+        UniqueConstraint(
+            "pre_mtype_id",
+            "post_mtype_id",
+            "pre_region_id",
+            "post_region_id",
+            name="unique_pathway",
+        ),
+    )
+
+
 class ExperimentalBoutonDensity(
-    LocationMixin, SpeciesMixin, LicensedMixin, NameDescriptionVectorMixin, Entity
+    NameDescriptionVectorMixin,
+    MeasurementsMixin,
+    MTypesMixin,
+    LocationMixin,
+    SpeciesMixin,
+    LicensedMixin,
+    Entity,
 ):
     __tablename__ = EntityType.experimental_bouton_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -555,10 +628,23 @@ class ExperimentalBoutonDensity(
 
 
 class ExperimentalSynapsesPerConnection(
-    LocationMixin, SpeciesMixin, LicensedMixin, NameDescriptionVectorMixin, Entity
+    NameDescriptionVectorMixin,
+    MeasurementsMixin,
+    MTypesMixin,
+    LocationMixin,
+    SpeciesMixin,
+    LicensedMixin,
+    Entity,
 ):
     __tablename__ = EntityType.experimental_synapses_per_connection.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    synaptic_pathway_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("synaptic_pathway.id"), index=True
+    )
+    synaptic_pathway: Mapped[SynapticPathway] = relationship(
+        uselist=False, foreign_keys=[synaptic_pathway_id]
+    )
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

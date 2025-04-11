@@ -900,7 +900,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
 
             # rows.extend(annotation)
             db.add_all(annotation)
-            db.flush()
+            # db.flush()
         db.commit()
         L.warning(
             "NeuronMorphologyFeatureAnnotation report:\n"

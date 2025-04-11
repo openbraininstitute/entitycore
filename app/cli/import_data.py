@@ -45,7 +45,8 @@ from app.db.model import (
 )
 from app.db.session import configure_database_session_manager
 from app.logger import L
-from app.schemas.base import PointLocationBase, ProjectContext
+from app.db.types import PointLocationBase
+from app.schemas.base import ProjectContext
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(

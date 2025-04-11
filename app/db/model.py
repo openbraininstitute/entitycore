@@ -23,11 +23,14 @@ from app.db.types import (
     JSON_DICT,
     STRING_LIST,
     AgentType,
+    AgePeriod,
+    AgeUnit,
     AnnotationBodyType,
     AssetStatus,
     EntityType,
     PointLocation,
     PointLocationType,
+    Sex,
     SingleNeuronSimulationStatus,
     ValidationStatus,
 )
@@ -101,9 +104,20 @@ class Strain(Identifiable):
     )
 
 
-class Subject(Identifiable):
-    __tablename__ = "subject"
-    name: Mapped[str] = mapped_column(unique=True, index=True)
+class Age(Identifiable):
+    __tablename__ = "age"
+
+    value: Mapped[int | None]
+    min_value: Mapped[int | None]
+    max_value: Mapped[int | None]
+    unit: Mapped[AgeUnit]
+    period: Mapped[AgePeriod]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+    __table_args__ = (
+        UniqueConstraint("value", "min_value", "max_value", "unit", "period", name="uq_age"),
+    )
 
 
 class License(LegacyMixin, Identifiable):
@@ -343,6 +357,27 @@ class Entity(LegacyMixin, Identifiable):
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
+
+
+class Subject(SpeciesMixin, Entity):
+    __tablename__ = EntityType.subject.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    age_id: Mapped[Age | None] = mapped_column(ForeignKey("age.id"))
+    age = relationship(Age, uselist=False, foreign_keys=[age_id])
+
+    sex: Mapped[Sex | None]
+    weight: Mapped[float | None]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):

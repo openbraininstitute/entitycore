@@ -1,13 +1,21 @@
 from enum import auto
 from typing import Annotated, Any
 
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import ARRAY, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
-from app.schemas.base import PointLocationBase
 from app.utils.enum import StrEnum
+
+
+class PointLocationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    x: float
+    y: float
+    z: float
 
 
 class PointLocationType(TypeDecorator):
@@ -52,6 +60,7 @@ class EntityType(StrEnum):
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()
     single_neuron_synaptome_simulation = auto()
+    subject = auto()
 
 
 class AgentType(StrEnum):
@@ -84,3 +93,15 @@ class ValidationStatus(StrEnum):
     running = auto()
     done = auto()
     error = auto()
+
+
+class Sex(StrEnum):
+    male = auto()
+    female = auto()
+    unknown = auto()
+
+
+class AgePeriod(StrEnum):
+    prenatal = auto()
+    postnatal = auto()
+    unknown = auto()

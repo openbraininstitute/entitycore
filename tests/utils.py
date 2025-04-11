@@ -124,3 +124,107 @@ def create_brain_region_id(client, id_: int, name: str):
     data = response.json()
     assert "id" in data, f"Failed to get id for brain region: {data}"
     return data["id"]
+
+
+def check_missing(route, client):
+    assert_request(client.get, url=f"{route}/{MISSING_ID}", expected_status_code=404)
+    assert_request(
+        client.get,
+        url=f"{route}/{MISSING_ID_COMPACT}",
+        expected_status_code=404,
+    )
+    assert_request(
+        client.get,
+        url=f"{route}/42424242",
+        expected_status_code=422,
+    )
+    assert_request(
+        client.get,
+        url=f"{route}/notanumber",
+        expected_status_code=422,
+    )
+
+
+def check_pagination(route, client, constructor_func):
+    for i in range(3):
+        constructor_func(
+            name=f"name-{i}",
+            description=f"description-{i}",
+        )
+
+    response = assert_request(
+        client.get,
+        url=route,
+        params={"page_size": 2},
+    )
+    response_json = response.json()
+    assert "facets" in response_json
+    assert "data" in response_json
+    assert response_json["facets"] is None
+    assert len(response_json["data"]) == 2
+
+
+def check_authorization(route, client_user_1, client_user_2, client_no_project, json_data):
+    response = assert_request(
+        client_user_1.post,
+        url=route,
+        json=json_data
+        | {
+            "name": "Public Entity",
+            "authorized_public": True,
+        },
+    )
+    public_morph = response.json()
+
+    inaccessible_obj = assert_request(
+        client_user_2.post,
+        url=route,
+        json=json_data | {"name": "inaccessible morphology 1"},
+    )
+    inaccessible_obj = inaccessible_obj.json()
+
+    private_obj0 = assert_request(
+        client_user_1.post,
+        url=route,
+        json=json_data | {"name": "private morphology 0"},
+    )
+    private_obj0 = private_obj0.json()
+
+    private_obj1 = assert_request(
+        client_user_1.post,
+        url=route,
+        json=json_data
+        | {
+            "name": "private morphology 1",
+        },
+    )
+    private_obj1 = private_obj1.json()
+
+    # only return results that matches the desired project, and public ones
+    response = assert_request(
+        client_user_1.get,
+        url=route,
+    )
+    data = response.json()["data"]
+
+    ids = {row["id"] for row in data}
+    assert ids == {
+        public_morph["id"],
+        private_obj0["id"],
+        private_obj1["id"],
+    }, data
+
+    assert_request(
+        client_user_1.get,
+        url=f"{route}/{inaccessible_obj['id']}",
+        expected_status_code=404,
+    )
+
+    # only returns public results
+    response = assert_request(
+        client_no_project.get,
+        url=route,
+    )
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == public_morph["id"]

@@ -444,19 +444,19 @@ class ReconstructionMorphology(
     __tablename__ = EntityType.reconstruction_morphology.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=True)
 
     location: Mapped[PointLocation | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class MorphologyFeatureAnnotation(Identifiable):
+class MorphologyFeatureAnnotation(LegacyMixin, Identifiable):
     __tablename__ = "morphology_feature_annotation"
     # name = mapped_column(String, unique=True, index=True)
     # description = mapped_column(String)
     reconstruction_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id"), index=True, unique=True
+        ForeignKey(f"{EntityType.reconstruction_morphology}.id"), index=True, unique=False
     )
     reconstruction_morphology = relationship(
         "ReconstructionMorphology",
@@ -469,7 +469,9 @@ class MorphologyFeatureAnnotation(Identifiable):
 class MorphologyMeasurement(Base):
     __tablename__ = "measurement"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    measurement_of: Mapped[str] = mapped_column(index=True)
+    label: Mapped[str] = mapped_column(index=True)
+    pref_label: Mapped[str | None]
+    structural_domain: Mapped[str | None]
     morphology_feature_annotation_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("morphology_feature_annotation.id"), index=True
     )
@@ -481,6 +483,7 @@ class MorphologyMeasurementSerieElement(Base):
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[str | None]
     value: Mapped[float | None]
+    unit: Mapped[str | None]
     measurement_id: Mapped[int] = mapped_column(ForeignKey("measurement.id"), index=True)
 
 

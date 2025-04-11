@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: eb4962af7e9b
+Revision ID: 25acdf28d2e2
 Revises:
-Create Date: 2025-04-11 14:03:52.226918
+Create Date: 2025-04-11 14:53:00.071294
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "eb4962af7e9b"
+revision: str = "25acdf28d2e2"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -852,11 +852,11 @@ def upgrade() -> None:
         sa.Column("is_ljp_corrected", sa.Boolean(), nullable=False),
         sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
         sa.Column("temperature_celsius", sa.Integer(), nullable=False),
-        sa.Column("stochastic", sa.Boolean(), nullable=True),
+        sa.Column("stochastic", sa.Boolean(), nullable=False),
         sa.Column(
             "icm_type",
             postgresql.ENUM("distributed", "point_process", name="icmtype", create_type=False),
-            nullable=True,
+            nullable=False,
         ),
         sa.Column("nmodl_parameters", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("name", sa.String(), nullable=False),

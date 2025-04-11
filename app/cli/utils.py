@@ -422,6 +422,8 @@ def import_ion_channel_model(  # noqa: PLR0914
 
     assert nmodl_parameters_validated  # noqa: S101
 
+    stochastic = script.get("name", "").lower().startswith("stoch")
+
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],
         legacy_self=[legacy_self],
@@ -438,6 +440,7 @@ def import_ion_channel_model(  # noqa: PLR0914
         update_date=updated_at,
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
+        stochastic=stochastic,
     )
 
     db.add(db_ion_channel_model)

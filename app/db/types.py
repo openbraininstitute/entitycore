@@ -85,3 +85,8 @@ class ValidationStatus(StrEnum):
     running = auto()
     done = auto()
     error = auto()
+
+
+class ICMType(StrEnum):
+    distributed = auto()
+    point_process = auto()

@@ -13,8 +13,6 @@ from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
     Agent,
     Contribution,
-    MorphologyFeatureAnnotation,
-    MorphologyMeasurement,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
@@ -52,8 +50,6 @@ def read_one(
         if expand and "morphology_feature_annotation" in expand:
             query = query.options(
                 joinedload(ReconstructionMorphology.morphology_feature_annotation)
-                .selectinload(MorphologyFeatureAnnotation.measurements)
-                .selectinload(MorphologyMeasurement.measurement_serie)
             )
 
         query = (

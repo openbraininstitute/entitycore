@@ -1,5 +1,4 @@
 import uuid
-from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
@@ -13,8 +12,7 @@ from app.schemas.base import (
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
-    MeasurementCreate,
-    MeasurementRead,
+    MeasurementGroup,
     PointLocationBase,
     SpeciesRead,
     StrainRead,
@@ -44,16 +42,17 @@ class ReconstructionMorphologyCreate(
 class MorphologyFeatureAnnotationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     reconstruction_morphology_id: uuid.UUID
+    measurements: list[MeasurementGroup]
 
 
 class MorphologyFeatureAnnotationCreate(MorphologyFeatureAnnotationBase):
-    measurements: Sequence[MeasurementCreate]
+    pass
 
 
 class MorphologyFeatureAnnotationRead(
     MorphologyFeatureAnnotationBase, CreationMixin, IdentifiableMixin
 ):
-    measurements: Sequence[MeasurementRead]
+    pass
 
 
 class ReconstructionMorphologyRead(

@@ -33,8 +33,6 @@ from app.db.model import (
     MEModel,
     Mesh,
     MorphologyFeatureAnnotation,
-    MorphologyMeasurement,
-    MorphologyMeasurementSerieElement,
     MTypeClass,
     MTypeClassification,
     Organization,
@@ -45,7 +43,7 @@ from app.db.model import (
 )
 from app.db.session import configure_database_session_manager
 from app.logger import L
-from app.schemas.base import PointLocationBase, ProjectContext
+from app.schemas.base import MeasurementGroup, PointLocationBase, ProjectContext
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -832,20 +830,25 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
 
             all_measurements = []
             for measurement in data.get("hasBody", []):
-                serie = ensurelist(measurement.get("value", {}).get("series", []))
+                series = ensurelist(measurement.get("value", {}).get("series", []))
 
-                measurement_serie = [
-                    MorphologyMeasurementSerieElement(
-                        name=serie_elem.get("statistic", None),
-                        value=serie_elem.get("value", None),
-                    )
-                    for serie_elem in serie
+                items = [
+                    {
+                        "name": item.get("statistic"),
+                        "value": item.get("value"),
+                        "unit": item.get("unitCode"),
+                    }
+                    for item in series
                 ]
 
                 all_measurements.append(
-                    MorphologyMeasurement(
-                        measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
-                        measurement_serie=measurement_serie,
+                    MeasurementGroup.model_validate(
+                        {
+                            "pref_label": measurement.get("isMeasurementOf", {}).get("prefLabel"),
+                            "label": measurement.get("isMeasurementOf", {}).get("label"),
+                            "compartment": measurement.get("compartment"),
+                            "items": items,
+                        }
                     )
                 )
 

@@ -1,5 +1,6 @@
 import uuid
 from typing import IO
+from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 
 import boto3
@@ -108,12 +109,16 @@ def generate_presigned_url(s3_client: S3Client, bucket_name: str, s3_key: str) -
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
     """
+    url = None
     try:
-        return s3_client.generate_presigned_url(
+        url = s3_client.generate_presigned_url(
             "get_object",
             Params={"Bucket": bucket_name, "Key": s3_key},
             ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
         )
+        if settings.S3_PRESIGNED_URL_NETLOC:
+            parsed = urlparse(url)
+            url = urlunparse(parsed._replace(netloc=settings.S3_PRESIGNED_URL_NETLOC))
     except Exception:  # noqa: BLE001
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
-    return None
+    return url

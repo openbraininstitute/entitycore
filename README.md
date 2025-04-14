@@ -60,7 +60,7 @@ aws s3 cp --no-sign-request s3://openbluebrain/Model_Data/Brain_atlas/Mouse/reso
 
 - Download the Nexus data (only metadata) from:
 ```
-https://openbraininstitute-my.sharepoint.com/:u:/g/personal/jean-denis_courcol_openbraininstitute_org/EVY7UqF-iHtFs1SmpWoykC4B5vdckmGWlM9OQTe8aTTqIA?e=dHJ9Os
+https://openbraininstitute.sharepoint.com/:u:/s/OpenBrainInstitute/EZATMPEZvN5CjHtL2c78U14BXsrey4ORBfupq5BvdVKJKg
 ```
 - Untar the downloaded file (`out.tar` or `out.tar.gz`) in a directory called `out`:
 

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar
 
 from sqlalchemy import (
@@ -23,11 +23,13 @@ from app.db.types import (
     JSON_DICT,
     STRING_LIST,
     AgentType,
+    AgePeriod,
     AnnotationBodyType,
     AssetStatus,
     EntityType,
     PointLocation,
     PointLocationType,
+    Sex,
     SingleNeuronSimulationStatus,
     ValidationStatus,
 )
@@ -99,11 +101,6 @@ class Strain(Identifiable):
         # needed for the composite foreign key in SpeciesMixin
         UniqueConstraint("id", "species_id", name="uq_strain_id_species_id"),
     )
-
-
-class Subject(Identifiable):
-    __tablename__ = "subject"
-    name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class License(LegacyMixin, Identifiable):
@@ -343,6 +340,28 @@ class Entity(LegacyMixin, Identifiable):
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
+
+
+class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
+    __tablename__ = EntityType.subject.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    age_value: Mapped[timedelta | None]
+    age_min: Mapped[timedelta | None]
+    age_max: Mapped[timedelta | None]
+    age_period: Mapped[AgePeriod | None]
+    sex: Mapped[Sex | None]
+    weight: Mapped[float | None]  # in grams
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):

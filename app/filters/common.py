@@ -4,8 +4,13 @@ from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
 
-from app.db.model import Agent, ETypeClass, MTypeClass, Species, Strain
+from app.db.model import Agent, ETypeClass, MTypeClass, Species, Strain, Subject
 from app.filters.base import CustomFilter
+
+
+class NameFilterMixin:
+    name: str | None = None
+    name__in: list[str] | None = None
 
 
 class MTypeClassFilter(CustomFilter):
@@ -32,10 +37,8 @@ class ETypeClassFilter(CustomFilter):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
 
 
-class SpeciesFilter(CustomFilter):
+class SpeciesFilter(NameFilterMixin, CustomFilter):
     id: uuid.UUID | None = None
-    name: str | None = None
-    name__in: list[str] | None = None
 
     order_by: list[str] = ["name"]  # noqa: RUF012
 
@@ -44,10 +47,8 @@ class SpeciesFilter(CustomFilter):
         ordering_model_fields = ["name"]  # noqa: RUF012
 
 
-class StrainFilter(CustomFilter):
+class StrainFilter(NameFilterMixin, CustomFilter):
     id: uuid.UUID | None = None
-    name: str | None = None
-    name__in: list[str] | None = None
 
     order_by: list[str] = ["name"]  # noqa: RUF012
 
@@ -88,3 +89,25 @@ NestedETypeClassFilterDep = FilterDepends(with_prefix("etype", ETypeClassFilter)
 NestedSpeciesFilterDep = FilterDepends(with_prefix("species", SpeciesFilter))
 NestedStrainFilterDep = FilterDepends(with_prefix("strain", StrainFilter))
 NestedAgentFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
+
+
+class SpeciesFilterMixin:
+    species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
+
+
+class ContributionFilterMixin:
+    contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
+
+
+class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin, CustomFilter):
+    id: uuid.UUID | None = None
+
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = Subject
+        ordering_model_fields = ["name"]  # noqa: RUF012
+
+
+SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
+NestedSubjectFilterDep = FilterDepends(with_prefix("subject", SubjectFilter))

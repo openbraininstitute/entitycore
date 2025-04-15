@@ -34,11 +34,8 @@ license = {text = "Apache-2.0"}
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-include = ["app"]
-
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "coverage[toml]",
     "httpx",
     "moto[s3]>=5.0.28",
@@ -52,6 +49,9 @@ dev-dependencies = [
     "types-cachetools>=5.5.0.20240820",
     "types-PyYAML",
 ]
+
+[tool.setuptools.packages.find]
+include = ["app"]
 
 [tool.ruff]
 line-length = 100

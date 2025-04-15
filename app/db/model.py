@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar
 
 from sqlalchemy import (
@@ -24,7 +24,6 @@ from app.db.types import (
     STRING_LIST,
     AgentType,
     AgePeriod,
-    AgeUnit,
     AnnotationBodyType,
     AssetStatus,
     ElectricalRecordingOrigin,
@@ -347,30 +346,15 @@ class Entity(LegacyMixin, Identifiable):
     }
 
 
-class Age(Identifiable):
-    __tablename__ = EntityType.age.value
-
-    value: Mapped[int | None]
-    min_value: Mapped[int | None]
-    max_value: Mapped[int | None]
-    unit: Mapped[AgeUnit]
-    period: Mapped[AgePeriod]
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-    __table_args__ = (
-        UniqueConstraint("id", "value", "min_value", "max_value", "unit", "period", name="uq_age"),
-    )
-
-
-class Subject(SpeciesMixin, Entity):
+class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.subject.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    age_id: Mapped[Age | None] = mapped_column(ForeignKey("age.id"))
-    age = relationship(Age, uselist=False, foreign_keys=[age_id])
-
+    age_value: Mapped[timedelta | None]
+    age_min: Mapped[timedelta | None]
+    age_max: Mapped[timedelta | None]
+    age_period: Mapped[AgePeriod | None]
     sex: Mapped[Sex | None]
-    weight: Mapped[float | None]
+    weight: Mapped[float | None]  # in grams
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

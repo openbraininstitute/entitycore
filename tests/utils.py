@@ -147,6 +147,25 @@ def check_missing(route, client):
     )
 
 
+def check_pagination(route, client, constructor_func):
+    for i in range(3):
+        constructor_func(
+            name=f"name-{i}",
+            description=f"description-{i}",
+        )
+
+    response = assert_request(
+        client.get,
+        url=route,
+        params={"page_size": 2},
+    )
+    response_json = response.json()
+    assert "facets" in response_json
+    assert "data" in response_json
+    assert response_json["facets"] is None
+    assert len(response_json["data"]) == 2
+
+
 def check_authorization(route, client_user_1, client_user_2, client_no_project, json_data):
     response = assert_request(
         client_user_1.post,
@@ -162,7 +181,7 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     inaccessible_obj = assert_request(
         client_user_2.post,
         url=route,
-        json=json_data | {"name": "inaccessable morphology 1"},
+        json=json_data | {"name": "inaccessible morphology 1"},
     )
     inaccessible_obj = inaccessible_obj.json()
 

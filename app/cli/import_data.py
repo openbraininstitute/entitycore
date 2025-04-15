@@ -671,8 +671,9 @@ class ImportElectricalCellRecording(Import):
             elif "SimulationTrace" in data["@type"]:
                 recording_origin = ElectricalRecordingOrigin.in_silico
             else:
-                breakpoint()
-                print()
+                recording_origin = ElectricalRecordingOrigin.unknown
+                msg = f"Trace type {data['@type']} has unknown origin."
+                L.warning(msg)
 
             db_item = ElectricalCellRecording(
                 legacy_id=[legacy_id],
@@ -683,7 +684,7 @@ class ImportElectricalCellRecording(Import):
                 brain_region_id=brain_region_id,
                 subject_id=subject_id,
                 license_id=license_id,
-                recording_type=ElectricalRecordingType.unknown,
+                recording_type=ElectricalRecordingType.intracellular,
                 recording_location=[],
                 recording_origin=recording_origin,
                 creation_date=createdAt,
@@ -1164,7 +1165,7 @@ def organize_files(digest_path):
             ignored.pop(digest, None)
             if not dst.exists():
                 src = Path(src_paths[digest]).resolve()
-                assert src.exists()
+                assert src.exists(), f"src path doens't exist: {src}"
                 dst = Path(row.full_path)
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 dst.symlink_to(src)

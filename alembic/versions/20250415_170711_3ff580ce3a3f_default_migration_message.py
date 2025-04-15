@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 81e16061fc56
+Revision ID: 3ff580ce3a3f
 Revises:
-Create Date: 2025-04-10 11:50:08.729162
+Create Date: 2025-04-15 17:07:11.567314
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "81e16061fc56"
+revision: str = "3ff580ce3a3f"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -35,11 +35,15 @@ def upgrade() -> None:
         "intracellular", "extracellular", "both", "unknown", name="electricalrecordingtype"
     ).create(op.get_bind())
     sa.Enum(
+        "cheops",
+        "constant",
+        "pulse",
         "step",
         "ramp",
         "noise",
         "sinusoidal",
         "other",
+        "two_steps",
         "unknown",
         name="electricalrecordingstimulusshape",
     ).create(op.get_bind())
@@ -55,9 +59,8 @@ def upgrade() -> None:
     sa.Enum(
         "created", "initialized", "running", "done", "error", name="me_model_validation_status"
     ).create(op.get_bind())
-    sa.Enum("male", "female", name="sex").create(op.get_bind())
-    sa.Enum("pre_natal", "post_natal", name="ageperiod").create(op.get_bind())
-    sa.Enum("days", "weeks", "years", name="ageunit").create(op.get_bind())
+    sa.Enum("male", "female", "unknown", name="sex").create(op.get_bind())
+    sa.Enum("prenatal", "postnatal", "unknown", name="ageperiod").create(op.get_bind())
     sa.Enum(
         "age",
         "analysis_software_source_code",
@@ -406,25 +409,6 @@ def upgrade() -> None:
     op.create_index(op.f("ix_strain_name"), "strain", ["name"], unique=True)
     op.create_index(op.f("ix_strain_species_id"), "strain", ["species_id"], unique=False)
     op.create_index(op.f("ix_strain_taxonomy_id"), "strain", ["taxonomy_id"], unique=True)
-    op.create_table(
-        "age",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("value", sa.Integer(), nullable=True),
-        sa.Column("min_value", sa.Integer(), nullable=True),
-        sa.Column("max_value", sa.Integer(), nullable=True),
-        sa.Column(
-            "unit",
-            postgresql.ENUM("days", "weeks", "years", name="ageunit", create_type=False),
-            nullable=False,
-        ),
-        sa.Column(
-            "period",
-            postgresql.ENUM("pre_natal", "post_natal", name="ageperiod", create_type=False),
-            nullable=False,
-        ),
-        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_age_id_entity")),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_age")),
-    )
     op.create_table(
         "analysis_software_source_code",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -1018,100 +1002,29 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_table(
-        "emodel",
+        "subject",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("eModel", sa.String(), nullable=False),
-        sa.Column("eType", sa.String(), nullable=False),
-        sa.Column("iteration", sa.String(), nullable=False),
-        sa.Column("score", sa.Float(), nullable=False),
-        sa.Column("seed", sa.Integer(), nullable=False),
-        sa.Column("exemplar_morphology_id", sa.Uuid(), nullable=False),
-        sa.Column("species_id", sa.Uuid(), nullable=False),
-        sa.Column("strain_id", sa.Uuid(), nullable=True),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("age_value", sa.Interval(), nullable=True),
+        sa.Column("age_min", sa.Interval(), nullable=True),
+        sa.Column("age_max", sa.Interval(), nullable=True),
+        sa.Column(
+            "age_period",
+            postgresql.ENUM(
+                "prenatal", "postnatal", "unknown", name="ageperiod", create_type=False
+            ),
+            nullable=True,
+        ),
+        sa.Column(
+            "sex",
+            postgresql.ENUM("male", "female", "unknown", name="sex", create_type=False),
+            nullable=True,
+        ),
+        sa.Column("weight", sa.Float(), nullable=True),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-            name=op.f("fk_emodel_brain_region_id_brain_region"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["exemplar_morphology_id"],
-            ["reconstruction_morphology.id"],
-            name=op.f("fk_emodel_exemplar_morphology_id_reconstruction_morphology"),
-        ),
-        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_emodel_id_entity")),
-        sa.ForeignKeyConstraint(
-            ["species_id"], ["species.id"], name=op.f("fk_emodel_species_id_species")
-        ),
-        sa.ForeignKeyConstraint(
-            ["strain_id", "species_id"],
-            ["strain.id", "strain.species_id"],
-            name="fk_emodel_strain_id_species_id",
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_emodel")),
-    )
-    op.create_index(op.f("ix_emodel_brain_region_id"), "emodel", ["brain_region_id"], unique=False)
-    op.create_index(
-        "ix_emodel_description_vector",
-        "emodel",
-        ["description_vector"],
-        unique=False,
-        postgresql_using="gin",
-    )
-    op.create_index(op.f("ix_emodel_name"), "emodel", ["name"], unique=False)
-    op.create_index(op.f("ix_emodel_species_id"), "emodel", ["species_id"], unique=False)
-    op.create_index(op.f("ix_emodel_strain_id"), "emodel", ["strain_id"], unique=False)
-    op.create_table(
-        "morphology_feature_annotation",
-        sa.Column("reconstruction_morphology_id", sa.Uuid(), nullable=False),
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "creation_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "update_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.ForeignKeyConstraint(
-            ["reconstruction_morphology_id"],
-            ["reconstruction_morphology.id"],
-            name=op.f(
-                "fk_morphology_feature_annotation_reconstruction_morphology_id_reconstruction_morphology"
-            ),
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_morphology_feature_annotation")),
-    )
-    op.create_index(
-        op.f("ix_morphology_feature_annotation_creation_date"),
-        "morphology_feature_annotation",
-        ["creation_date"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_morphology_feature_annotation_reconstruction_morphology_id"),
-        "morphology_feature_annotation",
-        ["reconstruction_morphology_id"],
-        unique=True,
-    )
-    op.create_table(
-        "subject",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("age_id", sa.Uuid(), nullable=True),
-        sa.Column(
-            "sex", postgresql.ENUM("male", "female", name="sex", create_type=False), nullable=True
-        ),
-        sa.Column("weight", sa.Float(), nullable=True),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
-        sa.ForeignKeyConstraint(["age_id"], ["age.id"], name=op.f("fk_subject_age_id_age")),
         sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_subject_id_entity")),
         sa.ForeignKeyConstraint(
             ["species_id"], ["species.id"], name=op.f("fk_subject_species_id_species")
@@ -1123,6 +1036,14 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_subject")),
     )
+    op.create_index(
+        "ix_subject_description_vector",
+        "subject",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_subject_name"), "subject", ["name"], unique=False)
     op.create_index(op.f("ix_subject_species_id"), "subject", ["species_id"], unique=False)
     op.create_index(op.f("ix_subject_strain_id"), "subject", ["strain_id"], unique=False)
     op.create_table(
@@ -1213,6 +1134,196 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_table(
+        "emodel",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("eModel", sa.String(), nullable=False),
+        sa.Column("eType", sa.String(), nullable=False),
+        sa.Column("iteration", sa.String(), nullable=False),
+        sa.Column("score", sa.Float(), nullable=False),
+        sa.Column("seed", sa.Integer(), nullable=False),
+        sa.Column("exemplar_morphology_id", sa.Uuid(), nullable=False),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["brain_region_id"],
+            ["brain_region.id"],
+            name=op.f("fk_emodel_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["exemplar_morphology_id"],
+            ["reconstruction_morphology.id"],
+            name=op.f("fk_emodel_exemplar_morphology_id_reconstruction_morphology"),
+        ),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_emodel_id_entity")),
+        sa.ForeignKeyConstraint(
+            ["species_id"], ["species.id"], name=op.f("fk_emodel_species_id_species")
+        ),
+        sa.ForeignKeyConstraint(
+            ["strain_id", "species_id"],
+            ["strain.id", "strain.species_id"],
+            name="fk_emodel_strain_id_species_id",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_emodel")),
+    )
+    op.create_index(op.f("ix_emodel_brain_region_id"), "emodel", ["brain_region_id"], unique=False)
+    op.create_index(
+        "ix_emodel_description_vector",
+        "emodel",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_emodel_name"), "emodel", ["name"], unique=False)
+    op.create_index(op.f("ix_emodel_species_id"), "emodel", ["species_id"], unique=False)
+    op.create_index(op.f("ix_emodel_strain_id"), "emodel", ["strain_id"], unique=False)
+    op.create_table(
+        "morphology_feature_annotation",
+        sa.Column("reconstruction_morphology_id", sa.Uuid(), nullable=False),
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column(
+            "creation_date",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "update_date",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["reconstruction_morphology_id"],
+            ["reconstruction_morphology.id"],
+            name=op.f(
+                "fk_morphology_feature_annotation_reconstruction_morphology_id_reconstruction_morphology"
+            ),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_morphology_feature_annotation")),
+    )
+    op.create_index(
+        op.f("ix_morphology_feature_annotation_creation_date"),
+        "morphology_feature_annotation",
+        ["creation_date"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_morphology_feature_annotation_reconstruction_morphology_id"),
+        "morphology_feature_annotation",
+        ["reconstruction_morphology_id"],
+        unique=True,
+    )
+    op.create_table(
+        "sub_cellular_model_script",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("temperature", sa.Float(), nullable=True),
+        sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
+        sa.Column("is_ljp_corrected", sa.Boolean(), nullable=False),
+        sa.Column("is_stochastic", sa.Boolean(), nullable=False),
+        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("subject_id", sa.Uuid(), nullable=True),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["brain_region_id"],
+            ["brain_region.id"],
+            name=op.f("fk_sub_cellular_model_script_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["id"], ["entity.id"], name=op.f("fk_sub_cellular_model_script_id_entity")
+        ),
+        sa.ForeignKeyConstraint(
+            ["license_id"],
+            ["license.id"],
+            name=op.f("fk_sub_cellular_model_script_license_id_license"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["subject_id"],
+            ["subject.id"],
+            name=op.f("fk_sub_cellular_model_script_subject_id_subject"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_sub_cellular_model_script")),
+    )
+    op.create_index(
+        op.f("ix_sub_cellular_model_script_brain_region_id"),
+        "sub_cellular_model_script",
+        ["brain_region_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_sub_cellular_model_script_license_id"),
+        "sub_cellular_model_script",
+        ["license_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_sub_cellular_model_script_subject_id"),
+        "sub_cellular_model_script",
+        ["subject_id"],
+        unique=False,
+    )
+    op.create_table(
+        "electrical_recording_stimulus",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("dt", sa.Float(), nullable=True),
+        sa.Column(
+            "injection_type",
+            postgresql.ENUM(
+                "voltage_clamp",
+                "current_clamp",
+                "conductance_clamp",
+                "extracellular",
+                "other",
+                "unknown",
+                name="electricalrecordingstimulustype",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column(
+            "shape",
+            postgresql.ENUM(
+                "cheops",
+                "constant",
+                "pulse",
+                "step",
+                "ramp",
+                "noise",
+                "sinusoidal",
+                "other",
+                "two_steps",
+                "unknown",
+                name="electricalrecordingstimulusshape",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column("start_time", sa.Float(), nullable=True),
+        sa.Column("end_time", sa.Float(), nullable=True),
+        sa.Column("recording_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["id"], ["entity.id"], name=op.f("fk_electrical_recording_stimulus_id_entity")
+        ),
+        sa.ForeignKeyConstraint(
+            ["recording_id"],
+            ["electrical_cell_recording.id"],
+            name=op.f("fk_electrical_recording_stimulus_recording_id_electrical_cell_recording"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_electrical_recording_stimulus")),
+    )
+    op.create_index(
+        op.f("ix_electrical_recording_stimulus_recording_id"),
+        "electrical_recording_stimulus",
+        ["recording_id"],
+        unique=False,
+    )
+    op.create_table(
         "measurement",
         sa.Column("id", sa.BigInteger(), sa.Identity(always=False), nullable=False),
         sa.Column("measurement_of", sa.String(), nullable=False),
@@ -1296,108 +1407,6 @@ def upgrade() -> None:
     op.create_index(op.f("ix_memodel_name"), "memodel", ["name"], unique=False)
     op.create_index(op.f("ix_memodel_species_id"), "memodel", ["species_id"], unique=False)
     op.create_index(op.f("ix_memodel_strain_id"), "memodel", ["strain_id"], unique=False)
-    op.create_table(
-        "sub_cellular_model_script",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("temperature", sa.Float(), nullable=True),
-        sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
-        sa.Column("is_ljp_corrected", sa.Boolean(), nullable=False),
-        sa.Column("is_stochastic", sa.Boolean(), nullable=False),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("subject_id", sa.Uuid(), nullable=True),
-        sa.Column("license_id", sa.Uuid(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-            name=op.f("fk_sub_cellular_model_script_brain_region_id_brain_region"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["id"], ["entity.id"], name=op.f("fk_sub_cellular_model_script_id_entity")
-        ),
-        sa.ForeignKeyConstraint(
-            ["license_id"],
-            ["license.id"],
-            name=op.f("fk_sub_cellular_model_script_license_id_license"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["subject_id"],
-            ["subject.id"],
-            name=op.f("fk_sub_cellular_model_script_subject_id_subject"),
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_sub_cellular_model_script")),
-    )
-    op.create_index(
-        op.f("ix_sub_cellular_model_script_brain_region_id"),
-        "sub_cellular_model_script",
-        ["brain_region_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_sub_cellular_model_script_license_id"),
-        "sub_cellular_model_script",
-        ["license_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_sub_cellular_model_script_subject_id"),
-        "sub_cellular_model_script",
-        ["subject_id"],
-        unique=False,
-    )
-    op.create_table(
-        "electrical_recording_stimulus",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("dt", sa.Float(), nullable=True),
-        sa.Column(
-            "injection_type",
-            postgresql.ENUM(
-                "voltage_clamp",
-                "current_clamp",
-                "conductance_clamp",
-                "extracellular",
-                "other",
-                "unknown",
-                name="electricalrecordingstimulustype",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
-        sa.Column(
-            "shape",
-            postgresql.ENUM(
-                "step",
-                "ramp",
-                "noise",
-                "sinusoidal",
-                "other",
-                "unknown",
-                name="electricalrecordingstimulusshape",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
-        sa.Column("start_time", sa.Float(), nullable=True),
-        sa.Column("end_time", sa.Float(), nullable=True),
-        sa.Column("recording_id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["id"], ["entity.id"], name=op.f("fk_electrical_recording_stimulus_id_entity")
-        ),
-        sa.ForeignKeyConstraint(
-            ["recording_id"],
-            ["electrical_cell_recording.id"],
-            name=op.f("fk_electrical_recording_stimulus_recording_id_electrical_cell_recording"),
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_electrical_recording_stimulus")),
-    )
-    op.create_index(
-        op.f("ix_electrical_recording_stimulus_recording_id"),
-        "electrical_recording_stimulus",
-        ["recording_id"],
-        unique=False,
-    )
     op.create_table(
         "measurement_serie_element",
         sa.Column("id", sa.BigInteger(), sa.Identity(always=False), nullable=False),
@@ -1637,6 +1646,15 @@ def downgrade() -> None:
         op.f("ix_measurement_serie_element_measurement_id"), table_name="measurement_serie_element"
     )
     op.drop_table("measurement_serie_element")
+    op.drop_index(op.f("ix_memodel_strain_id"), table_name="memodel")
+    op.drop_index(op.f("ix_memodel_species_id"), table_name="memodel")
+    op.drop_index(op.f("ix_memodel_name"), table_name="memodel")
+    op.drop_index("ix_memodel_description_vector", table_name="memodel", postgresql_using="gin")
+    op.drop_index(op.f("ix_memodel_brain_region_id"), table_name="memodel")
+    op.drop_table("memodel")
+    op.drop_index(op.f("ix_measurement_morphology_feature_annotation_id"), table_name="measurement")
+    op.drop_index(op.f("ix_measurement_measurement_of"), table_name="measurement")
+    op.drop_table("measurement")
     op.drop_index(
         op.f("ix_electrical_recording_stimulus_recording_id"),
         table_name="electrical_recording_stimulus",
@@ -1652,15 +1670,21 @@ def downgrade() -> None:
         op.f("ix_sub_cellular_model_script_brain_region_id"), table_name="sub_cellular_model_script"
     )
     op.drop_table("sub_cellular_model_script")
-    op.drop_index(op.f("ix_memodel_strain_id"), table_name="memodel")
-    op.drop_index(op.f("ix_memodel_species_id"), table_name="memodel")
-    op.drop_index(op.f("ix_memodel_name"), table_name="memodel")
-    op.drop_index("ix_memodel_description_vector", table_name="memodel", postgresql_using="gin")
-    op.drop_index(op.f("ix_memodel_brain_region_id"), table_name="memodel")
-    op.drop_table("memodel")
-    op.drop_index(op.f("ix_measurement_morphology_feature_annotation_id"), table_name="measurement")
-    op.drop_index(op.f("ix_measurement_measurement_of"), table_name="measurement")
-    op.drop_table("measurement")
+    op.drop_index(
+        op.f("ix_morphology_feature_annotation_reconstruction_morphology_id"),
+        table_name="morphology_feature_annotation",
+    )
+    op.drop_index(
+        op.f("ix_morphology_feature_annotation_creation_date"),
+        table_name="morphology_feature_annotation",
+    )
+    op.drop_table("morphology_feature_annotation")
+    op.drop_index(op.f("ix_emodel_strain_id"), table_name="emodel")
+    op.drop_index(op.f("ix_emodel_species_id"), table_name="emodel")
+    op.drop_index(op.f("ix_emodel_name"), table_name="emodel")
+    op.drop_index("ix_emodel_description_vector", table_name="emodel", postgresql_using="gin")
+    op.drop_index(op.f("ix_emodel_brain_region_id"), table_name="emodel")
+    op.drop_table("emodel")
     op.drop_index(
         op.f("ix_electrical_cell_recording_subject_id"), table_name="electrical_cell_recording"
     )
@@ -1679,22 +1703,9 @@ def downgrade() -> None:
     op.drop_table("electrical_cell_recording")
     op.drop_index(op.f("ix_subject_strain_id"), table_name="subject")
     op.drop_index(op.f("ix_subject_species_id"), table_name="subject")
+    op.drop_index(op.f("ix_subject_name"), table_name="subject")
+    op.drop_index("ix_subject_description_vector", table_name="subject", postgresql_using="gin")
     op.drop_table("subject")
-    op.drop_index(
-        op.f("ix_morphology_feature_annotation_reconstruction_morphology_id"),
-        table_name="morphology_feature_annotation",
-    )
-    op.drop_index(
-        op.f("ix_morphology_feature_annotation_creation_date"),
-        table_name="morphology_feature_annotation",
-    )
-    op.drop_table("morphology_feature_annotation")
-    op.drop_index(op.f("ix_emodel_strain_id"), table_name="emodel")
-    op.drop_index(op.f("ix_emodel_species_id"), table_name="emodel")
-    op.drop_index(op.f("ix_emodel_name"), table_name="emodel")
-    op.drop_index("ix_emodel_description_vector", table_name="emodel", postgresql_using="gin")
-    op.drop_index(op.f("ix_emodel_brain_region_id"), table_name="emodel")
-    op.drop_table("emodel")
     op.drop_index(
         op.f("ix_reconstruction_morphology_strain_id"), table_name="reconstruction_morphology"
     )
@@ -1825,7 +1836,6 @@ def downgrade() -> None:
         postgresql_using="gin",
     )
     op.drop_table("analysis_software_source_code")
-    op.drop_table("age")
     op.drop_index(op.f("ix_strain_taxonomy_id"), table_name="strain")
     op.drop_index(op.f("ix_strain_species_id"), table_name="strain")
     op.drop_index(op.f("ix_strain_name"), table_name="strain")
@@ -1895,9 +1905,8 @@ def downgrade() -> None:
         "subject",
         name="entitytype",
     ).drop(op.get_bind())
-    sa.Enum("days", "weeks", "years", name="ageunit").drop(op.get_bind())
-    sa.Enum("pre_natal", "post_natal", name="ageperiod").drop(op.get_bind())
-    sa.Enum("male", "female", name="sex").drop(op.get_bind())
+    sa.Enum("prenatal", "postnatal", "unknown", name="ageperiod").drop(op.get_bind())
+    sa.Enum("male", "female", "unknown", name="sex").drop(op.get_bind())
     sa.Enum(
         "created", "initialized", "running", "done", "error", name="me_model_validation_status"
     ).drop(op.get_bind())
@@ -1911,11 +1920,15 @@ def downgrade() -> None:
         name="electricalrecordingstimulustype",
     ).drop(op.get_bind())
     sa.Enum(
+        "cheops",
+        "constant",
+        "pulse",
         "step",
         "ramp",
         "noise",
         "sinusoidal",
         "other",
+        "two_steps",
         "unknown",
         name="electricalrecordingstimulusshape",
     ).drop(op.get_bind())

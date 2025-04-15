@@ -100,6 +100,7 @@ class ValidationStatus(StrEnum):
 class Sex(StrEnum):
     male = auto()
     female = auto()
+    unknown = auto()
 
 
 class ElectricalRecordingType(StrEnum):
@@ -138,12 +139,7 @@ class ElectricalRecordingOrigin(StrEnum):
     unknown = auto()
 
 
-class AgeUnit(StrEnum):
-    days = auto()
-    weeks = auto()
-    years = auto()
-
-
 class AgePeriod(StrEnum):
     prenatal = auto()
     postnatal = auto()
+    unknown = auto()

@@ -27,6 +27,7 @@ from app.routers import (
     single_neuron_synaptome_simulation,
     species,
     strain,
+    subject,
 )
 
 router = APIRouter()
@@ -55,6 +56,7 @@ authenticated_routers = [
     single_neuron_synaptome_simulation.router,
     species.router,
     strain.router,
+    subject.router,
 ]
 for r in authenticated_routers:
     router.include_router(r, dependencies=[Depends(user_verified)])

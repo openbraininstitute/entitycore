@@ -45,7 +45,6 @@ def test_ensure_uniqueness(db):
         id=MISSING_ID, name="Test License", description="a license description", label="test label"
     )
     db.execute(query)
-
     with (
         pytest.raises(test_module.ApiError) as exc_info,
         test_module.ensure_uniqueness(error_message="Custom error"),

@@ -16,3 +16,5 @@ out.tar
 out.tar.gz
 mba_hierarchy.json
 notes.md
+public/**
+download

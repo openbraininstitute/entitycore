@@ -1,15 +1,15 @@
 import datetime
 import uuid
+from datetime import timedelta
 from typing import Any, Literal
 
 import sqlalchemy as sa
-from sqlalchemy import and_, any_
+from sqlalchemy import any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
 from app.cli.mappings import STIMULUS_INFO
 from app.db.model import (
-    Age,
     Agent,
     Asset,
     BrainRegion,
@@ -22,7 +22,7 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import AssetStatus, EntityType
+from app.db.types import AssetStatus, EntityType, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.utils.s3 import build_s3_path
@@ -202,16 +202,21 @@ def get_or_create_subject(data, project_context, db):
     if strain:
         strain_id = get_or_create_strain(strain, species_id, db)
 
-    age_id = None
+    age_fields = {}
     if age := data.get("subject", {}).get("age", {}):
-        age_id = get_or_create_age(age, db)
+        age_fields = curate_age(age)
 
     subject = Subject(
-        age_id=age_id,
+        name=data["name"],
+        description=data["description"],
         species_id=species_id,
         strain_id=strain_id,
-        sex=None,
+        sex=Sex.unknown,
         weight=None,
+        age_value=age_fields.get("age_value", None),
+        age_min=age_fields.get("age_min", None),
+        age_max=age_fields.get("age_max", None),
+        age_period=age_fields.get("age_period", None),
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
     )
@@ -220,12 +225,16 @@ def get_or_create_subject(data, project_context, db):
     return subject.id
 
 
-def get_or_create_age(data, db):
+def curate_age(data):
     min_value = data.get("minValue", None)
     max_value = data.get("maxValue", None)
     unit = data.get("unitCode", None)
     period = data.get("period", None)
     value = data.get("value", None)
+
+    value = timedelta(**{unit: value}) if value is not None else None
+    min_value = timedelta(**{unit: min_value}) if min_value is not None else None
+    max_value = timedelta(**{unit: max_value}) if max_value is not None else None
 
     if period.lower() == "post-natal":
         period = "postnatal"
@@ -235,33 +244,12 @@ def get_or_create_age(data, db):
         msg = f"Unknown 'period' in Age: {data}"
         L.warning(msg)
 
-    existing = (
-        db.query(Age)
-        .where(
-            and_(
-                Age.value == value,
-                Age.min_value == min_value,
-                Age.max_value == max_value,
-                Age.period == period,
-                Age.unit == unit,
-            )
-        )
-        .first()
-    )
-
-    if existing:
-        return existing.id
-
-    age = Age(
-        value=value,
-        min_value=min_value,
-        max_value=max_value,
-        unit=unit,
-        period=period,
-    )
-    db.add(age)
-    db.commit()
-    return age.id
+    return {
+        "age_value": value,
+        "age_min": min_value,
+        "age_max": max_value,
+        "age_period": period,
+    }
 
 
 def get_license_mixin(data, db):

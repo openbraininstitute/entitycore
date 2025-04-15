@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: ac470745d0be
+Revision ID: a0fe22dcf73d
 Revises:
-Create Date: 2025-04-10 23:51:43.713812
+Create Date: 2025-04-15 18:03:27.291103
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "ac470745d0be"
+revision: str = "a0fe22dcf73d"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -42,6 +42,8 @@ def upgrade() -> None:
     sa.Enum(
         "created", "initialized", "running", "done", "error", name="me_model_validation_status"
     ).create(op.get_bind())
+    sa.Enum("male", "female", "unknown", name="sex").create(op.get_bind())
+    sa.Enum("prenatal", "postnatal", "unknown", name="ageperiod").create(op.get_bind())
     sa.Enum(
         "analysis_software_source_code",
         "emodel",
@@ -55,6 +57,7 @@ def upgrade() -> None:
         "single_neuron_simulation",
         "single_neuron_synaptome",
         "single_neuron_synaptome_simulation",
+        "subject",
         "synaptic_pathway",
         name="entitytype",
     ).create(op.get_bind())
@@ -272,26 +275,6 @@ def upgrade() -> None:
     op.create_index(op.f("ix_species_name"), "species", ["name"], unique=True)
     op.create_index(op.f("ix_species_taxonomy_id"), "species", ["taxonomy_id"], unique=True)
     op.create_table(
-        "subject",
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "creation_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "update_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_subject")),
-    )
-    op.create_index(op.f("ix_subject_creation_date"), "subject", ["creation_date"], unique=False)
-    op.create_index(op.f("ix_subject_name"), "subject", ["name"], unique=True)
-    op.create_table(
         "datamaturity_annotation_body",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pref_label", sa.String(), nullable=False),
@@ -325,6 +308,7 @@ def upgrade() -> None:
                 "single_neuron_simulation",
                 "single_neuron_synaptome",
                 "single_neuron_synaptome_simulation",
+                "subject",
                 "synaptic_pathway",
                 name="entitytype",
                 create_type=False,
@@ -1033,6 +1017,51 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_table(
+        "subject",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("age_value", sa.Interval(), nullable=True),
+        sa.Column("age_min", sa.Interval(), nullable=True),
+        sa.Column("age_max", sa.Interval(), nullable=True),
+        sa.Column(
+            "age_period",
+            postgresql.ENUM(
+                "prenatal", "postnatal", "unknown", name="ageperiod", create_type=False
+            ),
+            nullable=True,
+        ),
+        sa.Column(
+            "sex",
+            postgresql.ENUM("male", "female", "unknown", name="sex", create_type=False),
+            nullable=True,
+        ),
+        sa.Column("weight", sa.Float(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_subject_id_entity")),
+        sa.ForeignKeyConstraint(
+            ["species_id"], ["species.id"], name=op.f("fk_subject_species_id_species")
+        ),
+        sa.ForeignKeyConstraint(
+            ["strain_id", "species_id"],
+            ["strain.id", "strain.species_id"],
+            name="fk_subject_strain_id_species_id",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_subject")),
+    )
+    op.create_index(
+        "ix_subject_description_vector",
+        "subject",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_subject_name"), "subject", ["name"], unique=False)
+    op.create_index(op.f("ix_subject_species_id"), "subject", ["species_id"], unique=False)
+    op.create_index(op.f("ix_subject_strain_id"), "subject", ["strain_id"], unique=False)
+    op.create_table(
         "synaptic_pathway",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pre_mtype_id", sa.Uuid(), nullable=False),
@@ -1642,6 +1671,11 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_synaptic_pathway_post_region_id"), table_name="synaptic_pathway")
     op.drop_index(op.f("ix_synaptic_pathway_post_mtype_id"), table_name="synaptic_pathway")
     op.drop_table("synaptic_pathway")
+    op.drop_index(op.f("ix_subject_strain_id"), table_name="subject")
+    op.drop_index(op.f("ix_subject_species_id"), table_name="subject")
+    op.drop_index(op.f("ix_subject_name"), table_name="subject")
+    op.drop_index("ix_subject_description_vector", table_name="subject", postgresql_using="gin")
+    op.drop_table("subject")
     op.drop_index(
         op.f("ix_single_cell_experimental_trace_strain_id"),
         table_name="single_cell_experimental_trace",
@@ -1790,9 +1824,6 @@ def downgrade() -> None:
         table_name="datamaturity_annotation_body",
     )
     op.drop_table("datamaturity_annotation_body")
-    op.drop_index(op.f("ix_subject_name"), table_name="subject")
-    op.drop_index(op.f("ix_subject_creation_date"), table_name="subject")
-    op.drop_table("subject")
     op.drop_index(op.f("ix_species_taxonomy_id"), table_name="species")
     op.drop_index(op.f("ix_species_name"), table_name="species")
     op.drop_index(op.f("ix_species_creation_date"), table_name="species")
@@ -1840,9 +1871,12 @@ def downgrade() -> None:
         "single_neuron_simulation",
         "single_neuron_synaptome",
         "single_neuron_synaptome_simulation",
+        "subject",
         "synaptic_pathway",
         name="entitytype",
     ).drop(op.get_bind())
+    sa.Enum("prenatal", "postnatal", "unknown", name="ageperiod").drop(op.get_bind())
+    sa.Enum("male", "female", "unknown", name="sex").drop(op.get_bind())
     sa.Enum(
         "created", "initialized", "running", "done", "error", name="me_model_validation_status"
     ).drop(op.get_bind())

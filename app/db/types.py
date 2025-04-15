@@ -119,11 +119,15 @@ class ElectricalRecordingStimulusType(StrEnum):
 
 
 class ElectricalRecordingStimulusShape(StrEnum):
+    cheops = auto()
+    constant = auto()
+    pulse = auto()
     step = auto()
     ramp = auto()
     noise = auto()
     sinusoidal = auto()
     other = auto()
+    two_steps = auto()
     unknown = auto()
 
 

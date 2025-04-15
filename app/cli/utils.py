@@ -7,6 +7,7 @@ from sqlalchemy import and_, any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
+from app.cli.mappings import STIMULUS_INFO
 from app.db.model import (
     Age,
     Agent,
@@ -14,7 +15,6 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     ElectricalRecordingStimulus,
-    ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     License,
     Role,
@@ -84,12 +84,14 @@ def get_or_create_species(species, db, _cache={}):
 
 
 def create_stimulus(data, entity_id, project_context, db):
+    label = data["label"]
+
     row = ElectricalRecordingStimulus(
-        name=data["label"],
+        name=label,
         description=data.get("definition", None),
         dt=None,
         injection_type=ElectricalRecordingStimulusType.unknown,
-        shape=ElectricalRecordingStimulusShape.unknown,
+        shape=STIMULUS_INFO[label]["shape"],
         start_time=None,
         end_time=None,
         recording_id=entity_id,

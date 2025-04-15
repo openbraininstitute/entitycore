@@ -48,7 +48,7 @@ from app.db.session import configure_database_session_manager
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.db.types import PointLocationBase
-from app.db.types import ElectricalRecordingType
+from app.db.types import ElectricalRecordingType, ElectricalRecordingOrigin
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -666,6 +666,14 @@ class ImportElectricalCellRecording(Import):
             age = data.get("subject", {}).get("age", {}).get("value", None)
             comment = data.get("note", None)
 
+            if "ExperimentalTrace" in data["@type"]:
+                recording_origin = ElectricalRecordingOrigin.in_vitro
+            elif "SimulationTrace" in data["@type"]:
+                recording_origin = ElectricalRecordingOrigin.in_silico
+            else:
+                breakpoint()
+                print()
+
             db_item = ElectricalCellRecording(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
@@ -677,7 +685,7 @@ class ImportElectricalCellRecording(Import):
                 license_id=license_id,
                 recording_type=ElectricalRecordingType.unknown,
                 recording_location=[],
-                recording_origin="unknown",
+                recording_origin=recording_origin,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -995,9 +1003,9 @@ def _do_import(db, input_dir, project_context):
         # ImportExperimentalBoutonDensity,
         # ImportExperimentalSynapsesPerConnection,
         ImportElectricalCellRecording,
-        ImportSingleNeuronSimulation,
-        ImportDistribution,
-        ImportNeuronMorphologyFeatureAnnotation,
+        # ImportSingleNeuronSimulation,
+        # ImportDistribution,
+        # ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:

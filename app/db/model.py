@@ -4,7 +4,6 @@ from typing import ClassVar
 
 from sqlalchemy import (
     BigInteger,
-    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
@@ -22,7 +21,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 from app.db.types import (
     BIGINT,
     JSON_DICT,
-    MEASUREMENT_UNITS,
     STRING_LIST,
     AgentType,
     AgePeriod,
@@ -30,6 +28,7 @@ from app.db.types import (
     AssetStatus,
     EntityType,
     MeasurementStatistic,
+    MeasurementUnit,
     PointLocation,
     PointLocationType,
     Sex,
@@ -565,16 +564,11 @@ class Measurement(Base):
 
     id: Mapped[BigInteger] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[MeasurementStatistic]
-    unit: Mapped[str]
+    unit: Mapped[MeasurementUnit] = mapped_column(
+        Enum(MeasurementUnit, native_enum=False, values_callable=lambda e: [x.value for x in e])
+    )
     value: Mapped[float]
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-
-    __table_args__ = (
-        CheckConstraint(
-            f"unit IN ({', '.join("'{unit}'" for unit in MEASUREMENT_UNITS.values())})",
-            name="valid_unit_check",
-        ),
-    )
 
 
 class MeasurementsMixin:
@@ -594,7 +588,7 @@ class ExperimentalNeuronDensity(
     MTypesMixin,
     ETypesMixin,
     LocationMixin,
-    SpeciesMixin,
+    SubjectMixin,
     LicensedMixin,
     Entity,
 ):
@@ -637,8 +631,8 @@ class ExperimentalBoutonDensity(
     MeasurementsMixin,
     MTypesMixin,
     LocationMixin,
-    SpeciesMixin,
     LicensedMixin,
+    SubjectMixin,
     Entity,
 ):
     __tablename__ = EntityType.experimental_bouton_density.value
@@ -651,7 +645,7 @@ class ExperimentalSynapsesPerConnection(
     MeasurementsMixin,
     MTypesMixin,
     LocationMixin,
-    SpeciesMixin,
+    SubjectMixin,
     LicensedMixin,
     Entity,
 ):

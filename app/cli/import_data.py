@@ -49,7 +49,7 @@ from app.db.session import configure_database_session_manager
 from app.logger import L
 from app.db.types import PointLocationBase
 from app.schemas.base import ProjectContext
-from app.db.types import MEASUREMENT_UNITS, MeasurementStatistic
+from app.db.types import MeasurementStatistic, MeasurementUnit
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -913,6 +913,9 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
 
         license_id = utils.get_license_mixin(data, db)
         species_id, strain_id = utils.get_species_mixin(data, db)
+
+        subject_id = utils.get_or_create_subject(data, project_context, db)
+
         _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
         assert _brain_location is None
         createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
@@ -979,11 +982,11 @@ def create_measurement(data, entity_id, db):
 
     match data["unitCode"]:
         case "dimensionless":
-            unit = MEASUREMENT_UNITS["dimensionless"]
+            unit = MeasurementUnit.dimensionless
         case "1/μm":
-            unit = MEASUREMENT_UNITS["linear_density"]
+            unit = MeasurementUnit.linear_density
         case "neurons/mm³":
-            unit = MEASUREMENT_UNITS["volume_density"]
+            unit = MeasurementUnit.volume_density
         case _:
             unit = None
             msg = f"Unit code not captured: {data}"

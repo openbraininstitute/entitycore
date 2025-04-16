@@ -12,8 +12,7 @@ from app.schemas.base import (
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
-    SpeciesRead,
-    StrainRead,
+    SubjectRead,
 )
 
 
@@ -34,8 +33,7 @@ class ExperimentalDensityBase(BaseModel):
 class ExperimentalDensityCreate(
     ExperimentalDensityBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
 ):
-    species_id: uuid.UUID
-    strain_id: uuid.UUID
+    subject_id: uuid.UUID
     brain_region_id: int
     legacy_id: str | None
 
@@ -43,8 +41,7 @@ class ExperimentalDensityCreate(
 class ExperimentalDensityRead(
     ExperimentalDensityBase, CreationMixin, IdentifiableMixin, LicensedReadMixin, AuthorizationMixin
 ):
-    species: SpeciesRead
-    strain: StrainRead | None
+    subject: SubjectRead
     brain_region: BrainRegionRead
     measurements: list[MeasurementRead] | None
     assets: list[AssetRead] | None

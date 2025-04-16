@@ -119,8 +119,7 @@ class MeasurementStatistic(StrEnum):
     standard_deviation = auto()
 
 
-MEASUREMENT_UNITS = {
-    "dimensionless": "dimensionless",
-    "linear_density": "1/μm",
-    "volume_density": "1/mm³",
-}
+class MeasurementUnit(StrEnum):
+    dimensionless = "dimensionless"
+    linear_density = "1/μm"
+    volume_density = "1/mm³"

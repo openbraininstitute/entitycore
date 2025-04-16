@@ -12,8 +12,7 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     ExperimentalSynapsesPerConnection,
-    Species,
-    Strain,
+    Subject,
     SynapticPathway,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -37,6 +36,7 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[ExperimentalSynapsesPerConnectionRead]:
     pathway_alias = aliased(SynapticPathway, flat=True)
+    subject_alias = aliased(Subject, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
             "id": Agent.id,
@@ -47,8 +47,7 @@ def read_many(
     }
     apply_filter_query = lambda query: (
         query.join(BrainRegion, ExperimentalSynapsesPerConnection.brain_region_id == BrainRegion.id)
-        .outerjoin(Species, ExperimentalSynapsesPerConnection.species_id == Species.id)
-        .outerjoin(Strain, ExperimentalSynapsesPerConnection.strain_id == Strain.id)
+        .outerjoin(subject_alias, ExperimentalSynapsesPerConnection.subject_id == subject_alias.id)
         .outerjoin(
             pathway_alias,
             ExperimentalSynapsesPerConnection.synaptic_pathway_id == pathway_alias.id,
@@ -58,7 +57,6 @@ def read_many(
     )
     apply_data_options = lambda query: (
         query.options(joinedload(ExperimentalSynapsesPerConnection.brain_region))
-        .options(joinedload(ExperimentalSynapsesPerConnection.species, innerjoin=True))
         .options(
             selectinload(ExperimentalSynapsesPerConnection.contributions).selectinload(
                 Contribution.agent
@@ -71,7 +69,8 @@ def read_many(
         )
         .options(joinedload(ExperimentalSynapsesPerConnection.mtypes))
         .options(joinedload(ExperimentalSynapsesPerConnection.license))
-        .options(joinedload(ExperimentalSynapsesPerConnection.strain))
+        .options(joinedload(ExperimentalSynapsesPerConnection.subject).joinedload(Subject.species))
+        .options(joinedload(ExperimentalSynapsesPerConnection.subject).joinedload(Subject.strain))
         .options(
             joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
                 SynapticPathway.pre_mtype
@@ -102,7 +101,7 @@ def read_many(
         db_model_class=ExperimentalSynapsesPerConnection,
         with_search=with_search,
         facets=facets,
-        aliases={SynapticPathway: pathway_alias},
+        aliases={SynapticPathway: pathway_alias, Subject: subject_alias},
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,
         apply_data_query_operations=apply_data_options,
@@ -126,10 +125,10 @@ def read_one(
         apply_operations=lambda q: q.options(
             joinedload(ExperimentalSynapsesPerConnection.brain_region),
             joinedload(ExperimentalSynapsesPerConnection.mtypes),
-            joinedload(ExperimentalSynapsesPerConnection.species),
-            joinedload(ExperimentalSynapsesPerConnection.strain),
             joinedload(ExperimentalSynapsesPerConnection.assets),
             joinedload(ExperimentalSynapsesPerConnection.license),
+            joinedload(ExperimentalSynapsesPerConnection.subject).joinedload(Subject.species),
+            joinedload(ExperimentalSynapsesPerConnection.subject).joinedload(Subject.strain),
             joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
                 SynapticPathway.pre_mtype
             ),

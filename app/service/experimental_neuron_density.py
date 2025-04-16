@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy.orm import (
+    aliased,
     joinedload,
     raiseload,
     selectinload,
@@ -15,8 +16,7 @@ from app.db.model import (
     ExperimentalNeuronDensity,
     MTypeClass,
     MTypeClassification,
-    Species,
-    Strain,
+    Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
@@ -35,6 +35,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[ExperimentalNeuronDensityRead]:
+    subject_alias = aliased(Subject, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
             "id": Agent.id,
@@ -45,8 +46,7 @@ def read_many(
     }
     apply_filter_query = lambda query: (
         query.join(BrainRegion, ExperimentalNeuronDensity.brain_region_id == BrainRegion.id)
-        .outerjoin(Species, ExperimentalNeuronDensity.species_id == Species.id)
-        .outerjoin(Strain, ExperimentalNeuronDensity.strain_id == Strain.id)
+        .outerjoin(subject_alias, ExperimentalNeuronDensity.subject_id == subject_alias.id)
         .outerjoin(Contribution, ExperimentalNeuronDensity.id == Contribution.entity_id)
         .outerjoin(Agent, Contribution.agent_id == Agent.id)
         .outerjoin(
@@ -60,7 +60,6 @@ def read_many(
     )
     apply_data_options = lambda query: (
         query.options(joinedload(ExperimentalNeuronDensity.brain_region))
-        .options(joinedload(ExperimentalNeuronDensity.species, innerjoin=True))
         .options(
             selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.agent)
         )
@@ -70,7 +69,8 @@ def read_many(
         .options(joinedload(ExperimentalNeuronDensity.mtypes))
         .options(joinedload(ExperimentalNeuronDensity.etypes))
         .options(joinedload(ExperimentalNeuronDensity.license))
-        .options(joinedload(ExperimentalNeuronDensity.strain))
+        .options(joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.species))
+        .options(joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.strain))
         .options(selectinload(ExperimentalNeuronDensity.assets))
         .options(selectinload(ExperimentalNeuronDensity.measurements))
         .options(raiseload("*"))
@@ -84,7 +84,7 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,
         apply_data_query_operations=apply_data_options,
-        aliases={},
+        aliases={Subject: subject_alias},
         pagination_request=pagination_request,
         response_schema_class=ExperimentalNeuronDensityRead,
         authorized_project_id=user_context.project_id,
@@ -106,10 +106,10 @@ def read_one(
             joinedload(ExperimentalNeuronDensity.brain_region),
             joinedload(ExperimentalNeuronDensity.mtypes),
             joinedload(ExperimentalNeuronDensity.etypes),
-            joinedload(ExperimentalNeuronDensity.species),
-            joinedload(ExperimentalNeuronDensity.strain),
             joinedload(ExperimentalNeuronDensity.assets),
             joinedload(ExperimentalNeuronDensity.license),
+            joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.strain),
+            joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.species),
             selectinload(ExperimentalNeuronDensity.measurements),
             selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.agent),
             selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.role),

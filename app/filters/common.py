@@ -92,7 +92,12 @@ NestedAgentFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
 
 
 class SpeciesFilterMixin:
+    species_id_in: list[int] | None = None
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
+
+
+class StrainFilterMixin:
+    strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
 
 
 class ContributionFilterMixin:
@@ -123,15 +128,3 @@ class MTypeClassFilterMixin:
 
 class ETypeClassFilterMixin:
     etype: Annotated[ETypeClassFilter | None, NestedETypeClassFilterDep] = None
-
-
-class SpeciesFilterMixin:
-    species_id_in: list[int] | None = None
-    species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
-
-
-class StrainFilterMixin:
-    strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
-
-class ContributionFilterMixin:
-    contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None

@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: a0fe22dcf73d
+Revision ID: 0773b0796b42
 Revises:
-Create Date: 2025-04-15 18:03:27.291103
+Create Date: 2025-04-16 10:27:03.276283
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "a0fe22dcf73d"
+revision: str = "0773b0796b42"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -605,150 +605,6 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_table(
-        "experimental_bouton_density",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("species_id", sa.Uuid(), nullable=False),
-        sa.Column("strain_id", sa.Uuid(), nullable=True),
-        sa.Column("license_id", sa.Uuid(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-            name=op.f("fk_experimental_bouton_density_brain_region_id_brain_region"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["id"], ["entity.id"], name=op.f("fk_experimental_bouton_density_id_entity")
-        ),
-        sa.ForeignKeyConstraint(
-            ["license_id"],
-            ["license.id"],
-            name=op.f("fk_experimental_bouton_density_license_id_license"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["species_id"],
-            ["species.id"],
-            name=op.f("fk_experimental_bouton_density_species_id_species"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["strain_id", "species_id"],
-            ["strain.id", "strain.species_id"],
-            name="fk_experimental_bouton_density_strain_id_species_id",
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_experimental_bouton_density")),
-    )
-    op.create_index(
-        op.f("ix_experimental_bouton_density_brain_region_id"),
-        "experimental_bouton_density",
-        ["brain_region_id"],
-        unique=False,
-    )
-    op.create_index(
-        "ix_experimental_bouton_density_description_vector",
-        "experimental_bouton_density",
-        ["description_vector"],
-        unique=False,
-        postgresql_using="gin",
-    )
-    op.create_index(
-        op.f("ix_experimental_bouton_density_license_id"),
-        "experimental_bouton_density",
-        ["license_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_experimental_bouton_density_name"),
-        "experimental_bouton_density",
-        ["name"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_experimental_bouton_density_species_id"),
-        "experimental_bouton_density",
-        ["species_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_experimental_bouton_density_strain_id"),
-        "experimental_bouton_density",
-        ["strain_id"],
-        unique=False,
-    )
-    op.create_table(
-        "experimental_neuron_density",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("species_id", sa.Uuid(), nullable=False),
-        sa.Column("strain_id", sa.Uuid(), nullable=True),
-        sa.Column("license_id", sa.Uuid(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-            name=op.f("fk_experimental_neuron_density_brain_region_id_brain_region"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["id"], ["entity.id"], name=op.f("fk_experimental_neuron_density_id_entity")
-        ),
-        sa.ForeignKeyConstraint(
-            ["license_id"],
-            ["license.id"],
-            name=op.f("fk_experimental_neuron_density_license_id_license"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["species_id"],
-            ["species.id"],
-            name=op.f("fk_experimental_neuron_density_species_id_species"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["strain_id", "species_id"],
-            ["strain.id", "strain.species_id"],
-            name="fk_experimental_neuron_density_strain_id_species_id",
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_experimental_neuron_density")),
-    )
-    op.create_index(
-        op.f("ix_experimental_neuron_density_brain_region_id"),
-        "experimental_neuron_density",
-        ["brain_region_id"],
-        unique=False,
-    )
-    op.create_index(
-        "ix_experimental_neuron_density_description_vector",
-        "experimental_neuron_density",
-        ["description_vector"],
-        unique=False,
-        postgresql_using="gin",
-    )
-    op.create_index(
-        op.f("ix_experimental_neuron_density_license_id"),
-        "experimental_neuron_density",
-        ["license_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_experimental_neuron_density_name"),
-        "experimental_neuron_density",
-        ["name"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_experimental_neuron_density_species_id"),
-        "experimental_neuron_density",
-        ["species_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_experimental_neuron_density_strain_id"),
-        "experimental_neuron_density",
-        ["strain_id"],
-        unique=False,
-    )
-    op.create_table(
         "measurement_record",
         sa.Column("id", sa.BigInteger(), sa.Identity(always=False), nullable=False),
         sa.Column(
@@ -767,13 +623,13 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
-        sa.Column("unit", sa.String(), nullable=False),
+        sa.Column(
+            "unit",
+            sa.Enum("dimensionless", "1/μm", "1/mm³", name="measurementunit", native_enum=False),
+            nullable=False,
+        ),
         sa.Column("value", sa.Float(), nullable=False),
         sa.Column("entity_id", sa.Uuid(), nullable=False),
-        sa.CheckConstraint(
-            "unit IN ('{unit}', '{unit}', '{unit}')",
-            name=op.f("ck_measurement_record_valid_unit_check"),
-        ),
         sa.ForeignKeyConstraint(
             ["entity_id"], ["entity.id"], name=op.f("fk_measurement_record_entity_id_entity")
         ),
@@ -1167,6 +1023,126 @@ def upgrade() -> None:
     op.create_index(op.f("ix_emodel_species_id"), "emodel", ["species_id"], unique=False)
     op.create_index(op.f("ix_emodel_strain_id"), "emodel", ["strain_id"], unique=False)
     op.create_table(
+        "experimental_bouton_density",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
+        sa.Column("subject_id", sa.Uuid(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["brain_region_id"],
+            ["brain_region.id"],
+            name=op.f("fk_experimental_bouton_density_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["id"], ["entity.id"], name=op.f("fk_experimental_bouton_density_id_entity")
+        ),
+        sa.ForeignKeyConstraint(
+            ["license_id"],
+            ["license.id"],
+            name=op.f("fk_experimental_bouton_density_license_id_license"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["subject_id"],
+            ["subject.id"],
+            name=op.f("fk_experimental_bouton_density_subject_id_subject"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_experimental_bouton_density")),
+    )
+    op.create_index(
+        op.f("ix_experimental_bouton_density_brain_region_id"),
+        "experimental_bouton_density",
+        ["brain_region_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_experimental_bouton_density_description_vector",
+        "experimental_bouton_density",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_experimental_bouton_density_license_id"),
+        "experimental_bouton_density",
+        ["license_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_experimental_bouton_density_name"),
+        "experimental_bouton_density",
+        ["name"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_experimental_bouton_density_subject_id"),
+        "experimental_bouton_density",
+        ["subject_id"],
+        unique=False,
+    )
+    op.create_table(
+        "experimental_neuron_density",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("subject_id", sa.Uuid(), nullable=True),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["brain_region_id"],
+            ["brain_region.id"],
+            name=op.f("fk_experimental_neuron_density_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["id"], ["entity.id"], name=op.f("fk_experimental_neuron_density_id_entity")
+        ),
+        sa.ForeignKeyConstraint(
+            ["license_id"],
+            ["license.id"],
+            name=op.f("fk_experimental_neuron_density_license_id_license"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["subject_id"],
+            ["subject.id"],
+            name=op.f("fk_experimental_neuron_density_subject_id_subject"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_experimental_neuron_density")),
+    )
+    op.create_index(
+        op.f("ix_experimental_neuron_density_brain_region_id"),
+        "experimental_neuron_density",
+        ["brain_region_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_experimental_neuron_density_description_vector",
+        "experimental_neuron_density",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_experimental_neuron_density_license_id"),
+        "experimental_neuron_density",
+        ["license_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_experimental_neuron_density_name"),
+        "experimental_neuron_density",
+        ["name"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_experimental_neuron_density_subject_id"),
+        "experimental_neuron_density",
+        ["subject_id"],
+        unique=False,
+    )
+    op.create_table(
         "experimental_synapses_per_connection",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("synaptic_pathway_id", sa.Uuid(), nullable=False),
@@ -1174,8 +1150,7 @@ def upgrade() -> None:
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("species_id", sa.Uuid(), nullable=False),
-        sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.Column("subject_id", sa.Uuid(), nullable=True),
         sa.Column("license_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
@@ -1191,14 +1166,9 @@ def upgrade() -> None:
             name=op.f("fk_experimental_synapses_per_connection_license_id_license"),
         ),
         sa.ForeignKeyConstraint(
-            ["species_id"],
-            ["species.id"],
-            name=op.f("fk_experimental_synapses_per_connection_species_id_species"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["strain_id", "species_id"],
-            ["strain.id", "strain.species_id"],
-            name="fk_experimental_synapses_per_connection_strain_id_species_id",
+            ["subject_id"],
+            ["subject.id"],
+            name=op.f("fk_experimental_synapses_per_connection_subject_id_subject"),
         ),
         sa.ForeignKeyConstraint(
             ["synaptic_pathway_id"],
@@ -1235,15 +1205,9 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
-        op.f("ix_experimental_synapses_per_connection_species_id"),
+        op.f("ix_experimental_synapses_per_connection_subject_id"),
         "experimental_synapses_per_connection",
-        ["species_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_experimental_synapses_per_connection_strain_id"),
-        "experimental_synapses_per_connection",
-        ["strain_id"],
+        ["subject_id"],
         unique=False,
     )
     op.create_index(
@@ -1635,11 +1599,7 @@ def downgrade() -> None:
         table_name="experimental_synapses_per_connection",
     )
     op.drop_index(
-        op.f("ix_experimental_synapses_per_connection_strain_id"),
-        table_name="experimental_synapses_per_connection",
-    )
-    op.drop_index(
-        op.f("ix_experimental_synapses_per_connection_species_id"),
+        op.f("ix_experimental_synapses_per_connection_subject_id"),
         table_name="experimental_synapses_per_connection",
     )
     op.drop_index(
@@ -1660,6 +1620,44 @@ def downgrade() -> None:
         table_name="experimental_synapses_per_connection",
     )
     op.drop_table("experimental_synapses_per_connection")
+    op.drop_index(
+        op.f("ix_experimental_neuron_density_subject_id"), table_name="experimental_neuron_density"
+    )
+    op.drop_index(
+        op.f("ix_experimental_neuron_density_name"), table_name="experimental_neuron_density"
+    )
+    op.drop_index(
+        op.f("ix_experimental_neuron_density_license_id"), table_name="experimental_neuron_density"
+    )
+    op.drop_index(
+        "ix_experimental_neuron_density_description_vector",
+        table_name="experimental_neuron_density",
+        postgresql_using="gin",
+    )
+    op.drop_index(
+        op.f("ix_experimental_neuron_density_brain_region_id"),
+        table_name="experimental_neuron_density",
+    )
+    op.drop_table("experimental_neuron_density")
+    op.drop_index(
+        op.f("ix_experimental_bouton_density_subject_id"), table_name="experimental_bouton_density"
+    )
+    op.drop_index(
+        op.f("ix_experimental_bouton_density_name"), table_name="experimental_bouton_density"
+    )
+    op.drop_index(
+        op.f("ix_experimental_bouton_density_license_id"), table_name="experimental_bouton_density"
+    )
+    op.drop_index(
+        "ix_experimental_bouton_density_description_vector",
+        table_name="experimental_bouton_density",
+        postgresql_using="gin",
+    )
+    op.drop_index(
+        op.f("ix_experimental_bouton_density_brain_region_id"),
+        table_name="experimental_bouton_density",
+    )
+    op.drop_table("experimental_bouton_density")
     op.drop_index(op.f("ix_emodel_strain_id"), table_name="emodel")
     op.drop_index(op.f("ix_emodel_species_id"), table_name="emodel")
     op.drop_index(op.f("ix_emodel_name"), table_name="emodel")
@@ -1732,50 +1730,6 @@ def downgrade() -> None:
     op.drop_table("mesh")
     op.drop_index(op.f("ix_measurement_record_entity_id"), table_name="measurement_record")
     op.drop_table("measurement_record")
-    op.drop_index(
-        op.f("ix_experimental_neuron_density_strain_id"), table_name="experimental_neuron_density"
-    )
-    op.drop_index(
-        op.f("ix_experimental_neuron_density_species_id"), table_name="experimental_neuron_density"
-    )
-    op.drop_index(
-        op.f("ix_experimental_neuron_density_name"), table_name="experimental_neuron_density"
-    )
-    op.drop_index(
-        op.f("ix_experimental_neuron_density_license_id"), table_name="experimental_neuron_density"
-    )
-    op.drop_index(
-        "ix_experimental_neuron_density_description_vector",
-        table_name="experimental_neuron_density",
-        postgresql_using="gin",
-    )
-    op.drop_index(
-        op.f("ix_experimental_neuron_density_brain_region_id"),
-        table_name="experimental_neuron_density",
-    )
-    op.drop_table("experimental_neuron_density")
-    op.drop_index(
-        op.f("ix_experimental_bouton_density_strain_id"), table_name="experimental_bouton_density"
-    )
-    op.drop_index(
-        op.f("ix_experimental_bouton_density_species_id"), table_name="experimental_bouton_density"
-    )
-    op.drop_index(
-        op.f("ix_experimental_bouton_density_name"), table_name="experimental_bouton_density"
-    )
-    op.drop_index(
-        op.f("ix_experimental_bouton_density_license_id"), table_name="experimental_bouton_density"
-    )
-    op.drop_index(
-        "ix_experimental_bouton_density_description_vector",
-        table_name="experimental_bouton_density",
-        postgresql_using="gin",
-    )
-    op.drop_index(
-        op.f("ix_experimental_bouton_density_brain_region_id"),
-        table_name="experimental_bouton_density",
-    )
-    op.drop_table("experimental_bouton_density")
     op.drop_index(op.f("ix_etype_classification_updatedBy_id"), table_name="etype_classification")
     op.drop_index(op.f("ix_etype_classification_etype_class_id"), table_name="etype_classification")
     op.drop_index(op.f("ix_etype_classification_entity_id"), table_name="etype_classification")

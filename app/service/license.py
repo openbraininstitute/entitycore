@@ -6,6 +6,7 @@ from app.db.model import License
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
+from app.queries.common import router_create_one
 from app.schemas.base import LicenseCreate, LicenseRead
 from app.schemas.types import ListResponse, PaginationResponse
 
@@ -43,8 +44,10 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> LicenseRead:
 
 
 def create_one(license: LicenseCreate, db: SessionDep) -> LicenseRead:
-    row = License(name=license.name, description=license.description, label=license.label)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return LicenseRead.model_validate(row)
+    return router_create_one(
+        db=db,
+        db_model_class=License,
+        json_model=license,
+        response_schema_class=LicenseRead,
+        authorized_project_id=None,
+    )

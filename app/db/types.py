@@ -48,6 +48,7 @@ STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 class EntityType(StrEnum):
     """Entity types."""
 
+    age = auto()
     analysis_software_source_code = auto()
     emodel = auto()
     experimental_bouton_density = auto()
@@ -56,7 +57,8 @@ class EntityType(StrEnum):
     memodel = auto()
     mesh = auto()
     reconstruction_morphology = auto()
-    single_cell_experimental_trace = auto()
+    electrical_cell_recording = auto()
+    electrical_recording_stimulus = auto()
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()
     single_neuron_synaptome_simulation = auto()
@@ -98,6 +100,42 @@ class ValidationStatus(StrEnum):
 class Sex(StrEnum):
     male = auto()
     female = auto()
+    unknown = auto()
+
+
+class ElectricalRecordingType(StrEnum):
+    intracellular = auto()
+    extracellular = auto()
+    both = auto()
+    unknown = auto()
+
+
+class ElectricalRecordingStimulusType(StrEnum):
+    voltage_clamp = auto()
+    current_clamp = auto()
+    conductance_clamp = auto()
+    extracellular = auto()
+    other = auto()
+    unknown = auto()
+
+
+class ElectricalRecordingStimulusShape(StrEnum):
+    cheops = auto()
+    constant = auto()
+    pulse = auto()
+    step = auto()
+    ramp = auto()
+    noise = auto()
+    sinusoidal = auto()
+    other = auto()
+    two_steps = auto()
+    unknown = auto()
+
+
+class ElectricalRecordingOrigin(StrEnum):
+    in_vivo = auto()
+    in_vitro = auto()
+    in_silico = auto()
     unknown = auto()
 
 

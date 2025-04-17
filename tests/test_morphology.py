@@ -341,3 +341,62 @@ def test_pagination(db, client, brain_region_id):
     assert len(items) == total_items
     names = [int(d["name"].removeprefix("TestMorphologyName")) for d in items]
     assert list(reversed(names)) == list(range(total_items))
+
+
+def test_filter_by_id__in(db, client, brain_region_id):
+    """Test filtering reconstruction morphologies by id__in parameter."""
+    species = add_db(db, Species(name="TestSpeciesFilter", taxonomy_id="0"))
+    strain = add_db(db, Strain(name="TestStrainFilter", species_id=species.id, taxonomy_id="0"))
+
+    morphology_ids = []
+    for i in range(5):
+        morphology_id = create_reconstruction_morphology_id(
+            client,
+            species_id=species.id,
+            strain_id=strain.id,
+            brain_region_id=brain_region_id,
+            authorized_public=False,
+            name=f"Filter Test Morphology {i}",
+            description=f"Filter Test Description {i}",
+        )
+        morphology_ids.append(morphology_id)
+
+    # filtering by a single ID
+    response = client.get(ROUTE, params={"id__in": morphology_ids[0]})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == morphology_ids[0]
+
+    # filtering by multiple IDs
+    selected_ids = [morphology_ids[1], morphology_ids[3]]
+    response = client.get(ROUTE, params={"id__in": ",".join(selected_ids)})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 2
+    returned_ids = [item["id"] for item in data]
+    assert set(returned_ids) == set(selected_ids)
+
+    # filtering by all IDs
+    response = client.get(ROUTE, params={"id__in": ",".join(morphology_ids)})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 5
+    returned_ids = [item["id"] for item in data]
+    assert set(returned_ids) == set(morphology_ids)
+
+    # filtering by non-existent ID
+    response = client.get(ROUTE, params={"id__in": MISSING_ID})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 0
+
+    # combining id__in with other filters
+    response = client.get(
+        ROUTE,
+        params={"id__in": ",".join(morphology_ids), "name__ilike": "Filter Test Morphology 2"},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == morphology_ids[2]

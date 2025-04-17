@@ -912,7 +912,6 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
             continue
 
         license_id = utils.get_license_mixin(data, db)
-        species_id, strain_id = utils.get_species_mixin(data, db)
 
         subject_id = utils.get_or_create_subject(data, project_context, db)
 
@@ -927,8 +926,7 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
             "legacy_self": [legacy_self],
             "name": data.get("name"),
             "description": data.get("description", data.get("name")),
-            "species_id": species_id,
-            "strain_id": strain_id,
+            "subject_id": subject_id,
             "license_id": license_id,
             "brain_region_id": brain_region_id,
             "createdBy_id": createdBy_id,

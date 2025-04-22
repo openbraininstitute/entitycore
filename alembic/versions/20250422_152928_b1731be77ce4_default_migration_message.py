@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 3ff580ce3a3f
+Revision ID: b1731be77ce4
 Revises:
-Create Date: 2025-04-15 17:07:11.567314
+Create Date: 2025-04-22 15:29:28.890872
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "3ff580ce3a3f"
+revision: str = "b1731be77ce4"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -1218,55 +1218,6 @@ def upgrade() -> None:
         unique=True,
     )
     op.create_table(
-        "sub_cellular_model_script",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("temperature", sa.Float(), nullable=True),
-        sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
-        sa.Column("is_ljp_corrected", sa.Boolean(), nullable=False),
-        sa.Column("is_stochastic", sa.Boolean(), nullable=False),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
-        sa.Column("subject_id", sa.Uuid(), nullable=True),
-        sa.Column("license_id", sa.Uuid(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-            name=op.f("fk_sub_cellular_model_script_brain_region_id_brain_region"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["id"], ["entity.id"], name=op.f("fk_sub_cellular_model_script_id_entity")
-        ),
-        sa.ForeignKeyConstraint(
-            ["license_id"],
-            ["license.id"],
-            name=op.f("fk_sub_cellular_model_script_license_id_license"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["subject_id"],
-            ["subject.id"],
-            name=op.f("fk_sub_cellular_model_script_subject_id_subject"),
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_sub_cellular_model_script")),
-    )
-    op.create_index(
-        op.f("ix_sub_cellular_model_script_brain_region_id"),
-        "sub_cellular_model_script",
-        ["brain_region_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_sub_cellular_model_script_license_id"),
-        "sub_cellular_model_script",
-        ["license_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_sub_cellular_model_script_subject_id"),
-        "sub_cellular_model_script",
-        ["subject_id"],
-        unique=False,
-    )
-    op.create_table(
         "electrical_recording_stimulus",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
@@ -1660,16 +1611,6 @@ def downgrade() -> None:
         table_name="electrical_recording_stimulus",
     )
     op.drop_table("electrical_recording_stimulus")
-    op.drop_index(
-        op.f("ix_sub_cellular_model_script_subject_id"), table_name="sub_cellular_model_script"
-    )
-    op.drop_index(
-        op.f("ix_sub_cellular_model_script_license_id"), table_name="sub_cellular_model_script"
-    )
-    op.drop_index(
-        op.f("ix_sub_cellular_model_script_brain_region_id"), table_name="sub_cellular_model_script"
-    )
-    op.drop_table("sub_cellular_model_script")
     op.drop_index(
         op.f("ix_morphology_feature_annotation_reconstruction_morphology_id"),
         table_name="morphology_feature_annotation",

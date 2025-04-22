@@ -597,19 +597,6 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class SubCellularModelScript(LocationMixin, SubjectMixin, LicensedMixin, Entity):
-    __tablename__ = "sub_cellular_model_script"
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    description: Mapped[str] = mapped_column(default="")
-    temperature: Mapped[float | None] = mapped_column(default=None)
-    is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
-    is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
-    is_stochastic: Mapped[bool] = mapped_column(default=False)
-
-    __mapper_args__ = {"polymorphic_identity": "sub_cellular_model_script"}  # noqa: RUF012
-
-
 class ExperimentalNeuronDensity(
     LocationMixin, SpeciesMixin, LicensedMixin, NameDescriptionVectorMixin, Entity
 ):

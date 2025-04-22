@@ -22,6 +22,7 @@ from app.db.model import (
     Asset,
     BrainRegion,
     DataMaturityAnnotationBody,
+    ElectricalCellRecording,
     EModel,
     Entity,
     ETypeClass,
@@ -40,13 +41,14 @@ from app.db.model import (
     Organization,
     Person,
     ReconstructionMorphology,
-    SingleCellExperimentalTrace,
     SingleNeuronSimulation,
+    Subject,
 )
 from app.db.session import configure_database_session_manager
 from app.logger import L
-from app.db.types import PointLocationBase
 from app.schemas.base import ProjectContext
+from app.db.types import PointLocationBase
+from app.db.types import ElectricalRecordingType, ElectricalRecordingOrigin
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -629,20 +631,24 @@ class ImportExperimentalSynapsesPerConnection(Import):
         )
 
 
-class ImportSingleCellExperimentalTrace(Import):
+class ImportElectricalCellRecording(Import):
     name = "SingleCellExperimentalTrace"
 
     @staticmethod
     def is_correct_type(data):
         types = ensurelist(data["@type"])
-        return "SingleCellExperimentalTrace" in types
+        return (
+            "SingleCellExperimentalTrace" in types
+            or "Trace" in types
+            or "ExperimentalTrace" in types
+        )
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
-            rm = utils._find_by_legacy_id(legacy_id, SingleCellExperimentalTrace, db)
+            rm = utils._find_by_legacy_id(legacy_id, ElectricalCellRecording, db)
             if rm:
                 continue
 
@@ -652,18 +658,35 @@ class ImportSingleCellExperimentalTrace(Import):
             assert _brain_location is None
 
             license_id = utils.get_license_mixin(data, db)
-            species_id, strain_id = utils.get_species_mixin(data, db)
+            # species_id, strain_id = utils.get_species_mixin(data, db)
+
+            subject_id = utils.get_or_create_subject(data, project_context, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
-            db_item = SingleCellExperimentalTrace(
+            age = data.get("subject", {}).get("age", {}).get("value", None)
+            comment = data.get("note", None)
+
+            if "ExperimentalTrace" in data["@type"]:
+                recording_origin = ElectricalRecordingOrigin.in_vitro
+            elif "SimulationTrace" in data["@type"]:
+                recording_origin = ElectricalRecordingOrigin.in_silico
+            else:
+                recording_origin = ElectricalRecordingOrigin.unknown
+                msg = f"Trace type {data['@type']} has unknown origin."
+                L.warning(msg)
+
+            db_item = ElectricalCellRecording(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data["name"],
                 description=data["description"],
+                comment=comment,
                 brain_region_id=brain_region_id,
-                species_id=species_id,
-                strain_id=strain_id,
+                subject_id=subject_id,
                 license_id=license_id,
+                recording_type=ElectricalRecordingType.intracellular,
+                recording_location=[],
+                recording_origin=recording_origin,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -678,6 +701,14 @@ class ImportSingleCellExperimentalTrace(Import):
 
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_item.id, db)
+
+            for stimulus in ensurelist(data.get("stimulus", [])):
+                stimulus_type = stimulus["stimulusType"]
+                if "@id" in stimulus_type and stimulus_type["@id"] in all_data_by_id:
+                    stimulus_type = all_data_by_id[stimulus_type["@id"]]
+
+                # create a stimulus for each stimulus in the data
+                utils.create_stimulus(stimulus_type, db_item.id, project_context, db)
 
 
 class ImportMEModel(Import):
@@ -910,6 +941,7 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
 
         license_id = utils.get_license_mixin(data, db)
         species_id, strain_id = utils.get_species_mixin(data, db)
+
         _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
         assert _brain_location is None
         createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
@@ -971,7 +1003,7 @@ def _do_import(db, input_dir, project_context):
         ImportExperimentalNeuronDensities,
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
-        ImportSingleCellExperimentalTrace,
+        ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,

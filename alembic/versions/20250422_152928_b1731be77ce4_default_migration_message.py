@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 34b450f37cbb
+Revision ID: b1731be77ce4
 Revises:
-Create Date: 2025-04-04 10:29:47.447296
+Create Date: 2025-04-22 15:29:28.890872
 
 """
 
@@ -16,7 +16,7 @@ import app.db.types
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "34b450f37cbb"
+revision: str = "b1731be77ce4"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -28,10 +28,41 @@ def upgrade() -> None:
     sa.Enum("started", "failure", "success", name="singleneuronsimulationstatus").create(
         op.get_bind()
     )
+    sa.Enum("in_vivo", "in_vitro", "in_silico", "unknown", name="electricalrecordingorigin").create(
+        op.get_bind()
+    )
+    sa.Enum(
+        "intracellular", "extracellular", "both", "unknown", name="electricalrecordingtype"
+    ).create(op.get_bind())
+    sa.Enum(
+        "cheops",
+        "constant",
+        "pulse",
+        "step",
+        "ramp",
+        "noise",
+        "sinusoidal",
+        "other",
+        "two_steps",
+        "unknown",
+        name="electricalrecordingstimulusshape",
+    ).create(op.get_bind())
+    sa.Enum(
+        "voltage_clamp",
+        "current_clamp",
+        "conductance_clamp",
+        "extracellular",
+        "other",
+        "unknown",
+        name="electricalrecordingstimulustype",
+    ).create(op.get_bind())
     sa.Enum(
         "created", "initialized", "running", "done", "error", name="me_model_validation_status"
     ).create(op.get_bind())
+    sa.Enum("male", "female", "unknown", name="sex").create(op.get_bind())
+    sa.Enum("prenatal", "postnatal", "unknown", name="ageperiod").create(op.get_bind())
     sa.Enum(
+        "age",
         "analysis_software_source_code",
         "emodel",
         "experimental_bouton_density",
@@ -40,10 +71,12 @@ def upgrade() -> None:
         "memodel",
         "mesh",
         "reconstruction_morphology",
-        "single_cell_experimental_trace",
+        "electrical_cell_recording",
+        "electrical_recording_stimulus",
         "single_neuron_simulation",
         "single_neuron_synaptome",
         "single_neuron_synaptome_simulation",
+        "subject",
         name="entitytype",
     ).create(op.get_bind())
     sa.Enum("datamaturity_annotation_body", name="annotationbodytype").create(op.get_bind())
@@ -260,26 +293,6 @@ def upgrade() -> None:
     op.create_index(op.f("ix_species_name"), "species", ["name"], unique=True)
     op.create_index(op.f("ix_species_taxonomy_id"), "species", ["taxonomy_id"], unique=True)
     op.create_table(
-        "subject",
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "creation_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "update_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_subject")),
-    )
-    op.create_index(op.f("ix_subject_creation_date"), "subject", ["creation_date"], unique=False)
-    op.create_index(op.f("ix_subject_name"), "subject", ["name"], unique=True)
-    op.create_table(
         "datamaturity_annotation_body",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("pref_label", sa.String(), nullable=False),
@@ -301,6 +314,7 @@ def upgrade() -> None:
         sa.Column(
             "type",
             postgresql.ENUM(
+                "age",
                 "analysis_software_source_code",
                 "emodel",
                 "experimental_bouton_density",
@@ -309,10 +323,12 @@ def upgrade() -> None:
                 "memodel",
                 "mesh",
                 "reconstruction_morphology",
-                "single_cell_experimental_trace",
+                "electrical_cell_recording",
+                "electrical_recording_stimulus",
                 "single_neuron_simulation",
                 "single_neuron_synaptome",
                 "single_neuron_synaptome_simulation",
+                "subject",
                 name="entitytype",
                 create_type=False,
             ),
@@ -400,17 +416,31 @@ def upgrade() -> None:
         sa.Column("codeRepository", sa.String(), nullable=False),
         sa.Column("command", sa.String(), nullable=False),
         sa.Column("commit", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
         sa.Column("subdirectory", sa.String(), nullable=False),
         sa.Column("targetEntity", sa.String(), nullable=False),
         sa.Column("programmingLanguage", sa.String(), nullable=False),
         sa.Column("runtimePlatform", sa.String(), nullable=False),
         sa.Column("version", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["id"], ["entity.id"], name=op.f("fk_analysis_software_source_code_id_entity")
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_analysis_software_source_code")),
+    )
+    op.create_index(
+        "ix_analysis_software_source_code_description_vector",
+        "analysis_software_source_code",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_analysis_software_source_code_name"),
+        "analysis_software_source_code",
+        ["name"],
+        unique=False,
     )
     op.create_table(
         "annotation",
@@ -459,7 +489,6 @@ def upgrade() -> None:
         ),
         sa.Column("path", sa.String(), nullable=False),
         sa.Column("full_path", sa.String(), nullable=False),
-        sa.Column("bucket_name", sa.String(), nullable=False),
         sa.Column("is_directory", sa.Boolean(), nullable=False),
         sa.Column("content_type", sa.String(), nullable=False),
         sa.Column("size", sa.BigInteger(), nullable=False),
@@ -597,12 +626,13 @@ def upgrade() -> None:
     op.create_table(
         "experimental_bouton_density",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.Column("license_id", sa.Uuid(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -635,6 +665,13 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
+        "ix_experimental_bouton_density_description_vector",
+        "experimental_bouton_density",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
         op.f("ix_experimental_bouton_density_license_id"),
         "experimental_bouton_density",
         ["license_id"],
@@ -661,12 +698,13 @@ def upgrade() -> None:
     op.create_table(
         "experimental_neuron_density",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.Column("license_id", sa.Uuid(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -699,6 +737,13 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
+        "ix_experimental_neuron_density_description_vector",
+        "experimental_neuron_density",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
         op.f("ix_experimental_neuron_density_license_id"),
         "experimental_neuron_density",
         ["license_id"],
@@ -725,12 +770,13 @@ def upgrade() -> None:
     op.create_table(
         "experimental_synapses_per_connection",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.Column("license_id", sa.Uuid(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -763,6 +809,13 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
+        "ix_experimental_synapses_per_connection_description_vector",
+        "experimental_synapses_per_connection",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
         op.f("ix_experimental_synapses_per_connection_license_id"),
         "experimental_synapses_per_connection",
         ["license_id"],
@@ -790,6 +843,9 @@ def upgrade() -> None:
         "mesh",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -799,6 +855,14 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_mesh")),
     )
     op.create_index(op.f("ix_mesh_brain_region_id"), "mesh", ["brain_region_id"], unique=False)
+    op.create_index(
+        "ix_mesh_description_vector",
+        "mesh",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_mesh_name"), "mesh", ["name"], unique=False)
     op.create_table(
         "mtype_classification",
         sa.Column("mtype_class_id", sa.Uuid(), nullable=False),
@@ -867,14 +931,14 @@ def upgrade() -> None:
     op.create_table(
         "reconstruction_morphology",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
         sa.Column("location", app.db.types.PointLocationType(astext_type=Text()), nullable=True),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("license_id", sa.Uuid(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -938,84 +1002,152 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_table(
-        "single_cell_experimental_trace",
+        "subject",
         sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("age_value", sa.Interval(), nullable=True),
+        sa.Column("age_min", sa.Interval(), nullable=True),
+        sa.Column("age_max", sa.Interval(), nullable=True),
+        sa.Column(
+            "age_period",
+            postgresql.ENUM(
+                "prenatal", "postnatal", "unknown", name="ageperiod", create_type=False
+            ),
+            nullable=True,
+        ),
+        sa.Column(
+            "sex",
+            postgresql.ENUM("male", "female", "unknown", name="sex", create_type=False),
+            nullable=True,
+        ),
+        sa.Column("weight", sa.Float(), nullable=True),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
-        sa.Column("license_id", sa.Uuid(), nullable=True),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_subject_id_entity")),
         sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-            name=op.f("fk_single_cell_experimental_trace_brain_region_id_brain_region"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["id"], ["entity.id"], name=op.f("fk_single_cell_experimental_trace_id_entity")
-        ),
-        sa.ForeignKeyConstraint(
-            ["license_id"],
-            ["license.id"],
-            name=op.f("fk_single_cell_experimental_trace_license_id_license"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["species_id"],
-            ["species.id"],
-            name=op.f("fk_single_cell_experimental_trace_species_id_species"),
+            ["species_id"], ["species.id"], name=op.f("fk_subject_species_id_species")
         ),
         sa.ForeignKeyConstraint(
             ["strain_id", "species_id"],
             ["strain.id", "strain.species_id"],
-            name="fk_single_cell_experimental_trace_strain_id_species_id",
+            name="fk_subject_strain_id_species_id",
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_single_cell_experimental_trace")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_subject")),
     )
     op.create_index(
-        op.f("ix_single_cell_experimental_trace_brain_region_id"),
-        "single_cell_experimental_trace",
+        "ix_subject_description_vector",
+        "subject",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_subject_name"), "subject", ["name"], unique=False)
+    op.create_index(op.f("ix_subject_species_id"), "subject", ["species_id"], unique=False)
+    op.create_index(op.f("ix_subject_strain_id"), "subject", ["strain_id"], unique=False)
+    op.create_table(
+        "electrical_cell_recording",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column(
+            "recording_type",
+            postgresql.ENUM(
+                "intracellular",
+                "extracellular",
+                "both",
+                "unknown",
+                name="electricalrecordingtype",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column(
+            "recording_origin",
+            postgresql.ENUM(
+                "in_vivo",
+                "in_vitro",
+                "in_silico",
+                "unknown",
+                name="electricalrecordingorigin",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column("recording_location", sa.ARRAY(sa.VARCHAR()), nullable=False),
+        sa.Column("ljp", sa.Float(), nullable=False),
+        sa.Column("comment", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("subject_id", sa.Uuid(), nullable=True),
+        sa.Column("license_id", sa.Uuid(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["brain_region_id"],
+            ["brain_region.id"],
+            name=op.f("fk_electrical_cell_recording_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["id"], ["entity.id"], name=op.f("fk_electrical_cell_recording_id_entity")
+        ),
+        sa.ForeignKeyConstraint(
+            ["license_id"],
+            ["license.id"],
+            name=op.f("fk_electrical_cell_recording_license_id_license"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["subject_id"],
+            ["subject.id"],
+            name=op.f("fk_electrical_cell_recording_subject_id_subject"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_electrical_cell_recording")),
+    )
+    op.create_index(
+        op.f("ix_electrical_cell_recording_brain_region_id"),
+        "electrical_cell_recording",
         ["brain_region_id"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_single_cell_experimental_trace_license_id"),
-        "single_cell_experimental_trace",
+        "ix_electrical_cell_recording_description_vector",
+        "electrical_cell_recording",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_electrical_cell_recording_license_id"),
+        "electrical_cell_recording",
         ["license_id"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_single_cell_experimental_trace_name"),
-        "single_cell_experimental_trace",
+        op.f("ix_electrical_cell_recording_name"),
+        "electrical_cell_recording",
         ["name"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_single_cell_experimental_trace_species_id"),
-        "single_cell_experimental_trace",
-        ["species_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_single_cell_experimental_trace_strain_id"),
-        "single_cell_experimental_trace",
-        ["strain_id"],
+        op.f("ix_electrical_cell_recording_subject_id"),
+        "electrical_cell_recording",
+        ["subject_id"],
         unique=False,
     )
     op.create_table(
         "emodel",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
         sa.Column("eModel", sa.String(), nullable=False),
         sa.Column("eType", sa.String(), nullable=False),
         sa.Column("iteration", sa.String(), nullable=False),
         sa.Column("score", sa.Float(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
         sa.Column("exemplar_morphology_id", sa.Uuid(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -1045,6 +1177,7 @@ def upgrade() -> None:
         unique=False,
         postgresql_using="gin",
     )
+    op.create_index(op.f("ix_emodel_name"), "emodel", ["name"], unique=False)
     op.create_index(op.f("ix_emodel_species_id"), "emodel", ["species_id"], unique=False)
     op.create_index(op.f("ix_emodel_strain_id"), "emodel", ["strain_id"], unique=False)
     op.create_table(
@@ -1085,6 +1218,63 @@ def upgrade() -> None:
         unique=True,
     )
     op.create_table(
+        "electrical_recording_stimulus",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("dt", sa.Float(), nullable=True),
+        sa.Column(
+            "injection_type",
+            postgresql.ENUM(
+                "voltage_clamp",
+                "current_clamp",
+                "conductance_clamp",
+                "extracellular",
+                "other",
+                "unknown",
+                name="electricalrecordingstimulustype",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column(
+            "shape",
+            postgresql.ENUM(
+                "cheops",
+                "constant",
+                "pulse",
+                "step",
+                "ramp",
+                "noise",
+                "sinusoidal",
+                "other",
+                "two_steps",
+                "unknown",
+                name="electricalrecordingstimulusshape",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column("start_time", sa.Float(), nullable=True),
+        sa.Column("end_time", sa.Float(), nullable=True),
+        sa.Column("recording_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["id"], ["entity.id"], name=op.f("fk_electrical_recording_stimulus_id_entity")
+        ),
+        sa.ForeignKeyConstraint(
+            ["recording_id"],
+            ["electrical_cell_recording.id"],
+            name=op.f("fk_electrical_recording_stimulus_recording_id_electrical_cell_recording"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_electrical_recording_stimulus")),
+    )
+    op.create_index(
+        op.f("ix_electrical_recording_stimulus_recording_id"),
+        "electrical_recording_stimulus",
+        ["recording_id"],
+        unique=False,
+    )
+    op.create_table(
         "measurement",
         sa.Column("id", sa.BigInteger(), sa.Identity(always=False), nullable=False),
         sa.Column("measurement_of", sa.String(), nullable=False),
@@ -1110,8 +1300,6 @@ def upgrade() -> None:
     op.create_table(
         "memodel",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
         sa.Column(
             "validation_status",
             postgresql.ENUM(
@@ -1127,10 +1315,12 @@ def upgrade() -> None:
         ),
         sa.Column("morphology_id", sa.Uuid(), nullable=False),
         sa.Column("emodel_id", sa.Uuid(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -1165,6 +1355,7 @@ def upgrade() -> None:
         unique=False,
         postgresql_using="gin",
     )
+    op.create_index(op.f("ix_memodel_name"), "memodel", ["name"], unique=False)
     op.create_index(op.f("ix_memodel_species_id"), "memodel", ["species_id"], unique=False)
     op.create_index(op.f("ix_memodel_strain_id"), "memodel", ["strain_id"], unique=False)
     op.create_table(
@@ -1189,8 +1380,6 @@ def upgrade() -> None:
     op.create_table(
         "single_neuron_simulation",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
         sa.Column("injectionLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
         sa.Column("recordingLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
@@ -1206,8 +1395,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("me_model_id", sa.Uuid(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -1242,15 +1433,18 @@ def upgrade() -> None:
         ["me_model_id"],
         unique=False,
     )
+    op.create_index(
+        op.f("ix_single_neuron_simulation_name"), "single_neuron_simulation", ["name"], unique=False
+    )
     op.create_table(
         "single_neuron_synaptome",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
         sa.Column("me_model_id", sa.Uuid(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -1285,11 +1479,12 @@ def upgrade() -> None:
         ["me_model_id"],
         unique=False,
     )
+    op.create_index(
+        op.f("ix_single_neuron_synaptome_name"), "single_neuron_synaptome", ["name"], unique=False
+    )
     op.create_table(
         "single_neuron_synaptome_simulation",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
         sa.Column("injectionLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
         sa.Column("recordingLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
@@ -1305,8 +1500,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("synaptome_id", sa.Uuid(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
@@ -1336,6 +1533,12 @@ def upgrade() -> None:
         postgresql_using="gin",
     )
     op.create_index(
+        op.f("ix_single_neuron_synaptome_simulation_name"),
+        "single_neuron_synaptome_simulation",
+        ["name"],
+        unique=False,
+    )
+    op.create_index(
         op.f("ix_single_neuron_synaptome_simulation_synaptome_id"),
         "single_neuron_synaptome_simulation",
         ["synaptome_id"],
@@ -1351,6 +1554,10 @@ def downgrade() -> None:
         table_name="single_neuron_synaptome_simulation",
     )
     op.drop_index(
+        op.f("ix_single_neuron_synaptome_simulation_name"),
+        table_name="single_neuron_synaptome_simulation",
+    )
+    op.drop_index(
         "ix_single_neuron_synaptome_simulation_description_vector",
         table_name="single_neuron_synaptome_simulation",
         postgresql_using="gin",
@@ -1360,6 +1567,7 @@ def downgrade() -> None:
         table_name="single_neuron_synaptome_simulation",
     )
     op.drop_table("single_neuron_synaptome_simulation")
+    op.drop_index(op.f("ix_single_neuron_synaptome_name"), table_name="single_neuron_synaptome")
     op.drop_index(
         op.f("ix_single_neuron_synaptome_me_model_id"), table_name="single_neuron_synaptome"
     )
@@ -1372,6 +1580,7 @@ def downgrade() -> None:
         op.f("ix_single_neuron_synaptome_brain_region_id"), table_name="single_neuron_synaptome"
     )
     op.drop_table("single_neuron_synaptome")
+    op.drop_index(op.f("ix_single_neuron_simulation_name"), table_name="single_neuron_simulation")
     op.drop_index(
         op.f("ix_single_neuron_simulation_me_model_id"), table_name="single_neuron_simulation"
     )
@@ -1390,12 +1599,18 @@ def downgrade() -> None:
     op.drop_table("measurement_serie_element")
     op.drop_index(op.f("ix_memodel_strain_id"), table_name="memodel")
     op.drop_index(op.f("ix_memodel_species_id"), table_name="memodel")
+    op.drop_index(op.f("ix_memodel_name"), table_name="memodel")
     op.drop_index("ix_memodel_description_vector", table_name="memodel", postgresql_using="gin")
     op.drop_index(op.f("ix_memodel_brain_region_id"), table_name="memodel")
     op.drop_table("memodel")
     op.drop_index(op.f("ix_measurement_morphology_feature_annotation_id"), table_name="measurement")
     op.drop_index(op.f("ix_measurement_measurement_of"), table_name="measurement")
     op.drop_table("measurement")
+    op.drop_index(
+        op.f("ix_electrical_recording_stimulus_recording_id"),
+        table_name="electrical_recording_stimulus",
+    )
+    op.drop_table("electrical_recording_stimulus")
     op.drop_index(
         op.f("ix_morphology_feature_annotation_reconstruction_morphology_id"),
         table_name="morphology_feature_annotation",
@@ -1407,29 +1622,31 @@ def downgrade() -> None:
     op.drop_table("morphology_feature_annotation")
     op.drop_index(op.f("ix_emodel_strain_id"), table_name="emodel")
     op.drop_index(op.f("ix_emodel_species_id"), table_name="emodel")
+    op.drop_index(op.f("ix_emodel_name"), table_name="emodel")
     op.drop_index("ix_emodel_description_vector", table_name="emodel", postgresql_using="gin")
     op.drop_index(op.f("ix_emodel_brain_region_id"), table_name="emodel")
     op.drop_table("emodel")
     op.drop_index(
-        op.f("ix_single_cell_experimental_trace_strain_id"),
-        table_name="single_cell_experimental_trace",
+        op.f("ix_electrical_cell_recording_subject_id"), table_name="electrical_cell_recording"
+    )
+    op.drop_index(op.f("ix_electrical_cell_recording_name"), table_name="electrical_cell_recording")
+    op.drop_index(
+        op.f("ix_electrical_cell_recording_license_id"), table_name="electrical_cell_recording"
     )
     op.drop_index(
-        op.f("ix_single_cell_experimental_trace_species_id"),
-        table_name="single_cell_experimental_trace",
+        "ix_electrical_cell_recording_description_vector",
+        table_name="electrical_cell_recording",
+        postgresql_using="gin",
     )
     op.drop_index(
-        op.f("ix_single_cell_experimental_trace_name"), table_name="single_cell_experimental_trace"
+        op.f("ix_electrical_cell_recording_brain_region_id"), table_name="electrical_cell_recording"
     )
-    op.drop_index(
-        op.f("ix_single_cell_experimental_trace_license_id"),
-        table_name="single_cell_experimental_trace",
-    )
-    op.drop_index(
-        op.f("ix_single_cell_experimental_trace_brain_region_id"),
-        table_name="single_cell_experimental_trace",
-    )
-    op.drop_table("single_cell_experimental_trace")
+    op.drop_table("electrical_cell_recording")
+    op.drop_index(op.f("ix_subject_strain_id"), table_name="subject")
+    op.drop_index(op.f("ix_subject_species_id"), table_name="subject")
+    op.drop_index(op.f("ix_subject_name"), table_name="subject")
+    op.drop_index("ix_subject_description_vector", table_name="subject", postgresql_using="gin")
+    op.drop_table("subject")
     op.drop_index(
         op.f("ix_reconstruction_morphology_strain_id"), table_name="reconstruction_morphology"
     )
@@ -1455,6 +1672,8 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_mtype_classification_creation_date"), table_name="mtype_classification")
     op.drop_index(op.f("ix_mtype_classification_createdBy_id"), table_name="mtype_classification")
     op.drop_table("mtype_classification")
+    op.drop_index(op.f("ix_mesh_name"), table_name="mesh")
+    op.drop_index("ix_mesh_description_vector", table_name="mesh", postgresql_using="gin")
     op.drop_index(op.f("ix_mesh_brain_region_id"), table_name="mesh")
     op.drop_table("mesh")
     op.drop_index(
@@ -1474,6 +1693,11 @@ def downgrade() -> None:
         table_name="experimental_synapses_per_connection",
     )
     op.drop_index(
+        "ix_experimental_synapses_per_connection_description_vector",
+        table_name="experimental_synapses_per_connection",
+        postgresql_using="gin",
+    )
+    op.drop_index(
         op.f("ix_experimental_synapses_per_connection_brain_region_id"),
         table_name="experimental_synapses_per_connection",
     )
@@ -1491,6 +1715,11 @@ def downgrade() -> None:
         op.f("ix_experimental_neuron_density_license_id"), table_name="experimental_neuron_density"
     )
     op.drop_index(
+        "ix_experimental_neuron_density_description_vector",
+        table_name="experimental_neuron_density",
+        postgresql_using="gin",
+    )
+    op.drop_index(
         op.f("ix_experimental_neuron_density_brain_region_id"),
         table_name="experimental_neuron_density",
     )
@@ -1506,6 +1735,11 @@ def downgrade() -> None:
     )
     op.drop_index(
         op.f("ix_experimental_bouton_density_license_id"), table_name="experimental_bouton_density"
+    )
+    op.drop_index(
+        "ix_experimental_bouton_density_description_vector",
+        table_name="experimental_bouton_density",
+        postgresql_using="gin",
     )
     op.drop_index(
         op.f("ix_experimental_bouton_density_brain_region_id"),
@@ -1534,6 +1768,14 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_annotation_creation_date"), table_name="annotation")
     op.drop_index(op.f("ix_annotation_annotation_body_id"), table_name="annotation")
     op.drop_table("annotation")
+    op.drop_index(
+        op.f("ix_analysis_software_source_code_name"), table_name="analysis_software_source_code"
+    )
+    op.drop_index(
+        "ix_analysis_software_source_code_description_vector",
+        table_name="analysis_software_source_code",
+        postgresql_using="gin",
+    )
     op.drop_table("analysis_software_source_code")
     op.drop_index(op.f("ix_strain_taxonomy_id"), table_name="strain")
     op.drop_index(op.f("ix_strain_species_id"), table_name="strain")
@@ -1552,9 +1794,6 @@ def downgrade() -> None:
         table_name="datamaturity_annotation_body",
     )
     op.drop_table("datamaturity_annotation_body")
-    op.drop_index(op.f("ix_subject_name"), table_name="subject")
-    op.drop_index(op.f("ix_subject_creation_date"), table_name="subject")
-    op.drop_table("subject")
     op.drop_index(op.f("ix_species_taxonomy_id"), table_name="species")
     op.drop_index(op.f("ix_species_name"), table_name="species")
     op.drop_index(op.f("ix_species_creation_date"), table_name="species")
@@ -1590,6 +1829,7 @@ def downgrade() -> None:
     sa.Enum("person", "organization", name="agenttype").drop(op.get_bind())
     sa.Enum("datamaturity_annotation_body", name="annotationbodytype").drop(op.get_bind())
     sa.Enum(
+        "age",
         "analysis_software_source_code",
         "emodel",
         "experimental_bouton_density",
@@ -1598,15 +1838,47 @@ def downgrade() -> None:
         "memodel",
         "mesh",
         "reconstruction_morphology",
-        "single_cell_experimental_trace",
+        "electrical_cell_recording",
+        "electrical_recording_stimulus",
         "single_neuron_simulation",
         "single_neuron_synaptome",
         "single_neuron_synaptome_simulation",
+        "subject",
         name="entitytype",
     ).drop(op.get_bind())
+    sa.Enum("prenatal", "postnatal", "unknown", name="ageperiod").drop(op.get_bind())
+    sa.Enum("male", "female", "unknown", name="sex").drop(op.get_bind())
     sa.Enum(
         "created", "initialized", "running", "done", "error", name="me_model_validation_status"
     ).drop(op.get_bind())
+    sa.Enum(
+        "voltage_clamp",
+        "current_clamp",
+        "conductance_clamp",
+        "extracellular",
+        "other",
+        "unknown",
+        name="electricalrecordingstimulustype",
+    ).drop(op.get_bind())
+    sa.Enum(
+        "cheops",
+        "constant",
+        "pulse",
+        "step",
+        "ramp",
+        "noise",
+        "sinusoidal",
+        "other",
+        "two_steps",
+        "unknown",
+        name="electricalrecordingstimulusshape",
+    ).drop(op.get_bind())
+    sa.Enum(
+        "intracellular", "extracellular", "both", "unknown", name="electricalrecordingtype"
+    ).drop(op.get_bind())
+    sa.Enum("in_vivo", "in_vitro", "in_silico", "unknown", name="electricalrecordingorigin").drop(
+        op.get_bind()
+    )
     sa.Enum("started", "failure", "success", name="singleneuronsimulationstatus").drop(
         op.get_bind()
     )

@@ -1,5 +1,6 @@
 import datetime
 import uuid
+from datetime import timedelta
 from typing import Any, Literal
 
 import sqlalchemy as sa
@@ -7,8 +8,20 @@ from sqlalchemy import any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
-from app.db.model import Agent, Asset, BrainRegion, Contribution, License, Role, Species, Strain
-from app.db.types import AssetStatus, EntityType
+from app.cli.mappings import STIMULUS_INFO
+from app.db.model import (
+    Agent,
+    Asset,
+    BrainRegion,
+    Contribution,
+    ElectricalRecordingStimulus,
+    License,
+    Role,
+    Species,
+    Strain,
+    Subject,
+)
+from app.db.types import AssetStatus, EntityType, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.utils.s3 import build_s3_path
@@ -67,6 +80,25 @@ def get_or_create_species(species, db, _cache={}):
     _cache[id_] = sp.id
 
     return sp.id
+
+
+def create_stimulus(data, entity_id, project_context, db):
+    label = data["label"]
+
+    row = ElectricalRecordingStimulus(
+        name=label,
+        description=data.get("definition", None),
+        dt=None,
+        injection_type=STIMULUS_INFO[label]["type"],
+        shape=STIMULUS_INFO[label]["shape"],
+        start_time=None,
+        end_time=None,
+        recording_id=entity_id,
+        authorized_public=AUTHORIZED_PUBLIC,
+        authorized_project_id=project_context.project_id,
+    )
+    db.add(row)
+    db.commit()
 
 
 def get_brain_location_mixin(data, db):
@@ -156,6 +188,67 @@ def get_species_mixin(data, db):
     if strain:
         strain_id = get_or_create_strain(strain, species_id, db)
     return species_id, strain_id
+
+
+def get_or_create_subject(data, project_context, db):
+    species = data.get("subject", {}).get("species", {})
+    if not species:
+        msg = f"species is None: {data}"
+        raise RuntimeError(msg)
+    species_id = get_or_create_species(species, db)
+    strain = data.get("subject", {}).get("strain", {})
+    strain_id = None
+    if strain:
+        strain_id = get_or_create_strain(strain, species_id, db)
+
+    age_fields = {}
+    if age := data.get("subject", {}).get("age", {}):
+        age_fields = curate_age(age)
+
+    subject = Subject(
+        name=data["name"],
+        description=data["description"],
+        species_id=species_id,
+        strain_id=strain_id,
+        sex=Sex.unknown,
+        weight=None,
+        age_value=age_fields.get("age_value", None),
+        age_min=age_fields.get("age_min", None),
+        age_max=age_fields.get("age_max", None),
+        age_period=age_fields.get("age_period", None),
+        authorized_project_id=project_context.project_id,
+        authorized_public=AUTHORIZED_PUBLIC,
+    )
+    db.add(subject)
+    db.commit()
+    return subject.id
+
+
+def curate_age(data):
+    min_value = data.get("minValue", None)
+    max_value = data.get("maxValue", None)
+    unit = data.get("unitCode", None)
+    period = data.get("period", None)
+    value = data.get("value", None)
+
+    value = timedelta(**{unit: value}) if value is not None else None
+    min_value = timedelta(**{unit: min_value}) if min_value is not None else None
+    max_value = timedelta(**{unit: max_value}) if max_value is not None else None
+
+    if period.lower() == "post-natal":
+        period = "postnatal"
+    elif period.lower() == "pre-natal":
+        period = "prenatal"
+    else:
+        msg = f"Unknown 'period' in Age: {data}"
+        L.warning(msg)
+
+    return {
+        "age_value": value,
+        "age_min": min_value,
+        "age_max": max_value,
+        "age_period": period,
+    }
 
 
 def get_license_mixin(data, db):

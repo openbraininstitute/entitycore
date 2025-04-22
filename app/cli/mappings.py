@@ -182,7 +182,7 @@ STIMULUS_INFO = {
         "type": ElectricalRecordingStimulusType.current_clamp,
     },
     "H10S8": {
-        "shape": ElectricalRecordingStimulusShape.step,
+        "shape": ElectricalRecordingStimulusShape.other,
         "type": ElectricalRecordingStimulusType.current_clamp,
     },
     "IDRest": {
@@ -302,7 +302,7 @@ STIMULUS_INFO = {
         "type": ElectricalRecordingStimulusType.current_clamp,
     },
     "H20S8": {
-        "shape": ElectricalRecordingStimulusShape.noise,
+        "shape": ElectricalRecordingStimulusShape.pulse,
         "type": ElectricalRecordingStimulusType.current_clamp,
     },
     "NoiseOU3": {
@@ -498,7 +498,7 @@ STIMULUS_INFO = {
         "type": ElectricalRecordingStimulusType.current_clamp,
     },
     "A___.ibw": {
-        "shape": ElectricalRecordingStimulusShape.other,
+        "shape": ElectricalRecordingStimulusShape.step,
         "type": ElectricalRecordingStimulusType.current_clamp,
     },
 }

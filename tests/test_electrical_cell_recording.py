@@ -23,7 +23,7 @@ def json_data(brain_region_id, subject_id, license_id):
         "subject_id": subject_id,
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
-        "recording_location": ["soma[0.5]"],
+        "recording_location": ["soma[0]_0.5"],
         "recording_type": "intracellular",
         "recording_origin": "in_vivo",
         "authorized_public": False,

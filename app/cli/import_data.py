@@ -4,6 +4,7 @@ import json
 import os
 import random
 import uuid
+from functools import partial
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
@@ -32,6 +33,7 @@ from app.db.model import (
     ExperimentalSynapsesPerConnection,
     License,
     MEModel,
+    Measurement,
     Mesh,
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
@@ -47,8 +49,13 @@ from app.db.model import (
 from app.db.session import configure_database_session_manager
 from app.logger import L
 from app.schemas.base import ProjectContext
-from app.db.types import PointLocationBase
-from app.db.types import ElectricalRecordingType, ElectricalRecordingOrigin
+from app.db.types import (
+    ElectricalRecordingType,
+    ElectricalRecordingOrigin,
+    MeasurementStatistic,
+    MeasurementUnit,
+    PointLocationBase,
+)
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -940,7 +947,8 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
             continue
 
         license_id = utils.get_license_mixin(data, db)
-        species_id, strain_id = utils.get_species_mixin(data, db)
+
+        subject_id = utils.get_or_create_subject(data, project_context, db)
 
         _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
         assert _brain_location is None
@@ -948,25 +956,86 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
 
         createdAt, updatedAt = utils.get_created_and_updated(data)
 
-        db_element = model_type(
-            legacy_id=[legacy_id],
-            legacy_self=[legacy_self],
-            name=data.get("name"),
-            description=data.get("description", data.get("name")),
-            species_id=species_id,
-            strain_id=strain_id,
-            license_id=license_id,
-            brain_region_id=brain_region_id,
-            createdBy_id=createdBy_id,
-            updatedBy_id=updatedBy_id,
-            creation_date=createdAt,
-            update_date=updatedAt,
-            authorized_project_id=project_context.project_id,
-            authorized_public=AUTHORIZED_PUBLIC,
-        )
-        db.add(db_element)
+        kwargs = {
+            "legacy_id": [legacy_id],
+            "legacy_self": [legacy_self],
+            "name": data.get("name"),
+            "description": data.get("description", ""),
+            "subject_id": subject_id,
+            "license_id": license_id,
+            "brain_region_id": brain_region_id,
+            "createdBy_id": createdBy_id,
+            "updatedBy_id": updatedBy_id,
+            "creation_date": createdAt,
+            "update_date": updatedAt,
+            "authorized_project_id": project_context.project_id,
+            "authorized_public": AUTHORIZED_PUBLIC,
+        }
+
+        if model_type is ExperimentalSynapsesPerConnection:
+            try:
+                pathway_id = utils.get_or_create_synaptic_pathway(
+                    data["synapticPathway"], project_context, db
+                )
+                kwargs["synaptic_pathway_id"] = pathway_id
+            except Exception as e:
+                msg = f"Failed to create synaptic pathway: {data['synapticPathway']}.\nReason: {e}"
+                L.warning(msg)
+                continue
+
+        db_item = model_type(**kwargs)
+        db.add(db_item)
         db.commit()
-        utils.import_contribution(data, db_element.id, db)
+        utils.import_contribution(data, db_item.id, db)
+
+        for annotation in ensurelist(data.get("annotation", [])):
+            create_annotation(annotation, db_item.id, db)
+
+        for measurement in ensurelist(data.get("series", [])):
+            create_measurement(measurement, db_item.id, db)
+
+
+def create_measurement(data, entity_id, db):
+    match data["statistic"]:
+        case "N":
+            statistic = MeasurementStatistic.sample_size
+        case "mean":
+            statistic = MeasurementStatistic.mean
+        case "standard deviation":
+            statistic = MeasurementStatistic.standard_deviation
+        case "standard error of the mean":
+            statistic = MeasurementStatistic.standard_error
+        case "data point":
+            statistic = MeasurementStatistic.data_point
+        case _:
+            statistic = None
+            msg = f"Statistic not captured: {data}"
+            L.warning(msg)
+
+    match data["unitCode"]:
+        case "dimensionless":
+            unit = MeasurementUnit.dimensionless
+        case "1/μm":
+            unit = MeasurementUnit.linear_density__1_um
+        case "neurons/mm³":
+            unit = MeasurementUnit.volume_density__1_mm3
+        case _:
+            unit = None
+            msg = f"Unit code not captured: {data}"
+            L.warning(msg)
+
+    if unit and statistic:
+        db_item = Measurement(
+            name=statistic,
+            unit=unit,
+            value=float(data["value"]),
+            entity_id=entity_id,
+        )
+        db.add(db_item)
+        db.commit()
+    else:
+        msg = f"Measurement {data} was skipped."
+        L.warning(msg)
 
 
 def _do_import(db, input_dir, project_context):

@@ -4,7 +4,7 @@ from datetime import timedelta
 from typing import Any, Literal
 
 import sqlalchemy as sa
-from sqlalchemy import any_
+from sqlalchemy import and_, any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
@@ -16,10 +16,12 @@ from app.db.model import (
     Contribution,
     ElectricalRecordingStimulus,
     License,
+    MTypeClass,
     Role,
     Species,
     Strain,
     Subject,
+    SynapticPathway,
 )
 from app.db.types import AssetStatus, EntityType, Sex
 from app.logger import L
@@ -190,67 +192,6 @@ def get_species_mixin(data, db):
     return species_id, strain_id
 
 
-def get_or_create_subject(data, project_context, db):
-    species = data.get("subject", {}).get("species", {})
-    if not species:
-        msg = f"species is None: {data}"
-        raise RuntimeError(msg)
-    species_id = get_or_create_species(species, db)
-    strain = data.get("subject", {}).get("strain", {})
-    strain_id = None
-    if strain:
-        strain_id = get_or_create_strain(strain, species_id, db)
-
-    age_fields = {}
-    if age := data.get("subject", {}).get("age", {}):
-        age_fields = curate_age(age)
-
-    subject = Subject(
-        name=data["name"],
-        description=data["description"],
-        species_id=species_id,
-        strain_id=strain_id,
-        sex=Sex.unknown,
-        weight=None,
-        age_value=age_fields.get("age_value", None),
-        age_min=age_fields.get("age_min", None),
-        age_max=age_fields.get("age_max", None),
-        age_period=age_fields.get("age_period", None),
-        authorized_project_id=project_context.project_id,
-        authorized_public=AUTHORIZED_PUBLIC,
-    )
-    db.add(subject)
-    db.commit()
-    return subject.id
-
-
-def curate_age(data):
-    min_value = data.get("minValue", None)
-    max_value = data.get("maxValue", None)
-    unit = data.get("unitCode", None)
-    period = data.get("period", None)
-    value = data.get("value", None)
-
-    value = timedelta(**{unit: value}) if value is not None else None
-    min_value = timedelta(**{unit: min_value}) if min_value is not None else None
-    max_value = timedelta(**{unit: max_value}) if max_value is not None else None
-
-    if period.lower() == "post-natal":
-        period = "postnatal"
-    elif period.lower() == "pre-natal":
-        period = "prenatal"
-    else:
-        msg = f"Unknown 'period' in Age: {data}"
-        L.warning(msg)
-
-    return {
-        "age_value": value,
-        "age_min": min_value,
-        "age_max": max_value,
-        "age_period": period,
-    }
-
-
 def get_license_mixin(data, db):
     license_id = None
     license = data.get("license", {})
@@ -416,3 +357,130 @@ def find_part_id(data: dict[str, Any], type_: Literal["NeuronMorphology", "EMode
                 return part.get("@id", None)
 
     return None
+
+
+def _get_pathway_info(data, db):  # noqa: C901
+    pre_region_id = pre_mtype_label = post_region_id = post_mtype_label = None
+    for entry in data["preSynaptic"]:
+        if "BrainRegion" in entry["about"]:
+            pre_region_id = int(entry["@id"].replace("mba:", ""))
+        elif "mtypes" in entry["@id"] or "BrainCell:Type" in entry["about"]:
+            pre_mtype_label = entry["label"]
+
+    for entry in data["postSynaptic"]:
+        if "BrainRegion" in entry["about"]:
+            post_region_id = int(entry["@id"].replace("mba:", ""))
+        elif "mtypes" in entry["@id"] or "BrainCell:Type" in entry["about"]:
+            post_mtype_label = entry["label"]
+
+    if not all([pre_region_id, post_region_id, pre_mtype_label, post_mtype_label]):
+        msg = f"Failed to find pre/post synaptic information for {data}"
+        raise RuntimeError(msg)
+
+    msg = ""
+    pre_mtype = db.query(MTypeClass).filter(MTypeClass.pref_label == pre_mtype_label).first()
+
+    if not pre_mtype:
+        msg += f"mtype {pre_mtype_label} is not present in the database.\n"
+
+    post_mtype = db.query(MTypeClass).filter(MTypeClass.pref_label == post_mtype_label).first()
+    if not post_mtype:
+        msg += f"mtype {post_mtype_label} is not present in the database.\n"
+
+    if msg:
+        raise RuntimeError(msg)
+
+    return pre_mtype.id, post_mtype.id, pre_region_id, post_region_id  # pyright: ignore [reportPossiblyUnboundVariable]
+
+
+def get_or_create_synaptic_pathway(data, project_context, db):
+    pre_mtype_id, post_mtype_id, pre_region_id, post_region_id = _get_pathway_info(data, db)
+
+    res = (
+        db.query(SynapticPathway)
+        .where(
+            and_(
+                SynapticPathway.pre_mtype_id == pre_mtype_id,
+                SynapticPathway.post_mtype_id == post_mtype_id,
+                SynapticPathway.pre_region_id == pre_region_id,
+                SynapticPathway.post_region_id == post_region_id,
+            )
+        )
+        .first()
+    )
+
+    if not res:
+        res = SynapticPathway(
+            pre_mtype_id=pre_mtype_id,
+            post_mtype_id=post_mtype_id,
+            pre_region_id=pre_region_id,
+            post_region_id=post_region_id,
+            authorized_project_id=project_context.project_id,
+        )
+        db.add(res)
+        db.commit()
+
+    return res.id
+
+
+def get_or_create_subject(data, project_context, db):
+    subject = data.get("subject", {})
+
+    species = subject.get("species", {})
+    if not species:
+        msg = f"species is None: {data}"
+        raise RuntimeError(msg)
+    species_id = get_or_create_species(species, db)
+    strain = subject.get("strain", {})
+    strain_id = None
+    if strain:
+        strain_id = get_or_create_strain(strain, species_id, db)
+
+    age_fields = {}
+    if age := subject.get("age", {}):
+        age_fields = curate_age(age)
+
+    subject = Subject(
+        name=subject.get("name", "Unknown"),
+        description=subject.get("description", ""),
+        species_id=species_id,
+        strain_id=strain_id,
+        sex=Sex.unknown,
+        weight=None,
+        age_value=age_fields.get("age_value", None),
+        age_min=age_fields.get("age_min", None),
+        age_max=age_fields.get("age_max", None),
+        age_period=age_fields.get("age_period", None),
+        authorized_project_id=project_context.project_id,
+        authorized_public=AUTHORIZED_PUBLIC,
+    )
+    db.add(subject)
+    db.commit()
+    return subject.id
+
+
+def curate_age(data):
+    min_value = data.get("minValue", None)
+    max_value = data.get("maxValue", None)
+    unit = data.get("unitCode", None)
+    period = data.get("period", None)
+    value = data.get("value", None)
+
+    value = timedelta(**{unit: value}) if value is not None else None
+    min_value = timedelta(**{unit: min_value}) if min_value is not None else None
+    max_value = timedelta(**{unit: max_value}) if max_value is not None else None
+
+    if period.lower() == "post-natal":
+        period = "postnatal"
+    elif period.lower() == "pre-natal":
+        period = "prenatal"
+    else:
+        msg = f"Unknown 'period' in Age: {data}"
+        L.warning(msg)
+
+    return {
+        "age_value": value,
+        "age_min": min_value,
+        "age_max": max_value,
+        "age_period": period,
+    }

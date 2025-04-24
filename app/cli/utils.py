@@ -461,7 +461,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         update_date=updated_at,
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
-        stochastic=script.get("stochastic", False),
+        stochastic=script.get("name", "").startswith("stoch"),
     )
 
     db.add(db_ion_channel_model)

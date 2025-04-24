@@ -30,7 +30,7 @@ from app.db.model import (
 from app.db.types import AssetStatus, EntityType, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
-from app.schemas.ion_channel_model import NmodlParameters
+from app.schemas.ion_channel_model import NeuronBlock
 from app.utils.s3 import build_s3_path
 
 AUTHORIZED_PUBLIC = True
@@ -419,41 +419,51 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
 
     temperature_value = temperature.get("value")
 
-    nmodl_parameters: dict[str, Any] | None = script.get("nmodlParameters")
-    nmodl_parameters_validated: NmodlParameters | None = None
-    if nmodl_parameters:
-        range_ = nmodl_parameters.get("range")
-        read = nmodl_parameters.get("read")
-        useion = nmodl_parameters.get("useion")
-        write = nmodl_parameters.get("write")
-        nonspecific = nmodl_parameters.get("nonspecific")
+    neuron_block_raw: dict[str, Any] | None = script.get("nmodlParameters")
+    neuron_block_validated: NeuronBlock | None = None
 
-        d = {
-            **nmodl_parameters,
-            "range": range_ and ensurelist(range_),
-            "read": read and ensurelist(read),
-            "useion": useion and ensurelist(useion),
-            "write": write and ensurelist(write),
-            "nonspecific": nonspecific and ensurelist(nonspecific),
+    if neuron_block_raw:
+        ion_entries = script.get("ion")
+        if isinstance(ion_entries, dict):
+            ion_entries = [ion_entries]
+
+        useion_structured = []
+        for ion_data in ion_entries or []:
+            useion_structured.append({
+                "ion": {
+                    "ontology_id": ion_data.get("@id"),
+                    "name": ion_data.get("label"),
+                },
+                "read": neuron_block_raw.get("read"),
+                "write": neuron_block_raw.get("write"),
+                "valence": neuron_block_raw.get("valence"),
+                "main_ion": None,
+            })
+
+        neuron_block_dict = {
+            "range": neuron_block_raw.get("range"),
+            "global_": None,
+            "suffix": neuron_block_raw.get("suffix"),
+            "nonspecific": neuron_block_raw.get("nonspecific"),
+            "useion": useion_structured,
         }
-
-        nmodl_parameters_validated = NmodlParameters.model_validate(d)
+        neuron_block_validated = NeuronBlock.model_validate(neuron_block_dict)
 
     _, brain_region_id = get_brain_location_mixin(script, db)
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
 
-    assert nmodl_parameters_validated  # noqa: S101
+    assert neuron_block_validated  # noqa: S101
 
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],
         legacy_self=[legacy_self],
         name=script["name"],
-        description=script.get("descripton", ""),
+        description=script.get("description", ""),
         is_ljp_corrected=script.get("isLjpCorrected", False),
         is_temperature_dependent=script.get("isTemperatureDependent", False),
         temperature_celsius=int(temperature_value),
-        nmodl_parameters=nmodl_parameters_validated.model_dump(),
+        neuron_block=neuron_block_validated,
         brain_region_id=brain_region_id,
         species_id=species_id,
         strain_id=strain_id,
@@ -465,7 +475,6 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     )
 
     db.add(db_ion_channel_model)
-
     db.flush()
 
     import_contribution(script, db_ion_channel_model.id, db)

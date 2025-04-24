@@ -668,7 +668,7 @@ def upgrade() -> None:
         sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
         sa.Column("temperature_celsius", sa.Integer(), nullable=False),
         sa.Column("is_stochastic", sa.Boolean(), nullable=False),
-        sa.Column("nmodl_parameters", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("neuron_block", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),

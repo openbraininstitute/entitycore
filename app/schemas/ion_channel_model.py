@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.asset import AssetsMixin
@@ -12,21 +10,26 @@ from app.schemas.base import (
     StrainRead,
 )
 
-
-class NmodlParameters(BaseModel):
-    range: list[str]
-    read: list[str] | None = None
-    suffix: str | None = None
-    useion: list[str] | None = None
-    write: list[str] | None = None
-    nonspecific: list[str] | None = None
-    valence: int | None = None
-
-
-class Ion(BaseModel):
+class Ion(CreationMixin, IdentifiableMixin, AuthorizationMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: UUID
+    ontology_id: str | None = None
     name: str
+
+
+class UseIon(BaseModel):
+    ion: Ion
+    read: list[str] | None = None
+    write: list[str] | None = None
+    valence: int | None = None
+    main_ion: bool | None = None
+
+
+class NeuronBlock(BaseModel):
+    global_: list[str] | None = None
+    range: list[str] | None = None
+    suffix: str | None = None
+    useion: list[UseIon] | None = None
+    nonspecific: list[str] | None = None
 
 
 class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, AssetsMixin, BaseModel):
@@ -40,7 +43,4 @@ class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, Asse
     is_temperature_dependent: bool
     temperature_celsius: int
     is_stochastic: bool
-
-    nmodl_parameters: NmodlParameters
-
-    ions: list[Ion]
+    neuron_block: NeuronBlock

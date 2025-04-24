@@ -733,7 +733,7 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     temperature_celsius: Mapped[int]
     is_stochastic: Mapped[bool] = mapped_column(default=False)
 
-    nmodl_parameters: Mapped[JSON_DICT]
+    neuron_block: Mapped[JSON_DICT]
 
     ions: Mapped[list[Ion]] = relationship(
         primaryjoin="IonChannelModel.id == IonToIonChannelModel.ion_channel_model_id",

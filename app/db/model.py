@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import ClassVar
 
 from sqlalchemy import (
@@ -23,12 +23,19 @@ from app.db.types import (
     JSON_DICT,
     STRING_LIST,
     AgentType,
+    AgePeriod,
     AnnotationBodyType,
     AssetStatus,
+    ElectricalRecordingOrigin,
+    ElectricalRecordingStimulusShape,
+    ElectricalRecordingStimulusType,
+    ElectricalRecordingType,
     EntityType,
-    ICMType,
+    MeasurementStatistic,
+    MeasurementUnit,
     PointLocation,
     PointLocationType,
+    Sex,
     SingleNeuronSimulationStatus,
     ValidationStatus,
 )
@@ -100,11 +107,6 @@ class Strain(Identifiable):
         # needed for the composite foreign key in SpeciesMixin
         UniqueConstraint("id", "species_id", name="uq_strain_id_species_id"),
     )
-
-
-class Subject(Identifiable):
-    __tablename__ = "subject"
-    name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class License(LegacyMixin, Identifiable):
@@ -346,6 +348,28 @@ class Entity(LegacyMixin, Identifiable):
     }
 
 
+class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
+    __tablename__ = EntityType.subject.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    age_value: Mapped[timedelta | None]
+    age_min: Mapped[timedelta | None]
+    age_max: Mapped[timedelta | None]
+    age_period: Mapped[AgePeriod | None]
+    sex: Mapped[Sex | None]
+    weight: Mapped[float | None]  # in grams
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
+
+
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.analysis_software_source_code.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -499,11 +523,47 @@ class Role(LegacyMixin, Identifiable):
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class SingleCellExperimentalTrace(
-    LocationMixin, SpeciesMixin, LicensedMixin, NameDescriptionVectorMixin, Entity
-):
-    __tablename__ = EntityType.single_cell_experimental_trace.value
+class ElectricalRecordingStimulus(Entity):
+    __tablename__ = EntityType.electrical_recording_stimulus.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    name: Mapped[str]
+    description: Mapped[str] = mapped_column(default="")
+
+    dt: Mapped[float | None]
+    injection_type: Mapped[ElectricalRecordingStimulusType]
+    shape: Mapped[ElectricalRecordingStimulusShape]
+    start_time: Mapped[float | None]
+    end_time: Mapped[float | None]
+
+    recording_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("electrical_cell_recording.id"),
+        index=True,
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class ElectricalCellRecording(
+    NameDescriptionVectorMixin,
+    LocationMixin,
+    SubjectMixin,
+    LicensedMixin,
+    Entity,
+):
+    __tablename__ = EntityType.electrical_cell_recording.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    recording_type: Mapped[ElectricalRecordingType]
+    recording_origin: Mapped[ElectricalRecordingOrigin]
+    recording_location: Mapped[STRING_LIST]
+    ljp: Mapped[float] = mapped_column(default=0.0)
+    comment: Mapped[str] = mapped_column(default="")
+
+    stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(
+        uselist=True,
+        foreign_keys="ElectricalRecordingStimulus.recording_id",
+    )
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
@@ -547,16 +607,79 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class Measurement(Base):
+    __tablename__ = "measurement_record"
+
+    id: Mapped[BIGINT] = mapped_column(BigInteger, Identity(), primary_key=True)
+    name: Mapped[MeasurementStatistic]
+    unit: Mapped[MeasurementUnit]
+    value: Mapped[float]
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+
+
+class MeasurementsMixin:
+    @declared_attr
+    @classmethod
+    def measurements(cls):
+        return relationship(
+            "Measurement",
+            foreign_keys=Measurement.entity_id,
+            uselist=True,
+        )
+
+
 class ExperimentalNeuronDensity(
-    LocationMixin, SpeciesMixin, LicensedMixin, NameDescriptionVectorMixin, Entity
+    NameDescriptionVectorMixin,
+    MeasurementsMixin,
+    MTypesMixin,
+    ETypesMixin,
+    LocationMixin,
+    SubjectMixin,
+    LicensedMixin,
+    Entity,
 ):
     __tablename__ = EntityType.experimental_neuron_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class SynapticPathway(Entity):
+    __tablename__ = EntityType.synaptic_pathway.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    pre_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    pre_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[pre_mtype_id])
+
+    post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
+
+    pre_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    pre_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[pre_region_id])
+
+    post_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    post_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[post_region_id])
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __table_args__ = (
+        UniqueConstraint(
+            "pre_mtype_id",
+            "post_mtype_id",
+            "pre_region_id",
+            "post_region_id",
+            name="unique_pathway",
+        ),
+    )
+
+
 class ExperimentalBoutonDensity(
-    LocationMixin, SpeciesMixin, LicensedMixin, NameDescriptionVectorMixin, Entity
+    NameDescriptionVectorMixin,
+    MeasurementsMixin,
+    MTypesMixin,
+    LocationMixin,
+    LicensedMixin,
+    SubjectMixin,
+    Entity,
 ):
     __tablename__ = EntityType.experimental_bouton_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -564,10 +687,22 @@ class ExperimentalBoutonDensity(
 
 
 class ExperimentalSynapsesPerConnection(
-    LocationMixin, SpeciesMixin, LicensedMixin, NameDescriptionVectorMixin, Entity
+    NameDescriptionVectorMixin,
+    MeasurementsMixin,
+    LocationMixin,
+    SubjectMixin,
+    LicensedMixin,
+    Entity,
 ):
     __tablename__ = EntityType.experimental_synapses_per_connection.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    synaptic_pathway_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("synaptic_pathway.id"), index=True
+    )
+    synaptic_pathway: Mapped[SynapticPathway] = relationship(
+        uselist=False, foreign_keys=[synaptic_pathway_id]
+    )
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
@@ -597,7 +732,6 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
     stochastic: Mapped[bool] = mapped_column(default=False)
-    icm_type: Mapped[ICMType] = mapped_column(default=ICMType.distributed)
 
     nmodl_parameters: Mapped[JSON_DICT]
 

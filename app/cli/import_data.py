@@ -4,6 +4,7 @@ import json
 import os
 import random
 import uuid
+from functools import partial
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
@@ -26,6 +27,7 @@ from app.db.model import (
     Asset,
     BrainRegion,
     DataMaturityAnnotationBody,
+    ElectricalCellRecording,
     EModel,
     Entity,
     ETypeClass,
@@ -35,6 +37,7 @@ from app.db.model import (
     ExperimentalSynapsesPerConnection,
     License,
     MEModel,
+    Measurement,
     Mesh,
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
@@ -44,12 +47,19 @@ from app.db.model import (
     Organization,
     Person,
     ReconstructionMorphology,
-    SingleCellExperimentalTrace,
     SingleNeuronSimulation,
+    Subject,
 )
 from app.db.session import configure_database_session_manager
 from app.logger import L
-from app.schemas.base import PointLocationBase, ProjectContext
+from app.schemas.base import ProjectContext
+from app.db.types import (
+    ElectricalRecordingType,
+    ElectricalRecordingOrigin,
+    MeasurementStatistic,
+    MeasurementUnit,
+    PointLocationBase,
+)
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -636,20 +646,24 @@ class ImportExperimentalSynapsesPerConnection(Import):
         )
 
 
-class ImportSingleCellExperimentalTrace(Import):
+class ImportElectricalCellRecording(Import):
     name = "SingleCellExperimentalTrace"
 
     @staticmethod
     def is_correct_type(data):
         types = ensurelist(data["@type"])
-        return "SingleCellExperimentalTrace" in types
+        return (
+            "SingleCellExperimentalTrace" in types
+            or "Trace" in types
+            or "ExperimentalTrace" in types
+        )
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
-            rm = utils._find_by_legacy_id(legacy_id, SingleCellExperimentalTrace, db)
+            rm = utils._find_by_legacy_id(legacy_id, ElectricalCellRecording, db)
             if rm:
                 continue
 
@@ -659,18 +673,35 @@ class ImportSingleCellExperimentalTrace(Import):
             assert _brain_location is None
 
             license_id = utils.get_license_mixin(data, db)
-            species_id, strain_id = utils.get_species_mixin(data, db)
+            # species_id, strain_id = utils.get_species_mixin(data, db)
+
+            subject_id = utils.get_or_create_subject(data, project_context, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
-            db_item = SingleCellExperimentalTrace(
+            age = data.get("subject", {}).get("age", {}).get("value", None)
+            comment = data.get("note", None)
+
+            if "ExperimentalTrace" in data["@type"]:
+                recording_origin = ElectricalRecordingOrigin.in_vitro
+            elif "SimulationTrace" in data["@type"]:
+                recording_origin = ElectricalRecordingOrigin.in_silico
+            else:
+                recording_origin = ElectricalRecordingOrigin.unknown
+                msg = f"Trace type {data['@type']} has unknown origin."
+                L.warning(msg)
+
+            db_item = ElectricalCellRecording(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data["name"],
                 description=data["description"],
+                comment=comment,
                 brain_region_id=brain_region_id,
-                species_id=species_id,
-                strain_id=strain_id,
+                subject_id=subject_id,
                 license_id=license_id,
+                recording_type=ElectricalRecordingType.intracellular,
+                recording_location=[],
+                recording_origin=recording_origin,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -685,6 +716,14 @@ class ImportSingleCellExperimentalTrace(Import):
 
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_item.id, db)
+
+            for stimulus in ensurelist(data.get("stimulus", [])):
+                stimulus_type = stimulus["stimulusType"]
+                if "@id" in stimulus_type and stimulus_type["@id"] in all_data_by_id:
+                    stimulus_type = all_data_by_id[stimulus_type["@id"]]
+
+                # create a stimulus for each stimulus in the data
+                utils.create_stimulus(stimulus_type, db_item.id, project_context, db)
 
 
 class ImportMEModel(Import):
@@ -921,32 +960,95 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
             continue
 
         license_id = utils.get_license_mixin(data, db)
-        species_id, strain_id = utils.get_species_mixin(data, db)
+
+        subject_id = utils.get_or_create_subject(data, project_context, db)
+
         _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
         assert _brain_location is None
         createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
 
         createdAt, updatedAt = utils.get_created_and_updated(data)
 
-        db_element = model_type(
-            legacy_id=[legacy_id],
-            legacy_self=[legacy_self],
-            name=data.get("name"),
-            description=data.get("description", data.get("name")),
-            species_id=species_id,
-            strain_id=strain_id,
-            license_id=license_id,
-            brain_region_id=brain_region_id,
-            createdBy_id=createdBy_id,
-            updatedBy_id=updatedBy_id,
-            creation_date=createdAt,
-            update_date=updatedAt,
-            authorized_project_id=project_context.project_id,
-            authorized_public=AUTHORIZED_PUBLIC,
-        )
-        db.add(db_element)
+        kwargs = {
+            "legacy_id": [legacy_id],
+            "legacy_self": [legacy_self],
+            "name": data.get("name"),
+            "description": data.get("description", ""),
+            "subject_id": subject_id,
+            "license_id": license_id,
+            "brain_region_id": brain_region_id,
+            "createdBy_id": createdBy_id,
+            "updatedBy_id": updatedBy_id,
+            "creation_date": createdAt,
+            "update_date": updatedAt,
+            "authorized_project_id": project_context.project_id,
+            "authorized_public": AUTHORIZED_PUBLIC,
+        }
+
+        if model_type is ExperimentalSynapsesPerConnection:
+            try:
+                pathway_id = utils.get_or_create_synaptic_pathway(
+                    data["synapticPathway"], project_context, db
+                )
+                kwargs["synaptic_pathway_id"] = pathway_id
+            except Exception as e:
+                msg = f"Failed to create synaptic pathway: {data['synapticPathway']}.\nReason: {e}"
+                L.warning(msg)
+                continue
+
+        db_item = model_type(**kwargs)
+        db.add(db_item)
         db.commit()
-        utils.import_contribution(data, db_element.id, db)
+        utils.import_contribution(data, db_item.id, db)
+
+        for annotation in ensurelist(data.get("annotation", [])):
+            create_annotation(annotation, db_item.id, db)
+
+        for measurement in ensurelist(data.get("series", [])):
+            create_measurement(measurement, db_item.id, db)
+
+
+def create_measurement(data, entity_id, db):
+    match data["statistic"]:
+        case "N":
+            statistic = MeasurementStatistic.sample_size
+        case "mean":
+            statistic = MeasurementStatistic.mean
+        case "standard deviation":
+            statistic = MeasurementStatistic.standard_deviation
+        case "standard error of the mean":
+            statistic = MeasurementStatistic.standard_error
+        case "data point":
+            statistic = MeasurementStatistic.data_point
+        case _:
+            statistic = None
+            msg = f"Statistic not captured: {data}"
+            L.warning(msg)
+
+    match data["unitCode"]:
+        case "dimensionless":
+            unit = MeasurementUnit.dimensionless
+        case "1/μm":
+            unit = MeasurementUnit.linear_density__1_um
+        case "neurons/mm³":
+            unit = MeasurementUnit.volume_density__1_mm3
+        case _:
+            unit = None
+            msg = f"Unit code not captured: {data}"
+            L.warning(msg)
+
+    if unit and statistic:
+        db_item = Measurement(
+            name=statistic,
+            unit=unit,
+            value=float(data["value"]),
+            entity_id=entity_id,
+        )
+        db.add(db_item)
+        db.commit()
+    else:
+        msg = f"Measurement {data} was skipped."
+        L.warning(msg)
 
 
 def _do_import(db, input_dir, project_context):
@@ -982,8 +1084,8 @@ def _do_import(db, input_dir, project_context):
         ImportExperimentalNeuronDensities,
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
-        ImportSingleCellExperimentalTrace,
         ImportMEModel,
+        ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,
@@ -1145,7 +1247,7 @@ def organize_files(digest_path):
             ignored.pop(digest, None)
             if not dst.exists():
                 src = Path(src_paths[digest]).resolve()
-                assert src.exists()
+                assert src.exists(), f"src path doens't exist: {src}"
                 dst = Path(row.full_path)
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 dst.symlink_to(src)

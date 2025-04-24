@@ -34,11 +34,8 @@ license = {text = "Apache-2.0"}
 requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools.packages.find]
-include = ["app"]
-
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "coverage[toml]",
     "httpx",
     "moto[s3]>=5.0.28",
@@ -52,6 +49,9 @@ dev-dependencies = [
     "types-cachetools>=5.5.0.20240820",
     "types-PyYAML",
 ]
+
+[tool.setuptools.packages.find]
+include = ["app"]
 
 [tool.ruff]
 line-length = 100
@@ -71,6 +71,7 @@ ignore = [
     "ISC001",  # single line implicit string concatenation (disabling suggested by ruff formatter)
     "N802",    # function name should be lowercase
     "PLE1205", # Too many arguments for `logging` format string
+    "PLR0914", # Too many local vars
     "RET504",  # Unnecessary assignment to `result` before `return` statement
     "RUF029",  # Function is declared `async`, but doesn't `await` or use `async` features.
     "S104",    # Possible binding to all interfaces
@@ -109,6 +110,7 @@ builtins-ignorelist = ["license"]
     "S101",    # Use of `assert` detected
     "PLR0915", # Too many statements
     "E501",    # Line too long
+    "PLR0914", # Too many local variables
 ]
 "alembic/versions/*" = ["ALL"]
 "app/cli/import_data.py" = ["ALL"]

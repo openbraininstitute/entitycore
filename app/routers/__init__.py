@@ -8,6 +8,7 @@ from app.routers import (
     brain_region,
     cell_composition,
     contribution,
+    electrical_cell_recording,
     emodel,
     experimental_bouton_density,
     experimental_neuron_density,
@@ -26,6 +27,7 @@ from app.routers import (
     single_neuron_synaptome_simulation,
     species,
     strain,
+    subject,
 )
 
 router = APIRouter()
@@ -35,11 +37,13 @@ authenticated_routers = [
     brain_region.router,
     cell_composition.router,
     contribution.router,
+    electrical_cell_recording.router,
     experimental_bouton_density.router,
     experimental_neuron_density.router,
     experimental_synapses_per_connection.router,
     license.router,
     morphology.router,
+    electrical_cell_recording.router,
     emodel.router,
     memodel.router,
     morphology_feature_annotation.router,
@@ -52,6 +56,7 @@ authenticated_routers = [
     single_neuron_synaptome_simulation.router,
     species.router,
     strain.router,
+    subject.router,
 ]
 for r in authenticated_routers:
     router.include_router(r, dependencies=[Depends(user_verified)])

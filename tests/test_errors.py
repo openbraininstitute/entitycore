@@ -2,7 +2,7 @@ import pytest
 import sqlalchemy as sa
 
 from app import errors as test_module
-from app.db.model import Subject
+from app.db.model import License, Subject
 
 from tests.utils import MISSING_ID
 
@@ -41,9 +41,10 @@ def test_ensure_result(db):
 
 
 def test_ensure_uniqueness(db):
-    query = sa.insert(Subject).values(id=MISSING_ID, name="Test name")
+    query = sa.insert(License).values(
+        id=MISSING_ID, name="Test License", description="a license description", label="test label"
+    )
     db.execute(query)
-
     with (
         pytest.raises(test_module.ApiError) as exc_info,
         test_module.ensure_uniqueness(error_message="Custom error"),

@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     AUTH_CACHE_MAX_TTL: int = 300  # seconds
     AUTH_CACHE_INFO: bool = False
 
+    S3_PRESIGNED_URL_NETLOC: str | None = None  # to override the presigned url hostname and port
     S3_BUCKET_NAME: str = "entitycore-data-dev"
     S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value
     S3_PRESIGNED_URL_EXPIRATION: int = 600  # seconds  # TODO: decide an appropriate value

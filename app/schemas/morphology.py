@@ -3,6 +3,7 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
+from app.db.types import PointLocationBase
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -15,7 +16,6 @@ from app.schemas.base import (
     LicensedReadMixin,
     MeasurementCreate,
     MeasurementRead,
-    PointLocationBase,
     SpeciesRead,
     StrainRead,
 )

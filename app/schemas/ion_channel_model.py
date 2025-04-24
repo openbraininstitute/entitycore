@@ -2,7 +2,6 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import ICMType
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
@@ -41,7 +40,6 @@ class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, Asse
     is_ljp_corrected: bool
     is_temperature_dependent: bool
     temperature_celsius: int
-    icm_type: ICMType
     stochastic: bool
 
     nmodl_parameters: NmodlParameters

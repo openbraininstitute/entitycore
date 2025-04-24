@@ -490,16 +490,6 @@ class ImportEModels(Import):
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_emodel.id, db)
 
-        # Import ProbAMPANMDA_EMS which is not linked to any EModel
-        # https://github.com/openbraininstitute/entitycore/pull/121#discussion_r2037170127
-        ProbAMPANMDA_EMS_imc = [
-            d
-            for d in all_data_by_id.values()
-            if utils.is_type(d, "SubCellularModelScript") and d["name"] == "ProbAMPANMDA_EMS"
-        ][0]
-
-        utils.import_ion_channel_model(ProbAMPANMDA_EMS_imc, project_context, db)
-
         db.commit()
 
 

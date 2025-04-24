@@ -10,6 +10,10 @@ from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
 from typing import Any
+from app.cli.utils import ensurelist
+from sqlalchemy.orm import Session
+from app.schemas.base import ProjectContext
+from app.db.types import EntityType
 
 import click
 import sqlalchemy as sa
@@ -68,10 +72,6 @@ SQLA_ENGINE_ARGS = {
     "pool_use_lifo": True,
     "pool_size": 1,
 }
-
-
-def ensurelist(x):
-    return x if isinstance(x, list) else [x]
 
 
 def get_or_create_annotation_body(annotation_body, db):
@@ -407,7 +407,7 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any]):
+    def ingest(db, project_context, data_list: list[dict], all_data_by_id: dict[str, dict]):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -423,49 +423,34 @@ class ImportEModels(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
-            generation = data.get("generation")
-            activity = generation and generation.get("activity")
-            followed_workflow = activity and activity.get("followedWorkflow")
-            workflow_id = followed_workflow and followed_workflow.get("@id")
-            workflow = workflow_id and all_data_by_id.get(workflow_id)
-
-            configuration_id = workflow and next(
-                (
-                    part.get("@id")
-                    for part in ensurelist(workflow.get("hasPart", []))
-                    if part.get("@type") == "EModelConfiguration"
-                ),
-                None,
+            workflow_id = (
+                data.get("generation", {}).get("activity", {}).get("followedWorkflow").get("@id")
             )
+
+            workflow = all_data_by_id.get(workflow_id)
+
+            configuration_id = utils.find_id_in_entity(workflow, "EModelConfiguration", "hasPart")
 
             configuration = configuration_id and all_data_by_id.get(configuration_id)
 
-            exemplar_morphology_id = configuration and next(
-                (
-                    item.get("@id")
-                    for item in configuration.get("uses", [])
-                    if isinstance(item, dict) and item.get("@type") == "NeuronMorphology"
-                ),
-                None,
+            assert configuration
+
+            exemplar_morphology_id = utils.find_id_in_entity(
+                configuration, "NeuronMorphology", "uses"
             )
 
-            morphology = exemplar_morphology_id and utils._find_by_legacy_id(
+            morphology = utils._find_by_legacy_id(
                 exemplar_morphology_id, ReconstructionMorphology, db
             )
 
             assert morphology
 
-            # TODO: Import as Asset?
-            thumbnail_id = next(
-                (
-                    image["@id"]
-                    for image in ensurelist(data.get("image", {}))
-                    if "thumbnail" in image.get("about", {})
-                ),
-                None,
-            )
+            emodel_script_id = utils.find_id_in_entity(workflow, "EModelScript", "generates")
+            emodel_script = emodel_script_id and all_data_by_id.get(emodel_script_id)
 
-            db_item = EModel(
+            assert emodel_script
+
+            db_emodel = EModel(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data.get("name", None),
@@ -487,12 +472,25 @@ class ImportEModels(Import):
                 exemplar_morphology_id=morphology.id,
             )
 
-            db.add(db_item)
-            db.commit()
-            utils.import_contribution(data, db_item.id, db)
+            db.add(db_emodel)
+
+            db.flush()
+
+            utils.import_ion_channel_models(
+                configuration, db_emodel.id, all_data_by_id, project_context, db
+            )
+
+            utils.import_contribution(data, db_emodel.id, db)
+
+            # Import hoc file
+            utils.import_distribution(
+                emodel_script, db_emodel.id, EntityType.emodel, db, project_context
+            )
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db)
+                create_annotation(annotation, db_emodel.id, db)
+
+        db.commit()
 
 
 class ImportBrainRegionMeshes(Import):
@@ -825,11 +823,16 @@ class ImportDistribution(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return "distribution" in data
+        return "distribution" in data and not utils.is_type(data, "SubCellularModelScript")
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
-        ignored = Counter()
+    def ingest(
+        db: Session,
+        project_context: ProjectContext,
+        data_list: list[dict],
+        all_data_by_id: dict | None = None,
+    ):
+        ignored: dict[tuple[dict], int] = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             root = utils._find_by_legacy_id(legacy_id, Entity, db)
@@ -1068,10 +1071,10 @@ def _do_import(db, input_dir, project_context):
         ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
-        ImportMEModel,
         ImportExperimentalNeuronDensities,
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
+        ImportMEModel,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
         ImportDistribution,

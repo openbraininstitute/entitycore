@@ -112,6 +112,7 @@ builtins-ignorelist = ["license"]
     "E501",    # Line too long
     "PLR0914", # Too many local variables
 ]
+"alembic/versions/*" = ["ALL"]
 "app/cli/import_data.py" = ["ALL"]
 "app/cli/curate.py" = [
     "S101",    # Use of `assert` detected

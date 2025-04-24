@@ -1,23 +1,28 @@
-"""Default migration message
+"""Triggers
 
-Revision ID: b74f3ebacbca
-Revises: 1c02cae91458
-Create Date: 2025-04-22 16:00:23.148328
+Revision ID: a45638c6f52a
+Revises: 2bfcedd54fae
+Create Date: 2025-04-24 09:57:55.074822
 
 """
 
-from collections.abc import Sequence
-
-from alembic_utils.pg_function import PGFunction
-from alembic_utils.pg_trigger import PGTrigger
+from typing import Sequence, Union
 
 from alembic import op
+import sqlalchemy as sa
+from alembic_utils.pg_function import PGFunction
+from sqlalchemy import text as sql_text
+from alembic_utils.pg_trigger import PGTrigger
+from sqlalchemy import text as sql_text
+
+from sqlalchemy import Text
+import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "b74f3ebacbca"
-down_revision: str | None = "1c02cae91458"
-branch_labels: str | Sequence[str] | None = None
-depends_on: str | Sequence[str] | None = None
+revision: str = "a45638c6f52a"
+down_revision: Union[str, None] = "2bfcedd54fae"
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
@@ -33,26 +38,6 @@ def upgrade() -> None:
         public_experimental_bouton_density_experimental_bouton_density_description_vector
     )
 
-    public_single_neuron_synaptome_simulation_single_neuron_synaptome_simulation_description_vector = PGTrigger(
-        schema="public",
-        signature="single_neuron_synaptome_simulation_description_vector",
-        on_entity="public.single_neuron_synaptome_simulation",
-        is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON single_neuron_synaptome_simulation\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
-    )
-    op.create_entity(
-        public_single_neuron_synaptome_simulation_single_neuron_synaptome_simulation_description_vector
-    )
-
-    public_mesh_mesh_description_vector = PGTrigger(
-        schema="public",
-        signature="mesh_description_vector",
-        on_entity="public.mesh",
-        is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON mesh\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
-    )
-    op.create_entity(public_mesh_mesh_description_vector)
-
     public_analysis_software_source_code_analysis_software_source_code_description_vector = PGTrigger(
         schema="public",
         signature="analysis_software_source_code_description_vector",
@@ -64,6 +49,15 @@ def upgrade() -> None:
         public_analysis_software_source_code_analysis_software_source_code_description_vector
     )
 
+    public_mesh_mesh_description_vector = PGTrigger(
+        schema="public",
+        signature="mesh_description_vector",
+        on_entity="public.mesh",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON mesh\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.create_entity(public_mesh_mesh_description_vector)
+
     public_emodel_emodel_description_vector = PGTrigger(
         schema="public",
         signature="emodel_description_vector",
@@ -73,14 +67,25 @@ def upgrade() -> None:
     )
     op.create_entity(public_emodel_emodel_description_vector)
 
-    public_memodel_memodel_description_vector = PGTrigger(
+    public_single_neuron_synaptome_simulation_single_neuron_synaptome_simulation_description_vector = PGTrigger(
         schema="public",
-        signature="memodel_description_vector",
-        on_entity="public.memodel",
+        signature="single_neuron_synaptome_simulation_description_vector",
+        on_entity="public.single_neuron_synaptome_simulation",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON single_neuron_synaptome_simulation\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.create_entity(public_memodel_memodel_description_vector)
+    op.create_entity(
+        public_single_neuron_synaptome_simulation_single_neuron_synaptome_simulation_description_vector
+    )
+
+    public_ion_channel_model_ion_channel_model_description_vector = PGTrigger(
+        schema="public",
+        signature="ion_channel_model_description_vector",
+        on_entity="public.ion_channel_model",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON ion_channel_model\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.create_entity(public_ion_channel_model_ion_channel_model_description_vector)
 
     public_single_neuron_simulation_single_neuron_simulation_description_vector = PGTrigger(
         schema="public",
@@ -91,14 +96,23 @@ def upgrade() -> None:
     )
     op.create_entity(public_single_neuron_simulation_single_neuron_simulation_description_vector)
 
-    public_single_neuron_synaptome_single_neuron_synaptome_description_vector = PGTrigger(
+    public_memodel_memodel_description_vector = PGTrigger(
         schema="public",
-        signature="single_neuron_synaptome_description_vector",
-        on_entity="public.single_neuron_synaptome",
+        signature="memodel_description_vector",
+        on_entity="public.memodel",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON single_neuron_synaptome\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.create_entity(public_single_neuron_synaptome_single_neuron_synaptome_description_vector)
+    op.create_entity(public_memodel_memodel_description_vector)
+
+    public_reconstruction_morphology_reconstruction_morphology_description_vector = PGTrigger(
+        schema="public",
+        signature="reconstruction_morphology_description_vector",
+        on_entity="public.reconstruction_morphology",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON reconstruction_morphology\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.create_entity(public_reconstruction_morphology_reconstruction_morphology_description_vector)
 
     public_experimental_neuron_density_experimental_neuron_density_description_vector = PGTrigger(
         schema="public",
@@ -111,15 +125,6 @@ def upgrade() -> None:
         public_experimental_neuron_density_experimental_neuron_density_description_vector
     )
 
-    public_reconstruction_morphology_reconstruction_morphology_description_vector = PGTrigger(
-        schema="public",
-        signature="reconstruction_morphology_description_vector",
-        on_entity="public.reconstruction_morphology",
-        is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON reconstruction_morphology\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
-    )
-    op.create_entity(public_reconstruction_morphology_reconstruction_morphology_description_vector)
-
     public_subject_subject_description_vector = PGTrigger(
         schema="public",
         signature="subject_description_vector",
@@ -128,6 +133,15 @@ def upgrade() -> None:
         definition="BEFORE INSERT OR UPDATE ON subject\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
     op.create_entity(public_subject_subject_description_vector)
+
+    public_electrical_cell_recording_electrical_cell_recording_description_vector = PGTrigger(
+        schema="public",
+        signature="electrical_cell_recording_description_vector",
+        on_entity="public.electrical_cell_recording",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON electrical_cell_recording\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.create_entity(public_electrical_cell_recording_electrical_cell_recording_description_vector)
 
     public_experimental_synapses_per_connection_experimental_synapses_per_connection_description_vector = PGTrigger(
         schema="public",
@@ -140,14 +154,14 @@ def upgrade() -> None:
         public_experimental_synapses_per_connection_experimental_synapses_per_connection_description_vector
     )
 
-    public_electrical_cell_recording_electrical_cell_recording_description_vector = PGTrigger(
+    public_single_neuron_synaptome_single_neuron_synaptome_description_vector = PGTrigger(
         schema="public",
-        signature="electrical_cell_recording_description_vector",
-        on_entity="public.electrical_cell_recording",
+        signature="single_neuron_synaptome_description_vector",
+        on_entity="public.single_neuron_synaptome",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON electrical_cell_recording\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON single_neuron_synaptome\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.create_entity(public_electrical_cell_recording_electrical_cell_recording_description_vector)
+    op.create_entity(public_single_neuron_synaptome_single_neuron_synaptome_description_vector)
 
     public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology = PGFunction(
         schema="public",
@@ -266,14 +280,14 @@ def downgrade() -> None:
         public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology
     )
 
-    public_electrical_cell_recording_electrical_cell_recording_description_vector = PGTrigger(
+    public_single_neuron_synaptome_single_neuron_synaptome_description_vector = PGTrigger(
         schema="public",
-        signature="electrical_cell_recording_description_vector",
-        on_entity="public.electrical_cell_recording",
+        signature="single_neuron_synaptome_description_vector",
+        on_entity="public.single_neuron_synaptome",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON electrical_cell_recording\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON single_neuron_synaptome\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.drop_entity(public_electrical_cell_recording_electrical_cell_recording_description_vector)
+    op.drop_entity(public_single_neuron_synaptome_single_neuron_synaptome_description_vector)
 
     public_experimental_synapses_per_connection_experimental_synapses_per_connection_description_vector = PGTrigger(
         schema="public",
@@ -286,6 +300,15 @@ def downgrade() -> None:
         public_experimental_synapses_per_connection_experimental_synapses_per_connection_description_vector
     )
 
+    public_electrical_cell_recording_electrical_cell_recording_description_vector = PGTrigger(
+        schema="public",
+        signature="electrical_cell_recording_description_vector",
+        on_entity="public.electrical_cell_recording",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON electrical_cell_recording\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.drop_entity(public_electrical_cell_recording_electrical_cell_recording_description_vector)
+
     public_subject_subject_description_vector = PGTrigger(
         schema="public",
         signature="subject_description_vector",
@@ -294,15 +317,6 @@ def downgrade() -> None:
         definition="BEFORE INSERT OR UPDATE ON subject\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
     op.drop_entity(public_subject_subject_description_vector)
-
-    public_reconstruction_morphology_reconstruction_morphology_description_vector = PGTrigger(
-        schema="public",
-        signature="reconstruction_morphology_description_vector",
-        on_entity="public.reconstruction_morphology",
-        is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON reconstruction_morphology\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
-    )
-    op.drop_entity(public_reconstruction_morphology_reconstruction_morphology_description_vector)
 
     public_experimental_neuron_density_experimental_neuron_density_description_vector = PGTrigger(
         schema="public",
@@ -315,23 +329,14 @@ def downgrade() -> None:
         public_experimental_neuron_density_experimental_neuron_density_description_vector
     )
 
-    public_single_neuron_synaptome_single_neuron_synaptome_description_vector = PGTrigger(
+    public_reconstruction_morphology_reconstruction_morphology_description_vector = PGTrigger(
         schema="public",
-        signature="single_neuron_synaptome_description_vector",
-        on_entity="public.single_neuron_synaptome",
+        signature="reconstruction_morphology_description_vector",
+        on_entity="public.reconstruction_morphology",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON single_neuron_synaptome\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON reconstruction_morphology\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.drop_entity(public_single_neuron_synaptome_single_neuron_synaptome_description_vector)
-
-    public_single_neuron_simulation_single_neuron_simulation_description_vector = PGTrigger(
-        schema="public",
-        signature="single_neuron_simulation_description_vector",
-        on_entity="public.single_neuron_simulation",
-        is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON single_neuron_simulation\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
-    )
-    op.drop_entity(public_single_neuron_simulation_single_neuron_simulation_description_vector)
+    op.drop_entity(public_reconstruction_morphology_reconstruction_morphology_description_vector)
 
     public_memodel_memodel_description_vector = PGTrigger(
         schema="public",
@@ -342,34 +347,23 @@ def downgrade() -> None:
     )
     op.drop_entity(public_memodel_memodel_description_vector)
 
-    public_emodel_emodel_description_vector = PGTrigger(
+    public_single_neuron_simulation_single_neuron_simulation_description_vector = PGTrigger(
         schema="public",
-        signature="emodel_description_vector",
-        on_entity="public.emodel",
+        signature="single_neuron_simulation_description_vector",
+        on_entity="public.single_neuron_simulation",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON emodel\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON single_neuron_simulation\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.drop_entity(public_emodel_emodel_description_vector)
+    op.drop_entity(public_single_neuron_simulation_single_neuron_simulation_description_vector)
 
-    public_analysis_software_source_code_analysis_software_source_code_description_vector = PGTrigger(
+    public_ion_channel_model_ion_channel_model_description_vector = PGTrigger(
         schema="public",
-        signature="analysis_software_source_code_description_vector",
-        on_entity="public.analysis_software_source_code",
+        signature="ion_channel_model_description_vector",
+        on_entity="public.ion_channel_model",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON analysis_software_source_code\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON ion_channel_model\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.drop_entity(
-        public_analysis_software_source_code_analysis_software_source_code_description_vector
-    )
-
-    public_mesh_mesh_description_vector = PGTrigger(
-        schema="public",
-        signature="mesh_description_vector",
-        on_entity="public.mesh",
-        is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON mesh\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
-    )
-    op.drop_entity(public_mesh_mesh_description_vector)
+    op.drop_entity(public_ion_channel_model_ion_channel_model_description_vector)
 
     public_single_neuron_synaptome_simulation_single_neuron_synaptome_simulation_description_vector = PGTrigger(
         schema="public",
@@ -380,6 +374,35 @@ def downgrade() -> None:
     )
     op.drop_entity(
         public_single_neuron_synaptome_simulation_single_neuron_synaptome_simulation_description_vector
+    )
+
+    public_emodel_emodel_description_vector = PGTrigger(
+        schema="public",
+        signature="emodel_description_vector",
+        on_entity="public.emodel",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON emodel\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.drop_entity(public_emodel_emodel_description_vector)
+
+    public_mesh_mesh_description_vector = PGTrigger(
+        schema="public",
+        signature="mesh_description_vector",
+        on_entity="public.mesh",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON mesh\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.drop_entity(public_mesh_mesh_description_vector)
+
+    public_analysis_software_source_code_analysis_software_source_code_description_vector = PGTrigger(
+        schema="public",
+        signature="analysis_software_source_code_description_vector",
+        on_entity="public.analysis_software_source_code",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON analysis_software_source_code\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.drop_entity(
+        public_analysis_software_source_code_analysis_software_source_code_description_vector
     )
 
     public_experimental_bouton_density_experimental_bouton_density_description_vector = PGTrigger(

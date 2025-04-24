@@ -1,25 +1,25 @@
 """Default migration message
 
-Revision ID: 1c02cae91458
+Revision ID: 2bfcedd54fae
 Revises:
-Create Date: 2025-04-22 16:00:10.409338
+Create Date: 2025-04-24 09:57:21.569286
 
 """
 
-from collections.abc import Sequence
+from typing import Sequence, Union
 
+from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Text
 from sqlalchemy.dialects import postgresql
 
+from sqlalchemy import Text
 import app.db.types
-from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "1c02cae91458"
-down_revision: str | None = None
-branch_labels: str | Sequence[str] | None = None
-depends_on: str | Sequence[str] | None = None
+revision: str = "2bfcedd54fae"
+down_revision: Union[str, None] = None
+branch_labels: Union[str, Sequence[str], None] = None
+depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
@@ -90,6 +90,7 @@ def upgrade() -> None:
         "single_neuron_simulation",
         "single_neuron_synaptome",
         "single_neuron_synaptome_simulation",
+        "ion_channel_model",
         "subject",
         "synaptic_pathway",
         name="entitytype",
@@ -208,6 +209,26 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_etype_class_legacy_id"), "etype_class", ["legacy_id"], unique=False)
     op.create_index(op.f("ix_etype_class_pref_label"), "etype_class", ["pref_label"], unique=True)
+    op.create_table(
+        "ion",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column(
+            "creation_date",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "update_date",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_ion")),
+    )
+    op.create_index(op.f("ix_ion_creation_date"), "ion", ["creation_date"], unique=False)
+    op.create_index(op.f("ix_ion_name"), "ion", ["name"], unique=True)
     op.create_table(
         "license",
         sa.Column("name", sa.String(), nullable=False),
@@ -343,6 +364,7 @@ def upgrade() -> None:
                 "single_neuron_simulation",
                 "single_neuron_synaptome",
                 "single_neuron_synaptome_simulation",
+                "ion_channel_model",
                 "subject",
                 "synaptic_pathway",
                 name="entitytype",
@@ -638,6 +660,56 @@ def upgrade() -> None:
         "etype_classification",
         ["updatedBy_id"],
         unique=False,
+    )
+    op.create_table(
+        "ion_channel_model",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("is_ljp_corrected", sa.Boolean(), nullable=False),
+        sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
+        sa.Column("temperature_celsius", sa.Integer(), nullable=False),
+        sa.Column("is_stochastic", sa.Boolean(), nullable=False),
+        sa.Column("nmodl_parameters", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("species_id", sa.Uuid(), nullable=False),
+        sa.Column("strain_id", sa.Uuid(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["brain_region_id"],
+            ["brain_region.id"],
+            name=op.f("fk_ion_channel_model_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_ion_channel_model_id_entity")),
+        sa.ForeignKeyConstraint(
+            ["species_id"], ["species.id"], name=op.f("fk_ion_channel_model_species_id_species")
+        ),
+        sa.ForeignKeyConstraint(
+            ["strain_id", "species_id"],
+            ["strain.id", "strain.species_id"],
+            name="fk_ion_channel_model_strain_id_species_id",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_ion_channel_model")),
+    )
+    op.create_index(
+        op.f("ix_ion_channel_model_brain_region_id"),
+        "ion_channel_model",
+        ["brain_region_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_ion_channel_model_description_vector",
+        "ion_channel_model",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_ion_channel_model_name"), "ion_channel_model", ["name"], unique=False)
+    op.create_index(
+        op.f("ix_ion_channel_model_species_id"), "ion_channel_model", ["species_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_ion_channel_model_strain_id"), "ion_channel_model", ["strain_id"], unique=False
     )
     op.create_table(
         "measurement_record",
@@ -1273,6 +1345,26 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_table(
+        "ion__ion_channel_model",
+        sa.Column("ion_id", sa.Uuid(), nullable=False),
+        sa.Column("ion_channel_model_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["ion_channel_model_id"],
+            ["ion_channel_model.id"],
+            name=op.f("fk_ion__ion_channel_model_ion_channel_model_id_ion_channel_model"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["ion_id"],
+            ["ion.id"],
+            name=op.f("fk_ion__ion_channel_model_ion_id_ion"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint(
+            "ion_id", "ion_channel_model_id", name=op.f("pk_ion__ion_channel_model")
+        ),
+    )
+    op.create_table(
         "morphology_feature_annotation",
         sa.Column("reconstruction_morphology_id", sa.Uuid(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -1365,6 +1457,26 @@ def upgrade() -> None:
         "electrical_recording_stimulus",
         ["recording_id"],
         unique=False,
+    )
+    op.create_table(
+        "ion_channel_model__emodel",
+        sa.Column("ion_channel_model_id", sa.Uuid(), nullable=False),
+        sa.Column("emodel_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["emodel_id"],
+            ["emodel.id"],
+            name=op.f("fk_ion_channel_model__emodel_emodel_id_emodel"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["ion_channel_model_id"],
+            ["ion_channel_model.id"],
+            name=op.f("fk_ion_channel_model__emodel_ion_channel_model_id_ion_channel_model"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint(
+            "ion_channel_model_id", "emodel_id", name=op.f("pk_ion_channel_model__emodel")
+        ),
     )
     op.create_table(
         "measurement",
@@ -1698,6 +1810,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_measurement_morphology_feature_annotation_id"), table_name="measurement")
     op.drop_index(op.f("ix_measurement_measurement_of"), table_name="measurement")
     op.drop_table("measurement")
+    op.drop_table("ion_channel_model__emodel")
     op.drop_index(
         op.f("ix_electrical_recording_stimulus_recording_id"),
         table_name="electrical_recording_stimulus",
@@ -1712,6 +1825,7 @@ def downgrade() -> None:
         table_name="morphology_feature_annotation",
     )
     op.drop_table("morphology_feature_annotation")
+    op.drop_table("ion__ion_channel_model")
     op.drop_index(
         op.f("ix_experimental_synapses_per_connection_synaptic_pathway_id"),
         table_name="experimental_synapses_per_connection",
@@ -1839,6 +1953,16 @@ def downgrade() -> None:
     op.drop_table("mesh")
     op.drop_index(op.f("ix_measurement_record_entity_id"), table_name="measurement_record")
     op.drop_table("measurement_record")
+    op.drop_index(op.f("ix_ion_channel_model_strain_id"), table_name="ion_channel_model")
+    op.drop_index(op.f("ix_ion_channel_model_species_id"), table_name="ion_channel_model")
+    op.drop_index(op.f("ix_ion_channel_model_name"), table_name="ion_channel_model")
+    op.drop_index(
+        "ix_ion_channel_model_description_vector",
+        table_name="ion_channel_model",
+        postgresql_using="gin",
+    )
+    op.drop_index(op.f("ix_ion_channel_model_brain_region_id"), table_name="ion_channel_model")
+    op.drop_table("ion_channel_model")
     op.drop_index(op.f("ix_etype_classification_updatedBy_id"), table_name="etype_classification")
     op.drop_index(op.f("ix_etype_classification_etype_class_id"), table_name="etype_classification")
     op.drop_index(op.f("ix_etype_classification_entity_id"), table_name="etype_classification")
@@ -1904,6 +2028,9 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_license_legacy_id"), table_name="license")
     op.drop_index(op.f("ix_license_creation_date"), table_name="license")
     op.drop_table("license")
+    op.drop_index(op.f("ix_ion_name"), table_name="ion")
+    op.drop_index(op.f("ix_ion_creation_date"), table_name="ion")
+    op.drop_table("ion")
     op.drop_index(op.f("ix_etype_class_pref_label"), table_name="etype_class")
     op.drop_index(op.f("ix_etype_class_legacy_id"), table_name="etype_class")
     op.drop_index(op.f("ix_etype_class_creation_date"), table_name="etype_class")
@@ -1936,6 +2063,7 @@ def downgrade() -> None:
         "single_neuron_simulation",
         "single_neuron_synaptome",
         "single_neuron_synaptome_simulation",
+        "ion_channel_model",
         "subject",
         "synaptic_pathway",
         name="entitytype",

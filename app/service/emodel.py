@@ -11,6 +11,7 @@ from app.db.model import (
     EModel,
     ETypeClass,
     ETypeClassification,
+    IonChannelModel,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
@@ -21,14 +22,14 @@ from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.emodel import EModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
-from app.schemas.emodel import EModelCreate, EModelRead
+from app.schemas.emodel import EModelCreate, EModelRead, EModelReadExpanded
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-def _load(select: sa.Select):
+def _load(select: sa.Select[tuple[EModel]]):
     return select.options(
         joinedload(EModel.species),
         joinedload(EModel.strain),
@@ -46,14 +47,25 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> EModelRead:
+) -> EModelReadExpanded:
+    def _load_expanded(select: sa.Select[tuple[EModel]]):
+        return _load(select).options(
+            selectinload(EModel.assets),
+            selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.ions),
+            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.species),
+            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
+            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
+            selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
+            raiseload("*"),
+        )
+
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=EModel,
         authorized_project_id=user_context.project_id,
-        response_schema_class=EModelRead,
-        apply_operations=_load,
+        response_schema_class=EModelReadExpanded,
+        apply_operations=_load_expanded,
     )
 
 

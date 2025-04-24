@@ -15,6 +15,10 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     ElectricalRecordingStimulus,
+    Ion,
+    IonChannelModel,
+    IonChannelModelToEModel,
+    IonToIonChannelModel,
     License,
     MTypeClass,
     Role,
@@ -26,6 +30,7 @@ from app.db.model import (
 from app.db.types import AssetStatus, EntityType, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
+from app.schemas.ion_channel_model import NmodlParameters
 from app.utils.s3 import build_s3_path
 
 AUTHORIZED_PUBLIC = True
@@ -335,9 +340,37 @@ def get_or_create_distribution(
     db.commit()
 
 
-def import_distribution(data, db_item_id, db_item_type, db, project_context):
+def ensurelist(x):
+    return x if isinstance(x, list) else [x]
+
+
+def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):
+    if not entity:
+        return None
+    return next(
+        (
+            part.get("@id")
+            for part in ensurelist(entity.get(entity_list_key, []))
+            if is_type(part, type_)
+        ),
+        None,
+    )
+
+
+def is_type(data: dict, type_: str):
+    return type_ in ensurelist(data.get("@type", []))
+
+
+def import_distribution(
+    data: dict,
+    db_item_id: uuid.UUID,
+    db_item_type: EntityType,
+    db: Session,
+    project_context: ProjectContext,
+):
     distribution = data.get("distribution", [])
     distribution = curate.curate_distribution(distribution, project_context)
+
     if distribution:
         get_or_create_distribution(distribution, db_item_id, db_item_type, db, project_context)
 
@@ -357,6 +390,141 @@ def find_part_id(data: dict[str, Any], type_: Literal["NeuronMorphology", "EMode
                 return part.get("@id", None)
 
     return None
+
+
+def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
+    label = ion["label"]
+    if label in _cache:
+        return _cache[label]
+
+    q = sa.select(Ion).where(Ion.name == label)
+    db_ion = db.execute(q).scalar_one_or_none()
+    if not db_ion:
+        db_ion = Ion(name=ion.get("label"))
+        db.add(db_ion)
+        db.flush()
+
+    _cache[label] = db_ion.id
+
+    return db_ion.id
+
+
+def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):
+    legacy_id = script["@id"]
+    legacy_self = script["_self"]
+    temperature = script.get("temperature", {})
+    temp_unit = str(temperature.get("unitCode", "")).lower()
+
+    assert temp_unit == "c"  # noqa: S101
+
+    temperature_value = temperature.get("value")
+
+    nmodl_parameters: dict[str, Any] | None = script.get("nmodlParameters")
+    nmodl_parameters_validated: NmodlParameters | None = None
+    if nmodl_parameters:
+        range_ = nmodl_parameters.get("range")
+        read = nmodl_parameters.get("read")
+        useion = nmodl_parameters.get("useion")
+        write = nmodl_parameters.get("write")
+        nonspecific = nmodl_parameters.get("nonspecific")
+
+        d = {
+            **nmodl_parameters,
+            "range": range_ and ensurelist(range_),
+            "read": read and ensurelist(read),
+            "useion": useion and ensurelist(useion),
+            "write": write and ensurelist(write),
+            "nonspecific": nonspecific and ensurelist(nonspecific),
+        }
+
+        nmodl_parameters_validated = NmodlParameters.model_validate(d)
+
+    _, brain_region_id = get_brain_location_mixin(script, db)
+    species_id, strain_id = get_species_mixin(script, db)
+    created_at, updated_at = get_created_and_updated(script)
+
+    assert nmodl_parameters_validated  # noqa: S101
+
+    db_ion_channel_model = IonChannelModel(
+        legacy_id=[legacy_id],
+        legacy_self=[legacy_self],
+        name=script["name"],
+        description=script.get("descripton", ""),
+        is_ljp_corrected=script.get("isLjpCorrected", False),
+        is_temperature_dependent=script.get("isTemperatureDependent", False),
+        temperature_celsius=int(temperature_value),
+        nmodl_parameters=nmodl_parameters_validated.model_dump(),
+        brain_region_id=brain_region_id,
+        species_id=species_id,
+        strain_id=strain_id,
+        creation_date=created_at,
+        update_date=updated_at,
+        authorized_project_id=project_context.project_id,
+        authorized_public=AUTHORIZED_PUBLIC,
+        is_stochastic=script.get("name", "").lower().startswith("stoch"),
+    )
+
+    db.add(db_ion_channel_model)
+
+    db.flush()
+
+    import_contribution(script, db_ion_channel_model.id, db)
+    import_distribution(
+        script, db_ion_channel_model.id, EntityType.ion_channel_model, db, project_context
+    )
+
+    return db_ion_channel_model
+
+
+def import_ion_channel_models(
+    emodel_config: dict,
+    emodel_id: uuid.UUID,
+    all_data_by_id: dict[str, dict[str, Any]],
+    project_context: ProjectContext,
+    db: Session,
+):
+    subcellular_model_script_ids = [
+        script["@id"]
+        for script in emodel_config.get("uses") or []
+        if is_type(script, "SubCellularModelScript")
+    ]
+
+    ion_channel_model_ids: list[uuid.UUID] = []
+
+    for id_ in subcellular_model_script_ids:
+        script = all_data_by_id.get(id_) or {}
+        ion = script.get("ion")
+
+        legacy_id = script["@id"]
+
+        db_ion_channel_model = _find_by_legacy_id(legacy_id, IonChannelModel, db)
+
+        if db_ion_channel_model:
+            ion_channel_model_ids.append(db_ion_channel_model.id)
+            continue
+
+        db_ion_channel_model = import_ion_channel_model(script, project_context, db)
+
+        if ion:
+            ion_associations = [
+                IonToIonChannelModel(ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id)
+                for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
+            ]
+
+            db.add_all(ion_associations)
+
+        ion_channel_model_ids.append(db_ion_channel_model.id)
+
+        db.flush()
+
+    icm_associations = [
+        IonChannelModelToEModel(ion_channel_model_id=icm_id, emodel_id=emodel_id)
+        for icm_id in ion_channel_model_ids
+    ]
+
+    db.add_all(icm_associations)
+
+    db.flush()
 
 
 def _get_pathway_info(data, db):  # noqa: C901

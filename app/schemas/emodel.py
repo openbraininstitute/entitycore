@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
+from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -13,6 +14,7 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.ion_channel_model import IonChannelModel
 from app.schemas.morphology import ReconstructionMorphologyBase
 
 
@@ -36,11 +38,7 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     exemplar_morphology_id: uuid.UUID
 
 
-class EModelRead(
-    EModelBase,
-    CreationMixin,
-    AuthorizationMixin,
-):
+class EModelRead(EModelBase, CreationMixin, AuthorizationMixin):
     id: uuid.UUID
     species: SpeciesRead
     strain: StrainRead | None
@@ -49,3 +47,7 @@ class EModelRead(
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
+
+
+class EModelReadExpanded(EModelRead, AssetsMixin):
+    ion_channel_models: list[IonChannelModel]

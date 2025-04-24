@@ -39,7 +39,7 @@ class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, Asse
     is_ljp_corrected: bool
     is_temperature_dependent: bool
     temperature_celsius: int
-    stochastic: bool
+    is_stochastic: bool
 
     nmodl_parameters: NmodlParameters
 

@@ -731,7 +731,7 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
-    stochastic: Mapped[bool] = mapped_column(default=False)
+    is_stochastic: Mapped[bool] = mapped_column(default=False)
 
     nmodl_parameters: Mapped[JSON_DICT]
 

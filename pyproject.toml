@@ -25,6 +25,7 @@ dependencies = [
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
     "python-multipart>=0.0.20",
+    "h5py",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -119,6 +120,7 @@ builtins-ignorelist = ["license"]
 ]
 "app/cli/utils.py" = [
     "B006",    # Do not use mutable data structures for argument defaults
+    "S101"
 ]
 "test_dump/**.py" = ["ALL"]
 "test_legacy/**.py" = ["ALL"]
@@ -187,4 +189,4 @@ omit = [
 ]
 
 [tool.pyright]
-exclude = ["app/routers/legacy"]
+exclude = ["app/routers/legacy", "app/cli/curation/nwb.py"]

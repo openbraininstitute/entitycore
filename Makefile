@@ -62,6 +62,11 @@ organize-files:  ## Organize files locally by creating symlinks from the backup 
 	docker compose up --wait db
 	uv run -m app.cli.import_data organize-files files.txt
 
+curate-files:
+	@$(call load_env,run-local)
+	docker compose up --wait db
+	uv run -m app.cli.import_data curate-files files.txt curated_files.txt --out-dir ./curated
+
 publish: build  ## Publish the Docker image to DockerHub
 	docker compose push app
 

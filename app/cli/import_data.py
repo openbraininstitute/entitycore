@@ -1,3 +1,4 @@
+import shutil
 import datetime
 import glob
 import json
@@ -20,7 +21,7 @@ import sqlalchemy as sa
 from tqdm import tqdm
 
 from app.cli import curate, utils
-from app.cli.utils import AUTHORIZED_PUBLIC
+from app.cli.utils import AUTHORIZED_PUBLIC, ensurelist
 from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
@@ -59,7 +60,10 @@ from app.db.types import (
     MeasurementStatistic,
     MeasurementUnit,
     PointLocationBase,
+    EntityType
 )
+
+from app.cli.curation import nwb
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -649,10 +653,16 @@ class ImportElectricalCellRecording(Import):
         )
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(
+        db,
+        project_context,
+        data_list,
+        all_data_by_id=None,
+    ):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
+
             rm = utils._find_by_legacy_id(legacy_id, ElectricalCellRecording, db)
             if rm:
                 continue
@@ -1042,7 +1052,7 @@ def create_measurement(data, entity_id, db):
 
 
 def _do_import(db, input_dir, project_context):
-    print("import licenses")
+    print("Importing licenses")
     import_licenses(curate.default_licenses(), db)
     with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
         data = json.load(f)
@@ -1059,10 +1069,10 @@ def _do_import(db, input_dir, project_context):
             elif "nsg:EType" in sub_class:
                 etype_annotations.append(data)
 
-        print("import mtype annotations")
+        print("Importing mtype annotations")
         import_mtype_annotation_body(mtype_annotations, db)
 
-        print("import etype annotations")
+        print("Importing etype annotations")
         import_etype_annotation_body(etype_annotations, db)
 
     importers = [
@@ -1108,7 +1118,8 @@ def _do_import(db, input_dir, project_context):
         )
 
     for importer, data in import_data.items():
-        print(f"ingesting {importer.name}")
+        print(f"Ingesting {importer.name}")
+
         importer.ingest(db, project_context, data, all_data_by_id)
 
 
@@ -1162,7 +1173,11 @@ def run(input_dir, virtual_lab_id, project_id):
         closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        _do_import(db, input_dir=input_dir, project_context=project_context)
+        _do_import(
+            db,
+            input_dir=input_dir,
+            project_context=project_context,
+        )
     _analyze()
 
 
@@ -1243,6 +1258,81 @@ def organize_files(digest_path):
                 dst.symlink_to(src)
     if ignored:
         L.info("Ignored files: {}", len(ignored))
+
+
+@cli.command()
+@click.argument("input_digest_path", type=REQUIRED_PATH)
+@click.argument("output_digest_path")
+@click.option("--out-dir", type=Path)
+def curate_files(input_digest_path, output_digest_path, out_dir):
+    assert out_dir.exists()
+
+    with Path(input_digest_path).open("r", encoding="utf-8") as f:
+        src_paths = dict(line.strip().split(" ", maxsplit=1) for line in f)
+
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        assets_per_entity_type = defaultdict(lambda: defaultdict(list))
+        for asset in db.query(Asset).all():
+            entity_type = asset.full_path.split("/")[4]
+            assets_per_entity_type[entity_type][asset.content_type].append(asset)
+
+        config = {
+            EntityType.electrical_cell_recording: {
+                "application/x-hdf": nwb.curate,
+                "application/nwb": nwb.curate,
+            }
+        }
+
+        new_src_paths = {}
+        for entity_type, curators in config.items():
+            assets_per_content_type = assets_per_entity_type.get(entity_type)
+
+            if not assets_per_content_type:
+                continue
+
+            for content_type, curator in curators.items():
+                assets = assets_per_content_type.get(content_type)
+
+                if not assets:
+                    continue
+
+                print(f"Curating {entity_type}, {content_type}")
+                for asset in tqdm(assets):
+                    digest = asset.sha256_digest.hex()
+                    source_file = Path(src_paths[digest]).resolve()
+                    assert source_file.exists()
+
+                    target_file = Path(out_dir) / f"{asset.id}__{asset.path}"
+
+                    if target_file.exists():
+                        continue
+
+                    try:
+                        new_metadata = curator(asset, source_file, target_file)
+                    except Exception as e:
+                        msg = (
+                            f"Failed curation for asset {asset.id} with type {asset.content_type}\n"
+                            f"Local path: {source_file}\n"
+                            f"S3 path   : {asset.full_path}\n"
+                            f"Reason    : {e}"
+                        )
+                        L.warning(msg)
+
+                        # clean failed target file
+                        target_file.unlink(missing_ok=True)
+                        continue
+
+                    if new_digest := new_metadata.get("sha256_digest"):
+                        new_src_paths[new_digest] = str(target_file)
+                        new_metadata["sha256_digest"] = bytes.fromhex(new_digest)
+
+                    for attr, value in new_metadata.items():
+                        setattr(asset, attr, value)
+
+                db.commit()
 
 
 if __name__ == "__main__":

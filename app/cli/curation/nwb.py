@@ -156,7 +156,7 @@ def _move_data_folder(f, cellid, old_ecode, new_ecode):
             if new_rep not in f:
                 f.move(old_rep, new_rep)
             else:
-                for sweep in f[f"/data_organization/{cellid}/{old_ecode}/{rep}"]:
+                for sweep in f[old_rep]:
                     # sweep number should be unique,
                     # but let's check for it before just to be sure.
 

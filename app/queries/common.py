@@ -78,7 +78,7 @@ def router_read_many[T: BaseModel, I: Identifiable](
     pagination_request: PaginationQuery,
     response_schema_class: type[T],
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
-    filter_model: CustomFilter,
+    filter_model: CustomFilter[I],
 ) -> ListResponse[T]:
     filter_query = sa.select(db_model_class)
     if issubclass(db_model_class, Entity):

@@ -9,6 +9,7 @@ from app.schemas.base import (
     SpeciesRead,
     StrainRead,
 )
+from app.schemas.contribution import ContributionReadWithoutEntity
 
 
 class UseIon(BaseModel):
@@ -26,7 +27,7 @@ class NeuronBlock(BaseModel):
     nonspecific: list[str]
 
 
-class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, AssetsMixin, BaseModel):
+class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
@@ -38,3 +39,11 @@ class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, Asse
     temperature_celsius: int
     is_stochastic: bool
     neuron_block: NeuronBlock
+
+
+class IonChannelModelWAssets(IonChannelModel, AssetsMixin):
+    pass
+
+
+class IonChannelModelExpanded(IonChannelModelWAssets):
+    contributions: list[ContributionReadWithoutEntity]

@@ -13,6 +13,7 @@ from app.routers import (
     experimental_bouton_density,
     experimental_neuron_density,
     experimental_synapses_per_connection,
+    ion_channel_model,
     license,
     memodel,
     morphology,
@@ -57,6 +58,7 @@ authenticated_routers = [
     species.router,
     strain.router,
     subject.router,
+    ion_channel_model.router,
 ]
 for r in authenticated_routers:
     router.include_router(r, dependencies=[Depends(user_verified)])

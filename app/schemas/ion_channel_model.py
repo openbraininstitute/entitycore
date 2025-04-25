@@ -11,7 +11,7 @@ from app.schemas.base import (
 )
 
 
-class Ion(CreationMixin, IdentifiableMixin, AuthorizationMixin, BaseModel):
+class Ion(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     ontology_id: str | None = None
     name: str

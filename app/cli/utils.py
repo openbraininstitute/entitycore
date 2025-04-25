@@ -440,13 +440,15 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
             else:
                 L.warning(f"Ion '{ion_name}' not found in database")
 
-            useion_structured.append({
-                "ion_name": ion_name,
-                "read": neuron_block_raw.get("read"),
-                "write": neuron_block_raw.get("write"),
-                "valence": neuron_block_raw.get("valence"),
-                "main_ion": None,
-            })
+            useion_structured.append(
+                {
+                    "ion_name": ion_name,
+                    "read": neuron_block_raw.get("read"),
+                    "write": neuron_block_raw.get("write"),
+                    "valence": neuron_block_raw.get("valence"),
+                    "main_ion": None,
+                }
+            )
 
         neuron_block_dict = {
             "range": neuron_block_raw.get("range"),
@@ -479,7 +481,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
         is_stochastic=script.get("name", "").lower().startswith("stoch"),
-        ions=ion_objects if ion_objects else None,
+        ions=ion_objects or None,
     )
 
     db.add(db_ion_channel_model)

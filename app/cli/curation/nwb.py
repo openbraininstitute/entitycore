@@ -107,26 +107,6 @@ def _sscx_simulation_update(f, base_path, ecode_mapping):
             f.move(full_old_path, full_new_path)
 
 
-def _simulation_update(f, base_path, ecode_mapping):
-    """Update a path in /acquisition/ or /stimulus/presentation/."""
-    # should move e.g. step_1 to ic__GenericStep__1 / ics__GenericStep__1
-    for old_path in f[base_path]:
-        # hard-code edge case here because the '__' in the protocol name messes up the function
-        old_ecode = "A___.ibw" if "A___.ibw" in old_path else old_path.split("_")[0]
-        if old_ecode in ecode_mapping:
-            new_ecode = ecode_mapping[old_ecode]
-            new_path = old_path.replace("_", "__").replace(old_ecode, new_ecode)
-            prefix = _get_prefix(base_path, _get_units(f, base_path, old_path))
-            new_path = prefix + new_path
-
-            full_old_path = f"{base_path}{old_path}"
-            full_new_path = f"{base_path}{new_path}"
-
-            # update the paths
-            if full_old_path in f:
-                f.move(full_old_path, full_new_path)
-
-
 def _update_path(f, base_path, ecode_mapping):
     """Update a path in /acquisition/ or /stimulus/presentation/."""
     for old_path in f[base_path]:

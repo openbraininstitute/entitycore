@@ -455,7 +455,9 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         is_ljp_corrected=script.get("isLjpCorrected", False),
         is_temperature_dependent=script.get("isTemperatureDependent", False),
         temperature_celsius=int(temperature_value),
-        neuron_block=neuron_block_validated.model_dump(),
+        neuron_block=neuron_block_validated.model_dump(
+            by_alias=True
+        ),  # global instead of global_ in the output dict
         brain_region_id=brain_region_id,
         species_id=species_id,
         strain_id=strain_id,

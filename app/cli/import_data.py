@@ -1076,19 +1076,19 @@ def _do_import(db, input_dir, project_context):
         import_etype_annotation_body(etype_annotations, db)
 
     importers = [
-        # ImportAgent,
-        # ImportAnalysisSoftwareSourceCode,
-        # ImportBrainRegionMeshes,
-        # ImportMorphologies,
-        # ImportEModels,
-        # ImportExperimentalNeuronDensities,
-        # ImportExperimentalBoutonDensity,
-        # ImportExperimentalSynapsesPerConnection,
-        # ImportMEModel,
-        # ImportElectricalCellRecording,
-        # ImportSingleNeuronSimulation,
+        ImportAgent,
+        ImportAnalysisSoftwareSourceCode,
+        ImportBrainRegionMeshes,
+        ImportMorphologies,
+        ImportEModels,
+        ImportExperimentalNeuronDensities,
+        ImportExperimentalBoutonDensity,
+        ImportExperimentalSynapsesPerConnection,
+        ImportMEModel,
+        ImportElectricalCellRecording,
+        ImportSingleNeuronSimulation,
         ImportDistribution,
-        # ImportNeuronMorphologyFeatureAnnotation,
+        ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:

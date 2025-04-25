@@ -60,7 +60,7 @@ from app.db.types import (
     MeasurementStatistic,
     MeasurementUnit,
     PointLocationBase,
-    EntityType
+    EntityType,
 )
 
 from app.cli.curation import nwb

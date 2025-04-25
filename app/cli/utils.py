@@ -346,10 +346,6 @@ def get_or_create_distribution(
     db.commit()
 
 
-def ensurelist(x):
-    return x if isinstance(x, list) else [x]
-
-
 def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):
     if not entity:
         return None
@@ -421,7 +417,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     temperature = script.get("temperature", {})
     temp_unit = str(temperature.get("unitCode", "")).lower()
 
-    assert temp_unit == "c"  # noqa: S101
+    assert temp_unit == "c"
 
     temperature_value = temperature.get("value")
 
@@ -449,7 +445,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
 
-    assert nmodl_parameters_validated  # noqa: S101
+    assert nmodl_parameters_validated
 
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],

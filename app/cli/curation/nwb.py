@@ -69,15 +69,7 @@ def _thalamus_simulation_update(f, base_path, ecode_mapping):
         if old_path in ecode_mapping:
             new_ecode = ecode_mapping[old_path]
             new_path = f"{new_ecode}__{stim_num}"
-            units = _get_units(f, base_path, old_path)
-            if "acquisition" in base_path and units == "volts":
-                prefix = "ic__"
-            elif "acquisition" in base_path and units == "amperes":
-                prefix = "vc__"
-            elif "stimulus" in base_path and units == "volts":
-                prefix = "vcs__"
-            elif "stimulus" in base_path and units == "amperes":
-                prefix = "ics__"
+            prefix = _get_prefix(base_path, _get_units(f, base_path, old_path))
             new_path = prefix + new_path
 
             full_old_path = f"{base_path}{old_path}"

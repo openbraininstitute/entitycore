@@ -103,41 +103,90 @@ EX: "facets" for reconstructed-neuron-morphology:
     ]
     .....
 ```
-    
+
 # Special Cases:
 
-## brain-regions/ return the "simplified" hierarchy.json:
+## brain-regions/
 
-* This can also have a query param: with "alternative view" to get a json file with that
-* We may want to version this if we expect to have updated atlases
+The concept of `Brain Regions`, often referred to as "the hierarchy" is a description of how the areas of the brain are related.
+For instance, the brain can be broken up in to parts like the `Hippocampus`, the `Visual Cortex`, etc.
+These larger regions can further be broken down, for instance into the `CA1so`,  and `CA1sp` for the hippocampus.
+Thus, a tree, or hierarchy is formed.
 
-EX:
-    {
-         "id": 997,
-         "acronym": "root",
-         "name": "root",
-         "color_hex_triplet": "FFFFFF",
-         "parent_structure_id": null,          # <- if this is used?
-         "children": [
-              { "id": 997, "acronym": "root", "name": "root", ..., "children": []},
-              ...
-         ]
-    }
+Following the `Allen Institute`'s original hierarchy, each of the nodes within the tree have the following attributes:
 
-GET /brain-regions/{id}: could do this, but not sure it's useful: the full
-    json size is ~200k uncompressed, and 20k compressed; having logic on the
-    frontend to work w/ this file would be much faster than having to hit the
-    API each time to get 
+* id: A unique number identifying the region: ex: 72856
+* acronym: A unique short name for the region; without a space, and as short as possible: ex VISrll2
+* name: A longer, more human readable name: ex:"Rostrolateral lateral visual area, layer 2"
+* color\_hex\_triplet: A colour associated with the region: ex: "188064"
+* parent\_structure\_id: The parent `id` of the current node: ex: 480149202
+* children: a list of nodes
 
-Future work would include using ltree from postgresql to make doing lookups and such easier: https://www.postgresql.org/docs/current/ltree.html 
+Normally, the full set of nodes is encoded in a `hierarchy.json`, which contains all the nodes:
 
-
-To be looked at more:
 ```
-    files/
-    experimental-data/_count
-    model-data/_count
+{
+     "id": 997,
+     "acronym": "root",
+     "name": "root",
+     "color_hex_triplet": "FFFFFF",
+     "children": [
+          { "id": 997, "acronym": "root", "name": "root", ..., "children": []},
+          ...
+     ]
+}
 ```
+
+### Views
+
+In addition to the "top down" view described above, there is also a `horizontal` or `alternate` view.
+In some regions, there is a second natural view that is structured by layer.
+For instance, the `Cortex` has multiple layers (1, 2, 3, ...); if one wants to get all the regions that are in this cortical layer, one would have to enumerate them.
+Instead, an alternate view is used, that has the `Cortical Layer 3` grouped.
+The shape of the hierarchy is the same, so all the properties exist `ids`, `acronym`, etc, but the `parent_structure_id`, `children` are different.
+
+### Multiple Hierarchies
+
+In the world of biology, there are multiple types of animals.
+They may have different hierarchies.
+
+### API
+
+Currently the brain-regions API is read only.
+
+`GET brain-regions/`
+
+Returns the list of brain region hierarchy names.
+
+`GET brain-regions/$hierarchy-name/?view=[vertical|horizontal|flat]`
+
+Returns the full `hierarchy.json`; the `vertical` is the default, which is the top down view.
+`horizontal` is the `alternate` or layered version.
+Flat returns the `vertical` one except as a series of rows, instead of with the children filled in.
+
+`GET brain-regions/$hierarchy-name/$id/view=[vertical|horizontal]`
+
+### Note
+
+The hierarchy only defines the names of the regions, and their relationship to each other.
+This does *not* say where a particular region exists in an atlas.
+Most nodes within the hierarchy are not in the atlas, as only nodes in the periphery exist.
+For example, the `Isocortex` region won't exist, but its children like `VISrll4` and `VISrll5` will.
+
+
+### Filtering brain-region aware endpoints
+
+Entities that are aware of their brain-region can be filtered by the hierarchy.
+For instance, one may want to get all the morphologies that are within the `Isocortex`.
+One way to do this would be to enumerate all the regions within the `Isocortex`, and use that to filter the morphologies.
+This is inefficient.
+Instead, one can use:
+
+```
+GET /reconstruction_morphology/?within_brain_region=AIBS,315
+```
+
+In other words, the name of the hierarchy, and the id which will be recursively included.
 
 # Authorization:
 Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.
@@ -155,3 +204,12 @@ By default, an `Entity` is private, and marked as being owned by the `project-id
 Members of the owning project can set the `authorized_public` on creation, to mark the `Entity` as public.
 In addition, this value can be changed by using the `PATCH` operation.
 Once an `Entity` is made public, it can not be made private, since it could be already shared/used by others.
+
+
+### To be looked at more:
+```
+    files/
+    experimental-data/_count
+    model-data/_count
+```
+

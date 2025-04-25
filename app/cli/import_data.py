@@ -1076,19 +1076,19 @@ def _do_import(db, input_dir, project_context):
         import_etype_annotation_body(etype_annotations, db)
 
     importers = [
-        ImportAgent,
-        ImportAnalysisSoftwareSourceCode,
-        ImportBrainRegionMeshes,
-        ImportMorphologies,
-        ImportEModels,
-        ImportExperimentalNeuronDensities,
-        ImportExperimentalBoutonDensity,
-        ImportExperimentalSynapsesPerConnection,
-        ImportMEModel,
-        ImportElectricalCellRecording,
-        ImportSingleNeuronSimulation,
+        # ImportAgent,
+        # ImportAnalysisSoftwareSourceCode,
+        # ImportBrainRegionMeshes,
+        # ImportMorphologies,
+        # ImportEModels,
+        # ImportExperimentalNeuronDensities,
+        # ImportExperimentalBoutonDensity,
+        # ImportExperimentalSynapsesPerConnection,
+        # ImportMEModel,
+        # ImportElectricalCellRecording,
+        # ImportSingleNeuronSimulation,
         ImportDistribution,
-        ImportNeuronMorphologyFeatureAnnotation,
+        # ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:
@@ -1307,9 +1307,6 @@ def curate_files(input_digest_path, output_digest_path, out_dir):
 
                     target_file = Path(out_dir) / f"{asset.id}__{asset.path}"
 
-                    if target_file.exists():
-                        continue
-
                     try:
                         new_metadata = curator(asset, source_file, target_file)
                     except Exception as e:
@@ -1333,6 +1330,11 @@ def curate_files(input_digest_path, output_digest_path, out_dir):
                         setattr(asset, attr, value)
 
                 db.commit()
+
+    all_paths = src_paths | new_src_paths
+    with open(output_digest_path, "w") as fp:
+        for digest, path in all_paths.items():
+            fp.write(f"{digest} {path}\n")
 
 
 if __name__ == "__main__":

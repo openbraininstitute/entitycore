@@ -36,8 +36,20 @@ def read_one(
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
         apply_operations=lambda q: q.options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
+                SingleNeuronSynaptome.me_model
+            ),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
+                SingleNeuronSynaptome.brain_region
+            ),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
+            .selectinload(SingleNeuronSynaptome.contributions)
+            .joinedload(Contribution.agent),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
+            .selectinload(SingleNeuronSynaptome.contributions)
+            .joinedload(Contribution.agent),
             joinedload(SingleNeuronSynaptomeSimulation.brain_region),
+            raiseload("*"),
         ),
     )
 
@@ -87,6 +99,16 @@ def read_many(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
                 SingleNeuronSynaptome.brain_region
             )
+        )
+        .options(
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
+            .selectinload(SingleNeuronSynaptome.contributions)
+            .joinedload(Contribution.agent)
+        )
+        .options(
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
+            .selectinload(SingleNeuronSynaptome.contributions)
+            .joinedload(Contribution.agent)
         )
         .options(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome)

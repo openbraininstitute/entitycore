@@ -1,12 +1,13 @@
 import uuid
 
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSynaptome
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeFilterDep
+from app.queries import facets as fc
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.schemas.synaptome import SingleNeuronSynaptomeCreate, SingleNeuronSynaptomeRead
 from app.schemas.types import ListResponse
@@ -25,7 +26,14 @@ def read_one(
         response_schema_class=SingleNeuronSynaptomeRead,
         apply_operations=lambda q: q.options(
             joinedload(SingleNeuronSynaptome.me_model),
+            joinedload(SingleNeuronSynaptome.mtypes),
+            joinedload(SingleNeuronSynaptome.etypes),
+            joinedload(SingleNeuronSynaptome.createdBy),
+            joinedload(SingleNeuronSynaptome.updatedBy),
             joinedload(SingleNeuronSynaptome.brain_region),
+            selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent),
+            selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role),
+            raiseload("*"),
         ),
     )
 
@@ -53,15 +61,9 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     me_model_alias = aliased(MEModel, flat=True)
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "contribution": {
-            "id": Agent.id,
-            "label": Agent.pref_label,
-            "type": Agent.type,
-        },
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
-    }
+    name_to_facet_query_params: dict[str, FacetQueryParams] = (
+        fc.brain_region | fc.contribution | fc.etype | fc.mtype | fc.memodel
+    )
     apply_filter_query = lambda query: (
         query.join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, SingleNeuronSynaptome.id == Contribution.entity_id)
@@ -71,6 +73,12 @@ def read_many(
     apply_data_query = lambda query: (
         query.options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.brain_region))
         .options(joinedload(SingleNeuronSynaptome.brain_region))
+        .options(joinedload(SingleNeuronSynaptome.mtypes))
+        .options(joinedload(SingleNeuronSynaptome.etypes))
+        .options(joinedload(SingleNeuronSynaptome.createdBy))
+        .options(joinedload(SingleNeuronSynaptome.updatedBy))
+        .options(selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent))
+        .options(selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role))
         .options(raiseload("*"))
     )
     return router_read_many(

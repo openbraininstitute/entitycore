@@ -4,18 +4,26 @@ from fastapi_filter import FilterDepends, with_prefix
 
 from app.db.model import SingleNeuronSynaptome
 from app.filters.base import CustomFilter
-from app.filters.common import AgentFilter, CreationFilterMixin, NestedAgentFilterDep
+from app.filters.common import (
+    BrainRegionFilterMixin,
+    ContributionFilterMixin,
+    CreationFilterMixin,
+    ETypeClassFilterMixin,
+    MTypeClassFilterMixin,
+)
 from app.filters.memodel import MEModelFilter, NestedMEModelFilterDep
 
 
 class SingleNeuronSynaptomeFilter(
     CustomFilter,
     CreationFilterMixin,
+    MTypeClassFilterMixin,
+    ETypeClassFilterMixin,
+    BrainRegionFilterMixin,
+    ContributionFilterMixin,
 ):
     name__ilike: str | None = None
-    brain_region_id: int | None = None
 
-    contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
     me_model: Annotated[MEModelFilter | None, NestedMEModelFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

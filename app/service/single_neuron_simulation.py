@@ -24,8 +24,9 @@ def read_one(
         authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSimulationRead,
         apply_operations=lambda q: q.options(
-            joinedload(SingleNeuronSimulation.me_model),
+            joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.brain_region),
             joinedload(SingleNeuronSimulation.brain_region),
+            raiseload("*"),
         ),
     )
 

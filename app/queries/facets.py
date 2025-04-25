@@ -1,4 +1,4 @@
-from app.db.model import Agent, BrainRegion, ETypeClass, MTypeClass, Species, Strain
+from app.db.model import Agent, BrainRegion, ETypeClass, MEModel, MTypeClass, Species, Strain
 from app.dependencies.common import FacetQueryParams
 
 brain_region: dict[str, FacetQueryParams] = {
@@ -16,6 +16,9 @@ etype: dict[str, FacetQueryParams] = {
 }
 mtype: dict[str, FacetQueryParams] = {
     "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
+}
+memodel: dict[str, FacetQueryParams] = {
+    "me_model": {"id": MEModel.id, "label": MEModel.name},
 }
 species: dict[str, FacetQueryParams] = {
     "species": {

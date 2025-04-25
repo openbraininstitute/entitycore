@@ -567,7 +567,9 @@ class ElectricalCellRecording(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
+class SingleNeuronSynaptome(
+    LocationMixin, NameDescriptionVectorMixin, MTypesMixin, ETypesMixin, Entity
+):
     __tablename__ = EntityType.single_neuron_synaptome.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]

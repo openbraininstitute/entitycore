@@ -1,17 +1,14 @@
 import uuid
+
 import sqlalchemy as sa
 
-from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
+from app.db.auth import constrain_to_accessible_entities
 from app.db.model import IonChannelModel
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.logger import L
-from app.schemas.ion_channel_model import (
-    IonChannelModelCreate,
-    IonChannelModelRead,
-)
+from app.schemas.ion_channel_model import IonChannelModelCreate, IonChannelModelRead
 from app.schemas.types import ListResponse, PaginationResponse
 
 
@@ -66,9 +63,7 @@ def create_one(
     db: SessionDep,
     ion_channel_model: IonChannelModelCreate,
 ) -> IonChannelModelRead:
-    row = IonChannelModel(
-        **ion_channel_model.model_dump(exclude_unset=True)
-    )
+    row = IonChannelModel(**ion_channel_model.model_dump(exclude_unset=True))
     row.project_id = user_context.project_id
 
     db.add(row)

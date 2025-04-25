@@ -427,9 +427,8 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         if isinstance(ion_entries, dict):
             ion_entries = [ion_entries]
 
-        useion_structured = []
-        for ion_data in ion_entries or []:
-            useion_structured.append({
+        useion_structured = [
+            {
                 "ion": {
                     "ontology_id": ion_data.get("@id"),
                     "name": ion_data.get("label"),
@@ -438,7 +437,9 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
                 "write": neuron_block_raw.get("write"),
                 "valence": neuron_block_raw.get("valence"),
                 "main_ion": None,
-            })
+            }
+            for ion_data in (ion_entries or [])
+        ]
 
         neuron_block_dict = {
             "range": neuron_block_raw.get("range"),

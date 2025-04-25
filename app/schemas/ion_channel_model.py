@@ -10,6 +10,7 @@ from app.schemas.base import (
     StrainRead,
 )
 
+
 class Ion(CreationMixin, IdentifiableMixin, AuthorizationMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
     ontology_id: str | None = None

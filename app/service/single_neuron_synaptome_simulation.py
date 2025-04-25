@@ -42,6 +42,18 @@ def read_one(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
                 SingleNeuronSynaptome.brain_region
             ),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
+                SingleNeuronSynaptome.mtypes
+            ),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
+                SingleNeuronSynaptome.etypes
+            ),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
+                SingleNeuronSynaptome.createdBy
+            ),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
+                SingleNeuronSynaptome.updatedBy
+            ),
             joinedload(SingleNeuronSynaptomeSimulation.synaptome)
             .selectinload(SingleNeuronSynaptome.contributions)
             .joinedload(Contribution.agent),
@@ -98,6 +110,26 @@ def read_many(
         query.options(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
                 SingleNeuronSynaptome.brain_region
+            )
+        )
+        .options(
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+                SingleNeuronSynaptome.mtypes
+            )
+        )
+        .options(
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+                SingleNeuronSynaptome.etypes
+            )
+        )
+        .options(
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+                SingleNeuronSynaptome.createdBy
+            )
+        )
+        .options(
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+                SingleNeuronSynaptome.updatedBy
             )
         )
         .options(

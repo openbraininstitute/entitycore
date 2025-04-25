@@ -712,17 +712,6 @@ class Ion(Identifiable):
     name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class IonToIonChannelModel(Base):
-    __tablename__ = "ion__ion_channel_model"
-
-    ion_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("ion.id", ondelete="CASCADE"), primary_key=True
-    )
-    ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
-    )
-
-
 class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.ion_channel_model.value
 
@@ -734,14 +723,6 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     is_stochastic: Mapped[bool] = mapped_column(default=False)
 
     neuron_block: Mapped[JSON_DICT]
-
-    ions: Mapped[list[Ion]] = relationship(
-        primaryjoin="IonChannelModel.id == IonToIonChannelModel.ion_channel_model_id",
-        secondary="ion__ion_channel_model",
-        uselist=True,
-        viewonly=True,
-        order_by="Ion.name",
-    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

@@ -18,7 +18,6 @@ from app.db.model import (
     Ion,
     IonChannelModel,
     IonChannelModelToEModel,
-    IonToIonChannelModel,
     License,
     MTypeClass,
     Role,
@@ -404,9 +403,9 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
         db.add(db_ion)
         db.flush()
 
-    _cache[label] = db_ion.id
+    _cache[label] = db_ion
 
-    return db_ion.id
+    return db_ion
 
 
 def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):
@@ -420,40 +419,24 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
 
     neuron_block_raw: dict[str, Any] | None = script.get("nmodlParameters")
     neuron_block_validated: NeuronBlock | None = None
-    ion_objects: list[Ion] = []
 
     if neuron_block_raw:
-        ion_entries = script.get("ion")
-        if isinstance(ion_entries, dict):
-            ion_entries = [ion_entries]
-
-        useion_structured = []
-        for ion_data in ion_entries or []:
-            ion_name = ion_data.get("label")
-            if not ion_name:
-                continue
-
-            # Look up existing Ion in DB by name
-            ion_obj = db.query(Ion).filter_by(name=ion_name).first()
-            if ion_obj:
-                ion_objects.append(ion_obj)
-            else:
-                L.warning(f"Ion '{ion_name}' not found in database")
-
-            useion_structured.append(
-                {
-                    "ion_name": ion_name,
-                    "read": neuron_block_raw.get("read"),
-                    "write": neuron_block_raw.get("write"),
-                    "valence": neuron_block_raw.get("valence"),
-                    "main_ion": None,
-                }
-            )
+        ion_entries = ensurelist(script.get("ion", []))
+        useion_structured = [
+            {
+                "ion_name": get_or_create_ion(ion, db).name,
+                "read": ensurelist(neuron_block_raw.get("read", [])),
+                "write": ensurelist(neuron_block_raw.get("write", [])),
+                "valence": neuron_block_raw.get("valence"),
+                "main_ion": None,
+            }
+            for ion in ion_entries
+        ]
 
         neuron_block_dict = {
-            "range": neuron_block_raw.get("range"),
-            "global_": None,
-            "nonspecific": neuron_block_raw.get("nonspecific"),
+            "range": ensurelist(neuron_block_raw.get("range", [])),
+            "global": [],
+            "nonspecific": ensurelist(neuron_block_raw.get("nonspecific", [])),
             "useion": useion_structured,
         }
         neuron_block_validated = NeuronBlock.model_validate(neuron_block_dict)
@@ -472,7 +455,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         is_ljp_corrected=script.get("isLjpCorrected", False),
         is_temperature_dependent=script.get("isTemperatureDependent", False),
         temperature_celsius=int(temperature_value),
-        neuron_block=neuron_block_validated,
+        neuron_block=neuron_block_validated.model_dump(),
         brain_region_id=brain_region_id,
         species_id=species_id,
         strain_id=strain_id,
@@ -481,7 +464,6 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
         is_stochastic=script.get("name", "").lower().startswith("stoch"),
-        ions=ion_objects or None,
     )
 
     db.add(db_ion_channel_model)
@@ -512,7 +494,6 @@ def import_ion_channel_models(
 
     for id_ in subcellular_model_script_ids:
         script = all_data_by_id.get(id_) or {}
-        ion = script.get("ion")
 
         legacy_id = script["@id"]
 
@@ -523,14 +504,6 @@ def import_ion_channel_models(
             continue
 
         db_ion_channel_model = import_ion_channel_model(script, project_context, db)
-
-        if ion:
-            ion_associations = [
-                IonToIonChannelModel(ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id)
-                for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
-            ]
-
-            db.add_all(ion_associations)
 
         ion_channel_model_ids.append(db_ion_channel_model.id)
 

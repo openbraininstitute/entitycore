@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -11,25 +11,19 @@ from app.schemas.base import (
 )
 
 
-class Ion(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    ontology_id: str | None = None
-    name: str
-
-
 class UseIon(BaseModel):
     ion_name: str
-    read: list[str] | None = None
-    write: list[str] | None = None
+    read: list[str]
+    write: list[str]
     valence: int | None = None
     main_ion: bool | None = None
 
 
 class NeuronBlock(BaseModel):
-    global_: list[str] | None = None
-    range: list[str] | None = None
-    useion: list[UseIon] | None = None
-    nonspecific: list[str] | None = None
+    global_: list[str] = Field(alias="global")
+    range: list[str]
+    useion: list[UseIon]
+    nonspecific: list[str]
 
 
 class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, AssetsMixin, BaseModel):
@@ -44,4 +38,3 @@ class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, Asse
     temperature_celsius: int
     is_stochastic: bool
     neuron_block: NeuronBlock
-    ions: list[Ion] | None = None

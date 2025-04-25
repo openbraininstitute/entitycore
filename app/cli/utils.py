@@ -416,35 +416,41 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     temp_unit = str(temperature.get("unitCode", "")).lower()
 
     assert temp_unit == "c"  # noqa: S101
-
     temperature_value = temperature.get("value")
 
     neuron_block_raw: dict[str, Any] | None = script.get("nmodlParameters")
     neuron_block_validated: NeuronBlock | None = None
+    ion_objects: list[Ion] = []
 
     if neuron_block_raw:
         ion_entries = script.get("ion")
         if isinstance(ion_entries, dict):
             ion_entries = [ion_entries]
 
-        useion_structured = [
-            {
-                "ion": {
-                    "ontology_id": ion_data.get("@id"),
-                    "name": ion_data.get("label"),
-                },
+        useion_structured = []
+        for ion_data in ion_entries or []:
+            ion_name = ion_data.get("label")
+            if not ion_name:
+                continue
+
+            # Look up existing Ion in DB by name
+            ion_obj = db.query(Ion).filter_by(name=ion_name).first()
+            if ion_obj:
+                ion_objects.append(ion_obj)
+            else:
+                L.warning(f"Ion '{ion_name}' not found in database")
+
+            useion_structured.append({
+                "ion_name": ion_name,
                 "read": neuron_block_raw.get("read"),
                 "write": neuron_block_raw.get("write"),
                 "valence": neuron_block_raw.get("valence"),
                 "main_ion": None,
-            }
-            for ion_data in (ion_entries or [])
-        ]
+            })
 
         neuron_block_dict = {
             "range": neuron_block_raw.get("range"),
             "global_": None,
-            "suffix": neuron_block_raw.get("suffix"),
             "nonspecific": neuron_block_raw.get("nonspecific"),
             "useion": useion_structured,
         }
@@ -473,6 +479,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
         is_stochastic=script.get("name", "").lower().startswith("stoch"),
+        ions=ion_objects if ion_objects else None,
     )
 
     db.add(db_ion_channel_model)

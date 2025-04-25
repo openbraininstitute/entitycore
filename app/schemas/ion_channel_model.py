@@ -18,7 +18,7 @@ class Ion(CreationMixin, IdentifiableMixin, AuthorizationMixin, BaseModel):
 
 
 class UseIon(BaseModel):
-    ion: Ion
+    ion_name: str
     read: list[str] | None = None
     write: list[str] | None = None
     valence: int | None = None
@@ -28,7 +28,6 @@ class UseIon(BaseModel):
 class NeuronBlock(BaseModel):
     global_: list[str] | None = None
     range: list[str] | None = None
-    suffix: str | None = None
     useion: list[UseIon] | None = None
     nonspecific: list[str] | None = None
 
@@ -45,3 +44,4 @@ class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, Asse
     temperature_celsius: int
     is_stochastic: bool
     neuron_block: NeuronBlock
+    ions: list[Ion] | None = None

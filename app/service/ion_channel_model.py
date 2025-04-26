@@ -1,18 +1,30 @@
 import uuid
 
+import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, IonChannelModel, Species
-from app.dependencies.auth import UserContextDep
+from app.db.model import Contribution, Ion, IonChannelModel, Species
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
+from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
-from app.queries.common import router_read_many, router_read_one
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.schemas.ion_channel_model import (
-    IonChannelModel as IonChannelModelRead,
+    IonChannelModelCreate,
     IonChannelModelExpanded,
+    IonChannelModelRead,
 )
 from app.schemas.types import ListResponse, Select
+
+
+def _load(q: Select[IonChannelModel]):
+    return (
+        q.options(joinedload(IonChannelModel.species, innerjoin=True))
+        .options(joinedload(IonChannelModel.strain))
+        .options(joinedload(IonChannelModel.brain_region))
+        .options(raiseload("*"))
+    )
 
 
 def read_many(
@@ -25,14 +37,6 @@ def read_many(
     def filter_query_ops(q: Select[IonChannelModel]):
         return q.join(Species, IonChannelModel.species_id == Species.id)
 
-    def data_query_ops(q: Select[IonChannelModel]):
-        return (
-            q.options(joinedload(IonChannelModel.species, innerjoin=True))
-            .options(joinedload(IonChannelModel.strain))
-            .options(joinedload(IonChannelModel.brain_region))
-            .options(raiseload("*"))
-        )
-
     return router_read_many(
         db=db,
         db_model_class=IonChannelModel,
@@ -40,7 +44,7 @@ def read_many(
         with_search=with_search,
         facets=None,
         aliases=None,
-        apply_data_query_operations=data_query_ops,
+        apply_data_query_operations=_load,
         apply_filter_query_operations=filter_query_ops,
         pagination_request=pagination_request,
         response_schema_class=IonChannelModelRead,
@@ -75,16 +79,28 @@ def read_one(
     )
 
 
-# def create_one(
-#     user_context: UserContextWithProjectIdDep,
-#     db: SessionDep,
-#     ion_channel_model: IonChannelModelCreate,
-# ) -> IonChannelModelRead:
-#     row = IonChannelModel(**ion_channel_model.model_dump(exclude_unset=True))
-#     row.project_id = user_context.project_id
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    ion_channel_model: IonChannelModelCreate,
+) -> IonChannelModelRead:
+    ion_names = {ion.ion_name for ion in ion_channel_model.neuron_block.useion}
 
-#     db.add(row)
-#     db.commit()
-#     db.refresh(row)
+    stmt = (
+        sa.select(sa.func.count() == len(ion_names)).select_from(Ion).where(Ion.name.in_(ion_names))
+    )
 
-#     return IonChannelModelRead.model_validate(row)
+    all_names_exist = db.execute(stmt).scalar_one()
+
+    if not all_names_exist:
+        msg = "Ion name does not exist"
+        raise ApiError(message=msg, error_code=ApiErrorCode.ION_NAME_NOT_FOUND)
+
+    return router_create_one(
+        db=db,
+        authorized_project_id=user_context.project_id,
+        db_model_class=IonChannelModel,
+        json_model=ion_channel_model,
+        response_schema_class=IonChannelModelRead,
+        apply_operations=_load,
+    )

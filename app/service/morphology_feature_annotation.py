@@ -8,7 +8,7 @@ from app.db.model import (
     MorphologyFeatureAnnotation,
     MorphologyMeasurement,
     MorphologyMeasurementSerieElement,
-    ReconstructionMorphology,
+    CellMorphology,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
@@ -28,7 +28,7 @@ def read_many(
     pagination_request: PaginationQuery,
 ) -> ListResponse[MorphologyFeatureAnnotationRead]:
     query = constrain_to_accessible_entities(
-        sa.select(MorphologyFeatureAnnotation).join(ReconstructionMorphology),
+        sa.select(MorphologyFeatureAnnotation).join(CellMorphology),
         user_context.project_id,
     )
 
@@ -62,7 +62,7 @@ def read_one(
         stmt = constrain_to_accessible_entities(
             sa.select(MorphologyFeatureAnnotation)
             .filter(MorphologyFeatureAnnotation.id == id_)
-            .join(ReconstructionMorphology),
+            .join(CellMorphology),
             user_context.project_id,
         )
         row = db.execute(stmt).scalar_one()
@@ -75,11 +75,11 @@ def create_one(
     db: SessionDep,
     morphology_feature_annotation: MorphologyFeatureAnnotationCreate,
 ) -> MorphologyFeatureAnnotationRead:
-    reconstruction_morphology_id = morphology_feature_annotation.reconstruction_morphology_id
+    cell_morphology_id = morphology_feature_annotation.cell_morphology_id
 
     stmt = constrain_entity_query_to_project(
-        sa.select(sa.func.count(ReconstructionMorphology.id)).where(
-            ReconstructionMorphology.id == reconstruction_morphology_id
+        sa.select(sa.func.count(CellMorphology.id)).where(
+            CellMorphology.id == cell_morphology_id
         ),
         user_context.project_id,
     )
@@ -87,14 +87,14 @@ def create_one(
     if db.execute(stmt).scalar_one() == 0:
         L.warning(
             "Block `MorphologyFeatureAnnotation` with entity inaccessible: {}",
-            reconstruction_morphology_id,
+            cell_morphology_id,
         )
         raise HTTPException(
             status_code=404,
-            detail=f"Cannot access entity {reconstruction_morphology_id}",
+            detail=f"Cannot access entity {cell_morphology_id}",
         )
 
-    row = MorphologyFeatureAnnotation(reconstruction_morphology_id=reconstruction_morphology_id)
+    row = MorphologyFeatureAnnotation(cell_morphology_id=cell_morphology_id)
 
     for measurement in morphology_feature_annotation.measurements:
         db_measurement = MorphologyMeasurement()

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Annotated
+from typing import Annotated, TYPE_CHECKING
 
 from pydantic import UUID4, BaseModel, ConfigDict, Field, model_validator
 
@@ -8,22 +8,6 @@ from app.db.types import AgePeriod, Sex
 
 from datetime import date
 
-class ScientificArtifactMixin(BaseModel):
- #   id: UUID4
-
-    name :str
-    description:str  
-    subject_id : uuid.UUID
-    
-    brain_region_id: int
-    contributions: list[ContributionReadWithoutEntity] | None
-    license_id: uuid.UUID 
-    experiment_date: date 
-
-    validations: Dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
-
-    contact : PersonRead
-    contact_email: str
 
 class AuthorizationMixin(BaseModel):
     authorized_project_id: UUID4
@@ -98,7 +82,7 @@ class BrainRegionReadMixin(BaseModel):
 
 class StrainCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    name: strs
+    name: str
     taxonomy_id: str
     species_id: uuid.UUID
 
@@ -126,14 +110,11 @@ class LicensedReadMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     license: LicenseRead | None
 
-
-class MorphologyMeasureme   name: str
-    description: strntSerieBase(BaseModel):
+class MorphologyMeasurementSerieBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     value: float
-
-
+    
 class MeasurementCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     measurement_of: str
@@ -167,7 +148,7 @@ class SubjectBase(BaseModel):
     age_max: Annotated[
         timedelta | None,
         Field(title="Maximum age range", description="Maximum age range", gt=timedelta(0)),
-    ] = NoneScientificArtifactReadMixin
+    ] = None
     age_period: AgePeriod | None = None
 
     @model_validator(mode="after")

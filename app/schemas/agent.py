@@ -1,10 +1,10 @@
 from pydantic import BaseModel, ConfigDict
+from app.schemas.base import CreationMixin, IdentifiableMixin
 
 from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
-
 
 class PersonBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -13,21 +13,17 @@ class PersonBase(BaseModel):
     familyName: str
     pref_label: str
 
-
-class PersonCreate(PersonBase):
-    legacy_id: str | None = None
-
-
 class PersonRead(PersonBase, CreationMixin, IdentifiableMixin):
     type: str
 
+class PersonCreate(PersonBase):
+    legacy_id: str | None = None
 
 class OrganizationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     pref_label: str
     alternative_name: str | None = None
-
 
 class OrganizationCreate(OrganizationBase):
     legacy_id: str | None = None

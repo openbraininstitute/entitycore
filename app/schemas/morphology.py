@@ -16,14 +16,17 @@ from app.schemas.base import (
     LicensedReadMixin,
     MeasurementCreate,
     MeasurementRead,
-    ScientificArtifactReadMixin,
     SpeciesRead,
     StrainRead,
 )
+
+from app.schemas.scientific_artifact import (
+    ScientificArtifactMixin,
+)
+
 from app.schemas.contribution import ContributionReadWithoutEntity
 
-
-class ReconstructionMorphologyBase(BaseModel):
+class CellMorphologyBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
  #   name: str
  #   description: str
@@ -31,12 +34,8 @@ class ReconstructionMorphologyBase(BaseModel):
     legacy_id: list[str] | None
 
 
-class ReconstructionMorphologyCreate(
-    ReconstructionMorphologyBase,
-    LicensedCreateMixin,
-    AuthorizationOptionalPublicMixin,
-    ScientificArtifactMixin, class ReconstructionMorphologyCreate(
-    ReconstructionMorphologyBase,
+class CellMorphologyCreate(
+    CellMorphologyBase,
     LicensedCreateMixin,
     AuthorizationOptionalPublicMixin,
     ScientificArtifactMixin,  # Added ScientificArtifactMixin
@@ -47,23 +46,8 @@ class ReconstructionMorphologyCreate(
     legacy_id: list[str] | None = None
 
 
-class MorphologyFeatureAnnotationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    reconstruction_morphology_id: uuid.UUID
-
-
-class MorphologyFeatureAnnotationCreate(MorphologyFeatureAnnotationBase):
-    measurements: Sequence[MeasurementCreate]
-
-
-class MorphologyFeatureAnnotationRead(
-    MorphologyFeatureAnnotationBase, CreationMixin, IdentifiableMixin
-):
-    measurements: Sequence[MeasurementRead]
-
-
-class ReconstructionMorphologyRead(
-    ReconstructionMorphologyBase,
+class CellMorphologyRead(
+    CellMorphologyBase,
     CreationMixin,
     IdentifiableMixin,
     LicensedReadMixin,
@@ -78,5 +62,85 @@ class ReconstructionMorphologyRead(
     assets: list[AssetRead] | None
 
 
-class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):
+
+from enum import Enum, auto
+
+from typing import Dict
+from pydantic import BaseModel, ValidationError
+class ScoreDict(BaseModel):
+    x: Dict[str, float]
+
+class PipelineType(Enum):
+    Raw = auto() 
+    Curated  = auto() 
+    Unraveled  = auto() 
+    Repaired = auto()  
+
+from typing import List
+
+class MethodsType(Enum):
+    Cloned = auto() 
+    Mix_and_match  = auto() 
+    Mousified  = auto() 
+    Ratified = auto() 
+
+class DigitalReconstruction(CellMorphologyBase):
+    pipeline_state: PipelineType
+    is_related_to: List[uuid.UUID]
+
+class DigitalReconstructionCreate(CellMorphologyCreate):
+    pipeline_state: PipelineType
+    is_related_to: List[uuid.UUID]
+
+class ModifiedReconstruction(CellMorphologyBase):
+    method: MethodsType
+    is_related_to:List[uuid.UUID]
+
+class ModifiedReconstructionCreate(CellMorphologyCreate):
+    method: MethodsType
+    is_related_to:List[uuid.UUID]
+
+class ComputationallySynthesized(CellMorphologyBase):
+    method: str
+    score_dict: ScoreDict
+    provenance: ScoreDict
+
+class ComputationallySynthesizedCreate(CellMorphologyCreate):
+    method: str
+    score_dict: ScoreDict
+    provenance: ScoreDict
+
+class Placeholder(CellMorphologyBase):
+    is_related_to:List[uuid.UUID]
+
+class PlaceholderCreate(CellMorphologyCreate):
+    is_related_to:List[uuid.UUID]
+
+class MorphologyFeatureAnnotationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    cell_morphology_id: uuid.UUID
+
+class MorphologyFeatureAnnotationCreate(MorphologyFeatureAnnotationBase):
+    measurements: Sequence[MeasurementCreate]
+
+class MorphologyFeatureAnnotationRead(
+    MorphologyFeatureAnnotationBase, CreationMixin, IdentifiableMixin
+):
+    measurements: Sequence[MeasurementRead]
+
+# First, define the base annotation expanded class
+class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
+    morphology_feature_annotation: MorphologyFeatureAnnotationRead
+
+# Then create specific subclasses for each morphology type
+class DigitalReconstructionAnnotationExpandedRead(DigitalReconstruction):
+    morphology_feature_annotation: MorphologyFeatureAnnotationRead
+
+class ModifiedReconstructionAnnotationExpandedRead(ModifiedReconstruction):
+    morphology_feature_annotation: MorphologyFeatureAnnotationRead
+
+class ComputationallySynthesizedAnnotationExpandedRead(ComputationallySynthesized):
+    morphology_feature_annotation: MorphologyFeatureAnnotationRead
+
+class PlaceholderAnnotationExpandedRead(Placeholder):
     morphology_feature_annotation: MorphologyFeatureAnnotationRead

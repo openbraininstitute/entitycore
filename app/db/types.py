@@ -9,6 +9,14 @@ from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.utils.enum import StrEnum
 
+from enum import Enum
+
+class MorphologyType(str, Enum):
+    DIGITAL = "digital"
+    MODIFIED = "modified"
+    COMPUTATIONAL = "computational"
+    PLACEHOLDER = "placeholder"
+    GENERIC = "generic"  # for base CellMorphology
 
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -56,7 +64,7 @@ class EntityType(StrEnum):
     experimental_synapses_per_connection = auto()
     memodel = auto()
     mesh = auto()
-    reconstruction_morphology = auto()
+    cell_morphology = auto()
     electrical_cell_recording = auto()
     electrical_recording_stimulus = auto()
     single_neuron_simulation = auto()

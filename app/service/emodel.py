@@ -13,7 +13,7 @@ from app.db.model import (
     ETypeClassification,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
+    CellMorphology,
     Species,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -81,9 +81,9 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[EModelRead]:
-    morphology_alias = aliased(ReconstructionMorphology, flat=True)
+    morphology_alias = aliased(CellMorphology, flat=True)
     aliases: Aliases = {
-        ReconstructionMorphology: morphology_alias,
+        CellMorphology: morphology_alias,
     }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {

@@ -12,6 +12,9 @@ from app.errors import ensure_authorized_references, ensure_result, ensure_uniqu
 from app.filters.base import Aliases, CustomFilter
 from app.schemas.types import ListResponse, PaginationResponse
 
+from typing import TypeVar, Type
+
+
 type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[tuple[T]]], sa.Select[tuple[T]]]
 
 
@@ -34,7 +37,12 @@ def router_read_one[T: BaseModel, I: Identifiable](
     return response_schema_class.model_validate(row)
 
 
-def router_create_one[T: BaseModel, I: Identifiable](
+T = TypeVar("T", bound=BaseModel)
+I = TypeVar("I")
+
+def router_create_one[
+    T: BaseModel, I: I
+](
     *,
     db: Session,
     db_model_class: type[I],
@@ -42,11 +50,16 @@ def router_create_one[T: BaseModel, I: Identifiable](
     json_model: BaseModel,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
+    extra_data: dict | None = None,  # ← NEW PARAMETER
 ) -> T:
     data = json_model.model_dump()
     if issubclass(db_model_class, Entity):
         data |= {"authorized_project_id": authorized_project_id}
+    if extra_data:
+        data |= extra_data  # ← Merge in the extra values
+
     row = db_model_class(**data)
+
     with (
         ensure_uniqueness(error_message=f"{db_model_class.__name__} already exists"),
         ensure_authorized_references(
@@ -57,6 +70,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
         db.add(row)
         db.flush()
         db.refresh(row)
+
     if apply_operations:
         q = sa.select(db_model_class).where(db_model_class.id == row.id)
         q = apply_operations(q)
@@ -77,6 +91,7 @@ def router_read_many[T: BaseModel, I: Identifiable](
     apply_data_query_operations: ApplyOperations[I] | None,
     pagination_request: PaginationQuery,
     response_schema_class: type[T],
+    response_schema_transformer: Callable[[I], T] | None = None, 
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
     filter_model: CustomFilter,
 ) -> ListResponse[T]:

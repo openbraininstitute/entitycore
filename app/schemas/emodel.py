@@ -13,10 +13,10 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.morphology import ReconstructionMorphologyBase
+from app.schemas.morphology import CellMorphologyBase
 
 
-class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase, IdentifiableMixin):
+class ExemplarMorphology(CreationMixin, CellMorphologyBase, IdentifiableMixin):
     pass
 
 

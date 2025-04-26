@@ -2,6 +2,8 @@ import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
 
+import sqlalchemy as sa
+
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -421,11 +423,11 @@ class EModel(
     seed: Mapped[int] = mapped_column(default=-1)
 
     exemplar_morphology_id: Mapped[int] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
+        ForeignKey(f"{EntityType.cell_morphology}.id")
     )
 
     exemplar_morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -449,11 +451,11 @@ class MEModel(
     )
 
     morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
+        ForeignKey(f"{EntityType.cell_morphology}.id")
     )
 
     morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
@@ -463,14 +465,20 @@ class MEModel(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class ReconstructionMorphology(
+from app.db.types import MorphologyType  # or wherever you defined it
+
+class CellMorphology(
     MTypesMixin, LicensedMixin, LocationMixin, SpeciesMixin, NameDescriptionVectorMixin, Entity
 ):
-    __tablename__ = EntityType.reconstruction_morphology.value
+    __tablename__ = EntityType.cell_morphology.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
-
+    morphology_type = sa.Column(
+        sa.Enum(MorphologyType, name="morphologytype"),
+        nullable=False,
+        default=MorphologyType.GENERIC,
+    )
     location: Mapped[PointLocation | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -480,11 +488,11 @@ class MorphologyFeatureAnnotation(Identifiable):
     __tablename__ = "morphology_feature_annotation"
     # name = mapped_column(String, unique=True, index=True)
     # description = mapped_column(String)
-    reconstruction_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id"), index=True, unique=True
+    cell_morphology_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.cell_morphology}.id"), index=True, unique=True
     )
-    reconstruction_morphology = relationship(
-        "ReconstructionMorphology",
+    cell_morphology = relationship(
+        "CellMorphology",
         uselist=False,
         back_populates="morphology_feature_annotation",
     )

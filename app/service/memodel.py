@@ -20,7 +20,7 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
+    CellMorphology,
     Species,
     Strain,
 )
@@ -86,11 +86,11 @@ def read_many(
     search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[MEModelRead]:
-    morphology_alias = aliased(ReconstructionMorphology, flat=True)
+    morphology_alias = aliased(CellMorphology, flat=True)
     emodel_alias = aliased(EModel, flat=True)
 
     aliases: Aliases = {
-        ReconstructionMorphology: morphology_alias,
+        CellMorphology: morphology_alias,
         EModel: emodel_alias,
     }
 

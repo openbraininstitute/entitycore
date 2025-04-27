@@ -394,7 +394,7 @@ def test_filter_by_id__in(db, client, brain_region_id):
     # combining id__in with other filters
     response = client.get(
         ROUTE,
-        params={"id__in": ",".join(morphology_ids), "name__ilike": "Filter Test Morphology 2"},
+        params={"id__in": ",".join(morphology_ids), "name__ilike": "%Filter Test Morphology 2%"},
     )
     assert response.status_code == 200
     data = response.json()["data"]

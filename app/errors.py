@@ -77,7 +77,7 @@ class ApiError(Exception):
 
 @contextmanager
 def ensure_result(
-    error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_NOT_FOUND
 ) -> Iterator[None]:
     """Context manager that raises ApiError when no results are found after executing a query."""
     try:
@@ -88,6 +88,23 @@ def ensure_result(
             error_code=error_code,
             http_status_code=HTTPStatus.NOT_FOUND,
         ) from err
+
+
+@contextmanager
+def ensure_uniqueness(
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_DUPLICATED
+) -> Iterator[None]:
+    """Context manager that raises ApiError when a UniqueViolation is raised."""
+    try:
+        yield
+    except IntegrityError as err:
+        if isinstance(err.orig, UniqueViolation):
+            raise ApiError(
+                message=error_message,
+                error_code=error_code,
+                http_status_code=HTTPStatus.CONFLICT,
+            ) from err
+        raise
 
 
 @contextmanager
@@ -104,23 +121,6 @@ def ensure_valid_fks(
                 error_code=error_code,
                 http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
                 details=str(err),
-            ) from err
-        raise
-
-
-@contextmanager
-def ensure_uniqueness(
-    error_message: str, error_code: ApiErrorCode = ApiErrorCode.ENTITY_DUPLICATED
-) -> Iterator[None]:
-    """Context manager that raises ApiError when a UniqueViolation is raised."""
-    try:
-        yield
-    except IntegrityError as err:
-        if isinstance(err.orig, UniqueViolation):
-            raise ApiError(
-                message=error_message,
-                error_code=error_code,
-                http_status_code=HTTPStatus.CONFLICT,
             ) from err
         raise
 

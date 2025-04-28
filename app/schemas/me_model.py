@@ -30,7 +30,8 @@ class MEModelBase(BaseModel):
 
 # To be used by entities who reference MEModel
 class NestedMEModel(MEModelBase, CreationMixin, IdentifiableMixin):
-    pass
+    mtypes: list[MTypeClassRead] | None
+    etypes: list[ETypeClassRead] | None
 
 
 class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):

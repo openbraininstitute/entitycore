@@ -8,17 +8,15 @@ from app.filters.common import (
     BrainRegionFilterMixin,
     ContributionFilterMixin,
     CreationFilterMixin,
-    ETypeClassFilterMixin,
-    MTypeClassFilterMixin,
+    CreatorFilterMixin,
 )
 from app.filters.memodel import MEModelFilter, NestedMEModelFilterDep
 
 
 class SingleNeuronSynaptomeFilter(
     CustomFilter,
+    CreatorFilterMixin,
     CreationFilterMixin,
-    MTypeClassFilterMixin,
-    ETypeClassFilterMixin,
     BrainRegionFilterMixin,
     ContributionFilterMixin,
 ):

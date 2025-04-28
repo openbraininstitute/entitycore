@@ -4,11 +4,7 @@ import pytest
 
 from app.db.model import (
     Contribution,
-    ETypeClass,
-    ETypeClassification,
     MEModel,
-    MTypeClass,
-    MTypeClassification,
     SingleNeuronSynaptome,
 )
 
@@ -46,8 +42,8 @@ def _assert_read_response(data, json_data):
     assert data["me_model"]["id"] == json_data["me_model_id"]
     assert data["authorized_project_id"] == PROJECT_ID
     assert len(data["contributions"]) == 2
-    assert len(data["mtypes"]) == 1
-    assert len(data["etypes"]) == 1
+    assert len(data["me_model"]["mtypes"]) == 1
+    assert len(data["me_model"]["etypes"]) == 1
     assert data["createdBy"]["id"] == json_data["createdBy_id"]
     assert data["updatedBy"]["id"] == json_data["updatedBy_id"]
 
@@ -72,12 +68,6 @@ def model_id(db, json_data, agents):
     agent_1, agent_2, role = agents
     add_db(db, Contribution(agent_id=agent_1.id, role_id=role.id, entity_id=model_id))
     add_db(db, Contribution(agent_id=agent_2.id, role_id=role.id, entity_id=model_id))
-
-    mtype = add_db(db, MTypeClass(pref_label="m1", alt_label="m1", definition="m1d"))
-    add_db(db, MTypeClassification(entity_id=model_id, mtype_class_id=mtype.id))
-
-    etype = add_db(db, ETypeClass(pref_label="e1", alt_label="e1", definition="e1d"))
-    add_db(db, ETypeClassification(entity_id=model_id, etype_class_id=etype.id))
 
     return str(model_id)
 
@@ -245,7 +235,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
 
 
 @pytest.fixture
-def faceted_ids(db, client_admin, create_memodel_ids: CreateIds):
+def faceted_ids(db, client_admin, create_memodel_ids: CreateIds, agents):
     brain_region_ids = [
         create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
     ]
@@ -260,6 +250,8 @@ def faceted_ids(db, client_admin, create_memodel_ids: CreateIds):
                 "seed": i,
                 "brain_region_id": str(brain_region_id),
                 "authorized_project_id": PROJECT_ID,
+                "createdBy_id": str(agents[0].id),
+                "updatedBy_id": str(agents[1].id),
             },
         )
         for i, (memodel_id, brain_region_id) in enumerate(it.product(memodel_ids, brain_region_ids))
@@ -284,8 +276,6 @@ def test_facets(client, faceted_ids):
             {"id": brain_region_ids[1], "label": "region-1", "count": 2, "type": "brain_region"},
         ],
         "contribution": [],
-        "etype": [],
-        "mtype": [],
         "me_model": [
             {
                 "id": str(memodel_ids[0]),

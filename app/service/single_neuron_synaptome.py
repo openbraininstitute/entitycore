@@ -25,9 +25,8 @@ def read_one(
         authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSynaptomeRead,
         apply_operations=lambda q: q.options(
-            joinedload(SingleNeuronSynaptome.me_model),
-            joinedload(SingleNeuronSynaptome.mtypes),
-            joinedload(SingleNeuronSynaptome.etypes),
+            joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.mtypes),
+            joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.etypes),
             joinedload(SingleNeuronSynaptome.createdBy),
             joinedload(SingleNeuronSynaptome.updatedBy),
             joinedload(SingleNeuronSynaptome.brain_region),
@@ -62,7 +61,7 @@ def read_many(
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     me_model_alias = aliased(MEModel, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.etype | fc.mtype | fc.memodel
+        fc.brain_region | fc.contribution | fc.memodel
     )
     apply_filter_query = lambda query: (
         query.join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)
@@ -71,12 +70,11 @@ def read_many(
         .outerjoin(me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id)
     )
     apply_data_query = lambda query: (
-        query.options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.brain_region))
-        .options(joinedload(SingleNeuronSynaptome.brain_region))
-        .options(joinedload(SingleNeuronSynaptome.mtypes))
-        .options(joinedload(SingleNeuronSynaptome.etypes))
+        query.options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.mtypes))
+        .options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.etypes))
         .options(joinedload(SingleNeuronSynaptome.createdBy))
         .options(joinedload(SingleNeuronSynaptome.updatedBy))
+        .options(joinedload(SingleNeuronSynaptome.brain_region))
         .options(selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent))
         .options(selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role))
         .options(raiseload("*"))

@@ -6,7 +6,6 @@ from app.db.model import (
     Agent,
     BrainRegion,
     Contribution,
-    MEModel,
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
 )
@@ -36,30 +35,12 @@ def read_one(
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
         apply_operations=lambda q: q.options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
                 SingleNeuronSynaptome.me_model
             ),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
-                SingleNeuronSynaptome.brain_region
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+                SingleNeuronSynaptome.me_model
             ),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
-                SingleNeuronSynaptome.mtypes
-            ),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
-                SingleNeuronSynaptome.etypes
-            ),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
-                SingleNeuronSynaptome.createdBy
-            ),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).selectinload(
-                SingleNeuronSynaptome.updatedBy
-            ),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
-            .selectinload(SingleNeuronSynaptome.contributions)
-            .joinedload(Contribution.agent),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
-            .selectinload(SingleNeuronSynaptome.contributions)
-            .joinedload(Contribution.agent),
             joinedload(SingleNeuronSynaptomeSimulation.brain_region),
             raiseload("*"),
         ),
@@ -109,43 +90,13 @@ def read_many(
     apply_data_query = lambda query: (
         query.options(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.brain_region
+                SingleNeuronSynaptome.me_model
             )
         )
         .options(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.mtypes
+                SingleNeuronSynaptome.me_model
             )
-        )
-        .options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.etypes
-            )
-        )
-        .options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.createdBy
-            )
-        )
-        .options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.updatedBy
-            )
-        )
-        .options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
-            .selectinload(SingleNeuronSynaptome.contributions)
-            .joinedload(Contribution.agent)
-        )
-        .options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
-            .selectinload(SingleNeuronSynaptome.contributions)
-            .joinedload(Contribution.agent)
-        )
-        .options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
-            .joinedload(SingleNeuronSynaptome.me_model)
-            .joinedload(MEModel.brain_region)
         )
         .options(joinedload(SingleNeuronSynaptomeSimulation.brain_region))
         .options(raiseload("*"))

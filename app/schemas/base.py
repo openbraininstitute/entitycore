@@ -137,12 +137,12 @@ class SubjectBase(BaseModel):
         float | None,
         Field(title="Weight", description="Weight (in grams unless units given)", gt=0.0),
     ] = None
-    weight_units: str = 'grams'
+    weight_unit: str = 'grams'
     age_value: Annotated[
         timedelta | None,
         Field(title="Age value", description="Age value interval.", gt=timedelta(0)),
     ] = None
-    age_units : str= 'days'
+    age_unit : str= 'days'
     age_min: Annotated[
         timedelta | None,
         Field(title="Minimum age range", description="Minimum age range", gt=timedelta(0)),

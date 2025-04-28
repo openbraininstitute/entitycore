@@ -13,7 +13,6 @@ from app.schemas.base import (
 
 class UseIon(BaseModel):
     ion_name: str
-    ontology_id: str | None
     read: list[str]
     write: list[str]
     valence: int | None = None

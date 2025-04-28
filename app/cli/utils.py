@@ -427,7 +427,6 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         useion_structured = [
             {
                 "ion_name": get_or_create_ion(ion, db).name,
-                "ontology_id": get_or_create_ion(ion, db).ontology_id,
                 "read": ensurelist(neuron_block_raw.get("read", [])),
                 "write": ensurelist(neuron_block_raw.get("write", [])),
                 "valence": neuron_block_raw.get("valence"),

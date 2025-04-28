@@ -60,13 +60,21 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     me_model_alias = aliased(MEModel, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.memodel
+        fc.brain_region | fc.contribution | fc.memodel | {
+            "createdBy": {
+                "id": created_by_alias.id,
+                "label": created_by_alias.pref_label,
+                "type": created_by_alias.type,
+            }
+        }
     )
     apply_filter_query = lambda query: (
         query.join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, SingleNeuronSynaptome.id == Contribution.entity_id)
         .outerjoin(Agent, Contribution.agent_id == Agent.id)
+        .outerjoin(created_by_alias, SingleNeuronSynaptome.createdBy_id == Agent.id)
         .outerjoin(me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id)
     )
     apply_data_query = lambda query: (
@@ -88,7 +96,7 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,
         apply_data_query_operations=apply_data_query,
-        aliases={MEModel: me_model_alias},
+        aliases={MEModel: me_model_alias, Agent: created_by_alias},
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSynaptomeRead,
         authorized_project_id=user_context.project_id,

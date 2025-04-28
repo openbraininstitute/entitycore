@@ -13,6 +13,7 @@ from app.schemas.base import (
 
 class UseIon(BaseModel):
     ion_name: str
+    ontology_id: str | None
     read: list[str]
     write: list[str]
     valence: int | None = None
@@ -38,3 +39,4 @@ class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, Asse
     temperature_celsius: int
     is_stochastic: bool
     neuron_block: NeuronBlock
+    acronym: str | None = None

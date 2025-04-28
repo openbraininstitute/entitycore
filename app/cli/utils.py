@@ -396,10 +396,12 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     if label in _cache:
         return _cache[label]
 
+    ontology_id = ion.get("@id")
+
     q = sa.select(Ion).where(Ion.name == label)
     db_ion = db.execute(q).scalar_one_or_none()
     if not db_ion:
-        db_ion = Ion(name=ion.get("label"))
+        db_ion = Ion(name=ion.get("label"), ontology_id=ontology_id)
         db.add(db_ion)
         db.flush()
 
@@ -425,6 +427,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         useion_structured = [
             {
                 "ion_name": get_or_create_ion(ion, db).name,
+                "ontology_id": get_or_create_ion(ion, db).ontology_id,
                 "read": ensurelist(neuron_block_raw.get("read", [])),
                 "write": ensurelist(neuron_block_raw.get("write", [])),
                 "valence": neuron_block_raw.get("valence"),
@@ -466,6 +469,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
         is_stochastic=script.get("name", "").lower().startswith("stoch"),
+        acronym=None,
     )
 
     db.add(db_ion_channel_model)

@@ -710,6 +710,7 @@ class Ion(Identifiable):
     __tablename__ = "ion"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     name: Mapped[str] = mapped_column(unique=True, index=True)
+    ontology_id: Mapped[str | None] = mapped_column(unique=True, index=True)
 
 
 class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):

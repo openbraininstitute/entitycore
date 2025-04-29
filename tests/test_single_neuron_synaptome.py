@@ -250,17 +250,17 @@ def faceted_ids(db, client_admin, create_memodel_ids: CreateIds, agents):
                 "seed": i,
                 "brain_region_id": str(brain_region_id),
                 "authorized_project_id": PROJECT_ID,
-                "createdBy_id": str(agents[0].id),
-                "updatedBy_id": str(agents[1].id),
+                "createdBy_id": str(agents[1].id),
+                "updatedBy_id": str(agents[0].id),
             },
         )
         for i, (memodel_id, brain_region_id) in enumerate(it.product(memodel_ids, brain_region_ids))
     ]
-    return brain_region_ids, memodel_ids, single_simulation_synaptome_ids
+    return brain_region_ids, memodel_ids, agents, single_simulation_synaptome_ids
 
 
 def test_facets(client, faceted_ids):
-    brain_region_ids, memodel_ids, _ = faceted_ids
+    brain_region_ids, memodel_ids, agents, _ = faceted_ids
 
     data = assert_request(
         client.get,
@@ -289,6 +289,9 @@ def test_facets(client, faceted_ids):
                 "count": 4,
                 "type": "me_model",
             },
+        ],
+        "createdBy": [
+            {"id": str(agents[1].id), "label": "test_person_1", "count": 4, "type": "person"}
         ],
     }
 

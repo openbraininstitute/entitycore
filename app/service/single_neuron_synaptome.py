@@ -61,20 +61,21 @@ def read_many(
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     me_model_alias = aliased(MEModel, flat=True)
     created_by_alias = aliased(Agent, flat=True)
-    name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.memodel | {
-            "createdBy": {
-                "id": created_by_alias.id,
-                "label": created_by_alias.pref_label,
-                "type": created_by_alias.type,
-            }
+    created_by_facet: dict[str, FacetQueryParams] = {
+        "createdBy": {
+            "id": created_by_alias.id,
+            "label": created_by_alias.pref_label,
+            "type": created_by_alias.type,
         }
+    }
+    name_to_facet_query_params: dict[str, FacetQueryParams] = (
+        fc.brain_region | fc.contribution | fc.memodel | created_by_facet
     )
     apply_filter_query = lambda query: (
         query.join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, SingleNeuronSynaptome.id == Contribution.entity_id)
         .outerjoin(Agent, Contribution.agent_id == Agent.id)
-        .outerjoin(created_by_alias, SingleNeuronSynaptome.createdBy_id == Agent.id)
+        .outerjoin(created_by_alias, SingleNeuronSynaptome.createdBy_id == created_by_alias.id)
         .outerjoin(me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id)
     )
     apply_data_query = lambda query: (

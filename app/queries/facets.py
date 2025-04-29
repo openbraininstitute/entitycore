@@ -4,18 +4,6 @@ from app.dependencies.common import FacetQueryParams
 brain_region: dict[str, FacetQueryParams] = {
     "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
 }
-creator: dict[str, FacetQueryParams] = {
-    "createdBy": {
-        "id": Agent.id,
-        "label": Agent.pref_label,
-        "type": Agent.type,
-    },
-    "updatedBy": {
-        "id": Agent.id,
-        "label": Agent.pref_label,
-        "type": Agent.type,
-    },
-}
 contribution: dict[str, FacetQueryParams] = {
     "contribution": {
         "id": Agent.id,

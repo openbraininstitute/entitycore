@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
-
+from typing import Dict, List
 from app.db.types import PointLocationBase
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.asset import AssetRead
@@ -32,7 +32,9 @@ class CellMorphologyBase(BaseModel):
  #   description: str
     location: PointLocationBase | None
     legacy_id: list[str] | None
-
+    mtype_dict: Dict[str, str] = {}  # Added dictionary for ClassificationScheme: mtype 
+    etype_dict: Dict[str, str] = {}  # Added dictionary for ClassificationScheme: etype 
+    ttype_dict: Dict[str, str] = {}  # Added dictionary for ClassificationScheme: ttype 
 
 class CellMorphologyCreate(
     CellMorphologyBase,
@@ -60,8 +62,6 @@ class CellMorphologyRead(
    # contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     assets: list[AssetRead] | None
-
-
 
 from enum import Enum, auto
 

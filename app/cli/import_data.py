@@ -1091,18 +1091,18 @@ def _do_import(db, input_dir, project_context):
 
     importers = [
         ImportAgent,
-        # ImportAnalysisSoftwareSourceCode,
-        # ImportBrainRegionMeshes,
-        # ImportMorphologies,
-        # ImportEModels,
-        # ImportExperimentalNeuronDensities,
-        # ImportExperimentalBoutonDensity,
-        # ImportExperimentalSynapsesPerConnection,
-        # ImportMEModel,
-        # ImportElectricalCellRecording,
-        # ImportSingleNeuronSimulation,
+        ImportAnalysisSoftwareSourceCode,
+        ImportBrainRegionMeshes,
+        ImportMorphologies,
+        ImportEModels,
+        ImportExperimentalNeuronDensities,
+        ImportExperimentalBoutonDensity,
+        ImportExperimentalSynapsesPerConnection,
+        ImportMEModel,
+        ImportElectricalCellRecording,
+        ImportSingleNeuronSimulation,
         ImportDistribution,
-        # ImportNeuronMorphologyFeatureAnnotation,
+        ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:

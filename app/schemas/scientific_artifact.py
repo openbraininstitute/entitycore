@@ -21,7 +21,7 @@ class IsDefinedByType(BaseModel):
     Other: str | None = None # Optional alternative identifier as a string
 
 class ScientificArtifactMixin(BaseModel):
-    id: UUID4
+#    id: UUID4
  
     name :str
     description:str  
@@ -34,8 +34,8 @@ class ScientificArtifactMixin(BaseModel):
 
     IsDefinedBy : IsDefinedByType
     
-    validations: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
+    validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
 
-    contact : PersonRead
+    contact_id : uuid.UUID
     contact_email: str
 

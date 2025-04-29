@@ -15,6 +15,7 @@ from app.schemas.base import (
     LicensedReadMixin,
     SubjectRead,
 )
+from app.schemas.contribution import ContributionReadWithoutEntity
 
 
 class MeasurementRead(BaseModel):
@@ -46,6 +47,7 @@ class ExperimentalDensityRead(
     brain_region: BrainRegionRead
     measurements: list[MeasurementRead] | None
     assets: list[AssetRead] | None
+    contributions: list[ContributionReadWithoutEntity] | None
 
 
 class ExperimentalNeuronDensityCreate(ExperimentalDensityCreate):
@@ -66,7 +68,7 @@ class ExperimentalNeuronDensityRead(ExperimentalDensityRead):
 
 
 class ExperimentalBoutonDensityRead(ExperimentalDensityRead):
-    pass
+    mtypes: list[MTypeClassRead] | None
 
 
 class SynapticPathwayRead(CreationMixin, IdentifiableMixin):

@@ -34,11 +34,11 @@ class IonChannelModelBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     description: str
     name: str
+    nmodl_suffix: str
     is_ljp_corrected: bool = False
     is_temperature_dependent: bool = False
     temperature_celsius: int
     is_stochastic: bool = False
-    acronym: str = ""
     neuron_block: NeuronBlock
 
 

@@ -108,7 +108,7 @@ def ensure_uniqueness(
 
 
 @contextmanager
-def ensure_valid_fks(
+def ensure_valid_foreign_keys(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
 ) -> Iterator[None]:
     """Context manager that raises ApiError when a ForeignKeyViolation is raised."""

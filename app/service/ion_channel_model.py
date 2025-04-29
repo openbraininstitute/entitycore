@@ -1,6 +1,8 @@
 import uuid
+from typing import Annotated
 
 import sqlalchemy as sa
+from fastapi import Depends
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, Ion, IonChannelModel, Species
@@ -79,11 +81,8 @@ def read_one(
     )
 
 
-def create_one(
-    user_context: UserContextWithProjectIdDep,
-    db: SessionDep,
-    ion_channel_model: IonChannelModelCreate,
-) -> IonChannelModelRead:
+def icm_ion_names_exist(db: SessionDep, ion_channel_model: IonChannelModelCreate):
+    """Verifies that all Ion names specified in IonChannelModelCreate exist in the Ion database."""
     ion_names = {ion.ion_name for ion in ion_channel_model.neuron_block.useion}
 
     stmt = (
@@ -96,6 +95,14 @@ def create_one(
         msg = "Ion name does not exist"
         raise ApiError(message=msg, error_code=ApiErrorCode.ION_NAME_NOT_FOUND)
 
+    return ion_channel_model
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    ion_channel_model: Annotated[IonChannelModelCreate, Depends(icm_ion_names_exist)],
+) -> IonChannelModelRead:
     return router_create_one(
         db=db,
         authorized_project_id=user_context.project_id,

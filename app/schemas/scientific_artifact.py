@@ -17,6 +17,7 @@ class ScientificArtifactMixin(BaseModel):
     subject_id : uuid.UUID
     
     brain_region_id: int
+    additional_brain_region_ids: list[int]
    # contributions: list["ContributionReadWithoutEntity"] | None
     license_id: uuid.UUID 
     experiment_date: date 

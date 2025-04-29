@@ -132,7 +132,17 @@ STIMULUS_INFO = {
         "type": ElectricalRecordingStimulusType.current_clamp,
         "ecode": ECode.step,
     },
+    "Step_150_hyp": {
+        "shape": ElectricalRecordingStimulusShape.step,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.step,
+    },
     "Step_200_hyp": {
+        "shape": ElectricalRecordingStimulusShape.step,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.step,
+    },
+    "Step_250_hyp": {
         "shape": ElectricalRecordingStimulusShape.step,
         "type": ElectricalRecordingStimulusType.current_clamp,
         "ecode": ECode.step,
@@ -373,6 +383,16 @@ STIMULUS_INFO = {
         "ecode": ECode.iv,
     },
     "IV_-120": {
+        "shape": ElectricalRecordingStimulusShape.step,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.iv,
+    },
+    "IV_-120_hyp": {
+        "shape": ElectricalRecordingStimulusShape.step,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.iv,
+    },
+    "IV_-140": {
         "shape": ElectricalRecordingStimulusShape.step,
         "type": ElectricalRecordingStimulusType.current_clamp,
         "ecode": ECode.iv,

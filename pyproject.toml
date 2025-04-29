@@ -39,7 +39,7 @@ dev = [
     "coverage[toml]",
     "httpx",
     "moto[s3]>=5.0.28",
-    "pyright>=1.1.398",
+    "pyright>=1.1.400",
     "pytest",
     "pytest-cov",
     "pytest-freezer>=0.4.9",

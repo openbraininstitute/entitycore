@@ -710,7 +710,7 @@ class Ion(Identifiable):
     __tablename__ = "ion"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     name: Mapped[str] = mapped_column(unique=True, index=True)
-    ontology_id: Mapped[str | None] = mapped_column(unique=True, index=True)
+    ontology_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
@@ -722,7 +722,7 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
     is_stochastic: Mapped[bool] = mapped_column(default=False)
-
+    acronym: Mapped[str] = mapped_column(default="")
     neuron_block: Mapped[JSON_DICT]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

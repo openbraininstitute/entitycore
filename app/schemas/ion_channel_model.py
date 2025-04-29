@@ -17,17 +17,17 @@ from app.schemas.contribution import ContributionReadWithoutEntity
 
 class UseIon(BaseModel):
     ion_name: str
-    read: list[str]
-    write: list[str]
+    read: list[str] = []
+    write: list[str] = []
     valence: int | None = None
     main_ion: bool | None = None
 
 
 class NeuronBlock(BaseModel):
     global_: list[str] = Field(alias="global")
-    range: list[str]
-    useion: list[UseIon]
-    nonspecific: list[str]
+    range: list[str] = []
+    useion: list[UseIon] = []
+    nonspecific: list[str] = []
 
 
 class IonChannelModelBase(BaseModel):
@@ -38,7 +38,7 @@ class IonChannelModelBase(BaseModel):
     is_temperature_dependent: bool = False
     temperature_celsius: int
     is_stochastic: bool = False
-    acronym: str | None = None
+    acronym: str = ""
     neuron_block: NeuronBlock
 
 
@@ -51,7 +51,6 @@ class IonChannelModelCreate(IonChannelModelBase, AuthorizationOptionalPublicMixi
 class IonChannelModelRead(
     IonChannelModelBase, CreationMixin, IdentifiableMixin, AuthorizationMixin
 ):
-    model_config = ConfigDict(from_attributes=True)
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead

@@ -63,7 +63,8 @@ from app.db.types import (
     EntityType,
 )
 
-from app.cli.curation import nwb
+from app.cli.curation import electrical_cell_recording
+from app.cli.types import ContentType
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -668,6 +669,14 @@ class ImportElectricalCellRecording(Import):
                 continue
 
             data = curate.curate_trace(data)
+            distributions = ensurelist(data.get("distribution", []))
+
+            # register resources that have at least one supported file
+            if not (
+                has_content_type_in_distributions(ContentType.nwb, distributions)
+                or has_content_type_in_distributions(ContentType.h5, distributions)
+            ):
+                continue
 
             _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             assert _brain_location is None
@@ -724,6 +733,11 @@ class ImportElectricalCellRecording(Import):
 
                 # create a stimulus for each stimulus in the data
                 utils.create_stimulus(stimulus_type, db_item.id, project_context, db)
+
+
+def has_content_type_in_distributions(content_type: ContentType, distributions: list) -> bool:
+    """Return True if the content_type is present in the distributions."""
+    return content_type in {d["encodingFormat"] for d in distributions}
 
 
 class ImportMEModel(Import):
@@ -1077,18 +1091,18 @@ def _do_import(db, input_dir, project_context):
 
     importers = [
         ImportAgent,
-        ImportAnalysisSoftwareSourceCode,
-        ImportBrainRegionMeshes,
-        ImportMorphologies,
-        ImportEModels,
-        ImportExperimentalNeuronDensities,
-        ImportExperimentalBoutonDensity,
-        ImportExperimentalSynapsesPerConnection,
-        ImportMEModel,
-        ImportElectricalCellRecording,
-        ImportSingleNeuronSimulation,
+        # ImportAnalysisSoftwareSourceCode,
+        # ImportBrainRegionMeshes,
+        # ImportMorphologies,
+        # ImportEModels,
+        # ImportExperimentalNeuronDensities,
+        # ImportExperimentalBoutonDensity,
+        # ImportExperimentalSynapsesPerConnection,
+        # ImportMEModel,
+        # ImportElectricalCellRecording,
+        # ImportSingleNeuronSimulation,
         ImportDistribution,
-        ImportNeuronMorphologyFeatureAnnotation,
+        # ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:
@@ -1263,8 +1277,9 @@ def organize_files(digest_path):
 @cli.command()
 @click.argument("input_digest_path", type=REQUIRED_PATH)
 @click.argument("output_digest_path")
-@click.option("--out-dir", type=Path)
-def curate_files(input_digest_path, output_digest_path, out_dir):
+@click.option("--out-dir", type=Path, help="Output directory for curated files.")
+@click.option("--dry-run", is_flag=True, help="Run curation without modifying db assets.")
+def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
     assert out_dir.exists()
 
     with Path(input_digest_path).open("r", encoding="utf-8") as f:
@@ -1274,60 +1289,36 @@ def curate_files(input_digest_path, output_digest_path, out_dir):
         closing(configure_database_session_manager()) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        assets_per_entity_type = defaultdict(lambda: defaultdict(list))
+        # Group assets by ntity_type/entity_id/content_type
+        assets_per_entity_type = defaultdict(lambda: defaultdict(lambda: defaultdict()))
         for asset in db.query(Asset).all():
             entity_type = asset.full_path.split("/")[4]
-            assets_per_entity_type[entity_type][asset.content_type].append(asset)
+            assets_per_entity_type[entity_type][asset.entity_id][asset.content_type] = asset
 
-        config = {
-            EntityType.electrical_cell_recording: {
-                "application/x-hdf": nwb.curate,
-                "application/nwb": nwb.curate,
-            }
-        }
+        if not assets_per_entity_type:
+            raise RuntimeError("No assets found. Please run 'make import' to import distributions.")
+
+        config = {EntityType.electrical_cell_recording: electrical_cell_recording.curate_assets}
 
         new_src_paths = {}
-        for entity_type, curators in config.items():
-            assets_per_content_type = assets_per_entity_type.get(entity_type)
-
-            if not assets_per_content_type:
+        for entity_type, curator in config.items():
+            if not (assets_per_entity := assets_per_entity_type.get(entity_type)):
                 continue
 
-            for content_type, curator in curators.items():
-                assets = assets_per_content_type.get(content_type)
-
-                if not assets:
+            print(f"Curating: {entity_type}")
+            for entity_id, assets in tqdm(assets_per_entity.items()):
+                try:
+                    new_src_paths |= curator(
+                        db=db,
+                        src_paths=src_paths,
+                        assets=assets,
+                        out_dir=out_dir,
+                        is_dry_run=dry_run,
+                    )
+                except Exception as e:
+                    msg = f"Failed curation for entity {entity_type}: {entity_id}. Reason : {e}"
+                    L.warning(msg)
                     continue
-
-                print(f"Curating {entity_type}, {content_type}")
-                for asset in tqdm(assets):
-                    digest = asset.sha256_digest.hex()
-                    source_file = Path(src_paths[digest]).resolve()
-                    assert source_file.exists()
-
-                    target_file = Path(out_dir) / f"{asset.id}__{asset.path}"
-
-                    try:
-                        new_metadata = curator(asset, source_file, target_file)
-                    except Exception as e:
-                        msg = (
-                            f"Failed curation for asset {asset.id} with type {asset.content_type}\n"
-                            f"Local path: {source_file}\n"
-                            f"S3 path   : {asset.full_path}\n"
-                            f"Reason    : {e}"
-                        )
-                        L.warning(msg)
-
-                        # clean failed target file
-                        target_file.unlink(missing_ok=True)
-                        continue
-
-                    if new_digest := new_metadata.get("sha256_digest"):
-                        new_src_paths[new_digest] = str(target_file)
-                        new_metadata["sha256_digest"] = bytes.fromhex(new_digest)
-
-                    for attr, value in new_metadata.items():
-                        setattr(asset, attr, value)
 
                 db.commit()
 

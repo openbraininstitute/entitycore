@@ -118,6 +118,9 @@ builtins-ignorelist = ["license"]
 "app/cli/curate.py" = [
     "S101",    # Use of `assert` detected
 ]
+"app/cli/curation/*" = [
+    "S101",    # Use of `assert` detected
+]
 "app/cli/utils.py" = [
     "B006",    # Do not use mutable data structures for argument defaults
     "S101"
@@ -189,4 +192,4 @@ omit = [
 ]
 
 [tool.pyright]
-exclude = ["app/routers/legacy", "app/cli/curation/nwb.py"]
+exclude = ["app/routers/legacy", "app/cli/curation/electrical_cell_recording.py"]

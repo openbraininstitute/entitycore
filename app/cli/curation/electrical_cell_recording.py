@@ -1,9 +1,12 @@
 import hashlib
 import shutil
+from pathlib import Path
 
 import h5py
 
 from app.cli.mappings import STIMULUS_INFO, ECode
+from app.cli.types import ContentType
+from app.logger import L
 
 # get old to new ecode mapping. Do not include curated values in keys
 ecode_mapping = {
@@ -13,21 +16,98 @@ ecode_mapping = {
 }
 
 
-def curate(_, source_file, target_file) -> dict:
-    """Curate asset file and return new metadata."""
+def curate_assets(*, db, src_paths: dict[str, str], assets: dict, out_dir: Path, is_dry_run: bool):
+    """Curate ElectricalCellRecording assets.
+
+    Curation is applied on all assets of a recording to allow addressing cases where merging or
+    parsing of multiple assets is required.
+
+    Assets are curated with the following logic:
+        - If there are more than one assets, keep the nwb one, if any, and delete the rest.
+        - Curate hdf and nwb files according to the nwb format
+
+    Note: Curation cannot handle the case where there is a single unsupported asset because the
+    entity needs to be deleted as well. Therefore, this is unsupported and it is cleaner for these
+    resources to be skipped when being imported.
+
+    Args:
+        db: Database session.
+        src_paths: Dictionary with file digests as keys and local paths as values.
+        assets: Dictionary with content_type as keys and assets as values.
+        out_dir: Output directory for writing curated files.
+        is_dry_run: If True curation will not modify database assets.
+
+    Returns:
+        Dictionary with digests as keys and curated file paths as values.
+    """
+    # Multiple assets: keep the nwb one if any.
+    if len(assets) > 1:
+        if nwb_asset := assets.get(ContentType.nwb, None):
+            asset = nwb_asset
+            msg = (
+                f"Multiple assets {sorted(assets.keys())} for ElectricalCellRecording. "
+                f"{ContentType.nwb} was kept."
+            )
+            L.warning(msg)
+        else:
+            msg = f"Unsupported files: {sorted(assets)}"
+            L.warning(msg)
+            return {}
+    else:
+        asset = assets[next(iter(assets))]
+
+    new_src_paths = {}
+    match asset.content_type:
+        case ContentType.nwb | ContentType.h5:
+            new_src_paths = _curate_nwb_asset(src_paths, asset, out_dir, is_dry_run)
+        case _:
+            msg = f"Unsupported {asset.content_type} file. Should be filtered at import."
+            L.warning(msg)
+            return {}
+
+    if not is_dry_run:
+        for asset in filter(lambda a: a.content_type != ContentType.nwb, assets.values()):
+            db.delete(asset)
+
+    return new_src_paths
+
+
+def _curate_nwb_asset(src_paths, asset, out_dir, is_dry_run):
+    asset_digest = asset.sha256_digest.hex()
+    source_file = Path(src_paths[asset_digest]).resolve()
+    assert source_file.exists(), f"Asset source file {source_file} does not exist."
+
+    # sanity checks
+    old_size, old_digest = _get_size_digest(source_file)
+    assert old_size == asset.size, "Asset size differs from file size."
+    assert old_digest == asset_digest, "Asset digest differs from file digest."
+
+    target_file = out_dir / f"{asset.id}__{asset.path}"
     shutil.copyfile(source_file, target_file)
 
     _curate_nwb(target_file)
 
-    new_size = target_file.stat().st_size
-    with target_file.open(mode="rb") as f:
-        new_digest = hashlib.file_digest(f, "sha256").hexdigest()
+    new_size, new_digest = _get_size_digest(target_file)
 
-    return {
-        "sha256_digest": new_digest,
-        "size": new_size,
-        "content_type": "application/nwb",
-    }
+    if not is_dry_run:
+        asset.size = new_size
+        asset.content_type = ContentType.nwb
+        asset.sha256_digest = bytes.fromhex(new_digest)
+
+    # no change, remove copied file
+    if old_size == new_size and old_digest == new_digest:
+        target_file.unlink(missing_ok=True)
+        return {}
+
+    return {new_digest: str(target_file)}
+
+
+def _get_size_digest(file_path: Path):
+    file_size = file_path.stat().st_size
+    with file_path.open(mode="rb") as f:
+        file_digest = hashlib.file_digest(f, "sha256").hexdigest()
+
+    return file_size, file_digest
 
 
 def _curate_nwb(file_path):

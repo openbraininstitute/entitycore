@@ -38,7 +38,7 @@ class IonChannelModelBase(BaseModel):
     is_temperature_dependent: bool = False
     temperature_celsius: int
     is_stochastic: bool = False
-
+    acronym: str | None = None
     neuron_block: NeuronBlock
 
 

@@ -24,7 +24,7 @@ class UseIon(BaseModel):
 
 
 class NeuronBlock(BaseModel):
-    global_: list[str] = Field(alias="global")
+    global_: list[str] = Field(default=[], alias="global")
     range: list[str] = []
     useion: list[UseIon] = []
     nonspecific: list[str] = []

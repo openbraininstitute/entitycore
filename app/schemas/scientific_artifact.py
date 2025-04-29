@@ -7,7 +7,7 @@ from datetime import date
 
 #if TYPE_CHECKING:
 from app.schemas.agent import PersonRead
-#    from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.contribution import ContributionReadWithoutEntity
 
 class ScientificArtifactMixin(BaseModel):
  #   id: UUID4
@@ -18,7 +18,7 @@ class ScientificArtifactMixin(BaseModel):
     
     brain_region_id: int
     additional_brain_region_ids: list[int]
-   # contributions: list["ContributionReadWithoutEntity"] | None
+    contributions: list["ContributionReadWithoutEntity"] | None
     license_id: uuid.UUID 
     experiment_date: date 
 

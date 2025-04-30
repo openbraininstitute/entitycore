@@ -24,12 +24,12 @@ class PublishedInType(BaseModel):
 class ScientificArtifactMixin(BaseModel):
     name :str
     description:str  
-    subject_id : Optional[uuid.UUID] = None
+    subject_id : uuid.UUID = None
     
     brain_region_id: int
-    additional_brain_regions: Optional[list[int]] | None
-    license_id: Optional[uuid.UUID] = None #only needed when public 
-    experiment_date: Optional[date] 
+    additional_brain_regions: list[int] | None
+    license_id: uuid.UUID = None #only needed when public 
+    experiment_date: date = None 
 
     PublishedIn : PublishedInType
     

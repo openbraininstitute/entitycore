@@ -119,6 +119,7 @@ builtins-ignorelist = ["license"]
     "S101",    # Use of `assert` detected
 ]
 "app/cli/curation/*" = [
+    "B006",    # Do not use mutable data structures for argument defaults
     "S101",    # Use of `assert` detected
 ]
 "app/cli/utils.py" = [

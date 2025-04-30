@@ -35,4 +35,4 @@ class ScientificArtifactMixin(BaseModel):
     
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
 
-    contact_id : uuid.UUID
+    contact_id : uuid.UUID | None = None

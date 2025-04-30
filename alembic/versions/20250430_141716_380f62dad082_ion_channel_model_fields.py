@@ -1,8 +1,8 @@
-"""IonChannelModel
+"""Ion channel model fields
 
-Revision ID: 82d121a0be58
+Revision ID: 380f62dad082
 Revises: 58a94baa91bc
-Create Date: 2025-04-30 10:38:28.017057
+Create Date: 2025-04-30 14:17:16.733480
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "82d121a0be58"
+revision: str = "380f62dad082"
 down_revision: Union[str, None] = "58a94baa91bc"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

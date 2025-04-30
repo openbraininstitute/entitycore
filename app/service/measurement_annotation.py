@@ -42,43 +42,44 @@ def _load_from_db(q: sa.Select) -> sa.Select:
 
 
 def _load_from_db_with_constraints(q: sa.Select, project_id: uuid.UUID | None) -> sa.Select:
-    q = constrain_to_accessible_entities(q.join(Entity), project_id=project_id)
+    q = constrain_to_accessible_entities(
+        q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
+        project_id=project_id,
+    )
     return _load_from_db(q=q)
 
 
-def _get_join_params(filter_model: MeasurementAnnotationFilter):
-    # this allows to filter by `is_active`, and it's needed because `measurement_annotation_id`
-    # is defined in the abstract class MeasurableEntity, and not in the entity table
+def _get_join_onclause(filter_model: MeasurementAnnotationFilter):
+    """Allow to filter by `is_active` and `entity_type`."""
     match (filter_model.entity_type, filter_model.is_active):
         case (None, None):
-            entity_class = Entity
-            join_args = []
-        case (MeasurableEntityType(), True):
-            entity_class = MEASURABLE_ENTITIES[filter_model.entity_type]
-            join_args = [entity_class.measurement_annotation_id == MeasurementAnnotation.id]
-        case (MeasurableEntityType(), False):
-            entity_class = MEASURABLE_ENTITIES[filter_model.entity_type]
-            join_args = [
-                sa.and_(
-                    entity_class.measurement_annotation_id != MeasurementAnnotation.id,
-                    entity_class.id == MeasurementAnnotation.entity_id,
-                )
+            clauses = [
+                Entity.id == MeasurementAnnotation.entity_id,
             ]
         case (MeasurableEntityType(), None):
-            entity_class = Entity
-            join_args = [
-                sa.and_(
-                    entity_class.id == MeasurementAnnotation.entity_id,
-                    entity_class.type == filter_model.entity_type,
-                )
+            clauses = [
+                Entity.id == MeasurementAnnotation.entity_id,
+                Entity.type == filter_model.entity_type,
             ]
-        case _:
-            msg = "Unexpected error"
+        case (MeasurableEntityType(), True):
+            clauses = [
+                Entity.id == MeasurementAnnotation.entity_id,
+                Entity.type == filter_model.entity_type,
+                Entity.measurement_annotation_id == MeasurementAnnotation.id,
+            ]
+        case (MeasurableEntityType(), False):
+            clauses = [
+                Entity.id == MeasurementAnnotation.entity_id,
+                Entity.type == filter_model.entity_type,
+                Entity.measurement_annotation_id != MeasurementAnnotation.id,
+            ]
+        case _ as error:
+            msg = f"Unexpected match case: {error}"
             raise RuntimeError(msg)
     # clean the filters so they are ignored by the custom filter
     filter_model.is_active = None
     filter_model.entity_type = None
-    return entity_class, join_args
+    return sa.and_(*clauses)
 
 
 def _get_filter_function(
@@ -87,8 +88,7 @@ def _get_filter_function(
     """Return the base query needed to filter the annotations."""
 
     def _filter_from_db(q: sa.Select) -> sa.Select:
-        entity_class, join_args = _get_join_params(filter_model)
-        q = q.join(entity_class, *join_args)
+        q = q.join(Entity, onclause=_get_join_onclause(filter_model))
         q = constrain_to_accessible_entities(q, project_id=project_id)
         # join only if needed, for better performances
         if filter_model.measurement_kind and filter_model.measurement_kind.has_filtering_fields():

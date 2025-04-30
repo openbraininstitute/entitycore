@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: b136c3e42f19
+Revision ID: a4933058e797
 Revises: a45638c6f52a
-Create Date: 2025-04-28 19:32:38.800013
+Create Date: 2025-04-30 14:57:25.230812
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "b136c3e42f19"
+revision: str = "a4933058e797"
 down_revision: Union[str, None] = "a45638c6f52a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -187,22 +187,20 @@ def upgrade() -> None:
     op.drop_table("measurement_serie_element")
     op.drop_table("measurement")
     op.drop_table("morphology_feature_annotation")
-    op.add_column(
-        "reconstruction_morphology",
-        sa.Column("measurement_annotation_id", sa.Uuid(), nullable=True),
-    )
+    op.add_column("entity", sa.Column("measurement_annotation_id", sa.Uuid(), nullable=True))
     op.create_index(
-        op.f("ix_reconstruction_morphology_measurement_annotation_id"),
-        "reconstruction_morphology",
+        op.f("ix_entity_measurement_annotation_id"),
+        "entity",
         ["measurement_annotation_id"],
         unique=True,
     )
     op.create_foreign_key(
-        op.f("fk_reconstruction_morphology_measurement_annotation_id_measurement_annotation"),
-        "reconstruction_morphology",
+        op.f("fk_entity_measurement_annotation_id_measurement_annotation"),
+        "entity",
         "measurement_annotation",
         ["measurement_annotation_id"],
         ["id"],
+        use_alter=True,
     )
     op.sync_enum_values(
         enum_schema="public",
@@ -298,15 +296,12 @@ def downgrade() -> None:
         enum_values_to_rename=[],
     )
     op.drop_constraint(
-        op.f("fk_reconstruction_morphology_measurement_annotation_id_measurement_annotation"),
-        "reconstruction_morphology",
+        op.f("fk_entity_measurement_annotation_id_measurement_annotation"),
+        "entity",
         type_="foreignkey",
     )
-    op.drop_index(
-        op.f("ix_reconstruction_morphology_measurement_annotation_id"),
-        table_name="reconstruction_morphology",
-    )
-    op.drop_column("reconstruction_morphology", "measurement_annotation_id")
+    op.drop_index(op.f("ix_entity_measurement_annotation_id"), table_name="entity")
+    op.drop_column("entity", "measurement_annotation_id")
     op.create_table(
         "morphology_feature_annotation",
         sa.Column("reconstruction_morphology_id", sa.UUID(), autoincrement=False, nullable=False),

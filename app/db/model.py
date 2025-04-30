@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import ClassVar, cast
+from typing import ClassVar
 
 from sqlalchemy import (
     BigInteger,
@@ -349,6 +349,16 @@ class Entity(LegacyMixin, Identifiable):
         uselist=True,
         viewonly=True,
     )
+    measurement_annotation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("measurement_annotation.id", use_alter=True), index=True, unique=True
+    )
+    measurement_annotation = relationship(
+        "MeasurementAnnotation",
+        foreign_keys=[measurement_annotation_id],
+        uselist=False,
+        viewonly=True,
+        lazy="raise",
+    )
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
@@ -480,26 +490,9 @@ class MEModel(
 
 
 class MeasurableEntity(Entity):
+    """Abstract class for measurable entities."""
+
     __abstract__ = True
-    measurement_annotation_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("measurement_annotation.id"), index=True, unique=True
-    )
-
-    @declared_attr
-    @classmethod
-    def measurement_annotation(cls):
-        return relationship(
-            "MeasurementAnnotation",
-            foreign_keys=[cls.measurement_annotation_id],
-            uselist=False,
-            viewonly=True,
-            lazy="raise",
-        )
-
-    @declared_attr
-    @classmethod
-    def measurement_annotations(cls):
-        return relationship("MeasurementAnnotation", uselist=True, viewonly=True)
 
 
 class ReconstructionMorphology(
@@ -521,7 +514,12 @@ class ReconstructionMorphology(
 class MeasurementAnnotation(LegacyMixin, Identifiable):
     __tablename__ = "measurement_annotation"
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    entity: Mapped[Entity] = relationship(viewonly=True, lazy="raise")
+    entity: Mapped["Entity"] = relationship(
+        viewonly=True,
+        foreign_keys=[entity_id],
+        primaryjoin=entity_id == Entity.id,
+        lazy="raise",
+    )
     measurement_kinds: Mapped[list["MeasurementKind"]] = relationship(
         back_populates="measurement_annotation", passive_deletes=True
     )
@@ -531,15 +529,10 @@ class MeasurementAnnotation(LegacyMixin, Identifiable):
         """Return the type of the associated entity."""
         return str(self.entity.type)
 
-    @property
-    def measurable_entity(self) -> MeasurableEntity:
-        """Cast to the abstract MeasurableEntity."""
-        return cast("MeasurableEntity", self.entity)
-
     @hybrid_property
     def is_active(self) -> bool:
         """Return True if this annotation is actively associated with an entity."""
-        return self.measurable_entity.measurement_annotation_id == self.id
+        return self.entity.measurement_annotation_id == self.id
 
 
 class MeasurementKind(Base):

@@ -945,7 +945,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
             measurement_annotation_id = max(entity_annotations, key=attrgetter("update_date")).id
             assert measurement_annotation_id
             measurement_annotation_ids[entity_id] = measurement_annotation_id
-        update_measurement_annotation_ids(db, ReconstructionMorphology, measurement_annotation_ids)
+        update_measurement_annotation_ids(db, Entity, measurement_annotation_ids)
 
         db.commit()
 

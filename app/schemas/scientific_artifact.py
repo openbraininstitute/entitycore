@@ -27,7 +27,7 @@ class ScientificArtifactMixin(BaseModel):
     subject_id : uuid.UUID = None
     
     brain_region_id: int
-    additional_brain_regions: list[int] | None
+    additional_brain_regions: list[int] | None = None
     license_id: uuid.UUID | None = None #only needed when public 
     experiment_date: date | None = None 
 

@@ -19,21 +19,20 @@ class PublishedInType(BaseModel):
     PMID: int | None = None # Optional PMID (PubMed Identifier) as an integer
     UUID: uuid.UUID | None = None # Using uuid.UUID type for clarity, assuming it refers to a standard UUID
     original_source_location : str
-    Other: str | None = None # Optional alternative identifier as a string
+    other: str | None = None # Optional alternative identifier as a string
 
 class ScientificArtifactMixin(BaseModel):
     name :str
     description:str  
-    subject_id : Optional[uuid.UUID] = None
+    subject_id : uuid.UUID = None
     
     brain_region_id: int
-#    contributions: list["ContributionReadWithoutEntity"] | None
-    license_id: Optional[uuid.UUID] = None #only needed when public 
-    experiment_date: date 
+    additional_brain_regions: list[int] | None
+    license_id: uuid.UUID = None #only needed when public 
+    experiment_date: date = None 
 
     PublishedIn : PublishedInType
     
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
 
     contact_id : uuid.UUID
-

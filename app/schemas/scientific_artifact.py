@@ -21,13 +21,16 @@ class PublishedInType(BaseModel):
     original_source_location : str
     other: str | None = None # Optional alternative identifier as a string
 
-class ScientificArtifactMixin(BaseModel):
+from app.filters.common import BrainRegionFilterMixin
+
+class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
     name :str
     description:str  
     subject_id : uuid.UUID | None = None
     
 #    brain_region_id: int
-    additional_brain_regions: list[int] | None = None
+#    additional_brain_regions: list[int] | None = None
+    
     license_id: uuid.UUID | None = None #only needed when public 
     experiment_date: date | None = None 
 

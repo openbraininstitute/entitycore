@@ -10,7 +10,7 @@ from app.schemas.agent import PersonRead
 from app.schemas.contribution import ContributionReadWithoutEntity
  
 # where was the artifact published?
-class IsDefinedByType(BaseModel):
+class PublishedInType(BaseModel):
     """
     Represents ways to define or identify an entity, such as by DOI, PMID, UUID, or other means.
     All fields are optional.
@@ -23,14 +23,14 @@ class IsDefinedByType(BaseModel):
 class ScientificArtifactMixin(BaseModel):
     name :str
     description:str  
-    subject_id : uuid.UUID
+    subject_id : Optional[uuid.UUID] = None
     
     brain_region_id: int
-    contributions: list["ContributionReadWithoutEntity"] | None
-    license_id: uuid.UUID 
+#    contributions: list["ContributionReadWithoutEntity"] | None
+    license_id: Optional[uuid.UUID] = None #only needed when public 
     experiment_date: date 
 
-    IsDefinedBy : IsDefinedByType
+    IsDefinedBy : PublishedInType
     
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
 

@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
+from app.schemas.base import CreationMixin
 from app.utils.entity import MeasurableEntityType
 
 
@@ -33,5 +34,9 @@ class MeasurementAnnotationCreate(MeasurementAnnotationBase):
     pass
 
 
-class MeasurementAnnotationRead(MeasurementAnnotationBase):
+class MeasurementAnnotationRead(
+    MeasurementAnnotationBase,
+    CreationMixin,
+):
     id: uuid.UUID
+    is_active: bool

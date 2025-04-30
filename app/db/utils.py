@@ -1,7 +1,7 @@
 import uuid
 
 from pydantic import BaseModel
-from sqlalchemy.orm import DeclarativeBase, RelationshipProperty
+from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
 from app.db.model import Entity, Identifiable
 from app.logger import L
@@ -12,7 +12,10 @@ def construct_model[T: DeclarativeBase](model_cls: type[T], data: dict) -> T:
     model_kwargs = {}
     for attr_name, attr_val in data.items():
         if not (attr := getattr(model_cls, attr_name, None)):
-            L.warning("Attribute not found: {}.{}", model_cls, attr_name)
+            L.debug("Attribute not found: {}.{}", model_cls, attr_name)
+            continue
+        if not isinstance(attr, InstrumentedAttribute):
+            L.warning("Attribute ignored: {}.{} -> {}", model_cls, attr_name, type(attr))
             continue
         if isinstance(attr.property, RelationshipProperty):
             related_cls = attr.property.mapper.class_
@@ -35,7 +38,7 @@ def load_db_model_from_pydantic[I: Identifiable](
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
 ) -> I:
-    data = json_model.model_dump()
+    data = json_model.model_dump(by_alias=True)
     if issubclass(db_model_class, Entity):
         data |= {"authorized_project_id": authorized_project_id}
     return construct_model(db_model_class, data)

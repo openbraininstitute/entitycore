@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import ClassVar
+from typing import ClassVar, cast
 
 from sqlalchemy import (
     BigInteger,
@@ -17,7 +17,13 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    declared_attr,
+    mapped_column,
+    relationship,
+)
 
 from app.db.types import (
     BIGINT,
@@ -487,6 +493,7 @@ class MeasurableEntity(Entity):
             foreign_keys=[cls.measurement_annotation_id],
             uselist=False,
             viewonly=True,
+            lazy="raise",
         )
 
     @declared_attr
@@ -514,14 +521,25 @@ class ReconstructionMorphology(
 class MeasurementAnnotation(LegacyMixin, Identifiable):
     __tablename__ = "measurement_annotation"
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    entity: Mapped["Entity"] = relationship(viewonly=True, lazy="raise")
+    entity: Mapped[Entity] = relationship(viewonly=True, lazy="raise")
     measurement_kinds: Mapped[list["MeasurementKind"]] = relationship(
         back_populates="measurement_annotation", passive_deletes=True
     )
 
     @hybrid_property
     def entity_type(self) -> str:
+        """Return the type of the associated entity."""
         return str(self.entity.type)
+
+    @property
+    def measurable_entity(self) -> MeasurableEntity:
+        """Cast to the abstract MeasurableEntity."""
+        return cast("MeasurableEntity", self.entity)
+
+    @hybrid_property
+    def is_active(self) -> bool:
+        """Return True if this annotation is actively associated with an entity."""
+        return self.measurable_entity.measurement_annotation_id == self.id
 
 
 class MeasurementKind(Base):

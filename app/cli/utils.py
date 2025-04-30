@@ -418,7 +418,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     temperature = script.get("temperature", {})
     temp_unit = str(temperature.get("unitCode", "")).lower()
 
-    assert temp_unit == "c"  # noqa: S101
+    assert temp_unit == "c"
     temperature_value = temperature.get("value")
 
     neuron_block_raw: dict[str, Any] | None = script.get("nmodlParameters")
@@ -449,7 +449,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
 
-    assert neuron_block_validated  # noqa: S101
+    assert neuron_block_validated
 
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],

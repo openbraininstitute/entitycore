@@ -91,6 +91,11 @@ NestedStrainFilterDep = FilterDepends(with_prefix("strain", StrainFilter))
 NestedAgentFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
 
 
+class CreatorFilterMixin:
+    createdBy: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
+    updatedBy: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
+
+
 class SpeciesFilterMixin:
     species_id_in: list[int] | None = None
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None

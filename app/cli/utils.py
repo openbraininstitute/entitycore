@@ -35,6 +35,10 @@ from app.utils.s3 import build_s3_path
 AUTHORIZED_PUBLIC = True
 
 
+def ensurelist(x):
+    return x if isinstance(x, list) else [x]
+
+
 def _find_by_legacy_id(legacy_id, db_type, db, _cache={}):
     if legacy_id in _cache:
         return _cache[legacy_id]
@@ -91,12 +95,14 @@ def get_or_create_species(species, db, _cache={}):
 def create_stimulus(data, entity_id, project_context, db):
     label = data["label"]
 
+    info = STIMULUS_INFO[label]
+
     row = ElectricalRecordingStimulus(
-        name=label,
+        name=info["ecode"],
         description=data.get("definition", None),
         dt=None,
-        injection_type=STIMULUS_INFO[label]["type"],
-        shape=STIMULUS_INFO[label]["shape"],
+        injection_type=info["type"],
+        shape=info["shape"],
         start_time=None,
         end_time=None,
         recording_id=entity_id,
@@ -337,10 +343,6 @@ def get_or_create_distribution(
     )
     db.add(asset)
     db.commit()
-
-
-def ensurelist(x):
-    return x if isinstance(x, list) else [x]
 
 
 def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):

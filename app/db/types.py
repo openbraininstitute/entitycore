@@ -48,14 +48,16 @@ STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 class EntityType(StrEnum):
     """Entity types."""
 
-    age = auto()
     analysis_software_source_code = auto()
+    brain_atlas = auto()
     emodel = auto()
+    cell_composition = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     memodel = auto()
     mesh = auto()
+    me_type_density = auto()
     reconstruction_morphology = auto()
     electrical_cell_recording = auto()
     electrical_recording_stimulus = auto()

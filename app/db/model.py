@@ -722,7 +722,7 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
     is_stochastic: Mapped[bool] = mapped_column(default=False)
-    nmodl_suffix: Mapped[str | None]
+    nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

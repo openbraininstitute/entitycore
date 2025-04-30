@@ -31,7 +31,7 @@ class ScientificArtifactMixin(BaseModel):
     license_id: Optional[uuid.UUID] = None #only needed when public 
     experiment_date: date 
 
-    IsDefinedBy : PublishedInType
+    PublishedIn : PublishedInType
     
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
 

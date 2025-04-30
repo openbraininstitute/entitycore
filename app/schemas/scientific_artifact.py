@@ -24,7 +24,7 @@ class PublishedInType(BaseModel):
 class ScientificArtifactMixin(BaseModel):
     name :str
     description:str  
-    subject_id : uuid.UUID = None
+    subject_id : uuid.UUID | None = None
     
     brain_region_id: int
     additional_brain_regions: list[int] | None = None

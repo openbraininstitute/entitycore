@@ -453,7 +453,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
         legacy_id=[legacy_id],
         legacy_self=[legacy_self],
         name=script["name"],
-        nmodel_suffix=script.get("suffix", None),
+        nmodel_suffix=script.get("suffix"),
         description=script.get("description", ""),
         is_ljp_corrected=script.get("isLjpCorrected", False),
         is_temperature_dependent=script.get("isTemperatureDependent", False),

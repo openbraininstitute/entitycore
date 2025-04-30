@@ -25,6 +25,7 @@ def create(
         json={
             "description": "Test ICM Description",
             "name": name,
+            "nmodl_suffix": name,
             "temperature_celsius": 0,
             "neuron_block": {},
             "brain_region_id": brain_region_id,

@@ -17,6 +17,7 @@ class IonChannelModelFilter(
     CreationFilterMixin,
 ):
     name__ilike: str | None = None
+    nmodl_suffix: str | None = None
     brain_region_id: int | None = None
     species_id__in: list[uuid.UUID] | None = None
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None

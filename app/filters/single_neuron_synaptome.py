@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
@@ -20,6 +21,7 @@ class SingleNeuronSynaptomeFilter(
     BrainRegionFilterMixin,
     ContributionFilterMixin,
 ):
+    id__in: list[uuid.UUID] | None = None
     name__ilike: str | None = None
 
     me_model: Annotated[MEModelFilter | None, NestedMEModelFilterDep] = None

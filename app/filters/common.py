@@ -119,7 +119,9 @@ NestedSubjectFilterDep = FilterDepends(with_prefix("subject", SubjectFilter))
 
 
 class BrainRegionFilterMixin:
+    classification_tree: str | None = None
     brain_region_id: int | None = None
+    additional_brain_regions: list[int] | None = None
 
 
 class MTypeClassFilterMixin:
@@ -151,3 +153,5 @@ NestedSynapticPathwayFilterDep = FilterDepends(
 
 class SynapticPathwayFilterMixin:
     synaptic_pathway: Annotated[SynapticPathwayFilter | None, NestedSynapticPathwayFilterDep] = None
+
+

@@ -2,6 +2,12 @@ import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
 
+import sqlalchemy as sa
+
+from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
+#from app.db.model import Entity, Base
+
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -219,9 +225,9 @@ class AnnotationMixin:
 
 
 class ClassificationMixin:
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    createdBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updatedBy_id: Mapped[int | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    entity_id: Mapped[int] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
 class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
@@ -235,13 +241,13 @@ class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
 class MTypeClassification(ClassificationMixin, Identifiable):
     __tablename__ = "mtype_classification"
 
-    mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    mtype_class_id: Mapped[int] = mapped_column(ForeignKey("mtype_class.id"), index=True)
 
 
 class ETypeClassification(ClassificationMixin, Identifiable):
     __tablename__ = "etype_classification"
 
-    etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
+    etype_class_id: Mapped[int] = mapped_column(ForeignKey("etype_class.id"), index=True)
 
 
 class MTypesMixin:
@@ -420,20 +426,12 @@ class EModel(
     score: Mapped[float] = mapped_column(default=-1)
     seed: Mapped[int] = mapped_column(default=-1)
 
-    exemplar_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
+    exemplar_morphology_id: Mapped[int] = mapped_column(
+        ForeignKey(f"{EntityType.cell_morphology}.id")
     )
 
     exemplar_morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
-    )
-
-    ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
-        primaryjoin="EModel.id == IonChannelModelToEModel.emodel_id",
-        secondary="ion_channel_model__emodel",
-        uselist=True,
-        viewonly=True,
-        order_by="IonChannelModel.creation_date",
+        "CellMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -457,11 +455,11 @@ class MEModel(
     )
 
     morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
+        ForeignKey(f"{EntityType.cell_morphology}.id")
     )
 
     morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
@@ -471,14 +469,20 @@ class MEModel(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class ReconstructionMorphology(
+from app.db.types import MorphologyType  # or wherever you defined it
+
+class CellMorphology(
     MTypesMixin, LicensedMixin, LocationMixin, SpeciesMixin, NameDescriptionVectorMixin, Entity
 ):
-    __tablename__ = EntityType.reconstruction_morphology.value
+    __tablename__ = EntityType.cell_morphology.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
-
+    morphology_type = sa.Column(
+        sa.Enum(MorphologyType, name="morphologytype"),
+        nullable=False,
+        default=MorphologyType.GENERIC,
+    )
     location: Mapped[PointLocation | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -488,11 +492,11 @@ class MorphologyFeatureAnnotation(Identifiable):
     __tablename__ = "morphology_feature_annotation"
     # name = mapped_column(String, unique=True, index=True)
     # description = mapped_column(String)
-    reconstruction_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id"), index=True, unique=True
+    cell_morphology_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.cell_morphology}.id"), index=True, unique=True
     )
-    reconstruction_morphology = relationship(
-        "ReconstructionMorphology",
+    cell_morphology = relationship(
+        "CellMorphology",
         uselist=False,
         back_populates="morphology_feature_annotation",
     )
@@ -706,57 +710,6 @@ class ExperimentalSynapsesPerConnection(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class Ion(Identifiable):
-    __tablename__ = "ion"
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-
-
-class IonToIonChannelModel(Base):
-    __tablename__ = "ion__ion_channel_model"
-
-    ion_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("ion.id", ondelete="CASCADE"), primary_key=True
-    )
-    ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
-    )
-
-
-class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.ion_channel_model.value
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
-    is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
-    temperature_celsius: Mapped[int]
-    is_stochastic: Mapped[bool] = mapped_column(default=False)
-
-    nmodl_parameters: Mapped[JSON_DICT]
-
-    ions: Mapped[list[Ion]] = relationship(
-        primaryjoin="IonChannelModel.id == IonToIonChannelModel.ion_channel_model_id",
-        secondary="ion__ion_channel_model",
-        uselist=True,
-        viewonly=True,
-        order_by="Ion.name",
-    )
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class IonChannelModelToEModel(Base):
-    __tablename__ = "ion_channel_model__emodel"
-
-    ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
-    )
-    emodel_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.emodel}.id", ondelete="CASCADE"), primary_key=True
-    )
-
-
 class Asset(Identifiable):
     """Asset table."""
 
@@ -780,3 +733,34 @@ class Asset(Identifiable):
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
     )
+
+
+
+class ScientificArtifact(Entity):
+    """Base model for scientific artifacts."""
+    __tablename__ = "scientific_artifact"
+
+    id = Column(UUID(as_uuid=True), ForeignKey("entity.id"), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    legacy_id = Column(ARRAY(String), default=list)
+    legacy_self = Column(ARRAY(String), default=list)
+    creation_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    update_date = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    authorized_project_id = Column(UUID(as_uuid=True), nullable=True)
+    authorized_public = Column(Boolean, default=False)
+
+    # Relationships
+    license_id = Column(UUID(as_uuid=True), ForeignKey("license.id"))
+    license = relationship("License", back_populates="scientific_artifacts")
+    contributions = relationship("Contribution", back_populates="entity", cascade="all, delete-orphan")
+    assets = relationship("Asset", back_populates="entity", cascade="all, delete-orphan")
+
+    __mapper_args__ = {
+        "polymorphic_identity": "ScientificArtifact",
+    }
+
+# Update License model to include back_populates
+License.scientific_artifacts = relationship("ScientificArtifact", back_populates="license")
+
+

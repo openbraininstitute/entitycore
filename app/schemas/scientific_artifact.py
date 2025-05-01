@@ -27,10 +27,7 @@ class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
     name :str
     description:str  
     subject_id : uuid.UUID | None = None
-    
-#    brain_region_id: int
-#    additional_brain_regions: list[int] | None = None
-    
+ 
     license_id: uuid.UUID | None = None #only needed when public 
     experiment_date: date | None = None 
 
@@ -39,3 +36,4 @@ class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
 
     contact_id : uuid.UUID | None = None
+

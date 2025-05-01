@@ -1,14 +1,17 @@
 import uuid
-from datetime import datetime, timedelta
-from typing import Annotated, TYPE_CHECKING
+from uuid import UUID
+from datetime import date, datetime, timedelta
+from typing import Annotated, TYPE_CHECKING, List, Optional
 from pydantic import UUID4, BaseModel, ConfigDict
 
-from datetime import date
-
-#if TYPE_CHECKING:
 from app.schemas.agent import PersonRead
 from app.schemas.contribution import ContributionReadWithoutEntity
  
+from app.schemas.base import BaseSchema
+from app.schemas.contribution import ContributionRead
+from app.schemas.asset import AssetRead
+from app.schemas.license import LicenseRead
+
 # where was the artifact published?
 class PublishedInType(BaseModel):
     """
@@ -27,14 +30,34 @@ class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin,Entity):
     name :str
     description:str  
     subject_id : uuid.UUID | None = None
- 
     license_id: uuid.UUID | None = None #only needed when public 
     experiment_date: date | None = None 
-
     PublishedIn : PublishedInType
-    
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
-
     contact_id : uuid.UUID | None = None
+
+class ScientificArtifactBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    legacy_id: List[str] = []
+    legacy_self: List[str] = []
+    authorized_public: bool = False
+    license_id: Optional[UUID] = None
+
+class ScientificArtifactCreate(ScientificArtifactBase):
+    pass
+
+class ScientificArtifactRead(ScientificArtifactBase, BaseSchema):
+    id: UUID
+    creation_date: datetime
+    update_date: datetime
+    authorized_project_id: Optional[UUID] = None
+    license: Optional[LicenseRead] = None
+    contributions: List[ContributionRead] = []
+    assets: List[AssetRead] = []
+
+    class Config:
+        from_attributes = True
+
 
 

@@ -23,7 +23,7 @@ class PublishedInType(BaseModel):
 
 from app.filters.common import BrainRegionFilterMixin
 
-class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
+class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin,Entity):
     name :str
     description:str  
     subject_id : uuid.UUID | None = None
@@ -36,4 +36,5 @@ class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
 
     contact_id : uuid.UUID | None = None
+
 

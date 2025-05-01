@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends
@@ -13,6 +14,7 @@ class SingleNeuronSimulationFilter(
     CustomFilter,
     CreationFilterMixin,
 ):
+    id__in: list[uuid.UUID] | None = None
     name__ilike: str | None = None
     brain_region_id: int | None = None
     status: SingleNeuronSimulationStatus | None = None

@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends
@@ -28,6 +29,7 @@ class DensityFilterBase(
     BrainRegionFilterMixin,
     ContributionFilterMixin,
 ):
+    id__in: list[uuid.UUID] | None = None
     name__ilike: str | None = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

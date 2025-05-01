@@ -23,6 +23,7 @@ class EModelFilter(
     CustomFilter,
     CreationFilterMixin,
 ):
+    id__in: list[uuid.UUID] | None = None
     name__ilike: str | None = None
     brain_region_id: int | None = None
     species_id__in: list[uuid.UUID] | None = None

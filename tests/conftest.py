@@ -444,6 +444,8 @@ def create_memodel_ids(
                     emodel_id=emodel_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
+                    holding_current=0,
+                    threshold_current=0,
                 ),
             ).id
 
@@ -619,6 +621,8 @@ def faceted_memodels(
                 emodel_id=emodel_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
+                holding_current=0,
+                threshold_current=0,
             ),
         )
 

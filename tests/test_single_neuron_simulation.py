@@ -161,6 +161,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
+            holding_current=0,
+            threshold_current=0,
         ),
     )
     me_model_2 = add_db(
@@ -173,6 +175,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
+            holding_current=0,
+            threshold_current=0,
         ),
     )
 
@@ -221,6 +225,8 @@ def faceted_ids(db, client_admin, emodel_id, morphology_id, species_id):
                 "emodel_id": emodel_id,
                 "morphology_id": morphology_id,
                 "species_id": species_id,
+                "holding_current": 0,
+                "threshold_current": 0,
             },
         )
         for i in range(2)

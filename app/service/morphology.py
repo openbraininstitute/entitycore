@@ -141,7 +141,6 @@ MorphologyCreateType = Union[
     CellMorphologyCreate,
 ]
 
-
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,

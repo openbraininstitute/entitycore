@@ -12,6 +12,7 @@ class PersonBase(BaseModel):
     givenName: str
     familyName: str
     pref_label: str
+    email: str | None = None
 
 class PersonRead(PersonBase, CreationMixin, IdentifiableMixin):
     type: str

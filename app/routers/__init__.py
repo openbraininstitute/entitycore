@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Depends
 
 from app.dependencies.auth import user_verified
+from app.routers.scientific_artifact import router as scientific_artifact_router
 from app.routers import (
     asset,
     brain_region,
@@ -51,6 +52,7 @@ authenticated_routers = [
     organization.router,
     person.router,
     role.router,
+    scientific_artifact_router,  # Use the router, not the module
     single_neuron_simulation.router,
     single_neuron_synaptome.router,
     single_neuron_synaptome_simulation.router,
@@ -58,5 +60,7 @@ authenticated_routers = [
     strain.router,
     subject.router,
 ]
+
 for r in authenticated_routers:
     router.include_router(r, dependencies=[Depends(user_verified)])
+

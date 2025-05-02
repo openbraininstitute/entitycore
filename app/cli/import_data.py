@@ -11,6 +11,21 @@ from contextlib import closing
 from pathlib import Path
 from typing import Any
 
+
+from tqdm import tqdm
+
+from app.cli import curate
+from app.cli.utils import (
+    get_license_mixin,
+    get_created_and_updated,
+    import_contribution,
+    import_distribution,
+    AUTHORIZED_PUBLIC,
+)
+
+from app.schemas.base import ProjectContext
+
+
 import click
 import sqlalchemy as sa
 from tqdm import tqdm
@@ -42,7 +57,8 @@ from app.db.model import (
     MTypeClassification,
     Organization,
     Person,
-    ReconstructionMorphology,
+    CellMorphology,
+    ScientificArtifact,
     SingleNeuronSimulation,
     Subject,
 )
@@ -450,7 +466,7 @@ class ImportEModels(Import):
             )
 
             morphology = exemplar_morphology_id and utils._find_by_legacy_id(
-                exemplar_morphology_id, ReconstructionMorphology, db
+                exemplar_morphology_id, CellMorphology, db
             )
 
             assert morphology
@@ -546,7 +562,7 @@ class ImportMorphologies(Import):
             curate.curate_morphology(data)
             legacy_id = data["@id"]
             legacy_self = data["_self"]
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+            rm = utils._find_by_legacy_id(legacy_id, CellMorphology, db)
             if rm:
                 continue
 
@@ -555,7 +571,7 @@ class ImportMorphologies(Import):
             species_id, strain_id = utils.get_species_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
-            db_reconstruction_morphology = ReconstructionMorphology(
+            db_cell_morphology = CellMorphology(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data["name"],
@@ -571,14 +587,14 @@ class ImportMorphologies(Import):
                 authorized_public=AUTHORIZED_PUBLIC,
             )
 
-            db.add(db_reconstruction_morphology)
+            db.add(db_cell_morphology)
             db.commit()
-            db.refresh(db_reconstruction_morphology)
+            db.refresh(db_cell_morphology)
 
-            utils.import_contribution(data, db_reconstruction_morphology.id, db)
+            utils.import_contribution(data, db_cell_morphology.id, db)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_reconstruction_morphology.id, db)
+                create_annotation(annotation, db_cell_morphology.id, db)
 
 
 class ImportExperimentalNeuronDensities(Import):
@@ -739,7 +755,7 @@ class ImportMEModel(Import):
             assert _brain_location is None
 
             morphology_id = utils.find_part_id(data, "NeuronMorphology")
-            morphology = utils._find_by_legacy_id(morphology_id, ReconstructionMorphology, db)
+            morphology = utils._find_by_legacy_id(morphology_id, CellMorphology, db)
 
             emodel_id = utils.find_part_id(data, "EModel")
             emodel = utils._find_by_legacy_id(emodel_id, EModel, db)
@@ -864,7 +880,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                 print("Skipping morphology feature annotation due to missing legacy id.")
                 continue
 
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+            rm = utils._find_by_legacy_id(legacy_id, CellMorphology, db)
             if not rm:
                 missing_morphology += 1
                 continue
@@ -892,7 +908,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
 
             annotations[rm.id].append(
                 MorphologyFeatureAnnotation(
-                    reconstruction_morphology_id=rm.id,
+                    cell_morphology_id=rm.id,
                     measurements=all_measurements,
                     creation_date=createdAt,
                     update_date=updatedAt,
@@ -906,7 +922,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
         for rm_id, annotation in tqdm(annotations.items()):
             mfa = (
                 db.query(MorphologyFeatureAnnotation)
-                .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
+                .filter(MorphologyFeatureAnnotation.cell_morphology_id == rm_id)
                 .first()
             )
             if mfa:
@@ -1241,6 +1257,54 @@ def organize_files(digest_path):
     if ignored:
         L.info("Ignored files: {}", len(ignored))
 
+
+class ImportScientificArtifact:
+    name = "ScientificArtifact"
+
+    defaults = []
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data["@type"])
+        return "ScientificArtifact" in types
+
+    @staticmethod
+    def ingest(db, project_context: ProjectContext, data_list, all_data_by_id=None):
+        for data in tqdm(data_list):
+            legacy_id = data["@id"]
+            legacy_self = data["_self"]
+            existing = utils._find_by_legacy_id(legacy_id, ScientificArtifact, db)
+            if existing:
+                continue
+
+            license_id = get_license_mixin(data, db)
+            created_at, updated_at = get_created_and_updated(data)
+
+            # Create Pydantic model instance
+            artifact_data = ScientificArtifactMixin(
+                name=data.get("name", ""),
+                description=data.get("description", ""),
+                license_id=license_id,
+                creation_date=created_at,
+                update_date=updated_at,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+            )
+
+            # Use router_create_one to map to SQLAlchemy model
+            artifact = router_create_one(
+                db=db,
+                db_model_class=ScientificArtifact,
+                authorized_project_id=project_context.project_id,
+                json_model=artifact_data,
+                response_schema_class=ScientificArtifactMixin,
+            )
+
+            import_contribution(data, artifact.id, db)
+            import_distribution(data, artifact.id, "ScientificArtifact", db, project_context)
+
+            for annotation in ensurelist(data.get("annotation", [])):
+                create_annotation(annotation, artifact.id, db)
 
 if __name__ == "__main__":
     cli()

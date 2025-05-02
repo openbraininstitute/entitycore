@@ -1,19 +1,19 @@
 import itertools as it
 
-from app.db.model import ReconstructionMorphology, Species, Strain
+from app.db.model import CellMorphology, Species, Strain
 
 from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     PROJECT_ID,
     add_db,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
-ROUTE = "/reconstruction-morphology"
+ROUTE = "/cell-morphology"
 
 
-def test_create_reconstruction_morphology(
+def test_create_cell_morphology(
     client, species_id, strain_id, license_id, brain_region_id
 ):
     morph_description = "Test Morphology Description"
@@ -72,7 +72,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: PLR0915
+def test_query_cell_morphology(db, client, brain_region_id):  # noqa: PLR0915
     species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
     species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
 
@@ -91,7 +91,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
                 )
             ),
         ):
-            morphology_id = create_reconstruction_morphology_id(
+            morphology_id = create_cell_morphology_id(
                 client,
                 species_id=species.id,
                 strain_id=strain.id,
@@ -198,7 +198,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     }
 
 
-def test_query_reconstruction_morphology_species_join(db, client, brain_region_id):
+def test_query_cell_morphology_species_join(db, client, brain_region_id):
     """Make sure not to join all the species w/ their strains while doing query"""
     species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="1"))
     strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
@@ -206,7 +206,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
 
     add_db(
         db,
-        ReconstructionMorphology(
+        CellMorphology(
             brain_region_id=brain_region_id,
             species_id=species0.id,
             strain_id=strain0.id,
@@ -305,7 +305,7 @@ def test_pagination(db, client, brain_region_id):
     for i, (species, strain) in zip(
         range(total_items), it.cycle(((species0, None), (species0, strain0), (species1, strain1)))
     ):
-        create_reconstruction_morphology_id(
+        create_cell_morphology_id(
             client,
             species_id=species.id,
             strain_id=strain.id if strain else None,
@@ -350,7 +350,7 @@ def test_filter_by_id__in(db, client, brain_region_id):
 
     morphology_ids = []
     for i in range(5):
-        morphology_id = create_reconstruction_morphology_id(
+        morphology_id = create_cell_morphology_id(
             client,
             species_id=species.id,
             strain_id=strain.id,

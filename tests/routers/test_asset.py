@@ -17,7 +17,7 @@ from tests.utils import (
     TEST_DATA_DIR,
     VIRTUAL_LAB_ID,
     add_db,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
 DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
@@ -57,8 +57,8 @@ def _get_expected_full_path(entity, path):
 
 @pytest.fixture
 def entity(client, species_id, strain_id, brain_region_id) -> Entity:
-    entity_type = EntityType.reconstruction_morphology
-    entity_id = create_reconstruction_morphology_id(
+    entity_type = EntityType.cell_morphology
+    entity_id = create_cell_morphology_id(
         client,
         species_id=species_id,
         strain_id=strain_id,

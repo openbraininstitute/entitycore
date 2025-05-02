@@ -4,6 +4,10 @@ from typing import ClassVar
 
 import sqlalchemy as sa
 
+from sqlalchemy import Column, String, Text, DateTime, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
+#from app.db.model import Entity, Base
+
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -110,13 +114,12 @@ class Strain(Identifiable):
         UniqueConstraint("id", "species_id", name="uq_strain_id_species_id"),
     )
 
-
 class License(LegacyMixin, Identifiable):
     __tablename__ = "license"
     name: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str]
     label: Mapped[str]
-
+    scientific_artifacts = relationship("ScientificArtifact", back_populates="license")
 
 class LicensedMixin:
     license_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("license.id"), index=True)
@@ -729,3 +732,15 @@ class Asset(Identifiable):
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
     )
+
+class ScientificArtifact(Entity):
+    __tablename__ = "scientific_artifact"
+    id = Column(UUID(as_uuid=True), ForeignKey("entity.id"), primary_key=True)
+    name = Column(String, nullable=False)
+    description = Column(String, default="")
+    license_id = Column(UUID(as_uuid=True), ForeignKey("license.id"), nullable=True)
+    license = relationship("License", back_populates="scientific_artifacts")
+    __mapper_args__ = {"polymorphic_identity": EntityType.scientific_artifact}
+
+
+    

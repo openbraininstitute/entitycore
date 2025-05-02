@@ -7,11 +7,11 @@ from .utils import (
     MISSING_ID_COMPACT,
     add_all_db,
     add_db,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
 ROUTE = "/mtype"
-ROUTE_MORPH = "/reconstruction-morphology"
+ROUTE_MORPH = "/cell-morphology"
 
 
 def test_mtype(db, client):
@@ -81,7 +81,7 @@ def test_missing(client):
 
 
 def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
-    morph_id = create_reconstruction_morphology_id(
+    morph_id = create_cell_morphology_id(
         client,
         species_id,
         strain_id,

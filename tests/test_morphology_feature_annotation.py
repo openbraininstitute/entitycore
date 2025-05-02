@@ -4,15 +4,15 @@ import sqlalchemy
 from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
 ROUTE = "/morphology-feature-annotation"
-MORPHOLOGY_ROUTE = "/reconstruction-morphology"
+MORPHOLOGY_ROUTE = "/cell-morphology"
 
 
 def test_create_annotation(client, species_id, strain_id, brain_region_id):
-    reconstruction_morphology_id = create_reconstruction_morphology_id(
+    cell_morphology_id = create_cell_morphology_id(
         client,
         species_id,
         strain_id,
@@ -21,7 +21,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     )
     measurement_of = "Test Measurement Of ID"
     js = {
-        "reconstruction_morphology_id": reconstruction_morphology_id,
+        "cell_morphology_id": cell_morphology_id,
         "measurements": [
             {
                 "measurement_of": measurement_of,
@@ -60,7 +60,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     morphology_annotation_id = data["id"]
     assert "creation_date" in data
     assert "update_date" in data
-    assert "reconstruction_morphology_id" in data
+    assert "cell_morphology_id" in data
     assert "measurements" in data
     assert len(data["measurements"]) == 2
 
@@ -73,16 +73,16 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
     morphology_annotation_id = data["id"]
     assert "creation_date" in data
     assert "update_date" in data
-    assert "reconstruction_morphology_id" in data
+    assert "cell_morphology_id" in data
     assert "measurements" in data
     assert len(data["measurements"]) == 2
 
-    response = client.get(f"{MORPHOLOGY_ROUTE}/{reconstruction_morphology_id}")
+    response = client.get(f"{MORPHOLOGY_ROUTE}/{cell_morphology_id}")
     assert response.status_code == 200
     assert "morphology_feature_annotation" not in response.json()
 
     response = client.get(
-        f"{MORPHOLOGY_ROUTE}/{reconstruction_morphology_id}",
+        f"{MORPHOLOGY_ROUTE}/{cell_morphology_id}",
         params={"expand": "morphology_feature_annotation"},
     )
     assert response.status_code == 200
@@ -98,7 +98,7 @@ def test_create_annotation(client, species_id, strain_id, brain_region_id):
         response = client.post(
             ROUTE,
             json={
-                "reconstruction_morphology_id": reconstruction_morphology_id,
+                "cell_morphology_id": cell_morphology_id,
                 "measurements": [],
             },
         )
@@ -139,7 +139,7 @@ def test_authorization(
         ],
     }
 
-    reconstruction_morphology_id_public = create_reconstruction_morphology_id(
+    cell_morphology_id_public = create_cell_morphology_id(
         client_user_1,
         species_id=species_id,
         strain_id=strain_id,
@@ -149,12 +149,12 @@ def test_authorization(
 
     response = client_user_1.post(
         ROUTE,
-        json=annotation_js | {"reconstruction_morphology_id": reconstruction_morphology_id_public},
+        json=annotation_js | {"cell_morphology_id": cell_morphology_id_public},
     )
     assert response.status_code == 200
     morphology_feature_annotation_id_public = response.json()["id"]
 
-    reconstruction_morphology_id_inaccessible = create_reconstruction_morphology_id(
+    cell_morphology_id_inaccessible = create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=strain_id,
@@ -166,7 +166,7 @@ def test_authorization(
     response = client_user_1.post(
         ROUTE,
         json=annotation_js
-        | {"reconstruction_morphology_id": reconstruction_morphology_id_inaccessible},
+        | {"cell_morphology_id": cell_morphology_id_inaccessible},
     )
     assert response.status_code == 404
 
@@ -174,14 +174,14 @@ def test_authorization(
     response = client_user_2.post(
         ROUTE,
         json=annotation_js
-        | {"reconstruction_morphology_id": reconstruction_morphology_id_inaccessible},
+        | {"cell_morphology_id": cell_morphology_id_inaccessible},
     )
     assert response.status_code == 200
 
     response = client_user_1.get(f"{ROUTE}/{response.json()['id']}")
     assert response.status_code == 404
 
-    reconstruction_morphology_id_public_inaccessible = create_reconstruction_morphology_id(
+    cell_morphology_id_public_inaccessible = create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=strain_id,
@@ -191,7 +191,7 @@ def test_authorization(
     response = client_user_1.post(
         ROUTE,
         json=annotation_js
-        | {"reconstruction_morphology_id": reconstruction_morphology_id_public_inaccessible},
+        | {"cell_morphology_id": cell_morphology_id_public_inaccessible},
     )
     assert response.status_code == 404
 

@@ -58,8 +58,7 @@ class ClientProxy:
         method = getattr(self._client, name)
         return decorator(method) if name in self._methods else method
 
-
-def create_reconstruction_morphology_id(
+def create_cell_morphology_id(
     client,
     species_id,
     strain_id,
@@ -67,22 +66,64 @@ def create_reconstruction_morphology_id(
     authorized_public,
     name="Test Morphology Name",
     description="Test Morphology Description",
+    morphology_subclass: str = "generic",  # NEW: specify subclass
+    extra_fields: dict = None,             # NEW: add extra fields
 ):
+    """
+    Create a CellMorphology or a specific subclass (digital, modified, computational, placeholder).
+
+    Args:
+        morphology_subclass: one of ["generic", "digital", "modified", "computational", "placeholder"]
+        extra_fields: any extra subclass-specific fields to include
+    """
+    payload = {
+        "name": name,
+        "description": description,
+        "brain_region_id": str(brain_region_id) if isinstance(brain_region_id, int) else None,
+        "species_id": str(species_id) if species_id else None,
+        "strain_id": str(strain_id) if strain_id else None,
+        "location": {"x": 10, "y": 20, "z": 30},
+        "legacy_id": ["Test Legacy ID"],
+        "authorized_public": authorized_public,
+    }
+
+    extra_fields = extra_fields or {}
+
+    # Add subclass-specific fields
+    if morphology_subclass == "digital":
+        payload.update({
+            "pipeline_state": "Raw",  # or "Curated", "Unraveled", etc.
+            **extra_fields,
+        })
+    elif morphology_subclass == "modified":
+        payload.update({
+            "method": "Cloned",  # or "Mix_and_match", "Mousified", etc.
+            **extra_fields,
+        })
+    elif morphology_subclass == "computational":
+        payload.update({
+            "method": "Some Computational Method",
+            "score_dict": {"x": {"score1": 0.9, "score2": 0.8}},
+            "provenance": {"x": {"source1": 1.0}},
+            **extra_fields,
+        })
+    elif morphology_subclass == "placeholder":
+        payload.update({
+            "is_related_to": [],  # Normally a list of UUIDs
+            **extra_fields,
+        })
+    elif morphology_subclass == "generic":
+        # no extra fields
+        pass
+    else:
+        raise ValueError(f"Unknown morphology_subclass: {morphology_subclass}")
+
     response = client.post(
-        "/reconstruction-morphology",
-        json={
-            "name": name,
-            "description": description,
-            "brain_region_id": str(brain_region_id) if isinstance(brain_region_id, int) else None,
-            "species_id": str(species_id) if species_id else None,
-            "strain_id": str(strain_id) if strain_id else None,
-            "location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": ["Test Legacy ID"],
-            "authorized_public": authorized_public,
-        },
+        "/cell-morphology",
+        json=payload,
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, response.text
     return response.json()["id"]
 
 

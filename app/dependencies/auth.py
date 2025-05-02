@@ -232,6 +232,7 @@ def user_with_project_id(user_context: "UserContextDep") -> UserContextWithProje
 
 def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
     """Ensure that the authenticated user has a service admin role."""
+    
     if not user_context.is_service_admin:
         raise ApiError(
             message=AuthErrorReason.ADMIN_REQUIRED,

@@ -26,10 +26,52 @@ from app.schemas.scientific_artifact import (
 
 from app.schemas.contribution import ContributionReadWithoutEntity
 
+class ExperimentalMorphologyMethod(BaseModel):
+    def __init__(
+        self,
+        protocol_design: str,
+        staining_method: str,
+        slicing_thickness: float,
+        protocol_document: str = None,
+        slicing_direction: str = None,  # Changed from float to str
+        magnification: float = None,
+        tissue_shrinkage: float = None,
+        has_been_corrected_for_shrinkage: bool = None
+    ):
+        """
+        Experimental morphology method for capturing cell morphology data.
+        
+        Parameters:
+        -----------
+        protocol_design: str
+            From a controlled vocabulary (e.g., EM, CellPatch, Fluorophore, Imp)
+        protocol_document: str, optional
+            URL link to protocol document or publication
+        staining_method: str
+            Method used for staining
+        slicing_thickness: float
+            Thickness of the slice in microns
+        slicing_direction: str, optional
+            Direction of slicing
+        magnification: float, optional
+            Magnification level used
+        tissue_shrinkage: float, optional
+            Amount tissue shrunk by (not correction factor)
+        has_been_corrected_for_shrinkage: bool, optional
+            Whether data has been corrected for shrinkage
+        """
+        self.protocol_design = protocol_design
+        self.protocol_document = protocol_document
+        self.staining_method = staining_method
+        self.slicing_thickness = slicing_thickness
+        self.slicing_direction = slicing_direction
+        self.magnification = magnification
+        self.tissue_shrinkage = tissue_shrinkage
+        self.has_been_corrected_for_shrinkage = has_been_corrected_for_shrinkage
+
+
 class CellMorphologyBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
- #   name: str
- #   description: str
     location: PointLocationBase | None
     legacy_id: list[str] | None
 
@@ -85,10 +127,12 @@ class MethodsType(Enum):
     Ratified = auto() 
 
 class DigitalReconstruction(CellMorphologyBase):
+    method: ExperimentalMorphologyMethod
     pipeline_state: PipelineType
     is_related_to: List[uuid.UUID]
 
 class DigitalReconstructionCreate(CellMorphologyCreate):
+    method: ExperimentalMorphologyMethod   
     pipeline_state: PipelineType
     is_related_to: List[uuid.UUID]
 

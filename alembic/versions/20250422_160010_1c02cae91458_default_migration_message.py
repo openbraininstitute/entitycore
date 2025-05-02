@@ -84,7 +84,7 @@ def upgrade() -> None:
         "experimental_synapses_per_connection",
         "memodel",
         "mesh",
-        "reconstruction_morphology",
+        "cell_morphology",
         "electrical_cell_recording",
         "electrical_recording_stimulus",
         "single_neuron_simulation",
@@ -337,7 +337,7 @@ def upgrade() -> None:
                 "experimental_synapses_per_connection",
                 "memodel",
                 "mesh",
-                "reconstruction_morphology",
+                "cell_morphology",
                 "electrical_cell_recording",
                 "electrical_recording_stimulus",
                 "single_neuron_simulation",
@@ -769,7 +769,7 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_table(
-        "reconstruction_morphology",
+        "cell_morphology",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("location", app.db.types.PointLocationType(astext_type=Text()), nullable=True),
         sa.Column("license_id", sa.Uuid(), nullable=True),
@@ -782,62 +782,62 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["brain_region_id"],
             ["brain_region.id"],
-            name=op.f("fk_reconstruction_morphology_brain_region_id_brain_region"),
+            name=op.f("fk_cell_morphology_brain_region_id_brain_region"),
         ),
         sa.ForeignKeyConstraint(
-            ["id"], ["entity.id"], name=op.f("fk_reconstruction_morphology_id_entity")
+            ["id"], ["entity.id"], name=op.f("fk_cell_morphology_id_entity")
         ),
         sa.ForeignKeyConstraint(
             ["license_id"],
             ["license.id"],
-            name=op.f("fk_reconstruction_morphology_license_id_license"),
+            name=op.f("fk_cell_morphology_license_id_license"),
         ),
         sa.ForeignKeyConstraint(
             ["species_id"],
             ["species.id"],
-            name=op.f("fk_reconstruction_morphology_species_id_species"),
+            name=op.f("fk_cell_morphology_species_id_species"),
         ),
         sa.ForeignKeyConstraint(
             ["strain_id", "species_id"],
             ["strain.id", "strain.species_id"],
-            name="fk_reconstruction_morphology_strain_id_species_id",
+            name="fk_cell_morphology_strain_id_species_id",
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_reconstruction_morphology")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_cell_morphology")),
     )
     op.create_index(
-        op.f("ix_reconstruction_morphology_brain_region_id"),
-        "reconstruction_morphology",
+        op.f("ix_cell_morphology_brain_region_id"),
+        "cell_morphology",
         ["brain_region_id"],
         unique=False,
     )
     op.create_index(
-        "ix_reconstruction_morphology_description_vector",
-        "reconstruction_morphology",
+        "ix_cell_morphology_description_vector",
+        "cell_morphology",
         ["description_vector"],
         unique=False,
         postgresql_using="gin",
     )
     op.create_index(
-        op.f("ix_reconstruction_morphology_license_id"),
-        "reconstruction_morphology",
+        op.f("ix_cell_morphology_license_id"),
+        "cell_morphology",
         ["license_id"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_reconstruction_morphology_name"),
-        "reconstruction_morphology",
+        op.f("ix_cell_morphology_name"),
+        "cell_morphology",
         ["name"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_reconstruction_morphology_species_id"),
-        "reconstruction_morphology",
+        op.f("ix_cell_morphology_species_id"),
+        "cell_morphology",
         ["species_id"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_reconstruction_morphology_strain_id"),
-        "reconstruction_morphology",
+        op.f("ix_cell_morphology_strain_id"),
+        "cell_morphology",
         ["strain_id"],
         unique=False,
     )
@@ -1053,8 +1053,8 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(
             ["exemplar_morphology_id"],
-            ["reconstruction_morphology.id"],
-            name=op.f("fk_emodel_exemplar_morphology_id_reconstruction_morphology"),
+            ["cell_morphology.id"],
+            name=op.f("fk_emodel_exemplar_morphology_id_cell_morphology"),
         ),
         sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_emodel_id_entity")),
         sa.ForeignKeyConstraint(
@@ -1274,7 +1274,7 @@ def upgrade() -> None:
     )
     op.create_table(
         "morphology_feature_annotation",
-        sa.Column("reconstruction_morphology_id", sa.Uuid(), nullable=False),
+        sa.Column("cell_morphology_id", sa.Uuid(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
             "creation_date",
@@ -1289,10 +1289,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["reconstruction_morphology_id"],
-            ["reconstruction_morphology.id"],
+            ["cell_morphology_id"],
+            ["cell_morphology.id"],
             name=op.f(
-                "fk_morphology_feature_annotation_reconstruction_morphology_id_reconstruction_morphology"
+                "fk_morphology_feature_annotation_cell_morphology_id_cell_morphology"
             ),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_morphology_feature_annotation")),
@@ -1304,9 +1304,9 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
-        op.f("ix_morphology_feature_annotation_reconstruction_morphology_id"),
+        op.f("ix_morphology_feature_annotation_cell_morphology_id"),
         "morphology_feature_annotation",
-        ["reconstruction_morphology_id"],
+        ["cell_morphology_id"],
         unique=True,
     )
     op.create_table(
@@ -1424,8 +1424,8 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_memodel_id_entity")),
         sa.ForeignKeyConstraint(
             ["morphology_id"],
-            ["reconstruction_morphology.id"],
-            name=op.f("fk_memodel_morphology_id_reconstruction_morphology"),
+            ["cell_morphology.id"],
+            name=op.f("fk_memodel_morphology_id_cell_morphology"),
         ),
         sa.ForeignKeyConstraint(
             ["species_id"], ["species.id"], name=op.f("fk_memodel_species_id_species")
@@ -1704,7 +1704,7 @@ def downgrade() -> None:
     )
     op.drop_table("electrical_recording_stimulus")
     op.drop_index(
-        op.f("ix_morphology_feature_annotation_reconstruction_morphology_id"),
+        op.f("ix_morphology_feature_annotation_cell_morphology_id"),
         table_name="morphology_feature_annotation",
     )
     op.drop_index(
@@ -1809,24 +1809,24 @@ def downgrade() -> None:
     op.drop_index("ix_subject_description_vector", table_name="subject", postgresql_using="gin")
     op.drop_table("subject")
     op.drop_index(
-        op.f("ix_reconstruction_morphology_strain_id"), table_name="reconstruction_morphology"
+        op.f("ix_cell_morphology_strain_id"), table_name="cell_morphology"
     )
     op.drop_index(
-        op.f("ix_reconstruction_morphology_species_id"), table_name="reconstruction_morphology"
+        op.f("ix_cell_morphology_species_id"), table_name="cell_morphology"
     )
-    op.drop_index(op.f("ix_reconstruction_morphology_name"), table_name="reconstruction_morphology")
+    op.drop_index(op.f("ix_cell_morphology_name"), table_name="cell_morphology")
     op.drop_index(
-        op.f("ix_reconstruction_morphology_license_id"), table_name="reconstruction_morphology"
+        op.f("ix_cell_morphology_license_id"), table_name="cell_morphology"
     )
     op.drop_index(
-        "ix_reconstruction_morphology_description_vector",
-        table_name="reconstruction_morphology",
+        "ix_cell_morphology_description_vector",
+        table_name="cell_morphology",
         postgresql_using="gin",
     )
     op.drop_index(
-        op.f("ix_reconstruction_morphology_brain_region_id"), table_name="reconstruction_morphology"
+        op.f("ix_cell_morphology_brain_region_id"), table_name="cell_morphology"
     )
-    op.drop_table("reconstruction_morphology")
+    op.drop_table("cell_morphology")
     op.drop_index(op.f("ix_mtype_classification_updatedBy_id"), table_name="mtype_classification")
     op.drop_index(op.f("ix_mtype_classification_mtype_class_id"), table_name="mtype_classification")
     op.drop_index(op.f("ix_mtype_classification_entity_id"), table_name="mtype_classification")
@@ -1930,7 +1930,7 @@ def downgrade() -> None:
         "experimental_synapses_per_connection",
         "memodel",
         "mesh",
-        "reconstruction_morphology",
+        "cell_morphology",
         "electrical_cell_recording",
         "electrical_recording_stimulus",
         "single_neuron_simulation",

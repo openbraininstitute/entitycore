@@ -1,10 +1,10 @@
 from . import TEST_SBO_END_POINT, get_body
 
 
-def test_sbo_reconstruction_morphology(client):
+def test_sbo_cell_morphology(client):
     response = client.post(
         TEST_SBO_END_POINT,
-        json=get_body("sbo_count_reconstruction_morphology"),
+        json=get_body("sbo_count_cell_morphology"),
     )
     assert response.status_code == 200
     data = response.json()

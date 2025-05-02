@@ -329,7 +329,7 @@ def brain_region_id(client_admin):
 
 @pytest.fixture
 def morphology_id(client, species_id, strain_id, brain_region_id):
-    return utils.create_reconstruction_morphology_id(
+    return utils.create_cell_morphology_id(
         client,
         species_id=species_id,
         strain_id=strain_id,
@@ -482,7 +482,7 @@ def faceted_emodel_ids(db: Session, client, client_admin):
 
     morphology_ids = [
         str(
-            utils.create_reconstruction_morphology_id(
+            utils.create_cell_morphology_id(
                 client,
                 species_id=species_ids[i],
                 strain_id=strain_ids[i],
@@ -544,7 +544,7 @@ def faceted_memodels(
 
     morphology_ids = [
         str(
-            utils.create_reconstruction_morphology_id(
+            utils.create_cell_morphology_id(
                 client,
                 species_id=species_ids[i],
                 strain_id=strain_ids[i],

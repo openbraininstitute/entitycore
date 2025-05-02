@@ -4,11 +4,11 @@ from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     add_db,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
 ROUTE = "/contribution"
-ROUTE_MORPH = "/reconstruction-morphology"
+ROUTE_MORPH = "/cell-morphology"
 
 
 def test_create_contribution(
@@ -20,7 +20,7 @@ def test_create_contribution(
     strain_id,
     brain_region_id,
 ):
-    reconstruction_morphology_id = create_reconstruction_morphology_id(
+    cell_morphology_id = create_cell_morphology_id(
         client,
         species_id=species_id,
         strain_id=strain_id,
@@ -33,7 +33,7 @@ def test_create_contribution(
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
-            "entity_id": str(reconstruction_morphology_id),
+            "entity_id": str(cell_morphology_id),
         },
     )
     assert response.status_code == 200
@@ -46,7 +46,7 @@ def test_create_contribution(
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
-    assert data["entity"]["id"] == reconstruction_morphology_id
+    assert data["entity"]["id"] == cell_morphology_id
 
     contribution_id = data["id"]
 
@@ -60,7 +60,7 @@ def test_create_contribution(
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
-    assert data["entity"]["id"] == reconstruction_morphology_id
+    assert data["entity"]["id"] == cell_morphology_id
     assert data["id"] == contribution_id
 
     response = client.post(
@@ -68,7 +68,7 @@ def test_create_contribution(
         json={
             "agent_id": str(organization_id),
             "role_id": str(role_id),
-            "entity_id": str(reconstruction_morphology_id),
+            "entity_id": str(cell_morphology_id),
         },
     )
     assert response.status_code == 200
@@ -82,7 +82,7 @@ def test_create_contribution(
     assert response.status_code == 200
     assert len(response.json()["data"]) == 2
 
-    response = client.get(f"{ROUTE_MORPH}/{reconstruction_morphology_id}")
+    response = client.get(f"{ROUTE_MORPH}/{cell_morphology_id}")
     assert response.status_code == 200
     data = response.json()
     assert "contributions" in data
@@ -126,7 +126,7 @@ def test_authorization(
     person_id,
     role_id,
 ):
-    inaccessible_entity_id = create_reconstruction_morphology_id(
+    inaccessible_entity_id = create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=strain_id,
@@ -159,7 +159,7 @@ def test_authorization(
     response = client_user_1.get(f"{ROUTE}/{inaccessible_annotation_id}")
     assert response.status_code == 404
 
-    public_entity_id = create_reconstruction_morphology_id(
+    public_entity_id = create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=strain_id,
@@ -240,7 +240,7 @@ def test_contribution_facets(
             [(person, person_role), (org, org_role)],
         ]
     ):
-        reconstruction_morphology_id = create_reconstruction_morphology_id(
+        cell_morphology_id = create_cell_morphology_id(
             client,
             species_id=species_id,
             strain_id=strain_id,
@@ -248,13 +248,13 @@ def test_contribution_facets(
             name=f"TestMorphologyName{i}",
             authorized_public=False,
         )
-        morphology_ids.append(reconstruction_morphology_id)
+        morphology_ids.append(cell_morphology_id)
         contribution_sizes.append(len(contributions))
         for agent, agent_role in contributions:
             add_db(
                 db,
                 Contribution(
-                    agent_id=agent.id, role_id=agent_role.id, entity_id=reconstruction_morphology_id
+                    agent_id=agent.id, role_id=agent_role.id, entity_id=cell_morphology_id
                 ),
             )
 

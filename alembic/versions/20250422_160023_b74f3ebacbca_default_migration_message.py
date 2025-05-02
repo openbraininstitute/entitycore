@@ -111,14 +111,14 @@ def upgrade() -> None:
         public_experimental_neuron_density_experimental_neuron_density_description_vector
     )
 
-    public_reconstruction_morphology_reconstruction_morphology_description_vector = PGTrigger(
+    public_cell_morphology_cell_morphology_description_vector = PGTrigger(
         schema="public",
-        signature="reconstruction_morphology_description_vector",
-        on_entity="public.reconstruction_morphology",
+        signature="cell_morphology_description_vector",
+        on_entity="public.cell_morphology",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON reconstruction_morphology\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON cell_morphology\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.create_entity(public_reconstruction_morphology_reconstruction_morphology_description_vector)
+    op.create_entity(public_cell_morphology_cell_morphology_description_vector)
 
     public_subject_subject_description_vector = PGTrigger(
         schema="public",
@@ -149,22 +149,22 @@ def upgrade() -> None:
     )
     op.create_entity(public_electrical_cell_recording_electrical_cell_recording_description_vector)
 
-    public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology = PGFunction(
+    public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_cell_morphology = PGFunction(
         schema="public",
-        signature="unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology()",
+        signature="unauthorized_private_reference_function_emodel_exemplar_morphology_id_cell_morphology()",
         definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.exemplar_morphology_id\n                    AND (e1.authorized_public = TRUE\n                        OR (e2.authorized_public = FALSE\n                            AND e1.authorized_project_id = e2.authorized_project_id\n                        )\n                    )\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.create_entity(
-        public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology
+        public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_cell_morphology
     )
 
-    public_unauthorized_private_reference_function_memodel_morphology_id_reconstruction_morphology = PGFunction(
+    public_unauthorized_private_reference_function_memodel_morphology_id_cell_morphology = PGFunction(
         schema="public",
-        signature="unauthorized_private_reference_function_memodel_morphology_id_reconstruction_morphology()",
+        signature="unauthorized_private_reference_function_memodel_morphology_id_cell_morphology()",
         definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.morphology_id\n                    AND (e1.authorized_public = TRUE\n                        OR (e2.authorized_public = FALSE\n                            AND e1.authorized_project_id = e2.authorized_project_id\n                        )\n                    )\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.create_entity(
-        public_unauthorized_private_reference_function_memodel_morphology_id_reconstruction_morphology
+        public_unauthorized_private_reference_function_memodel_morphology_id_cell_morphology
     )
 
     public_unauthorized_private_reference_function_memodel_emodel_id_emodel = PGFunction(
@@ -174,26 +174,26 @@ def upgrade() -> None:
     )
     op.create_entity(public_unauthorized_private_reference_function_memodel_emodel_id_emodel)
 
-    public_emodel_unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_reconstruction_morphology = PGTrigger(
+    public_emodel_unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_cell_morphology = PGTrigger(
         schema="public",
-        signature="unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_reconstruction_morphology",
+        signature="unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_cell_morphology",
         on_entity="public.emodel",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON emodel\n            FOR EACH ROW EXECUTE FUNCTION unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology()",
+        definition="BEFORE INSERT OR UPDATE ON emodel\n            FOR EACH ROW EXECUTE FUNCTION unauthorized_private_reference_function_emodel_exemplar_morphology_id_cell_morphology()",
     )
     op.create_entity(
-        public_emodel_unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_reconstruction_morphology
+        public_emodel_unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_cell_morphology
     )
 
-    public_memodel_unauthorized_private_reference_trigger_memodel_morphology_id_reconstruction_morphology = PGTrigger(
+    public_memodel_unauthorized_private_reference_trigger_memodel_morphology_id_cell_morphology = PGTrigger(
         schema="public",
-        signature="unauthorized_private_reference_trigger_memodel_morphology_id_reconstruction_morphology",
+        signature="unauthorized_private_reference_trigger_memodel_morphology_id_cell_morphology",
         on_entity="public.memodel",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION unauthorized_private_reference_function_memodel_morphology_id_reconstruction_morphology()",
+        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION unauthorized_private_reference_function_memodel_morphology_id_cell_morphology()",
     )
     op.create_entity(
-        public_memodel_unauthorized_private_reference_trigger_memodel_morphology_id_reconstruction_morphology
+        public_memodel_unauthorized_private_reference_trigger_memodel_morphology_id_cell_morphology
     )
 
     public_memodel_unauthorized_private_reference_trigger_memodel_emodel_id_emodel = PGTrigger(
@@ -219,26 +219,26 @@ def downgrade() -> None:
     )
     op.drop_entity(public_memodel_unauthorized_private_reference_trigger_memodel_emodel_id_emodel)
 
-    public_memodel_unauthorized_private_reference_trigger_memodel_morphology_id_reconstruction_morphology = PGTrigger(
+    public_memodel_unauthorized_private_reference_trigger_memodel_morphology_id_cell_morphology = PGTrigger(
         schema="public",
-        signature="unauthorized_private_reference_trigger_memodel_morphology_id_reconstruction_morphology",
+        signature="unauthorized_private_reference_trigger_memodel_morphology_id_cell_morphology",
         on_entity="public.memodel",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION unauthorized_private_reference_function_memodel_morphology_id_reconstruction_morphology()",
+        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION unauthorized_private_reference_function_memodel_morphology_id_cell_morphology()",
     )
     op.drop_entity(
-        public_memodel_unauthorized_private_reference_trigger_memodel_morphology_id_reconstruction_morphology
+        public_memodel_unauthorized_private_reference_trigger_memodel_morphology_id_cell_morphology
     )
 
-    public_emodel_unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_reconstruction_morphology = PGTrigger(
+    public_emodel_unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_cell_morphology = PGTrigger(
         schema="public",
-        signature="unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_reconstruction_morphology",
+        signature="unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_cell_morphology",
         on_entity="public.emodel",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON emodel\n            FOR EACH ROW EXECUTE FUNCTION unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology()",
+        definition="BEFORE INSERT OR UPDATE ON emodel\n            FOR EACH ROW EXECUTE FUNCTION unauthorized_private_reference_function_emodel_exemplar_morphology_id_cell_morphology()",
     )
     op.drop_entity(
-        public_emodel_unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_reconstruction_morphology
+        public_emodel_unauthorized_private_reference_trigger_emodel_exemplar_morphology_id_cell_morphology
     )
 
     public_unauthorized_private_reference_function_memodel_emodel_id_emodel = PGFunction(
@@ -248,22 +248,22 @@ def downgrade() -> None:
     )
     op.drop_entity(public_unauthorized_private_reference_function_memodel_emodel_id_emodel)
 
-    public_unauthorized_private_reference_function_memodel_morphology_id_reconstruction_morphology = PGFunction(
+    public_unauthorized_private_reference_function_memodel_morphology_id_cell_morphology = PGFunction(
         schema="public",
-        signature="unauthorized_private_reference_function_memodel_morphology_id_reconstruction_morphology()",
+        signature="unauthorized_private_reference_function_memodel_morphology_id_cell_morphology()",
         definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.morphology_id\n                    AND (e1.authorized_public = TRUE\n                        OR (e2.authorized_public = FALSE\n                            AND e1.authorized_project_id = e2.authorized_project_id\n                        )\n                    )\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.drop_entity(
-        public_unauthorized_private_reference_function_memodel_morphology_id_reconstruction_morphology
+        public_unauthorized_private_reference_function_memodel_morphology_id_cell_morphology
     )
 
-    public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology = PGFunction(
+    public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_cell_morphology = PGFunction(
         schema="public",
-        signature="unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology()",
+        signature="unauthorized_private_reference_function_emodel_exemplar_morphology_id_cell_morphology()",
         definition="RETURNS TRIGGER AS $$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.exemplar_morphology_id\n                    AND (e1.authorized_public = TRUE\n                        OR (e2.authorized_public = FALSE\n                            AND e1.authorized_project_id = e2.authorized_project_id\n                        )\n                    )\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $$ LANGUAGE plpgsql",
     )
     op.drop_entity(
-        public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_reconstruction_morphology
+        public_unauthorized_private_reference_function_emodel_exemplar_morphology_id_cell_morphology
     )
 
     public_electrical_cell_recording_electrical_cell_recording_description_vector = PGTrigger(
@@ -295,14 +295,14 @@ def downgrade() -> None:
     )
     op.drop_entity(public_subject_subject_description_vector)
 
-    public_reconstruction_morphology_reconstruction_morphology_description_vector = PGTrigger(
+    public_cell_morphology_cell_morphology_description_vector = PGTrigger(
         schema="public",
-        signature="reconstruction_morphology_description_vector",
-        on_entity="public.reconstruction_morphology",
+        signature="cell_morphology_description_vector",
+        on_entity="public.cell_morphology",
         is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON reconstruction_morphology\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+        definition="BEFORE INSERT OR UPDATE ON cell_morphology\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
-    op.drop_entity(public_reconstruction_morphology_reconstruction_morphology_description_vector)
+    op.drop_entity(public_cell_morphology_cell_morphology_description_vector)
 
     public_experimental_neuron_density_experimental_neuron_density_description_vector = PGTrigger(
         schema="public",

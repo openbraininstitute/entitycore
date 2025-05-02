@@ -1,10 +1,9 @@
 import uuid
 from collections.abc import Sequence
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import EntityType, PointLocationBase
+from app.db.types import PointLocationBase
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -12,6 +11,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
@@ -19,9 +19,9 @@ from app.schemas.base import (
     MeasurementRead,
     SpeciesRead,
     StrainRead,
-    EntityTypeMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
+
 
 class ReconstructionMorphologyBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)

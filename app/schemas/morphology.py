@@ -1,9 +1,10 @@
 import uuid
 from collections.abc import Sequence
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import PointLocationBase
+from app.db.types import EntityType, PointLocationBase
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -69,6 +70,7 @@ class ReconstructionMorphologyRead(
     brain_region: BrainRegionRead
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
+    type: Literal[EntityType.reconstruction_morphology] = EntityType.reconstruction_morphology
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

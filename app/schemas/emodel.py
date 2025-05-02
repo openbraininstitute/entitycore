@@ -1,9 +1,7 @@
 import uuid
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import EntityType
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -50,7 +48,6 @@ class EModelRead(EModelBase, CreationMixin, AuthorizationMixin, EntityTypeMixin,
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
-    type: Literal[EntityType.emodel] = EntityType.emodel
 
 
 class EModelReadExpanded(EModelRead):

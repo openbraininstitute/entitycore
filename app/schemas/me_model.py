@@ -14,8 +14,8 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.emodel import EModelReadExpanded
-from app.schemas.morphology import ReconstructionMorphologyAnnotationExpandedRead
+from app.schemas.emodel import EModelRead
+from app.schemas.morphology import ReconstructionMorphologyRead
 
 
 class MEModelBase(BaseModel):
@@ -51,5 +51,5 @@ class MEModelRead(
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
-    morphology: ReconstructionMorphologyAnnotationExpandedRead
-    emodel: EModelReadExpanded
+    morphology: ReconstructionMorphologyRead
+    emodel: EModelRead

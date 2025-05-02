@@ -17,10 +17,7 @@ from app.db.model import (
     EModel,
     ETypeClass,
     ETypeClassification,
-    IonChannelModel,
     MEModel,
-    MorphologyFeatureAnnotation,
-    MorphologyMeasurement,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
@@ -53,11 +50,6 @@ def _load(select: Select):
             joinedload(EModel.mtypes),
             joinedload(EModel.etypes),
             selectinload(EModel.assets),
-            selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.ions),
-            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.species),
-            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
-            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
-            selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
         ),
         joinedload(MEModel.morphology).options(
             joinedload(ReconstructionMorphology.brain_region),
@@ -68,9 +60,6 @@ def _load(select: Select):
             joinedload(ReconstructionMorphology.species),
             joinedload(ReconstructionMorphology.strain),
             selectinload(ReconstructionMorphology.assets),
-            selectinload(ReconstructionMorphology.morphology_feature_annotation)
-            .selectinload(MorphologyFeatureAnnotation.measurements)
-            .selectinload(MorphologyMeasurement.measurement_serie),
         ),
         joinedload(MEModel.brain_region),
         selectinload(MEModel.contributions).joinedload(Contribution.agent),

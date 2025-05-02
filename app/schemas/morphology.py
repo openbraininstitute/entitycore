@@ -11,6 +11,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
@@ -63,6 +64,7 @@ class ReconstructionMorphologyRead(
     LicensedReadMixin,
     AuthorizationMixin,
     AssetsMixin,
+    EntityTypeMixin,
 ):
     species: SpeciesRead
     strain: StrainRead | None

@@ -9,6 +9,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     SpeciesRead,
     StrainRead,
@@ -43,6 +44,7 @@ class MEModelRead(
     MEModelBase,
     CreationMixin,
     AuthorizationMixin,
+    EntityTypeMixin,
 ):
     id: uuid.UUID
     species: SpeciesRead

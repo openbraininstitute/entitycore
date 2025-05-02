@@ -7,6 +7,7 @@ from app.db.model import (
     MEModel,
     SingleNeuronSynaptome,
 )
+from app.db.types import EntityType
 
 from .utils import (
     MISSING_ID,
@@ -46,6 +47,7 @@ def _assert_read_response(data, json_data):
     assert len(data["me_model"]["etypes"]) == 1
     assert data["createdBy"]["id"] == json_data["createdBy_id"]
     assert data["updatedBy"]["id"] == json_data["updatedBy_id"]
+    assert data["type"] == EntityType.single_neuron_synaptome
 
 
 def _assert_create_response(data, json_data):

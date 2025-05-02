@@ -11,6 +11,7 @@ from starlette.requests import Request
 
 from app.errors import ApiError, ApiErrorCode
 from app.schemas.types import Facet, Facets, PaginationRequest
+from app.filters.brain_region import filter_by_hierarchy_name_and_id
 
 
 def forbid_extra_query_params(
@@ -122,6 +123,21 @@ class Search[T: DeclarativeBase](BaseModel):
         return q.where(vector_col.match(self.search))
 
 
+class InBrainRegionQuery(BaseModel):
+    within_brain_region: str | None = None
+
+    def __call__(self, query: sa.Select, db_model_class):
+        if not self.within_brain_region:
+            return query
+
+        [hierarchy_id, hierarchy_name, *with_ascendents] = self.within_brain_region.split(',')
+
+        with_ascendents = with_ascendents[0].lower() == "true" if with_ascendents else False
+
+        return filter_by_hierarchy_name_and_id(query, db_model_class, hierarchy_id, hierarchy_name, with_ascendents)
+
+
 PaginationQuery = Annotated[PaginationRequest, Depends(PaginationRequest)]
 FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
+InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]

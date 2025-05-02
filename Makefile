@@ -7,6 +7,7 @@ export COMMIT_SHA := $(shell git rev-parse HEAD)
 export IMAGE_NAME ?= $(APP_NAME)
 export IMAGE_TAG := $(APP_VERSION)
 export IMAGE_TAG_ALIAS := latest
+export HIERARCHY_NAME ?= aibs
 ifneq ($(ENVIRONMENT), prod)
 	export IMAGE_TAG := $(IMAGE_TAG)-$(ENVIRONMENT)
 	export IMAGE_TAG_ALIAS := $(IMAGE_TAG_ALIAS)-$(ENVIRONMENT)
@@ -52,10 +53,10 @@ import:  ## Run the import on a database, assumes mba_hierarchy.json and out are
 	@$(call load_env,run-local)
 	@test -n "$(PROJECT_ID_IMPORT)" || (echo "Please set the variable PROJECT_ID_IMPORT"; exit 1)
 	@test -n "$(VIRTUAL_LAB_ID_IMPORT)" || (echo "Please set the variable VIRTUAL_LAB_ID_IMPORT"; exit 1)
-	docker compose up --wait db
+	#docker compose up --wait db
 	uv run -m alembic upgrade head
-	uv run -m app.cli.import_data --seed 0 hierarchy mba_hierarchy.json
-	uv run -m app.cli.import_data --seed 1 run ./out --virtual-lab-id $(VIRTUAL_LAB_ID_IMPORT) --project-id $(PROJECT_ID_IMPORT)
+	uv run -m app.cli.import_data --seed 0 hierarchy $(HIERARCHY_NAME) mba_hierarchy.json
+	uv run -m app.cli.import_data --seed 1 run ./out --virtual-lab-id $(VIRTUAL_LAB_ID_IMPORT) --project-id $(PROJECT_ID_IMPORT) --hierarchy-name $(HIERARCHY_NAME)
 
 organize-files:  ## Organize files locally by creating symlinks from the backup to the expected location
 	@$(call load_env,run-local)

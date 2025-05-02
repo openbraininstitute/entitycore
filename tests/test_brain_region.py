@@ -12,12 +12,14 @@ hierarchy = {
     "acronym": "root",
     "name": "root",
     "color_hex_triplet": "FFFFFF",
+    "parent_structure_id": null,
     "children": [
         {
             "id": 8,
             "acronym": "grey",
             "name": "Basic cell groups and regions",
             "color_hex_triplet": "BFDAE3",
+            "parent_structure_id": 997,
             "children": [],
         },
         {
@@ -25,12 +27,14 @@ hierarchy = {
             "acronym": "blue",
             "name": "BlueRegion",
             "color_hex_triplet": "0000FF",
+            "parent_structure_id": 997,
             "children": [
                 {
                     "id": 64,
                     "acronym": "red",
                     "name": "RedRegion",
                     "color_hex_triplet": "FF0000",
+                    "parent_structure_id": 42,
                     "children": [],
                 }
             ],
@@ -39,7 +43,7 @@ hierarchy = {
 }
 
 
-def test_brain_region_id(client_admin, client):
+def _get_flat_regions(hierarchy):
     regions = []
 
     def recurse(i):
@@ -50,8 +54,11 @@ def test_brain_region_id(client_admin, client):
             recurse(child)
         regions.append(item)
 
-    recurse(hierarchy)
+    return recurse(hierarchy)
 
+
+def test_brain_region_id(client_admin, client):
+    regions = _get_flat_regions(hierarchy)
     for region in regions:
         response = client_admin.post(
             ROUTE,

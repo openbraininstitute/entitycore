@@ -13,6 +13,7 @@ from app.db.model import (
     Agent,
     Asset,
     BrainRegion,
+    BrainRegionHierarchyName,
     Contribution,
     ElectricalRecordingStimulus,
     Ion,
@@ -48,26 +49,26 @@ def _find_by_legacy_id(legacy_id, db_type, db, _cache={}):
     return res
 
 
-def get_or_create_brain_region(brain_region, db, _cache=set()):
+def get_brain_region_by_hier_id(brain_region, hierarchy_name, db, _cache=dict()):
     brain_region = curate.curate_brain_region(brain_region)
 
     brain_region_id = int(brain_region["@id"])
-    if brain_region_id in _cache:
-        return brain_region_id
+    if (hierarchy_name, brain_region_id) in _cache:
+        return _cache[(hierarchy_name, brain_region_id)]
 
-    br = db.query(BrainRegion).filter(BrainRegion.id == brain_region_id).first()
+    br = db.execute(
+          sa.select(BrainRegion)
+           .join(BrainRegionHierarchyName,
+                 BrainRegion.hierarchy_name_id == BrainRegionHierarchyName.id)
+           .where(BrainRegionHierarchyName.name == hierarchy_name,
+                  BrainRegion.hierarchy_id == brain_region_id)
+           ).scalar_one_or_none()
 
-    if not br:
-        br1 = db.query(BrainRegion).filter(BrainRegion.name == brain_region["label"]).first()
-        if not br1:
-            L.info("Replacing: {} -> failed", brain_region)
-            return 997
-        L.info("Replacing: {} -> {}", brain_region, br1.id)
+    if br is None:
+        msg = f"({hierarchy_name}, {brain_region}) not found in database"
+        raise RuntimeError(msg)
 
-        _cache.add(br1.id)
-        return br1.id
-
-    _cache.add(br.id)
+    _cache[(hierarchy_name, brain_region_id)] = br.id
     return br.id
 
 
@@ -108,7 +109,7 @@ def create_stimulus(data, entity_id, project_context, db):
     db.commit()
 
 
-def get_brain_location_mixin(data, db):
+def get_brain_location(data, db):
     coordinates = data.get("brainLocation", {}).get("coordinatesInBrainAtlas", {})
     if coordinates is None:
         msg = "coordinates is None"
@@ -122,6 +123,10 @@ def get_brain_location_mixin(data, db):
         if x is not None and y is not None and z is not None:
             brain_location = {"x": x, "y": y, "z": z}
 
+    return brain_location
+
+
+def get_brain_region(data, hierarchy_name, db):
     root = {
         "@id": "http://api.brain-map.org/api/v2/data/Structure/root",
         "label": "root",
@@ -133,13 +138,9 @@ def get_brain_location_mixin(data, db):
         msg = "brain_region is None"
         raise RuntimeError(msg)
 
-    try:
-        brain_region_id = get_or_create_brain_region(brain_region, db)
-    except Exception:
-        L.exception("data: {!r}", data)
-        raise
+    brain_region_id = get_brain_region_by_hier_id(brain_region, hierarchy_name, db)
 
-    return brain_location, brain_region_id
+    return brain_region_id
 
 
 def get_license_id(license, db, _cache={}):
@@ -409,7 +410,7 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     return db_ion.id
 
 
-def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):
+def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, hierarchy_name, db: Session):
     legacy_id = script["@id"]
     legacy_self = script["_self"]
     temperature = script.get("temperature", {})
@@ -439,7 +440,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
 
         nmodl_parameters_validated = NmodlParameters.model_validate(d)
 
-    _, brain_region_id = get_brain_location_mixin(script, db)
+    brain_region_id = get_brain_region(script, hierarchy_name, db)
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
 
@@ -481,6 +482,7 @@ def import_ion_channel_models(
     emodel_id: uuid.UUID,
     all_data_by_id: dict[str, dict[str, Any]],
     project_context: ProjectContext,
+    hierarchy_name: str,
     db: Session,
 ):
     subcellular_model_script_ids = [
@@ -503,7 +505,7 @@ def import_ion_channel_models(
             ion_channel_model_ids.append(db_ion_channel_model.id)
             continue
 
-        db_ion_channel_model = import_ion_channel_model(script, project_context, db)
+        db_ion_channel_model = import_ion_channel_model(script, project_context, hierarchy_name, db)
 
         if ion:
             ion_associations = [
@@ -527,17 +529,18 @@ def import_ion_channel_models(
     db.flush()
 
 
-def _get_pathway_info(data, db):  # noqa: C901
+def _get_pathway_info(data, hierarchy_name, db):  # noqa: C901
     pre_region_id = pre_mtype_label = post_region_id = post_mtype_label = None
+
     for entry in data["preSynaptic"]:
         if "BrainRegion" in entry["about"]:
-            pre_region_id = int(entry["@id"].replace("mba:", ""))
+            pre_region_id = get_brain_region_by_hier_id(entry, hierarchy_name, db)
         elif "mtypes" in entry["@id"] or "BrainCell:Type" in entry["about"]:
             pre_mtype_label = entry["label"]
 
     for entry in data["postSynaptic"]:
         if "BrainRegion" in entry["about"]:
-            post_region_id = int(entry["@id"].replace("mba:", ""))
+            post_region_id = get_brain_region_by_hier_id(entry, hierarchy_name, db)
         elif "mtypes" in entry["@id"] or "BrainCell:Type" in entry["about"]:
             post_mtype_label = entry["label"]
 
@@ -561,8 +564,8 @@ def _get_pathway_info(data, db):  # noqa: C901
     return pre_mtype.id, post_mtype.id, pre_region_id, post_region_id  # pyright: ignore [reportPossiblyUnboundVariable]
 
 
-def get_or_create_synaptic_pathway(data, project_context, db):
-    pre_mtype_id, post_mtype_id, pre_region_id, post_region_id = _get_pathway_info(data, db)
+def get_or_create_synaptic_pathway(data, project_context, hierarchy_name, db):
+    pre_mtype_id, post_mtype_id, pre_region_id, post_region_id = _get_pathway_info(data, hierarchy_name, db)
 
     res = (
         db.query(SynapticPathway)

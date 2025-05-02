@@ -58,10 +58,13 @@ class LicenseRead(LicenseCreate, CreationMixin, IdentifiableMixin):
 
 class BrainRegionCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: uuid.UUID
+    hierarchy_id: int
     name: str
     acronym: str
-    children: list[int]
+    color_hex_triplet: str
+    parent_structure_id: uuid.UUID
+    hierarchy_name_id: uuid.UUID
 
 
 class BrainRegionRead(BrainRegionCreate, CreationMixin):

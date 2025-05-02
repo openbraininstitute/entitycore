@@ -13,7 +13,7 @@ from app.db.model import (
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep, InBrainRegionDep
 from app.dependencies.db import SessionDep
 from app.filters.electrical_cell_recording import ElectricalCellRecordingFilter
 from app.queries.common import (
@@ -74,6 +74,7 @@ def read_many(
     ],
     with_search: SearchDep,
     facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ElectricalCellRecordingRead]:
     agent_alias = aliased(Agent, flat=True)
     protocol_alias = aliased(ElectricalRecordingStimulus, flat=True)
@@ -108,6 +109,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=ElectricalCellRecording,
         with_search=with_search,
+        with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,

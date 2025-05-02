@@ -11,7 +11,7 @@ from app.db.model import (
     SingleNeuronSynaptomeSimulation,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep, InBrainRegionDep
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_synaptome_simulation import (
     SingleNeuronSynaptomeSimulationFilterDep,
@@ -62,6 +62,7 @@ def read_many(
     pagination_request: PaginationQuery,
     filter_model: SingleNeuronSynaptomeSimulationFilterDep,
     with_search: SearchDep,
+    in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
 ) -> ListResponse[SingleNeuronSynaptomeSimulationRead]:
     synaptome_alias = aliased(SingleNeuronSynaptome, flat=True)
@@ -101,6 +102,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=SingleNeuronSynaptomeSimulation,
         with_search=with_search,
+        with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,

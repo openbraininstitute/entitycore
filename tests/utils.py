@@ -110,12 +110,13 @@ def assert_request(client_method, *, expected_status_code=200, **kwargs):
     return response
 
 
-def create_brain_region_id(client, id_: int, name: str):
+def create_brain_region_id(client, id_: int, name: str, parent_id: int = -1):
     js = {
         "id": id_,
         "acronym": f"acronym{id_}",
         "name": name,
         "color_hex_triplet": "FF0000",
+        "parent_structure_id": parent_id
         "children": [],
     }
     response = assert_request(

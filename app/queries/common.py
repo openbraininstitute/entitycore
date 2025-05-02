@@ -7,9 +7,10 @@ from sqlalchemy.orm import DeclarativeBase, Session
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Entity, Identifiable
-from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets
+from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets, InBrainRegionDep
 from app.errors import ensure_authorized_references, ensure_result, ensure_uniqueness
 from app.filters.base import Aliases, CustomFilter
+from app.filters.brain_region import filter_by_hierarchy_name_and_id
 from app.schemas.types import ListResponse, PaginationResponse
 
 type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[tuple[T]]], sa.Select[tuple[T]]]
@@ -71,6 +72,7 @@ def router_read_many[T: BaseModel, I: Identifiable](
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
     with_search: Search[I] | None,
+    with_in_brain_region: InBrainRegionDep | None,
     facets: WithFacets | None,
     aliases: Aliases | None,
     apply_filter_query_operations: ApplyOperations[I] | None,
@@ -89,13 +91,13 @@ def router_read_many[T: BaseModel, I: Identifiable](
     if apply_filter_query_operations:
         filter_query = apply_filter_query_operations(filter_query)
 
-    filter_query = filter_model.filter(
-        filter_query,
-        aliases=aliases,
-    )
+    filter_query = filter_model.filter(filter_query, aliases=aliases)
 
     if with_search and (description_vector := getattr(db_model_class, "description_vector", None)):
         filter_query = with_search(filter_query, description_vector)
+
+    if with_in_brain_region:
+        filter_query = with_in_brain_region(filter_query, db_model_class)
 
     data_query = (
         filter_model.sort(filter_query)

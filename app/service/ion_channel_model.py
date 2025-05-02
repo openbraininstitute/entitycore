@@ -83,7 +83,7 @@ def read_one(
 
 def icm_ion_names_exist(db: SessionDep, ion_channel_model: IonChannelModelCreate):
     """Verifies that all Ion names specified in IonChannelModelCreate exist in the Ion database."""
-    ion_names = {ion.ion_name for ion in ion_channel_model.neuron_block.useion}
+    ion_names = {ion.ion_name.lower() for ion in ion_channel_model.neuron_block.useion}
 
     stmt = (
         sa.select(sa.func.count() == len(ion_names)).select_from(Ion).where(Ion.name.in_(ion_names))

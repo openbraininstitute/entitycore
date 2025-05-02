@@ -16,7 +16,14 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
-from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    declared_attr,
+    mapped_column,
+    relationship,
+    validates,
+)
 
 from app.db.types import (
     BIGINT,
@@ -711,6 +718,10 @@ class Ion(Identifiable):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     name: Mapped[str] = mapped_column(unique=True, index=True)
     ontology_id: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
+
+    @validates("name")
+    def _normalize_name(self, key, value):  # noqa: PLR6301, ARG002
+        return value.lower() if value else value
 
 
 class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):

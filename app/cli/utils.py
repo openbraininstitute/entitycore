@@ -400,7 +400,7 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
 
     ontology_id = ion.get("@id")
 
-    q = sa.select(Ion).where(Ion.name == label)
+    q = sa.select(Ion).where(Ion.name == label.lower())
     db_ion = db.execute(q).scalar_one_or_none()
     if not db_ion:
         db_ion = Ion(name=ion.get("label"), ontology_id=ontology_id)
@@ -412,7 +412,7 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     return db_ion
 
 
-def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):  # noqa: PLR0915
+def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):
     legacy_id = script["@id"]
     legacy_self = script["_self"]
     temperature = script.get("temperature", {})
@@ -463,13 +463,7 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
                 (entry.get("label", "").lower() if entry else "")
                 for entry in ensurelist(script.get("ion"))
             ):
-                if useion_name == "ca":
-                    ion = {
-                        "@id": "https://neuroshapes.org/Ca",
-                        "label": "Ca",
-                    }
-                else:
-                    ion = {"@id": None, "label": useion_name}
+                ion = {"@id": None, "label": useion_name}
             else:
                 ion = next(
                     entry

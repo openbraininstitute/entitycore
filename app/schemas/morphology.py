@@ -19,9 +19,9 @@ from app.schemas.base import (
     MeasurementRead,
     SpeciesRead,
     StrainRead,
+    EntityTypeMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-
 
 class ReconstructionMorphologyBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -64,13 +64,13 @@ class ReconstructionMorphologyRead(
     LicensedReadMixin,
     AuthorizationMixin,
     AssetsMixin,
+    EntityTypeMixin,
 ):
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
-    type: Literal[EntityType.reconstruction_morphology] = EntityType.reconstruction_morphology
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

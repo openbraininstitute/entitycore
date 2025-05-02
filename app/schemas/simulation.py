@@ -1,15 +1,15 @@
 import uuid
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import EntityType, SingleNeuronSimulationStatus
+from app.db.types import SingleNeuronSimulationStatus
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
     BrainRegionCreateMixin,
     BrainRegionReadMixin,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
 )
 from app.schemas.me_model import NestedMEModel
@@ -40,9 +40,9 @@ class SingleNeuronSimulationRead(
     AuthorizationMixin,
     IdentifiableMixin,
     CreationMixin,
+    EntityTypeMixin,
 ):
     me_model: NestedMEModel
-    type: Literal[EntityType.single_neuron_simulation] = EntityType.single_neuron_simulation
 
 
 class SingleNeuronSynaptomeSimulationCreate(
@@ -59,8 +59,6 @@ class SingleNeuronSynaptomeSimulationRead(
     AuthorizationMixin,
     IdentifiableMixin,
     CreationMixin,
+    EntityTypeMixin,
 ):
     synaptome: NestedSynaptome
-    type: Literal[EntityType.single_neuron_synaptome_simulation] = (
-        EntityType.single_neuron_synaptome_simulation
-    )

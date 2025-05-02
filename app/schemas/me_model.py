@@ -1,16 +1,15 @@
 import uuid
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
 from app.db.model import ValidationStatus
-from app.db.types import EntityType
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     SpeciesRead,
     StrainRead,
@@ -45,6 +44,7 @@ class MEModelRead(
     MEModelBase,
     CreationMixin,
     AuthorizationMixin,
+    EntityTypeMixin,
 ):
     id: uuid.UUID
     species: SpeciesRead

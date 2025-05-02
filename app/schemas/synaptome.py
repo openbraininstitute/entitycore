@@ -1,15 +1,14 @@
 import uuid
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import EntityType
 from app.schemas.agent import AgentRead
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
@@ -41,9 +40,9 @@ class SingleNeuronSynaptomeRead(
     IdentifiableMixin,
     CreationMixin,
     ContributionReadWithoutEntityMixin,
+    EntityTypeMixin,
 ):
     me_model: NestedMEModel
     brain_region: BrainRegionRead
     createdBy: AgentRead | None
     updatedBy: AgentRead | None
-    type: Literal[EntityType.single_neuron_synaptome] = EntityType.single_neuron_synaptome

@@ -1,9 +1,8 @@
 import uuid
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import EntityType, MeasurementUnit
+from app.db.types import MeasurementUnit
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
@@ -11,12 +10,13 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
-    SubjectRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.subject import SubjectRead
 
 
 class MeasurementRead(BaseModel):
@@ -42,7 +42,12 @@ class ExperimentalDensityCreate(
 
 
 class ExperimentalDensityRead(
-    ExperimentalDensityBase, CreationMixin, IdentifiableMixin, LicensedReadMixin, AuthorizationMixin
+    ExperimentalDensityBase,
+    CreationMixin,
+    IdentifiableMixin,
+    LicensedReadMixin,
+    AuthorizationMixin,
+    EntityTypeMixin,
 ):
     subject: SubjectRead
     brain_region: BrainRegionRead
@@ -66,12 +71,10 @@ class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
 class ExperimentalNeuronDensityRead(ExperimentalDensityRead):
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
-    type: Literal[EntityType.experimental_neuron_density] = EntityType.experimental_neuron_density
 
 
 class ExperimentalBoutonDensityRead(ExperimentalDensityRead):
     mtypes: list[MTypeClassRead] | None
-    type: Literal[EntityType.experimental_bouton_density] = EntityType.experimental_bouton_density
 
 
 class SynapticPathwayRead(CreationMixin, IdentifiableMixin):
@@ -83,6 +86,3 @@ class SynapticPathwayRead(CreationMixin, IdentifiableMixin):
 
 class ExperimentalSynapsesPerConnectionRead(ExperimentalDensityRead):
     synaptic_pathway: SynapticPathwayRead
-    type: Literal[EntityType.experimental_synapses_per_connection] = (
-        EntityType.experimental_synapses_per_connection
-    )

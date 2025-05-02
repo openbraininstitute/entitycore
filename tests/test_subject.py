@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 
 from app.db.model import Subject
-from app.schemas.base import SubjectCreate
+from app.schemas.subject import SubjectCreate
 
 from .utils import (
     PROJECT_ID,

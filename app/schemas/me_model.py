@@ -14,11 +14,8 @@ from app.schemas.base import (
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.emodel import EModelBase, ExemplarMorphology as Morphology
-
-
-class EModel(EModelBase, CreationMixin, IdentifiableMixin):
-    pass
+from app.schemas.emodel import EModelRead
+from app.schemas.morphology import ReconstructionMorphologyRead
 
 
 class MEModelBase(BaseModel):
@@ -54,5 +51,5 @@ class MEModelRead(
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
-    morphology: Morphology
-    emodel: EModel
+    morphology: ReconstructionMorphologyRead
+    emodel: EModelRead

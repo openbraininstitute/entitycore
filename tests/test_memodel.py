@@ -58,9 +58,14 @@ def test_create_memodel(
     assert data["brain_region"]["id"] == brain_region_id, f"Failed to get id for memodel: {data}"
     assert data["species"]["id"] == species_id, f"Failed to get species_id for memodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
+    assert "assets" in data["emodel"]
+    assert "assets" in data["morphology"]
 
     response = client.get(f"{ROUTE}/{data['id']}")
     assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
+    data = response.json()
+    assert "assets" in data["emodel"]
+    assert "assets" in data["morphology"]
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):

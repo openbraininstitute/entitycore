@@ -72,6 +72,7 @@ class ReconstructionMorphologyRead(
     brain_region: BrainRegionRead
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
+    type: Literal[EntityType.reconstruction_morphology] = EntityType.reconstruction_morphology
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

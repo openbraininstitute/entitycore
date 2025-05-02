@@ -122,7 +122,7 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
             {"id": ids.species_ids[0], "label": "TestSpecies0", "count": 4, "type": "species"},
             {"id": ids.species_ids[1], "label": "TestSpecies1", "count": 4, "type": "species"},
         ],
-        "contribution": [],
+        "contributions": [],
         "brain_region": [
             {"id": ids.brain_region_ids[0], "label": "region0", "count": 4, "type": "brain_region"},
             {"id": ids.brain_region_ids[1], "label": "region1", "count": 4, "type": "brain_region"},
@@ -162,7 +162,7 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
                 "type": "species",
             }
         ],
-        "contribution": [],
+        "contributions": [],
         "brain_region": [
             {"id": 0, "label": "region0", "count": 2, "type": "brain_region"},
             {"id": 1, "label": "region1", "count": 2, "type": "brain_region"},

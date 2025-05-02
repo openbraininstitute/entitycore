@@ -4,8 +4,8 @@ from app.dependencies.common import FacetQueryParams
 brain_region: dict[str, FacetQueryParams] = {
     "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
 }
-contribution: dict[str, FacetQueryParams] = {
-    "contribution": {
+contributions: dict[str, FacetQueryParams] = {
+    "contributions": {
         "id": Agent.id,
         "label": Agent.pref_label,
         "type": Agent.type,

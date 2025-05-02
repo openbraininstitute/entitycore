@@ -277,7 +277,7 @@ def test_facets(client, faceted_ids):
             {"id": brain_region_ids[0], "label": "region-0", "count": 2, "type": "brain_region"},
             {"id": brain_region_ids[1], "label": "region-1", "count": 2, "type": "brain_region"},
         ],
-        "contribution": [],
+        "contributions": [],
         "me_model": [
             {
                 "id": str(memodel_ids[0]),

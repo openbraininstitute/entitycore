@@ -161,7 +161,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "contribution": [],
+        "contributions": [],
         "mtype": [],
         "species": [
             {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "species"},
@@ -180,7 +180,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "contribution": [],
+        "contributions": [],
         "mtype": [],
         "species": [
             {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "species"},
@@ -200,7 +200,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: 
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
-        "contribution": [],
+        "contributions": [],
         "mtype": [],
         "species": [
             {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "species"}
@@ -235,7 +235,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     assert len(data["data"]) == data["pagination"]["total_items"]
     assert "facets" in data
     assert data["facets"] == {
-        "contribution": [],
+        "contributions": [],
         "mtype": [],
         "species": [
             {"id": str(species0.id), "label": "TestSpecies0", "count": 1, "type": "species"}

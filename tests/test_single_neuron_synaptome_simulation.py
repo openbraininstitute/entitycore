@@ -305,7 +305,7 @@ def test_facets(client, faceted_ids):
     assert "facets" in data
     facets = data["facets"]
 
-    assert facets["contribution"] == []
+    assert facets["contributions"] == []
     assert facets["brain_region"] == [
         {"id": brain_region_ids[0], "label": "region-0", "count": 2, "type": "brain_region"},
         {"id": brain_region_ids[1], "label": "region-1", "count": 2, "type": "brain_region"},

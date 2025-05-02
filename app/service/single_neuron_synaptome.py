@@ -69,7 +69,7 @@ def read_many(
         }
     }
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.memodel | created_by_facet
+        fc.brain_region | fc.contributions | fc.memodel | created_by_facet
     )
     apply_filter_query = lambda query: (
         query.join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)

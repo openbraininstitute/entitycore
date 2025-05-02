@@ -95,8 +95,8 @@ def test_create_contribution(
     assert len(data[0]["contributions"]) == 2
 
     facets = response.json()["facets"]
-    assert len(facets["contribution"]) == 2
-    assert facets["contribution"] == [
+    assert len(facets["contributions"]) == 2
+    assert facets["contributions"] == [
         {"id": str(organization_id), "label": "ACME", "type": "organization", "count": 1},
         {"id": str(person_id), "label": "jd courcol", "type": "person", "count": 1},
     ]
@@ -266,7 +266,7 @@ def test_contribution_facets(
     data = response.json()
     facets = data["facets"]
     assert facets == {
-        "contribution": [
+        "contributions": [
             {"count": 6, "id": str(org.id), "label": "org_pref_label", "type": "organization"},
             {"count": 9, "id": str(person.id), "label": "person_pref_label", "type": "person"},
         ],
@@ -293,7 +293,7 @@ def test_contribution_facets(
     data = response.json()
     facets = data["facets"]
     assert facets == {
-        "contribution": [
+        "contributions": [
             {"count": 9, "id": str(person.id), "label": "person_pref_label", "type": "person"}
         ],
         "mtype": [],

@@ -38,7 +38,7 @@ def read_many(
 ) -> ListResponse[ExperimentalNeuronDensityRead]:
     subject_alias = aliased(Subject, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.etype | fc.mtype | fc.species | fc.strain
+        fc.brain_region | fc.contributions | fc.etype | fc.mtype | fc.species | fc.strain
     )
     apply_filter_query = lambda query: (
         query.join(BrainRegion, ExperimentalNeuronDensity.brain_region_id == BrainRegion.id)

@@ -102,7 +102,7 @@ def read_many(
         "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
         "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
-        "contribution": {
+        "contributions": {
             "id": Agent.id,
             "label": Agent.pref_label,
             "type": Agent.type,

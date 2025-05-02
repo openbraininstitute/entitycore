@@ -99,7 +99,7 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "species",
             },
         ],
-        "contribution": [
+        "contributions": [
             {
                 "id": ids.agent_ids[0],
                 "label": "test_organization_1",
@@ -176,7 +176,7 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
             }
         ],
         "strain": [],
-        "contribution": [
+        "contributions": [
             {
                 "id": ids.agent_ids[0],
                 "label": "test_organization_1",
@@ -243,7 +243,7 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
             }
         ],
         "strain": [],
-        "contribution": [
+        "contributions": [
             {
                 "id": ids.agent_ids[0],
                 "label": "test_organization_1",

@@ -56,7 +56,7 @@ def read_many(
 ) -> ListResponse[SingleNeuronSimulationRead]:
     me_model_alias = aliased(MEModel, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "contribution": {
+        "contributions": {
             "id": Agent.id,
             "label": Agent.pref_label,
             "type": Agent.type,

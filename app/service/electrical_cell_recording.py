@@ -78,7 +78,7 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     protocol_alias = aliased(ElectricalRecordingStimulus, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "contribution": {
+        "contributions": {
             "id": agent_alias.id,
             "label": agent_alias.pref_label,
             "type": agent_alias.type,

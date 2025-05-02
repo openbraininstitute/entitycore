@@ -24,10 +24,10 @@ class UseIon(BaseModel):
 
 
 class NeuronBlock(BaseModel):
-    global_: list[dict[str, str]] = Field(default=[], alias="global")
+    global_: list[dict[str, str | None]] = Field(default=[], alias="global")
     range: list[dict[str, str | None]] = []
     useion: list[UseIon] = []
-    nonspecific: list[str] = []
+    nonspecific: list[dict[str, str | None]] = []
 
 
 class IonChannelModelBase(BaseModel):

@@ -412,7 +412,7 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     return db_ion
 
 
-def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):
+def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):  # noqa: PLR0915
     legacy_id = script["@id"]
     legacy_self = script["_self"]
     temperature = script.get("temperature", {})
@@ -422,25 +422,82 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     temperature_value = temperature.get("value")
 
     neuron_block_raw: dict[str, Any] | None = script.get("nmodlParameters")
+    exposed_parameter_raw: list[dict[str, Any]] | None = script.get("exposesParameter")
     neuron_block_validated: NeuronBlock | None = None
 
+    exposed_parameter_unit = {}
+    nonspecific_unit = {}
+    if exposed_parameter_raw:
+        for param in ensurelist(exposed_parameter_raw):
+            if param.get("ionName") == "non-specific":
+                name = param.get("name")
+                unit = param.get("unitCode") or param.get("unit")
+                nonspecific_unit[name] = unit
+            else:
+                name = param.get("name")
+                unit = param.get("unitCode") or param.get("unit")
+                exposed_parameter_unit[name] = unit
+
+    read_raw = ensurelist((neuron_block_raw or {}).get("read", []))
+    write_raw = ensurelist((neuron_block_raw or {}).get("write", []))
+
     if neuron_block_raw:
+        useion = ensurelist(neuron_block_raw.get("useion", []))
         ion_entries = ensurelist(script.get("ion", []))
-        useion_structured = [
-            {
-                "ion_name": get_or_create_ion(ion, db).name,
-                "read": ensurelist(neuron_block_raw.get("read", [])),
-                "write": ensurelist(neuron_block_raw.get("write", [])),
-                "valence": neuron_block_raw.get("valence"),
-                "main_ion": None,
+        useion_structured = []
+
+        for useion_name in useion:
+            # Define valid variable names for this ion
+            valid_read_vars = {
+                f"e{useion_name}",
+                f"{useion_name}i",
+                f"{useion_name}o",
+                f"d{useion_name}",
             }
-            for ion in ion_entries
-        ]
+            valid_write_vars = {f"i{useion_name}", f"{useion_name}i", f"{useion_name}o"}
+
+            read = [var for var in read_raw if var in valid_read_vars]
+            write = [var for var in write_raw if var in valid_write_vars]
+
+            if useion_name.lower() not in (
+                (entry.get("label", "").lower() if entry else "")
+                for entry in ensurelist(script.get("ion"))
+            ):
+                if useion_name == "ca":
+                    ion = {
+                        "@id": "https://neuroshapes.org/Ca",
+                        "label": "Ca",
+                    }
+                else:
+                    ion = {"@id": None, "label": useion_name}
+            else:
+                ion = next(
+                    entry
+                    for entry in ion_entries
+                    if entry.get("label", "").lower() == useion_name.lower()
+                )
+
+            useion_structured.append(
+                {
+                    "ion_name": get_or_create_ion(ion, db).name,
+                    "read": read,
+                    "write": write,
+                    "valence": neuron_block_raw.get("valence"),
+                    "main_ion": True if len(useion) == 1 else None,
+                }
+            )
+
+        range_raw = ensurelist(neuron_block_raw.get("range", []))
+        range_list = [{name: exposed_parameter_unit.get(name)} for name in range_raw]
+
+        nonspecific = []
+        for key, value in nonspecific_unit.items():
+            nonspecific.append({key: value})
 
         neuron_block_dict = {
-            "range": ensurelist(neuron_block_raw.get("range", [])),
+            "range": range_list,
             "global": [],
-            "nonspecific": ensurelist(neuron_block_raw.get("nonspecific", [])),
+            "nonspecific": nonspecific,
             "useion": useion_structured,
         }
         neuron_block_validated = NeuronBlock.model_validate(neuron_block_dict)

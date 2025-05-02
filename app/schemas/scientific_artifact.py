@@ -7,10 +7,11 @@ from pydantic import UUID4, BaseModel, ConfigDict
 from app.schemas.agent import PersonRead
 from app.schemas.contribution import ContributionReadWithoutEntity
  
-from app.schemas.base import BaseSchema
+#from app.schemas.base import BaseSchema
 from app.schemas.contribution import ContributionRead
 from app.schemas.asset import AssetRead
-from app.schemas.license import LicenseRead
+from app.schemas.base import LicenseRead
+from app.db.model import Entity
 
 # where was the artifact published?
 class PublishedInType(BaseModel):
@@ -26,7 +27,7 @@ class PublishedInType(BaseModel):
 
 from app.filters.common import BrainRegionFilterMixin
 
-class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin,Entity):
+class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
     name :str
     description:str  
     subject_id : uuid.UUID | None = None
@@ -35,6 +36,9 @@ class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin,Entity):
     PublishedIn : PublishedInType
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
     contact_id : uuid.UUID | None = None
+
+    class Config:
+        from_attributes = True  # Allow mapping from SQLAlchemy objects
 
 class ScientificArtifactBase(BaseModel):
     name: str
@@ -47,7 +51,7 @@ class ScientificArtifactBase(BaseModel):
 class ScientificArtifactCreate(ScientificArtifactBase):
     pass
 
-class ScientificArtifactRead(ScientificArtifactBase, BaseSchema):
+class ScientificArtifactRead(ScientificArtifactBase):
     id: UUID
     creation_date: datetime
     update_date: datetime

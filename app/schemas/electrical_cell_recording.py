@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -8,7 +8,6 @@ from app.db.types import (
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
-    EntityType,
 )
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
@@ -103,4 +102,3 @@ class ElectricalCellRecordingRead(
             description="List of stimuli applied to the cell with their respective time steps",
         ),
     ] = None
-    type: Literal[EntityType.electrical_cell_recording] = EntityType.electrical_cell_recording

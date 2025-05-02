@@ -55,4 +55,3 @@ class MEModelRead(
     etypes: list[ETypeClassRead] | None
     morphology: ReconstructionMorphologyRead
     emodel: EModelRead
-    type: Literal[EntityType.memodel] = EntityType.memodel

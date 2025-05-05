@@ -32,6 +32,7 @@ def read_one(
             joinedload(SingleNeuronSynaptome.brain_region),
             selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent),
             selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role),
+            selectinload(SingleNeuronSynaptome.assets),
             raiseload("*"),
         ),
     )
@@ -86,6 +87,7 @@ def read_many(
         .options(joinedload(SingleNeuronSynaptome.brain_region))
         .options(selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent))
         .options(selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role))
+        .options(selectinload(SingleNeuronSynaptome.assets))
         .options(raiseload("*"))
     )
     return router_read_many(

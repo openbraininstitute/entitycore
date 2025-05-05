@@ -13,7 +13,13 @@ from app.db.model import (
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep, InBrainRegionDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.electrical_cell_recording import ElectricalCellRecordingFilter
 from app.queries.common import (

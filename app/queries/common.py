@@ -7,10 +7,15 @@ from sqlalchemy.orm import DeclarativeBase, Session
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Entity, Identifiable
-from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets, InBrainRegionDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    InBrainRegionDep,
+    PaginationQuery,
+    Search,
+    WithFacets,
+)
 from app.errors import ensure_authorized_references, ensure_result, ensure_uniqueness
 from app.filters.base import Aliases, CustomFilter
-from app.filters.brain_region import filter_by_hierarchy_name_and_id
 from app.schemas.types import ListResponse, PaginationResponse
 
 type ApplyOperations[T: DeclarativeBase] = Callable[[sa.Select[tuple[T]]], sa.Select[tuple[T]]]

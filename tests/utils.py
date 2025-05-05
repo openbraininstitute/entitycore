@@ -1,9 +1,11 @@
 import functools
+import uuid
 from pathlib import Path
 
 from httpx import Headers
 from starlette.testclient import TestClient
 
+from app.db.model import BrainRegion, BrainRegionHierarchyName
 from app.db.types import EntityType
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -110,23 +112,27 @@ def assert_request(client_method, *, expected_status_code=200, **kwargs):
     return response
 
 
-def create_brain_region_id(client, id_: int, name: str, parent_id: int = -1):
-    js = {
-        "id": id_,
-        "acronym": f"acronym{id_}",
-        "name": name,
-        "color_hex_triplet": "FF0000",
-        "parent_structure_id": parent_id
-        "children": [],
-    }
-    response = assert_request(
-        client.post,
-        url="/brain-region",
-        json=js,
+def create_hiearchy_name(db, name: str):
+    row = BrainRegionHierarchyName(name=name)
+    return add_db(db, row)
+
+
+def create_brain_region(
+    db,
+    hierarchy_name_id,
+    hierarchy_id: int,
+    name: str,
+    parent_id: uuid.UUID = BrainRegion.ROOT_PARENT_UUID,
+):
+    row = BrainRegion(
+        hierarchy_id=hierarchy_id,
+        acronym=f"acronym{hierarchy_id}",
+        name=name,
+        color_hex_triplet="FF0000",
+        parent_structure_id=parent_id,
+        hierarchy_name_id=hierarchy_name_id,
     )
-    data = response.json()
-    assert "id" in data, f"Failed to get id for brain region: {data}"
-    return data["id"]
+    return add_db(db, row)
 
 
 def check_missing(route, client):

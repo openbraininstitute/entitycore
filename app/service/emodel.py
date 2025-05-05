@@ -18,7 +18,13 @@ from app.db.model import (
     Species,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep, InBrainRegionDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.emodel import EModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one

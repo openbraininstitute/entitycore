@@ -54,21 +54,24 @@ def get_brain_region_by_hier_id(brain_region, hierarchy_name, db, _cache=dict())
 
     brain_region_id = int(brain_region["@id"])
     if (hierarchy_name, brain_region_id) in _cache:
-        return _cache[(hierarchy_name, brain_region_id)]
+        return _cache[hierarchy_name, brain_region_id]
 
     br = db.execute(
-          sa.select(BrainRegion)
-           .join(BrainRegionHierarchyName,
-                 BrainRegion.hierarchy_name_id == BrainRegionHierarchyName.id)
-           .where(BrainRegionHierarchyName.name == hierarchy_name,
-                  BrainRegion.hierarchy_id == brain_region_id)
-           ).scalar_one_or_none()
+        sa.select(BrainRegion)
+        .join(
+            BrainRegionHierarchyName, BrainRegion.hierarchy_name_id == BrainRegionHierarchyName.id
+        )
+        .where(
+            BrainRegionHierarchyName.name == hierarchy_name,
+            BrainRegion.hierarchy_id == brain_region_id,
+        )
+    ).scalar_one_or_none()
 
     if br is None:
         msg = f"({hierarchy_name}, {brain_region}) not found in database"
         raise RuntimeError(msg)
 
-    _cache[(hierarchy_name, brain_region_id)] = br.id
+    _cache[hierarchy_name, brain_region_id] = br.id
     return br.id
 
 
@@ -410,7 +413,9 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     return db_ion.id
 
 
-def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, hierarchy_name, db: Session):
+def import_ion_channel_model(
+    script: dict[str, Any], project_context: ProjectContext, hierarchy_name, db: Session
+):
     legacy_id = script["@id"]
     legacy_self = script["_self"]
     temperature = script.get("temperature", {})
@@ -565,7 +570,9 @@ def _get_pathway_info(data, hierarchy_name, db):  # noqa: C901
 
 
 def get_or_create_synaptic_pathway(data, project_context, hierarchy_name, db):
-    pre_mtype_id, post_mtype_id, pre_region_id, post_region_id = _get_pathway_info(data, hierarchy_name, db)
+    pre_mtype_id, post_mtype_id, pre_region_id, post_region_id = _get_pathway_info(
+        data, hierarchy_name, db
+    )
 
     res = (
         db.query(SynapticPathway)

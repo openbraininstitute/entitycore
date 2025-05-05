@@ -22,7 +22,7 @@ from app.db.model import (
     Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep, InBrainRegionDep
+from app.dependencies.common import FacetsDep, InBrainRegionDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.morphology import MorphologyFilterDep

@@ -1,59 +1,96 @@
-from pathlib import Path
+import json
+import uuid
+from collections import defaultdict
+from enum import auto
 
 import sqlalchemy as sa
-from fastapi import Response
-from fastapi.responses import JSONResponse
+from fastapi import Query, Response
 
-from app.db.model import BrainRegion
+from app.db.model import BrainRegion, BrainRegionHierarchyName
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.schemas.base import BrainRegionCreate, BrainRegionRead
-
-HIERARCHY = (Path(__file__).parent.parent / "static/brain-regions-tree.json").open().read()
-
-
-def _get_region_tree(db, start_id=None):
-    query = sa.text("""
-        WITH RECURSIVE region_tree AS (
-            SELECT id, name, acronym, children, 1 as level
-            FROM brain_region
-            WHERE id = :start_id
-
-            UNION ALL
-
-            SELECT br.id, br.name, br.acronym, br.children, rt.level + 1
-            FROM brain_region br
-            INNER JOIN region_tree rt ON br.id = ANY(rt.children)
-        )
-        SELECT * FROM region_tree;
-    """)
-
-    result = db.execute(query, {"start_id": start_id}).fetchall()
-    return result
+from app.schemas.base import BrainRegionRead
+from app.schemas.types import ListResponse, PaginationResponse
+from app.utils.enum import StrEnum
+from app.filters.brain_region import BrainRegionFilterDep
 
 
-def read_hierarchy(*, db: SessionDep, flat: bool = False) -> Response:
-    response: Response
-    if flat:
-        # TODO: this depends on 997 existing; which is bad
-        # the return format isn't good, but this can be decided in the future
-        response = JSONResponse(content=[tuple(r) for r in _get_region_tree(db, start_id=997)])
-    else:
-        # return the old style DKE hierarchy
-        response = Response(content=HIERARCHY, media_type="application/json")
+def read_hierarchy_name_hierarchy(
+    *,
+    db: SessionDep,
+    hierarchy_name: str,
+    ):
+    query = sa.select(BrainRegion).join(BrainRegionHierarchyName).filter(BrainRegionHierarchyName.name == hierarchy_name)
+
+    data = db.execute(query).scalars()
+
+    parent_map = defaultdict(list)
+    for region in data:
+        parent_map[region.parent_structure_id].append(region)
+
+    def build_tree(parent_id):
+        children = parent_map.get(parent_id, [])
+        return [
+            {
+                "id": node.id,
+                "hierarchy_id": node.hierarchy_id,
+                "name": node.name,
+                "acronym": node.acronym,
+                "color_hex_triplet": node.color_hex_triplet,
+                "parent_structure_id": node.parent_structure_id,
+                "children": build_tree(node.id),
+            }
+            for node in children
+        ]
+
+    tree = build_tree(BrainRegion.ROOT_PARENT_UUID)
+    js = json.dumps(tree, cls=JSONEncoder)
+    response = Response(content=js, media_type="application/json")
     return response
 
 
-def read_one(db: SessionDep, id_: int) -> BrainRegionRead:
+
+def read_many(
+    *,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter: BrainRegionFilterDep,
+) -> Response:
+    response: Response
+
+    query = sa.select(BrainRegion)
+    query = filter.filter(query)
+
+    data = db.execute(
+        query.offset(pagination_request.offset).limit(pagination_request.page_size)
+    ).scalars()
+
+    total_items = db.execute(
+        query.with_only_columns(sa.func.count(BrainRegion.id))
+    ).scalar_one()
+
+    response = ListResponse[BrainRegionRead](
+        data=[BrainRegionRead.model_validate(d) for d in data],
+        pagination=PaginationResponse(
+            page=pagination_request.page,
+            page_size=pagination_request.page_size,
+            total_items=total_items,
+        ),
+        facets=None,
+    )
+    return response
+
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        return json.JSONEncoder.default(self, obj)
+
+
+def read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionRead:
     with ensure_result(error_message="Brain region not found"):
         stmt = sa.select(BrainRegion).filter(BrainRegion.id == id_)
         row = db.execute(stmt).scalar_one()
-    return BrainRegionRead.model_validate(row)
-
-
-def create_one(brain_region: BrainRegionCreate, db: SessionDep) -> BrainRegionRead:
-    row = BrainRegion(**brain_region.model_dump())
-    db.add(row)
-    db.commit()
-    db.refresh(row)
     return BrainRegionRead.model_validate(row)

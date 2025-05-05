@@ -408,7 +408,13 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list: list[dict], all_data_by_id: dict[str, dict], hierarchy_name: str):
+    def ingest(
+        db,
+        project_context,
+        data_list: list[dict],
+        all_data_by_id: dict[str, dict],
+        hierarchy_name: str,
+    ):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -945,7 +951,9 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
         )
 
 
-def _import_experimental_densities(db, project_context, model_type, curate_function, hierarchy_name, data_list):
+def _import_experimental_densities(
+    db, project_context, model_type, curate_function, hierarchy_name, data_list
+):
     for data in tqdm(data_list):
         data = curate_function(data)
         legacy_id = data["@id"]
@@ -1072,7 +1080,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
     importers = [
         ImportAgent,
         ImportAnalysisSoftwareSourceCode,
-        #ImportBrainRegionMeshes,
+        # ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
         ImportExperimentalNeuronDensities,
@@ -1088,11 +1096,13 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
     for importer in importers:
         if importer.defaults:
             print(f"importing default {importer.name}")
-            importer.ingest(db,
-                            project_context,
-                            importer.defaults,
-                            all_data_by_id=None,
-                            hierarchy_name=hierarchy_name)
+            importer.ingest(
+                db,
+                project_context,
+                importer.defaults,
+                all_data_by_id=None,
+                hierarchy_name=hierarchy_name,
+            )
 
     import_data = defaultdict(list)
 
@@ -1117,11 +1127,9 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
 
     for importer, data in import_data.items():
         print(f"ingesting {importer.name}")
-        importer.ingest(db,
-                        project_context,
-                        data,
-                        all_data_by_id=all_data_by_id,
-                        hierarchy_name=hierarchy_name)
+        importer.ingest(
+            db, project_context, data, all_data_by_id=all_data_by_id, hierarchy_name=hierarchy_name
+        )
 
 
 def _analyze() -> None:
@@ -1167,7 +1175,11 @@ def analyze():
     type=str,
     help="The UUID4 `project-id` under which the entities will be registered",
 )
-@click.option("--hierarchy-name", type=str, help="Name of the brain atlas to register brain_regions",)
+@click.option(
+    "--hierarchy-name",
+    type=str,
+    help="Name of the brain atlas to register brain_regions",
+)
 def run(input_dir, virtual_lab_id, project_id, hierarchy_name):
     """Import data script."""
     project_context = ProjectContext(virtual_lab_id=virtual_lab_id, project_id=project_id)
@@ -1175,7 +1187,9 @@ def run(input_dir, virtual_lab_id, project_id, hierarchy_name):
         closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        _do_import(db, input_dir=input_dir, project_context=project_context, hierarchy_name=hierarchy_name)
+        _do_import(
+            db, input_dir=input_dir, project_context=project_context, hierarchy_name=hierarchy_name
+        )
     _analyze()
 
 
@@ -1206,19 +1220,25 @@ def hierarchy(hierarchy_name, hierarchy_path):
         closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        hier = db.query(BrainRegionHierarchyName).filter(BrainRegionHierarchyName.name == hierarchy_name).first()
+        hier = (
+            db.query(BrainRegionHierarchyName)
+            .filter(BrainRegionHierarchyName.name == hierarchy_name)
+            .first()
+        )
 
         if not hier:
             hier = BrainRegionHierarchyName(name=hierarchy_name)
             db.add(hier)
             db.flush()
 
-        ids = {v.hierarchy_id: v.id
-               for v in db.execute(
-                   sa.select(BrainRegion.id, BrainRegion.hierarchy_id)
-                   .where(BrainRegion.hierarchy_name_id == hier.id)
-                   ).all()
-               }
+        ids = {
+            v.hierarchy_id: v.id
+            for v in db.execute(
+                sa.select(BrainRegion.id, BrainRegion.hierarchy_id).where(
+                    BrainRegion.hierarchy_name_id == hier.id
+                )
+            ).all()
+        }
         ids[None] = BrainRegion.ROOT_PARENT_UUID
 
         for region in tqdm(reversed(regions), total=len(regions)):

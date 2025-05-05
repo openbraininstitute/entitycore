@@ -1,3 +1,7 @@
+from app.db.model import BrainRegion
+
+from . import utils
+
 ROUTE = "/brain-region"
 
 
@@ -7,12 +11,12 @@ def test_get_brain_region(client):
     assert len(response.text) > 4_500_000
 
 
-hierarchy = {
+HIERARCHY = {
     "id": 997,
     "acronym": "root",
     "name": "root",
     "color_hex_triplet": "FFFFFF",
-    "parent_structure_id": null,
+    "parent_structure_id": None,
     "children": [
         {
             "id": 8,
@@ -43,7 +47,7 @@ hierarchy = {
 }
 
 
-def _get_flat_regions(hierarchy):
+def add_brain_region_hierarchy(db, hierarchy, hierarchy_name_id):
     regions = []
 
     def recurse(i):
@@ -54,18 +58,28 @@ def _get_flat_regions(hierarchy):
             recurse(child)
         regions.append(item)
 
-    return recurse(hierarchy)
+    recurse(hierarchy)
 
-
-def test_brain_region_id(client_admin, client):
-    regions = _get_flat_regions(hierarchy)
-    for region in regions:
-        response = client_admin.post(
-            ROUTE,
-            json=region,
+    ids = {None: BrainRegion.ROOT_PARENT_UUID}
+    for region in reversed(regions):
+        row = BrainRegion(
+            hierarchy_id=region["id"],
+            acronym=region["acronym"],
+            name=region["name"],
+            color_hex_triplet=region["color_hex_triplet"],
+            parent_structure_id=ids[region["parent_structure_id"]],
+            hierarchy_name_id=hierarchy_name_id,
         )
-        assert response.status_code == 200, f"Failed to create brain region: {response.text}"
+        db_br = utils.add_db(db, row)
+        db.flush()
+        ids[region["id"]] = db_br.id
 
+    return regions
+
+
+def test_brain_region_id(db, client):
+    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy")
+    add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
     response = client.get(f"{ROUTE}/997")
     assert response.status_code == 200
     data = response.json()

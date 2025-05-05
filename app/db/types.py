@@ -162,8 +162,3 @@ class MeasurementUnit(StrEnum):
     dimensionless = auto()
     linear_density__1_um = auto()
     volume_density__1_mm3 = auto()
-
-
-class HierarchyView(StrEnum):
-    horizontal = auto()
-    vertical = auto()

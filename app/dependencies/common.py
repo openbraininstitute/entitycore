@@ -10,8 +10,8 @@ from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
 from app.errors import ApiError, ApiErrorCode
-from app.schemas.types import Facet, Facets, PaginationRequest
 from app.filters.brain_region import filter_by_hierarchy_name_and_id
+from app.schemas.types import Facet, Facets, PaginationRequest
 
 
 def forbid_extra_query_params(
@@ -130,11 +130,13 @@ class InBrainRegionQuery(BaseModel):
         if not self.within_brain_region:
             return query
 
-        [hierarchy_id, hierarchy_name, *with_ascendents] = self.within_brain_region.split(',')
+        [hierarchy_id, hierarchy_name, *with_ascendents] = self.within_brain_region.split(",")
 
         with_ascendents = with_ascendents[0].lower() == "true" if with_ascendents else False
 
-        return filter_by_hierarchy_name_and_id(query, db_model_class, hierarchy_id, hierarchy_name, with_ascendents)
+        return filter_by_hierarchy_name_and_id(
+            query, db_model_class, hierarchy_id, hierarchy_name, with_ascendents
+        )
 
 
 PaginationQuery = Annotated[PaginationRequest, Depends(PaginationRequest)]

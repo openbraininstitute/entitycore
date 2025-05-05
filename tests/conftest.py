@@ -481,8 +481,9 @@ def faceted_emodel_ids(db: Session, client, client_admin):
         )
         for i in range(2)
     ]
+    hierarchy_name = utils.create_brain_hiearchy_name(db, "test_hier")
     brain_region_ids = [
-        utils.create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)
+        utils.create_brain_region_id(db, hierarchy_name.id, i, f"region{i}").id for i in range(2)
     ]
 
     morphology_ids = [
@@ -543,8 +544,9 @@ def faceted_memodels(
         )
         for i in range(2)
     ]
+    hierarchy_name = utils.create_brain_hiearchy_name(db, "test_hier")
     brain_region_ids = [
-        utils.create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)
+        utils.create_brain_region_id(db, hierarchy_name.id, i, f"region{i}") for i in range(2)
     ]
 
     morphology_ids = [

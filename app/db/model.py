@@ -16,7 +16,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
 
 from app.db.types import (
@@ -39,7 +39,6 @@ from app.db.types import (
     Sex,
     SingleNeuronSimulationStatus,
     ValidationStatus,
-    HierarchyView,
 )
 from app.utils.uuid import create_uuid
 

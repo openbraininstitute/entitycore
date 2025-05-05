@@ -17,7 +17,7 @@ from app.db.model import (
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import FacetQueryParams, InBrainRegionDep, FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.filters.density import ExperimentalBoutonDensityFilterDep
 from app.queries import facets as fc
@@ -33,6 +33,7 @@ def read_many(
     filter_model: ExperimentalBoutonDensityFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ExperimentalBoutonDensityRead]:
     subject = aliased(Subject, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
@@ -69,6 +70,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=ExperimentalBoutonDensity,
         with_search=with_search,
+        with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,

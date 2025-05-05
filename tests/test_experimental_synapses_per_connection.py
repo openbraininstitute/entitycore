@@ -13,7 +13,7 @@ ROUTE = "/experimental-synapses-per-connection"
 @pytest.fixture
 def json_data(brain_region_id, subject_id, license_id, synaptic_pathway_id):
     return {
-        "brain_region_id": brain_region_id,
+        "brain_region_id": str(brain_region_id),
         "subject_id": subject_id,
         "description": "my-description",
         "name": "my-name",

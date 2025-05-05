@@ -75,7 +75,7 @@ def create_reconstruction_morphology_id(
         json={
             "name": name,
             "description": description,
-            "brain_region_id": str(brain_region_id) if isinstance(brain_region_id, int) else None,
+            "brain_region_id": str(brain_region_id),
             "species_id": str(species_id) if species_id else None,
             "strain_id": str(strain_id) if strain_id else None,
             "location": {"x": 10, "y": 20, "z": 30},

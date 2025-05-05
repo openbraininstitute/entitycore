@@ -1,14 +1,12 @@
+import itertools as it
+import sqlalchemy as sa
+from unittest.mock import ANY
+
 from app.db.model import BrainRegion
 
 from . import utils
 
 ROUTE = "/brain-region"
-
-
-def test_get_brain_region(client):
-    response = client.get(ROUTE)
-    assert response.status_code == 200
-    assert len(response.text) > 4_500_000
 
 
 HIERARCHY = {
@@ -74,26 +72,120 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_name_id):
         db.flush()
         ids[region["id"]] = db_br.id
 
-    return regions
+    ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
+    return ret
 
 
 def test_brain_region_id(db, client):
     hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy")
     add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
-    response = client.get(f"{ROUTE}/997")
+
+    response = client.get(ROUTE)
+    assert response.status_code == 200
+    response = response.json()
+    assert len(response["data"]) == 4
+    assert response["data"] == [
+        {
+            "acronym": "root",
+            "color_hex_triplet": "FFFFFF",
+            "creation_date": ANY,
+            "hierarchy_id": 997,
+            "hierarchy_name_id": str(hierarchy_name.id),
+            "id": ANY,
+            "name": "root",
+            "parent_structure_id": "00000000-0000-0000-0000-000000000000",
+            "update_date": ANY,
+        },
+        {
+            "acronym": "blue",
+            "color_hex_triplet": "0000FF",
+            "creation_date": ANY,
+            "hierarchy_id": 42,
+            "hierarchy_name_id": str(hierarchy_name.id),
+            "id": ANY,
+            "name": "BlueRegion",
+            "parent_structure_id": ANY,
+            "update_date": ANY,
+        },
+        {
+            "acronym": "red",
+            "color_hex_triplet": "FF0000",
+            "creation_date": ANY,
+            "hierarchy_id": 64,
+            "hierarchy_name_id": str(hierarchy_name.id),
+            "id": ANY,
+            "name": "RedRegion",
+            "parent_structure_id": ANY,
+            "update_date": ANY,
+        },
+        {
+            "acronym": "grey",
+            "color_hex_triplet": "BFDAE3",
+            "creation_date": ANY,
+            "hierarchy_id": 8,
+            "hierarchy_name_id": str(hierarchy_name.id),
+            "id": ANY,
+            "name": "Basic cell groups and regions",
+            "parent_structure_id": ANY,
+            "update_date": ANY,
+        },
+    ]
+
+    response = client.get(ROUTE + "?acronym=root")
+    assert response.status_code == 200
+    root_id = response.json()["data"][0]["id"]
+
+    response = client.get(f"{ROUTE}/{root_id}")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == 997
+    assert data["hierarchy_id"] == 997
     assert data["name"] == "root"
     assert data["acronym"] == "root"
-    assert data["children"] == [8, 42]
 
-    response = client.get(ROUTE, params={"flat": True})
-    assert response.status_code == 200
-    data = response.json()
-    assert data == [
-        [997, "root", "root", [8, 42], 1],
-        [8, "Basic cell groups and regions", "grey", [], 2],
-        [42, "BlueRegion", "blue", [64], 2],
-        [64, "RedRegion", "red", [], 3],
-    ]
+
+def test_family_queries(db, client, species_id, strain_id):
+    hierarchy_name0 = utils.create_hiearchy_name(db, "hier0")
+    brain_regions0 = add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name0.id)
+
+    hierarchy_name1 = utils.create_hiearchy_name(db, "hier1")
+    brain_regions1 = add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name1.id)
+
+    for acronym, row in it.chain(brain_regions0.items(), brain_regions1.items()):
+        hier = 'hier0' if row.hierarchy_name_id == hierarchy_name0.id else 'hier1'
+        utils.create_reconstruction_morphology_id(
+            client,
+            species_id=species_id,
+            strain_id=strain_id,
+            brain_region_id=row.id,
+            authorized_public=False,
+            name=f"{acronym}-{hier}",
+            description=f"Description {acronym}-{hier}",
+        )
+    assert len(client.get("/reconstruction-morphology").json()["data"]) == 8
+
+    for hier in ('hier0', 'hier1'):
+        # descendents
+        response = client.get(f"/reconstruction-morphology?within_brain_region=997,{hier}")
+        assert len(response.json()["data"]) == 4
+
+        response = client.get(f"/reconstruction-morphology?within_brain_region=8,{hier}")
+        assert len(response.json()["data"]) == 1
+
+        response = client.get(f"/reconstruction-morphology?within_brain_region=42,{hier}")
+        assert len(response.json()["data"]) == 2
+
+        response = client.get(f"/reconstruction-morphology?within_brain_region=64,{hier}")
+        assert len(response.json()["data"]) == 1
+
+        # ascendents
+        response = client.get(f"/reconstruction-morphology?within_brain_region=997,{hier},true")
+        assert len(response.json()["data"]) == 1
+
+        response = client.get(f"/reconstruction-morphology?within_brain_region=8,{hier},true")
+        assert len(response.json()["data"]) == 2
+
+        response = client.get(f"/reconstruction-morphology?within_brain_region=42,{hier},true")
+        assert len(response.json()["data"]) == 2
+
+        response = client.get(f"/reconstruction-morphology?within_brain_region=64,{hier},true")
+        assert len(response.json()["data"]) == 3

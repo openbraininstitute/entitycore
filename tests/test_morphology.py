@@ -21,7 +21,7 @@ def test_create_reconstruction_morphology(
     response = client.post(
         ROUTE,
         json={
-            "brain_region_id": brain_region_id,
+            "brain_region_id": str(brain_region_id),
             "species_id": species_id,
             "strain_id": strain_id,
             "description": morph_description,
@@ -35,7 +35,7 @@ def test_create_reconstruction_morphology(
         f"Failed to create reconstruction morphology: {response.text}"
     )
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, (
+    assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
     assert data["species"]["id"] == species_id, (
@@ -244,7 +244,7 @@ def test_authorization(
 ):
     morph_json = {
         "location": {"x": 10, "y": 20, "z": 30},
-        "brain_region_id": brain_region_id,
+        "brain_region_id": str(brain_region_id),
         "description": "morph description",
         "legacy_id": ["Test Legacy ID"],
         "license_id": license_id,

@@ -71,6 +71,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=Subject,
         with_search=with_search,
+        with_in_brain_region=None,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,

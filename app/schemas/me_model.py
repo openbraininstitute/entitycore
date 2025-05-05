@@ -34,7 +34,7 @@ class NestedMEModel(MEModelBase, CreationMixin, IdentifiableMixin):
 
 
 class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
-    brain_region_id: int
+    brain_region_id: uuid.UUID
     morphology_id: uuid.UUID
     emodel_id: uuid.UUID
     species_id: uuid.UUID

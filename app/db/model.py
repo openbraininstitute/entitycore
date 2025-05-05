@@ -92,8 +92,8 @@ class BrainRegion(Identifiable, Base):
     ROOT_PARENT_UUID = uuid.UUID("00000000-0000-0000-0000-000000000000")
 
     hierarchy_id: Mapped[int] = mapped_column(BigInteger, index=True)
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-    acronym: Mapped[str] = mapped_column(unique=True, index=True)
+    name: Mapped[str] = mapped_column(index=True)
+    acronym: Mapped[str] = mapped_column(index=True)
     color_hex_triplet: Mapped[str] = mapped_column(String(6))
     parent_structure_id: Mapped[uuid.UUID]
 

@@ -80,7 +80,7 @@ class ElectricalCellRecordingCreate(
     ElectricalCellRecordingBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
 ):
     subject_id: uuid.UUID
-    brain_region_id: int | None = None
+    brain_region_id: uuid.UUID | None = None
 
 
 class ElectricalCellRecordingRead(

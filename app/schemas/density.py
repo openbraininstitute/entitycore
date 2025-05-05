@@ -36,7 +36,7 @@ class ExperimentalDensityCreate(
     ExperimentalDensityBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
 ):
     subject_id: uuid.UUID
-    brain_region_id: int
+    brain_region_id: uuid.UUID
     legacy_id: str | None
 
 

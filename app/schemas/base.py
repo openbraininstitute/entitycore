@@ -73,7 +73,7 @@ class BrainRegionRead(BrainRegionCreate, CreationMixin):
 
 class BrainRegionCreateMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    brain_region_id: int
+    brain_region_id: uuid.UUID
 
 
 class BrainRegionReadMixin(BaseModel):

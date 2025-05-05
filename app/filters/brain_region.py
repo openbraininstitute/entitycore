@@ -1,11 +1,12 @@
-from fastapi_filter import FilterDepends
-import sqlalchemy as sa
-
-from app.filters.base import CustomFilter
-from app.filters.common import NameFilterMixin
-from app.db.model import BrainRegion, BrainRegionHierarchyName
 import uuid
 from typing import Annotated
+
+import sqlalchemy as sa
+from fastapi_filter import FilterDepends
+
+from app.db.model import BrainRegion, BrainRegionHierarchyName
+from app.filters.base import CustomFilter
+from app.filters.common import NameFilterMixin
 
 
 def _get_family_query(hierarchy_id: int, hierarchy_name: str, with_ascendants=False):

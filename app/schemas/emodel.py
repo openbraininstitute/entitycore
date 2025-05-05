@@ -34,7 +34,7 @@ class EModelBase(BaseModel):
 class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     species_id: uuid.UUID
     strain_id: uuid.UUID | None = None
-    brain_region_id: int
+    brain_region_id: uuid.UUID
     exemplar_morphology_id: uuid.UUID
 
 

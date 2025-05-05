@@ -1,8 +1,8 @@
 """base models
 
-Revision ID: 6a75d8451d9c
+Revision ID: 5db627893ac7
 Revises:
-Create Date: 2025-05-02 17:39:01.399249
+Create Date: 2025-05-06 08:20:39.911533
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "6a75d8451d9c"
+revision: str = "5db627893ac7"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -361,7 +361,7 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_brain_region")),
     )
-    op.create_index(op.f("ix_brain_region_acronym"), "brain_region", ["acronym"], unique=True)
+    op.create_index(op.f("ix_brain_region_acronym"), "brain_region", ["acronym"], unique=False)
     op.create_index(
         op.f("ix_brain_region_creation_date"), "brain_region", ["creation_date"], unique=False
     )
@@ -374,7 +374,7 @@ def upgrade() -> None:
         ["hierarchy_name_id"],
         unique=False,
     )
-    op.create_index(op.f("ix_brain_region_name"), "brain_region", ["name"], unique=True)
+    op.create_index(op.f("ix_brain_region_name"), "brain_region", ["name"], unique=False)
     op.create_table(
         "datamaturity_annotation_body",
         sa.Column("id", sa.Uuid(), nullable=False),

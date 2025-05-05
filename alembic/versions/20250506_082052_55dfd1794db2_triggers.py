@@ -1,8 +1,8 @@
 """triggers
 
-Revision ID: 997e354b923d
-Revises: 6a75d8451d9c
-Create Date: 2025-05-02 17:39:14.524755
+Revision ID: 55dfd1794db2
+Revises: 5db627893ac7
+Create Date: 2025-05-06 08:20:52.667088
 
 """
 
@@ -19,8 +19,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "997e354b923d"
-down_revision: Union[str, None] = "6a75d8451d9c"
+revision: str = "55dfd1794db2"
+down_revision: Union[str, None] = "5db627893ac7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -85,15 +85,6 @@ def upgrade() -> None:
     )
     op.create_entity(public_subject_subject_description_vector)
 
-    public_memodel_memodel_description_vector = PGTrigger(
-        schema="public",
-        signature="memodel_description_vector",
-        on_entity="public.memodel",
-        is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
-    )
-    op.create_entity(public_memodel_memodel_description_vector)
-
     public_single_neuron_synaptome_simulation_single_neuron_synaptome_simulation_description_vector = PGTrigger(
         schema="public",
         signature="single_neuron_synaptome_simulation_description_vector",
@@ -124,6 +115,15 @@ def upgrade() -> None:
         definition="BEFORE INSERT OR UPDATE ON ion_channel_model\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
     )
     op.create_entity(public_ion_channel_model_ion_channel_model_description_vector)
+
+    public_memodel_memodel_description_vector = PGTrigger(
+        schema="public",
+        signature="memodel_description_vector",
+        on_entity="public.memodel",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.create_entity(public_memodel_memodel_description_vector)
 
     public_mesh_mesh_description_vector = PGTrigger(
         schema="public",
@@ -318,6 +318,15 @@ def downgrade() -> None:
     )
     op.drop_entity(public_mesh_mesh_description_vector)
 
+    public_memodel_memodel_description_vector = PGTrigger(
+        schema="public",
+        signature="memodel_description_vector",
+        on_entity="public.memodel",
+        is_constraint=False,
+        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
+    )
+    op.drop_entity(public_memodel_memodel_description_vector)
+
     public_ion_channel_model_ion_channel_model_description_vector = PGTrigger(
         schema="public",
         signature="ion_channel_model_description_vector",
@@ -348,15 +357,6 @@ def downgrade() -> None:
     op.drop_entity(
         public_single_neuron_synaptome_simulation_single_neuron_synaptome_simulation_description_vector
     )
-
-    public_memodel_memodel_description_vector = PGTrigger(
-        schema="public",
-        signature="memodel_description_vector",
-        on_entity="public.memodel",
-        is_constraint=False,
-        definition="BEFORE INSERT OR UPDATE ON memodel\n            FOR EACH ROW EXECUTE FUNCTION\n                tsvector_update_trigger(description_vector, 'pg_catalog.english', description, name)",
-    )
-    op.drop_entity(public_memodel_memodel_description_vector)
 
     public_subject_subject_description_vector = PGTrigger(
         schema="public",

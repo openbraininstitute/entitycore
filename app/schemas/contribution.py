@@ -33,3 +33,7 @@ class ContributionRead(ContributionBase, CreationMixin, IdentifiableMixin):
 class ContributionReadWithoutEntity(ContributionBase, CreationMixin, IdentifiableMixin):
     agent: AgentRead
     role: RoleRead
+
+
+class ContributionReadWithoutEntityMixin(BaseModel):
+    contributions: list[ContributionReadWithoutEntity] | None

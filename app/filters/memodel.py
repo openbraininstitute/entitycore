@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
@@ -23,6 +24,7 @@ class MEModelFilter(
     CustomFilter,
     CreationFilterMixin,
 ):
+    id__in: list[uuid.UUID] | None = None
     name__ilike: str | None = None
     brain_region_id: int | None = None
     species_id__in: list[int] | None = None

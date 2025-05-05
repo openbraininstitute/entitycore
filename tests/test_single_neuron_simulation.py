@@ -3,6 +3,7 @@ import itertools as it
 import pytest
 
 from app.db.model import MEModel, SingleNeuronSimulation
+from app.db.types import EntityType
 
 from .utils import (
     MISSING_ID,
@@ -52,6 +53,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
+    assert data["type"] == EntityType.single_neuron_simulation
 
     response = assert_request(client.get, url=f"{ROUTE}/{data['id']}")
     data = response.json()
@@ -65,6 +67,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
+    assert data["type"] == EntityType.single_neuron_simulation
 
 
 @pytest.mark.parametrize(

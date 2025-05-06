@@ -184,8 +184,12 @@ class SynapticPathwayFilter(CustomFilter):
     post_mtype: Annotated[
         MTypeClassFilter | None, FilterDepends(with_prefix("post_mtype", MTypeClassFilter))
     ] = None
-    pre_region: int | None = None
-    post_region: int | None = None
+    pre_region: Annotated[
+        BrainRegionFilter | None, FilterDepends(with_prefix("pre_region", BrainRegionFilter))
+    ] = None
+    post_region: Annotated[
+        BrainRegionFilter | None, FilterDepends(with_prefix("post_region", BrainRegionFilter))
+    ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

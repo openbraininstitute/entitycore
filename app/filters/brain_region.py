@@ -9,7 +9,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import NameFilterMixin
 
 
-def _get_family_query(hierarchy_id: int, hierarchy_name: str, with_ascendants=False):
+def _get_family_query(*, hierarchy_id: int, hierarchy_name: str, with_ascendants=False):
     """Create query for BrainRegions that returns ids.
 
     Can either traverse down (the default) or up (with_ascendants=True)
@@ -45,10 +45,10 @@ def _get_family_query(hierarchy_id: int, hierarchy_name: str, with_ascendants=Fa
 
 
 def filter_by_hierarchy_name_and_id(
-    query, model, hierarchy_id: int, hierarchy_name: str, with_ascendants=False
+    *, query, model, hierarchy_id: int, hierarchy_name: str, with_ascendants=False
 ):
     brain_region_query = _get_family_query(
-        hierarchy_id, hierarchy_name, with_ascendants=with_ascendants
+        hierarchy_id=hierarchy_id, hierarchy_name=hierarchy_name, with_ascendants=with_ascendants
     )
     query = query.filter(model.brain_region_id.in_(sa.select(brain_region_query.c.id)))
     return query

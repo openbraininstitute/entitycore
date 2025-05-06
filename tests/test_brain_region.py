@@ -1,6 +1,8 @@
 import itertools as it
-import sqlalchemy as sa
+import operator
 from unittest.mock import ANY
+
+import sqlalchemy as sa
 
 from app.db.model import BrainRegion
 
@@ -151,7 +153,7 @@ def test_family_queries(db, client, species_id, strain_id):
     brain_regions1 = add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name1.id)
 
     for acronym, row in it.chain(brain_regions0.items(), brain_regions1.items()):
-        hier = 'hier0' if row.hierarchy_name_id == hierarchy_name0.id else 'hier1'
+        hier = "hier0" if row.hierarchy_name_id == hierarchy_name0.id else "hier1"
         utils.create_reconstruction_morphology_id(
             client,
             species_id=species_id,
@@ -163,7 +165,7 @@ def test_family_queries(db, client, species_id, strain_id):
         )
     assert len(client.get("/reconstruction-morphology").json()["data"]) == 8
 
-    for hier in ('hier0', 'hier1'):
+    for hier in ("hier0", "hier1"):
         # descendents
         response = client.get(f"/reconstruction-morphology?within_brain_region=997,{hier}")
         assert len(response.json()["data"]) == 4
@@ -189,3 +191,25 @@ def test_family_queries(db, client, species_id, strain_id):
 
         response = client.get(f"/reconstruction-morphology?within_brain_region=64,{hier},true")
         assert len(response.json()["data"]) == 3
+
+
+def test_hierarchy_tree(db, client, brain_region_hierarchy_name_id):
+    add_brain_region_hierarchy(db, HIERARCHY, brain_region_hierarchy_name_id)
+
+    response = client.get(f"{ROUTE}/AIBS/")
+    assert response.status_code == 200
+    data = response.json()
+
+    def compare_hier(raw_node, service_node):
+        assert raw_node["id"] == service_node["hierarchy_id"]
+        for name in ("acronym", "color_hex_triplet", "name"):
+            assert raw_node[name] == service_node[name]
+            if "children" in raw_node or "children" in service_node:
+                for rn, sn in zip(
+                    sorted(raw_node["children"], key=operator.itemgetter("acronym")),
+                    sorted(service_node["children"], key=operator.itemgetter("acronym")),
+                    strict=False,
+                ):
+                    compare_hier(rn, sn)
+
+    compare_hier(HIERARCHY, data)

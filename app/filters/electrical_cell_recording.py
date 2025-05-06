@@ -1,3 +1,5 @@
+import uuid
+
 from app.db.model import ElectricalCellRecording
 from app.filters.base import CustomFilter
 from app.filters.common import ContributionFilterMixin, CreationFilterMixin
@@ -8,6 +10,7 @@ class ElectricalCellRecordingFilter(
     CreationFilterMixin,
     ContributionFilterMixin,
 ):
+    id__in: list[uuid.UUID] | None = None
     name__ilike: str | None = None
     brain_region_id: int | None = None
 

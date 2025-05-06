@@ -17,7 +17,13 @@ from app.db.model import (
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, InBrainRegionDep, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.density import ExperimentalBoutonDensityFilterDep
 from app.queries import facets as fc

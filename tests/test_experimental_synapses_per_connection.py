@@ -1,5 +1,7 @@
 import pytest
 
+from app.db.types import EntityType
+
 from .utils import (
     assert_request,
     check_authorization,
@@ -30,6 +32,7 @@ def _assert_read_response(data, json_data):
     assert data["name"] == json_data["name"]
     assert data["license"]["name"] == "Test License"
     assert data["synaptic_pathway"]["id"] == json_data["synaptic_pathway_id"]
+    assert data["type"] == EntityType.experimental_synapses_per_connection
 
 
 @pytest.fixture

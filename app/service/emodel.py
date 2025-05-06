@@ -41,6 +41,7 @@ def _load(select: sa.Select[tuple[EModel]]):
         joinedload(EModel.strain),
         joinedload(EModel.exemplar_morphology),
         joinedload(EModel.brain_region),
+        selectinload(EModel.assets),
         selectinload(EModel.contributions).joinedload(Contribution.agent),
         selectinload(EModel.contributions).joinedload(Contribution.role),
         joinedload(EModel.mtypes),
@@ -56,7 +57,6 @@ def read_one(
 ) -> EModelReadExpanded:
     def _load_expanded(select: sa.Select[tuple[EModel]]):
         return _load(select).options(
-            selectinload(EModel.assets),
             selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.ions),
             selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.species),
             selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),

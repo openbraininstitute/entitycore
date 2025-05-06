@@ -8,7 +8,7 @@ from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.common import SubjectFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
-from app.schemas.base import SubjectCreate, SubjectRead
+from app.schemas.subject import SubjectCreate, SubjectRead
 from app.schemas.types import ListResponse
 
 

@@ -130,12 +130,16 @@ class InBrainRegionQuery(BaseModel):
         if not self.within_brain_region:
             return query
 
-        [hierarchy_id, hierarchy_name, *with_ascendents] = self.within_brain_region.split(",")
+        [hierarchy_id, hierarchy_name, *with_ascendants] = self.within_brain_region.split(",")
 
-        with_ascendents = with_ascendents[0].lower() == "true" if with_ascendents else False
+        with_ascendants = with_ascendants[0].lower() == "true" if with_ascendants else False
 
         return filter_by_hierarchy_name_and_id(
-            query, db_model_class, hierarchy_id, hierarchy_name, with_ascendents
+            query=query,
+            model=db_model_class,
+            hierarchy_id=int(hierarchy_id),
+            hierarchy_name=hierarchy_name,
+            with_ascendants=with_ascendants,
         )
 
 

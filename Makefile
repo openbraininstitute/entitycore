@@ -53,7 +53,7 @@ import:  ## Run the import on a database, assumes mba_hierarchy.json and out are
 	@$(call load_env,run-local)
 	@test -n "$(PROJECT_ID_IMPORT)" || (echo "Please set the variable PROJECT_ID_IMPORT"; exit 1)
 	@test -n "$(VIRTUAL_LAB_ID_IMPORT)" || (echo "Please set the variable VIRTUAL_LAB_ID_IMPORT"; exit 1)
-	#docker compose up --wait db
+	docker compose up --wait db
 	uv run -m alembic upgrade head
 	uv run -m app.cli.import_data --seed 0 hierarchy $(HIERARCHY_NAME) mba_hierarchy.json
 	uv run -m app.cli.import_data --seed 1 run ./out --virtual-lab-id $(VIRTUAL_LAB_ID_IMPORT) --project-id $(PROJECT_ID_IMPORT) --hierarchy-name $(HIERARCHY_NAME)
@@ -61,7 +61,12 @@ import:  ## Run the import on a database, assumes mba_hierarchy.json and out are
 organize-files:  ## Organize files locally by creating symlinks from the backup to the expected location
 	@$(call load_env,run-local)
 	docker compose up --wait db
-	uv run -m app.cli.import_data organize-files files.txt
+	uv run -m app.cli.import_data organize-files $(if $(wildcard curated_files.txt),curated_files.txt,files.txt)
+
+curate-files:
+	@$(call load_env,run-local)
+	docker compose up --wait db
+	uv run -m app.cli.import_data curate-files files.txt curated_files.txt --out-dir ./curated
 
 publish: build  ## Publish the Docker image to DockerHub
 	docker compose push app

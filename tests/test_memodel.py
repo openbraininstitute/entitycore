@@ -55,12 +55,19 @@ def test_create_memodel(
     )
     assert response.status_code == 200, f"Failed to create memodel: {response.text}"
     data = response.json()
-    assert data["brain_region"]["id"] == str(brain_region_id), f"Failed to get id for memodel: {data}"
+    assert data["brain_region"]["id"] == str(brain_region_id), (
+        f"Failed to get id for memodel: {data}"
+    )
     assert data["species"]["id"] == species_id, f"Failed to get species_id for memodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
+    assert "assets" in data["emodel"]
+    assert "assets" in data["morphology"]
 
     response = client.get(f"{ROUTE}/{data['id']}")
     assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
+    data = response.json()
+    assert "assets" in data["emodel"]
+    assert "assets" in data["morphology"]
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):
@@ -109,8 +116,18 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
             },
         ],
         "brain_region": [
-            {"id": str(ids.brain_region_ids[0]), "label": "region0", "count": 8, "type": "brain_region"},
-            {"id": str(ids.brain_region_ids[1]), "label": "region1", "count": 8, "type": "brain_region"},
+            {
+                "id": str(ids.brain_region_ids[0]),
+                "label": "region0",
+                "count": 8,
+                "type": "brain_region",
+            },
+            {
+                "id": str(ids.brain_region_ids[1]),
+                "label": "region1",
+                "count": 8,
+                "type": "brain_region",
+            },
         ],
         "morphology": [
             {
@@ -186,8 +203,18 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
             },
         ],
         "brain_region": [
-            {"id": str(ids.brain_region_ids[0]), "label": "region0", "count": 2, "type": "brain_region"},
-            {"id": str(ids.brain_region_ids[1]), "label": "region1", "count": 2, "type": "brain_region"},
+            {
+                "id": str(ids.brain_region_ids[0]),
+                "label": "region0",
+                "count": 2,
+                "type": "brain_region",
+            },
+            {
+                "id": str(ids.brain_region_ids[1]),
+                "label": "region1",
+                "count": 2,
+                "type": "brain_region",
+            },
         ],
         "morphology": [
             {
@@ -253,8 +280,18 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
             },
         ],
         "brain_region": [
-            {"id": str(ids.brain_region_ids[0]), "label": "region0", "count": 4, "type": "brain_region"},
-            {"id": str(ids.brain_region_ids[1]), "label": "region1", "count": 4, "type": "brain_region"},
+            {
+                "id": str(ids.brain_region_ids[0]),
+                "label": "region0",
+                "count": 4,
+                "type": "brain_region",
+            },
+            {
+                "id": str(ids.brain_region_ids[1]),
+                "label": "region1",
+                "count": 4,
+                "type": "brain_region",
+            },
         ],
         "morphology": [
             {

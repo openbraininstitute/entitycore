@@ -3,6 +3,7 @@ import itertools as it
 import pytest
 
 from app.db.model import MEModel, SingleNeuronSimulation
+from app.db.types import EntityType
 
 from .utils import (
     MISSING_ID,
@@ -52,6 +53,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
+    assert data["type"] == EntityType.single_neuron_simulation
 
     response = assert_request(client.get, url=f"{ROUTE}/{data['id']}")
     data = response.json()
@@ -65,6 +67,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
+    assert data["type"] == EntityType.single_neuron_simulation
 
 
 @pytest.mark.parametrize(
@@ -207,9 +210,11 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
 
 @pytest.fixture
 def faceted_ids(db, brain_region_hierarchy_name_id, emodel_id, morphology_id, species_id):
-
     brain_region_ids = [
-        create_brain_region(db, brain_region_hierarchy_name_id, hierarchy_id=i, name=f"region-{i}").id for i in range(2)
+        create_brain_region(
+            db, brain_region_hierarchy_name_id, hierarchy_id=i, name=f"region-{i}"
+        ).id
+        for i in range(2)
     ]
     me_model_ids = [
         _create_me_model_id(

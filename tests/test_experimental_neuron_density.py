@@ -1,6 +1,7 @@
 import pytest
 
 from app.db.model import ExperimentalNeuronDensity
+from app.db.types import EntityType
 
 from .utils import (
     assert_request,
@@ -31,6 +32,7 @@ def _assert_read_response(data, json_data):
     assert data["description"] == json_data["description"]
     assert data["name"] == json_data["name"]
     assert data["license"]["name"] == "Test License"
+    assert data["type"] == EntityType.experimental_neuron_density
 
 
 @pytest.fixture

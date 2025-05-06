@@ -1,3 +1,4 @@
+import shutil
 import datetime
 import glob
 import json
@@ -20,7 +21,7 @@ import sqlalchemy as sa
 from tqdm import tqdm
 
 from app.cli import curate, utils
-from app.cli.utils import AUTHORIZED_PUBLIC
+from app.cli.utils import AUTHORIZED_PUBLIC, ensurelist
 from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
@@ -60,7 +61,11 @@ from app.db.types import (
     MeasurementStatistic,
     MeasurementUnit,
     PointLocationBase,
+    EntityType,
 )
+
+from app.cli.curation import electrical_cell_recording
+from app.cli.types import ContentType
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -558,7 +563,7 @@ class ImportMorphologies(Import):
                 continue
 
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
-            brain_location = utils.get_brain_location(data, db)
+            brain_location = utils.get_brain_location(data)
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
@@ -662,15 +667,24 @@ class ImportElectricalCellRecording(Import):
         )
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
+
             rm = utils._find_by_legacy_id(legacy_id, ElectricalCellRecording, db)
             if rm:
                 continue
 
             data = curate.curate_trace(data)
+            distributions = ensurelist(data.get("distribution", []))
+
+            # register resources that have at least one supported file
+            if not (
+                has_content_type_in_distributions(ContentType.nwb, distributions)
+                or has_content_type_in_distributions(ContentType.h5, distributions)
+            ):
+                continue
 
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
@@ -726,6 +740,11 @@ class ImportElectricalCellRecording(Import):
 
                 # create a stimulus for each stimulus in the data
                 utils.create_stimulus(stimulus_type, db_item.id, project_context, db)
+
+
+def has_content_type_in_distributions(content_type: ContentType, distributions: list) -> bool:
+    """Return True if the content_type is present in the distributions."""
+    return content_type in {d["encodingFormat"] for d in distributions}
 
 
 class ImportMEModel(Import):
@@ -1054,7 +1073,7 @@ def create_measurement(data, entity_id, db):
 
 
 def _do_import(db, input_dir, project_context, hierarchy_name):
-    print("import licenses")
+    print("Importing licenses")
     import_licenses(curate.default_licenses(), db)
     with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
         data = json.load(f)
@@ -1071,10 +1090,10 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
             elif "nsg:EType" in sub_class:
                 etype_annotations.append(data)
 
-        print("import mtype annotations")
+        print("Importing mtype annotations")
         import_mtype_annotation_body(mtype_annotations, db)
 
-        print("import etype annotations")
+        print("Importing etype annotations")
         import_etype_annotation_body(etype_annotations, db)
 
     importers = [
@@ -1126,7 +1145,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         )
 
     for importer, data in import_data.items():
-        print(f"ingesting {importer.name}")
+        print(f"Ingesting {importer.name}")
         importer.ingest(
             db, project_context, data, all_data_by_id=all_data_by_id, hierarchy_name=hierarchy_name
         )
@@ -1297,6 +1316,60 @@ def organize_files(digest_path):
                 dst.symlink_to(src)
     if ignored:
         L.info("Ignored files: {}", len(ignored))
+
+
+@cli.command()
+@click.argument("input_digest_path", type=REQUIRED_PATH)
+@click.argument("output_digest_path")
+@click.option("--out-dir", type=Path, help="Output directory for curated files.")
+@click.option("--dry-run", is_flag=True, help="Run curation without modifying db assets.")
+def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
+    assert out_dir.exists()
+
+    with Path(input_digest_path).open("r", encoding="utf-8") as f:
+        src_paths = dict(line.strip().split(" ", maxsplit=1) for line in f)
+
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        # Group assets by ntity_type/entity_id/content_type
+        assets_per_entity_type = defaultdict(lambda: defaultdict(lambda: defaultdict()))
+        for asset in db.query(Asset).all():
+            entity_type = asset.full_path.split("/")[4]
+            assets_per_entity_type[entity_type][asset.entity_id][asset.content_type] = asset
+
+        if not assets_per_entity_type:
+            raise RuntimeError("No assets found. Please run 'make import' to import distributions.")
+
+        config = {EntityType.electrical_cell_recording: electrical_cell_recording.curate_assets}
+
+        new_src_paths = {}
+        for entity_type, curator in config.items():
+            if not (assets_per_entity := assets_per_entity_type.get(entity_type)):
+                continue
+
+            print(f"Curating: {entity_type}")
+            for entity_id, assets in tqdm(assets_per_entity.items()):
+                try:
+                    new_src_paths |= curator(
+                        db=db,
+                        src_paths=src_paths,
+                        assets=assets,
+                        out_dir=out_dir,
+                        is_dry_run=dry_run,
+                    )
+                except Exception as e:
+                    msg = f"Failed curation for entity {entity_type}: {entity_id}. Reason : {e}"
+                    L.warning(msg)
+                    continue
+
+                db.commit()
+
+    all_paths = src_paths | new_src_paths
+    with open(output_digest_path, "w") as fp:
+        for digest, path in all_paths.items():
+            fp.write(f"{digest} {path}\n")
 
 
 if __name__ == "__main__":

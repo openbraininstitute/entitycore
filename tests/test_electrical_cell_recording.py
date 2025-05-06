@@ -3,6 +3,7 @@ from unittest.mock import ANY
 import pytest
 
 from app.db.model import ElectricalCellRecording, ElectricalRecordingStimulus
+from app.db.types import EntityType
 
 from .utils import (
     PROJECT_ID,
@@ -130,6 +131,7 @@ def test_create_one(client, subject_id, license_id, brain_region_id, json_data):
     assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["license"]["id"] == str(license_id)
     assert data["authorized_project_id"] == str(PROJECT_ID)
+    assert data["type"] == EntityType.electrical_cell_recording
 
 
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
@@ -147,6 +149,7 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
     assert data["authorized_project_id"] == PROJECT_ID
     assert len(data["stimuli"]) == 2
     assert len(data["assets"]) == 1
+    assert data["type"] == EntityType.electrical_cell_recording
 
 
 def test_missing(client):
@@ -182,9 +185,11 @@ def test_pagination(db, client, subject_id, brain_region_id, license_id):
 
 @pytest.fixture
 def faceted_ids(db, brain_region_hierarchy_name_id, subject_id, license_id):
-
     brain_region_ids = [
-        create_brain_region(db, brain_region_hierarchy_name_id, hierarchy_id=i, name=f"region-{i}").id for i in range(2)
+        create_brain_region(
+            db, brain_region_hierarchy_name_id, hierarchy_id=i, name=f"region-{i}"
+        ).id
+        for i in range(2)
     ]
 
     trace_ids = [

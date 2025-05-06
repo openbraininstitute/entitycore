@@ -6,7 +6,6 @@ from app.db.model import (
     Agent,
     BrainRegion,
     Contribution,
-    MEModel,
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
 )
@@ -42,8 +41,14 @@ def read_one(
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
         apply_operations=lambda q: q.options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+                SingleNeuronSynaptome.me_model
+            ),
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+                SingleNeuronSynaptome.me_model
+            ),
             joinedload(SingleNeuronSynaptomeSimulation.brain_region),
+            raiseload("*"),
         ),
     )
 
@@ -92,13 +97,13 @@ def read_many(
     apply_data_query = lambda query: (
         query.options(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.brain_region
+                SingleNeuronSynaptome.me_model
             )
         )
         .options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome)
-            .joinedload(SingleNeuronSynaptome.me_model)
-            .joinedload(MEModel.brain_region)
+            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+                SingleNeuronSynaptome.me_model
+            )
         )
         .options(joinedload(SingleNeuronSynaptomeSimulation.brain_region))
         .options(raiseload("*"))

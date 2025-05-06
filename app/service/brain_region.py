@@ -3,7 +3,7 @@ import uuid
 from collections import defaultdict
 
 import sqlalchemy as sa
-from fastapi import Response
+from fastapi import HTTPException, Response
 
 from app.db.model import BrainRegion, BrainRegionHierarchyName
 from app.dependencies.common import PaginationQuery
@@ -12,6 +12,13 @@ from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilterDep
 from app.schemas.base import BrainRegionRead
 from app.schemas.types import ListResponse, PaginationResponse
+
+
+class _JSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, uuid.UUID):
+            return str(o)
+        return json.JSONEncoder.default(self, o)
 
 
 def read_hierarchy_name_hierarchy(
@@ -26,6 +33,9 @@ def read_hierarchy_name_hierarchy(
     )
 
     data = db.execute(query).scalars()
+
+    if not data:
+        raise HTTPException(status_code=404, detail=f"No hierarchy named {hierarchy_name}")
 
     parent_map = defaultdict(list)
     for region in data:
@@ -46,8 +56,8 @@ def read_hierarchy_name_hierarchy(
             for node in children
         ]
 
-    tree = build_tree(BrainRegion.ROOT_PARENT_UUID)
-    js = json.dumps(tree, cls=JSONEncoder)
+    tree = build_tree(BrainRegion.ROOT_PARENT_UUID)[0]
+    js = json.dumps(tree, cls=_JSONEncoder)
     response = Response(content=js, media_type="application/json")
     return response
 
@@ -56,12 +66,10 @@ def read_many(
     *,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter: BrainRegionFilterDep,
-) -> Response:
-    response: Response
-
+    brain_region_filter: BrainRegionFilterDep,
+) -> ListResponse[BrainRegionRead]:
     query = sa.select(BrainRegion)
-    query = filter.filter(query)
+    query = brain_region_filter.filter(query)
 
     data = db.execute(
         query.offset(pagination_request.offset).limit(pagination_request.page_size)
@@ -79,13 +87,6 @@ def read_many(
         facets=None,
     )
     return response
-
-
-class JSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, uuid.UUID):
-            return str(obj)
-        return json.JSONEncoder.default(self, obj)
 
 
 def read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionRead:

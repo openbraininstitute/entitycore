@@ -515,6 +515,9 @@ class ImportBrainRegionMeshes(Import):
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
+            if 'atlasRelease' not in data or data['atlasRelease'].get('tag', '') != "v1.1.0":
+                continue
+
             legacy_id = data["@id"]
             legacy_self = data["_self"]
             rm = utils._find_by_legacy_id(legacy_id, Mesh, db)
@@ -1099,7 +1102,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
     importers = [
         ImportAgent,
         ImportAnalysisSoftwareSourceCode,
-        # ImportBrainRegionMeshes,
+        ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
         ImportExperimentalNeuronDensities,

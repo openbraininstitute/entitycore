@@ -1,4 +1,3 @@
-import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends
@@ -11,26 +10,20 @@ from app.db.model import (
 from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
-    ContributionFilterMixin,
-    CreationFilterMixin,
+    EntityFilterMixin,
     ETypeClassFilterMixin,
     MTypeClassFilterMixin,
     SpeciesFilterMixin,
-    StrainFilterMixin,
     SynapticPathwayFilterMixin,
 )
 
 
 class DensityFilterBase(
     CustomFilter,
-    StrainFilterMixin,
+    EntityFilterMixin,
     SpeciesFilterMixin,
-    CreationFilterMixin,
     BrainRegionFilterMixin,
-    ContributionFilterMixin,
 ):
-    id__in: list[uuid.UUID] | None = None
-    name__ilike: str | None = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
 

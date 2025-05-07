@@ -160,7 +160,6 @@ class MeasurementStatistic(StrEnum):
     minimum = auto()
     maximum = auto()
     sum = auto()
-    n = "N"  # TODO: rename to something different? sample_size? count?
 
 
 class MeasurementUnit(StrEnum):
@@ -171,7 +170,6 @@ class MeasurementUnit(StrEnum):
     area__um2 = "μm²"
     volume__mm3 = "μm³"
     angle__radian = "radian"
-    dhv = "dendritic volume / hull volume"  # TODO: what unit?
 
 
 class StructuralDomain(StrEnum):

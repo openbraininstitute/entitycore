@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 4d9af4a2287d
+Revision ID: 6bc0bb33e98b
 Revises: a45638c6f52a
-Create Date: 2025-05-07 15:58:24.046423
+Create Date: 2025-05-07 17:22:18.301507
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "4d9af4a2287d"
+revision: str = "6bc0bb33e98b"
 down_revision: Union[str, None] = "a45638c6f52a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -127,7 +127,6 @@ def upgrade() -> None:
                 "minimum",
                 "maximum",
                 "sum",
-                "n",
                 name="measurementstatistic",
                 create_type=False,
             ),
@@ -143,7 +142,6 @@ def upgrade() -> None:
                 "area__um2",
                 "volume__mm3",
                 "angle__radian",
-                "dhv",
                 name="measurementunit",
                 create_type=False,
             ),
@@ -202,7 +200,6 @@ def upgrade() -> None:
             "minimum",
             "maximum",
             "sum",
-            "n",
         ],
         affected_columns=[
             TableReference(
@@ -225,7 +222,6 @@ def upgrade() -> None:
             "area__um2",
             "volume__mm3",
             "angle__radian",
-            "dhv",
         ],
         affected_columns=[
             TableReference(

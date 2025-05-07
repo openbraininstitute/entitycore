@@ -1,4 +1,3 @@
-import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
@@ -6,15 +5,10 @@ from fastapi_filter import FilterDepends, with_prefix
 from app.db.model import ReconstructionMorphology
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    AgentFilter,
-    CreationFilterMixin,
-    MTypeClassFilter,
-    NestedAgentFilterDep,
-    NestedMTypeClassFilterDep,
-    NestedSpeciesFilterDep,
-    NestedStrainFilterDep,
-    SpeciesFilter,
-    StrainFilter,
+    BrainRegionFilterMixin,
+    EntityFilterMixin,
+    MTypeClassFilterMixin,
+    SpeciesFilterMixin,
 )
 from app.filters.measurement_annotation import (
     NestedMeasurementAnnotationFilter,
@@ -24,20 +18,14 @@ from app.filters.measurement_annotation import (
 
 class MorphologyFilter(
     CustomFilter,
-    CreationFilterMixin,
+    BrainRegionFilterMixin,
+    SpeciesFilterMixin,
+    MTypeClassFilterMixin,
+    EntityFilterMixin,
 ):
-    id__in: list[uuid.UUID] | None = None
-    name__ilike: str | None = None
-    brain_region_id: int | None = None
-    species_id__in: list[int] | None = None
-    mtype: Annotated[MTypeClassFilter | None, NestedMTypeClassFilterDep] = None
-    species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
-    strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
-    contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
     measurement_annotation: Annotated[
         NestedMeasurementAnnotationFilter | None, NestedMeasurementAnnotationFilterDep
     ] = None
-
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

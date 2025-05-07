@@ -2,14 +2,18 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.agent import AgentRead
+from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
 )
-from app.schemas.me_model import NestedMEModel as MEModelRead
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.me_model import NestedMEModel
 
 
 class SingleNeuronSynaptomeBase(BaseModel):
@@ -27,11 +31,20 @@ class SingleNeuronSynaptomeCreate(
     brain_region_id: int
 
 
+class NestedSynaptome(SingleNeuronSynaptomeBase, CreationMixin, IdentifiableMixin):
+    pass
+
+
 class SingleNeuronSynaptomeRead(
     SingleNeuronSynaptomeBase,
     AuthorizationMixin,
     IdentifiableMixin,
     CreationMixin,
+    ContributionReadWithoutEntityMixin,
+    EntityTypeMixin,
+    AssetsMixin,
 ):
-    me_model: MEModelRead
+    me_model: NestedMEModel
     brain_region: BrainRegionRead
+    createdBy: AgentRead | None
+    updatedBy: AgentRead | None

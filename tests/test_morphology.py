@@ -1,6 +1,7 @@
 import itertools as it
 
 from app.db.model import ReconstructionMorphology, Species, Strain
+from app.db.types import EntityType
 
 from .utils import (
     MISSING_ID,
@@ -51,10 +52,17 @@ def test_create_reconstruction_morphology(
     assert data["license"]["name"] == "Test License", (
         f"Failed to get license for reconstruction morphology: {data}"
     )
+    assert data["type"] == EntityType.reconstruction_morphology, (
+        f"Failed to get correct type for reconstruction morphology: {data}"
+    )
 
     response = client.get(ROUTE)
     assert response.status_code == 200, (
         f"Failed to get reconstruction morphologies: {response.text}"
+    )
+    data = response.json()["data"]
+    assert data and all(item["type"] == EntityType.reconstruction_morphology for item in data), (  # noqa: PT018
+        "One or more reconstruction morphologies has incorrect type"
     )
 
 
@@ -113,6 +121,9 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "data" in response_json
     assert response_json["facets"] is None
     assert len(response_json["data"]) == 10
+    assert all(
+        item["type"] == EntityType.reconstruction_morphology for item in response_json["data"]
+    ), "One or more reconstruction morphologies has incorrect type"
 
     response = client.get(ROUTE, params={"page_size": 100, "order_by": "+creation_date"})
     assert response.status_code == 200
@@ -258,20 +269,32 @@ def test_authorization(
     )
     assert public_morph.status_code == 200
     public_morph = public_morph.json()
+    assert public_morph["type"] == EntityType.reconstruction_morphology, (
+        "Public morphology has incorrect type"
+    )
 
     inaccessible_obj = client_user_2.post(
         ROUTE, json=morph_json | {"name": "inaccessible morphology 1"}
     )
     assert inaccessible_obj.status_code == 200
     inaccessible_obj = inaccessible_obj.json()
+    assert inaccessible_obj["type"] == EntityType.reconstruction_morphology, (
+        "Inaccessible morphology has incorrect type"
+    )
 
     private_morph0 = client_user_1.post(ROUTE, json=morph_json | {"name": "private morphology 0"})
     assert private_morph0.status_code == 200
     private_morph0 = private_morph0.json()
+    assert private_morph0["type"] == EntityType.reconstruction_morphology, (
+        "Private morphology 0 has incorrect type"
+    )
 
     private_morph1 = client_user_1.post(ROUTE, json=morph_json | {"name": "private morphology 1"})
     assert private_morph1.status_code == 200
     private_morph1 = private_morph1.json()
+    assert private_morph1["type"] == EntityType.reconstruction_morphology, (
+        "Private morphology 1 has incorrect type"
+    )
 
     # only return results that matches the desired project, and public ones
     response = client_user_1.get(ROUTE)
@@ -317,7 +340,11 @@ def test_pagination(db, client, brain_region_id):
     response = client.get(ROUTE, params={"page_size": total_items + 1})
 
     assert response.status_code == 200
-    assert len(response.json()["data"]) == total_items
+    data = response.json()["data"]
+    assert len(data) == total_items
+    assert all(item["type"] == EntityType.reconstruction_morphology for item in data), (
+        "One or more reconstruction morphologies has incorrect type"
+    )
 
     for i in range(1, total_items + 10, 2):
         response = client.get(ROUTE, params={"page_size": i})
@@ -367,6 +394,9 @@ def test_filter_by_id__in(db, client, brain_region_id):
     data = response.json()["data"]
     assert len(data) == 1
     assert data[0]["id"] == morphology_ids[0]
+    assert data[0]["type"] == EntityType.reconstruction_morphology, (
+        "Filtered morphology has incorrect type"
+    )
 
     # filtering by multiple IDs
     selected_ids = [morphology_ids[1], morphology_ids[3]]

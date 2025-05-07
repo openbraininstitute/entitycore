@@ -166,7 +166,6 @@ def router_read_many[T: BaseModel, I: Identifiable](
             sa.func.count(sa.func.distinct(db_model_class.id)).label("count")
         )
     ).scalar_one()
-
     return ListResponse[response_schema_class](
         data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(

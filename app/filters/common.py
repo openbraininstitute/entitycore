@@ -140,7 +140,7 @@ class SubjectFilterMixin:
 
 
 class BrainRegionFilter(NameFilterMixin, CustomFilter):
-    # TODO: Use IdFilterMixin brain region keys migrate from int to uuid
+    # TODO: Use IdFilterMixin when brain region keys migrate from int to uuid
     id: int | None = None
     id__in: list[int] | None = None
     acronym: str | None = None

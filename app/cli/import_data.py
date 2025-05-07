@@ -515,7 +515,7 @@ class ImportBrainRegionMeshes(Import):
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
-            if 'atlasRelease' not in data or data['atlasRelease'].get('tag', '') != "v1.1.0":
+            if "atlasRelease" not in data or data["atlasRelease"].get("tag", "") != "v1.1.0":
                 continue
 
             legacy_id = data["@id"]

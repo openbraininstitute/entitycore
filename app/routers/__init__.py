@@ -6,6 +6,7 @@ from app.dependencies.auth import user_verified
 from app.routers import (
     asset,
     brain_region,
+    brain_region_hierarchy_name,
     cell_composition,
     contribution,
     electrical_cell_recording,
@@ -35,6 +36,7 @@ router.include_router(root.router)
 authenticated_routers = [
     asset.router,
     brain_region.router,
+    brain_region_hierarchy_name.router,
     cell_composition.router,
     contribution.router,
     electrical_cell_recording.router,

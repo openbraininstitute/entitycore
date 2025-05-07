@@ -2,7 +2,6 @@ import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
-from pydantic import model_validator
 
 from app.db.model import MeasurementAnnotation, MeasurementItem, MeasurementKind
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
@@ -55,20 +54,11 @@ class MeasurementAnnotationFilter(NestedMeasurementAnnotationFilter):
     id__in: list[uuid.UUID] | None = None
     entity_id: uuid.UUID | None = None
     entity_type: MeasurableEntityType | None = None
-    is_active: bool | None = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(NestedMeasurementAnnotationFilter.Constants):
         ordering_model_fields = ["creation_date", "update_date"]  # noqa: RUF012
-
-    @model_validator(mode="after")
-    def _entity_type_mandatory_with_is_active(self):
-        """The field entity_type must be provided when the field is_active is provided."""
-        if self.is_active is not None and self.entity_type is None:
-            msg = "entity_type must be provided when is_active is provided"
-            raise ValueError(msg)
-        return self
 
 
 MeasurementAnnotationFilterDep = Annotated[

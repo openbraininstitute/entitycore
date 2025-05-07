@@ -1,7 +1,13 @@
 from copy import deepcopy
 from unittest.mock import ANY
 
+import pytest
+
+from app.db.model import Label, MeasurementKind
+from app.db.types import LabelScheme
+
 from .utils import (
+    add_all_db,
     assert_response,
     check_missing,
     create_reconstruction_morphology_id,
@@ -12,18 +18,32 @@ MORPHOLOGY_ROUTE = "/reconstruction-morphology"
 ENTITY_TYPE = "reconstruction_morphology"
 
 
-def _get_request_payload_1(entity_id):
-    pref_label_1 = "section_lengths"
-    definition_1 = "Test Section Lengths"
-    pref_label_2 = "section_areas"
-    definition_2 = "Section Areas"
+def _populate_label(db, count):
+    items = [
+        {
+            "pref_label": f"pref_label_{i}",
+            "alt_label": f"alt_label_{i}",
+            "definition": f"definition_{i}",
+        }
+        for i in range(count)
+    ]
+    scheme = LabelScheme[f"{MeasurementKind.__tablename__}__{ENTITY_TYPE}"]
+    labels = add_all_db(db, [Label(scheme=scheme, **item) for item in items])
+    return labels
+
+
+@pytest.fixture
+def measurement_labels(db):
+    return _populate_label(db, 5)
+
+
+def _get_request_payload_1(entity_id, labels):
     return {
         "entity_type": ENTITY_TYPE,
         "entity_id": entity_id,
         "measurement_kinds": [
             {
-                "pref_label": pref_label_1,
-                "definition": definition_1,
+                "pref_label": labels[0].pref_label,
                 "structural_domain": "axon",
                 "measurement_items": [
                     {
@@ -39,8 +59,7 @@ def _get_request_payload_1(entity_id):
                 ],
             },
             {
-                "pref_label": pref_label_2,
-                "definition": definition_2,
+                "pref_label": labels[1].pref_label,
                 "measurement_items": [
                     {
                         "name": "mean",
@@ -58,16 +77,13 @@ def _get_request_payload_1(entity_id):
     }
 
 
-def _get_request_payload_2(entity_id):
-    pref_label_1 = "section_lengths"
-    definition_1 = "Test Section Lengths"
+def _get_request_payload_2(entity_id, labels):
     return {
         "entity_type": ENTITY_TYPE,
         "entity_id": entity_id,
         "measurement_kinds": [
             {
-                "pref_label": pref_label_1,
-                "definition": definition_1,
+                "pref_label": labels[0].pref_label,
                 "structural_domain": "axon",
                 "measurement_items": [
                     {
@@ -91,14 +107,13 @@ def _get_return_payload(request_payload):
         "id": ANY,
         "creation_date": ANY,
         "update_date": ANY,
-        "is_active": True,
     }
     for kind in payload["measurement_kinds"]:
         kind.setdefault("structural_domain", None)
     return payload
 
 
-def test_create_and_retrieve(client, species_id, strain_id, brain_region_id):
+def test_create_and_retrieve(client, species_id, strain_id, brain_region_id, measurement_labels):
     reconstruction_morphology_id = create_reconstruction_morphology_id(
         client,
         species_id,
@@ -106,7 +121,9 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id):
         brain_region_id,
         authorized_public=False,
     )
-    request_payload_1 = _get_request_payload_1(entity_id=reconstruction_morphology_id)
+    request_payload_1 = _get_request_payload_1(
+        entity_id=reconstruction_morphology_id, labels=measurement_labels
+    )
     expected_payload_1 = _get_return_payload(request_payload=request_payload_1)
 
     response = client.post(ROUTE, json=request_payload_1)
@@ -135,10 +152,17 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id):
     assert_response(response, expected_status_code=200)
     data = response.json()
     assert "measurement_annotation" in data
-    assert data["measurement_annotation"] == expected_payload_1
+
+    # delete the 1st annotation
+    response = client.delete(f"{ROUTE}/{measurement_annotation_id_1}")
+    assert_response(response, expected_status_code=200)
+    data = response.json()
+    assert data == expected_payload_1
 
     # create a 2nd annotation
-    request_payload_2 = _get_request_payload_2(entity_id=reconstruction_morphology_id)
+    request_payload_2 = _get_request_payload_2(
+        entity_id=reconstruction_morphology_id, labels=measurement_labels
+    )
     response = client.post(ROUTE, json=request_payload_2)
     assert_response(response, expected_status_code=200)
     data = response.json()
@@ -156,21 +180,7 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id):
 
     # filter the annotations
     query_params = {
-        "measurement_kind__pref_label": "section_lengths",
-        "measurement_item__name": "mean",
-        "measurement_item__value__gte": 54,
-        "measurement_item__value__lte": 55,
-    }
-    response = client.get(f"{ROUTE}", params=query_params)
-    assert_response(response, expected_status_code=200)
-    data = response.json()
-    assert len(data["data"]) == 1
-    assert data["data"][0]["id"] == measurement_annotation_id_1
-    assert data["data"][0]["is_active"] is False  # the 1st annotation isn't active anymore
-
-    # filter the annotations with different values
-    query_params = {
-        "measurement_kind__pref_label": "section_lengths",
+        "measurement_kind__pref_label": measurement_labels[0].pref_label,
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 154,
         "measurement_item__value__lte": 155,
@@ -180,53 +190,17 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id):
     data = response.json()
     assert len(data["data"]) == 1
     assert data["data"][0]["id"] == measurement_annotation_id_2
-    assert data["data"][0]["is_active"] is True  # the 2nd annotation is active
-
-    # get only the active annotations
-    query_params = {"is_active": True, "entity_type": ENTITY_TYPE}
-    response = client.get(f"{ROUTE}", params=query_params)
-    assert_response(response, expected_status_code=200)
-    data = response.json()
-    assert len(data["data"]) == 1
-    assert data["data"][0]["id"] == measurement_annotation_id_2
-    assert data["data"][0]["is_active"] is True  # the 2nd annotation is active
-
-    # get only the inactive annotations
-    query_params = {"is_active": False, "entity_type": ENTITY_TYPE}
-    response = client.get(f"{ROUTE}", params=query_params)
-    assert_response(response, expected_status_code=200)
-    data = response.json()
-    assert len(data["data"]) == 1
-    assert data["data"][0]["id"] == measurement_annotation_id_1
-    assert data["data"][0]["is_active"] is False  # the 1st annotation is not active
 
     # filter by entity_type
     query_params = {"entity_type": ENTITY_TYPE}
     response = client.get(f"{ROUTE}", params=query_params)
     assert_response(response, expected_status_code=200)
     data = response.json()
-    assert len(data["data"]) == 2
-    assert {
-        data["data"][0]["id"]: data["data"][0]["is_active"],
-        data["data"][1]["id"]: data["data"][1]["is_active"],
-    } == {
-        measurement_annotation_id_1: False,
-        measurement_annotation_id_2: True,
-    }
+    assert len(data["data"]) == 1
 
-    # filter by is_active without entity_type
-    query_params = {"is_active": True}
-    response = client.get(f"{ROUTE}", params=query_params)
-    assert_response(response, expected_status_code=422)
-    data = response.json()
-    assert (
-        data["details"][0]["msg"]
-        == "Value error, entity_type must be provided when is_active is provided"
-    )
-
-    # filter the morphology by annotation (only the active annotations are considered)
+    # filter the morphology by annotation
     query_params = {
-        "measurement_kind__pref_label": "section_lengths",
+        "measurement_kind__pref_label": measurement_labels[0].pref_label,
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 154,
         "measurement_item__value__lte": 155,
@@ -237,9 +211,9 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id):
     assert len(data["data"]) == 1
     assert data["data"][0]["id"] == reconstruction_morphology_id
 
-    # filter the morphology by annotation (only the active annotations are considered)
+    # filter the morphology by annotation, no results
     query_params = {
-        "measurement_kind__pref_label": "section_lengths",
+        "measurement_kind__pref_label": measurement_labels[0].pref_label,
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 54,
         "measurement_item__value__lte": 55,
@@ -255,7 +229,13 @@ def test_missing(client):
 
 
 def test_authorization(
-    client_user_1, client_user_2, client_no_project, species_id, strain_id, brain_region_id
+    client_user_1,
+    client_user_2,
+    client_no_project,
+    species_id,
+    strain_id,
+    brain_region_id,
+    measurement_labels,
 ):
     reconstruction_morphology_id_public = create_reconstruction_morphology_id(
         client_user_1,
@@ -266,7 +246,10 @@ def test_authorization(
     )
 
     response = client_user_1.post(
-        ROUTE, json=_get_request_payload_1(entity_id=reconstruction_morphology_id_public)
+        ROUTE,
+        json=_get_request_payload_1(
+            entity_id=reconstruction_morphology_id_public, labels=measurement_labels
+        ),
     )
     assert_response(response, expected_status_code=200)
     measurement_annotation_id_public = response.json()["id"]
@@ -281,13 +264,19 @@ def test_authorization(
 
     # try to add annotation to inaccessible reconstruction
     response = client_user_1.post(
-        ROUTE, json=_get_request_payload_1(entity_id=reconstruction_morphology_id_inaccessible)
+        ROUTE,
+        json=_get_request_payload_1(
+            entity_id=reconstruction_morphology_id_inaccessible, labels=measurement_labels
+        ),
     )
     assert_response(response, expected_status_code=404)
 
     # succeed to add annotation to inaccessible reconstruction with a different client
     response = client_user_2.post(
-        ROUTE, json=_get_request_payload_1(entity_id=reconstruction_morphology_id_inaccessible)
+        ROUTE,
+        json=_get_request_payload_1(
+            entity_id=reconstruction_morphology_id_inaccessible, labels=measurement_labels
+        ),
     )
     assert_response(response, expected_status_code=200)
 
@@ -303,7 +292,9 @@ def test_authorization(
     )
     response = client_user_1.post(
         ROUTE,
-        json=_get_request_payload_1(entity_id=reconstruction_morphology_id_public_inaccessible),
+        json=_get_request_payload_1(
+            entity_id=reconstruction_morphology_id_public_inaccessible, labels=measurement_labels
+        ),
     )
     assert_response(response, expected_status_code=404)
 

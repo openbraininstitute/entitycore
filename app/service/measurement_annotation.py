@@ -7,13 +7,14 @@ from sqlalchemy.orm import (
     selectinload,
 )
 
-from app.db.auth import constrain_to_accessible_entities
+from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import (
     Entity,
     MeasurementAnnotation,
     MeasurementItem,
     MeasurementKind,
 )
+from app.db.types import LabelScheme
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -21,14 +22,21 @@ from app.filters.measurement_annotation import (
     MeasurementAnnotationFilter,
     MeasurementAnnotationFilterDep,
 )
-from app.queries.common import ApplyOperations, router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    ApplyOperations,
+    router_create_one,
+    router_delete_one,
+    router_read_many,
+    router_read_one,
+)
 from app.queries.entity import get_writable_entity
 from app.schemas.measurement_annotation import (
     MeasurementAnnotationCreate,
     MeasurementAnnotationRead,
 )
 from app.schemas.types import ListResponse
-from app.utils.entity import MEASURABLE_ENTITIES, MeasurableEntityType
+from app.service.label import get_labels_to_ids
+from app.utils.entity import MEASURABLE_ENTITIES
 
 
 def _load_from_db(q: sa.Select) -> sa.Select:
@@ -36,50 +44,10 @@ def _load_from_db(q: sa.Select) -> sa.Select:
         selectinload(MeasurementAnnotation.measurement_kinds).selectinload(
             MeasurementKind.measurement_items
         ),
+        selectinload(MeasurementAnnotation.measurement_kinds).selectinload(MeasurementKind.label),
         contains_eager(MeasurementAnnotation.entity),
         raiseload("*"),
     )
-
-
-def _load_from_db_with_constraints(q: sa.Select, project_id: uuid.UUID | None) -> sa.Select:
-    q = constrain_to_accessible_entities(
-        q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
-        project_id=project_id,
-    )
-    return _load_from_db(q=q)
-
-
-def _get_join_onclause(filter_model: MeasurementAnnotationFilter):
-    """Allow to filter by `is_active` and `entity_type`."""
-    match (filter_model.entity_type, filter_model.is_active):
-        case (None, None):
-            clauses = [
-                Entity.id == MeasurementAnnotation.entity_id,
-            ]
-        case (MeasurableEntityType(), None):
-            clauses = [
-                Entity.id == MeasurementAnnotation.entity_id,
-                Entity.type == filter_model.entity_type,
-            ]
-        case (MeasurableEntityType(), True):
-            clauses = [
-                Entity.id == MeasurementAnnotation.entity_id,
-                Entity.type == filter_model.entity_type,
-                Entity.measurement_annotation_id == MeasurementAnnotation.id,
-            ]
-        case (MeasurableEntityType(), False):
-            clauses = [
-                Entity.id == MeasurementAnnotation.entity_id,
-                Entity.type == filter_model.entity_type,
-                Entity.measurement_annotation_id != MeasurementAnnotation.id,
-            ]
-        case _ as error:
-            msg = f"Unexpected match case: {error}"
-            raise RuntimeError(msg)
-    # clean the filters so they are ignored by the custom filter
-    filter_model.is_active = None
-    filter_model.entity_type = None
-    return sa.and_(*clauses)
 
 
 def _get_filter_function(
@@ -88,9 +56,9 @@ def _get_filter_function(
     """Return the base query needed to filter the annotations."""
 
     def _filter_from_db(q: sa.Select) -> sa.Select:
-        q = q.join(Entity, onclause=_get_join_onclause(filter_model))
+        q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
         q = constrain_to_accessible_entities(q, project_id=project_id)
-        # join only if needed, for better performances
+        # join with kinds and items only if needed, for better performances
         if filter_model.measurement_kind and filter_model.measurement_kind.has_filtering_fields():
             q = q.join(MeasurementKind)
             if (
@@ -132,15 +100,18 @@ def read_one(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> MeasurementAnnotationRead:
+    def apply_operations(q):
+        q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
+        q = constrain_to_accessible_entities(q, project_id=user_context.project_id)
+        return _load_from_db(q=q)
+
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
         authorized_project_id=None,  # validated with apply_operations
         response_schema_class=MeasurementAnnotationRead,
-        apply_operations=lambda q: _load_from_db_with_constraints(
-            q, project_id=user_context.project_id
-        ),
+        apply_operations=apply_operations,
     )
 
 
@@ -149,12 +120,27 @@ def create_one(
     db: SessionDep,
     measurement_annotation: MeasurementAnnotationCreate,
 ) -> MeasurementAnnotationRead:
-    entity = get_writable_entity(
+    def apply_operations(q):
+        q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
+        q = constrain_entity_query_to_project(q, project_id=user_context.project_id)
+        return _load_from_db(q=q)
+
+    # retrieve label_id from pref_label if needed
+    scheme = LabelScheme[f"{MeasurementKind.__tablename__}__{measurement_annotation.entity_type}"]
+    labels = {
+        kind.pref_label
+        for kind in measurement_annotation.measurement_kinds
+        if kind.pref_label is not None
+    }
+    labels_to_ids = get_labels_to_ids(db, scheme=scheme, labels=labels)
+    for kind in measurement_annotation.measurement_kinds:
+        kind.label_id = labels_to_ids[kind.pref_label]
+
+    _entity = get_writable_entity(
         db=db,
         db_model_class=MEASURABLE_ENTITIES[measurement_annotation.entity_type],
         entity_id=measurement_annotation.entity_id,
         project_id=user_context.project_id,
-        for_update=True,
     )
     response = router_create_one(
         db=db,
@@ -162,11 +148,33 @@ def create_one(
         authorized_project_id=None,  # not needed for creation
         json_model=measurement_annotation,
         response_schema_class=MeasurementAnnotationRead,
-        apply_operations=lambda q: _load_from_db_with_constraints(
-            q, project_id=user_context.project_id
-        ),
+        apply_operations=apply_operations,
     )
-    # activate the new annotation on the entity
-    entity.measurement_annotation_id = response.id
-    response.is_active = True
     return response
+
+
+def delete_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> MeasurementAnnotationRead:
+    def apply_operations(q):
+        q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
+        q = constrain_entity_query_to_project(q, project_id=user_context.project_id)
+        return _load_from_db(q=q)
+
+    one = router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=MeasurementAnnotation,
+        authorized_project_id=None,  # validated with apply_operations
+        response_schema_class=MeasurementAnnotationRead,
+        apply_operations=apply_operations,
+    )
+    router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=MeasurementAnnotation,
+        authorized_project_id=None,  # already validated
+    )
+    return one

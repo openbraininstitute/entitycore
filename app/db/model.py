@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
 
+import sqlalchemy as sa
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -38,6 +39,7 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
     EntityType,
+    LabelScheme,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -349,16 +351,6 @@ class Entity(LegacyMixin, Identifiable):
         uselist=True,
         viewonly=True,
     )
-    measurement_annotation_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("measurement_annotation.id", use_alter=True), index=True, unique=True
-    )
-    measurement_annotation = relationship(
-        "MeasurementAnnotation",
-        foreign_keys=[measurement_annotation_id],
-        uselist=False,
-        viewonly=True,
-        lazy="raise",
-    )
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
@@ -494,6 +486,16 @@ class MeasurableEntity(Entity):
 
     __abstract__ = True
 
+    @declared_attr
+    @classmethod
+    def measurement_annotation(cls):
+        return relationship(
+            "MeasurementAnnotation",
+            foreign_keys="MeasurementAnnotation.entity_id",
+            uselist=False,
+            viewonly=True,
+        )
+
 
 class ReconstructionMorphology(
     MTypesMixin,
@@ -511,9 +513,27 @@ class ReconstructionMorphology(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class Label(Identifiable):
+    __tablename__ = "label"
+
+    scheme: Mapped[LabelScheme]
+    pref_label: Mapped[str]
+    definition: Mapped[str]
+    alt_label: Mapped[str | None]
+
+    __table_args__ = (
+        Index(
+            "ix_label_pref_label_scheme",
+            "pref_label",
+            "scheme",
+            unique=True,
+        ),
+    )
+
+
 class MeasurementAnnotation(LegacyMixin, Identifiable):
     __tablename__ = "measurement_annotation"
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True, unique=True)
     entity: Mapped["Entity"] = relationship(
         viewonly=True,
         foreign_keys=[entity_id],
@@ -529,17 +549,21 @@ class MeasurementAnnotation(LegacyMixin, Identifiable):
         """Return the type of the associated entity."""
         return str(self.entity.type)
 
-    @hybrid_property
-    def is_active(self) -> bool:
-        """Return True if this annotation is actively associated with an entity."""
-        return self.entity.measurement_annotation_id == self.id
+    @entity_type.inplace.expression
+    @classmethod
+    def _entity_type(cls):
+        return (
+            sa.select(Entity.type)
+            .where(Entity.id == cls.entity_id)
+            .correlate(cls)
+            .scalar_subquery()
+        )
 
 
 class MeasurementKind(Base):
     __tablename__ = "measurement_kind"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    pref_label: Mapped[str] = mapped_column(index=True)
-    definition: Mapped[str | None]
+    label_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("label.id"), index=True)
     structural_domain: Mapped[StructuralDomain | None]
     measurement_annotation_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("measurement_annotation.id", ondelete="CASCADE"),
@@ -551,15 +575,31 @@ class MeasurementKind(Base):
     measurement_items: Mapped[list["MeasurementItem"]] = relationship(
         back_populates="measurement_kind", passive_deletes=True
     )
+    label: Mapped["Label"] = relationship(viewonly=True, lazy="raise")
     __table_args__ = (
         UniqueConstraint(
             "measurement_annotation_id",
-            "pref_label",
+            "label_id",
             "structural_domain",
             name=f"uq_{__tablename__}_measurement_annotation_id",
             postgresql_nulls_not_distinct=True,
         ),
     )
+
+    @hybrid_property
+    def pref_label(self) -> str:
+        """Return the type of the associated entity."""
+        return self.label.pref_label
+
+    @pref_label.inplace.expression
+    @classmethod
+    def _pref_label(cls):
+        return (
+            sa.select(Label.pref_label)
+            .where(Label.id == cls.label_id)
+            .correlate(cls)
+            .scalar_subquery()
+        )
 
 
 class MeasurementItem(Base):

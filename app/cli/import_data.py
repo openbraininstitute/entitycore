@@ -24,7 +24,6 @@ from app.cli.utils import (
     build_measurement_item,
     build_measurement_kind,
     ensurelist,
-    update_measurement_annotation_ids,
 )
 from app.db.model import (
     AnalysisSoftwareSourceCode,
@@ -51,7 +50,6 @@ from app.db.model import (
     Person,
     ReconstructionMorphology,
     SingleNeuronSimulation,
-    Subject,
 )
 from app.db.session import configure_database_session_manager
 from app.db.types import (
@@ -882,6 +880,8 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
     def ingest(db, project_context, data_list, all_data_by_id=None):
         annotations = defaultdict(list)
         info = {
+            "newly_registered": 0,
+            "already_registered": 0,
             "missing_morphology_id": 0,
             "missing_morphology": 0,
             "duplicate_annotation": 0,
@@ -897,11 +897,20 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
             legacy_self = data["_self"]
             db_element = utils._find_by_legacy_id(legacy_id, MeasurementAnnotation, db)
             if db_element:
+                info["already_registered"] += 1
                 continue
 
             rm = utils._find_by_legacy_id(morphology_legacy_id, ReconstructionMorphology, db)
             if not rm:
                 info["missing_morphology"] += 1
+                continue
+
+            if (
+                db.query(MeasurementAnnotation.id)
+                .where(MeasurementAnnotation.entity_id == rm.id)
+                .first()
+            ):
+                info["already_registered"] += 1
                 continue
 
             measurement_kinds = []
@@ -911,7 +920,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                     if measurement_item := build_measurement_item(item):
                         measurement_items.append(measurement_item)
                 if measurement_kind := build_measurement_kind(
-                    measurement, measurement_items=measurement_items
+                    measurement, measurement_items=measurement_items, db=db
                 ):
                     measurement_kinds.append(measurement_kind)
 
@@ -928,24 +937,15 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                 )
             )
 
-        if not annotations:
-            return
-
         for entity_id, entity_annotations in tqdm(annotations.items()):
             if len(entity_annotations) > 1:
+                # keep only the most recently created
                 info["duplicate_annotation"] += len(entity_annotations) - 1
-            db.add_all(entity_annotations)
-
-        # ensure that the annotation ids are set
-        db.flush()
-
-        # activate the most recent annotations
-        measurement_annotation_ids = {}
-        for entity_id, entity_annotations in tqdm(annotations.items()):
-            measurement_annotation_id = max(entity_annotations, key=attrgetter("update_date")).id
-            assert measurement_annotation_id
-            measurement_annotation_ids[entity_id] = measurement_annotation_id
-        update_measurement_annotation_ids(db, Entity, measurement_annotation_ids)
+                entity_annotation = sorted(entity_annotations, key=lambda a: a.creation_date)[-1]
+            else:
+                entity_annotation = entity_annotations[0]
+            info["newly_registered"] += 1
+            db.add(entity_annotation)
 
         db.commit()
 
@@ -953,10 +953,14 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
             "NeuronMorphologyFeatureAnnotation report:\n"
             "    Annotations not related to any morphology: {}\n"
             "    Annotations related to a morphology that isn't registered: {}\n"
-            "    Duplicate_annotation: {}",
+            "    Annotations related to a morphology that has already an annotation: {}\n"
+            "    Duplicate_annotation: {}\n"
+            "    Newly registered: {}",
             info["missing_morphology_id"],
             info["missing_morphology"],
+            info["already_registered"],
             info["duplicate_annotation"],
+            info["newly_registered"],
         )
 
 

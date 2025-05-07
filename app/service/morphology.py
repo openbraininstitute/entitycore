@@ -51,7 +51,7 @@ def _filter_from_db(query: sa.Select) -> sa.Select:
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
         .outerjoin(
             MeasurementAnnotation,
-            MeasurementAnnotation.id == ReconstructionMorphology.measurement_annotation_id,
+            MeasurementAnnotation.entity_id == ReconstructionMorphology.id,
         )
         .outerjoin(
             MeasurementKind, MeasurementKind.measurement_annotation_id == MeasurementAnnotation.id
@@ -78,6 +78,9 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
             joinedload(ReconstructionMorphology.measurement_annotation)
             .selectinload(MeasurementAnnotation.measurement_kinds)
             .selectinload(MeasurementKind.measurement_items),
+            joinedload(ReconstructionMorphology.measurement_annotation)
+            .selectinload(MeasurementAnnotation.measurement_kinds)
+            .selectinload(MeasurementKind.label),
             joinedload(ReconstructionMorphology.measurement_annotation).contains_eager(
                 MeasurementAnnotation.entity
             ),

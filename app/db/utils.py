@@ -1,6 +1,7 @@
 import uuid
 
 from pydantic import BaseModel
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
 from app.db.model import Entity, Identifiable
@@ -14,10 +15,13 @@ def construct_model[T: DeclarativeBase](model_cls: type[T], data: dict) -> T:
         if not (attr := getattr(model_cls, attr_name, None)):
             L.debug("Attribute not found: {}.{}", model_cls, attr_name)
             continue
+        if isinstance(getattr(attr, "descriptor", None), hybrid_property):
+            # ignore hybrid properties
+            continue
         if not isinstance(attr, InstrumentedAttribute):
             L.warning("Attribute ignored: {}.{} -> {}", model_cls, attr_name, type(attr))
             continue
-        if isinstance(attr.property, RelationshipProperty):
+        if isinstance(getattr(attr, "property", None), RelationshipProperty):
             related_cls = attr.property.mapper.class_
             if isinstance(attr_val, list):
                 # One-to-many or many-to-many

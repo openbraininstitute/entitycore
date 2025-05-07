@@ -24,6 +24,7 @@ from app.db.model import (
     IonChannelModel,
     IonChannelModelToEModel,
     IonToIonChannelModel,
+    Label,
     License,
     MeasurementItem,
     MeasurementKind,
@@ -34,7 +35,7 @@ from app.db.model import (
     Subject,
     SynapticPathway,
 )
-from app.db.types import AssetStatus, EntityType, Sex
+from app.db.types import AssetStatus, EntityType, LabelScheme, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.schemas.ion_channel_model import NmodlParameters
@@ -667,6 +668,22 @@ def to_pref_label(s):
     return s.replace(" ", "_").lower()
 
 
+def get_or_create_measurement_label(measurement_label: dict[str, Any], db: Session, _cache={}):
+    scheme = LabelScheme[f"{MeasurementKind.__tablename__}__reconstruction_morphology"]
+    if not _cache:
+        q = sa.select(Label).where(Label.scheme == scheme)
+        rows = db.execute(q).scalars().all()
+        _cache.update({row.pref_label: row.id for row in rows})
+    pref_label = measurement_label["pref_label"]
+    if pref_label in _cache:
+        return _cache[pref_label]
+    item = Label(scheme=scheme, **measurement_label)
+    db.add(item)
+    db.flush()
+    _cache[pref_label] = item.id
+    return item.id
+
+
 def build_measurement_item(item):
     if (statistic := item.get("statistic")) is None:
         # L.debug("measurement item has no statistic: {}", item)
@@ -684,30 +701,18 @@ def build_measurement_item(item):
     )
 
 
-def build_measurement_kind(measurement, measurement_items):
+def build_measurement_kind(measurement, measurement_items, db: Session):
     if not measurement_items:
         # L.debug("measurement has no items")
         return None
     measurement_meta = measurement.get("isMeasurementOf", {})
     definition = measurement_meta.get("label")
     pref_label = measurement_meta.get("prefLabel") or to_pref_label(definition)
+    label_id = get_or_create_measurement_label(
+        {"pref_label": pref_label, "definition": definition}, db=db
+    )
     return MeasurementKind(
-        pref_label=pref_label,
-        definition=definition,
+        label_id=label_id,
         structural_domain=STRUCTURAL_DOMAIN_MAP[measurement.get("compartment")],
         measurement_items=measurement_items,
     )
-
-
-def update_measurement_annotation_ids(db, entity_class, updates):
-    entity_ids = list(updates.keys())
-    case_expr = sa.case(updates, value=entity_class.id)
-    query = (
-        sa.update(entity_class)
-        .where(entity_class.id.in_(entity_ids))
-        .values(measurement_annotation_id=case_expr)
-    )
-    result = db.execute(query)
-    if result.rowcount != len(entity_ids):
-        msg = f"Only {result.rowcount}/{len(entity_ids)} entities were updated"
-        raise RuntimeError(msg)

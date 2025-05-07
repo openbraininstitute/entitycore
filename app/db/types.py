@@ -178,3 +178,7 @@ class StructuralDomain(StrEnum):
     apical_dendrite = auto()
     basal_dendrite = auto()
     axon = auto()
+
+
+class LabelScheme(StrEnum):
+    measurement_kind__reconstruction_morphology = auto()

@@ -7,7 +7,7 @@ from enum import StrEnum, auto
 from http import HTTPStatus
 from typing import Any
 
-from psycopg2.errors import InsufficientPrivilege, UniqueViolation
+from psycopg2.errors import ForeignKeyViolation, InsufficientPrivilege, UniqueViolation
 from sqlalchemy.exc import IntegrityError, NoResultFound, ProgrammingError
 
 from app.utils.enum import UpperStrEnum
@@ -98,6 +98,23 @@ def ensure_uniqueness(
         yield
     except IntegrityError as err:
         if isinstance(err.orig, UniqueViolation):
+            raise ApiError(
+                message=error_message,
+                error_code=error_code,
+                http_status_code=HTTPStatus.CONFLICT,
+            ) from err
+        raise
+
+
+@contextmanager
+def ensure_foreign_keys_integrity(
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
+) -> Iterator[None]:
+    """Context manager that raises ApiError when a ForeignKeyViolation is raised."""
+    try:
+        yield
+    except IntegrityError as err:
+        if isinstance(err.orig, ForeignKeyViolation):
             raise ApiError(
                 message=error_message,
                 error_code=error_code,

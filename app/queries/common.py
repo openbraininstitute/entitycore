@@ -5,11 +5,16 @@ import sqlalchemy as sa
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Session
 
-from app.db.auth import constrain_to_accessible_entities
+from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Entity, Identifiable
 from app.db.utils import load_db_model_from_pydantic
 from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets
-from app.errors import ensure_authorized_references, ensure_result, ensure_uniqueness
+from app.errors import (
+    ensure_authorized_references,
+    ensure_foreign_keys_integrity,
+    ensure_result,
+    ensure_uniqueness,
+)
 from app.filters.base import Aliases, CustomFilter
 from app.schemas.types import ListResponse, PaginationResponse
 
@@ -173,3 +178,34 @@ def router_read_many[T: BaseModel, I: Identifiable](
         if facets and name_to_facet_query_params
         else None,
     )
+
+
+def router_delete_one[T: BaseModel, I: Identifiable](
+    *,
+    id_: uuid.UUID,
+    db: Session,
+    db_model_class: type[I],
+    authorized_project_id: uuid.UUID | None,
+) -> None:
+    """Delete a model from the database.
+
+    Args:
+        id_: id of the entity to read.
+        db: database session.
+        db_model_class: database model class.
+        authorized_project_id: project id for filtering the resources.
+    """
+    query = sa.delete(db_model_class).where(db_model_class.id == id_)
+    if issubclass(db_model_class, Entity) and authorized_project_id:
+        query = constrain_entity_query_to_project(query, authorized_project_id)
+    query = query.returning(db_model_class.id)
+    with (
+        ensure_result(error_message=f"{db_model_class.__name__} not found"),
+        ensure_foreign_keys_integrity(
+            error_message=(
+                f"{db_model_class.__name__} cannot be deleted "
+                f"because of foreign keys integrity violation"
+            )
+        ),
+    ):
+        db.execute(query).one()

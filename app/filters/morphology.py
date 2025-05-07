@@ -10,10 +10,7 @@ from app.filters.common import (
     MTypeClassFilterMixin,
     SpeciesFilterMixin,
 )
-from app.filters.measurement_annotation import (
-    NestedMeasurementAnnotationFilter,
-    NestedMeasurementAnnotationFilterDep,
-)
+from app.filters.measurement_annotation import MeasurableFilterMixin
 
 
 class MorphologyFilter(
@@ -21,11 +18,9 @@ class MorphologyFilter(
     BrainRegionFilterMixin,
     SpeciesFilterMixin,
     MTypeClassFilterMixin,
+    MeasurableFilterMixin,
     EntityFilterMixin,
 ):
-    measurement_annotation: Annotated[
-        NestedMeasurementAnnotationFilter | None, NestedMeasurementAnnotationFilterDep
-    ] = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

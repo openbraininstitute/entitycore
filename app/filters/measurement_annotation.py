@@ -67,3 +67,9 @@ MeasurementAnnotationFilterDep = Annotated[
 NestedMeasurementAnnotationFilterDep = FilterDepends(
     with_prefix("measurement_annotation", NestedMeasurementAnnotationFilter)
 )
+
+
+class MeasurableFilterMixin:
+    measurement_annotation: Annotated[
+        NestedMeasurementAnnotationFilter | None, NestedMeasurementAnnotationFilterDep
+    ] = None

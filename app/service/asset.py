@@ -1,7 +1,7 @@
 import uuid
 
-from app.db.types import AssetStatus, EntityType
-from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness
+from app.db.types import AssetLabel, AssetStatus, EntityType
+from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import AssetCreate, AssetRead
 from app.schemas.auth import UserContext, UserContextWithProjectId
@@ -59,6 +59,7 @@ def create_entity_asset(
     size: int,
     sha256_digest: str | None,
     meta: dict | None,
+    label: AssetLabel | None,
 ) -> AssetRead:
     """Create an asset for an entity."""
     entity = entity_service.get_writable_entity(
@@ -75,15 +76,21 @@ def create_entity_asset(
         filename=filename,
         is_public=entity.authorized_public,
     )
-    asset_create = AssetCreate(
-        path=filename,
-        full_path=full_path,
-        is_directory=False,
-        content_type=content_type,
-        size=size,
-        sha256_digest=sha256_digest,
-        meta=meta or {},
-    )
+
+    with ensure_valid_schema(
+        "Asset schema is invalid", error_code=ApiErrorCode.ASSET_INVALID_SCHEMA
+    ):
+        asset_create = AssetCreate(
+            path=filename,
+            full_path=full_path,
+            is_directory=False,
+            content_type=content_type,
+            size=size,
+            sha256_digest=sha256_digest,
+            meta=meta or {},
+            label=label,
+            entity_type=entity_type,
+        )
     with ensure_uniqueness(
         f"Asset with path {asset_create.path!r} already exists",
         error_code=ApiErrorCode.ASSET_DUPLICATED,

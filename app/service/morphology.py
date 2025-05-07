@@ -78,9 +78,6 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
             joinedload(ReconstructionMorphology.measurement_annotation)
             .selectinload(MeasurementAnnotation.measurement_kinds)
             .selectinload(MeasurementKind.measurement_items),
-            joinedload(ReconstructionMorphology.measurement_annotation)
-            .selectinload(MeasurementAnnotation.measurement_kinds)
-            .selectinload(MeasurementKind.label),
             joinedload(ReconstructionMorphology.measurement_annotation).contains_eager(
                 MeasurementAnnotation.entity
             ),

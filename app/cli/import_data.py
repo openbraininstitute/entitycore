@@ -920,7 +920,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                     if measurement_item := build_measurement_item(item):
                         measurement_items.append(measurement_item)
                 if measurement_kind := build_measurement_kind(
-                    measurement, measurement_items=measurement_items, db=db
+                    measurement, measurement_items=measurement_items
                 ):
                     measurement_kinds.append(measurement_kind)
 

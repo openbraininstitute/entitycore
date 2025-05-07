@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 2895a5f7a4b5
+Revision ID: 4d9af4a2287d
 Revises: a45638c6f52a
-Create Date: 2025-05-07 11:24:01.038081
+Create Date: 2025-05-07 15:58:24.046423
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "2895a5f7a4b5"
+revision: str = "4d9af4a2287d"
 down_revision: Union[str, None] = "a45638c6f52a"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,36 +28,6 @@ def upgrade() -> None:
     sa.Enum("apical_dendrite", "basal_dendrite", "axon", name="structuraldomain").create(
         op.get_bind()
     )
-    sa.Enum("measurement_kind__reconstruction_morphology", name="labelscheme").create(op.get_bind())
-    op.create_table(
-        "label",
-        sa.Column(
-            "scheme",
-            postgresql.ENUM(
-                "measurement_kind__reconstruction_morphology", name="labelscheme", create_type=False
-            ),
-            nullable=False,
-        ),
-        sa.Column("pref_label", sa.String(), nullable=False),
-        sa.Column("definition", sa.String(), nullable=False),
-        sa.Column("alt_label", sa.String(), nullable=True),
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "creation_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "update_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_label")),
-    )
-    op.create_index(op.f("ix_label_creation_date"), "label", ["creation_date"], unique=False)
-    op.create_index("ix_label_pref_label_scheme", "label", ["pref_label", "scheme"], unique=True)
     op.create_table(
         "measurement_annotation",
         sa.Column("entity_id", sa.Uuid(), nullable=False),
@@ -102,7 +72,7 @@ def upgrade() -> None:
     op.create_table(
         "measurement_kind",
         sa.Column("id", sa.BigInteger(), sa.Identity(always=False), nullable=False),
-        sa.Column("label_id", sa.Uuid(), nullable=False),
+        sa.Column("pref_label", sa.String(), nullable=False),
         sa.Column(
             "structural_domain",
             postgresql.ENUM(
@@ -116,9 +86,6 @@ def upgrade() -> None:
         ),
         sa.Column("measurement_annotation_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["label_id"], ["label.id"], name=op.f("fk_measurement_kind_label_id_label")
-        ),
-        sa.ForeignKeyConstraint(
             ["measurement_annotation_id"],
             ["measurement_annotation.id"],
             name=op.f("fk_measurement_kind_measurement_annotation_id_measurement_annotation"),
@@ -127,20 +94,20 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_measurement_kind")),
         sa.UniqueConstraint(
             "measurement_annotation_id",
-            "label_id",
+            "pref_label",
             "structural_domain",
             name="uq_measurement_kind_measurement_annotation_id",
             postgresql_nulls_not_distinct=True,
         ),
     )
     op.create_index(
-        op.f("ix_measurement_kind_label_id"), "measurement_kind", ["label_id"], unique=False
-    )
-    op.create_index(
         op.f("ix_measurement_kind_measurement_annotation_id"),
         "measurement_kind",
         ["measurement_annotation_id"],
         unique=False,
+    )
+    op.create_index(
+        op.f("ix_measurement_kind_pref_label"), "measurement_kind", ["pref_label"], unique=False
     )
     op.create_table(
         "measurement_item",
@@ -204,11 +171,11 @@ def upgrade() -> None:
         ["measurement_kind_id"],
         unique=False,
     )
+    op.drop_index("ix_measurement_measurement_of", table_name="measurement")
+    op.drop_index("ix_measurement_morphology_feature_annotation_id", table_name="measurement")
     op.drop_index(
         "ix_measurement_serie_element_measurement_id", table_name="measurement_serie_element"
     )
-    op.drop_index("ix_measurement_measurement_of", table_name="measurement")
-    op.drop_index("ix_measurement_morphology_feature_annotation_id", table_name="measurement")
     op.drop_index(
         "ix_morphology_feature_annotation_creation_date", table_name="morphology_feature_annotation"
     )
@@ -351,44 +318,6 @@ def downgrade() -> None:
         unique=False,
     )
     op.create_table(
-        "measurement",
-        sa.Column(
-            "id",
-            sa.BIGINT(),
-            sa.Identity(
-                always=False,
-                start=1,
-                increment=1,
-                minvalue=1,
-                maxvalue=9223372036854775807,
-                cycle=False,
-                cache=1,
-            ),
-            autoincrement=True,
-            nullable=False,
-        ),
-        sa.Column("measurement_of", sa.VARCHAR(), autoincrement=False, nullable=False),
-        sa.Column(
-            "morphology_feature_annotation_id", sa.UUID(), autoincrement=False, nullable=False
-        ),
-        sa.ForeignKeyConstraint(
-            ["morphology_feature_annotation_id"],
-            ["morphology_feature_annotation.id"],
-            name="fk_measurement_morphology_feature_annotation_id_morphol_93f8",
-        ),
-        sa.PrimaryKeyConstraint("id", name="pk_measurement"),
-        postgresql_ignore_search_path=False,
-    )
-    op.create_index(
-        "ix_measurement_morphology_feature_annotation_id",
-        "measurement",
-        ["morphology_feature_annotation_id"],
-        unique=False,
-    )
-    op.create_index(
-        "ix_measurement_measurement_of", "measurement", ["measurement_of"], unique=False
-    )
-    op.create_table(
         "measurement_serie_element",
         sa.Column(
             "id",
@@ -421,12 +350,49 @@ def downgrade() -> None:
         ["measurement_id"],
         unique=False,
     )
+    op.create_table(
+        "measurement",
+        sa.Column(
+            "id",
+            sa.BIGINT(),
+            sa.Identity(
+                always=False,
+                start=1,
+                increment=1,
+                minvalue=1,
+                maxvalue=9223372036854775807,
+                cycle=False,
+                cache=1,
+            ),
+            autoincrement=True,
+            nullable=False,
+        ),
+        sa.Column("measurement_of", sa.VARCHAR(), autoincrement=False, nullable=False),
+        sa.Column(
+            "morphology_feature_annotation_id", sa.UUID(), autoincrement=False, nullable=False
+        ),
+        sa.ForeignKeyConstraint(
+            ["morphology_feature_annotation_id"],
+            ["morphology_feature_annotation.id"],
+            name="fk_measurement_morphology_feature_annotation_id_morphol_93f8",
+        ),
+        sa.PrimaryKeyConstraint("id", name="pk_measurement"),
+    )
+    op.create_index(
+        "ix_measurement_morphology_feature_annotation_id",
+        "measurement",
+        ["morphology_feature_annotation_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_measurement_measurement_of", "measurement", ["measurement_of"], unique=False
+    )
     op.drop_index(op.f("ix_measurement_item_measurement_kind_id"), table_name="measurement_item")
     op.drop_table("measurement_item")
+    op.drop_index(op.f("ix_measurement_kind_pref_label"), table_name="measurement_kind")
     op.drop_index(
         op.f("ix_measurement_kind_measurement_annotation_id"), table_name="measurement_kind"
     )
-    op.drop_index(op.f("ix_measurement_kind_label_id"), table_name="measurement_kind")
     op.drop_table("measurement_kind")
     op.drop_index(op.f("ix_measurement_annotation_legacy_id"), table_name="measurement_annotation")
     op.drop_index(op.f("ix_measurement_annotation_entity_id"), table_name="measurement_annotation")
@@ -434,10 +400,6 @@ def downgrade() -> None:
         op.f("ix_measurement_annotation_creation_date"), table_name="measurement_annotation"
     )
     op.drop_table("measurement_annotation")
-    op.drop_index("ix_label_pref_label_scheme", table_name="label")
-    op.drop_index(op.f("ix_label_creation_date"), table_name="label")
-    op.drop_table("label")
-    sa.Enum("measurement_kind__reconstruction_morphology", name="labelscheme").drop(op.get_bind())
     sa.Enum("apical_dendrite", "basal_dendrite", "axon", name="structuraldomain").drop(
         op.get_bind()
     )

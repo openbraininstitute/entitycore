@@ -14,7 +14,6 @@ from app.db.model import (
     MeasurementItem,
     MeasurementKind,
 )
-from app.db.types import LabelScheme
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -35,7 +34,6 @@ from app.schemas.measurement_annotation import (
     MeasurementAnnotationRead,
 )
 from app.schemas.types import ListResponse
-from app.service.label import get_labels_to_ids
 from app.utils.entity import MEASURABLE_ENTITIES
 
 
@@ -44,7 +42,6 @@ def _load_from_db(q: sa.Select) -> sa.Select:
         selectinload(MeasurementAnnotation.measurement_kinds).selectinload(
             MeasurementKind.measurement_items
         ),
-        selectinload(MeasurementAnnotation.measurement_kinds).selectinload(MeasurementKind.label),
         contains_eager(MeasurementAnnotation.entity),
         raiseload("*"),
     )
@@ -124,17 +121,6 @@ def create_one(
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
         q = constrain_entity_query_to_project(q, project_id=user_context.project_id)
         return _load_from_db(q=q)
-
-    # retrieve label_id from pref_label if needed
-    scheme = LabelScheme[f"{MeasurementKind.__tablename__}__{measurement_annotation.entity_type}"]
-    labels = {
-        kind.pref_label
-        for kind in measurement_annotation.measurement_kinds
-        if kind.pref_label is not None
-    }
-    labels_to_ids = get_labels_to_ids(db, scheme=scheme, labels=labels)
-    for kind in measurement_annotation.measurement_kinds:
-        kind.label_id = labels_to_ids[kind.pref_label]
 
     _entity = get_writable_entity(
         db=db,

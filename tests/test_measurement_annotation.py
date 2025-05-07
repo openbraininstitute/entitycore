@@ -3,11 +3,7 @@ from unittest.mock import ANY
 
 import pytest
 
-from app.db.model import Label, MeasurementKind
-from app.db.types import LabelScheme
-
 from .utils import (
-    add_all_db,
     assert_response,
     check_missing,
     create_reconstruction_morphology_id,
@@ -18,23 +14,9 @@ MORPHOLOGY_ROUTE = "/reconstruction-morphology"
 ENTITY_TYPE = "reconstruction_morphology"
 
 
-def _populate_label(db, count):
-    items = [
-        {
-            "pref_label": f"pref_label_{i}",
-            "alt_label": f"alt_label_{i}",
-            "definition": f"definition_{i}",
-        }
-        for i in range(count)
-    ]
-    scheme = LabelScheme[f"{MeasurementKind.__tablename__}__{ENTITY_TYPE}"]
-    labels = add_all_db(db, [Label(scheme=scheme, **item) for item in items])
-    return labels
-
-
 @pytest.fixture
-def measurement_labels(db):
-    return _populate_label(db, 5)
+def measurement_labels():
+    return [f"pref_label_{i}" for i in range(5)]
 
 
 def _get_request_payload_1(entity_id, labels):
@@ -43,7 +25,7 @@ def _get_request_payload_1(entity_id, labels):
         "entity_id": entity_id,
         "measurement_kinds": [
             {
-                "pref_label": labels[0].pref_label,
+                "pref_label": labels[0],
                 "structural_domain": "axon",
                 "measurement_items": [
                     {
@@ -59,7 +41,7 @@ def _get_request_payload_1(entity_id, labels):
                 ],
             },
             {
-                "pref_label": labels[1].pref_label,
+                "pref_label": labels[1],
                 "measurement_items": [
                     {
                         "name": "mean",
@@ -83,7 +65,7 @@ def _get_request_payload_2(entity_id, labels):
         "entity_id": entity_id,
         "measurement_kinds": [
             {
-                "pref_label": labels[0].pref_label,
+                "pref_label": labels[0],
                 "structural_domain": "axon",
                 "measurement_items": [
                     {
@@ -180,7 +162,7 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id, mea
 
     # filter the annotations
     query_params = {
-        "measurement_kind__pref_label": measurement_labels[0].pref_label,
+        "measurement_kind__pref_label": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 154,
         "measurement_item__value__lte": 155,
@@ -200,7 +182,7 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id, mea
 
     # filter the morphology by annotation
     query_params = {
-        "measurement_kind__pref_label": measurement_labels[0].pref_label,
+        "measurement_kind__pref_label": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 154,
         "measurement_item__value__lte": 155,
@@ -213,7 +195,7 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id, mea
 
     # filter the morphology by annotation, no results
     query_params = {
-        "measurement_kind__pref_label": measurement_labels[0].pref_label,
+        "measurement_kind__pref_label": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 54,
         "measurement_item__value__lte": 55,

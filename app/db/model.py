@@ -81,13 +81,13 @@ class Identifiable(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
 
-class BrainRegionHierarchyName(Identifiable, Base):
+class BrainRegionHierarchyName(Identifiable):
     __tablename__ = "brain_region_hierarchy_name"
 
     name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class BrainRegion(Identifiable, Base):
+class BrainRegion(Identifiable):
     __tablename__ = "brain_region"
 
     hierarchy_id: Mapped[int] = mapped_column(BigInteger, index=True)

@@ -87,14 +87,14 @@ def test_brain_region_id(db, client):
     assert len(response["data"]) == 4
     assert response["data"] == [
         {
-            "acronym": "root",
-            "color_hex_triplet": "FFFFFF",
+            "acronym": "grey",
+            "color_hex_triplet": "BFDAE3",
             "creation_date": ANY,
-            "hierarchy_id": 997,
+            "hierarchy_id": 8,
             "hierarchy_name_id": str(hierarchy_name.id),
             "id": ANY,
-            "name": "root",
-            "parent_structure_id": None,
+            "name": "Basic cell groups and regions",
+            "parent_structure_id": ANY,
             "update_date": ANY,
         },
         {
@@ -120,14 +120,14 @@ def test_brain_region_id(db, client):
             "update_date": ANY,
         },
         {
-            "acronym": "grey",
-            "color_hex_triplet": "BFDAE3",
+            "acronym": "root",
+            "color_hex_triplet": "FFFFFF",
             "creation_date": ANY,
-            "hierarchy_id": 8,
+            "hierarchy_id": 997,
             "hierarchy_name_id": str(hierarchy_name.id),
             "id": ANY,
-            "name": "Basic cell groups and regions",
-            "parent_structure_id": ANY,
+            "name": "root",
+            "parent_structure_id": None,
             "update_date": ANY,
         },
     ]

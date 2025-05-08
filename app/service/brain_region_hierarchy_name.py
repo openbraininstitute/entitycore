@@ -5,38 +5,36 @@ from collections import defaultdict
 import sqlalchemy as sa
 from fastapi import HTTPException, Response
 
+import app.queries.common
 from app.db.model import BrainRegion, BrainRegionHierarchyName
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
+from app.filters.brain_region_name import BrainRegionNameFilterDep
 from app.schemas.brain_region_hierarchy_name import BrainRegionHierarchyNameRead
-from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.types import ListResponse
 
 
 def read_many(
-    db: SessionDep, pagination_request: PaginationQuery
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    brain_region_name_filter: BrainRegionNameFilterDep,
 ) -> ListResponse[BrainRegionHierarchyNameRead]:
-    query = sa.select(BrainRegionHierarchyName)
-
-    data = db.execute(
-        query.offset(pagination_request.offset).limit(pagination_request.page_size)
-    ).scalars()
-
-    total_items = db.execute(
-        query.with_only_columns(sa.func.count(BrainRegionHierarchyName.id))
-    ).scalar_one()
-
-    response = ListResponse[BrainRegionHierarchyNameRead](
-        data=[BrainRegionHierarchyNameRead.model_validate(d) for d in data],
-        pagination=PaginationResponse(
-            page=pagination_request.page,
-            page_size=pagination_request.page_size,
-            total_items=total_items,
-        ),
+    return app.queries.common.router_read_many(
+        db=db,
+        db_model_class=BrainRegionHierarchyName,
+        authorized_project_id=None,
+        with_search=None,
+        with_in_brain_region=None,
         facets=None,
+        aliases=None,
+        apply_filter_query_operations=None,
+        apply_data_query_operations=None,
+        pagination_request=pagination_request,
+        response_schema_class=BrainRegionHierarchyNameRead,
+        name_to_facet_query_params=None,
+        filter_model=brain_region_name_filter,
     )
-
-    return response
 
 
 def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyNameRead:

@@ -16,7 +16,6 @@ def construct_model[T: DeclarativeBase](model_cls: type[T], data: dict) -> T:
             L.debug("Attribute not found: {}.{}", model_cls, attr_name)
             continue
         if isinstance(getattr(attr, "descriptor", None), hybrid_property):
-            # ignore hybrid properties
             continue
         if not isinstance(attr, InstrumentedAttribute):
             L.warning("Attribute ignored: {}.{} -> {}", model_cls, attr_name, type(attr))

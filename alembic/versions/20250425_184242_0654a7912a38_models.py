@@ -1,8 +1,8 @@
-"""Default migration message
+"""Models
 
-Revision ID: 2bfcedd54fae
+Revision ID: 0654a7912a38
 Revises:
-Create Date: 2025-04-24 09:57:21.569286
+Create Date: 2025-04-25 18:42:42.946613
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "2bfcedd54fae"
+revision: str = "0654a7912a38"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -668,7 +668,7 @@ def upgrade() -> None:
         sa.Column("is_temperature_dependent", sa.Boolean(), nullable=False),
         sa.Column("temperature_celsius", sa.Integer(), nullable=False),
         sa.Column("is_stochastic", sa.Boolean(), nullable=False),
-        sa.Column("nmodl_parameters", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("neuron_block", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
@@ -1345,26 +1345,6 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_table(
-        "ion__ion_channel_model",
-        sa.Column("ion_id", sa.Uuid(), nullable=False),
-        sa.Column("ion_channel_model_id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["ion_channel_model_id"],
-            ["ion_channel_model.id"],
-            name=op.f("fk_ion__ion_channel_model_ion_channel_model_id_ion_channel_model"),
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["ion_id"],
-            ["ion.id"],
-            name=op.f("fk_ion__ion_channel_model_ion_id_ion"),
-            ondelete="CASCADE",
-        ),
-        sa.PrimaryKeyConstraint(
-            "ion_id", "ion_channel_model_id", name=op.f("pk_ion__ion_channel_model")
-        ),
-    )
-    op.create_table(
         "morphology_feature_annotation",
         sa.Column("reconstruction_morphology_id", sa.Uuid(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -1825,7 +1805,6 @@ def downgrade() -> None:
         table_name="morphology_feature_annotation",
     )
     op.drop_table("morphology_feature_annotation")
-    op.drop_table("ion__ion_channel_model")
     op.drop_index(
         op.f("ix_experimental_synapses_per_connection_synaptic_pathway_id"),
         table_name="experimental_synapses_per_connection",

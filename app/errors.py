@@ -43,6 +43,7 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_MISSING_PATH = auto()
     ASSET_INVALID_PATH = auto()
     ASSET_NOT_A_DIRECTORY = auto()
+    ION_NAME_NOT_FOUND = auto()
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -119,6 +120,24 @@ def ensure_foreign_keys_integrity(
                 message=error_message,
                 error_code=error_code,
                 http_status_code=HTTPStatus.CONFLICT,
+            ) from err
+        raise
+
+
+@contextmanager
+def ensure_valid_foreign_keys(
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
+) -> Iterator[None]:
+    """Context manager that raises ApiError when a ForeignKeyViolation is raised."""
+    try:
+        yield
+    except IntegrityError as err:
+        if isinstance(err.orig, ForeignKeyViolation):
+            raise ApiError(
+                message=error_message,
+                error_code=error_code,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                details=str(err),
             ) from err
         raise
 

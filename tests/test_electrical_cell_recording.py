@@ -196,7 +196,7 @@ def faceted_ids(db, brain_region_hierarchy_name_id, subject_id, license_id):
         _create_electrical_cell_recording_id(
             db,
             name=f"trace-{i}",
-            description=f"brain-region-{region_id}",
+            description=f"brain-region-{i}",
             subject_id=subject_id,
             license_id=license_id,
             brain_region_id=region_id,
@@ -227,7 +227,7 @@ def test_facets(client, faceted_ids):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"search": f"brain-region-{brain_region_ids[0]}", "with_facets": True},
+        params={"search": "brain-region-0", "with_facets": True},
     ).json()
 
     assert "facets" in data

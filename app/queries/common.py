@@ -129,6 +129,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         db_model_class: database model class.
         authorized_project_id: project id for filtering the resources.
         with_search: search query (str).
+        with_in_brain_region: enable family queries based on BrainRegion
         facets: facet query (bool).
         aliases: dict of table aliases for the filter query.
         apply_filter_query_operations: optional callable to transform the filter query.

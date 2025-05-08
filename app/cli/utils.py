@@ -8,7 +8,12 @@ from sqlalchemy import and_, any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
-from app.cli.mappings import STIMULUS_INFO
+from app.cli.mappings import (
+    MEASUREMENT_STATISTIC_MAP,
+    MEASUREMENT_UNIT_MAP,
+    STIMULUS_INFO,
+    STRUCTURAL_DOMAIN_MAP,
+)
 from app.db.model import (
     Agent,
     Asset,
@@ -19,6 +24,8 @@ from app.db.model import (
     IonChannelModel,
     IonChannelModelToEModel,
     License,
+    MeasurementItem,
+    MeasurementKind,
     MTypeClass,
     Role,
     Species,
@@ -703,3 +710,38 @@ def curate_age(data):
         "age_max": max_value,
         "age_period": period,
     }
+
+
+def to_pref_label(s):
+    return s.replace(" ", "_").lower()
+
+
+def build_measurement_item(item):
+    if (statistic := item.get("statistic")) is None:
+        # L.debug("measurement item has no statistic: {}", item)
+        return None
+    if (unit := item.get("unitCode")) is None:
+        # L.debug("measurement item has no unit: {}", item)
+        return None
+    if (value := item.get("value")) is None:
+        # L.debug("measurement item has no value: {}", item)
+        return None
+    return MeasurementItem(
+        name=MEASUREMENT_STATISTIC_MAP[statistic],
+        unit=MEASUREMENT_UNIT_MAP[unit],
+        value=value,
+    )
+
+
+def build_measurement_kind(measurement, measurement_items):
+    if not measurement_items:
+        # L.debug("measurement has no items")
+        return None
+    measurement_meta = measurement.get("isMeasurementOf", {})
+    definition = measurement_meta.get("label")
+    pref_label = measurement_meta.get("prefLabel") or to_pref_label(definition)
+    return MeasurementKind(
+        pref_label=pref_label,
+        structural_domain=STRUCTURAL_DOMAIN_MAP[measurement.get("compartment")],
+        measurement_items=measurement_items,
+    )

@@ -156,9 +156,23 @@ class MeasurementStatistic(StrEnum):
     sample_size = auto()
     standard_error = auto()
     standard_deviation = auto()
+    raw = auto()
+    minimum = auto()
+    maximum = auto()
+    sum = auto()
 
 
 class MeasurementUnit(StrEnum):
     dimensionless = auto()
-    linear_density__1_um = auto()
-    volume_density__1_mm3 = auto()
+    linear_density__1_um = "1/μm"
+    volume_density__1_mm3 = "1/mm³"
+    linear__um = "μm"
+    area__um2 = "μm²"
+    volume__mm3 = "μm³"
+    angle__radian = "radian"
+
+
+class StructuralDomain(StrEnum):
+    apical_dendrite = auto()
+    basal_dendrite = auto()
+    axon = auto()

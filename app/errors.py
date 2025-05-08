@@ -108,7 +108,7 @@ def ensure_uniqueness(
 
 
 @contextmanager
-def ensure_valid_foreign_keys(
+def ensure_foreign_keys_integrity(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
 ) -> Iterator[None]:
     """Context manager that raises ApiError when a ForeignKeyViolation is raised."""
@@ -119,7 +119,7 @@ def ensure_valid_foreign_keys(
             raise ApiError(
                 message=error_message,
                 error_code=error_code,
-                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                http_status_code=HTTPStatus.CONFLICT,
                 details=str(err),
             ) from err
         raise

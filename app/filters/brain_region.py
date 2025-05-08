@@ -9,7 +9,9 @@ from app.filters.base import CustomFilter
 from app.filters.common import NameFilterMixin
 
 
-def _get_family_query(*, hierarchy_id: int, hierarchy_name: str, with_ascendants=False):
+def _get_family_query(
+    *, hierarchy_name_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
+):
     """Create query for BrainRegions that returns ids.
 
     Can either traverse down (the default) or up (with_ascendants=True)
@@ -20,8 +22,8 @@ def _get_family_query(*, hierarchy_id: int, hierarchy_name: str, with_ascendants
             BrainRegionHierarchyName, BrainRegion.hierarchy_name_id == BrainRegionHierarchyName.id
         )
         .where(
-            BrainRegion.hierarchy_id == hierarchy_id,
-            BrainRegionHierarchyName.name == hierarchy_name,
+            BrainRegion.id == brain_region_id,
+            BrainRegionHierarchyName.id == hierarchy_name_id,
         )
         .cte(recursive=True)
     )
@@ -36,7 +38,7 @@ def _get_family_query(*, hierarchy_id: int, hierarchy_name: str, with_ascendants
         sa.select(br_alias.id, br_alias.parent_structure_id)
         .join(cte, direction_join)
         .join(BrainRegionHierarchyName, br_alias.hierarchy_name_id == BrainRegionHierarchyName.id)
-        .where(BrainRegionHierarchyName.name == hierarchy_name)
+        .where(BrainRegionHierarchyName.id == hierarchy_name_id)
     )
 
     query = cte.union_all(recurse)
@@ -44,11 +46,13 @@ def _get_family_query(*, hierarchy_id: int, hierarchy_name: str, with_ascendants
     return query
 
 
-def filter_by_hierarchy_name_and_id(
-    *, query, model, hierarchy_id: int, hierarchy_name: str, with_ascendants=False
+def filter_by_hierarchy_and_region(
+    *, query, model, hierarchy_name_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
 ):
     brain_region_query = _get_family_query(
-        hierarchy_id=hierarchy_id, hierarchy_name=hierarchy_name, with_ascendants=with_ascendants
+        hierarchy_name_id=hierarchy_name_id,
+        brain_region_id=brain_region_id,
+        with_ascendants=with_ascendants,
     )
     query = query.filter(model.brain_region_id.in_(sa.select(brain_region_query.c.id)))
     return query

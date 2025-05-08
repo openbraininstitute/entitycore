@@ -122,7 +122,7 @@ def create_brain_region(
     hierarchy_name_id,
     hierarchy_id: int,
     name: str,
-    parent_id: uuid.UUID = None,
+    parent_id: uuid.UUID | None = None,
 ):
     row = BrainRegion(
         hierarchy_id=hierarchy_id,

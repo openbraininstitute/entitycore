@@ -164,29 +164,43 @@ def test_family_queries(db, client, species_id, strain_id):
         )
     assert len(client.get("/reconstruction-morphology").json()["data"]) == 8
 
+    def get_response(hier, acronym, ascendents):
+        hierarchy_name_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
+        brain_region_id = (
+            brain_regions0[acronym].id if hier == "hier0" else brain_regions1[acronym].id
+        )
+
+        url = (
+            "/reconstruction-morphology"
+            f"?within_brain_region_hierachy_name_id={hierarchy_name_id}"
+            f"&within_brain_region_brain_region_id={brain_region_id}"
+            f"&within_brain_region_ascendants={ascendents}"
+        )
+        return client.get(url)
+
     for hier in ("hier0", "hier1"):
         # descendents
-        response = client.get(f"/reconstruction-morphology?within_brain_region=997,{hier}")
+        response = get_response(hier, "root", ascendents=False)
         assert len(response.json()["data"]) == 4
 
-        response = client.get(f"/reconstruction-morphology?within_brain_region=8,{hier}")
+        response = get_response(hier, "grey", ascendents=False)
         assert len(response.json()["data"]) == 1
 
-        response = client.get(f"/reconstruction-morphology?within_brain_region=42,{hier}")
+        response = get_response(hier, "blue", ascendents=False)
         assert len(response.json()["data"]) == 2
 
-        response = client.get(f"/reconstruction-morphology?within_brain_region=64,{hier}")
+        response = get_response(hier, "red", ascendents=False)
         assert len(response.json()["data"]) == 1
 
         # ascendents
-        response = client.get(f"/reconstruction-morphology?within_brain_region=997,{hier},true")
+        response = get_response(hier, "root", ascendents=True)
         assert len(response.json()["data"]) == 1
 
-        response = client.get(f"/reconstruction-morphology?within_brain_region=8,{hier},true")
+        response = get_response(hier, "grey", ascendents=True)
         assert len(response.json()["data"]) == 2
 
-        response = client.get(f"/reconstruction-morphology?within_brain_region=42,{hier},true")
+        response = get_response(hier, "blue", ascendents=True)
         assert len(response.json()["data"]) == 2
 
-        response = client.get(f"/reconstruction-morphology?within_brain_region=64,{hier},true")
+        response = get_response(hier, "red", ascendents=True)
         assert len(response.json()["data"]) == 3

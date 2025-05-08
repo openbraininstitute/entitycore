@@ -4,13 +4,28 @@ from typing import Annotated
 
 from fastapi_filter import FilterDepends, with_prefix
 
-from app.db.model import Agent, ETypeClass, MTypeClass, Species, Strain, Subject, SynapticPathway
+from app.db.model import (
+    Agent,
+    BrainRegion,
+    ETypeClass,
+    MTypeClass,
+    Species,
+    Strain,
+    Subject,
+    SynapticPathway,
+)
 from app.filters.base import CustomFilter
+
+
+class IdFilterMixin:
+    id: uuid.UUID | None = None
+    id__in: list[uuid.UUID] | None = None
 
 
 class NameFilterMixin:
     name: str | None = None
     name__in: list[str] | None = None
+    name__ilike: str | None = None
 
 
 class MTypeClassFilter(CustomFilter):
@@ -99,9 +114,6 @@ class CreatorFilterMixin:
 class SpeciesFilterMixin:
     species_id_in: list[int] | None = None
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
-
-
-class StrainFilterMixin:
     strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
 
 
@@ -123,8 +135,39 @@ SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
 NestedSubjectFilterDep = FilterDepends(with_prefix("subject", SubjectFilter))
 
 
+class SubjectFilterMixin:
+    subject: Annotated[SubjectFilter | None, NestedSubjectFilterDep] = None
+
+
+class BrainRegionFilter(NameFilterMixin, CustomFilter):
+    # TODO: Use IdFilterMixin when brain region keys migrate from int to uuid
+    id: int | None = None
+    id__in: list[int] | None = None
+    acronym: str | None = None
+    acronym__in: list[str] | None = None
+    order_by: list[str] = ["name"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = BrainRegion
+        ordering_model_fields = ["name"]  # noqa: RUF012
+
+
+BrainRegionFilterDep = Annotated[BrainRegionFilter, FilterDepends(BrainRegionFilter)]
+NestedBrainRegionFilterDep = FilterDepends(with_prefix("brain_region", BrainRegionFilter))
+
+
 class BrainRegionFilterMixin:
-    brain_region_id: int | None = None
+    brain_region: Annotated[BrainRegionFilter | None, NestedBrainRegionFilterDep] = None
+
+
+class EntityFilterMixin(
+    IdFilterMixin,
+    NameFilterMixin,
+    CreatorFilterMixin,
+    CreationFilterMixin,
+    ContributionFilterMixin,
+):
+    pass
 
 
 class MTypeClassFilterMixin:
@@ -136,10 +179,18 @@ class ETypeClassFilterMixin:
 
 
 class SynapticPathwayFilter(CustomFilter):
-    pre_mtype: Annotated[MTypeClassFilter | None, NestedMTypeClassFilterDep] = None
-    post_mtype: Annotated[MTypeClassFilter | None, NestedMTypeClassFilterDep] = None
-    pre_region: int | None = None
-    post_region: int | None = None
+    pre_mtype: Annotated[
+        MTypeClassFilter | None, FilterDepends(with_prefix("pre_mtype", MTypeClassFilter))
+    ] = None
+    post_mtype: Annotated[
+        MTypeClassFilter | None, FilterDepends(with_prefix("post_mtype", MTypeClassFilter))
+    ] = None
+    pre_region: Annotated[
+        BrainRegionFilter | None, FilterDepends(with_prefix("pre_region", BrainRegionFilter))
+    ] = None
+    post_region: Annotated[
+        BrainRegionFilter | None, FilterDepends(with_prefix("post_region", BrainRegionFilter))
+    ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

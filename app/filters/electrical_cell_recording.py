@@ -1,19 +1,11 @@
-import uuid
-
 from app.db.model import ElectricalCellRecording
 from app.filters.base import CustomFilter
-from app.filters.common import ContributionFilterMixin, CreationFilterMixin
+from app.filters.common import BrainRegionFilterMixin, EntityFilterMixin, SubjectFilterMixin
 
 
 class ElectricalCellRecordingFilter(
-    CustomFilter,
-    CreationFilterMixin,
-    ContributionFilterMixin,
+    CustomFilter, BrainRegionFilterMixin, SubjectFilterMixin, EntityFilterMixin
 ):
-    id__in: list[uuid.UUID] | None = None
-    name__ilike: str | None = None
-    brain_region_id: int | None = None
-
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

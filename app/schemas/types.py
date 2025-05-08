@@ -1,7 +1,9 @@
 import uuid
 from typing import Annotated
 
+import sqlalchemy as sa
 from pydantic import BaseModel, ConfigDict, Field, computed_field
+from sqlalchemy.orm import DeclarativeBase
 
 
 class PaginationRequest(BaseModel):
@@ -40,3 +42,6 @@ class ListResponse[M: BaseModel](BaseModel):
     data: list[M]
     pagination: PaginationResponse
     facets: Facets | None = None
+
+
+type Select[M: DeclarativeBase] = sa.Select[tuple[M]]

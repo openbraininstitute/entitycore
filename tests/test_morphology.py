@@ -80,7 +80,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_query_reconstruction_morphology(db, client, brain_region_id):  # noqa: PLR0915
+def test_query_reconstruction_morphology(db, client, brain_region_id):
     species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
     species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
 

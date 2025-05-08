@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
 
+import sqlalchemy as sa
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -17,6 +18,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -45,6 +47,7 @@ from app.db.types import (
     PointLocationType,
     Sex,
     SingleNeuronSimulationStatus,
+    StructuralDomain,
     ValidationStatus,
 )
 from app.utils.uuid import create_uuid
@@ -491,50 +494,120 @@ class MEModel(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class MeasurableEntity(Entity):
+    """Abstract class for measurable entities."""
+
+    __abstract__ = True
+
+    @declared_attr
+    @classmethod
+    def measurement_annotation(cls):
+        return relationship(
+            "MeasurementAnnotation",
+            foreign_keys="MeasurementAnnotation.entity_id",
+            uselist=False,
+            viewonly=True,
+        )
+
+
 class ReconstructionMorphology(
-    MTypesMixin, LicensedMixin, LocationMixin, SpeciesMixin, NameDescriptionVectorMixin, Entity
+    MTypesMixin,
+    LicensedMixin,
+    LocationMixin,
+    SpeciesMixin,
+    NameDescriptionVectorMixin,
+    MeasurableEntity,
 ):
     __tablename__ = EntityType.reconstruction_morphology.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
-
     location: Mapped[PointLocation | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class MorphologyFeatureAnnotation(Identifiable):
-    __tablename__ = "morphology_feature_annotation"
-    # name = mapped_column(String, unique=True, index=True)
-    # description = mapped_column(String)
-    reconstruction_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id"), index=True, unique=True
+class MeasurementAnnotation(LegacyMixin, Identifiable):
+    __tablename__ = "measurement_annotation"
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True, unique=True)
+    entity: Mapped["Entity"] = relationship(
+        viewonly=True,
+        foreign_keys=[entity_id],
+        primaryjoin=entity_id == Entity.id,
+        lazy="raise",
     )
-    reconstruction_morphology = relationship(
-        "ReconstructionMorphology",
-        uselist=False,
-        back_populates="morphology_feature_annotation",
+    measurement_kinds: Mapped[list["MeasurementKind"]] = relationship(
+        back_populates="measurement_annotation", passive_deletes=True
     )
-    measurements = relationship("MorphologyMeasurement", uselist=True)
+
+    @hybrid_property
+    def entity_type(self) -> str:
+        """Return the type of the associated Entity as a string.
+
+        This is a hybrid property that can be used in Python expressions.
+        """
+        return str(self.entity.type)
+
+    @entity_type.inplace.expression
+    @classmethod
+    def _entity_type(cls):
+        """SQL expression for the entity_type hybrid property.
+
+        Allow the use of entity_type in SQL queries by selecting the type of the associated Entity.
+        """
+        return (
+            sa.select(Entity.type)
+            .where(Entity.id == cls.entity_id)
+            .correlate(cls)
+            .scalar_subquery()
+        )
 
 
-class MorphologyMeasurement(Base):
-    __tablename__ = "measurement"
+class MeasurementKind(Base):
+    __tablename__ = "measurement_kind"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    measurement_of: Mapped[str] = mapped_column(index=True)
-    morphology_feature_annotation_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("morphology_feature_annotation.id"), index=True
+    pref_label: Mapped[str] = mapped_column(index=True)
+    structural_domain: Mapped[StructuralDomain | None]
+    measurement_annotation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("measurement_annotation.id", ondelete="CASCADE"),
+        index=True,
     )
-    measurement_serie = relationship("MorphologyMeasurementSerieElement", uselist=True)
+    measurement_annotation: Mapped["MeasurementAnnotation"] = relationship(
+        back_populates="measurement_kinds", viewonly=True
+    )
+    measurement_items: Mapped[list["MeasurementItem"]] = relationship(
+        back_populates="measurement_kind", passive_deletes=True
+    )
+    __table_args__ = (
+        UniqueConstraint(
+            "measurement_annotation_id",
+            "pref_label",
+            "structural_domain",
+            name=f"uq_{__tablename__}_measurement_annotation_id",
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
 
 
-class MorphologyMeasurementSerieElement(Base):
-    __tablename__ = "measurement_serie_element"
+class MeasurementItem(Base):
+    __tablename__ = "measurement_item"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    name: Mapped[str | None]
-    value: Mapped[float | None]
-    measurement_id: Mapped[int] = mapped_column(ForeignKey("measurement.id"), index=True)
+    name: Mapped[MeasurementStatistic]
+    unit: Mapped[MeasurementUnit]
+    value: Mapped[float]
+    measurement_kind_id: Mapped[int] = mapped_column(
+        ForeignKey("measurement_kind.id", ondelete="CASCADE"), index=True
+    )
+    measurement_kind: Mapped["MeasurementKind"] = relationship(
+        back_populates="measurement_items", viewonly=True
+    )
+    __table_args__ = (
+        UniqueConstraint(
+            "measurement_kind_id",
+            "name",
+            name=f"uq_{__tablename__}_measurement_kind_id",
+            postgresql_nulls_not_distinct=True,
+        ),
+    )
 
 
 class Role(LegacyMixin, Identifiable):

@@ -14,7 +14,6 @@ from app.errors import (
     ensure_foreign_keys_integrity,
     ensure_result,
     ensure_uniqueness,
-    ensure_valid_foreign_keys,
 )
 from app.filters.base import Aliases, CustomFilter
 from app.schemas.types import ListResponse, PaginationResponse
@@ -80,7 +79,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
         json_model, db_model_class, authorized_project_id=authorized_project_id
     )
     with (
-        ensure_valid_foreign_keys("One or more foreign keys do not exist in the db"),
+        ensure_foreign_keys_integrity("One or more foreign keys do not exist in the db"),
         ensure_uniqueness(f"{db_model_class.__name__} already exists or breaks unique constraints"),
         ensure_authorized_references(
             f"One of the entities referenced by {db_model_class.__name__} "

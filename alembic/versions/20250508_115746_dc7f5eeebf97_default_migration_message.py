@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 6bc0bb33e98b
-Revises: a45638c6f52a
-Create Date: 2025-05-07 17:22:18.301507
+Revision ID: dc7f5eeebf97
+Revises: a22e65a120c3
+Create Date: 2025-05-08 11:57:46.852467
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "6bc0bb33e98b"
-down_revision: Union[str, None] = "a45638c6f52a"
+revision: str = "dc7f5eeebf97"
+down_revision: Union[str, None] = "a22e65a120c3"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -169,11 +169,6 @@ def upgrade() -> None:
         ["measurement_kind_id"],
         unique=False,
     )
-    op.drop_index("ix_measurement_measurement_of", table_name="measurement")
-    op.drop_index("ix_measurement_morphology_feature_annotation_id", table_name="measurement")
-    op.drop_index(
-        "ix_measurement_serie_element_measurement_id", table_name="measurement_serie_element"
-    )
     op.drop_index(
         "ix_morphology_feature_annotation_creation_date", table_name="morphology_feature_annotation"
     )
@@ -181,6 +176,11 @@ def upgrade() -> None:
         "ix_morphology_feature_annotation_reconstruction_morphology_id",
         table_name="morphology_feature_annotation",
     )
+    op.drop_index(
+        "ix_measurement_serie_element_measurement_id", table_name="measurement_serie_element"
+    )
+    op.drop_index("ix_measurement_measurement_of", table_name="measurement")
+    op.drop_index("ix_measurement_morphology_feature_annotation_id", table_name="measurement")
     op.drop_table("measurement_serie_element")
     op.drop_table("measurement")
     op.drop_table("morphology_feature_annotation")
@@ -276,42 +276,42 @@ def downgrade() -> None:
         enum_values_to_rename=[],
     )
     op.create_table(
-        "morphology_feature_annotation",
-        sa.Column("reconstruction_morphology_id", sa.UUID(), autoincrement=False, nullable=False),
-        sa.Column("id", sa.UUID(), autoincrement=False, nullable=False),
+        "measurement",
         sa.Column(
-            "creation_date",
-            postgresql.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-            autoincrement=False,
+            "id",
+            sa.BIGINT(),
+            sa.Identity(
+                always=False,
+                start=1,
+                increment=1,
+                minvalue=1,
+                maxvalue=9223372036854775807,
+                cycle=False,
+                cache=1,
+            ),
+            autoincrement=True,
             nullable=False,
         ),
+        sa.Column("measurement_of", sa.VARCHAR(), autoincrement=False, nullable=False),
         sa.Column(
-            "update_date",
-            postgresql.TIMESTAMP(timezone=True),
-            server_default=sa.text("now()"),
-            autoincrement=False,
-            nullable=False,
+            "morphology_feature_annotation_id", sa.UUID(), autoincrement=False, nullable=False
         ),
         sa.ForeignKeyConstraint(
-            ["reconstruction_morphology_id"],
-            ["reconstruction_morphology.id"],
-            name="fk_morphology_feature_annotation_reconstruction_morphol_795e",
+            ["morphology_feature_annotation_id"],
+            ["morphology_feature_annotation.id"],
+            name="fk_measurement_morphology_feature_annotation_id_morphol_93f8",
         ),
-        sa.PrimaryKeyConstraint("id", name="pk_morphology_feature_annotation"),
+        sa.PrimaryKeyConstraint("id", name="pk_measurement"),
         postgresql_ignore_search_path=False,
     )
     op.create_index(
-        "ix_morphology_feature_annotation_reconstruction_morphology_id",
-        "morphology_feature_annotation",
-        ["reconstruction_morphology_id"],
-        unique=True,
+        "ix_measurement_morphology_feature_annotation_id",
+        "measurement",
+        ["morphology_feature_annotation_id"],
+        unique=False,
     )
     op.create_index(
-        "ix_morphology_feature_annotation_creation_date",
-        "morphology_feature_annotation",
-        ["creation_date"],
-        unique=False,
+        "ix_measurement_measurement_of", "measurement", ["measurement_of"], unique=False
     )
     op.create_table(
         "measurement_serie_element",
@@ -347,41 +347,41 @@ def downgrade() -> None:
         unique=False,
     )
     op.create_table(
-        "measurement",
+        "morphology_feature_annotation",
+        sa.Column("reconstruction_morphology_id", sa.UUID(), autoincrement=False, nullable=False),
+        sa.Column("id", sa.UUID(), autoincrement=False, nullable=False),
         sa.Column(
-            "id",
-            sa.BIGINT(),
-            sa.Identity(
-                always=False,
-                start=1,
-                increment=1,
-                minvalue=1,
-                maxvalue=9223372036854775807,
-                cycle=False,
-                cache=1,
-            ),
-            autoincrement=True,
+            "creation_date",
+            postgresql.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            autoincrement=False,
             nullable=False,
         ),
-        sa.Column("measurement_of", sa.VARCHAR(), autoincrement=False, nullable=False),
         sa.Column(
-            "morphology_feature_annotation_id", sa.UUID(), autoincrement=False, nullable=False
+            "update_date",
+            postgresql.TIMESTAMP(timezone=True),
+            server_default=sa.text("now()"),
+            autoincrement=False,
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["morphology_feature_annotation_id"],
-            ["morphology_feature_annotation.id"],
-            name="fk_measurement_morphology_feature_annotation_id_morphol_93f8",
+            ["reconstruction_morphology_id"],
+            ["reconstruction_morphology.id"],
+            name="fk_morphology_feature_annotation_reconstruction_morphol_795e",
         ),
-        sa.PrimaryKeyConstraint("id", name="pk_measurement"),
+        sa.PrimaryKeyConstraint("id", name="pk_morphology_feature_annotation"),
     )
     op.create_index(
-        "ix_measurement_morphology_feature_annotation_id",
-        "measurement",
-        ["morphology_feature_annotation_id"],
+        "ix_morphology_feature_annotation_reconstruction_morphology_id",
+        "morphology_feature_annotation",
+        ["reconstruction_morphology_id"],
+        unique=True,
+    )
+    op.create_index(
+        "ix_morphology_feature_annotation_creation_date",
+        "morphology_feature_annotation",
+        ["creation_date"],
         unique=False,
-    )
-    op.create_index(
-        "ix_measurement_measurement_of", "measurement", ["measurement_of"], unique=False
     )
     op.drop_index(op.f("ix_measurement_item_measurement_kind_id"), table_name="measurement_item")
     op.drop_table("measurement_item")

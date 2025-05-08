@@ -1261,7 +1261,7 @@ def hierarchy(hierarchy_name, hierarchy_path):
                 )
             ).all()
         }
-        ids[None] = BrainRegion.ROOT_PARENT_UUID
+        ids[None] = None
 
         for region in tqdm(reversed(regions), total=len(regions)):
             if region["id"] in ids:

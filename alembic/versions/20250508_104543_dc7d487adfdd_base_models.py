@@ -1,8 +1,8 @@
 """base models
 
-Revision ID: 5db627893ac7
+Revision ID: dc7d487adfdd
 Revises:
-Create Date: 2025-05-06 08:20:39.911533
+Create Date: 2025-05-08 10:45:43.353504
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "5db627893ac7"
+revision: str = "dc7d487adfdd"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -339,7 +339,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("acronym", sa.String(), nullable=False),
         sa.Column("color_hex_triplet", sa.String(length=6), nullable=False),
-        sa.Column("parent_structure_id", sa.Uuid(), nullable=False),
+        sa.Column("parent_structure_id", sa.Uuid(), nullable=True),
         sa.Column("hierarchy_name_id", sa.Uuid(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
@@ -359,6 +359,11 @@ def upgrade() -> None:
             ["brain_region_hierarchy_name.id"],
             name=op.f("fk_brain_region_hierarchy_name_id_brain_region_hierarchy_name"),
         ),
+        sa.ForeignKeyConstraint(
+            ["parent_structure_id"],
+            ["brain_region.id"],
+            name=op.f("fk_brain_region_parent_structure_id_brain_region"),
+        ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_brain_region")),
     )
     op.create_index(op.f("ix_brain_region_acronym"), "brain_region", ["acronym"], unique=False)
@@ -375,6 +380,12 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(op.f("ix_brain_region_name"), "brain_region", ["name"], unique=False)
+    op.create_index(
+        op.f("ix_brain_region_parent_structure_id"),
+        "brain_region",
+        ["parent_structure_id"],
+        unique=False,
+    )
     op.create_table(
         "datamaturity_annotation_body",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -2058,6 +2069,7 @@ def downgrade() -> None:
         table_name="datamaturity_annotation_body",
     )
     op.drop_table("datamaturity_annotation_body")
+    op.drop_index(op.f("ix_brain_region_parent_structure_id"), table_name="brain_region")
     op.drop_index(op.f("ix_brain_region_name"), table_name="brain_region")
     op.drop_index(op.f("ix_brain_region_hierarchy_name_id"), table_name="brain_region")
     op.drop_index(op.f("ix_brain_region_hierarchy_id"), table_name="brain_region")

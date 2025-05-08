@@ -88,7 +88,7 @@ def read_hierarchy_name_hierarchy(
             for node in children
         ]
 
-    tree = build_tree(BrainRegion.ROOT_PARENT_UUID)[0]
+    tree = build_tree(None)[0]
     js = json.dumps(tree, cls=_JSONEncoder)
     response = Response(content=js, media_type="application/json")
     return response

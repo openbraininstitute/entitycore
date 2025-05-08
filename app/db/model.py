@@ -89,13 +89,14 @@ class BrainRegionHierarchyName(Identifiable, Base):
 
 class BrainRegion(Identifiable, Base):
     __tablename__ = "brain_region"
-    ROOT_PARENT_UUID = uuid.UUID("00000000-0000-0000-0000-000000000000")
 
     hierarchy_id: Mapped[int] = mapped_column(BigInteger, index=True)
     name: Mapped[str] = mapped_column(index=True)
     acronym: Mapped[str] = mapped_column(index=True)
     color_hex_triplet: Mapped[str] = mapped_column(String(6))
-    parent_structure_id: Mapped[uuid.UUID]
+    parent_structure_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_region.id"), index=True, nullable=True
+    )
 
     hierarchy_name_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("brain_region_hierarchy_name.id"), index=True

@@ -59,7 +59,7 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_name_id):
 
     recurse(hierarchy)
 
-    ids = {None: BrainRegion.ROOT_PARENT_UUID}
+    ids = {None: None}
     for region in reversed(regions):
         row = BrainRegion(
             hierarchy_id=region["id"],
@@ -94,7 +94,7 @@ def test_brain_region_id(db, client):
             "hierarchy_name_id": str(hierarchy_name.id),
             "id": ANY,
             "name": "root",
-            "parent_structure_id": "00000000-0000-0000-0000-000000000000",
+            "parent_structure_id": None,
             "update_date": ANY,
         },
         {

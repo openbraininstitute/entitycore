@@ -66,7 +66,7 @@ class BrainRegionCreate(BaseModel):
     name: str
     acronym: str
     color_hex_triplet: str
-    parent_structure_id: uuid.UUID
+    parent_structure_id: uuid.UUID | None
     hierarchy_name_id: uuid.UUID
 
 

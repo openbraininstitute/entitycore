@@ -14,6 +14,7 @@ from app.db.model import (
     MeasurementItem,
     MeasurementKind,
 )
+from app.db.utils import MEASURABLE_ENTITIES
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -34,7 +35,6 @@ from app.schemas.measurement_annotation import (
     MeasurementAnnotationRead,
 )
 from app.schemas.types import ListResponse
-from app.utils.entity import MEASURABLE_ENTITIES
 
 
 def _load_from_db(q: sa.Select) -> sa.Select:

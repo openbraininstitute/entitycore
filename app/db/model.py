@@ -527,12 +527,19 @@ class MeasurementAnnotation(LegacyMixin, Identifiable):
 
     @hybrid_property
     def entity_type(self) -> str:
-        """Return the type of the associated entity."""
+        """Return the type of the associated Entity as a string.
+
+        This is a hybrid property that can be used in Python expressions.
+        """
         return str(self.entity.type)
 
     @entity_type.inplace.expression
     @classmethod
     def _entity_type(cls):
+        """SQL expression for the entity_type hybrid property.
+
+        Allow the use of entity_type in SQL queries by selecting the type of the associated Entity.
+        """
         return (
             sa.select(Entity.type)
             .where(Entity.id == cls.entity_id)

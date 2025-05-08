@@ -8,7 +8,12 @@ from sqlalchemy.orm import DeclarativeBase, Session
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Entity, Identifiable
 from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets
-from app.errors import ensure_authorized_references, ensure_result, ensure_uniqueness
+from app.errors import (
+    ensure_authorized_references,
+    ensure_result,
+    ensure_uniqueness,
+    ensure_valid_foreign_keys,
+)
 from app.filters.base import Aliases, CustomFilter
 from app.schemas.types import ListResponse, PaginationResponse
 
@@ -43,11 +48,12 @@ def router_create_one[T: BaseModel, I: Identifiable](
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
 ) -> T:
-    data = json_model.model_dump()
+    data = json_model.model_dump(by_alias=True)
     if issubclass(db_model_class, Entity):
         data |= {"authorized_project_id": authorized_project_id}
     row = db_model_class(**data)
     with (
+        ensure_valid_foreign_keys("One or more foreign keys do not exist in the db"),
         ensure_uniqueness(error_message=f"{db_model_class.__name__} already exists"),
         ensure_authorized_references(
             f"One of the entities referenced by {db_model_class.__name__} "
@@ -78,7 +84,7 @@ def router_read_many[T: BaseModel, I: Identifiable](
     pagination_request: PaginationQuery,
     response_schema_class: type[T],
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
-    filter_model: CustomFilter,
+    filter_model: CustomFilter[I],
 ) -> ListResponse[T]:
     filter_query = sa.select(db_model_class)
     if issubclass(db_model_class, Entity):

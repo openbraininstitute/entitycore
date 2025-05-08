@@ -16,7 +16,14 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
-from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    declared_attr,
+    mapped_column,
+    relationship,
+    validates,
+)
 
 from app.db.types import (
     BIGINT,
@@ -710,17 +717,11 @@ class Ion(Identifiable):
     __tablename__ = "ion"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     name: Mapped[str] = mapped_column(unique=True, index=True)
+    ontology_id: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
 
-
-class IonToIonChannelModel(Base):
-    __tablename__ = "ion__ion_channel_model"
-
-    ion_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("ion.id", ondelete="CASCADE"), primary_key=True
-    )
-    ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
-    )
+    @validates("name")
+    def _normalize_name(self, key, value):  # noqa: PLR6301, ARG002
+        return value.lower() if value else value
 
 
 class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
@@ -732,16 +733,8 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
     temperature_celsius: Mapped[int]
     is_stochastic: Mapped[bool] = mapped_column(default=False)
-
-    nmodl_parameters: Mapped[JSON_DICT]
-
-    ions: Mapped[list[Ion]] = relationship(
-        primaryjoin="IonChannelModel.id == IonToIonChannelModel.ion_channel_model_id",
-        secondary="ion__ion_channel_model",
-        uselist=True,
-        viewonly=True,
-        order_by="Ion.name",
-    )
+    nmodl_suffix: Mapped[str]
+    neuron_block: Mapped[JSON_DICT]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

@@ -21,10 +21,14 @@ from app.db.model import (
     Base,
     Contribution,
     EModel,
+    ETypeClass,
+    ETypeClassification,
     MEModel,
     MTypeClass,
+    MTypeClassification,
     Organization,
     Person,
+    ReconstructionMorphology,
     Role,
     Species,
     Strain,
@@ -328,14 +332,17 @@ def brain_region_id(client_admin):
 
 
 @pytest.fixture
-def morphology_id(client, species_id, strain_id, brain_region_id):
-    return utils.create_reconstruction_morphology_id(
+def morphology_id(db, client, species_id, strain_id, brain_region_id):
+    model_id = utils.create_reconstruction_morphology_id(
         client,
         species_id=species_id,
         strain_id=strain_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
+    mtype = add_db(db, MTypeClass(pref_label="m1", alt_label="m1", definition="m1d"))
+    add_db(db, MTypeClassification(entity_id=model_id, mtype_class_id=mtype.id))
+    return model_id
 
 
 @pytest.fixture
@@ -397,6 +404,15 @@ def create_emodel_ids(
 
             add_contributions(db, agents, emodel_id)
 
+            # create a unique etype for each emodel
+            etype = add_db(
+                db,
+                ETypeClass(
+                    pref_label=f"e1-{emodel_id}", alt_label=f"e1-{emodel_id}", definition="e1d"
+                ),
+            )
+            add_db(db, ETypeClassification(entity_id=emodel_id, etype_class_id=etype.id))
+
             emodel_ids.append(str(emodel_id))
 
         return emodel_ids
@@ -432,6 +448,17 @@ def create_memodel_ids(
             ).id
 
             add_contributions(db, agents, memodel_id)
+
+            emodel = db.get(EModel, emodel_id)
+            morphology = db.get(ReconstructionMorphology, morphology_id)
+
+            add_db(
+                db,
+                MTypeClassification(entity_id=memodel_id, mtype_class_id=morphology.mtypes[0].id),
+            )
+            add_db(
+                db, ETypeClassification(entity_id=memodel_id, etype_class_id=emodel.etypes[0].id)
+            )
 
             memodel_ids.append(str(memodel_id))
 

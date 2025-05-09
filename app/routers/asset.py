@@ -10,7 +10,7 @@ from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from starlette.responses import RedirectResponse
 
 from app.config import settings
-from app.db.types import EntityType
+from app.db.types import AssetLabel, EntityType
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
@@ -92,6 +92,7 @@ def upload_entity_asset(
     entity_id: uuid.UUID,
     file: UploadFile,
     meta: Annotated[dict | None, Form()] = None,
+    label: Annotated[AssetLabel | None, Form()] = None,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 
@@ -123,6 +124,7 @@ def upload_entity_asset(
         size=file.size,
         sha256_digest=sha256_digest,
         meta=meta,
+        label=label,
     )
     if not upload_to_s3(
         s3_client,

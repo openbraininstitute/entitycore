@@ -101,12 +101,17 @@ def add_all_db(db, rows):
     return rows
 
 
-def assert_request(client_method, *, expected_status_code=200, **kwargs):
-    response = client_method(**kwargs)
+def assert_response(response, expected_status_code=200):
     assert response.status_code == expected_status_code, (
+        f"Request {response.request.method} {response.request.url}: "
         f"expected={expected_status_code}, actual={response.status_code}, "
         f"content={response.content}"
     )
+
+
+def assert_request(client_method, *, expected_status_code=200, **kwargs):
+    response = client_method(**kwargs)
+    assert_response(response, expected_status_code=expected_status_code)
     return response
 
 

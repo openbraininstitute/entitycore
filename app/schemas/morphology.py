@@ -1,5 +1,4 @@
 import uuid
-from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
@@ -11,15 +10,15 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
-    MeasurementCreate,
-    MeasurementRead,
     SpeciesRead,
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.measurement_annotation import MeasurementAnnotationRead
 
 
 class ReconstructionMorphologyBase(BaseModel):
@@ -41,21 +40,6 @@ class ReconstructionMorphologyCreate(
     legacy_id: list[str] | None = None
 
 
-class MorphologyFeatureAnnotationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    reconstruction_morphology_id: uuid.UUID
-
-
-class MorphologyFeatureAnnotationCreate(MorphologyFeatureAnnotationBase):
-    measurements: Sequence[MeasurementCreate]
-
-
-class MorphologyFeatureAnnotationRead(
-    MorphologyFeatureAnnotationBase, CreationMixin, IdentifiableMixin
-):
-    measurements: Sequence[MeasurementRead]
-
-
 class ReconstructionMorphologyRead(
     ReconstructionMorphologyBase,
     CreationMixin,
@@ -63,6 +47,7 @@ class ReconstructionMorphologyRead(
     LicensedReadMixin,
     AuthorizationMixin,
     AssetsMixin,
+    EntityTypeMixin,
 ):
     species: SpeciesRead
     strain: StrainRead | None
@@ -72,4 +57,4 @@ class ReconstructionMorphologyRead(
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):
-    morphology_feature_annotation: MorphologyFeatureAnnotationRead
+    measurement_annotation: MeasurementAnnotationRead | None

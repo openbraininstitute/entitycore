@@ -65,6 +65,7 @@ class AssetRepository(BaseRepository):
                 size=asset.size,
                 sha256_digest=sha256_digest,
                 meta=asset.meta,
+                label=asset.label,
             )
             .returning(Asset)
         )

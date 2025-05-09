@@ -4,23 +4,27 @@ import json
 import os
 import random
 import uuid
-from functools import partial
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
+from operator import attrgetter
 from pathlib import Path
 from typing import Any
-from app.cli.utils import ensurelist
-from sqlalchemy.orm import Session
-from app.schemas.base import ProjectContext
-from app.db.types import EntityType
 
 import click
 import sqlalchemy as sa
+from sqlalchemy.orm import Session
 from tqdm import tqdm
 
 from app.cli import curate, utils
-from app.cli.utils import AUTHORIZED_PUBLIC
+from app.cli.curation import electrical_cell_recording
+from app.cli.types import ContentType
+from app.cli.utils import (
+    AUTHORIZED_PUBLIC,
+    build_measurement_item,
+    build_measurement_kind,
+    ensurelist,
+)
 from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
@@ -36,30 +40,28 @@ from app.db.model import (
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
     License,
-    MEModel,
     Measurement,
+    MeasurementAnnotation,
+    MEModel,
     Mesh,
-    MorphologyFeatureAnnotation,
-    MorphologyMeasurement,
-    MorphologyMeasurementSerieElement,
     MTypeClass,
     MTypeClassification,
     Organization,
     Person,
     ReconstructionMorphology,
     SingleNeuronSimulation,
-    Subject,
 )
 from app.db.session import configure_database_session_manager
-from app.logger import L
-from app.schemas.base import ProjectContext
 from app.db.types import (
-    ElectricalRecordingType,
     ElectricalRecordingOrigin,
+    ElectricalRecordingType,
+    EntityType,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocationBase,
 )
+from app.logger import L
+from app.schemas.base import ProjectContext
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -649,15 +651,29 @@ class ImportElectricalCellRecording(Import):
         )
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(
+        db,
+        project_context,
+        data_list,
+        all_data_by_id=None,
+    ):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
+
             rm = utils._find_by_legacy_id(legacy_id, ElectricalCellRecording, db)
             if rm:
                 continue
 
             data = curate.curate_trace(data)
+            distributions = ensurelist(data.get("distribution", []))
+
+            # register resources that have at least one supported file
+            if not (
+                has_content_type_in_distributions(ContentType.nwb, distributions)
+                or has_content_type_in_distributions(ContentType.h5, distributions)
+            ):
+                continue
 
             _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
             assert _brain_location is None
@@ -714,6 +730,11 @@ class ImportElectricalCellRecording(Import):
 
                 # create a stimulus for each stimulus in the data
                 utils.create_stimulus(stimulus_type, db_item.id, project_context, db)
+
+
+def has_content_type_in_distributions(content_type: ContentType, distributions: list) -> bool:
+    """Return True if the content_type is present in the distributions."""
+    return content_type in {d["encodingFormat"] for d in distributions}
 
 
 class ImportMEModel(Import):
@@ -858,85 +879,88 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id=None):
         annotations = defaultdict(list)
-        missing_morphology = 0
-        duplicate_annotation = 0
-
+        info = {
+            "newly_registered": 0,
+            "already_registered": 0,
+            "missing_morphology_id": 0,
+            "missing_morphology": 0,
+            "duplicate_annotation": 0,
+        }
         for data in tqdm(data_list):
-            legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
-            if not legacy_id:
+            morphology_legacy_id = data.get("hasTarget", {}).get("hasSource", {}).get("@id", None)
+            if not morphology_legacy_id:
                 print("Skipping morphology feature annotation due to missing legacy id.")
+                info["missing_morphology_id"] += 1
                 continue
 
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+            legacy_id = data["@id"]
+            legacy_self = data["_self"]
+            db_element = utils._find_by_legacy_id(legacy_id, MeasurementAnnotation, db)
+            if db_element:
+                info["already_registered"] += 1
+                continue
+
+            rm = utils._find_by_legacy_id(morphology_legacy_id, ReconstructionMorphology, db)
             if not rm:
-                missing_morphology += 1
+                info["missing_morphology"] += 1
                 continue
 
-            all_measurements = []
+            if (
+                db.query(MeasurementAnnotation.id)
+                .where(MeasurementAnnotation.entity_id == rm.id)
+                .first()
+            ):
+                info["already_registered"] += 1
+                continue
+
+            measurement_kinds = []
             for measurement in data.get("hasBody", []):
-                serie = ensurelist(measurement.get("value", {}).get("series", []))
-
-                measurement_serie = [
-                    MorphologyMeasurementSerieElement(
-                        name=serie_elem.get("statistic", None),
-                        value=serie_elem.get("value", None),
-                    )
-                    for serie_elem in serie
-                ]
-
-                all_measurements.append(
-                    MorphologyMeasurement(
-                        measurement_of=measurement.get("isMeasurementOf", {}).get("label", None),
-                        measurement_serie=measurement_serie,
-                    )
-                )
+                measurement_items = []
+                for item in ensurelist(measurement.get("value", {}).get("series", [])):
+                    if measurement_item := build_measurement_item(item):
+                        measurement_items.append(measurement_item)
+                if measurement_kind := build_measurement_kind(
+                    measurement, measurement_items=measurement_items
+                ):
+                    measurement_kinds.append(measurement_kind)
 
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
             annotations[rm.id].append(
-                MorphologyFeatureAnnotation(
-                    reconstruction_morphology_id=rm.id,
-                    measurements=all_measurements,
+                MeasurementAnnotation(
+                    entity_id=rm.id,
                     creation_date=createdAt,
                     update_date=updatedAt,
+                    legacy_id=[legacy_id],
+                    legacy_self=[legacy_self],
+                    measurement_kinds=measurement_kinds,
                 )
             )
 
-        if not annotations:
-            return
-
-        already_registered = 0
-        for rm_id, annotation in tqdm(annotations.items()):
-            mfa = (
-                db.query(MorphologyFeatureAnnotation)
-                .filter(MorphologyFeatureAnnotation.reconstruction_morphology_id == rm_id)
-                .first()
-            )
-            if mfa:
-                already_registered += len(annotation)
-                continue
-
-            if len(annotation) > 1:
-                duplicate_annotation += len(annotation) - 1
-
-            # TODO:
-            # JDC wants to look into why there are multiple annotations:
-            # https://github.com/openbraininstitute/entitycore/pull/16#discussion_r1940740060
-            data = annotation[0]
-
-            try:
-                db.add(data)
-            except Exception as e:
-                print(f"Error: {e!r}")
-                print(data)
-                raise
+        for entity_id, entity_annotations in tqdm(annotations.items()):
+            if len(entity_annotations) > 1:
+                # keep only the most recently created
+                info["duplicate_annotation"] += len(entity_annotations) - 1
+                entity_annotation = sorted(entity_annotations, key=lambda a: a.creation_date)[-1]
+            else:
+                entity_annotation = entity_annotations[0]
+            info["newly_registered"] += 1
+            db.add(entity_annotation)
 
         db.commit()
-        print(
-            f"    Annotations related to a morphology that isn't registered: {missing_morphology}\n",
-            f"    Duplicate_annotation: {duplicate_annotation}\n",
-            f"    Previously registered: {already_registered}\n",
-            f"    Total Duplicate: {duplicate_annotation + already_registered}",
+
+        L.warning(
+            "NeuronMorphologyFeatureAnnotation report:\n"
+            "    Annotations not related to any morphology: {}\n"
+            "    Annotations related to a morphology that isn't registered: {}\n"
+            "    Annotations related to a morphology that has already an annotation: {}\n"
+            "    Duplicate_annotation: {}\n"
+            "    Newly registered: {}",
+            info["missing_morphology_id"],
+            info["missing_morphology"],
+            info["already_registered"],
+            info["duplicate_annotation"],
+            info["newly_registered"],
         )
 
 
@@ -1042,7 +1066,7 @@ def create_measurement(data, entity_id, db):
 
 
 def _do_import(db, input_dir, project_context):
-    print("import licenses")
+    print("Importing licenses")
     import_licenses(curate.default_licenses(), db)
     with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
         data = json.load(f)
@@ -1059,10 +1083,10 @@ def _do_import(db, input_dir, project_context):
             elif "nsg:EType" in sub_class:
                 etype_annotations.append(data)
 
-        print("import mtype annotations")
+        print("Importing mtype annotations")
         import_mtype_annotation_body(mtype_annotations, db)
 
-        print("import etype annotations")
+        print("Importing etype annotations")
         import_etype_annotation_body(etype_annotations, db)
 
     importers = [
@@ -1108,7 +1132,8 @@ def _do_import(db, input_dir, project_context):
         )
 
     for importer, data in import_data.items():
-        print(f"ingesting {importer.name}")
+        print(f"Ingesting {importer.name}")
+
         importer.ingest(db, project_context, data, all_data_by_id)
 
 
@@ -1162,7 +1187,11 @@ def run(input_dir, virtual_lab_id, project_id):
         closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        _do_import(db, input_dir=input_dir, project_context=project_context)
+        _do_import(
+            db,
+            input_dir=input_dir,
+            project_context=project_context,
+        )
     _analyze()
 
 
@@ -1243,6 +1272,60 @@ def organize_files(digest_path):
                 dst.symlink_to(src)
     if ignored:
         L.info("Ignored files: {}", len(ignored))
+
+
+@cli.command()
+@click.argument("input_digest_path", type=REQUIRED_PATH)
+@click.argument("output_digest_path")
+@click.option("--out-dir", type=Path, help="Output directory for curated files.")
+@click.option("--dry-run", is_flag=True, help="Run curation without modifying db assets.")
+def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
+    assert out_dir.exists()
+
+    with Path(input_digest_path).open("r", encoding="utf-8") as f:
+        src_paths = dict(line.strip().split(" ", maxsplit=1) for line in f)
+
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        # Group assets by ntity_type/entity_id/content_type
+        assets_per_entity_type = defaultdict(lambda: defaultdict(lambda: defaultdict()))
+        for asset in db.query(Asset).all():
+            entity_type = asset.full_path.split("/")[4]
+            assets_per_entity_type[entity_type][asset.entity_id][asset.content_type] = asset
+
+        if not assets_per_entity_type:
+            raise RuntimeError("No assets found. Please run 'make import' to import distributions.")
+
+        config = {EntityType.electrical_cell_recording: electrical_cell_recording.curate_assets}
+
+        new_src_paths = {}
+        for entity_type, curator in config.items():
+            if not (assets_per_entity := assets_per_entity_type.get(entity_type)):
+                continue
+
+            print(f"Curating: {entity_type}")
+            for entity_id, assets in tqdm(assets_per_entity.items()):
+                try:
+                    new_src_paths |= curator(
+                        db=db,
+                        src_paths=src_paths,
+                        assets=assets,
+                        out_dir=out_dir,
+                        is_dry_run=dry_run,
+                    )
+                except Exception as e:
+                    msg = f"Failed curation for entity {entity_type}: {entity_id}. Reason : {e}"
+                    L.warning(msg)
+                    continue
+
+                db.commit()
+
+    all_paths = src_paths | new_src_paths
+    with open(output_digest_path, "w") as fp:
+        for digest, path in all_paths.items():
+            fp.write(f"{digest} {path}\n")
 
 
 if __name__ == "__main__":

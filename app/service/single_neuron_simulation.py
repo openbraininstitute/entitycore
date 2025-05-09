@@ -24,8 +24,10 @@ def read_one(
         authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSimulationRead,
         apply_operations=lambda q: q.options(
-            joinedload(SingleNeuronSimulation.me_model),
+            joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes),
+            joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes),
             joinedload(SingleNeuronSimulation.brain_region),
+            raiseload("*"),
         ),
     )
 
@@ -70,7 +72,8 @@ def read_many(
         .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)
     )
     apply_data_options = lambda query: (
-        query.options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.brain_region))
+        query.options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes))
+        .options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes))
         .options(joinedload(SingleNeuronSimulation.brain_region))
         .options(raiseload("*"))
     )

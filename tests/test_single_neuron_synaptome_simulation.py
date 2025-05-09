@@ -3,6 +3,7 @@ import itertools as it
 import pytest
 
 from app.db.model import SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation
+from app.db.types import EntityType
 
 from .utils import (
     MISSING_ID,
@@ -122,6 +123,7 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["recordingLocation"] == ["soma[0]_0.5"]
     assert data["synaptome"]["id"] == str(synaptome_id)
     assert data["authorized_project_id"] == PROJECT_ID
+    assert data["type"] == EntityType.single_neuron_synaptome_simulation
 
 
 def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
@@ -137,6 +139,7 @@ def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
     assert data["recordingLocation"] == ["soma[0]_0.5"]
     assert data["synaptome"]["id"] == str(synaptome_id)
     assert data["authorized_project_id"] == PROJECT_ID
+    assert data["type"] == EntityType.single_neuron_synaptome_simulation
 
 
 @pytest.mark.parametrize(

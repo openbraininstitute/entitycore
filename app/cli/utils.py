@@ -8,7 +8,12 @@ from sqlalchemy import and_, any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
-from app.cli.mappings import STIMULUS_INFO
+from app.cli.mappings import (
+    MEASUREMENT_STATISTIC_MAP,
+    MEASUREMENT_UNIT_MAP,
+    STIMULUS_INFO,
+    STRUCTURAL_DOMAIN_MAP,
+)
 from app.db.model import (
     Agent,
     Asset,
@@ -18,8 +23,9 @@ from app.db.model import (
     Ion,
     IonChannelModel,
     IonChannelModelToEModel,
-    IonToIonChannelModel,
     License,
+    MeasurementItem,
+    MeasurementKind,
     MTypeClass,
     Role,
     Species,
@@ -30,10 +36,14 @@ from app.db.model import (
 from app.db.types import AssetStatus, EntityType, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
-from app.schemas.ion_channel_model import NmodlParameters
+from app.schemas.ion_channel_model import NeuronBlock
 from app.utils.s3 import build_s3_path
 
 AUTHORIZED_PUBLIC = True
+
+
+def ensurelist(x):
+    return x if isinstance(x, list) else [x]
 
 
 def _find_by_legacy_id(legacy_id, db_type, db, _cache={}):
@@ -92,12 +102,14 @@ def get_or_create_species(species, db, _cache={}):
 def create_stimulus(data, entity_id, project_context, db):
     label = data["label"]
 
+    info = STIMULUS_INFO[label]
+
     row = ElectricalRecordingStimulus(
-        name=label,
+        name=info["ecode"],
         description=data.get("definition", None),
         dt=None,
-        injection_type=STIMULUS_INFO[label]["type"],
-        shape=STIMULUS_INFO[label]["shape"],
+        injection_type=info["type"],
+        shape=info["shape"],
         start_time=None,
         end_time=None,
         recording_id=entity_id,
@@ -340,10 +352,6 @@ def get_or_create_distribution(
     db.commit()
 
 
-def ensurelist(x):
-    return x if isinstance(x, list) else [x]
-
-
 def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):
     if not entity:
         return None
@@ -397,16 +405,18 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     if label in _cache:
         return _cache[label]
 
-    q = sa.select(Ion).where(Ion.name == label)
+    ontology_id = ion.get("@id")
+
+    q = sa.select(Ion).where(Ion.name == label.lower())
     db_ion = db.execute(q).scalar_one_or_none()
     if not db_ion:
-        db_ion = Ion(name=ion.get("label"))
+        db_ion = Ion(name=ion.get("label"), ontology_id=ontology_id)
         db.add(db_ion)
         db.flush()
 
-    _cache[label] = db_ion.id
+    _cache[label] = db_ion
 
-    return db_ion.id
+    return db_ion
 
 
 def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):
@@ -415,45 +425,103 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     temperature = script.get("temperature", {})
     temp_unit = str(temperature.get("unitCode", "")).lower()
 
-    assert temp_unit == "c"  # noqa: S101
-
+    assert temp_unit == "c"
     temperature_value = temperature.get("value")
 
-    nmodl_parameters: dict[str, Any] | None = script.get("nmodlParameters")
-    nmodl_parameters_validated: NmodlParameters | None = None
-    if nmodl_parameters:
-        range_ = nmodl_parameters.get("range")
-        read = nmodl_parameters.get("read")
-        useion = nmodl_parameters.get("useion")
-        write = nmodl_parameters.get("write")
-        nonspecific = nmodl_parameters.get("nonspecific")
+    neuron_block_raw: dict[str, Any] | None = script.get("nmodlParameters")
+    exposed_parameter_raw: list[dict[str, Any]] | None = script.get("exposesParameter")
+    neuron_block_validated: NeuronBlock | None = None
 
-        d = {
-            **nmodl_parameters,
-            "range": range_ and ensurelist(range_),
-            "read": read and ensurelist(read),
-            "useion": useion and ensurelist(useion),
-            "write": write and ensurelist(write),
-            "nonspecific": nonspecific and ensurelist(nonspecific),
+    exposed_parameter_unit = {}
+    nonspecific_unit = {}
+    if exposed_parameter_raw:
+        for param in ensurelist(exposed_parameter_raw):
+            if param.get("ionName") == "non-specific":
+                name = param.get("name")
+                unit = param.get("unitCode") or param.get("unit")
+                nonspecific_unit[name] = unit
+            else:
+                name = param.get("name")
+                unit = param.get("unitCode") or param.get("unit")
+                exposed_parameter_unit[name] = unit
+
+    read_raw = ensurelist((neuron_block_raw or {}).get("read", []))
+    write_raw = ensurelist((neuron_block_raw or {}).get("write", []))
+
+    if neuron_block_raw:
+        useion = ensurelist(neuron_block_raw.get("useion", []))
+        ion_entries = ensurelist(script.get("ion", []))
+        useion_structured = []
+
+        for useion_name in useion:
+            # Define valid variable names for this ion
+            valid_read_vars = {
+                f"e{useion_name}",
+                f"{useion_name}i",
+                f"{useion_name}o",
+                f"d{useion_name}",
+            }
+            valid_write_vars = {f"i{useion_name}", f"{useion_name}i", f"{useion_name}o"}
+
+            read = [var for var in read_raw if var in valid_read_vars]
+            write = [var for var in write_raw if var in valid_write_vars]
+
+            if useion_name.lower() not in (
+                (entry.get("label", "").lower() if entry else "")
+                for entry in ensurelist(script.get("ion"))
+            ):
+                ion = {"@id": None, "label": useion_name}
+            else:
+                ion = next(
+                    entry
+                    for entry in ion_entries
+                    if entry.get("label", "").lower() == useion_name.lower()
+                )
+
+            useion_structured.append(
+                {
+                    "ion_name": get_or_create_ion(ion, db).name,
+                    "read": read,
+                    "write": write,
+                    "valence": neuron_block_raw.get("valence"),
+                    "main_ion": True if len(useion) == 1 else None,
+                }
+            )
+
+        range_raw = ensurelist(neuron_block_raw.get("range", []))
+        range_list = [{name: exposed_parameter_unit.get(name)} for name in range_raw]
+
+        nonspecific = []
+        for key, value in nonspecific_unit.items():
+            nonspecific.append({key: value})
+
+        neuron_block_dict = {
+            "range": range_list,
+            "global": [],
+            "nonspecific": nonspecific,
+            "useion": useion_structured,
         }
-
-        nmodl_parameters_validated = NmodlParameters.model_validate(d)
+        neuron_block_validated = NeuronBlock.model_validate(neuron_block_dict)
 
     _, brain_region_id = get_brain_location_mixin(script, db)
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
 
-    assert nmodl_parameters_validated  # noqa: S101
+    assert neuron_block_validated
 
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],
         legacy_self=[legacy_self],
         name=script["name"],
-        description=script.get("descripton", ""),
+        nmodl_suffix=script.get("suffix")
+        or (neuron_block_raw.get("suffix") if neuron_block_raw else ""),
+        description=script.get("description", ""),
         is_ljp_corrected=script.get("isLjpCorrected", False),
         is_temperature_dependent=script.get("isTemperatureDependent", False),
         temperature_celsius=int(temperature_value),
-        nmodl_parameters=nmodl_parameters_validated.model_dump(),
+        neuron_block=neuron_block_validated.model_dump(
+            by_alias=True
+        ),  # global instead of global_ in the output dict
         brain_region_id=brain_region_id,
         species_id=species_id,
         strain_id=strain_id,
@@ -465,7 +533,6 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     )
 
     db.add(db_ion_channel_model)
-
     db.flush()
 
     import_contribution(script, db_ion_channel_model.id, db)
@@ -493,7 +560,6 @@ def import_ion_channel_models(
 
     for id_ in subcellular_model_script_ids:
         script = all_data_by_id.get(id_) or {}
-        ion = script.get("ion")
 
         legacy_id = script["@id"]
 
@@ -504,14 +570,6 @@ def import_ion_channel_models(
             continue
 
         db_ion_channel_model = import_ion_channel_model(script, project_context, db)
-
-        if ion:
-            ion_associations = [
-                IonToIonChannelModel(ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id)
-                for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
-            ]
-
-            db.add_all(ion_associations)
 
         ion_channel_model_ids.append(db_ion_channel_model.id)
 
@@ -652,3 +710,38 @@ def curate_age(data):
         "age_max": max_value,
         "age_period": period,
     }
+
+
+def to_pref_label(s):
+    return s.replace(" ", "_").lower()
+
+
+def build_measurement_item(item):
+    if (statistic := item.get("statistic")) is None:
+        # L.debug("measurement item has no statistic: {}", item)
+        return None
+    if (unit := item.get("unitCode")) is None:
+        # L.debug("measurement item has no unit: {}", item)
+        return None
+    if (value := item.get("value")) is None:
+        # L.debug("measurement item has no value: {}", item)
+        return None
+    return MeasurementItem(
+        name=MEASUREMENT_STATISTIC_MAP[statistic],
+        unit=MEASUREMENT_UNIT_MAP[unit],
+        value=value,
+    )
+
+
+def build_measurement_kind(measurement, measurement_items):
+    if not measurement_items:
+        # L.debug("measurement has no items")
+        return None
+    measurement_meta = measurement.get("isMeasurementOf", {})
+    definition = measurement_meta.get("label")
+    pref_label = measurement_meta.get("prefLabel") or to_pref_label(definition)
+    return MeasurementKind(
+        pref_label=pref_label,
+        structural_domain=STRUCTURAL_DOMAIN_MAP[measurement.get("compartment")],
+        measurement_items=measurement_items,
+    )

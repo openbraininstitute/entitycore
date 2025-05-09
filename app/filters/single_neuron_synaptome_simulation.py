@@ -5,7 +5,10 @@ from fastapi_filter import FilterDepends
 from app.db.model import SingleNeuronSynaptomeSimulation
 from app.db.types import SingleNeuronSimulationStatus
 from app.filters.base import CustomFilter
-from app.filters.common import AgentFilter, CreationFilterMixin, NestedAgentFilterDep
+from app.filters.common import (
+    BrainRegionFilterMixin,
+    EntityFilterMixin,
+)
 from app.filters.single_neuron_synaptome import (
     NestedSingleNeuronSynaptomeFilterDep,
     SingleNeuronSynaptomeFilter,
@@ -14,13 +17,11 @@ from app.filters.single_neuron_synaptome import (
 
 class SingleNeuronSynaptomeSimulationFilter(
     CustomFilter,
-    CreationFilterMixin,
+    EntityFilterMixin,
+    BrainRegionFilterMixin,
 ):
-    name__ilike: str | None = None
-    brain_region_id: int | None = None
     status: SingleNeuronSimulationStatus | None = None
 
-    contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
     synaptome: Annotated[
         SingleNeuronSynaptomeFilter | None, NestedSingleNeuronSynaptomeFilterDep
     ] = None

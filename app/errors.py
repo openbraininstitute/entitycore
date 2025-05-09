@@ -7,7 +7,8 @@ from enum import StrEnum, auto
 from http import HTTPStatus
 from typing import Any
 
-from psycopg2.errors import InsufficientPrivilege, UniqueViolation
+from psycopg2.errors import ForeignKeyViolation, InsufficientPrivilege, UniqueViolation
+from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError, NoResultFound, ProgrammingError
 
 from app.utils.enum import UpperStrEnum
@@ -43,6 +44,8 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_MISSING_PATH = auto()
     ASSET_INVALID_PATH = auto()
     ASSET_NOT_A_DIRECTORY = auto()
+    ASSET_INVALID_SCHEMA = auto()
+    ION_NAME_NOT_FOUND = auto()
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -107,6 +110,24 @@ def ensure_uniqueness(
 
 
 @contextmanager
+def ensure_foreign_keys_integrity(
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
+) -> Iterator[None]:
+    """Context manager that raises ApiError when a ForeignKeyViolation is raised."""
+    try:
+        yield
+    except IntegrityError as err:
+        if isinstance(err.orig, ForeignKeyViolation):
+            raise ApiError(
+                message=error_message,
+                error_code=error_code,
+                http_status_code=HTTPStatus.CONFLICT,
+                details=str(err),
+            ) from err
+        raise
+
+
+@contextmanager
 def ensure_authorized_references(
     error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
 ) -> Iterator[None]:
@@ -119,3 +140,19 @@ def ensure_authorized_references(
                 message=error_message, error_code=error_code, http_status_code=HTTPStatus.FORBIDDEN
             ) from err
         raise
+
+
+@contextmanager
+def ensure_valid_schema(
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
+) -> Iterator[None]:
+    """Context manager that raises ApiError when a schema validation error is raised."""
+    try:
+        yield
+    except ValidationError as err:
+        raise ApiError(
+            message=error_message,
+            error_code=error_code,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            details=[e["msg"] for e in err.errors()],
+        ) from err

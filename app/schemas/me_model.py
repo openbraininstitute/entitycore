@@ -9,16 +9,14 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     SpeciesRead,
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.emodel import EModelBase, ExemplarMorphology as Morphology
-
-
-class EModel(EModelBase, CreationMixin, IdentifiableMixin):
-    pass
+from app.schemas.emodel import EModelRead
+from app.schemas.morphology import ReconstructionMorphologyRead
 
 
 class MEModelBase(BaseModel):
@@ -30,7 +28,8 @@ class MEModelBase(BaseModel):
 
 # To be used by entities who reference MEModel
 class NestedMEModel(MEModelBase, CreationMixin, IdentifiableMixin):
-    pass
+    mtypes: list[MTypeClassRead] | None
+    etypes: list[ETypeClassRead] | None
 
 
 class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
@@ -45,6 +44,7 @@ class MEModelRead(
     MEModelBase,
     CreationMixin,
     AuthorizationMixin,
+    EntityTypeMixin,
 ):
     id: uuid.UUID
     species: SpeciesRead
@@ -53,5 +53,5 @@ class MEModelRead(
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
-    morphology: Morphology
-    emodel: EModel
+    morphology: ReconstructionMorphologyRead
+    emodel: EModelRead

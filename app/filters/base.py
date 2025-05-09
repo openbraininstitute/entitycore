@@ -82,3 +82,13 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
     def sort(self, query: Select[tuple[T]]):  # type:ignore[override]
         return cast("Select[tuple[T]]", super().sort(query))
+
+    def has_filtering_fields(self) -> bool:
+        """Return True if any filtering field is not None, considering also nested filters."""
+        for field_name, _value in self.filtering_fields:
+            field_value = getattr(self, field_name)
+            if not isinstance(field_value, CustomFilter):
+                return True
+            if field_value.has_filtering_fields():
+                return True
+        return False

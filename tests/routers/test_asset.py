@@ -152,7 +152,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
     response = _upload_entity_asset(
         client, entity_type=entity.type, entity_id=entity.id, label=AssetLabel.hdf5
     )
-    assert response.status_code == 403
+    assert response.status_code == 422
     assert response.json() == {
         "error_code": "ASSET_INVALID_SCHEMA",
         "message": "Asset schema is invalid",
@@ -166,7 +166,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
     response = _upload_entity_asset(
         client, entity_type=entity.type, entity_id=entity.id, label=AssetLabel.hdf5
     )
-    assert response.status_code == 403
+    assert response.status_code == 422
     assert response.json() == {
         "error_code": "ASSET_INVALID_SCHEMA",
         "message": "Asset schema is invalid",

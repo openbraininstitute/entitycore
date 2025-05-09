@@ -144,7 +144,7 @@ def ensure_authorized_references(
 
 @contextmanager
 def ensure_valid_schema(
-    error_message: str, error_code: ApiErrorCode = ApiErrorCode.GENERIC_ERROR
+    error_message: str, error_code: ApiErrorCode = ApiErrorCode.INVALID_REQUEST
 ) -> Iterator[None]:
     """Context manager that raises ApiError when a schema validation error is raised."""
     try:
@@ -153,6 +153,6 @@ def ensure_valid_schema(
         raise ApiError(
             message=error_message,
             error_code=error_code,
-            http_status_code=HTTPStatus.FORBIDDEN,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             details=[e["msg"] for e in err.errors()],
         ) from err

@@ -140,9 +140,10 @@ class SubjectFilterMixin:
 
 
 class BrainRegionFilter(NameFilterMixin, CustomFilter):
-    # TODO: Use IdFilterMixin when brain region keys migrate from int to uuid
-    id: int | None = None
-    id__in: list[int] | None = None
+    id: uuid.UUID | None = None
+    id__in: list[uuid.UUID] | None = None
+    hierarchy_id: uuid.UUID | None = None
+    annotation_value: int | None = None
     acronym: str | None = None
     acronym__in: list[str] | None = None
     order_by: list[str] = ["name"]  # noqa: RUF012

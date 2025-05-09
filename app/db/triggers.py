@@ -110,3 +110,4 @@ entities += [
     unauthorized_private_reference_function(MEModel, "emodel_id", EModel),
     unauthorized_private_reference_trigger(MEModel, "emodel_id", EModel),
 ]
+entities = []

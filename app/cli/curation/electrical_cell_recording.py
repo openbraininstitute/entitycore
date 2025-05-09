@@ -1,11 +1,12 @@
-import hashlib
 import shutil
 from pathlib import Path
 
 import h5py
 
+from app.cli.curation.utils import get_output_asset_file_path, get_size_digest
 from app.cli.mappings import STIMULUS_INFO, ECode
 from app.cli.types import ContentType
+from app.db.model import Asset
 from app.logger import L
 
 # get old to new ecode mapping. Do not include curated values in keys
@@ -16,7 +17,14 @@ ecode_mapping = {
 }
 
 
-def curate_assets(*, db, src_paths: dict[str, str], assets: dict, out_dir: Path, is_dry_run: bool):
+def curate_assets(
+    *,
+    db,
+    src_paths: dict[str, str],
+    assets: dict[ContentType, list[Asset]],
+    out_dir: Path,
+    is_dry_run: bool,
+):
     """Curate ElectricalCellRecording assets.
 
     Curation is applied on all assets of a recording to allow addressing cases where merging or
@@ -40,6 +48,9 @@ def curate_assets(*, db, src_paths: dict[str, str], assets: dict, out_dir: Path,
     Returns:
         Dictionary with digests as keys and curated file paths as values.
     """
+    # one asset per content type
+    assets: dict[ContentType, Asset] = {k: v[0] for k, v in assets.items()}
+
     # Multiple assets: keep the nwb one if any.
     if len(assets) > 1:
         if asset := assets.get(ContentType.nwb, None):
@@ -77,16 +88,16 @@ def _curate_nwb_asset(src_paths, asset, out_dir, is_dry_run):
     assert source_file.exists(), f"Asset source file {source_file} does not exist."
 
     # sanity checks
-    old_size, old_digest = _get_size_digest(source_file)
+    old_size, old_digest = get_size_digest(source_file)
     assert old_size == asset.size, "Asset size differs from file size."
     assert old_digest == asset_digest, "Asset digest differs from file digest."
 
-    target_file = out_dir / f"{asset.id}__{asset.path}"
+    target_file = get_output_asset_file_path(asset, out_dir)
     shutil.copyfile(source_file, target_file)
 
     _curate_nwb(target_file)
 
-    new_size, new_digest = _get_size_digest(target_file)
+    new_size, new_digest = get_size_digest(target_file)
 
     if not is_dry_run:
         asset.size = new_size
@@ -99,14 +110,6 @@ def _curate_nwb_asset(src_paths, asset, out_dir, is_dry_run):
         return {}
 
     return {new_digest: str(target_file)}
-
-
-def _get_size_digest(file_path: Path):
-    file_size = file_path.stat().st_size
-    with file_path.open(mode="rb") as f:
-        file_digest = hashlib.file_digest(f, "sha256").hexdigest()
-
-    return file_size, file_digest
 
 
 def _curate_nwb(file_path):

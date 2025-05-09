@@ -543,6 +543,14 @@ def curate_brain_region(data):
     return data
 
 
+def curate_mtype(data):
+    if data["label"] == "Inhibitory":
+        data["label"] = "Inhibitory neuron"
+    elif data["label"] == "Excitatory":
+        data["label"] = "Excitatory neuron"
+    return data
+
+
 def curate_etype(data):
     if data["label"] == "TH_cAD_noscltb":
         data["definition"] = (
@@ -636,6 +644,88 @@ def default_agents():
             "@type": "Organization",
             "name": "University College London",
             "alternativeName": "UCL",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/lurie",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Jonathan",
+            "familyName": "Lurie",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        # TODO: Who dis?
+        {
+            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/b1e71aec-0e4e-4ce3-aca2-99f1614da975",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Uknown",
+            "familyName": "Unknown",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/antonel",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Stefano",
+            "familyName": "Antonel",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/getta",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Pavlo",
+            "familyName": "Getta",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/kurban",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Kerem",
+            "familyName": "Kurban",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/courcol",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Jean-Denis",
+            "familyName": "Courcol",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ivaska",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Genrich",
+            "familyName": "Ivaska",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/soplata",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Austin",
+            "familyName": "Soplata",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/muddapu",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Vignayanandam",
+            "familyName": "Muddapu",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },

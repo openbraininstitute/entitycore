@@ -27,41 +27,58 @@ class PublishedInType(BaseModel):
 
 from app.filters.common import BrainRegionFilterMixin
 
-class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
-    name :str
-    description:str  
+#class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
+#    name :str
+#    description:str  
+#    subject_id : uuid.UUID | None = None
+#    license_id: uuid.UUID | None = None #only needed when public 
+#    experiment_date: date | None = None 
+#    PublishedIn : PublishedInType
+#    validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
+#    contact_id : uuid.UUID | None = None
+
+#    class Config:
+#        from_attributes = True  # Allow mapping from SQLAlchemy objects
+
+
+class ScientificArtifactCreate(BaseModel,BrainRegionFilterMixin):
+    model_config = ConfigDict(from_attributes=True)
+    name: str
+    description: Optional[str] = None
     subject_id : uuid.UUID | None = None
-    license_id: uuid.UUID | None = None #only needed when public 
+    license_id: Optional[UUID] = None
+    authorized_project_id: UUID
+    authorized_public: bool = False
+    createdBy_id: Optional[UUID] = None
+    updatedBy_id: Optional[UUID] = None
     experiment_date: date | None = None 
-    PublishedIn : PublishedInType
+    published_in : PublishedInType
     validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
     contact_id : uuid.UUID | None = None
 
-    class Config:
-        from_attributes = True  # Allow mapping from SQLAlchemy objects
 
-class ScientificArtifactBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    legacy_id: List[str] = []
-    legacy_self: List[str] = []
-    authorized_public: bool = False
-    license_id: Optional[UUID] = None
-
-class ScientificArtifactCreate(ScientificArtifactBase):
-    pass
-
-class ScientificArtifactRead(ScientificArtifactBase):
+class ScientificArtifactRead(ScientificArtifactCreate,BrainRegionFilterMixin):
+    model_config = ConfigDict(from_attributes=True)
     id: UUID
-    creation_date: datetime
-    update_date: datetime
-    authorized_project_id: Optional[UUID] = None
-    license: Optional[LicenseRead] = None
-    contributions: List[ContributionRead] = []
-    assets: List[AssetRead] = []
+    creation_date: str
+    update_date: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+
+#class ScientificArtifactCreate(ScientificArtifactBase):
+#    pass
+
+#class ScientificArtifactRead(ScientificArtifactBase):
+#    id: UUID
+#    creation_date: datetime
+#    update_date: datetime
+#    authorized_project_id: Optional[UUID] = None
+#    license: Optional[LicenseRead] = None
+#    contributions: List[ContributionRead] = []
+#    assets: List[AssetRead] = []
+
+#    class Config:
+#        from_attributes = True
+
 
 
 

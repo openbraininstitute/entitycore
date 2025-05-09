@@ -184,6 +184,8 @@ class AssetLabel(StrEnum):
     neurolucida = auto()
     swc = auto()
     hdf5 = auto()
+    cell_composition_summary = auto()
+    cell_composition_volumes = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -191,5 +193,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.neurolucida,
         AssetLabel.swc,
         AssetLabel.hdf5,
-    }
+    },
+    EntityType.cell_composition: {
+        AssetLabel.cell_composition_summary,
+        AssetLabel.cell_composition_volumes,
+    },
 }

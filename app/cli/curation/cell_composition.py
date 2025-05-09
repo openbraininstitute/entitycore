@@ -4,6 +4,7 @@ from pathlib import Path
 from app.cli.curation.utils import get_output_asset_file_path, get_size_digest
 from app.cli.types import ContentType
 from app.db.model import Asset, BrainRegion, ETypeClass, MTypeClass
+from app.db.types import AssetLabel
 
 MIN_NUM_ASSETS = 2
 
@@ -63,7 +64,7 @@ def _curate_summary_asset(
         asset.size = new_size
         asset.content_type = ContentType.json
         asset.sha256_digest = bytes.fromhex(new_digest)
-        asset.meta = {"label": "summary"}
+        asset.label = AssetLabel.cell_composition_summary
 
     return {new_digest: str(target_file)}
 
@@ -73,7 +74,7 @@ def _curate_volumes_asset(*, asset: Asset, is_dry_run: bool) -> dict[str, str]:
 
     if not is_dry_run:
         asset.content_type = ContentType.json
-        asset.meta = {"label": "volumes"}
+        asset.label = AssetLabel.cell_composition_volumes
 
     return {}
 

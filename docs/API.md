@@ -65,7 +65,7 @@ Furthermore, fields of the particular entity being searched for can be specified
 
 Ex:
 ```
-GET /reconstruction_morphology/?search=foo&species__name=Mus%20musculus
+GET /reconstruction-morphology?search=foo&species__name=Mus%20musculus
 ```
 
 The return payload is the same as above, except the `data` only includes matches with `foo` and the species name matching `Mus musculus`.
@@ -115,7 +115,7 @@ Thus, a tree, or hierarchy is formed.
 
 Following the `Allen Institute`'s original hierarchy, each of the nodes within the tree have the following attributes:
 
-* id: A unique number identifying the region: ex: 72856
+* annotation\_value: A unique number identifying the region; this is the `id` in the original 1.json file: ex: 72856
 * acronym: A unique short name for the region; without a space, and as short as possible: ex VISrll2
 * name: A longer, more human readable name: ex:"Rostrolateral lateral visual area, layer 2"
 * color\_hex\_triplet: A colour associated with the region: ex: "188064"
@@ -126,12 +126,12 @@ Normally, the full set of nodes is encoded in a `hierarchy.json`, which contains
 
 ```
 {
-     "id": 997,
+     "annotation_value": 997,   # this is the ID in the original hierarchy
      "acronym": "root",
      "name": "root",
      "color_hex_triplet": "FFFFFF",
      "children": [
-          { "id": 997, "acronym": "root", "name": "root", ..., "children": []},
+          { "annotation_value": 997, "acronym": "root", "name": "root", ..., "children": []},
           ...
      ]
 }
@@ -139,32 +139,49 @@ Normally, the full set of nodes is encoded in a `hierarchy.json`, which contains
 
 ### Views
 
+This is a feature to come.
 In addition to the "top down" view described above, there is also a `horizontal` or `alternate` view.
 In some regions, there is a second natural view that is structured by layer.
 For instance, the `Cortex` has multiple layers (1, 2, 3, ...); if one wants to get all the regions that are in this cortical layer, one would have to enumerate them.
 Instead, an alternate view is used, that has the `Cortical Layer 3` grouped.
 The shape of the hierarchy is the same, so all the properties exist `ids`, `acronym`, etc, but the `parent_structure_id`, `children` are different.
 
+
+### API
+
+Currently the brain-region API is read only.
+
+`GET brain-region`
+
+Returns all the brain regions, across all the hierarchies, in a flat list.
+One can use the normal query parameters to filter this list.
+EG, to get a region by acronym:
+
+`GET brain-region?acronym=VISal6a`
+
+And:
+
+`GET brain-region/$UUID`
+
+Returns the particular node.
+
 ### Multiple Hierarchies
 
 In the world of biology, there are multiple types of animals.
 They may have different hierarchies.
+This means there is also a `brain-region-hierarchy` endpoint:
 
-### API
+`GET brain-region`
 
-Currently the brain-regions API is read only.
+Gets the hierarchies.
 
-`GET brain-regions/`
+`GET brain-region/$UUID`
 
-Returns the list of brain region hierarchy names.
+Gets a particular hierarchy.
 
-`GET brain-regions/$hierarchy-name/?view=[vertical|horizontal|flat]`
+`GET brain-region/$UUID/hierarchy`
 
-Returns the full `hierarchy.json`; the `vertical` is the default, which is the top down view.
-`horizontal` is the `alternate` or layered version.
-Flat returns the `vertical` one except as a series of rows, instead of with the children filled in.
-
-`GET brain-regions/$hierarchy-name/$id/view=[vertical|horizontal]`
+This returns the 1.json style hierarchy; w/ the tree layout.
 
 ### Note
 
@@ -180,13 +197,20 @@ Entities that are aware of their brain-region can be filtered by the hierarchy.
 For instance, one may want to get all the morphologies that are within the `Isocortex`.
 One way to do this would be to enumerate all the regions within the `Isocortex`, and use that to filter the morphologies.
 This is inefficient.
-Instead, one can use:
+Instead, one can use the following query parameters:
 
 ```
-GET /reconstruction_morphology/?within_brain_region=AIBS,315
+    within_brain_region_hierachy_id: uuid.UUID | None = None
+    within_brain_region_brain_region_id: uuid.UUID | None = None
+    within_brain_region_ascendants: bool = False
+```
+
+```
+GET /reconstruction-morphology?within_brain_region_hierachy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
 ```
 
 In other words, the name of the hierarchy, and the id which will be recursively included.
+This can happen in either by the `descendants` (the default) or by `ascendants`.
 
 # Authorization:
 Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.

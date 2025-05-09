@@ -124,13 +124,13 @@ class Search[T: DeclarativeBase](BaseModel):
 
 
 class InBrainRegionQuery(BaseModel):
-    within_brain_region_hierachy_name_id: uuid.UUID | None = None
+    within_brain_region_hierachy_id: uuid.UUID | None = None
     within_brain_region_brain_region_id: uuid.UUID | None = None
     within_brain_region_ascendants: bool = False
 
     def __call__(self, query: sa.Select, db_model_class):
         if (
-            self.within_brain_region_hierachy_name_id is None
+            self.within_brain_region_hierachy_id is None
             or self.within_brain_region_brain_region_id is None
         ):
             return query
@@ -138,7 +138,7 @@ class InBrainRegionQuery(BaseModel):
         return filter_by_hierarchy_and_region(
             query=query,
             model=db_model_class,
-            hierarchy_name_id=self.within_brain_region_hierachy_name_id,
+            hierarchy_id=self.within_brain_region_hierachy_id,
             brain_region_id=self.within_brain_region_brain_region_id,
             with_ascendants=self.within_brain_region_ascendants,
         )

@@ -46,7 +46,7 @@ HIERARCHY = {
 }
 
 
-def add_brain_region_hierarchy(db, hierarchy, hierarchy_name_id):
+def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
     regions = []
 
     def recurse(i):
@@ -62,12 +62,12 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_name_id):
     ids = {None: None}
     for region in reversed(regions):
         row = BrainRegion(
-            hierarchy_id=region["id"],
+            annotation_value=region["id"],
             acronym=region["acronym"],
             name=region["name"],
             color_hex_triplet=region["color_hex_triplet"],
             parent_structure_id=ids[region["parent_structure_id"]],
-            hierarchy_name_id=hierarchy_name_id,
+            hierarchy_id=hierarchy_id,
         )
         db_br = utils.add_db(db, row)
         db.flush()
@@ -90,8 +90,8 @@ def test_brain_region_id(db, client):
             "acronym": "grey",
             "color_hex_triplet": "BFDAE3",
             "creation_date": ANY,
-            "hierarchy_id": 8,
-            "hierarchy_name_id": str(hierarchy_name.id),
+            "annotation_value": 8,
+            "hierarchy_id": str(hierarchy_name.id),
             "id": ANY,
             "name": "Basic cell groups and regions",
             "parent_structure_id": ANY,
@@ -101,8 +101,8 @@ def test_brain_region_id(db, client):
             "acronym": "blue",
             "color_hex_triplet": "0000FF",
             "creation_date": ANY,
-            "hierarchy_id": 42,
-            "hierarchy_name_id": str(hierarchy_name.id),
+            "annotation_value": 42,
+            "hierarchy_id": str(hierarchy_name.id),
             "id": ANY,
             "name": "BlueRegion",
             "parent_structure_id": ANY,
@@ -112,8 +112,8 @@ def test_brain_region_id(db, client):
             "acronym": "red",
             "color_hex_triplet": "FF0000",
             "creation_date": ANY,
-            "hierarchy_id": 64,
-            "hierarchy_name_id": str(hierarchy_name.id),
+            "annotation_value": 64,
+            "hierarchy_id": str(hierarchy_name.id),
             "id": ANY,
             "name": "RedRegion",
             "parent_structure_id": ANY,
@@ -123,8 +123,8 @@ def test_brain_region_id(db, client):
             "acronym": "root",
             "color_hex_triplet": "FFFFFF",
             "creation_date": ANY,
-            "hierarchy_id": 997,
-            "hierarchy_name_id": str(hierarchy_name.id),
+            "annotation_value": 997,
+            "hierarchy_id": str(hierarchy_name.id),
             "id": ANY,
             "name": "root",
             "parent_structure_id": None,
@@ -139,7 +139,7 @@ def test_brain_region_id(db, client):
     response = client.get(f"{ROUTE}/{root_id}")
     assert response.status_code == 200
     data = response.json()
-    assert data["hierarchy_id"] == 997
+    assert data["annotation_value"] == 997
     assert data["name"] == "root"
     assert data["acronym"] == "root"
 
@@ -152,7 +152,7 @@ def test_family_queries(db, client, species_id, strain_id):
     brain_regions1 = add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name1.id)
 
     for acronym, row in it.chain(brain_regions0.items(), brain_regions1.items()):
-        hier = "hier0" if row.hierarchy_name_id == hierarchy_name0.id else "hier1"
+        hier = "hier0" if row.hierarchy_id == hierarchy_name0.id else "hier1"
         utils.create_reconstruction_morphology_id(
             client,
             species_id=species_id,
@@ -165,14 +165,14 @@ def test_family_queries(db, client, species_id, strain_id):
     assert len(client.get("/reconstruction-morphology").json()["data"]) == 8
 
     def get_response(hier, acronym, ascendents):
-        hierarchy_name_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
+        hierarchy_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
         brain_region_id = (
             brain_regions0[acronym].id if hier == "hier0" else brain_regions1[acronym].id
         )
 
         url = (
             "/reconstruction-morphology"
-            f"?within_brain_region_hierachy_name_id={hierarchy_name_id}"
+            f"?within_brain_region_hierachy_id={hierarchy_id}"
             f"&within_brain_region_brain_region_id={brain_region_id}"
             f"&within_brain_region_ascendants={ascendents}"
         )

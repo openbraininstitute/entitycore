@@ -91,8 +91,8 @@ class Identifiable(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
 
-class BrainRegionHierarchyName(Identifiable):
-    __tablename__ = "brain_region_hierarchy_name"
+class BrainRegionHierarchy(Identifiable):
+    __tablename__ = "brain_region_hierarchy"
 
     name: Mapped[str] = mapped_column(unique=True, index=True)
 
@@ -100,7 +100,7 @@ class BrainRegionHierarchyName(Identifiable):
 class BrainRegion(Identifiable):
     __tablename__ = "brain_region"
 
-    hierarchy_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    annotation_value: Mapped[int] = mapped_column(BigInteger, index=True)
     name: Mapped[str] = mapped_column(index=True)
     acronym: Mapped[str] = mapped_column(index=True)
     color_hex_triplet: Mapped[str] = mapped_column(String(6))
@@ -108,8 +108,8 @@ class BrainRegion(Identifiable):
         ForeignKey("brain_region.id"), index=True, nullable=True
     )
 
-    hierarchy_name_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("brain_region_hierarchy_name.id"), index=True
+    hierarchy_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_region_hierarchy.id"), index=True
     )
 
 

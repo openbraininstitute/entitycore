@@ -5,7 +5,7 @@ from pathlib import Path
 from httpx import Headers
 from starlette.testclient import TestClient
 
-from app.db.model import BrainRegion, BrainRegionHierarchyName
+from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.db.types import EntityType
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -118,24 +118,24 @@ def assert_request(client_method, *, expected_status_code=200, **kwargs):
 
 
 def create_hiearchy_name(db, name: str):
-    row = BrainRegionHierarchyName(name=name)
+    row = BrainRegionHierarchy(name=name)
     return add_db(db, row)
 
 
 def create_brain_region(
     db,
-    hierarchy_name_id,
-    hierarchy_id: int,
+    hierarchy_id,
+    annotation_value: int,
     name: str,
     parent_id: uuid.UUID | None = None,
 ):
     row = BrainRegion(
-        hierarchy_id=hierarchy_id,
-        acronym=f"acronym{hierarchy_id}",
+        annotation_value=annotation_value,
+        acronym=f"acronym{annotation_value}",
         name=name,
         color_hex_triplet="FF0000",
         parent_structure_id=parent_id,
-        hierarchy_name_id=hierarchy_name_id,
+        hierarchy_id=hierarchy_id,
     )
     return add_db(db, row)
 

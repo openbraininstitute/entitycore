@@ -1,8 +1,8 @@
 """base models
 
-Revision ID: 3eba1cc437ec
+Revision ID: bcc13861444b
 Revises:
-Create Date: 2025-05-08 14:17:38.405723
+Create Date: 2025-05-09 12:18:06.914708
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "3eba1cc437ec"
+revision: str = "bcc13861444b"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -172,7 +172,7 @@ def upgrade() -> None:
         op.f("ix_annotation_body_legacy_id"), "annotation_body", ["legacy_id"], unique=False
     )
     op.create_table(
-        "brain_region_hierarchy_name",
+        "brain_region_hierarchy",
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
@@ -187,19 +187,16 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_brain_region_hierarchy_name")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_brain_region_hierarchy")),
     )
     op.create_index(
-        op.f("ix_brain_region_hierarchy_name_creation_date"),
-        "brain_region_hierarchy_name",
+        op.f("ix_brain_region_hierarchy_creation_date"),
+        "brain_region_hierarchy",
         ["creation_date"],
         unique=False,
     )
     op.create_index(
-        op.f("ix_brain_region_hierarchy_name_name"),
-        "brain_region_hierarchy_name",
-        ["name"],
-        unique=True,
+        op.f("ix_brain_region_hierarchy_name"), "brain_region_hierarchy", ["name"], unique=True
     )
     op.create_table(
         "etype_class",
@@ -351,12 +348,12 @@ def upgrade() -> None:
     op.create_index(op.f("ix_species_taxonomy_id"), "species", ["taxonomy_id"], unique=True)
     op.create_table(
         "brain_region",
-        sa.Column("hierarchy_id", sa.BigInteger(), nullable=False),
+        sa.Column("annotation_value", sa.BigInteger(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("acronym", sa.String(), nullable=False),
         sa.Column("color_hex_triplet", sa.String(length=6), nullable=False),
         sa.Column("parent_structure_id", sa.Uuid(), nullable=True),
-        sa.Column("hierarchy_name_id", sa.Uuid(), nullable=False),
+        sa.Column("hierarchy_id", sa.Uuid(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
             "creation_date",
@@ -371,9 +368,9 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["hierarchy_name_id"],
-            ["brain_region_hierarchy_name.id"],
-            name=op.f("fk_brain_region_hierarchy_name_id_brain_region_hierarchy_name"),
+            ["hierarchy_id"],
+            ["brain_region_hierarchy.id"],
+            name=op.f("fk_brain_region_hierarchy_id_brain_region_hierarchy"),
         ),
         sa.ForeignKeyConstraint(
             ["parent_structure_id"],
@@ -384,16 +381,13 @@ def upgrade() -> None:
     )
     op.create_index(op.f("ix_brain_region_acronym"), "brain_region", ["acronym"], unique=False)
     op.create_index(
+        op.f("ix_brain_region_annotation_value"), "brain_region", ["annotation_value"], unique=False
+    )
+    op.create_index(
         op.f("ix_brain_region_creation_date"), "brain_region", ["creation_date"], unique=False
     )
     op.create_index(
         op.f("ix_brain_region_hierarchy_id"), "brain_region", ["hierarchy_id"], unique=False
-    )
-    op.create_index(
-        op.f("ix_brain_region_hierarchy_name_id"),
-        "brain_region",
-        ["hierarchy_name_id"],
-        unique=False,
     )
     op.create_index(op.f("ix_brain_region_name"), "brain_region", ["name"], unique=False)
     op.create_index(
@@ -2134,9 +2128,9 @@ def downgrade() -> None:
     op.drop_table("datamaturity_annotation_body")
     op.drop_index(op.f("ix_brain_region_parent_structure_id"), table_name="brain_region")
     op.drop_index(op.f("ix_brain_region_name"), table_name="brain_region")
-    op.drop_index(op.f("ix_brain_region_hierarchy_name_id"), table_name="brain_region")
     op.drop_index(op.f("ix_brain_region_hierarchy_id"), table_name="brain_region")
     op.drop_index(op.f("ix_brain_region_creation_date"), table_name="brain_region")
+    op.drop_index(op.f("ix_brain_region_annotation_value"), table_name="brain_region")
     op.drop_index(op.f("ix_brain_region_acronym"), table_name="brain_region")
     op.drop_table("brain_region")
     op.drop_index(op.f("ix_species_taxonomy_id"), table_name="species")
@@ -2164,14 +2158,11 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_etype_class_legacy_id"), table_name="etype_class")
     op.drop_index(op.f("ix_etype_class_creation_date"), table_name="etype_class")
     op.drop_table("etype_class")
+    op.drop_index(op.f("ix_brain_region_hierarchy_name"), table_name="brain_region_hierarchy")
     op.drop_index(
-        op.f("ix_brain_region_hierarchy_name_name"), table_name="brain_region_hierarchy_name"
+        op.f("ix_brain_region_hierarchy_creation_date"), table_name="brain_region_hierarchy"
     )
-    op.drop_index(
-        op.f("ix_brain_region_hierarchy_name_creation_date"),
-        table_name="brain_region_hierarchy_name",
-    )
-    op.drop_table("brain_region_hierarchy_name")
+    op.drop_table("brain_region_hierarchy")
     op.drop_index(op.f("ix_annotation_body_legacy_id"), table_name="annotation_body")
     op.drop_index(op.f("ix_annotation_body_creation_date"), table_name="annotation_body")
     op.drop_table("annotation_body")

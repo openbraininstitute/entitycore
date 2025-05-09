@@ -6,23 +6,23 @@ import sqlalchemy as sa
 from fastapi import HTTPException, Response
 
 import app.queries.common
-from app.db.model import BrainRegion, BrainRegionHierarchyName
+from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.filters.brain_region_name import BrainRegionNameFilterDep
-from app.schemas.brain_region_hierarchy_name import BrainRegionHierarchyNameRead
+from app.filters.brain_region_hierarchy import BrainRegionHierarchyFilterDep
+from app.schemas.brain_region_hierarchy import BrainRegionHierarchyRead
 from app.schemas.types import ListResponse
 
 
 def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
-    brain_region_name_filter: BrainRegionNameFilterDep,
-) -> ListResponse[BrainRegionHierarchyNameRead]:
+    brain_region_name_filter: BrainRegionHierarchyFilterDep,
+) -> ListResponse[BrainRegionHierarchyRead]:
     return app.queries.common.router_read_many(
         db=db,
-        db_model_class=BrainRegionHierarchyName,
+        db_model_class=BrainRegionHierarchy,
         authorized_project_id=None,
         with_search=None,
         with_in_brain_region=None,
@@ -31,17 +31,17 @@ def read_many(
         apply_filter_query_operations=None,
         apply_data_query_operations=None,
         pagination_request=pagination_request,
-        response_schema_class=BrainRegionHierarchyNameRead,
+        response_schema_class=BrainRegionHierarchyRead,
         name_to_facet_query_params=None,
         filter_model=brain_region_name_filter,
     )
 
 
-def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyNameRead:
+def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyRead:
     with ensure_result(error_message="Brain Region Hierarchy Name not found"):
-        stmt = sa.select(BrainRegionHierarchyName).filter(BrainRegionHierarchyName.id == id_)
+        stmt = sa.select(BrainRegionHierarchy).filter(BrainRegionHierarchy.id == id_)
         row = db.execute(stmt).scalar_one()
-    return BrainRegionHierarchyNameRead.model_validate(row)
+    return BrainRegionHierarchyRead.model_validate(row)
 
 
 class _JSONEncoder(json.JSONEncoder):
@@ -51,16 +51,12 @@ class _JSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
-def read_hierarchy_name_hierarchy(
+def read_hierarchy(
     *,
     db: SessionDep,
     id_: str,
 ):
-    query = (
-        sa.select(BrainRegion)
-        .join(BrainRegionHierarchyName)
-        .filter(BrainRegionHierarchyName.id == id_)
-    )
+    query = sa.select(BrainRegion).join(BrainRegionHierarchy).filter(BrainRegionHierarchy.id == id_)
 
     data = db.execute(query).scalars()
 
@@ -76,7 +72,7 @@ def read_hierarchy_name_hierarchy(
         return [
             {
                 "id": node.id,
-                "hierarchy_id": node.hierarchy_id,
+                "annotation_value": node.annotation_value,
                 "name": node.name,
                 "acronym": node.acronym,
                 "color_hex_triplet": node.color_hex_triplet,

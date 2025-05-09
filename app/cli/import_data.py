@@ -30,7 +30,7 @@ from app.db.model import (
     Annotation,
     Asset,
     BrainRegion,
-    BrainRegionHierarchyName,
+    BrainRegionHierarchy,
     DataMaturityAnnotationBody,
     ElectricalCellRecording,
     EModel,
@@ -1243,21 +1243,21 @@ def hierarchy(hierarchy_name, hierarchy_path):
         database_session_manager.session() as db,
     ):
         hier = (
-            db.query(BrainRegionHierarchyName)
-            .filter(BrainRegionHierarchyName.name == hierarchy_name)
+            db.query(BrainRegionHierarchy)
+            .filter(BrainRegionHierarchy.name == hierarchy_name)
             .first()
         )
 
         if not hier:
-            hier = BrainRegionHierarchyName(name=hierarchy_name)
+            hier = BrainRegionHierarchy(name=hierarchy_name)
             db.add(hier)
             db.flush()
 
         ids = {
-            v.hierarchy_id: v.id
+            v.annotation_value: v.id
             for v in db.execute(
-                sa.select(BrainRegion.id, BrainRegion.hierarchy_id).where(
-                    BrainRegion.hierarchy_name_id == hier.id
+                sa.select(BrainRegion.id, BrainRegion.annotation_value).where(
+                    BrainRegion.hierarchy_id == hier.id
                 )
             ).all()
         }
@@ -1268,12 +1268,12 @@ def hierarchy(hierarchy_name, hierarchy_path):
                 continue
 
             db_br = BrainRegion(
-                hierarchy_id=region["id"],
+                annotation_value=region["id"],
                 name=region["name"],
                 acronym=region["acronym"],
                 parent_structure_id=ids[region["parent_structure_id"]],
                 color_hex_triplet=region["color_hex_triplet"],
-                hierarchy_name_id=hier.id,
+                hierarchy_id=hier.id,
             )
             db.add(db_br)
             db.flush()

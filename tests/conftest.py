@@ -327,13 +327,13 @@ def license_id(client_admin):
 
 
 @pytest.fixture
-def brain_region_hierarchy_name_id(db):
+def brain_region_hierarchy_id(db):
     return utils.create_hiearchy_name(db, "AIBS").id
 
 
 @pytest.fixture
-def brain_region_id(db, brain_region_hierarchy_name_id):
-    return utils.create_brain_region(db, brain_region_hierarchy_name_id, 64, "RedRegion").id
+def brain_region_id(db, brain_region_hierarchy_id):
+    return utils.create_brain_region(db, brain_region_hierarchy_id, 64, "RedRegion").id
 
 
 @pytest.fixture

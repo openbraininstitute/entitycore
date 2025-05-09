@@ -18,7 +18,7 @@ from app.db.model import (
     Agent,
     Asset,
     BrainRegion,
-    BrainRegionHierarchyName,
+    BrainRegionHierarchy,
     Contribution,
     ElectricalRecordingStimulus,
     Ion,
@@ -68,12 +68,10 @@ def get_brain_region_by_hier_id(brain_region, hierarchy_name, db, _cache={}):
 
     br = db.execute(
         sa.select(BrainRegion)
-        .join(
-            BrainRegionHierarchyName, BrainRegion.hierarchy_name_id == BrainRegionHierarchyName.id
-        )
+        .join(BrainRegionHierarchy, BrainRegion.hierarchy_id == BrainRegionHierarchy.id)
         .where(
-            BrainRegionHierarchyName.name == hierarchy_name,
-            BrainRegion.hierarchy_id == brain_region_id,
+            BrainRegionHierarchy.name == hierarchy_name,
+            BrainRegion.annotation_value == brain_region_id,
         )
     ).scalar_one_or_none()
 

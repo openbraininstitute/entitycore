@@ -4,13 +4,13 @@ from typing import Annotated
 import sqlalchemy as sa
 from fastapi_filter import FilterDepends
 
-from app.db.model import BrainRegion, BrainRegionHierarchyName
+from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.filters.base import CustomFilter
 from app.filters.common import NameFilterMixin
 
 
 def _get_family_query(
-    *, hierarchy_name_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
+    *, hierarchy_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
 ):
     """Create query for BrainRegions that returns ids.
 
@@ -18,12 +18,10 @@ def _get_family_query(
     """
     cte = (
         sa.select(BrainRegion.id, BrainRegion.parent_structure_id)
-        .join(
-            BrainRegionHierarchyName, BrainRegion.hierarchy_name_id == BrainRegionHierarchyName.id
-        )
+        .join(BrainRegionHierarchy, BrainRegion.hierarchy_id == BrainRegionHierarchy.id)
         .where(
             BrainRegion.id == brain_region_id,
-            BrainRegionHierarchyName.id == hierarchy_name_id,
+            BrainRegionHierarchy.id == hierarchy_id,
         )
         .cte(recursive=True)
     )
@@ -37,8 +35,8 @@ def _get_family_query(
     recurse = (
         sa.select(br_alias.id, br_alias.parent_structure_id)
         .join(cte, direction_join)
-        .join(BrainRegionHierarchyName, br_alias.hierarchy_name_id == BrainRegionHierarchyName.id)
-        .where(BrainRegionHierarchyName.id == hierarchy_name_id)
+        .join(BrainRegionHierarchy, br_alias.hierarchy_id == BrainRegionHierarchy.id)
+        .where(BrainRegionHierarchy.id == hierarchy_id)
     )
 
     query = cte.union_all(recurse)
@@ -47,10 +45,10 @@ def _get_family_query(
 
 
 def filter_by_hierarchy_and_region(
-    *, query, model, hierarchy_name_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
+    *, query, model, hierarchy_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
 ):
     brain_region_query = _get_family_query(
-        hierarchy_name_id=hierarchy_name_id,
+        hierarchy_id=hierarchy_id,
         brain_region_id=brain_region_id,
         with_ascendants=with_ascendants,
     )
@@ -61,7 +59,8 @@ def filter_by_hierarchy_and_region(
 class BrainRegionFilter(NameFilterMixin, CustomFilter):
     id: uuid.UUID | None = None
     acronym: str | None = None
-    hierarchy_id: int | None = None
+    annotation_value: int | None = None
+    hierarchy_id: uuid.UUID | None = None
 
     order_by: list[str] = ["name"]  # noqa: RUF012
 

@@ -184,10 +184,10 @@ def test_pagination(db, client, subject_id, brain_region_id, license_id):
 
 
 @pytest.fixture
-def faceted_ids(db, brain_region_hierarchy_name_id, subject_id, license_id):
+def faceted_ids(db, brain_region_hierarchy_id, subject_id, license_id):
     brain_region_ids = [
         create_brain_region(
-            db, brain_region_hierarchy_name_id, hierarchy_id=i, name=f"region-{i}"
+            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
         ).id
         for i in range(2)
     ]

@@ -46,7 +46,7 @@ def read_many(
     pathway_alias = aliased(SynapticPathway, flat=True)
     subject_alias = aliased(Subject, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.mtype | fc.species | fc.strain | fc.synaptic_pathway
+        fc.contribution | fc.species | fc.strain | fc.synaptic_pathway
     )
 
     apply_filter_query = lambda query: (

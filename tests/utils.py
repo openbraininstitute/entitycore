@@ -6,7 +6,12 @@ from unittest.mock import ANY
 from httpx import Headers
 from starlette.testclient import TestClient
 
-from app.db.model import BrainRegion, BrainRegionHierarchy
+from app.db.model import (
+    BrainRegion,
+    BrainRegionHierarchy,
+    MTypeClass,
+    MTypeClassification,
+)
 from app.db.types import EntityType
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -139,6 +144,21 @@ def create_brain_region(
         hierarchy_id=hierarchy_id,
     )
     return add_db(db, row)
+
+
+def create_mtype(db, pref_label: str, alt_label=None, definition=None):
+    return add_db(
+        db,
+        MTypeClass(
+            pref_label=pref_label,
+            alt_label=alt_label or pref_label,
+            definition=definition or "",
+        ),
+    )
+
+
+def attach_mtype(db, entity_id, mtype_id):
+    return add_db(db, MTypeClassification(entity_id=str(entity_id), mtype_class_id=str(mtype_id)))
 
 
 def check_missing(route, client):

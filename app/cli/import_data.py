@@ -1240,10 +1240,12 @@ def _import_experimental_densities(
 
         if model_type is ExperimentalSynapsesPerConnection:
             try:
-                pathway_id = utils.get_or_create_synaptic_pathway(
-                    data["synapticPathway"], project_context, hierarchy_name, db
-                )
-                kwargs["synaptic_pathway_id"] = pathway_id
+                (
+                    kwargs["pre_mtype_id"],
+                    kwargs["post_mtype_id"],
+                    kwargs["pre_region_id"],
+                    kwargs["post_region_id"],
+                ) = utils.get_synaptic_pathway(data["synapticPathway"], hierarchy_name, db)
             except Exception as e:
                 msg = f"Failed to create synaptic pathway: {data['synapticPathway']}.\nReason: {e}"
                 L.warning(msg)

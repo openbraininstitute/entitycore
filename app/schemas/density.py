@@ -50,10 +50,10 @@ class ExperimentalDensityRead(
     EntityTypeMixin,
 ):
     subject: SubjectRead
-    brain_region: BrainRegionRead
     measurements: list[MeasurementRead] | None
     assets: list[AssetRead] | None
     contributions: list[ContributionReadWithoutEntity] | None
+    brain_region: BrainRegionRead
 
 
 class ExperimentalNeuronDensityCreate(ExperimentalDensityCreate):
@@ -65,7 +65,10 @@ class ExperimentalBoutonDensityCreate(ExperimentalDensityCreate):
 
 
 class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
-    synaptic_pathway_id: uuid.UUID
+    pre_mtype_id: uuid.UUID
+    post_mtype_id: uuid.UUID
+    pre_region_id: uuid.UUID
+    post_region_id: uuid.UUID
 
 
 class ExperimentalNeuronDensityRead(ExperimentalDensityRead):
@@ -77,12 +80,8 @@ class ExperimentalBoutonDensityRead(ExperimentalDensityRead):
     mtypes: list[MTypeClassRead] | None
 
 
-class SynapticPathwayRead(CreationMixin, IdentifiableMixin):
+class ExperimentalSynapsesPerConnectionRead(ExperimentalDensityRead):
     pre_mtype: MTypeClassRead
     post_mtype: MTypeClassRead
     pre_region: BrainRegionRead
     post_region: BrainRegionRead
-
-
-class ExperimentalSynapsesPerConnectionRead(ExperimentalDensityRead):
-    synaptic_pathway: SynapticPathwayRead

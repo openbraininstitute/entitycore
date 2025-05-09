@@ -11,7 +11,7 @@ from .utils import (
     PROJECT_ID,
     add_db,
     assert_request,
-    create_brain_region_id,
+    create_brain_region,
 )
 
 ROUTE = "/single-neuron-simulation"
@@ -43,7 +43,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     )
 
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, (
+    assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
     assert data["description"] == "my-description"
@@ -57,7 +57,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
 
     response = assert_request(client.get, url=f"{ROUTE}/{data['id']}")
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, (
+    assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
     assert data["description"] == "my-description"
@@ -209,9 +209,12 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
 
 
 @pytest.fixture
-def faceted_ids(db, client_admin, emodel_id, morphology_id, species_id):
+def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species_id):
     brain_region_ids = [
-        create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
+        create_brain_region(
+            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+        ).id
+        for i in range(2)
     ]
     me_model_ids = [
         _create_me_model_id(
@@ -219,7 +222,7 @@ def faceted_ids(db, client_admin, emodel_id, morphology_id, species_id):
             {
                 "name": f"me-model-{i}",
                 "description": f"description-{i}",
-                "brain_region_id": brain_region_ids[i],
+                "brain_region_id": str(brain_region_ids[i]),
                 "authorized_project_id": PROJECT_ID,
                 "emodel_id": emodel_id,
                 "morphology_id": morphology_id,
@@ -264,8 +267,8 @@ def test_facets(client, faceted_ids):
 
     assert facets["contribution"] == []
     assert facets["brain_region"] == [
-        {"id": brain_region_ids[0], "label": "region-0", "count": 2, "type": "brain_region"},
-        {"id": brain_region_ids[1], "label": "region-1", "count": 2, "type": "brain_region"},
+        {"id": str(brain_region_ids[0]), "label": "region-0", "count": 2, "type": "brain_region"},
+        {"id": str(brain_region_ids[1]), "label": "region-1", "count": 2, "type": "brain_region"},
     ]
     assert facets["me_model"] == [
         {
@@ -301,6 +304,6 @@ def test_facets(client, faceted_ids):
     ]
 
     assert facets["brain_region"] == [
-        {"id": 0, "label": "region-0", "count": 1, "type": "brain_region"},
-        {"id": 1, "label": "region-1", "count": 1, "type": "brain_region"},
+        {"id": str(brain_region_ids[0]), "label": "region-0", "count": 1, "type": "brain_region"},
+        {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]

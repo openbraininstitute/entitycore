@@ -45,7 +45,7 @@ class IonChannelModelBase(BaseModel):
 class IonChannelModelCreate(IonChannelModelBase, AuthorizationOptionalPublicMixin):
     species_id: UUID
     strain_id: UUID | None = None
-    brain_region_id: int
+    brain_region_id: UUID
 
 
 class IonChannelModelRead(

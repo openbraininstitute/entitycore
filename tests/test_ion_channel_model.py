@@ -15,7 +15,7 @@ def create(
     client: TestClient,
     species_id: str,
     strain_id: str,
-    brain_region_id: str,
+    brain_region_id: uuid.UUID,
     name: str = "Test name",
     *,
     authorized_public=False,
@@ -28,7 +28,7 @@ def create(
             "nmodl_suffix": name,
             "temperature_celsius": 0,
             "neuron_block": {},
-            "brain_region_id": brain_region_id,
+            "brain_region_id": str(brain_region_id),
             "species_id": species_id,
             "strain_id": strain_id,
             "authorized_public": authorized_public,
@@ -38,11 +38,11 @@ def create(
     return response
 
 
-def test_create(client: TestClient, species_id: str, strain_id: str, brain_region_id: str):
+def test_create(client: TestClient, species_id: str, strain_id: str, brain_region_id: uuid.UUID):
     response = create(client, species_id, strain_id, brain_region_id)
     assert response.status_code == 200, f"Failed to create icm: {response.text}"
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, f"Failed to get id for icm: {data}"
+    assert data["brain_region"]["id"] == str(brain_region_id), f"Failed to get id for icm: {data}"
     assert data["species"]["id"] == species_id, f"Failed to get species_id for icm: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for icm: {data}"
 
@@ -50,7 +50,7 @@ def test_create(client: TestClient, species_id: str, strain_id: str, brain_regio
     assert response.status_code == 200, f"Failed to get icms: {response.text}"
 
 
-def test_read_one(client: TestClient, species_id: str, strain_id: str, brain_region_id: str):
+def test_read_one(client: TestClient, species_id: str, strain_id: str, brain_region_id: uuid.UUID):
     icm_res = create(client, species_id, strain_id, brain_region_id)
     icm: dict = icm_res.json()
     icm_id = icm.get("id")
@@ -73,7 +73,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_read_many(client: TestClient, species_id: str, strain_id: str, brain_region_id: str):
+def test_read_many(client: TestClient, species_id: str, strain_id: str, brain_region_id: uuid.UUID):
     count = 11
     icm_res = [create(client, species_id, strain_id, brain_region_id) for _ in range(count)]
 
@@ -93,7 +93,7 @@ def test_read_many(client: TestClient, species_id: str, strain_id: str, brain_re
     IonChannelModelRead.model_validate(icm_res[0].json())
 
 
-def test_sorted(client: TestClient, species_id: str, strain_id: str, brain_region_id: str):
+def test_sorted(client: TestClient, species_id: str, strain_id: str, brain_region_id: uuid.UUID):
     count = 11
     icm_res = [create(client, species_id, strain_id, brain_region_id) for _ in range(count)]
 
@@ -127,7 +127,7 @@ def test_authorization(
     client_no_project: TestClient,
     species_id: str,
     strain_id: str,
-    brain_region_id: str,
+    brain_region_id: uuid.UUID,
 ):
     public_obj = create(
         client_user_1, species_id, strain_id, brain_region_id, name="public", authorized_public=True
@@ -187,7 +187,7 @@ def test_authorization(
     assert data[0]["id"] == public_obj["id"]
 
 
-def test_paginate(client: TestClient, species_id: str, strain_id: str, brain_region_id: str):
+def test_paginate(client: TestClient, species_id: str, strain_id: str, brain_region_id: uuid.UUID):
     total_items = 29
     _icm_res = [
         create(client, species_id, strain_id, brain_region_id, name=str(i))

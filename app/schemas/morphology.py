@@ -36,7 +36,7 @@ class ReconstructionMorphologyCreate(
 ):
     species_id: uuid.UUID
     strain_id: uuid.UUID | None = None
-    brain_region_id: int
+    brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
 
 

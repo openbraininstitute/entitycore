@@ -13,10 +13,11 @@ from sqlalchemy import (
     Index,
     LargeBinary,
     MetaData,
+    String,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -91,14 +92,26 @@ class Identifiable(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
 
-class BrainRegion(TimestampMixin, Base):
+class BrainRegionHierarchy(Identifiable):
+    __tablename__ = "brain_region_hierarchy"
+
+    name: Mapped[str] = mapped_column(unique=True, index=True)
+
+
+class BrainRegion(Identifiable):
     __tablename__ = "brain_region"
 
-    # See https://github.com/openbraininstitute/core-web-app/blob/cd89893db3fe08a1d2e5ba90235ef6d8c7be6484/src/types/ontologies.ts#L7
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-    acronym: Mapped[str] = mapped_column(unique=True, index=True)
-    children: Mapped[list[int] | None] = mapped_column(ARRAY(BigInteger))
+    annotation_value: Mapped[int] = mapped_column(BigInteger, index=True)
+    name: Mapped[str] = mapped_column(index=True)
+    acronym: Mapped[str] = mapped_column(index=True)
+    color_hex_triplet: Mapped[str] = mapped_column(String(6))
+    parent_structure_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_region.id"), index=True, nullable=True
+    )
+
+    hierarchy_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_region_hierarchy.id"), index=True
+    )
 
 
 class Species(Identifiable):
@@ -137,7 +150,7 @@ class LicensedMixin:
 
 
 class LocationMixin:
-    brain_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    brain_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
 
     @declared_attr
     @classmethod
@@ -735,10 +748,10 @@ class SynapticPathway(Entity):
     post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
     post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
 
-    pre_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    pre_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
     pre_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[pre_region_id])
 
-    post_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
     post_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[post_region_id])
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -763,7 +776,9 @@ class ExperimentalBoutonDensity(
     Entity,
 ):
     __tablename__ = EntityType.experimental_bouton_density.value
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
@@ -776,7 +791,9 @@ class ExperimentalSynapsesPerConnection(
     Entity,
 ):
     __tablename__ = EntityType.experimental_synapses_per_connection.value
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
     synaptic_pathway_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("synaptic_pathway.id"), index=True
     )

@@ -18,7 +18,13 @@ from app.db.model import (
     Species,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.emodel import EModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
@@ -92,6 +98,7 @@ def read_many(
     emodel_filter: EModelFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[EModelRead]:
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
     aliases: Aliases = {
@@ -132,6 +139,7 @@ def read_many(
         db_model_class=EModel,
         authorized_project_id=user_context.project_id,
         with_search=with_search,
+        with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
         apply_filter_query_operations=filter_query_operations,

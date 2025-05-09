@@ -1,59 +1,41 @@
-from pathlib import Path
+import uuid
 
 import sqlalchemy as sa
-from fastapi import Response
-from fastapi.responses import JSONResponse
 
+import app.queries.common
 from app.db.model import BrainRegion
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.schemas.base import BrainRegionCreate, BrainRegionRead
-
-HIERARCHY = (Path(__file__).parent.parent / "static/brain-regions-tree.json").open().read()
-
-
-def _get_region_tree(db, start_id=None):
-    query = sa.text("""
-        WITH RECURSIVE region_tree AS (
-            SELECT id, name, acronym, children, 1 as level
-            FROM brain_region
-            WHERE id = :start_id
-
-            UNION ALL
-
-            SELECT br.id, br.name, br.acronym, br.children, rt.level + 1
-            FROM brain_region br
-            INNER JOIN region_tree rt ON br.id = ANY(rt.children)
-        )
-        SELECT * FROM region_tree;
-    """)
-
-    result = db.execute(query, {"start_id": start_id}).fetchall()
-    return result
+from app.filters.brain_region import BrainRegionFilterDep
+from app.schemas.base import BrainRegionRead
 
 
-def read_hierarchy(*, db: SessionDep, flat: bool = False) -> Response:
-    response: Response
-    if flat:
-        # TODO: this depends on 997 existing; which is bad
-        # the return format isn't good, but this can be decided in the future
-        response = JSONResponse(content=[tuple(r) for r in _get_region_tree(db, start_id=997)])
-    else:
-        # return the old style DKE hierarchy
-        response = Response(content=HIERARCHY, media_type="application/json")
-    return response
+def read_many(
+    *,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    brain_region_filter: BrainRegionFilterDep,
+):
+    return app.queries.common.router_read_many(
+        db=db,
+        db_model_class=BrainRegion,
+        authorized_project_id=None,
+        with_search=None,
+        with_in_brain_region=None,
+        facets=None,
+        aliases=None,
+        apply_filter_query_operations=None,
+        apply_data_query_operations=None,
+        pagination_request=pagination_request,
+        response_schema_class=BrainRegionRead,
+        name_to_facet_query_params=None,
+        filter_model=brain_region_filter,
+    )
 
 
-def read_one(db: SessionDep, id_: int) -> BrainRegionRead:
+def read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionRead:
     with ensure_result(error_message="Brain region not found"):
         stmt = sa.select(BrainRegion).filter(BrainRegion.id == id_)
         row = db.execute(stmt).scalar_one()
-    return BrainRegionRead.model_validate(row)
-
-
-def create_one(brain_region: BrainRegionCreate, db: SessionDep) -> BrainRegionRead:
-    row = BrainRegion(**brain_region.model_dump())
-    db.add(row)
-    db.commit()
-    db.refresh(row)
     return BrainRegionRead.model_validate(row)

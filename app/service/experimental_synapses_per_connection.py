@@ -16,7 +16,13 @@ from app.db.model import (
     SynapticPathway,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.density import ExperimentalSynapsesPerConnectionFilterDep
 from app.queries import facets as fc
@@ -35,6 +41,7 @@ def read_many(
     filter_model: ExperimentalSynapsesPerConnectionFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ExperimentalSynapsesPerConnectionRead]:
     pathway_alias = aliased(SynapticPathway, flat=True)
     subject_alias = aliased(Subject, flat=True)
@@ -96,6 +103,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=ExperimentalSynapsesPerConnection,
         with_search=with_search,
+        with_in_brain_region=in_brain_region,
         facets=facets,
         aliases={SynapticPathway: pathway_alias, Subject: subject_alias},
         name_to_facet_query_params=name_to_facet_query_params,

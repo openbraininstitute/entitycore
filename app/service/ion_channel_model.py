@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, Ion, IonChannelModel, Species
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery, SearchDep
+from app.dependencies.common import InBrainRegionDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
@@ -35,6 +35,7 @@ def read_many(
     pagination_request: PaginationQuery,
     with_search: SearchDep,
     icm_filter: IonChannelModelFilterDep,
+    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[IonChannelModelRead]:
     def filter_query_ops(q: Select[IonChannelModel]):
         return q.join(Species, IonChannelModel.species_id == Species.id)
@@ -44,6 +45,7 @@ def read_many(
         db_model_class=IonChannelModel,
         authorized_project_id=user_context.project_id,
         with_search=with_search,
+        with_in_brain_region=in_brain_region,
         facets=None,
         aliases=None,
         apply_data_query_operations=_load,

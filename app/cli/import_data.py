@@ -30,6 +30,7 @@ from app.db.model import (
     Annotation,
     Asset,
     BrainRegion,
+    BrainRegionHierarchy,
     DataMaturityAnnotationBody,
     ElectricalCellRecording,
     EModel,
@@ -271,7 +272,7 @@ class Import(ABC):
 
     @staticmethod
     @abstractmethod
-    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any]):
+    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any], hierarchy_name: str):
         """data that is passes `is_correct_type` will be fed to this to ingest into `db`"""
 
 
@@ -284,7 +285,7 @@ class ImportAgent(Import):
         return bool({"Person", "Organization"} & set(ensurelist(data.get("@type", []))))
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
             if "Person" in ensurelist(data["@type"]):
                 legacy_id = data["@id"]
@@ -363,7 +364,7 @@ class ImportAnalysisSoftwareSourceCode(Import):
         return "AnalysisSoftwareSourceCode" in ensurelist(data["@type"])
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -409,7 +410,13 @@ class ImportEModels(Import):
         return "EModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list: list[dict], all_data_by_id: dict[str, dict]):
+    def ingest(
+        db,
+        project_context,
+        data_list: list[dict],
+        all_data_by_id: dict[str, dict],
+        hierarchy_name: str,
+    ):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -418,8 +425,7 @@ class ImportEModels(Import):
             if db_item:
                 continue
 
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             species_id, strain_id = utils.get_species_mixin(data, db)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
@@ -479,7 +485,7 @@ class ImportEModels(Import):
             db.flush()
 
             utils.import_ion_channel_models(
-                configuration, db_emodel.id, all_data_by_id, project_context, db
+                configuration, db_emodel.id, all_data_by_id, project_context, hierarchy_name, db
             )
 
             utils.import_contribution(data, db_emodel.id, db)
@@ -504,16 +510,22 @@ class ImportBrainRegionMeshes(Import):
         return "BrainParcellationMesh" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
+            if "atlasRelease" not in data or data["atlasRelease"].get("tag", "") != "v1.1.0":
+                continue
+
             legacy_id = data["@id"]
             legacy_self = data["_self"]
             rm = utils._find_by_legacy_id(legacy_id, Mesh, db)
             if rm:
                 continue
 
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
+            try:
+                brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
+            except RuntimeError:
+                L.exception("Cannot import mesh")
+                continue
 
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
@@ -541,7 +553,7 @@ class ImportMorphologies(Import):
         return bool({"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types))
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
             curate.curate_morphology(data)
             legacy_id = data["@id"]
@@ -550,7 +562,8 @@ class ImportMorphologies(Import):
             if rm:
                 continue
 
-            brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
+            brain_location = utils.get_brain_location(data)
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
@@ -590,13 +603,14 @@ class ImportExperimentalNeuronDensities(Import):
         return "ExperimentalNeuronDensity" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         _import_experimental_densities(
             db,
             project_context,
             ExperimentalNeuronDensity,
             curate.default_curate,
-            data_list,
+            hierarchy_name=hierarchy_name,
+            data_list=data_list,
         )
 
 
@@ -609,13 +623,14 @@ class ImportExperimentalBoutonDensity(Import):
         return "ExperimentalBoutonDensity" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         _import_experimental_densities(
             db,
             project_context,
             ExperimentalBoutonDensity,
             curate.default_curate,
-            data_list,
+            hierarchy_name=hierarchy_name,
+            data_list=data_list,
         )
 
 
@@ -628,13 +643,14 @@ class ImportExperimentalSynapsesPerConnection(Import):
         return "ExperimentalSynapsesPerConnection" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         _import_experimental_densities(
             db,
             project_context,
             ExperimentalSynapsesPerConnection,
             curate.default_curate,
-            data_list,
+            hierarchy_name=hierarchy_name,
+            data_list=data_list,
         )
 
 
@@ -651,12 +667,7 @@ class ImportElectricalCellRecording(Import):
         )
 
     @staticmethod
-    def ingest(
-        db,
-        project_context,
-        data_list,
-        all_data_by_id=None,
-    ):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -675,8 +686,7 @@ class ImportElectricalCellRecording(Import):
             ):
                 continue
 
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             license_id = utils.get_license_mixin(data, db)
             # species_id, strain_id = utils.get_species_mixin(data, db)
@@ -746,7 +756,7 @@ class ImportMEModel(Import):
         return "MEModel" in types or "https://neuroshapes.org/MEModel" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -754,8 +764,7 @@ class ImportMEModel(Import):
             if rm:
                 continue
 
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             morphology_id = utils.find_part_id(data, "NeuronMorphology")
             morphology = utils._find_by_legacy_id(morphology_id, ReconstructionMorphology, db)
@@ -806,7 +815,7 @@ class ImportSingleNeuronSimulation(Import):
         return "SingleNeuronSimulation" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
@@ -814,8 +823,7 @@ class ImportSingleNeuronSimulation(Import):
             if rm:
                 continue
 
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             me_model_lid = data.get("used", {}).get("@id", None)
@@ -851,7 +859,8 @@ class ImportDistribution(Import):
         db: Session,
         project_context: ProjectContext,
         data_list: list[dict],
-        all_data_by_id: dict | None = None,
+        all_data_by_id: dict,
+        hierarchy_name: str,
     ):
         ignored: dict[tuple[dict], int] = Counter()
         for data in tqdm(data_list):
@@ -877,7 +886,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
         return "NeuronMorphologyFeatureAnnotation" in types
 
     @staticmethod
-    def ingest(db, project_context, data_list, all_data_by_id=None):
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         annotations = defaultdict(list)
         info = {
             "newly_registered": 0,
@@ -964,7 +973,9 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
         )
 
 
-def _import_experimental_densities(db, project_context, model_type, curate_function, data_list):
+def _import_experimental_densities(
+    db, project_context, model_type, curate_function, hierarchy_name, data_list
+):
     for data in tqdm(data_list):
         data = curate_function(data)
         legacy_id = data["@id"]
@@ -977,8 +988,7 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
 
         subject_id = utils.get_or_create_subject(data, project_context, db)
 
-        _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-        assert _brain_location is None
+        brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
         createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
 
         createdAt, updatedAt = utils.get_created_and_updated(data)
@@ -1002,7 +1012,7 @@ def _import_experimental_densities(db, project_context, model_type, curate_funct
         if model_type is ExperimentalSynapsesPerConnection:
             try:
                 pathway_id = utils.get_or_create_synaptic_pathway(
-                    data["synapticPathway"], project_context, db
+                    data["synapticPathway"], project_context, hierarchy_name, db
                 )
                 kwargs["synaptic_pathway_id"] = pathway_id
             except Exception as e:
@@ -1065,7 +1075,7 @@ def create_measurement(data, entity_id, db):
         L.warning(msg)
 
 
-def _do_import(db, input_dir, project_context):
+def _do_import(db, input_dir, project_context, hierarchy_name):
     print("Importing licenses")
     import_licenses(curate.default_licenses(), db)
     with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
@@ -1108,7 +1118,13 @@ def _do_import(db, input_dir, project_context):
     for importer in importers:
         if importer.defaults:
             print(f"importing default {importer.name}")
-            importer.ingest(db, project_context, importer.defaults)
+            importer.ingest(
+                db,
+                project_context,
+                importer.defaults,
+                all_data_by_id=None,
+                hierarchy_name=hierarchy_name,
+            )
 
     import_data = defaultdict(list)
 
@@ -1133,8 +1149,9 @@ def _do_import(db, input_dir, project_context):
 
     for importer, data in import_data.items():
         print(f"Ingesting {importer.name}")
-
-        importer.ingest(db, project_context, data, all_data_by_id)
+        importer.ingest(
+            db, project_context, data, all_data_by_id=all_data_by_id, hierarchy_name=hierarchy_name
+        )
 
 
 def _analyze() -> None:
@@ -1180,7 +1197,12 @@ def analyze():
     type=str,
     help="The UUID4 `project-id` under which the entities will be registered",
 )
-def run(input_dir, virtual_lab_id, project_id):
+@click.option(
+    "--hierarchy-name",
+    type=str,
+    help="Name of the brain atlas to register brain_regions",
+)
+def run(input_dir, virtual_lab_id, project_id, hierarchy_name):
     """Import data script."""
     project_context = ProjectContext(virtual_lab_id=virtual_lab_id, project_id=project_id)
     with (
@@ -1188,16 +1210,15 @@ def run(input_dir, virtual_lab_id, project_id):
         database_session_manager.session() as db,
     ):
         _do_import(
-            db,
-            input_dir=input_dir,
-            project_context=project_context,
+            db, input_dir=input_dir, project_context=project_context, hierarchy_name=hierarchy_name
         )
     _analyze()
 
 
 @cli.command()
+@click.argument("hierarchy_name", type=str)
 @click.argument("hierarchy_path", type=REQUIRED_PATH)
-def hierarchy(hierarchy_path):
+def hierarchy(hierarchy_name, hierarchy_path):
     """Load a hierarchy.json."""
 
     with open(hierarchy_path) as fd:
@@ -1221,17 +1242,43 @@ def hierarchy(hierarchy_path):
         closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        ids = set(db.execute(sa.select(BrainRegion.id)).scalars())
-        for region in tqdm(regions):
+        hier = (
+            db.query(BrainRegionHierarchy)
+            .filter(BrainRegionHierarchy.name == hierarchy_name)
+            .first()
+        )
+
+        if not hier:
+            hier = BrainRegionHierarchy(name=hierarchy_name)
+            db.add(hier)
+            db.flush()
+
+        ids = {
+            v.annotation_value: v.id
+            for v in db.execute(
+                sa.select(BrainRegion.id, BrainRegion.annotation_value).where(
+                    BrainRegion.hierarchy_id == hier.id
+                )
+            ).all()
+        }
+        ids[None] = None
+
+        for region in tqdm(reversed(regions), total=len(regions)):
             if region["id"] in ids:
                 continue
+
             db_br = BrainRegion(
-                id=region["id"],
+                annotation_value=region["id"],
                 name=region["name"],
                 acronym=region["acronym"],
-                children=region["children"],
+                parent_structure_id=ids[region["parent_structure_id"]],
+                color_hex_triplet=region["color_hex_triplet"],
+                hierarchy_id=hier.id,
             )
             db.add(db_br)
+            db.flush()
+            ids[region["id"]] = db_br.id
+
         db.commit()
     _analyze()
 

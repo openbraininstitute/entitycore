@@ -28,7 +28,7 @@ class SingleNeuronSynaptomeCreate(
     AuthorizationOptionalPublicMixin,
 ):
     me_model_id: uuid.UUID
-    brain_region_id: int
+    brain_region_id: uuid.UUID
 
 
 class NestedSynaptome(SingleNeuronSynaptomeBase, CreationMixin, IdentifiableMixin):

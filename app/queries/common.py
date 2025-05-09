@@ -5,10 +5,19 @@ import sqlalchemy as sa
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Session
 
-from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
+from app.db.auth import (
+    constrain_entity_query_to_project,
+    constrain_to_accessible_entities,
+)
 from app.db.model import Entity, Identifiable
 from app.db.utils import load_db_model_from_pydantic
-from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets
+from app.dependencies.common import (
+    FacetQueryParams,
+    InBrainRegionDep,
+    PaginationQuery,
+    Search,
+    WithFacets,
+)
 from app.errors import (
     ensure_authorized_references,
     ensure_foreign_keys_integrity,
@@ -97,12 +106,13 @@ def router_create_one[T: BaseModel, I: Identifiable](
     return response_schema_class.model_validate(db_model_instance)
 
 
-def router_read_many[T: BaseModel, I: Identifiable](
+def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     *,
     db: Session,
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
     with_search: Search[I] | None,
+    with_in_brain_region: InBrainRegionDep | None,
     facets: WithFacets | None,
     aliases: Aliases | None,
     apply_filter_query_operations: ApplyOperations[I] | None,
@@ -119,6 +129,7 @@ def router_read_many[T: BaseModel, I: Identifiable](
         db_model_class: database model class.
         authorized_project_id: project id for filtering the resources.
         with_search: search query (str).
+        with_in_brain_region: enable family queries based on BrainRegion
         facets: facet query (bool).
         aliases: dict of table aliases for the filter query.
         apply_filter_query_operations: optional callable to transform the filter query.
@@ -140,13 +151,13 @@ def router_read_many[T: BaseModel, I: Identifiable](
     if apply_filter_query_operations:
         filter_query = apply_filter_query_operations(filter_query)
 
-    filter_query = filter_model.filter(
-        filter_query,
-        aliases=aliases,
-    )
+    filter_query = filter_model.filter(filter_query, aliases=aliases)
 
     if with_search and (description_vector := getattr(db_model_class, "description_vector", None)):
         filter_query = with_search(filter_query, description_vector)
+
+    if with_in_brain_region:
+        filter_query = with_in_brain_region(filter_query, db_model_class)
 
     data_query = (
         filter_model.sort(filter_query)

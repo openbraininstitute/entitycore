@@ -35,6 +35,7 @@ from app.db.types import (
     AgentType,
     AgePeriod,
     AnnotationBodyType,
+    AssetLabel,
     AssetStatus,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
@@ -852,6 +853,7 @@ class Asset(Identifiable):
     size: Mapped[BIGINT]
     sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32))
     meta: Mapped[JSON_DICT]  # not used yet. can be useful?
+    label: Mapped[AssetLabel | None]
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
     # partial unique index

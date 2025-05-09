@@ -176,3 +176,18 @@ class StructuralDomain(StrEnum):
     apical_dendrite = auto()
     basal_dendrite = auto()
     axon = auto()
+
+
+class AssetLabel(StrEnum):
+    neurolucida = auto()
+    swc = auto()
+    hdf5 = auto()
+
+
+ALLOWED_ASSET_LABELS_PER_ENTITY = {
+    EntityType.reconstruction_morphology: {
+        AssetLabel.neurolucida,
+        AssetLabel.swc,
+        AssetLabel.hdf5,
+    }
+}

@@ -4,7 +4,7 @@ from uuid import UUID
 import pytest
 
 from app.db.model import Asset, Entity
-from app.db.types import AssetStatus, EntityType
+from app.db.types import AssetLabel, AssetStatus, EntityType
 from app.errors import ApiErrorCode
 from app.routers.asset import EntityRoute
 from app.schemas.api import ErrorResponse
@@ -35,13 +35,18 @@ def _route(entity_type: EntityType) -> str:
     return f"/{_entity_type_to_route(entity_type)}"
 
 
-def _upload_entity_asset(client, entity_type: EntityType, entity_id: UUID):
+def _upload_entity_asset(
+    client, entity_type: EntityType, entity_id: UUID, label: str | None = None
+):
     with FILE_EXAMPLE_PATH.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
             "file": ("a/b/c.txt", f, "text/plain")
         }
-        return client.post(f"{_route(entity_type)}/{entity_id}/assets", files=files)
+        data = None
+        if label:
+            data = {"label": label}
+        return client.post(f"{_route(entity_type)}/{entity_id}/assets", files=files, data=data)
 
 
 def _get_expected_full_path(entity, path):
@@ -95,7 +100,9 @@ def asset_directory(db, entity) -> AssetRead:
 
 
 def test_upload_entity_asset(client, entity):
-    response = _upload_entity_asset(client, entity_type=entity.type, entity_id=entity.id)
+    response = _upload_entity_asset(
+        client, entity_type=entity.type, entity_id=entity.id, label="neurolucida"
+    )
     assert response.status_code == 201, f"Failed to create asset: {response.text}"
     data = response.json()
 
@@ -110,6 +117,7 @@ def test_upload_entity_asset(client, entity):
         "sha256_digest": FILE_EXAMPLE_DIGEST,
         "meta": {},
         "status": "created",
+        "label": "neurolucida",
     }
 
     # try to upload again the same file with the same path
@@ -133,6 +141,42 @@ def test_upload_entity_asset(client, entity):
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
 
+def test_upload_entity_asset__label(monkeypatch, client, entity):
+    response = _upload_entity_asset(
+        client, entity_type=entity.type, entity_id=entity.id, label="foo"
+    )
+    assert response.status_code == 422, "Assel label was not rejected as not present in AssetLabel."
+
+    monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", {})
+
+    response = _upload_entity_asset(
+        client, entity_type=entity.type, entity_id=entity.id, label=AssetLabel.hdf5
+    )
+    assert response.status_code == 422
+    assert response.json() == {
+        "error_code": "ASSET_INVALID_SCHEMA",
+        "message": "Asset schema is invalid",
+        "details": [f"Value error, There are no allowed asset labels defined for '{entity.type}'"],
+    }
+
+    required = {EntityType.reconstruction_morphology: {AssetLabel.swc}}
+
+    monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", required)
+
+    response = _upload_entity_asset(
+        client, entity_type=entity.type, entity_id=entity.id, label=AssetLabel.hdf5
+    )
+    assert response.status_code == 422
+    assert response.json() == {
+        "error_code": "ASSET_INVALID_SCHEMA",
+        "message": "Asset schema is invalid",
+        "details": [
+            f"Value error, Asset label '{AssetLabel.hdf5}' is not allowed for "
+            f"entity type '{entity.type}'. Allowed asset labels: ['{AssetLabel.swc}']"
+        ],
+    }
+
+
 def test_get_entity_asset(client, entity, asset):
     response = client.get(f"{_route(entity.type)}/{entity.id}/assets/{asset.id}")
 
@@ -149,6 +193,7 @@ def test_get_entity_asset(client, entity, asset):
         "sha256_digest": FILE_EXAMPLE_DIGEST,
         "meta": {},
         "status": "created",
+        "label": None,
     }
 
     # try to get an asset with non-existent entity id
@@ -181,6 +226,7 @@ def test_get_entity_assets(client, entity, asset):
             "sha256_digest": FILE_EXAMPLE_DIGEST,
             "meta": {},
             "status": "created",
+            "label": None,
         }
     ]
 

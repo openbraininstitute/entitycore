@@ -795,7 +795,7 @@ class ImportMEModel(Import):
                 creation_date=createdAt,
                 update_date=updatedAt,
                 holding_current=data.get("holding_current", 0),
-                threshold_current=data.get("threshold_current", 0),
+                threshold_current=data.get("threshold_current", 1),
             )
 
             db.add(db_item)

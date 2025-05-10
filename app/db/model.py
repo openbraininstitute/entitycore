@@ -488,8 +488,8 @@ class MEModel(
         "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
-    holding_current: Mapped[float]
-    threshold_current: Mapped[float]
+    holding_current: Mapped[float] = mapped_column(default=0)
+    threshold_current: Mapped[float] = mapped_column(default=1)
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 

@@ -24,8 +24,8 @@ class MEModelBase(BaseModel):
     name: str
     description: str
     validation_status: ValidationStatus = ValidationStatus.created
-    holding_current: int
-    threshold_current: int
+    holding_current: float = 0.0
+    threshold_current: float = 1.0
 
 
 # To be used by entities who reference MEModel

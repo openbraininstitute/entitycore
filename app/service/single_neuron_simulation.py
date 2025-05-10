@@ -4,7 +4,13 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSimulation
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_simulation import SingleNeuronSimulationFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
@@ -52,6 +58,7 @@ def read_many(
     pagination_request: PaginationQuery,
     filter_model: SingleNeuronSimulationFilterDep,
     with_search: SearchDep,
+    in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
 ) -> ListResponse[SingleNeuronSimulationRead]:
     me_model_alias = aliased(MEModel, flat=True)
@@ -82,6 +89,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=SingleNeuronSimulation,
         with_search=with_search,
+        with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,

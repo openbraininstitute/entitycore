@@ -327,8 +327,13 @@ def license_id(client_admin):
 
 
 @pytest.fixture
-def brain_region_id(client_admin):
-    return utils.create_brain_region_id(client_admin, 64, "RedRegion")
+def brain_region_hierarchy_id(db):
+    return utils.create_hiearchy_name(db, "AIBS").id
+
+
+@pytest.fixture
+def brain_region_id(db, brain_region_hierarchy_id):
+    return utils.create_brain_region(db, brain_region_hierarchy_id, 64, "RedRegion").id
 
 
 @pytest.fixture
@@ -477,7 +482,7 @@ def memodel_id(create_memodel_ids: CreateIds) -> str:
 class EModelIds(BaseModel):
     emodel_ids: list[str]
     species_ids: list[str]
-    brain_region_ids: list[int]
+    brain_region_ids: list[uuid.UUID]
     morphology_ids: list[str]
 
 
@@ -492,7 +497,7 @@ class MEModels:
 
 
 @pytest.fixture
-def faceted_emodel_ids(db: Session, client, client_admin):
+def faceted_emodel_ids(db: Session, client):
     species_ids = [
         str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
     ]
@@ -505,8 +510,9 @@ def faceted_emodel_ids(db: Session, client, client_admin):
         )
         for i in range(2)
     ]
+    hierarchy_name = utils.create_hiearchy_name(db, "test_hier")
     brain_region_ids = [
-        utils.create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)
+        utils.create_brain_region(db, hierarchy_name.id, i, f"region{i}").id for i in range(2)
     ]
 
     morphology_ids = [
@@ -552,9 +558,7 @@ def faceted_emodel_ids(db: Session, client, client_admin):
 
 
 @pytest.fixture
-def faceted_memodels(
-    db: Session, client: TestClient, client_admin: TestClient, agents: tuple[Agent, Agent, Role]
-):
+def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent, Role]):
     species_ids = [
         str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
     ]
@@ -567,8 +571,9 @@ def faceted_memodels(
         )
         for i in range(2)
     ]
+    hierarchy_name = utils.create_hiearchy_name(db, "test_hier")
     brain_region_ids = [
-        utils.create_brain_region_id(client_admin, i, f"region{i}") for i in range(2)
+        utils.create_brain_region(db, hierarchy_name.id, i, f"region{i}").id for i in range(2)
     ]
 
     morphology_ids = [

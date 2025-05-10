@@ -1,5 +1,6 @@
 import pytest
 
+from app.db.types import EntityType
 from app.schemas.density import ExperimentalBoutonDensityCreate
 
 from .utils import (
@@ -30,6 +31,7 @@ def _assert_read_response(data, json_data):
     assert data["description"] == json_data["description"]
     assert data["name"] == json_data["name"]
     assert data["license"]["name"] == "Test License"
+    assert data["type"] == EntityType.experimental_bouton_density
 
 
 @pytest.fixture

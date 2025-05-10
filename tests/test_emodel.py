@@ -16,7 +16,7 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     response = client.post(
         ROUTE,
         json={
-            "brain_region_id": brain_region_id,
+            "brain_region_id": str(brain_region_id),
             "species_id": species_id,
             "strain_id": strain_id,
             "description": "Test EModel Description",
@@ -29,7 +29,9 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     )
     assert response.status_code == 200, f"Failed to create emodel: {response.text}"
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, f"Failed to get id for emodel: {data}"
+    assert data["brain_region"]["id"] == str(brain_region_id), (
+        f"Failed to get id for emodel: {data}"
+    )
     assert data["species"]["id"] == species_id, f"Failed to get species_id for emodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for emodel: {data}"
 
@@ -75,7 +77,7 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
     data = response.json()["data"]
     assert len(data) == 11
 
-    assert "assets" not in data[0]
+    assert "assets" in data[0]
     assert "ion_channel_models" not in data[0]
 
 
@@ -124,8 +126,18 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
         ],
         "contribution": [],
         "brain_region": [
-            {"id": ids.brain_region_ids[0], "label": "region0", "count": 4, "type": "brain_region"},
-            {"id": ids.brain_region_ids[1], "label": "region1", "count": 4, "type": "brain_region"},
+            {
+                "id": str(ids.brain_region_ids[0]),
+                "label": "region0",
+                "count": 4,
+                "type": "brain_region",
+            },
+            {
+                "id": str(ids.brain_region_ids[1]),
+                "label": "region1",
+                "count": 4,
+                "type": "brain_region",
+            },
         ],
         "exemplar_morphology": [
             {
@@ -164,8 +176,18 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
         ],
         "contribution": [],
         "brain_region": [
-            {"id": 0, "label": "region0", "count": 2, "type": "brain_region"},
-            {"id": 1, "label": "region1", "count": 2, "type": "brain_region"},
+            {
+                "id": str(ids.brain_region_ids[0]),
+                "label": "region0",
+                "count": 2,
+                "type": "brain_region",
+            },
+            {
+                "id": str(ids.brain_region_ids[1]),
+                "label": "region1",
+                "count": 2,
+                "type": "brain_region",
+            },
         ],
         "exemplar_morphology": [
             {
@@ -198,7 +220,7 @@ def test_authorization(
     )
 
     emodel_json = {
-        "brain_region_id": brain_region_id,
+        "brain_region_id": str(brain_region_id),
         "description": "morph description",
         "legacy_id": "Test Legacy ID",
         "name": "Test Morphology Name",

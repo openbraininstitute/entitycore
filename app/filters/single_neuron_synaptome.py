@@ -6,22 +6,16 @@ from app.db.model import SingleNeuronSynaptome
 from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
-    ContributionFilterMixin,
-    CreationFilterMixin,
-    CreatorFilterMixin,
+    EntityFilterMixin,
 )
 from app.filters.memodel import MEModelFilter, NestedMEModelFilterDep
 
 
 class SingleNeuronSynaptomeFilter(
     CustomFilter,
-    CreatorFilterMixin,
-    CreationFilterMixin,
     BrainRegionFilterMixin,
-    ContributionFilterMixin,
+    EntityFilterMixin,
 ):
-    name__ilike: str | None = None
-
     me_model: Annotated[MEModelFilter | None, NestedMEModelFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

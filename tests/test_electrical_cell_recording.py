@@ -1,6 +1,9 @@
+from unittest.mock import ANY
+
 import pytest
 
 from app.db.model import ElectricalCellRecording, ElectricalRecordingStimulus
+from app.db.types import EntityType
 
 from .utils import (
     PROJECT_ID,
@@ -9,7 +12,7 @@ from .utils import (
     check_authorization,
     check_missing,
     create_asset_file,
-    create_brain_region_id,
+    create_brain_region,
 )
 
 ROUTE = "electrical-cell-recording"
@@ -125,9 +128,10 @@ def test_create_one(client, subject_id, license_id, brain_region_id, json_data):
     assert data["name"] == "my-name"
     assert data["description"] == "my-description"
     assert data["subject"]["id"] == str(subject_id)
-    assert data["brain_region"]["id"] == brain_region_id
+    assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["license"]["id"] == str(license_id)
     assert data["authorized_project_id"] == str(PROJECT_ID)
+    assert data["type"] == EntityType.electrical_cell_recording
 
 
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
@@ -138,13 +142,14 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
 
     assert data["name"] == "my-name"
     assert data["description"] == "my-description"
-    assert data["brain_region"]["id"] == brain_region_id
+    assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["subject"]["id"] == str(subject_id)
     assert data["license"]["id"] == str(license_id)
     assert data["authorized_project_id"] == PROJECT_ID
     assert len(data["stimuli"]) == 2
     assert len(data["assets"]) == 1
+    assert data["type"] == EntityType.electrical_cell_recording
 
 
 def test_missing(client):
@@ -179,16 +184,19 @@ def test_pagination(db, client, subject_id, brain_region_id, license_id):
 
 
 @pytest.fixture
-def faceted_ids(db, client_admin, subject_id, license_id):
+def faceted_ids(db, brain_region_hierarchy_id, subject_id, license_id):
     brain_region_ids = [
-        create_brain_region_id(client_admin, id_=i, name=f"region-{i}") for i in range(2)
+        create_brain_region(
+            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+        ).id
+        for i in range(2)
     ]
 
     trace_ids = [
         _create_electrical_cell_recording_id(
             db,
             name=f"trace-{i}",
-            description=f"brain-region-{region_id}",
+            description=f"brain-region-{i}",
             subject_id=subject_id,
             license_id=license_id,
             brain_region_id=region_id,
@@ -212,19 +220,19 @@ def test_facets(client, faceted_ids):
 
     assert facets["contribution"] == []
     assert facets["brain_region"] == [
-        {"id": brain_region_ids[0], "label": "region-0", "count": 1, "type": "brain_region"},
-        {"id": brain_region_ids[1], "label": "region-1", "count": 1, "type": "brain_region"},
+        {"id": str(brain_region_ids[0]), "label": "region-0", "count": 1, "type": "brain_region"},
+        {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"search": f"brain-region-{brain_region_ids[0]}", "with_facets": True},
+        params={"search": "brain-region-0", "with_facets": True},
     ).json()
 
     assert "facets" in data
     facets = data["facets"]
 
     assert facets["brain_region"] == [
-        {"id": 0, "label": "region-0", "count": 1, "type": "brain_region"},
+        {"id": ANY, "label": "region-0", "count": 1, "type": "brain_region"},
     ]

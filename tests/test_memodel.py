@@ -47,7 +47,7 @@ def test_create_memodel(
     response = client.post(
         ROUTE,
         json={
-            "brain_region_id": brain_region_id,
+            "brain_region_id": str(brain_region_id),
             "species_id": species_id,
             "strain_id": strain_id,
             "description": "Test MEModel Description",
@@ -60,12 +60,19 @@ def test_create_memodel(
     )
     assert response.status_code == 200, f"Failed to create memodel: {response.text}"
     data = response.json()
-    assert data["brain_region"]["id"] == brain_region_id, f"Failed to get id for memodel: {data}"
+    assert data["brain_region"]["id"] == str(brain_region_id), (
+        f"Failed to get id for memodel: {data}"
+    )
     assert data["species"]["id"] == species_id, f"Failed to get species_id for memodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
+    assert "assets" in data["emodel"]
+    assert "assets" in data["morphology"]
 
     response = client.get(f"{ROUTE}/{data['id']}")
     assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
+    data = response.json()
+    assert "assets" in data["emodel"]
+    assert "assets" in data["morphology"]
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):
@@ -114,8 +121,18 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
             },
         ],
         "brain_region": [
-            {"id": 0, "label": "region0", "count": 8, "type": "brain_region"},
-            {"id": 1, "label": "region1", "count": 8, "type": "brain_region"},
+            {
+                "id": str(ids.brain_region_ids[0]),
+                "label": "region0",
+                "count": 8,
+                "type": "brain_region",
+            },
+            {
+                "id": str(ids.brain_region_ids[1]),
+                "label": "region1",
+                "count": 8,
+                "type": "brain_region",
+            },
         ],
         "morphology": [
             {
@@ -191,8 +208,18 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
             },
         ],
         "brain_region": [
-            {"id": 0, "label": "region0", "count": 2, "type": "brain_region"},
-            {"id": 1, "label": "region1", "count": 2, "type": "brain_region"},
+            {
+                "id": str(ids.brain_region_ids[0]),
+                "label": "region0",
+                "count": 2,
+                "type": "brain_region",
+            },
+            {
+                "id": str(ids.brain_region_ids[1]),
+                "label": "region1",
+                "count": 2,
+                "type": "brain_region",
+            },
         ],
         "morphology": [
             {
@@ -258,8 +285,18 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
             },
         ],
         "brain_region": [
-            {"id": 0, "label": "region0", "count": 4, "type": "brain_region"},
-            {"id": 1, "label": "region1", "count": 4, "type": "brain_region"},
+            {
+                "id": str(ids.brain_region_ids[0]),
+                "label": "region0",
+                "count": 4,
+                "type": "brain_region",
+            },
+            {
+                "id": str(ids.brain_region_ids[1]),
+                "label": "region1",
+                "count": 4,
+                "type": "brain_region",
+            },
         ],
         "morphology": [
             {
@@ -419,7 +456,7 @@ def test_authorization(
     public_emodel_id = client_user_2.post(
         "/emodel",
         json={
-            "brain_region_id": brain_region_id,
+            "brain_region_id": str(brain_region_id),
             "description": "morph description",
             "legacy_id": "Test Legacy ID",
             "name": "Test Morphology Name",
@@ -434,7 +471,7 @@ def test_authorization(
     ).json()["id"]
 
     json = {
-        "brain_region_id": brain_region_id,
+        "brain_region_id": str(brain_region_id),
         "description": "description",
         "legacy_id": "Test Legacy ID",
         "name": "Test name",
@@ -476,7 +513,7 @@ def test_authorization(
         client_user_2,
         species_id,
         strain_id,
-        brain_region_id,
+        str(brain_region_id),
         authorized_public=False,
     )
 
@@ -495,7 +532,7 @@ def test_authorization(
                 "description": "test",
                 "species_id": species_id,
                 "strain_id": strain_id,
-                "brain_region_id": brain_region_id,
+                "brain_region_id": str(brain_region_id),
                 "location": None,
                 "legacy_id": None,
                 "authorized_public": True,
@@ -507,7 +544,7 @@ def test_authorization(
         client_user_2.post(
             "/emodel",
             json={
-                "brain_region_id": brain_region_id,
+                "brain_region_id": str(brain_region_id),
                 "species_id": species_id,
                 "exemplar_morphology_id": morphology_id_2,
                 "description": "test",

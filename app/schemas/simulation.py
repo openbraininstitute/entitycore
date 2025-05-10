@@ -9,6 +9,7 @@ from app.schemas.base import (
     BrainRegionCreateMixin,
     BrainRegionReadMixin,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
 )
 from app.schemas.me_model import NestedMEModel
@@ -39,6 +40,7 @@ class SingleNeuronSimulationRead(
     AuthorizationMixin,
     IdentifiableMixin,
     CreationMixin,
+    EntityTypeMixin,
 ):
     me_model: NestedMEModel
 
@@ -57,5 +59,6 @@ class SingleNeuronSynaptomeSimulationRead(
     AuthorizationMixin,
     IdentifiableMixin,
     CreationMixin,
+    EntityTypeMixin,
 ):
     synaptome: NestedSynaptome

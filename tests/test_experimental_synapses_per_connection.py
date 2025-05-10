@@ -1,5 +1,7 @@
 import pytest
 
+from app.db.types import EntityType
+
 from .utils import (
     assert_request,
     check_authorization,
@@ -13,7 +15,7 @@ ROUTE = "/experimental-synapses-per-connection"
 @pytest.fixture
 def json_data(brain_region_id, subject_id, license_id, synaptic_pathway_id):
     return {
-        "brain_region_id": brain_region_id,
+        "brain_region_id": str(brain_region_id),
         "subject_id": subject_id,
         "description": "my-description",
         "name": "my-name",
@@ -30,6 +32,7 @@ def _assert_read_response(data, json_data):
     assert data["name"] == json_data["name"]
     assert data["license"]["name"] == "Test License"
     assert data["synaptic_pathway"]["id"] == json_data["synaptic_pathway_id"]
+    assert data["type"] == EntityType.experimental_synapses_per_connection
 
 
 @pytest.fixture

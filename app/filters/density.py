@@ -10,25 +10,20 @@ from app.db.model import (
 from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
-    ContributionFilterMixin,
-    CreationFilterMixin,
+    EntityFilterMixin,
     ETypeClassFilterMixin,
     MTypeClassFilterMixin,
     SpeciesFilterMixin,
-    StrainFilterMixin,
     SynapticPathwayFilterMixin,
 )
 
 
 class DensityFilterBase(
     CustomFilter,
-    StrainFilterMixin,
+    EntityFilterMixin,
     SpeciesFilterMixin,
-    CreationFilterMixin,
     BrainRegionFilterMixin,
-    ContributionFilterMixin,
 ):
-    name__ilike: str | None = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
 

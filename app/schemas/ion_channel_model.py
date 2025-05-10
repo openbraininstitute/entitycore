@@ -1,46 +1,64 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
     IdentifiableMixin,
     SpeciesRead,
     StrainRead,
 )
+from app.schemas.contribution import ContributionReadWithoutEntity
 
 
-class NmodlParameters(BaseModel):
-    range: list[str]
-    read: list[str] | None = None
-    suffix: str | None = None
-    useion: list[str] | None = None
-    write: list[str] | None = None
-    nonspecific: list[str] | None = None
+class UseIon(BaseModel):
+    ion_name: str
+    read: list[str] = []
+    write: list[str] = []
     valence: int | None = None
+    main_ion: bool | None = None
 
 
-class Ion(BaseModel):
+class NeuronBlock(BaseModel):
+    global_: list[dict[str, str | None]] = Field(default=[], alias="global")
+    range: list[dict[str, str | None]] = []
+    useion: list[UseIon] = []
+    nonspecific: list[dict[str, str | None]] = []
+
+
+class IonChannelModelBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: UUID
-    name: str
-
-
-class IonChannelModel(CreationMixin, IdentifiableMixin, AuthorizationMixin, AssetsMixin, BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    name: str
     description: str
+    name: str
+    nmodl_suffix: str
+    is_ljp_corrected: bool = False
+    is_temperature_dependent: bool = False
+    temperature_celsius: int
+    is_stochastic: bool = False
+    neuron_block: NeuronBlock
+
+
+class IonChannelModelCreate(IonChannelModelBase, AuthorizationOptionalPublicMixin):
+    species_id: UUID
+    strain_id: UUID | None = None
+    brain_region_id: UUID
+
+
+class IonChannelModelRead(
+    IonChannelModelBase, CreationMixin, IdentifiableMixin, AuthorizationMixin
+):
     species: SpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
-    is_ljp_corrected: bool
-    is_temperature_dependent: bool
-    temperature_celsius: int
-    is_stochastic: bool
 
-    nmodl_parameters: NmodlParameters
 
-    ions: list[Ion]
+class IonChannelModelWAssets(IonChannelModelRead, AssetsMixin):
+    pass
+
+
+class IonChannelModelExpanded(IonChannelModelWAssets):
+    contributions: list[ContributionReadWithoutEntity]

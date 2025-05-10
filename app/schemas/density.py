@@ -10,12 +10,13 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
-    SubjectRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.subject import SubjectRead
 
 
 class MeasurementRead(BaseModel):
@@ -36,12 +37,17 @@ class ExperimentalDensityCreate(
     ExperimentalDensityBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
 ):
     subject_id: uuid.UUID
-    brain_region_id: int
+    brain_region_id: uuid.UUID
     legacy_id: str | None
 
 
 class ExperimentalDensityRead(
-    ExperimentalDensityBase, CreationMixin, IdentifiableMixin, LicensedReadMixin, AuthorizationMixin
+    ExperimentalDensityBase,
+    CreationMixin,
+    IdentifiableMixin,
+    LicensedReadMixin,
+    AuthorizationMixin,
+    EntityTypeMixin,
 ):
     subject: SubjectRead
     brain_region: BrainRegionRead

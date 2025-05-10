@@ -9,12 +9,13 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     SpeciesRead,
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.ion_channel_model import IonChannelModel
+from app.schemas.ion_channel_model import IonChannelModelWAssets
 from app.schemas.morphology import ReconstructionMorphologyBase
 
 
@@ -34,11 +35,11 @@ class EModelBase(BaseModel):
 class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     species_id: uuid.UUID
     strain_id: uuid.UUID | None = None
-    brain_region_id: int
+    brain_region_id: uuid.UUID
     exemplar_morphology_id: uuid.UUID
 
 
-class EModelRead(EModelBase, CreationMixin, AuthorizationMixin):
+class EModelRead(EModelBase, CreationMixin, AuthorizationMixin, EntityTypeMixin, AssetsMixin):
     id: uuid.UUID
     species: SpeciesRead
     strain: StrainRead | None
@@ -50,4 +51,4 @@ class EModelRead(EModelBase, CreationMixin, AuthorizationMixin):
 
 
 class EModelReadExpanded(EModelRead, AssetsMixin):
-    ion_channel_models: list[IonChannelModel]
+    ion_channel_models: list[IonChannelModelWAssets]

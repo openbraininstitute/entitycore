@@ -1,15 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 import app.service.brain_region
-from app.dependencies.auth import user_with_service_admin_role
 
 router = APIRouter(
     prefix="/brain-region",
     tags=["brain-region"],
 )
 
-read_hierarchy = router.get("")(app.service.brain_region.read_hierarchy)
+read_many = router.get("")(app.service.brain_region.read_many)
 read_one = router.get("/{id_}")(app.service.brain_region.read_one)
-create_one = router.post("", dependencies=[Depends(user_with_service_admin_role)])(
-    app.service.brain_region.create_one
-)

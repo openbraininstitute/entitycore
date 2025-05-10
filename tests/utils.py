@@ -1,9 +1,11 @@
 import functools
+import uuid
 from pathlib import Path
 
 from httpx import Headers
 from starlette.testclient import TestClient
 
+from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.db.types import EntityType
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
@@ -73,7 +75,7 @@ def create_reconstruction_morphology_id(
         json={
             "name": name,
             "description": description,
-            "brain_region_id": str(brain_region_id) if isinstance(brain_region_id, int) else None,
+            "brain_region_id": str(brain_region_id),
             "species_id": str(species_id) if species_id else None,
             "strain_id": str(strain_id) if strain_id else None,
             "location": {"x": 10, "y": 20, "z": 30},
@@ -101,31 +103,41 @@ def add_all_db(db, rows):
     return rows
 
 
-def assert_request(client_method, *, expected_status_code=200, **kwargs):
-    response = client_method(**kwargs)
+def assert_response(response, expected_status_code=200):
     assert response.status_code == expected_status_code, (
+        f"Request {response.request.method} {response.request.url}: "
         f"expected={expected_status_code}, actual={response.status_code}, "
         f"content={response.content}"
     )
+
+
+def assert_request(client_method, *, expected_status_code=200, **kwargs):
+    response = client_method(**kwargs)
+    assert_response(response, expected_status_code=expected_status_code)
     return response
 
 
-def create_brain_region_id(client, id_: int, name: str):
-    js = {
-        "id": id_,
-        "acronym": f"acronym{id_}",
-        "name": name,
-        "color_hex_triplet": "FF0000",
-        "children": [],
-    }
-    response = assert_request(
-        client.post,
-        url="/brain-region",
-        json=js,
+def create_hiearchy_name(db, name: str):
+    row = BrainRegionHierarchy(name=name)
+    return add_db(db, row)
+
+
+def create_brain_region(
+    db,
+    hierarchy_id,
+    annotation_value: int,
+    name: str,
+    parent_id: uuid.UUID | None = None,
+):
+    row = BrainRegion(
+        annotation_value=annotation_value,
+        acronym=f"acronym{annotation_value}",
+        name=name,
+        color_hex_triplet="FF0000",
+        parent_structure_id=parent_id,
+        hierarchy_id=hierarchy_id,
     )
-    data = response.json()
-    assert "id" in data, f"Failed to get id for brain region: {data}"
-    return data["id"]
+    return add_db(db, row)
 
 
 def check_missing(route, client):

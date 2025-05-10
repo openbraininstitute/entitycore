@@ -49,6 +49,7 @@ def read_many(
         db_model_class=Species,
         authorized_project_id=None,
         with_search=None,
+        with_in_brain_region=None,
         facets=None,
         aliases=None,
         apply_filter_query_operations=None,

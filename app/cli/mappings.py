@@ -1,6 +1,12 @@
 from enum import StrEnum
 
-from app.db.types import ElectricalRecordingStimulusShape, ElectricalRecordingStimulusType
+from app.db.types import (
+    ElectricalRecordingStimulusShape,
+    ElectricalRecordingStimulusType,
+    MeasurementStatistic,
+    MeasurementUnit,
+    StructuralDomain,
+)
 
 
 class ECode(StrEnum):
@@ -777,4 +783,18 @@ STIMULUS_INFO = {
         "type": ElectricalRecordingStimulusType.current_clamp,
         "ecode": ECode.generic_step,
     },
+}
+
+MEASUREMENT_UNIT_MAP = {item.value: item for item in MeasurementUnit} | {
+    "dendritic volume / hull volume": MeasurementUnit.dimensionless,
+}
+MEASUREMENT_STATISTIC_MAP = {item.value: item for item in MeasurementStatistic} | {
+    "standard deviation": MeasurementStatistic.standard_deviation,
+    "N": MeasurementStatistic.sample_size,
+}
+STRUCTURAL_DOMAIN_MAP = {
+    "Axon": StructuralDomain.axon,
+    "ApicalDendrite": StructuralDomain.apical_dendrite,
+    "BasalDendrite": StructuralDomain.basal_dendrite,
+    None: None,
 }

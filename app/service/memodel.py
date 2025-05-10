@@ -25,7 +25,13 @@ from app.db.model import (
     Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.memodel import MEModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
@@ -40,8 +46,27 @@ def _load(select: Select):
     return select.options(
         joinedload(MEModel.species),
         joinedload(MEModel.strain),
-        joinedload(MEModel.emodel),
-        joinedload(MEModel.morphology),
+        joinedload(MEModel.emodel).options(
+            joinedload(EModel.species),
+            joinedload(EModel.strain),
+            joinedload(EModel.exemplar_morphology),
+            joinedload(EModel.brain_region),
+            selectinload(EModel.contributions).joinedload(Contribution.agent),
+            selectinload(EModel.contributions).joinedload(Contribution.role),
+            joinedload(EModel.mtypes),
+            joinedload(EModel.etypes),
+            selectinload(EModel.assets),
+        ),
+        joinedload(MEModel.morphology).options(
+            joinedload(ReconstructionMorphology.brain_region),
+            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.agent),
+            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role),
+            joinedload(ReconstructionMorphology.mtypes),
+            joinedload(ReconstructionMorphology.license),
+            joinedload(ReconstructionMorphology.species),
+            joinedload(ReconstructionMorphology.strain),
+            selectinload(ReconstructionMorphology.assets),
+        ),
         joinedload(MEModel.brain_region),
         selectinload(MEModel.contributions).joinedload(Contribution.agent),
         selectinload(MEModel.contributions).joinedload(Contribution.role),
@@ -85,6 +110,7 @@ def read_many(
     memodel_filter: MEModelFilterDep,
     search: SearchDep,
     facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[MEModelRead]:
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
     emodel_alias = aliased(EModel, flat=True)
@@ -135,6 +161,7 @@ def read_many(
         db_model_class=MEModel,
         authorized_project_id=user_context.project_id,
         with_search=search,
+        with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
         apply_data_query_operations=_load,

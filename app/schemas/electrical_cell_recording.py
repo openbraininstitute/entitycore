@@ -15,14 +15,15 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
-    SubjectRead,
 )
+from app.schemas.subject import SubjectRead
 
 
-class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin):
+class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin, EntityTypeMixin):
     name: str
     description: str
     dt: float | None = None
@@ -80,7 +81,7 @@ class ElectricalCellRecordingCreate(
     ElectricalCellRecordingBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
 ):
     subject_id: uuid.UUID
-    brain_region_id: int | None = None
+    brain_region_id: uuid.UUID | None = None
 
 
 class ElectricalCellRecordingRead(
@@ -89,6 +90,7 @@ class ElectricalCellRecordingRead(
     LicensedReadMixin,
     AuthorizationMixin,
     IdentifiableMixin,
+    EntityTypeMixin,
 ):
     subject: SubjectRead
     brain_region: BrainRegionRead

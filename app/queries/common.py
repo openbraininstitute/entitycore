@@ -5,10 +5,25 @@ import sqlalchemy as sa
 from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, Session
 
-from app.db.auth import constrain_to_accessible_entities
+from app.db.auth import (
+    constrain_entity_query_to_project,
+    constrain_to_accessible_entities,
+)
 from app.db.model import Entity, Identifiable
-from app.dependencies.common import FacetQueryParams, PaginationQuery, Search, WithFacets
-from app.errors import ensure_authorized_references, ensure_result, ensure_uniqueness
+from app.db.utils import load_db_model_from_pydantic
+from app.dependencies.common import (
+    FacetQueryParams,
+    InBrainRegionDep,
+    PaginationQuery,
+    Search,
+    WithFacets,
+)
+from app.errors import (
+    ensure_authorized_references,
+    ensure_foreign_keys_integrity,
+    ensure_result,
+    ensure_uniqueness,
+)
 from app.filters.base import Aliases, CustomFilter
 from app.schemas.types import ListResponse, PaginationResponse
 
@@ -24,6 +39,19 @@ def router_read_one[T: BaseModel, I: Identifiable](
     response_schema_class: type[T],
     apply_operations: ApplyOperations[I] | None,
 ) -> T:
+    """Read a model from the database.
+
+    Args:
+        id_: id of the entity to read.
+        db: database session.
+        db_model_class: database model class.
+        authorized_project_id: id of the authorized project.
+        response_schema_class: Pydantic schema class for the returned data.
+        apply_operations: transformer function that modifies the select query.
+
+    Returns:
+        the model data as a Pydantic model.
+    """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if issubclass(db_model_class, Entity):
         query = constrain_to_accessible_entities(query, authorized_project_id)
@@ -43,34 +71,48 @@ def router_create_one[T: BaseModel, I: Identifiable](
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
 ) -> T:
-    data = json_model.model_dump()
-    if issubclass(db_model_class, Entity):
-        data |= {"authorized_project_id": authorized_project_id}
-    row = db_model_class(**data)
+    """Create a model in the database.
+
+    Args:
+        db: database session.
+        db_model_class: database model class.
+        authorized_project_id: id of the authorized project.
+        json_model: instance of the Pydantic model.
+        response_schema_class: Pydantic schema class for the returned data.
+        apply_operations: transformer function that modifies the select query.
+
+    Returns:
+        the written model data as a Pydantic model.
+    """
+    db_model_instance = load_db_model_from_pydantic(
+        json_model, db_model_class, authorized_project_id=authorized_project_id
+    )
     with (
-        ensure_uniqueness(error_message=f"{db_model_class.__name__} already exists"),
+        ensure_foreign_keys_integrity("One or more foreign keys do not exist in the db"),
+        ensure_uniqueness(f"{db_model_class.__name__} already exists or breaks unique constraints"),
         ensure_authorized_references(
             f"One of the entities referenced by {db_model_class.__name__} "
             f"is not public or not owned by the user"
         ),
     ):
-        db.add(row)
+        db.add(db_model_instance)
         db.flush()
-        db.refresh(row)
     if apply_operations:
-        q = sa.select(db_model_class).where(db_model_class.id == row.id)
+        q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
         q = apply_operations(q)
-        row = db.execute(q).unique().scalar_one()
+        db_model_instance = db.execute(q).unique().scalar_one()
+    else:
+        db.refresh(db_model_instance)
+    return response_schema_class.model_validate(db_model_instance)
 
-    return response_schema_class.model_validate(row)
 
-
-def router_read_many[T: BaseModel, I: Identifiable](
+def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     *,
     db: Session,
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
     with_search: Search[I] | None,
+    with_in_brain_region: InBrainRegionDep | None,
     facets: WithFacets | None,
     aliases: Aliases | None,
     apply_filter_query_operations: ApplyOperations[I] | None,
@@ -78,8 +120,28 @@ def router_read_many[T: BaseModel, I: Identifiable](
     pagination_request: PaginationQuery,
     response_schema_class: type[T],
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
-    filter_model: CustomFilter,
+    filter_model: CustomFilter[I],
 ) -> ListResponse[T]:
+    """Read multiple models from the database.
+
+    Args:
+        db: database session.
+        db_model_class: database model class.
+        authorized_project_id: project id for filtering the resources.
+        with_search: search query (str).
+        with_in_brain_region: enable family queries based on BrainRegion
+        facets: facet query (bool).
+        aliases: dict of table aliases for the filter query.
+        apply_filter_query_operations: optional callable to transform the filter query.
+        apply_data_query_operations: optional callable to transform the data query.
+        pagination_request: pagination.
+        response_schema_class: Pydantic schema class for the returned data.
+        name_to_facet_query_params: dict of FacetQueryParams for building the facets.
+        filter_model: instance of CustomFilter for filtering and sorting data.
+
+    Returns:
+        the list of model data, pagination, and facets as a Pydantic model.
+    """
     filter_query = sa.select(db_model_class)
     if issubclass(db_model_class, Entity):
         filter_query = constrain_to_accessible_entities(
@@ -89,13 +151,13 @@ def router_read_many[T: BaseModel, I: Identifiable](
     if apply_filter_query_operations:
         filter_query = apply_filter_query_operations(filter_query)
 
-    filter_query = filter_model.filter(
-        filter_query,
-        aliases=aliases,
-    )
+    filter_query = filter_model.filter(filter_query, aliases=aliases)
 
     if with_search and (description_vector := getattr(db_model_class, "description_vector", None)):
         filter_query = with_search(filter_query, description_vector)
+
+    if with_in_brain_region:
+        filter_query = with_in_brain_region(filter_query, db_model_class)
 
     data_query = (
         filter_model.sort(filter_query)
@@ -127,3 +189,34 @@ def router_read_many[T: BaseModel, I: Identifiable](
         if facets and name_to_facet_query_params
         else None,
     )
+
+
+def router_delete_one[T: BaseModel, I: Identifiable](
+    *,
+    id_: uuid.UUID,
+    db: Session,
+    db_model_class: type[I],
+    authorized_project_id: uuid.UUID | None,
+) -> None:
+    """Delete a model from the database.
+
+    Args:
+        id_: id of the entity to read.
+        db: database session.
+        db_model_class: database model class.
+        authorized_project_id: project id for filtering the resources.
+    """
+    query = sa.delete(db_model_class).where(db_model_class.id == id_)
+    if issubclass(db_model_class, Entity) and authorized_project_id:
+        query = constrain_entity_query_to_project(query, authorized_project_id)
+    query = query.returning(db_model_class.id)
+    with (
+        ensure_result(error_message=f"{db_model_class.__name__} not found"),
+        ensure_foreign_keys_integrity(
+            error_message=(
+                f"{db_model_class.__name__} cannot be deleted "
+                f"because of foreign keys integrity violation"
+            )
+        ),
+    ):
+        db.execute(query).one()

@@ -8,18 +8,25 @@ from sqlalchemy import and_, any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
-from app.cli.mappings import STIMULUS_INFO
+from app.cli.mappings import (
+    MEASUREMENT_STATISTIC_MAP,
+    MEASUREMENT_UNIT_MAP,
+    STIMULUS_INFO,
+    STRUCTURAL_DOMAIN_MAP,
+)
 from app.db.model import (
     Agent,
     Asset,
     BrainRegion,
+    BrainRegionHierarchy,
     Contribution,
     ElectricalRecordingStimulus,
     Ion,
     IonChannelModel,
     IonChannelModelToEModel,
-    IonToIonChannelModel,
     License,
+    MeasurementItem,
+    MeasurementKind,
     MTypeClass,
     Role,
     Species,
@@ -30,7 +37,7 @@ from app.db.model import (
 from app.db.types import AssetStatus, EntityType, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
-from app.schemas.ion_channel_model import NmodlParameters
+from app.schemas.ion_channel_model import NeuronBlock
 from app.utils.s3 import build_s3_path
 
 AUTHORIZED_PUBLIC = True
@@ -52,26 +59,27 @@ def _find_by_legacy_id(legacy_id, db_type, db, _cache={}):
     return res
 
 
-def get_or_create_brain_region(brain_region, db, _cache=set()):
+def get_brain_region_by_hier_id(brain_region, hierarchy_name, db, _cache={}):
     brain_region = curate.curate_brain_region(brain_region)
 
     brain_region_id = int(brain_region["@id"])
-    if brain_region_id in _cache:
-        return brain_region_id
+    if (hierarchy_name, brain_region_id) in _cache:
+        return _cache[hierarchy_name, brain_region_id]
 
-    br = db.query(BrainRegion).filter(BrainRegion.id == brain_region_id).first()
+    br = db.execute(
+        sa.select(BrainRegion)
+        .join(BrainRegionHierarchy, BrainRegion.hierarchy_id == BrainRegionHierarchy.id)
+        .where(
+            BrainRegionHierarchy.name == hierarchy_name,
+            BrainRegion.annotation_value == brain_region_id,
+        )
+    ).scalar_one_or_none()
 
-    if not br:
-        br1 = db.query(BrainRegion).filter(BrainRegion.name == brain_region["label"]).first()
-        if not br1:
-            L.info("Replacing: {} -> failed", brain_region)
-            return 997
-        L.info("Replacing: {} -> {}", brain_region, br1.id)
+    if br is None:
+        msg = f"({hierarchy_name}, {brain_region}) not found in database"
+        raise RuntimeError(msg)
 
-        _cache.add(br1.id)
-        return br1.id
-
-    _cache.add(br.id)
+    _cache[hierarchy_name, brain_region_id] = br.id
     return br.id
 
 
@@ -114,7 +122,7 @@ def create_stimulus(data, entity_id, project_context, db):
     db.commit()
 
 
-def get_brain_location_mixin(data, db):
+def get_brain_location(data):
     coordinates = data.get("brainLocation", {}).get("coordinatesInBrainAtlas", {})
     if coordinates is None:
         msg = "coordinates is None"
@@ -128,6 +136,10 @@ def get_brain_location_mixin(data, db):
         if x is not None and y is not None and z is not None:
             brain_location = {"x": x, "y": y, "z": z}
 
+    return brain_location
+
+
+def get_brain_region(data, hierarchy_name, db):
     root = {
         "@id": "http://api.brain-map.org/api/v2/data/Structure/root",
         "label": "root",
@@ -139,13 +151,9 @@ def get_brain_location_mixin(data, db):
         msg = "brain_region is None"
         raise RuntimeError(msg)
 
-    try:
-        brain_region_id = get_or_create_brain_region(brain_region, db)
-    except Exception:
-        L.exception("data: {!r}", data)
-        raise
+    brain_region_id = get_brain_region_by_hier_id(brain_region, hierarchy_name, db)
 
-    return brain_location, brain_region_id
+    return brain_region_id
 
 
 def get_license_id(license, db, _cache={}):
@@ -399,63 +407,125 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     if label in _cache:
         return _cache[label]
 
-    q = sa.select(Ion).where(Ion.name == label)
+    ontology_id = ion.get("@id")
+
+    q = sa.select(Ion).where(Ion.name == label.lower())
     db_ion = db.execute(q).scalar_one_or_none()
     if not db_ion:
-        db_ion = Ion(name=ion.get("label"))
+        db_ion = Ion(name=ion.get("label"), ontology_id=ontology_id)
         db.add(db_ion)
         db.flush()
 
-    _cache[label] = db_ion.id
+    _cache[label] = db_ion
 
-    return db_ion.id
+    return db_ion
 
 
-def import_ion_channel_model(script: dict[str, Any], project_context: ProjectContext, db: Session):
+def import_ion_channel_model(
+    script: dict[str, Any], project_context: ProjectContext, hierarchy_name, db: Session
+):
     legacy_id = script["@id"]
     legacy_self = script["_self"]
     temperature = script.get("temperature", {})
     temp_unit = str(temperature.get("unitCode", "")).lower()
 
     assert temp_unit == "c"
-
     temperature_value = temperature.get("value")
 
-    nmodl_parameters: dict[str, Any] | None = script.get("nmodlParameters")
-    nmodl_parameters_validated: NmodlParameters | None = None
-    if nmodl_parameters:
-        range_ = nmodl_parameters.get("range")
-        read = nmodl_parameters.get("read")
-        useion = nmodl_parameters.get("useion")
-        write = nmodl_parameters.get("write")
-        nonspecific = nmodl_parameters.get("nonspecific")
+    neuron_block_raw: dict[str, Any] | None = script.get("nmodlParameters")
+    exposed_parameter_raw: list[dict[str, Any]] | None = script.get("exposesParameter")
+    neuron_block_validated: NeuronBlock | None = None
 
-        d = {
-            **nmodl_parameters,
-            "range": range_ and ensurelist(range_),
-            "read": read and ensurelist(read),
-            "useion": useion and ensurelist(useion),
-            "write": write and ensurelist(write),
-            "nonspecific": nonspecific and ensurelist(nonspecific),
+    exposed_parameter_unit = {}
+    nonspecific_unit = {}
+    if exposed_parameter_raw:
+        for param in ensurelist(exposed_parameter_raw):
+            if param.get("ionName") == "non-specific":
+                name = param.get("name")
+                unit = param.get("unitCode") or param.get("unit")
+                nonspecific_unit[name] = unit
+            else:
+                name = param.get("name")
+                unit = param.get("unitCode") or param.get("unit")
+                exposed_parameter_unit[name] = unit
+
+    read_raw = ensurelist((neuron_block_raw or {}).get("read", []))
+    write_raw = ensurelist((neuron_block_raw or {}).get("write", []))
+
+    if neuron_block_raw:
+        useion = ensurelist(neuron_block_raw.get("useion", []))
+        ion_entries = ensurelist(script.get("ion", []))
+        useion_structured = []
+
+        for useion_name in useion:
+            # Define valid variable names for this ion
+            valid_read_vars = {
+                f"e{useion_name}",
+                f"{useion_name}i",
+                f"{useion_name}o",
+                f"d{useion_name}",
+            }
+            valid_write_vars = {f"i{useion_name}", f"{useion_name}i", f"{useion_name}o"}
+
+            read = [var for var in read_raw if var in valid_read_vars]
+            write = [var for var in write_raw if var in valid_write_vars]
+
+            if useion_name.lower() not in (
+                (entry.get("label", "").lower() if entry else "")
+                for entry in ensurelist(script.get("ion"))
+            ):
+                ion = {"@id": None, "label": useion_name}
+            else:
+                ion = next(
+                    entry
+                    for entry in ion_entries
+                    if entry.get("label", "").lower() == useion_name.lower()
+                )
+
+            useion_structured.append(
+                {
+                    "ion_name": get_or_create_ion(ion, db).name,
+                    "read": read,
+                    "write": write,
+                    "valence": neuron_block_raw.get("valence"),
+                    "main_ion": True if len(useion) == 1 else None,
+                }
+            )
+
+        range_raw = ensurelist(neuron_block_raw.get("range", []))
+        range_list = [{name: exposed_parameter_unit.get(name)} for name in range_raw]
+
+        nonspecific = []
+        for key, value in nonspecific_unit.items():
+            nonspecific.append({key: value})
+
+        neuron_block_dict = {
+            "range": range_list,
+            "global": [],
+            "nonspecific": nonspecific,
+            "useion": useion_structured,
         }
+        neuron_block_validated = NeuronBlock.model_validate(neuron_block_dict)
 
-        nmodl_parameters_validated = NmodlParameters.model_validate(d)
-
-    _, brain_region_id = get_brain_location_mixin(script, db)
+    brain_region_id = get_brain_region(script, hierarchy_name, db)
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
 
-    assert nmodl_parameters_validated
+    assert neuron_block_validated
 
     db_ion_channel_model = IonChannelModel(
         legacy_id=[legacy_id],
         legacy_self=[legacy_self],
         name=script["name"],
-        description=script.get("descripton", ""),
+        nmodl_suffix=script.get("suffix")
+        or (neuron_block_raw.get("suffix") if neuron_block_raw else ""),
+        description=script.get("description", ""),
         is_ljp_corrected=script.get("isLjpCorrected", False),
         is_temperature_dependent=script.get("isTemperatureDependent", False),
         temperature_celsius=int(temperature_value),
-        nmodl_parameters=nmodl_parameters_validated.model_dump(),
+        neuron_block=neuron_block_validated.model_dump(
+            by_alias=True
+        ),  # global instead of global_ in the output dict
         brain_region_id=brain_region_id,
         species_id=species_id,
         strain_id=strain_id,
@@ -467,7 +537,6 @@ def import_ion_channel_model(script: dict[str, Any], project_context: ProjectCon
     )
 
     db.add(db_ion_channel_model)
-
     db.flush()
 
     import_contribution(script, db_ion_channel_model.id, db)
@@ -483,6 +552,7 @@ def import_ion_channel_models(
     emodel_id: uuid.UUID,
     all_data_by_id: dict[str, dict[str, Any]],
     project_context: ProjectContext,
+    hierarchy_name: str,
     db: Session,
 ):
     subcellular_model_script_ids = [
@@ -495,7 +565,6 @@ def import_ion_channel_models(
 
     for id_ in subcellular_model_script_ids:
         script = all_data_by_id.get(id_) or {}
-        ion = script.get("ion")
 
         legacy_id = script["@id"]
 
@@ -505,15 +574,7 @@ def import_ion_channel_models(
             ion_channel_model_ids.append(db_ion_channel_model.id)
             continue
 
-        db_ion_channel_model = import_ion_channel_model(script, project_context, db)
-
-        if ion:
-            ion_associations = [
-                IonToIonChannelModel(ion_id=db_ion_id, ion_channel_model_id=db_ion_channel_model.id)
-                for db_ion_id in [get_or_create_ion(ion, db) for ion in ensurelist(ion)]
-            ]
-
-            db.add_all(ion_associations)
+        db_ion_channel_model = import_ion_channel_model(script, project_context, hierarchy_name, db)
 
         ion_channel_model_ids.append(db_ion_channel_model.id)
 
@@ -529,17 +590,18 @@ def import_ion_channel_models(
     db.flush()
 
 
-def _get_pathway_info(data, db):  # noqa: C901
+def _get_pathway_info(data, hierarchy_name, db):  # noqa: C901
     pre_region_id = pre_mtype_label = post_region_id = post_mtype_label = None
+
     for entry in data["preSynaptic"]:
         if "BrainRegion" in entry["about"]:
-            pre_region_id = int(entry["@id"].replace("mba:", ""))
+            pre_region_id = get_brain_region_by_hier_id(entry, hierarchy_name, db)
         elif "mtypes" in entry["@id"] or "BrainCell:Type" in entry["about"]:
             pre_mtype_label = entry["label"]
 
     for entry in data["postSynaptic"]:
         if "BrainRegion" in entry["about"]:
-            post_region_id = int(entry["@id"].replace("mba:", ""))
+            post_region_id = get_brain_region_by_hier_id(entry, hierarchy_name, db)
         elif "mtypes" in entry["@id"] or "BrainCell:Type" in entry["about"]:
             post_mtype_label = entry["label"]
 
@@ -563,8 +625,10 @@ def _get_pathway_info(data, db):  # noqa: C901
     return pre_mtype.id, post_mtype.id, pre_region_id, post_region_id  # pyright: ignore [reportPossiblyUnboundVariable]
 
 
-def get_or_create_synaptic_pathway(data, project_context, db):
-    pre_mtype_id, post_mtype_id, pre_region_id, post_region_id = _get_pathway_info(data, db)
+def get_or_create_synaptic_pathway(data, project_context, hierarchy_name, db):
+    pre_mtype_id, post_mtype_id, pre_region_id, post_region_id = _get_pathway_info(
+        data, hierarchy_name, db
+    )
 
     res = (
         db.query(SynapticPathway)
@@ -654,3 +718,38 @@ def curate_age(data):
         "age_max": max_value,
         "age_period": period,
     }
+
+
+def to_pref_label(s):
+    return s.replace(" ", "_").lower()
+
+
+def build_measurement_item(item):
+    if (statistic := item.get("statistic")) is None:
+        # L.debug("measurement item has no statistic: {}", item)
+        return None
+    if (unit := item.get("unitCode")) is None:
+        # L.debug("measurement item has no unit: {}", item)
+        return None
+    if (value := item.get("value")) is None:
+        # L.debug("measurement item has no value: {}", item)
+        return None
+    return MeasurementItem(
+        name=MEASUREMENT_STATISTIC_MAP[statistic],
+        unit=MEASUREMENT_UNIT_MAP[unit],
+        value=value,
+    )
+
+
+def build_measurement_kind(measurement, measurement_items):
+    if not measurement_items:
+        # L.debug("measurement has no items")
+        return None
+    measurement_meta = measurement.get("isMeasurementOf", {})
+    definition = measurement_meta.get("label")
+    pref_label = measurement_meta.get("prefLabel") or to_pref_label(definition)
+    return MeasurementKind(
+        pref_label=pref_label,
+        structural_domain=STRUCTURAL_DOMAIN_MAP[measurement.get("compartment")],
+        measurement_items=measurement_items,
+    )

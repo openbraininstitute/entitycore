@@ -106,7 +106,7 @@ def get_or_create_annotation_body(annotation_body, db):
 
     if annotation_type is MTypeClass:
         annotation_body = curate.curate_mtype(annotation_body)
-        if annotation_body["@id"] == "nsg:Neuron":
+        if "@id" in annotation_body and annotation_body["@id"] == "nsg:Neuron":
             # Too generic type, nothing to do
             return annotation_type, None
 

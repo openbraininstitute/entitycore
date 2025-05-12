@@ -1043,7 +1043,7 @@ class ImportBrainAtlas(Import):
         project_context: ProjectContext,
         data_list: list[dict],
         all_data_by_id: dict,
-        hierarchy_name: str, 
+        hierarchy_name: str,
     ):
         for data in data_list:
             legacy_id, legacy_self = data["@id"], data["_self"]
@@ -1371,7 +1371,6 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
                 all_data_by_id[id] = d
 
     for importer in importers:
-
         # Note: Allowing the data list to be collected here before each importer's execution allows
         # moving parts of one resource to another. For example, distributions of linked
         # resources can be grafted to the parent to avoid having too many entities. To do so,
@@ -1381,7 +1380,11 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         print(f"Ingesting {importer.name}")
 
         importer.ingest(
-            db, project_context, data_list, all_data_by_id=all_data_by_id, hierarchy_name=hierarchy_name
+            db,
+            project_context,
+            data_list,
+            all_data_by_id=all_data_by_id,
+            hierarchy_name=hierarchy_name,
         )
 
 
@@ -1583,7 +1586,6 @@ def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
 
         new_src_paths = {}
         for entity_type, curator in config.items():
-
             if not (assets_per_entity := assets_per_entity_type.get(entity_type)):
                 continue
 

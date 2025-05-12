@@ -86,6 +86,7 @@ def unauthorized_private_reference_trigger(
         """,
     )
 
+
 entities = [
     description_vector_trigger(
         model=mapper.class_,

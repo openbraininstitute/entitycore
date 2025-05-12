@@ -29,8 +29,10 @@ from app.db.model import (
     AnalysisSoftwareSourceCode,
     Annotation,
     Asset,
+    BrainAtlas,
     BrainRegion,
     BrainRegionHierarchy,
+    CellComposition,
     DataMaturityAnnotationBody,
     ElectricalCellRecording,
     EModel,
@@ -45,6 +47,7 @@ from app.db.model import (
     MeasurementAnnotation,
     MEModel,
     Mesh,
+    METypeDensity,
     MTypeClass,
     MTypeClassification,
     Organization,
@@ -64,6 +67,9 @@ from app.db.types import (
 from app.logger import L
 from app.schemas.base import ProjectContext
 
+from app.cli.curation import electrical_cell_recording, cell_composition
+from app.cli.types import ContentType
+
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
     exists=True, readable=True, file_okay=False, dir_okay=True, resolve_path=True
@@ -75,6 +81,10 @@ SQLA_ENGINE_ARGS = {
     "pool_use_lifo": True,
     "pool_size": 1,
 }
+
+# atlas/composition used by the frontend
+BRAIN_ATLAS_ID = "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
+CELL_COMPOSITION_ID = "https://bbp.epfl.ch/neurosciencegraph/data/cellcompositions/54818e46-cf8c-4bd6-9b68-34dffbc8a68c"
 
 
 def get_or_create_annotation_body(annotation_body, db):
@@ -93,6 +103,12 @@ def get_or_create_annotation_body(annotation_body, db):
     # TODO manage datascope
     if annotation_type is None:
         return annotation_type, None
+
+    if annotation_type is MTypeClass:
+        annotation_body = curate.curate_mtype(annotation_body)
+        if annotation_body["@id"] == "nsg:Neuron":
+            # Too generic type, nothing to do
+            return annotation_type, None
 
     ab = (
         db.query(annotation_type)
@@ -202,6 +218,9 @@ def import_licenses(data, db):
 
 def _import_annotation_body(data, db_type_, db):
     for class_elem in tqdm(data):
+        if db_type_ == MTypeClass:
+            calss_elem = curate.curate_mtype(class_elem)
+
         if db_type_ == ETypeClass:
             class_elem = curate.curate_etype(class_elem)
 
@@ -232,27 +251,61 @@ def _import_annotation_body(data, db_type_, db):
 
 def import_mtype_annotation_body(data, db):
     # Check if the annotation body already exists in the database
-    data.append(
-        {
-            "label": "Inhibitory neuron",
-            "definition": "Inhibitory neuron",
-            "prefLabel": "Inhibitory neuron",
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron",
-            "_self": "",
-            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
-            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
-        }
-    )
-    data.append(
-        {
-            "label": "Excitatory neuron",
-            "definition": "Excitatory neuron",
-            "prefLabel": "Excitatory neuron",
-            "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron",
-            "_self": "",
-            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
-            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
-        }
+    data.extend(
+        [
+            {
+                "label": "Inhibitory neuron",
+                "definition": "Inhibitory neuron",
+                "prefLabel": "Inhibitory neuron",
+                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Inhibitoryneuron",
+                "_self": "",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "label": "Excitatory neuron",
+                "definition": "Excitatory neuron",
+                "prefLabel": "Excitatory neuron",
+                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/annotation/mtype/Excitatoryneuron",
+                "_self": "",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "label": "PV+",
+                "definition": "Parvalbumin (PV)-Positive Cell",
+                "prefLabel": "PV+",
+                "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/PV_plus",
+                "_self": "",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "label": "VIP+",
+                "definition": "Vasoactive Intestinal Peptide (VIP)-Positive cell",
+                "prefLabel": "VIP+",
+                "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/VIP_plus",
+                "_self": "",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "label": "SST+",
+                "definition": "Somatostatin (SST)-Positive cell",
+                "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/SST_plus",
+                "_self": "",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "label": "Gad67+",
+                "definition": "Glutamate decarboxylase 67 (Gad67)-Positive cell",
+                "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/Gad67_plus",
+                "_self": "",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+        ]
     )
     _import_annotation_body(data, MTypeClass, db)
 
@@ -847,6 +900,180 @@ class ImportSingleNeuronSimulation(Import):
         db.commit()
 
 
+class ImportMETypeDensity(Import):
+    name = "METypeDensity"
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data["@type"])
+        return "METypeDensity" in types or "NeuronDensity" in types
+
+    @staticmethod
+    def ingest(
+        db: Session,
+        project_context: ProjectContext,
+        data_list: list[dict],
+        all_data_by_id: dict,
+        hierarchy_name: str,
+    ):
+        for data in tqdm(data_list):
+            if not ("atlasRelease" in data and data["atlasRelease"]["@id"] == BRAIN_ATLAS_ID):
+                continue
+
+            legacy_id, legacy_self = data["@id"], data["_self"]
+            rm = utils._find_by_legacy_id(legacy_id, METypeDensity, db)
+            if rm:
+                continue
+
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
+
+            try:
+                created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            except RuntimeError as e:
+                msg = f"Agent not found.: {e}"
+                L.warning(msg)
+                created_by_id = updated_by_id = None
+
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
+            species_id, strain_id = utils.get_species_mixin(data, db)
+
+            db_item = METypeDensity(
+                legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
+                name=data.get("name", None),
+                description=data.get("description", ""),
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=strain_id,
+                createdBy_id=created_by_id,
+                updatedBy_id=updated_by_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+            )
+            db.add(db_item)
+            db.flush()
+
+            utils.import_contribution(data, db_item.id, db)
+
+            for annotation in ensurelist(data.get("annotation", [])):
+                create_annotation(annotation, db_item.id, db)
+
+        db.commit()
+
+
+class ImportCellComposition(Import):
+    name = "Cell Composition"
+
+    @staticmethod
+    def is_correct_type(data):
+        return "CellComposition" in ensurelist(data["@type"]) and data["@id"] == CELL_COMPOSITION_ID
+
+    @staticmethod
+    def ingest(
+        db: Session,
+        project_context: ProjectContext,
+        data_list: list[dict],
+        all_data_by_id: dict,
+        hierarchy_name: str,
+    ):
+        for data in tqdm(data_list):
+            legacy_id, legacy_self = data["@id"], data["_self"]
+            rm = utils._find_by_legacy_id(legacy_id, METypeDensity, db)
+            if rm:
+                continue
+
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
+
+            try:
+                created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            except RuntimeError as e:
+                msg = f"Agent not found.: {e}"
+                L.warning(msg)
+                created_by_id = updated_by_id = None
+
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
+            species_id, strain_id = utils.get_species_mixin(data, db)
+
+            # graft summary and volumes distributions to CellComposition to later
+            # add them as assets instead of linked resources.
+            summary = all_data_by_id[data["cellCompositionSummary"]["@id"]]["distribution"]
+            volumes = all_data_by_id[data["cellCompositionVolume"]["@id"]]["distribution"]
+
+            assert "distribution" not in all_data_by_id[legacy_id]
+            all_data_by_id[legacy_id]["distribution"] = [summary, volumes]
+
+            db_item = CellComposition(
+                legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
+                name=data.get("name", "CellComposition"),
+                description=data.get("description", ""),
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=strain_id,
+                createdBy_id=created_by_id,
+                updatedBy_id=updated_by_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+            )
+            db.add(db_item)
+            db.flush()
+
+            utils.import_contribution(data, db_item.id, db)
+
+            for annotation in ensurelist(data.get("annotation", [])):
+                create_annotation(annotation, db_item.id, db)
+
+
+class ImportBrainAtlas(Import):
+    name = "Brain Atlas"
+
+    @staticmethod
+    def is_correct_type(data):
+        return "BrainAtlasRelease" in ensurelist(data["@type"]) and data["@id"] == BRAIN_ATLAS_ID
+
+    @staticmethod
+    def ingest(
+        db: Session,
+        project_context: ProjectContext,
+        data_list: list[dict],
+        all_data_by_id: dict,
+        hierarchy_name: str,
+    ):
+        for data in data_list:
+            legacy_id, legacy_self = data["@id"], data["_self"]
+            rm = utils._find_by_legacy_id(legacy_id, BrainAtlas, db)
+            if rm:
+                continue
+
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+            species_id, strain_id = utils.get_species_mixin(data, db)
+
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
+
+            db_item = BrainAtlas(
+                legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
+                name=data["name"],
+                description=data.get("description", ""),
+                brain_region_id=brain_region_id,
+                species_id=species_id,
+                strain_id=strain_id,
+                createdBy_id=created_by_id,
+                updatedBy_id=updated_by_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+            )
+
+
 class ImportDistribution(Import):
     name = "Distribution"
 
@@ -1101,6 +1328,9 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
 
     importers = [
         ImportAgent,
+        ImportMETypeDensity,
+        ImportCellComposition,
+        ImportBrainAtlas,
         ImportAnalysisSoftwareSourceCode,
         ImportBrainRegionMeshes,
         ImportMorphologies,
@@ -1126,8 +1356,6 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
                 hierarchy_name=hierarchy_name,
             )
 
-    import_data = defaultdict(list)
-
     all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
 
     all_data_by_id = {}
@@ -1143,14 +1371,20 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
                 all_data_by_id[id] = d
 
     for importer in importers:
-        import_data[importer].extend(
-            d for d in all_data_by_id.values() if importer.is_correct_type(d)
-        )
+        # Note: Allowing the data list to be collected here before each importer's execution allows
+        # moving parts of one resource to another. For example, distributions of linked
+        # resources can be grafted to the parent to avoid having too many entities. To do so,
+        # the order of the importer execution matters.
+        data_list = [d for d in all_data_by_id.values() if importer.is_correct_type(d)]
 
-    for importer, data in import_data.items():
         print(f"Ingesting {importer.name}")
+
         importer.ingest(
-            db, project_context, data, all_data_by_id=all_data_by_id, hierarchy_name=hierarchy_name
+            db,
+            project_context,
+            data_list,
+            all_data_by_id=all_data_by_id,
+            hierarchy_name=hierarchy_name,
         )
 
 
@@ -1337,15 +1571,18 @@ def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
         database_session_manager.session() as db,
     ):
         # Group assets by ntity_type/entity_id/content_type
-        assets_per_entity_type = defaultdict(lambda: defaultdict(lambda: defaultdict()))
+        assets_per_entity_type = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         for asset in db.query(Asset).all():
             entity_type = asset.full_path.split("/")[4]
-            assets_per_entity_type[entity_type][asset.entity_id][asset.content_type] = asset
+            assets_per_entity_type[entity_type][asset.entity_id][asset.content_type].append(asset)
 
         if not assets_per_entity_type:
             raise RuntimeError("No assets found. Please run 'make import' to import distributions.")
 
-        config = {EntityType.electrical_cell_recording: electrical_cell_recording.curate_assets}
+        config = {
+            EntityType.electrical_cell_recording: electrical_cell_recording.curate_assets,
+            EntityType.cell_composition: cell_composition.curate_assets,
+        }
 
         new_src_paths = {}
         for entity_type, curator in config.items():

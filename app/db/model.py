@@ -865,3 +865,23 @@ class Asset(Identifiable):
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
     )
+
+
+class METypeDensity(
+    NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, MTypesMixin, ETypesMixin, Entity
+):
+    __tablename__ = EntityType.me_type_density
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class BrainAtlas(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+    __tablename__ = EntityType.brain_atlas
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+    __tablename__ = EntityType.cell_composition
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

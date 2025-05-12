@@ -118,7 +118,6 @@ def get_or_create_annotation_body(annotation_body, db):
     if not ab:
         if annotation_type is MTypeClass:
             msg = f"Missing mtype in annotation body {annotation_body}"
-            breakpoint()
             raise ValueError(msg)
 
         if annotation_type is ETypeClass:

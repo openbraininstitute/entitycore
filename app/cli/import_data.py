@@ -914,7 +914,8 @@ class ImportMETypeDensity(Import):
         db: Session,
         project_context: ProjectContext,
         data_list: list[dict],
-        all_data_by_id: dict | None = None,
+        all_data_by_id: dict,
+        hierarchy_name: str,
     ):
         for data in tqdm(data_list):
             if not ("atlasRelease" in data and data["atlasRelease"]["@id"] == BRAIN_ATLAS_ID):
@@ -925,8 +926,7 @@ class ImportMETypeDensity(Import):
             if rm:
                 continue
 
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             try:
                 created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
@@ -978,6 +978,7 @@ class ImportCellComposition(Import):
         project_context: ProjectContext,
         data_list: list[dict],
         all_data_by_id: dict,
+        hierarchy_name: str,
     ):
         for data in tqdm(data_list):
             legacy_id, legacy_self = data["@id"], data["_self"]
@@ -985,8 +986,7 @@ class ImportCellComposition(Import):
             if rm:
                 continue
 
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             try:
                 created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
@@ -1043,7 +1043,8 @@ class ImportBrainAtlas(Import):
         db: Session,
         project_context: ProjectContext,
         data_list: list[dict],
-        all_data_by_id: dict | None = None,
+        all_data_by_id: dict,
+        hierarchy_name: str, 
     ):
         for data in data_list:
             legacy_id, legacy_self = data["@id"], data["_self"]
@@ -1054,8 +1055,8 @@ class ImportBrainAtlas(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
             species_id, strain_id = utils.get_species_mixin(data, db)
-            _brain_location, brain_region_id = utils.get_brain_location_mixin(data, db)
-            assert _brain_location is None
+
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             db_item = BrainAtlas(
                 legacy_id=[legacy_id],
@@ -1328,21 +1329,21 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
 
     importers = [
         ImportAgent,
-        # ImportMETypeDensity,
+        ImportMETypeDensity,
         ImportCellComposition,
-        # ImportBrainAtlas,
-        # ImportAnalysisSoftwareSourceCode,
-        # ImportBrainRegionMeshes,
-        # ImportMorphologies,
-        # ImportEModels,
-        # ImportExperimentalNeuronDensities,
-        # ImportExperimentalBoutonDensity,
-        # ImportExperimentalSynapsesPerConnection,
-        # ImportMEModel,
-        # ImportElectricalCellRecording,
-        # ImportSingleNeuronSimulation,
+        ImportBrainAtlas,
+        ImportAnalysisSoftwareSourceCode,
+        ImportBrainRegionMeshes,
+        ImportMorphologies,
+        ImportEModels,
+        ImportExperimentalNeuronDensities,
+        ImportExperimentalBoutonDensity,
+        ImportExperimentalSynapsesPerConnection,
+        ImportMEModel,
+        ImportElectricalCellRecording,
+        ImportSingleNeuronSimulation,
         ImportDistribution,
-        # ImportNeuronMorphologyFeatureAnnotation,
+        ImportNeuronMorphologyFeatureAnnotation,
     ]
 
     for importer in importers:
@@ -1371,12 +1372,17 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
                 all_data_by_id[id] = d
 
     for importer in importers:
+
+        # Note: Allowing the data list to be collected here before each importer's execution allows
+        # moving parts of one resource to another one. For example, distributions of linked
+        # resources can be grafted to the parent one to avoid having too many entities. To do so,
+        # the order of the importer execution matters.
         data_list = [d for d in all_data_by_id.values() if importer.is_correct_type(d)]
 
         print(f"Ingesting {importer.name}")
 
         importer.ingest(
-            db, project_context, data, all_data_by_id=all_data_by_id, hierarchy_name=hierarchy_name
+            db, project_context, data_list, all_data_by_id=all_data_by_id, hierarchy_name=hierarchy_name
         )
 
 
@@ -1578,6 +1584,7 @@ def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
 
         new_src_paths = {}
         for entity_type, curator in config.items():
+
             if not (assets_per_entity := assets_per_entity_type.get(entity_type)):
                 continue
 

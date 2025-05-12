@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: e52aaf456aae
-Revises: 2c514cb21302
-Create Date: 2025-05-09 09:18:53.536862
+Revision ID: 51e7740c2c41
+Revises: 077b4ad24943
+Create Date: 2025-05-12 08:53:35.309085
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "e52aaf456aae"
-down_revision: Union[str, None] = "2c514cb21302"
+revision: str = "51e7740c2c41"
+down_revision: Union[str, None] = "077b4ad24943"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -31,7 +31,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("brain_region_id", sa.Uuid(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
@@ -69,7 +69,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("brain_region_id", sa.Uuid(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
@@ -114,7 +114,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.Column("brain_region_id", sa.BigInteger(), nullable=False),
+        sa.Column("brain_region_id", sa.Uuid(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(

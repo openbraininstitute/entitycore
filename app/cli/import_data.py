@@ -1373,8 +1373,8 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
     for importer in importers:
 
         # Note: Allowing the data list to be collected here before each importer's execution allows
-        # moving parts of one resource to another one. For example, distributions of linked
-        # resources can be grafted to the parent one to avoid having too many entities. To do so,
+        # moving parts of one resource to another. For example, distributions of linked
+        # resources can be grafted to the parent to avoid having too many entities. To do so,
         # the order of the importer execution matters.
         data_list = [d for d in all_data_by_id.values() if importer.is_correct_type(d)]
 

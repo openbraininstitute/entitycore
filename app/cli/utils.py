@@ -3,6 +3,7 @@ import uuid
 from datetime import timedelta
 from typing import Any, Literal
 
+import deepdiff
 import sqlalchemy as sa
 from sqlalchemy import and_, any_
 from sqlalchemy.orm import Session
@@ -25,6 +26,7 @@ from app.db.model import (
     IonChannelModel,
     IonChannelModelToEModel,
     License,
+    MeasurementAnnotation,
     MeasurementItem,
     MeasurementKind,
     MTypeClass,
@@ -741,15 +743,58 @@ def build_measurement_item(item):
     )
 
 
-def build_measurement_kind(measurement, measurement_items):
+def build_measurement_kind(measurement, measurement_items, compartment):
     if not measurement_items:
         # L.debug("measurement has no items")
         return None
     measurement_meta = measurement.get("isMeasurementOf", {})
+    compartment = measurement.get("compartment", compartment)
     definition = measurement_meta.get("label")
     pref_label = measurement_meta.get("prefLabel") or to_pref_label(definition)
     return MeasurementKind(
         pref_label=pref_label,
-        structural_domain=STRUCTURAL_DOMAIN_MAP[measurement.get("compartment")],
+        structural_domain=STRUCTURAL_DOMAIN_MAP[compartment],
         measurement_items=measurement_items,
+    )
+
+
+def _measurement_items_to_dict(items: list[MeasurementItem]) -> dict:
+    """Convert a list of MeasurementItems to dict."""
+    return {item.name: {"unit": item.unit, "value": item.value} for item in items}
+
+
+def merge_measurements_annotations(entity_annotations, entity_id):
+    different = 0
+    creation_date = None
+    update_date = None
+    legacy_id = []
+    legacy_self = []
+    measurement_kinds_dict = {}  # for uniqueness
+    for annotation in sorted(entity_annotations, key=lambda a: a.creation_date):
+        creation_date = min(creation_date or annotation.creation_date, annotation.creation_date)
+        update_date = max(update_date or annotation.update_date, annotation.update_date)
+        legacy_id.extend(annotation.legacy_id)
+        legacy_self.extend(annotation.legacy_self)
+        for kind in annotation.measurement_kinds:
+            key = (kind.pref_label, kind.structural_domain)
+            if key in measurement_kinds_dict and (
+                _diff := deepdiff.DeepDiff(
+                    _measurement_items_to_dict(measurement_kinds_dict[key].measurement_items),
+                    _measurement_items_to_dict(kind.measurement_items),
+                    math_epsilon=0.001,
+                )
+            ):
+                # L.debug("diff in {}: {}", key, _diff)
+                different += 1
+            measurement_kinds_dict[key] = kind
+    if different:
+        L.warning("Different measurement kinds for entity_id {}: {}", entity_id, different)
+    measurement_kinds = list(measurement_kinds_dict.values())
+    return MeasurementAnnotation(
+        entity_id=entity_id,
+        creation_date=creation_date,
+        update_date=update_date,
+        legacy_id=legacy_id,
+        legacy_self=legacy_self,
+        measurement_kinds=measurement_kinds,
     )

@@ -32,6 +32,7 @@ MEASUREMENT_ANNOTATION = {
         },
         {
             "pref_label": "pref_label_1",
+            "structural_domain": "soma",
             "measurement_items": [
                 {
                     "name": "mean",

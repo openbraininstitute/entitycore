@@ -1,20 +1,18 @@
-from unittest.mock import ANY
-
 from app.db.model import MTypeClass, MTypeClassification
 
 from .utils import (
-    MISSING_ID,
-    MISSING_ID_COMPACT,
     add_all_db,
     add_db,
+    check_missing,
     create_reconstruction_morphology_id,
+    with_creation_fields,
 )
 
 ROUTE = "/mtype"
 ROUTE_MORPH = "/reconstruction-morphology"
 
 
-def test_mtype(db, client):
+def test_retrieve(db, client):
     count = 10
     items = [
         {
@@ -31,53 +29,31 @@ def test_mtype(db, client):
     data = response.json()["data"]
 
     assert len(data) == count
-    assert data[0]["pref_label"] == "pref_label_0"
-    assert data[0]["alt_label"] == "alt_label_0"
-    assert data[0]["definition"] == "definition_0"
+    assert data[0] == with_creation_fields(items[0])
 
     # test filter (eq)
     response = client.get(ROUTE, params={"pref_label": "pref_label_5"})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1
-    assert data[0]["pref_label"] == items[5]["pref_label"]
-    assert data[0]["alt_label"] == items[5]["alt_label"]
-    assert data[0]["definition"] == items[5]["definition"]
+    assert data[0] == with_creation_fields(items[5])
 
     # test filter (in)
     response = client.get(ROUTE, params={"pref_label__in": "pref_label_5,pref_label_6"})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 2
-    assert data[0]["pref_label"] == items[5]["pref_label"]
-    assert data[0]["alt_label"] == items[5]["alt_label"]
-    assert data[0]["definition"] == items[5]["definition"]
-    assert data[1]["pref_label"] == items[6]["pref_label"]
-    assert data[1]["alt_label"] == items[6]["alt_label"]
-    assert data[1]["definition"] == items[6]["definition"]
+    assert data == [with_creation_fields(items[5]), with_creation_fields(items[6])]
 
     response = client.get(f"{ROUTE}/{mtypes[0].id}")
     assert response.status_code == 200
     data = response.json()
 
-    assert data["id"] == str(mtypes[0].id)
-    assert data["pref_label"] == "pref_label_0"
-    assert data["alt_label"] == "alt_label_0"
-    assert data["definition"] == "definition_0"
+    assert data == with_creation_fields(items[0]) | {"id": str(mtypes[0].id)}
 
 
 def test_missing(client):
-    response = client.get(f"{ROUTE}/{MISSING_ID}")
-    assert response.status_code == 404
-
-    response = client.get(f"{ROUTE}/{MISSING_ID_COMPACT}")
-    assert response.status_code == 404
-
-    response = client.get(f"{ROUTE}/42424242")
-    assert response.status_code == 422
-
-    response = client.get(f"{ROUTE}/notanumber")
-    assert response.status_code == 422
+    check_missing(ROUTE, client)
 
 
 def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
@@ -89,8 +65,10 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
         authorized_public=False,
     )
 
-    mtype1 = add_db(db, MTypeClass(pref_label="m1", alt_label="m1", definition="m1d"))
-    mtype2 = add_db(db, MTypeClass(pref_label="m2", alt_label="m2", definition="m2d"))
+    mtype1_json = {"pref_label": "m1", "alt_label": "m1", "definition": "m1d"}
+    mtype2_json = {"pref_label": "m2", "alt_label": "m2", "definition": "m2d"}
+    mtype1 = add_db(db, MTypeClass(**mtype1_json))
+    mtype2 = add_db(db, MTypeClass(**mtype2_json))
 
     add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype1.id))
     add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype2.id))
@@ -111,22 +89,8 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
     assert len(mtypes) == 2
 
     assert mtypes == [
-        {
-            "id": str(mtype1.id),
-            "pref_label": "m1",
-            "alt_label": "m1",
-            "definition": "m1d",
-            "creation_date": ANY,
-            "update_date": ANY,
-        },
-        {
-            "id": str(mtype2.id),
-            "pref_label": "m2",
-            "alt_label": "m2",
-            "definition": "m2d",
-            "creation_date": ANY,
-            "update_date": ANY,
-        },
+        with_creation_fields(mtype1_json) | {"id": str(mtype1.id)},
+        with_creation_fields(mtype2_json) | {"id": str(mtype2.id)},
     ]
 
     response = client.get(ROUTE_MORPH, params={"with_facets": True, "mtype__pref_label": "m1"})

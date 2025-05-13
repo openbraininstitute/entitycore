@@ -1,5 +1,7 @@
 import datetime
 
+from app.logger import L
+
 BRAIN_REGION_REPLACEMENTS = {
     "Accessory supraoptic group: Other": "2218808594",
     "Agranular insular area, dorsal part, layer 2": "3250982806",
@@ -753,5 +755,9 @@ def curate_distribution(distribution, project_context):
     assert distribution["contentSize"]["value"] > 0
     assert distribution["digest"]["algorithm"] == "SHA-256"
     assert distribution["digest"]["value"] is not None
-    assert distribution["atLocation"]["@type"] == "Location"
+    if "atLocation" in distribution:
+        assert distribution["atLocation"]["@type"] == "Location"
+    else:
+        msg = f"Distribution had not atLocation: {distribution}"
+        L.warning(msg)
     return distribution

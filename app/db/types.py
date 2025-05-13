@@ -178,6 +178,8 @@ class StructuralDomain(StrEnum):
     apical_dendrite = auto()
     basal_dendrite = auto()
     axon = auto()
+    soma = auto()
+    neuron_morphology = auto()
 
 
 class AssetLabel(StrEnum):

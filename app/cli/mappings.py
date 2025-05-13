@@ -796,5 +796,6 @@ STRUCTURAL_DOMAIN_MAP = {
     "Axon": StructuralDomain.axon,
     "ApicalDendrite": StructuralDomain.apical_dendrite,
     "BasalDendrite": StructuralDomain.basal_dendrite,
-    None: None,
+    "Soma": StructuralDomain.soma,
+    "NeuronMorphology": StructuralDomain.neuron_morphology,
 }

@@ -17,7 +17,7 @@ class MeasurementItem(BaseModel):
 
 class MeasurementKindBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    structural_domain: StructuralDomain | None = None
+    structural_domain: StructuralDomain
     measurement_items: list[MeasurementItem]
     pref_label: str
 

@@ -219,7 +219,7 @@ def import_licenses(data, db):
 def _import_annotation_body(data, db_type_, db):
     for class_elem in tqdm(data):
         if db_type_ == MTypeClass:
-            calss_elem = curate.curate_mtype(class_elem)
+            class_elem = curate.curate_mtype(class_elem)
 
         if db_type_ == ETypeClass:
             class_elem = curate.curate_etype(class_elem)

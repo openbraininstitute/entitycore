@@ -1,6 +1,7 @@
 import functools
 import uuid
 from pathlib import Path
+from unittest.mock import ANY
 
 from httpx import Headers
 from starlette.testclient import TestClient
@@ -265,3 +266,11 @@ def create_asset_file(client, entity_type, entity_id, file_name, file_obj):
         files=files,
         expected_status_code=201,
     )
+
+
+def with_creation_fields(d):
+    return d | {
+        "creation_date": ANY,
+        "update_date": ANY,
+        "id": ANY,
+    }

@@ -62,6 +62,6 @@ class SingleNeuronSynaptomeSimulationRead(
     IdentifiableMixin,
     CreationMixin,
     EntityTypeMixin,
-    AssetsMixin
+    AssetsMixin,
 ):
     synaptome: NestedSynaptome

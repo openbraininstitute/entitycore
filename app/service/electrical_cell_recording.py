@@ -1,7 +1,5 @@
 import uuid
-from typing import Annotated
 
-from fastapi_filter import FilterDepends
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
@@ -21,7 +19,7 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.electrical_cell_recording import ElectricalCellRecordingFilter
+from app.filters.electrical_cell_recording import ElectricalCellRecordingFilterDep
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -75,9 +73,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: Annotated[
-        ElectricalCellRecordingFilter, FilterDepends(ElectricalCellRecordingFilter)
-    ],
+    filter_model: ElectricalCellRecordingFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,

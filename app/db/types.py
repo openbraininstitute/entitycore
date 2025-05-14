@@ -48,14 +48,16 @@ STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 class EntityType(StrEnum):
     """Entity types."""
 
-    age = auto()
     analysis_software_source_code = auto()
+    brain_atlas = auto()
     emodel = auto()
+    cell_composition = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     memodel = auto()
     mesh = auto()
+    me_type_density = auto()
     reconstruction_morphology = auto()
     electrical_cell_recording = auto()
     electrical_recording_stimulus = auto()
@@ -176,12 +178,16 @@ class StructuralDomain(StrEnum):
     apical_dendrite = auto()
     basal_dendrite = auto()
     axon = auto()
+    soma = auto()
+    neuron_morphology = auto()
 
 
 class AssetLabel(StrEnum):
     neurolucida = auto()
     swc = auto()
     hdf5 = auto()
+    cell_composition_summary = auto()
+    cell_composition_volumes = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -189,5 +195,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.neurolucida,
         AssetLabel.swc,
         AssetLabel.hdf5,
-    }
+    },
+    EntityType.cell_composition: {
+        AssetLabel.cell_composition_summary,
+        AssetLabel.cell_composition_volumes,
+    },
 }

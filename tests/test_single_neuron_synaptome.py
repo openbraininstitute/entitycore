@@ -15,6 +15,7 @@ from .utils import (
     PROJECT_ID,
     add_db,
     assert_request,
+    check_brain_region_filter,
     create_brain_region,
 )
 from tests.conftest import CreateIds
@@ -342,3 +343,34 @@ def test_facets(client, faceted_ids):
         {"id": str(brain_region_ids[0]), "label": "region-0", "count": 1, "type": "brain_region"},
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]
+
+
+def test_brain_region_filter(
+    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id
+):
+    def create_model_function(db, name, brain_region_id):
+        me_model_id = str(
+            add_db(
+                db,
+                MEModel(
+                    name=name,
+                    description="description",
+                    brain_region_id=brain_region_id,
+                    authorized_project_id=PROJECT_ID,
+                    emodel_id=emodel_id,
+                    morphology_id=morphology_id,
+                    species_id=species_id,
+                ),
+            ).id
+        )
+
+        return SingleNeuronSynaptome(
+            name=name,
+            description="my-description",
+            me_model_id=me_model_id,
+            seed=1,
+            brain_region_id=brain_region_id,
+            authorized_project_id=PROJECT_ID,
+        )
+
+    check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

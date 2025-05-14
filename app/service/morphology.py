@@ -12,6 +12,7 @@ from sqlalchemy.orm import (
 
 from app.db.model import (
     Agent,
+    BrainRegion,
     Contribution,
     MeasurementAnnotation,
     MeasurementItem,
@@ -42,6 +43,7 @@ def _filter_from_db(query: sa.Select) -> sa.Select:
     """Return the query with the required joins to filter the result."""
     return (
         query.join(Species, ReconstructionMorphology.species_id == Species.id)
+        .join(BrainRegion, ReconstructionMorphology.brain_region_id == BrainRegion.id)
         .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
         .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
         .outerjoin(Agent, Contribution.agent_id == Agent.id)
@@ -132,6 +134,7 @@ def read_many(
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ReconstructionMorphologyRead]:
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
+        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},

@@ -65,7 +65,7 @@ Furthermore, fields of the particular entity being searched for can be specified
 
 Ex:
 ```
-GET /reconstruction_morphology/?search=foo&species__name=Mus%20musculus
+GET /reconstruction-morphology?search=foo&species__name=Mus%20musculus
 ```
 
 The return payload is the same as above, except the `data` only includes matches with `foo` and the species name matching `Mus musculus`.
@@ -103,41 +103,114 @@ EX: "facets" for reconstructed-neuron-morphology:
     ]
     .....
 ```
-    
+
 # Special Cases:
 
-## brain-regions/ return the "simplified" hierarchy.json:
+## brain-regions/
 
-* This can also have a query param: with "alternative view" to get a json file with that
-* We may want to version this if we expect to have updated atlases
+The concept of `Brain Regions`, often referred to as "the hierarchy" is a description of how the areas of the brain are related.
+For instance, the brain can be broken up in to parts like the `Hippocampus`, the `Visual Cortex`, etc.
+These larger regions can further be broken down, for instance into the `CA1so`,  and `CA1sp` for the hippocampus.
+Thus, a tree, or hierarchy is formed.
 
-EX:
-    {
-         "id": 997,
-         "acronym": "root",
-         "name": "root",
-         "color_hex_triplet": "FFFFFF",
-         "parent_structure_id": null,          # <- if this is used?
-         "children": [
-              { "id": 997, "acronym": "root", "name": "root", ..., "children": []},
-              ...
-         ]
-    }
+Following the `Allen Institute`'s original hierarchy, each of the nodes within the tree have the following attributes:
 
-GET /brain-regions/{id}: could do this, but not sure it's useful: the full
-    json size is ~200k uncompressed, and 20k compressed; having logic on the
-    frontend to work w/ this file would be much faster than having to hit the
-    API each time to get 
+* annotation\_value: A unique number identifying the region; this is the `id` in the original 1.json file: ex: 72856
+* acronym: A unique short name for the region; without a space, and as short as possible: ex VISrll2
+* name: A longer, more human readable name: ex:"Rostrolateral lateral visual area, layer 2"
+* color\_hex\_triplet: A colour associated with the region: ex: "188064"
+* parent\_structure\_id: The parent `id` of the current node: ex: 480149202
+* children: a list of nodes
 
-Future work would include using ltree from postgresql to make doing lookups and such easier: https://www.postgresql.org/docs/current/ltree.html 
+Normally, the full set of nodes is encoded in a `hierarchy.json`, which contains all the nodes:
 
-
-To be looked at more:
 ```
-    files/
-    experimental-data/_count
-    model-data/_count
+{
+     "annotation_value": 997,   # this is the ID in the original hierarchy
+     "acronym": "root",
+     "name": "root",
+     "color_hex_triplet": "FFFFFF",
+     "children": [
+          { "annotation_value": 997, "acronym": "root", "name": "root", ..., "children": []},
+          ...
+     ]
+}
 ```
+
+### Views
+
+This is a feature to come.
+In addition to the "top down" view described above, there is also a `horizontal` or `alternate` view.
+In some regions, there is a second natural view that is structured by layer.
+For instance, the `Cortex` has multiple layers (1, 2, 3, ...); if one wants to get all the regions that are in this cortical layer, one would have to enumerate them.
+Instead, an alternate view is used, that has the `Cortical Layer 3` grouped.
+The shape of the hierarchy is the same, so all the properties exist `ids`, `acronym`, etc, but the `parent_structure_id`, `children` are different.
+
+
+### API
+
+Currently the brain-region API is read only.
+
+`GET brain-region`
+
+Returns all the brain regions, across all the hierarchies, in a flat list.
+One can use the normal query parameters to filter this list.
+EG, to get a region by acronym:
+
+`GET brain-region?acronym=VISal6a`
+
+And:
+
+`GET brain-region/$UUID`
+
+Returns the particular node.
+
+### Multiple Hierarchies
+
+In the world of biology, there are multiple types of animals.
+They may have different hierarchies.
+This means there is also a `brain-region-hierarchy` endpoint:
+
+`GET brain-region`
+
+Gets the hierarchies.
+
+`GET brain-region/$UUID`
+
+Gets a particular hierarchy.
+
+`GET brain-region/$UUID/hierarchy`
+
+This returns the 1.json style hierarchy; w/ the tree layout.
+
+### Note
+
+The hierarchy only defines the names of the regions, and their relationship to each other.
+This does *not* say where a particular region exists in an atlas.
+Most nodes within the hierarchy are not in the atlas, as only nodes in the periphery exist.
+For example, the `Isocortex` region won't exist, but its children like `VISrll4` and `VISrll5` will.
+
+
+### Filtering brain-region aware endpoints
+
+Entities that are aware of their brain-region can be filtered by the hierarchy.
+For instance, one may want to get all the morphologies that are within the `Isocortex`.
+One way to do this would be to enumerate all the regions within the `Isocortex`, and use that to filter the morphologies.
+This is inefficient.
+Instead, one can use the following query parameters:
+
+```
+    within_brain_region_hierachy_id: uuid.UUID | None = None
+    within_brain_region_brain_region_id: uuid.UUID | None = None
+    within_brain_region_ascendants: bool = False
+```
+
+```
+GET /reconstruction-morphology?within_brain_region_hierachy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
+```
+
+In other words, the name of the hierarchy, and the id which will be recursively included.
+This can happen in either by the `descendants` (the default) or by `ascendants`.
 
 # Authorization:
 Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.
@@ -155,3 +228,12 @@ By default, an `Entity` is private, and marked as being owned by the `project-id
 Members of the owning project can set the `authorized_public` on creation, to mark the `Entity` as public.
 In addition, this value can be changed by using the `PATCH` operation.
 Once an `Entity` is made public, it can not be made private, since it could be already shared/used by others.
+
+
+### To be looked at more:
+```
+    files/
+    experimental-data/_count
+    model-data/_count
+```
+

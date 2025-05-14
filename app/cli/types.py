@@ -6,3 +6,4 @@ class ContentType(StrEnum):
     h5 = "application/x-hdf"
     rab = "application/rab"
     smr = "application/smr"
+    json = "application/json"

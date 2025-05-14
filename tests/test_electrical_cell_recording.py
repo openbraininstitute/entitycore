@@ -10,6 +10,7 @@ from .utils import (
     add_db,
     assert_request,
     check_authorization,
+    check_brain_region_filter,
     check_missing,
     create_asset_file,
     create_brain_region,
@@ -236,3 +237,36 @@ def test_facets(client, faceted_ids):
     assert facets["brain_region"] == [
         {"id": ANY, "label": "region-0", "count": 1, "type": "brain_region"},
     ]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"brain_region__name": "region-0", "with_facets": True},
+    ).json()
+
+    assert "facets" in data
+    facets = data["facets"]
+
+    assert facets["brain_region"] == [
+        {"id": ANY, "label": "region-0", "count": 1, "type": "brain_region"},
+    ]
+
+
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id):
+    def create_model_function(_db, name, brain_region_id):
+        return ElectricalCellRecording(
+            name=name,
+            description="description",
+            license_id=None,
+            brain_region_id=brain_region_id,
+            subject_id=str(subject_id),
+            ljp=11.5,
+            recording_location=["soma[0]_0.5"],
+            recording_origin="in_vivo",
+            recording_type="intracellular",
+            authorized_project_id=PROJECT_ID,
+            legacy_id=None,
+            comment="comment",
+        )
+
+    check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

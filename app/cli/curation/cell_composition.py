@@ -3,8 +3,9 @@ from pathlib import Path
 
 from app.cli.curation.utils import get_output_asset_file_path, get_size_digest
 from app.cli.types import ContentType
-from app.db.model import Asset, BrainRegion, ETypeClass, MTypeClass
-from app.db.types import AssetLabel
+from app.cli.utils import _find_by_legacy_id
+from app.db.model import Asset, BrainRegion, ETypeClass, METypeDensity, MTypeClass
+from app.db.types import AssetLabel, EntityType
 
 MIN_NUM_ASSETS = 2
 
@@ -22,7 +23,9 @@ def curate_assets(
     summary_paths = _curate_summary_asset(
         db=db, asset=summary_asset, src_paths=src_paths, out_dir=out_dir, is_dry_run=is_dry_run
     )
-    volumes_paths = _curate_volumes_asset(asset=volumes_asset, is_dry_run=is_dry_run)
+    volumes_paths = _curate_volumes_asset(
+        db=db, asset=volumes_asset, src_paths=src_paths, out_dir=out_dir, is_dry_run=is_dry_run
+    )
     return summary_paths | volumes_paths
 
 
@@ -69,14 +72,26 @@ def _curate_summary_asset(
     return {new_digest: str(target_file)}
 
 
-def _curate_volumes_asset(*, asset: Asset, is_dry_run: bool) -> dict[str, str]:
-    # TODO: Add curation
+def _curate_volumes_asset(
+    *, db, asset: Asset, src_paths: dict[str, str], out_dir: Path, is_dry_run: bool
+) -> dict[str, str]:
+    assert asset.sha256_digest is not None
+    source_file = Path(src_paths[asset.sha256_digest.hex()])
+    source_data = _load_json(source_file)
+
+    target_data = _transform_volumes_data(db, source_data)
+    target_file = get_output_asset_file_path(asset, out_dir)
+    _write_json(data=target_data, path=target_file)
+
+    new_size, new_digest = get_size_digest(target_file)
 
     if not is_dry_run:
+        asset.size = new_size
         asset.content_type = ContentType.json
+        asset.sha256_digest = bytes.fromhex(new_digest)
         asset.label = AssetLabel.cell_composition_volumes
 
-    return {}
+    return {new_digest: str(target_file)}
 
 
 def _is_summary_path(path: str) -> bool:
@@ -90,16 +105,16 @@ def _load_json(path: Path) -> dict:
 
 def _transform_summary_data(db, data: dict) -> dict:
     new_region_data = dict(
-        _transform_region_data(db, region_data) for region_data in data["hasPart"].values()
+        _transform_region_data_dict(db, region_data) for region_data in data["hasPart"].values()
     )
     return _copy_fields(data) | {"hasPart": new_region_data}
 
 
-def _transform_region_data(db, region_data: dict) -> tuple[str, dict]:
+def _transform_region_data_dict(db, region_data: dict) -> tuple[str, dict]:
     db_region = _find_region(db, region_data["notation"])
 
     new_mtype_data = dict(
-        _transform_mtype_data(db, mtype_data) for mtype_data in region_data["hasPart"].values()
+        _transform_mtype_data_dict(db, mtype_data) for mtype_data in region_data["hasPart"].values()
     )
     # overwite region keys with db data to enforce consistency
     return str(db_region.id), _copy_fields(region_data) | {
@@ -109,22 +124,57 @@ def _transform_region_data(db, region_data: dict) -> tuple[str, dict]:
     }
 
 
-def _transform_mtype_data(db, mtype_data: dict) -> tuple[str, dict]:
+def _transform_mtype_data_dict(db, mtype_data: dict) -> tuple[str, dict]:
     db_mtype = _find_mtype(db, mtype_data["label"])
-
     new_etype_data = dict(
-        _transform_etype_data(db, etype_data) for etype_data in mtype_data["hasPart"].values()
+        _transform_etype_data_dict(db, etype_data) for etype_data in mtype_data["hasPart"].values()
     )
-    # overwite region keys with db data to enforce consistency
+    # overwite mtype labels with db data to enforce consistency
     return str(db_mtype.id), _copy_fields(mtype_data) | {
         "label": db_mtype.pref_label,
         "hasPart": new_etype_data,
     }
 
 
-def _transform_etype_data(db, etype_data: dict) -> tuple[str, dict]:
+def _transform_etype_data_dict(db, etype_data: dict) -> tuple[str, dict]:
     db_etype = _find_etype(db, etype_data["label"])
     return str(db_etype.id), etype_data | {"label": db_etype.pref_label}
+
+
+def _transform_volumes_data(db, data: dict) -> dict:
+    new_mtype_data = [_transform_mtype_data_list(db, mtype_data) for mtype_data in data["hasPart"]]
+
+    return _copy_fields(data) | {"hasPart": new_mtype_data}
+
+
+def _transform_mtype_data_list(db, data: dict) -> dict:
+    db_mtype = _find_mtype(db, data["label"])
+    new_etype_data = [_transform_etype_data_list(db, etype_data) for etype_data in data["hasPart"]]
+    return {
+        "@id": str(db_mtype.id),
+        "@type": "mtype_class",
+        "label": db_mtype.pref_label,
+        "hasPart": new_etype_data,
+    }
+
+
+def _transform_etype_data_list(db, data: dict) -> dict:
+    db_etype = _find_etype(db, data["label"])
+
+    new_density_data = [
+        _transform_density_data(db, density_data) for density_data in data["hasPart"]
+    ]
+    return {
+        "@id": str(db_etype.id),
+        "@type": "etype_class",
+        "label": db_etype.pref_label,
+        "hasPart": new_density_data,
+    }
+
+
+def _transform_density_data(db, data: dict) -> dict:
+    db_density = _find_by_legacy_id(data["@id"], METypeDensity, db)
+    return {"@id": str(db_density.id), "@type": EntityType.me_type_density.value}
 
 
 def _find_region(db, acronym: str, _cache: dict = {}) -> BrainRegion:
@@ -162,6 +212,19 @@ def _find_etype(db, label: str, _cache: dict = {}) -> ETypeClass:
         raise RuntimeError(msg)
 
     _cache[label] = res
+
+    return res
+
+
+def _find_me_type_density(db, legacy_id: str, _cache: dict = {}) -> METypeDensity:
+    if cached := _cache.get(legacy_id):
+        return cached
+
+    if not (res := db.query(METypeDensity).filter(ETypeClass.legacy_id == legacy_id).first()):
+        msg = f"METypeDensity legacy id {legacy_id} was not found in db."
+        raise RuntimeError(msg)
+
+    _cache[legacy_id] = res
 
     return res
 

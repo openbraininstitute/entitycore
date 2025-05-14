@@ -12,7 +12,6 @@ from app.db.model import (
     Species,
     Strain,
     Subject,
-    SynapticPathway,
 )
 from app.filters.base import CustomFilter
 
@@ -176,34 +175,3 @@ class MTypeClassFilterMixin:
 
 class ETypeClassFilterMixin:
     etype: Annotated[ETypeClassFilter | None, NestedETypeClassFilterDep] = None
-
-
-class SynapticPathwayFilter(CustomFilter):
-    pre_mtype: Annotated[
-        MTypeClassFilter | None, FilterDepends(with_prefix("pre_mtype", MTypeClassFilter))
-    ] = None
-    post_mtype: Annotated[
-        MTypeClassFilter | None, FilterDepends(with_prefix("post_mtype", MTypeClassFilter))
-    ] = None
-    pre_region: Annotated[
-        BrainRegionFilter | None, FilterDepends(with_prefix("pre_region", BrainRegionFilter))
-    ] = None
-    post_region: Annotated[
-        BrainRegionFilter | None, FilterDepends(with_prefix("post_region", BrainRegionFilter))
-    ] = None
-
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
-
-    class Constants(CustomFilter.Constants):
-        model = SynapticPathway
-        ordering_model_fields = ["name"]  # noqa: RUF012
-
-
-SynapticPathwayFilterDep = Annotated[SynapticPathwayFilter, FilterDepends(SynapticPathwayFilter)]
-NestedSynapticPathwayFilterDep = FilterDepends(
-    with_prefix("synaptic_pathway", SynapticPathwayFilter)
-)
-
-
-class SynapticPathwayFilterMixin:
-    synaptic_pathway: Annotated[SynapticPathwayFilter | None, NestedSynapticPathwayFilterDep] = None

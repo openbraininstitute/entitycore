@@ -155,7 +155,7 @@ class LocationMixin:
     @declared_attr
     @classmethod
     def brain_region(cls):
-        return relationship("BrainRegion", uselist=False)
+        return relationship("BrainRegion", uselist=False, foreign_keys=[cls.brain_region_id])
 
 
 class SpeciesMixin(Base):
@@ -740,35 +740,6 @@ class ExperimentalNeuronDensity(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class SynapticPathway(Entity):
-    __tablename__ = EntityType.synaptic_pathway.value
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    pre_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    pre_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[pre_mtype_id])
-
-    post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
-
-    pre_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
-    pre_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[pre_region_id])
-
-    post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
-    post_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[post_region_id])
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-    __table_args__ = (
-        UniqueConstraint(
-            "pre_mtype_id",
-            "post_mtype_id",
-            "pre_region_id",
-            "post_region_id",
-            name="unique_pathway",
-        ),
-    )
-
-
 class ExperimentalBoutonDensity(
     NameDescriptionVectorMixin,
     MeasurementsMixin,
@@ -788,8 +759,8 @@ class ExperimentalBoutonDensity(
 class ExperimentalSynapsesPerConnection(
     NameDescriptionVectorMixin,
     MeasurementsMixin,
-    LocationMixin,
     SubjectMixin,
+    LocationMixin,
     LicensedMixin,
     Entity,
 ):
@@ -797,12 +768,17 @@ class ExperimentalSynapsesPerConnection(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    synaptic_pathway_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("synaptic_pathway.id"), index=True
-    )
-    synaptic_pathway: Mapped[SynapticPathway] = relationship(
-        uselist=False, foreign_keys=[synaptic_pathway_id]
-    )
+    pre_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    pre_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[pre_mtype_id])
+
+    post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
+
+    pre_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    pre_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[pre_region_id])
+
+    post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    post_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[post_region_id])
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

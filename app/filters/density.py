@@ -9,12 +9,14 @@ from app.db.model import (
 )
 from app.filters.base import CustomFilter
 from app.filters.common import (
+    BrainRegionFilter,
     BrainRegionFilterMixin,
     EntityFilterMixin,
     ETypeClassFilterMixin,
+    MTypeClassFilter,
     MTypeClassFilterMixin,
     SpeciesFilterMixin,
-    SynapticPathwayFilterMixin,
+    with_prefix,
 )
 
 
@@ -58,8 +60,20 @@ ExperimentalBoutonDensityFilterDep = Annotated[
 
 class ExperimentalSynapsesPerConnectionFilter(
     DensityFilterBase,
-    SynapticPathwayFilterMixin,
 ):
+    pre_mtype: Annotated[
+        MTypeClassFilter | None, FilterDepends(with_prefix("pre_mtype", MTypeClassFilter))
+    ] = None
+    post_mtype: Annotated[
+        MTypeClassFilter | None, FilterDepends(with_prefix("post_mtype", MTypeClassFilter))
+    ] = None
+    pre_region: Annotated[
+        BrainRegionFilter | None, FilterDepends(with_prefix("pre_region", BrainRegionFilter))
+    ] = None
+    post_region: Annotated[
+        BrainRegionFilter | None, FilterDepends(with_prefix("post_region", BrainRegionFilter))
+    ] = None
+
     class Constants(CustomFilter.Constants):
         model = ExperimentalSynapsesPerConnection
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012

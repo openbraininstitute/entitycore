@@ -6,6 +6,7 @@ from fastapi_filter import FilterDepends
 from app.db.model import IonChannelModel
 from app.filters.base import CustomFilter
 from app.filters.common import (
+    BrainRegionFilterMixin,
     CreationFilterMixin,
     NestedSpeciesFilterDep,
     SpeciesFilter,
@@ -15,10 +16,9 @@ from app.filters.common import (
 class IonChannelModelFilter(
     CustomFilter,
     CreationFilterMixin,
+    BrainRegionFilterMixin,
 ):
-    name__ilike: str | None = None
     nmodl_suffix: str | None = None
-    brain_region_id: int | None = None
     species_id__in: list[uuid.UUID] | None = None
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
 

@@ -11,6 +11,7 @@ from .utils import (
     PROJECT_ID,
     add_db,
     assert_request,
+    check_brain_region_filter,
     create_brain_region,
 )
 
@@ -307,3 +308,38 @@ def test_facets(client, faceted_ids):
         {"id": str(brain_region_ids[0]), "label": "region-0", "count": 1, "type": "brain_region"},
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]
+
+
+def test_brain_region_filter(
+    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id
+):
+    def create_model_function(db, name, brain_region_id):
+        me_model_id = str(
+            _create_me_model_id(
+                db,
+                {
+                    "name": "me-model",
+                    "description": "description",
+                    "brain_region_id": brain_region_id,
+                    "authorized_project_id": PROJECT_ID,
+                    "emodel_id": emodel_id,
+                    "morphology_id": morphology_id,
+                    "species_id": species_id,
+                },
+            )
+        )
+
+        return SingleNeuronSimulation(
+            name=name,
+            brain_region_id=brain_region_id,
+            description="description",
+            legacy_id="Test Legacy ID",
+            injectionLocation=["soma[0]"],
+            recordingLocation=["soma[0]_0.5"],
+            me_model_id=me_model_id,
+            status="success",
+            seed=1,
+            authorized_project_id=PROJECT_ID,
+        )
+
+    check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

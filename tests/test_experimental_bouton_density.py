@@ -1,11 +1,14 @@
 import pytest
 
+from app.db.model import ExperimentalBoutonDensity
 from app.db.types import EntityType
 from app.schemas.density import ExperimentalBoutonDensityCreate
 
 from .utils import (
+    PROJECT_ID,
     assert_request,
     check_authorization,
+    check_brain_region_filter,
     check_missing,
     check_pagination,
 )
@@ -75,3 +78,17 @@ def test_authorization(
 
 def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
+
+
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id):
+    def create_model_function(_db, name, brain_region_id):
+        return ExperimentalBoutonDensity(
+            name=name,
+            description="my-description",
+            brain_region_id=brain_region_id,
+            subject_id=subject_id,
+            license_id=None,
+            authorized_project_id=PROJECT_ID,
+        )
+
+    check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

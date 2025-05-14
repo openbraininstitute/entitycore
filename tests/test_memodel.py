@@ -3,8 +3,12 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.db.model import MEModel
+
 from .conftest import CreateIds, MEModels
 from .utils import (
+    PROJECT_ID,
+    check_brain_region_filter,
     create_reconstruction_morphology_id,
 )
 
@@ -612,3 +616,21 @@ def test_authorization(
     response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
 
     assert response.status_code == 404
+
+
+def test_brain_region_filter(
+    db, client, brain_region_hierarchy_id, species_id, morphology_id, emodel_id
+):
+    def create_model_function(_db, name, brain_region_id):
+        return MEModel(
+            name=name,
+            brain_region_id=brain_region_id,
+            species_id=species_id,
+            strain_id=None,
+            description="Test MEModel Description",
+            morphology_id=morphology_id,
+            emodel_id=emodel_id,
+            authorized_project_id=PROJECT_ID,
+        )
+
+    check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

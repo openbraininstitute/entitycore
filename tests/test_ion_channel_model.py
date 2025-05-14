@@ -3,9 +3,11 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.db.model import IonChannelModel
 from app.db.types import EntityType
 from app.schemas.ion_channel_model import IonChannelModelRead
 
+from .utils import PROJECT_ID, check_brain_region_filter
 from tests.routers.test_asset import _upload_entity_asset
 
 ROUTE = "/ion-channel-model"
@@ -222,3 +224,20 @@ def test_paginate(client: TestClient, species_id: str, strain_id: str, brain_reg
     assert len(items) == total_items
     data_ids = [int(i["name"]) for i in items]
     assert list(reversed(data_ids)) == list(range(total_items))
+
+
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id):
+    def create_model_function(_db, name, brain_region_id):
+        return IonChannelModel(
+            name=name,
+            description="Test ICM Description",
+            nmodl_suffix=name,
+            temperature_celsius=0,
+            neuron_block={},
+            brain_region_id=brain_region_id,
+            species_id=species_id,
+            strain_id=None,
+            authorized_project_id=PROJECT_ID,
+        )
+
+    check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

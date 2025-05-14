@@ -333,6 +333,8 @@ def test_brain_region_filter(
                     "emodel_id": emodel_id,
                     "morphology_id": morphology_id,
                     "species_id": species_id,
+                    "holding_current": 0,
+                    "threshold_current": 0,
                 },
             )
         )

@@ -637,6 +637,8 @@ def test_brain_region_filter(
             morphology_id=morphology_id,
             emodel_id=emodel_id,
             authorized_project_id=PROJECT_ID,
+            holding_current=0,
+            threshold_current=0,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

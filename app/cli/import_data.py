@@ -829,6 +829,10 @@ class ImportMEModel(Import):
             assert morphology
             assert emodel
 
+            # Ignore legacy MEModel
+            if data.get("name") == "MEM__1372346-C060114A5__cADpyr_L5_TPCA":
+                continue
+
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
             db_item = MEModel(
@@ -848,8 +852,8 @@ class ImportMEModel(Import):
                 strain_id=morphology.strain_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                holding_current=data.get("holding_current", 0),
-                threshold_current=data.get("threshold_current", 1),
+                holding_current=data.get("holding_current"),
+                threshold_current=data.get("threshold_current"),
             )
 
             db.add(db_item)

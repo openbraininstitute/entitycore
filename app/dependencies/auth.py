@@ -20,6 +20,7 @@ from app.schemas.auth import (
     UserContext,
     UserContextWithProjectId,
     UserInfoResponse,
+    UserProfile,
 )
 from app.schemas.base import OptionalProjectContext
 from app.utils.common import is_ascii
@@ -95,8 +96,7 @@ def _check_user_info(
     if decoded and decoded.exp and decoded.exp < time.time():
         # expired token, no need to call KeyCloak
         return UserContext(
-            subject=decoded.sub,
-            email=decoded.email,
+            profile=UserProfile.from_user_info(decoded),
             expiration=decoded.exp,
             is_authorized=False,
             virtual_lab_id=project_context.virtual_lab_id,
@@ -118,8 +118,7 @@ def _check_user_info(
 
     if response.status_code in http_status_errors:
         return UserContext(
-            subject=decoded.sub if decoded else None,
-            email=decoded.email if decoded else None,
+            profile=UserProfile.from_user_info(decoded) if decoded else None,
             expiration=decoded.exp if decoded else None,
             is_authorized=False,
             virtual_lab_id=project_context.virtual_lab_id,
@@ -134,8 +133,7 @@ def _check_user_info(
     )
     is_service_admin = user_info_response.is_service_admin(settings.APP_NAME)
     user_context = UserContext(
-        subject=user_info_response.sub,
-        email=user_info_response.email,
+        profile=UserProfile.from_user_info(user_info_response),
         expiration=decoded.exp if decoded else None,
         is_authorized=is_authorized,
         is_service_admin=is_service_admin,
@@ -146,10 +144,11 @@ def _check_user_info(
 
     if not user_context.is_authorized:
         L.opt(lazy=True, capture=False).info(
-            "User <{email}> attempted to use: "
+            "User <{name}> with sub <{sub}> attempted to use: "
             "virtual-lab-id={virtual_lab_id}, project-id={project_id} "
             "but they're only a member of {groups}",
-            email=lambda: user_context.email,
+            name=lambda: user_context.profile.name if user_context.profile else None,
+            sub=lambda: user_context.profile.subject if user_context.profile else None,
             virtual_lab_id=lambda: project_context.virtual_lab_id,
             project_id=lambda: project_context.project_id,
             groups=lambda: sorted(user_info_response.groups),
@@ -172,8 +171,10 @@ def user_verified(
     if settings.APP_DISABLE_AUTH:
         L.warning("Authentication is disabled: admin role granted, vlab and proj not verified")
         return UserContext(
-            subject=UUID(int=0),
-            email=None,
+            profile=UserProfile(
+                subject=UUID(int=0),
+                name="Admin User",
+            ),
             expiration=None,
             is_authorized=True,
             is_service_admin=True,

@@ -35,6 +35,7 @@ def _assert_read_response(data, json_data):
     assert data["name"] == json_data["name"]
     assert data["license"]["name"] == "Test License"
     assert data["type"] == EntityType.experimental_neuron_density
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 @pytest.fixture
@@ -61,6 +62,7 @@ def test_read_one(client, model_id, json_data):
 
     data = assert_request(client.get, url=ROUTE).json()
     assert len(data["data"]) == 1
+    _assert_read_response(data["data"][0], json_data)
 
 
 def test_missing(client):

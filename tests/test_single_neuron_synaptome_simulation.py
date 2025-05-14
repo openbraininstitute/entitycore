@@ -15,6 +15,7 @@ from .utils import (
     create_brain_region,
 )
 
+MODEL = SingleNeuronSynaptomeSimulation
 ROUTE = "/single-neuron-synaptome-simulation"
 
 
@@ -68,7 +69,7 @@ def json_data(brain_region_id, synaptome_id):
 
 
 def _create_simulation_id(
-    db,
+    client,
     *,
     synaptome_id,
     brain_region_id,
@@ -79,7 +80,6 @@ def _create_simulation_id(
     status="success",
     seed=1,
     authorized_public=False,
-    authorized_project_id=PROJECT_ID,
 ):
     if injection_location is None:
         injection_location = ["soma[0]"]
@@ -87,27 +87,26 @@ def _create_simulation_id(
     if recording_location is None:
         recording_location = ["soma[0]_0.5"]
 
-    return add_db(
-        db,
-        SingleNeuronSynaptomeSimulation(
-            name=name,
-            description=description,
-            injection_location=injection_location,
-            recording_location=recording_location,
-            status=status,
-            seed=seed,
-            synaptome_id=str(synaptome_id),
-            brain_region_id=brain_region_id,
-            authorized_public=authorized_public,
-            authorized_project_id=authorized_project_id,
-        ),
-    ).id
+    return assert_request(
+        client.post,
+        url=ROUTE,
+        json={
+            "name": name,
+            "description": description,
+            "injection_location": injectionLocation,
+            "recording_location": recordingLocation,
+            "status": status,
+            "seed": seed,
+            "synaptome_id": str(synaptome_id),
+            "brain_region_id": str(brain_region_id),
+            "authorized_public": authorized_public,
+        },
+    ).json()["id"]
 
 
 @pytest.fixture
-def simulation_id(db, json_data):
-    data = json_data | {"authorized_project_id": PROJECT_ID}
-    return _create_simulation_id(db, **data)
+def simulation_id(client, json_data):
+    return _create_simulation_id(client, **json_data)
 
 
 def test_create_one(client, json_data, brain_region_id, synaptome_id):
@@ -125,6 +124,7 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["synaptome"]["id"] == str(synaptome_id)
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
@@ -141,6 +141,7 @@ def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
     assert data["synaptome"]["id"] == str(synaptome_id)
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 @pytest.mark.parametrize(
@@ -241,7 +242,7 @@ def test_pagination(db, client, brain_region_id, memodel_id):
         ids = []
         for i, synaptome_id in zip(range(count), it.cycle((synaptome_1_id, synaptome_2_id))):
             sim_id = _create_simulation_id(
-                db,
+                client,
                 name=f"sim-{i}",
                 synaptome_id=synaptome_id,
                 brain_region_id=brain_region_id,
@@ -264,7 +265,7 @@ def test_pagination(db, client, brain_region_id, memodel_id):
 
 
 @pytest.fixture
-def faceted_ids(db, brain_region_hierarchy_id, memodel_id):
+def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id):
     brain_region_ids = [
         create_brain_region(
             db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
@@ -283,7 +284,7 @@ def faceted_ids(db, brain_region_hierarchy_id, memodel_id):
     ]
     single_simulation_synaptome_ids = [
         _create_simulation_id(
-            db,
+            client,
             name=f"synaptome-{i}",
             description=f"brain-region-{brain_region_id} synaptome-{synaptome_id}",
             seed=i,
@@ -297,8 +298,10 @@ def faceted_ids(db, brain_region_hierarchy_id, memodel_id):
     return brain_region_ids, synaptome_ids, single_simulation_synaptome_ids
 
 
-def test_facets(client, faceted_ids):
-    brain_region_ids, synaptome_ids, _ = faceted_ids
+def test_facets(db, client, faceted_ids):
+    brain_region_ids, synaptome_ids, sim_ids = faceted_ids
+
+    agent = db.get(MODEL, sim_ids[0]).createdBy
 
     data = assert_request(
         client.get,
@@ -328,6 +331,12 @@ def test_facets(client, faceted_ids):
             "type": "single_neuron_synaptome",
         },
     ]
+    assert facets["createdBy"] == [
+        {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
+    ]
+    assert facets["updatedBy"] == [
+        {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
+    ]
 
     data = assert_request(
         client.get,
@@ -350,6 +359,12 @@ def test_facets(client, faceted_ids):
     assert facets["brain_region"] == [
         {"id": str(brain_region_ids[0]), "label": "region-0", "count": 1, "type": "brain_region"},
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
+    ]
+    assert facets["createdBy"] == [
+        {"id": str(agent.id), "label": agent.pref_label, "count": 2, "type": agent.type}
+    ]
+    assert facets["updatedBy"] == [
+        {"id": str(agent.id), "label": agent.pref_label, "count": 2, "type": agent.type}
     ]
 
 

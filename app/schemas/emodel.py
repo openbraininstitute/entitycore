@@ -2,6 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -39,7 +40,14 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     exemplar_morphology_id: uuid.UUID
 
 
-class EModelRead(EModelBase, CreationMixin, AuthorizationMixin, EntityTypeMixin, AssetsMixin):
+class EModelRead(
+    EModelBase,
+    CreationMixin,
+    AuthorizationMixin,
+    EntityTypeMixin,
+    AssetsMixin,
+    CreatedByUpdatedByMixin,
+):
     id: uuid.UUID
     species: SpeciesRead
     strain: StrainRead | None

@@ -49,5 +49,5 @@ def create_one(license: LicenseCreate, db: SessionDep) -> LicenseRead:
         db_model_class=License,
         json_model=license,
         response_schema_class=LicenseRead,
-        authorized_project_id=None,
+        user_context=None,
     )

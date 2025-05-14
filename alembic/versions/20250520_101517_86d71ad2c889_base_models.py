@@ -1,8 +1,8 @@
 """base_models
 
-Revision ID: d34350f9942d
+Revision ID: 86d71ad2c889
 Revises:
-Create Date: 2025-05-14 12:59:19.143221
+Create Date: 2025-05-20 10:15:17.881085
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "d34350f9942d"
+revision: str = "86d71ad2c889"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -496,12 +496,14 @@ def upgrade() -> None:
     op.create_table(
         "person",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("givenName", sa.String(), nullable=False),
-        sa.Column("familyName", sa.String(), nullable=False),
+        sa.Column("given_name", sa.String(), nullable=True),
+        sa.Column("family_name", sa.String(), nullable=True),
+        sa.Column("sub_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(["id"], ["agent.id"], name=op.f("fk_person_id_agent")),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_person")),
-        sa.UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),
+        sa.UniqueConstraint("given_name", "family_name", name="unique_person_name_1"),
     )
+    op.create_index(op.f("ix_person_sub_id"), "person", ["sub_id"], unique=True)
     op.create_table(
         "strain",
         sa.Column("name", sa.String(), nullable=False),
@@ -1790,6 +1792,8 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("morphology_id", sa.Uuid(), nullable=False),
+        sa.Column("holding_current", sa.Float(), nullable=True),
+        sa.Column("threshold_current", sa.Float(), nullable=True),
         sa.Column("emodel_id", sa.Uuid(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
@@ -2283,6 +2287,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_strain_name"), table_name="strain")
     op.drop_index(op.f("ix_strain_creation_date"), table_name="strain")
     op.drop_table("strain")
+    op.drop_index(op.f("ix_person_sub_id"), table_name="person")
     op.drop_table("person")
     op.drop_table("organization")
     op.drop_index(op.f("ix_entity_updatedBy_id"), table_name="entity")

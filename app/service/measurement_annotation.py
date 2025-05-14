@@ -133,7 +133,7 @@ def create_one(
     response = router_create_one(
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # not needed for creation
+        user_context=None,  # not needed for creation
         json_model=measurement_annotation,
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,

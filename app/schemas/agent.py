@@ -9,8 +9,8 @@ from app.schemas.base import (
 class PersonBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    givenName: str
-    familyName: str
+    given_name: str | None = None
+    family_name: str | None = None
     pref_label: str
 
 
@@ -38,3 +38,8 @@ class OrganizationRead(OrganizationBase, CreationMixin, IdentifiableMixin):
 
 
 type AgentRead = PersonRead | OrganizationRead
+
+
+class CreatedByUpdatedByMixin(BaseModel):
+    createdBy: PersonRead | None
+    updatedBy: PersonRead | None

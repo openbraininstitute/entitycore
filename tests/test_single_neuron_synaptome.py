@@ -49,6 +49,7 @@ def _assert_read_response(data, json_data):
     assert data["createdBy"]["id"] == json_data["createdBy_id"]
     assert data["updatedBy"]["id"] == json_data["updatedBy_id"]
     assert data["type"] == EntityType.single_neuron_synaptome
+    assert "assets" in data
 
 
 def _assert_create_response(data, json_data):

@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import SingleNeuronSimulationStatus
+from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -41,6 +42,7 @@ class SingleNeuronSimulationRead(
     IdentifiableMixin,
     CreationMixin,
     EntityTypeMixin,
+    AssetsMixin,
 ):
     me_model: NestedMEModel
 
@@ -60,5 +62,6 @@ class SingleNeuronSynaptomeSimulationRead(
     IdentifiableMixin,
     CreationMixin,
     EntityTypeMixin,
+    AssetsMixin
 ):
     synaptome: NestedSynaptome

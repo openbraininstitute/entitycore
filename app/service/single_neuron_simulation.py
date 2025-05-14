@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSimulation
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -33,6 +33,7 @@ def read_one(
             joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes),
             joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes),
             joinedload(SingleNeuronSimulation.brain_region),
+            selectinload(SingleNeuronSimulation.assets),
             raiseload("*"),
         ),
     )
@@ -79,10 +80,12 @@ def read_many(
         .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)
     )
     apply_data_options = lambda query: (
-        query.options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes))
-        .options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes))
-        .options(joinedload(SingleNeuronSimulation.brain_region))
-        .options(raiseload("*"))
+        query.options(
+            joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes),
+            joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes),
+            joinedload(SingleNeuronSimulation.brain_region),
+            selectinload(SingleNeuronSimulation.assets),
+        ).options(raiseload("*"))
     )
     return router_read_many(
         db=db,

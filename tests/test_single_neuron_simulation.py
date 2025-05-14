@@ -69,6 +69,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
+    assert "assets" in data
 
 
 @pytest.mark.parametrize(
@@ -211,6 +212,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
     assert "data" in response_json
     assert response_json["facets"] is None
     assert len(response_json["data"]) == 3
+    assert "assets" in response_json["data"][0]
 
 
 @pytest.fixture

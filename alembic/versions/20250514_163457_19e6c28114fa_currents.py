@@ -1,8 +1,8 @@
 """Currents
 
-Revision ID: 6bee9d9e2bc5
-Revises: e9aeb1413bcb
-Create Date: 2025-05-14 16:15:51.045962
+Revision ID: 19e6c28114fa
+Revises: dc7e28e7d8f6
+Create Date: 2025-05-14 16:34:57.859900
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "6bee9d9e2bc5"
-down_revision: Union[str, None] = "e9aeb1413bcb"
+revision: str = "19e6c28114fa"
+down_revision: Union[str, None] = "dc7e28e7d8f6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

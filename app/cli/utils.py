@@ -363,13 +363,14 @@ def get_or_create_distribution(
 def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):
     if not entity:
         return None
-    return next(
-        (
-            part.get("@id")
-            for part in ensurelist(entity.get(entity_list_key, []))
-            if is_type(part, type_)
-        ),
-        None,
+    return next(find_ids_in_entity(entity, type_, entity_list_key), None)
+
+
+def find_ids_in_entity(entity: dict, type_: str, entity_list_key: str):
+    return (
+        part.get("@id")
+        for part in ensurelist(entity.get(entity_list_key, []))
+        if is_type(part, type_)
     )
 
 

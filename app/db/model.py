@@ -896,3 +896,11 @@ class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     __tablename__ = EntityType.cell_composition
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class Derivation(Base):
+    __tablename__ = "derivation"
+    used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
+    generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])

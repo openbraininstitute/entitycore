@@ -3,10 +3,16 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.db.model import Derivation
 from app.db.types import EntityType
 
 from .conftest import CreateIds, EModelIds
-from .utils import create_reconstruction_morphology_id
+from .utils import (
+    add_all_db,
+    assert_response,
+    create_electrical_cell_recording_id,
+    create_reconstruction_morphology_id,
+)
 from tests.routers.test_asset import _upload_entity_asset
 
 ROUTE = "/emodel"
@@ -365,3 +371,22 @@ def test_pagination(client, create_emodel_ids):
     assert len(items) == total_items
     data_ids = [int(i["name"]) for i in items]
     assert list(reversed(data_ids)) == list(range(total_items))
+
+
+def test_get_electrical_cell_recording(client, db, emodel_id, electrical_cell_recording_json_data):
+    trace_ids = [
+        create_electrical_cell_recording_id(
+            client, json_data=electrical_cell_recording_json_data | {"name": f"name-{i}"}
+        )
+        for i in range(2)
+    ]
+    derivations = [Derivation(used_id=ecr_id, generated_id=emodel_id) for ecr_id in trace_ids]
+    add_all_db(db, derivations)
+
+    response = client.get(f"{ROUTE}/{emodel_id}/electrical-cell-recording")
+
+    assert_response(response, 200)
+    data = response.json()["data"]
+    assert len(data) == 2
+    assert {data[0]["id"], data[1]["id"]} == {str(id_) for id_ in trace_ids}
+    assert all(d["type"] == "electrical_cell_recording" for d in data)

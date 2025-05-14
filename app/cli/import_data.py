@@ -216,7 +216,56 @@ def import_licenses(data, db):
 
     db.commit()
 
+def _find_traces(data, extraction_targets_configuration_id):
+    traces_id = []
+    extraction_targets_configuration = [d for d in data if d["@id"] == extraction_targets_configuration_id]
+    # assert len(extraction_targets_configuration) == 1, f"Cannot find extraction targets configuration {extraction_targets_configuration_id}"
+    if len(extraction_targets_configuration) == 0:
+        print(f"Cannot find extraction targets configuration {extraction_targets_configuration_id}")
+        return []
+    uses = extraction_targets_configuration[0].get("uses", [])
+    assert len(uses) > 0, f"Cannot find uses in extraction targets configuration {extraction_targets_configuration_id}"
+    if not isinstance(uses, list):
+        uses = [uses]
+    for use in uses:
+        if use["@type"] == "Trace":
+            traces_id.append(use)
+    print(f"Found {len(traces_id)} traces in extraction targets configuration {extraction_targets_configuration_id}")
+    assert len(traces_id) > 0, f"Cannot find traces in extraction targets configuration {extraction_targets_configuration_id}"
+    return traces_id
+     
 
+def import_emodel_derivations(data, db):
+    emodelworkflows = [d for d in data if "EModelWorkflow" in d["@type"]  ]
+    correct_one = 0
+    for emodelworkflow in tqdm(emodelworkflows):
+        emodel_id = None
+        extraction_targets_configuration_id = None
+        if "generates" in emodelworkflow:
+            generates = emodelworkflow["generates"]
+            if not isinstance(generates, list):
+                generates = [generates]
+            emodels = [g for g in generates if g["@type"] == "EModel"]
+            if len(emodels) !=1:
+                print(f"Cannot find emodel in emodelworkflow {emodelworkflow}")
+                continue
+            emodel_id = emodels[0]["@id"]
+        if "hasPart" in emodelworkflow:
+            parts = emodelworkflow["hasPart"]
+            for part in parts:
+                if part["@type"] == "ExtractionTargetsConfiguration":
+                    extraction_targets_configuration_id = part["@id"]
+        if not emodel_id or not extraction_targets_configuration_id:
+            # raise error
+            print(f"Cannot find emodel_id or extraction_targets_configuration_id in emodelworkflow {emodelworkflow}")
+            continue
+        trace_ids = _find_traces(data, extraction_targets_configuration_id)
+        if len(trace_ids) > 0:
+            correct_one += 1
+    print(f"Found {correct_one} emodelworkflows with traces out of {len(emodelworkflows)}")
+        # create the derivation from emodel_id to trace_ids
+
+            
 def _import_annotation_body(data, db_type_, db):
     for class_elem in tqdm(data):
         if db_type_ == MTypeClass:
@@ -1372,22 +1421,28 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
 
                 all_data_by_id[id] = d
 
-    for importer in importers:
-        # Note: Allowing the data list to be collected here before each importer's execution allows
-        # moving parts of one resource to another. For example, distributions of linked
-        # resources can be grafted to the parent to avoid having too many entities. To do so,
-        # the order of the importer execution matters.
-        data_list = [d for d in all_data_by_id.values() if importer.is_correct_type(d)]
+    # for importer in importers:
+    #     # Note: Allowing the data list to be collected here before each importer's execution allows
+    #     # moving parts of one resource to another. For example, distributions of linked
+    #     # resources can be grafted to the parent to avoid having too many entities. To do so,
+    #     # the order of the importer execution matters.
+    #     data_list = [d for d in all_data_by_id.values() if importer.is_correct_type(d)]
 
-        print(f"Ingesting {importer.name}")
+    #     print(f"Ingesting {importer.name}")
 
-        importer.ingest(
-            db,
-            project_context,
-            data_list,
-            all_data_by_id=all_data_by_id,
-            hierarchy_name=hierarchy_name,
-        )
+    #     importer.ingest(
+    #         db,
+    #         project_context,
+    #         data_list,
+    #         all_data_by_id=all_data_by_id,
+    #         hierarchy_name=hierarchy_name,
+    #     )
+    print('importing emodel derivations')
+    with open(os.path.join(input_dir, "bbp", "mmb-point-neuron-framework-model", "provEntity.json")) as f:
+        data = json.load(f)
+        import_emodel_derivations(data, db)
+    
+
 
 
 def _analyze() -> None:

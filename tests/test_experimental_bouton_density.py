@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.db.model import ExperimentalBoutonDensity

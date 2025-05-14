@@ -296,13 +296,13 @@ def test_facets(client, faceted_ids):
             {
                 "id": str(memodel_ids[0]),
                 "label": "0",
-                "count": 4,
+                "count": 2,
                 "type": "me_model",
             },
             {
                 "id": str(memodel_ids[1]),
                 "label": "1",
-                "count": 4,
+                "count": 2,
                 "type": "me_model",
             },
         ],
@@ -324,12 +324,6 @@ def test_facets(client, faceted_ids):
         {
             "id": str(memodel_ids[0]),
             "label": "0",
-            "count": 2,
-            "type": "me_model",
-        },
-        {
-            "id": str(memodel_ids[1]),
-            "label": "1",
             "count": 2,
             "type": "me_model",
         },

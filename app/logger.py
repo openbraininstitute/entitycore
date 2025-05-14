@@ -5,8 +5,10 @@ import json
 import logging
 import sys
 import traceback
+import warnings
 
 import loguru
+import sqlalchemy.exc
 from loguru import logger
 
 from app.config import settings
@@ -99,3 +101,13 @@ def configure_logging() -> int:
         logging.getLogger(logger_name).setLevel(logger_level)
     L.info("Logging configured")
     return handler_id
+
+
+def configure_warnings():
+    """Configure warnings.
+
+    Raise an error in case of potentially wrong queries, for example:
+    - SELECT statement has a cartesian product
+    - An alias is being generated automatically
+    """
+    warnings.simplefilter("error", sqlalchemy.exc.SAWarning)

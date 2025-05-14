@@ -1,7 +1,7 @@
 import uvicorn
 from uvicorn.supervisors import ChangeReload
 
-from app.logger import configure_logging
+from app.logger import configure_logging, configure_warnings
 
 
 class CustomUvicornConfig(uvicorn.Config):
@@ -11,6 +11,7 @@ class CustomUvicornConfig(uvicorn.Config):
         """Re-configure logging in subprocesses when auto-reload is enabled."""
         super().configure_logging()
         configure_logging()
+        configure_warnings()
 
 
 def run_server(app: str, *, host: str, port: int, reload: bool = False) -> None:

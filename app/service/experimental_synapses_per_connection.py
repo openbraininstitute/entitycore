@@ -9,10 +9,13 @@ from sqlalchemy.orm import (
 )
 
 from app.db.model import (
+    Agent,
     BrainRegion,
     Contribution,
     ExperimentalSynapsesPerConnection,
     MTypeClass,
+    Species,
+    Strain,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -100,7 +103,10 @@ def read_many(
         .join(pre_region_alias, db_cls.pre_region_id == pre_region_alias.id)
         .join(post_region_alias, db_cls.post_region_id == post_region_alias.id)
         .outerjoin(subject_alias, db_cls.subject_id == subject_alias.id)
+        .outerjoin(Species, subject_alias.species_id == Species.id)
+        .outerjoin(Strain, subject_alias.strain_id == Strain.id)
         .outerjoin(Contribution, db_cls.id == Contribution.entity_id)
+        .outerjoin(Agent, Contribution.agent_id == Agent.id)
     )
     return router_read_many(
         db=db,

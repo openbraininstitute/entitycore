@@ -289,3 +289,11 @@ def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, crea
     assert data["facets"]["brain_region"] == [
         {"id": ANY, "label": "region-0", "count": 1, "type": "brain_region"},
     ]
+
+
+def with_creation_fields(d):
+    return d | {
+        "creation_date": ANY,
+        "update_date": ANY,
+        "id": ANY,
+    }

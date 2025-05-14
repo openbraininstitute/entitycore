@@ -42,6 +42,7 @@ def _get_request_payload_1(entity_id, labels):
             },
             {
                 "pref_label": labels[1],
+                "structural_domain": "soma",
                 "measurement_items": [
                     {
                         "name": "mean",
@@ -90,8 +91,6 @@ def _get_return_payload(request_payload):
         "creation_date": ANY,
         "update_date": ANY,
     }
-    for kind in payload["measurement_kinds"]:
-        kind.setdefault("structural_domain", None)
     return payload
 
 

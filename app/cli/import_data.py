@@ -24,6 +24,7 @@ from app.cli.utils import (
     build_measurement_item,
     build_measurement_kind,
     ensurelist,
+    merge_measurements_annotations,
 )
 from app.db.model import (
     AnalysisSoftwareSourceCode,
@@ -106,7 +107,7 @@ def get_or_create_annotation_body(annotation_body, db):
 
     if annotation_type is MTypeClass:
         annotation_body = curate.curate_mtype(annotation_body)
-        if annotation_body["@id"] == "nsg:Neuron":
+        if "@id" in annotation_body and annotation_body["@id"] == "nsg:Neuron":
             # Too generic type, nothing to do
             return annotation_type, None
 
@@ -219,7 +220,7 @@ def import_licenses(data, db):
 def _import_annotation_body(data, db_type_, db):
     for class_elem in tqdm(data):
         if db_type_ == MTypeClass:
-            calss_elem = curate.curate_mtype(class_elem)
+            class_elem = curate.curate_mtype(class_elem)
 
         if db_type_ == ETypeClass:
             class_elem = curate.curate_etype(class_elem)
@@ -1149,6 +1150,8 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                 info["already_registered"] += 1
                 continue
 
+            # compartment can be at the top level, or in each element of hasBody
+            compartment = data.get("compartment")
             measurement_kinds = []
             for measurement in data.get("hasBody", []):
                 measurement_items = []
@@ -1156,7 +1159,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                     if measurement_item := build_measurement_item(item):
                         measurement_items.append(measurement_item)
                 if measurement_kind := build_measurement_kind(
-                    measurement, measurement_items=measurement_items
+                    measurement, measurement_items=measurement_items, compartment=compartment
                 ):
                     measurement_kinds.append(measurement_kind)
 
@@ -1175,9 +1178,8 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
 
         for entity_id, entity_annotations in tqdm(annotations.items()):
             if len(entity_annotations) > 1:
-                # keep only the most recently created
                 info["duplicate_annotation"] += len(entity_annotations) - 1
-                entity_annotation = sorted(entity_annotations, key=lambda a: a.creation_date)[-1]
+                entity_annotation = merge_measurements_annotations(entity_annotations, entity_id)
             else:
                 entity_annotation = entity_annotations[0]
             info["newly_registered"] += 1

@@ -8,6 +8,7 @@ from .utils import (
     MISSING_ID_COMPACT,
     PROJECT_ID,
     add_db,
+    check_brain_region_filter,
     create_reconstruction_morphology_id,
 )
 
@@ -430,3 +431,20 @@ def test_filter_by_id__in(db, client, brain_region_id):
     data = response.json()["data"]
     assert len(data) == 1
     assert data[0]["id"] == morphology_ids[2]
+
+
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id):
+    def create_model_function(_db, name, brain_region_id):
+        return ReconstructionMorphology(
+            name=name,
+            brain_region_id=brain_region_id,
+            species_id=species_id,
+            strain_id=None,
+            description="description",
+            location=None,
+            legacy_id="Test Legacy ID",
+            license_id=None,
+            authorized_project_id=PROJECT_ID,
+        )
+
+    check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

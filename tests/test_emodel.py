@@ -205,6 +205,16 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
         ],
     }
 
+    response = client.get(ROUTE, params={"brain_region__name": "region0", "with_facets": True})
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "facets" in data
+    facets = data["facets"]
+    assert facets["brain_region"] == [
+        {"id": str(ids.brain_region_ids[0]), "label": "region0", "count": 4, "type": "brain_region"}
+    ]
+
 
 def test_authorization(
     client_user_1,

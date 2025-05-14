@@ -30,6 +30,7 @@ class MorphologyFilter(
 
 # Dependencies
 MorphologyFilterDep = Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)]
+
 # Nested dependencies
 NestedMorphologyFilterDep = FilterDepends(with_prefix("morphology", MorphologyFilter))
 NestedExemplarMorphologyFilterDep = FilterDepends(

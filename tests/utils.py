@@ -1,6 +1,7 @@
 import functools
 import uuid
 from pathlib import Path
+from unittest.mock import ANY
 
 from httpx import Headers
 from starlette.testclient import TestClient
@@ -265,3 +266,26 @@ def create_asset_file(client, entity_type, entity_id, file_name, file_obj):
         files=files,
         expected_status_code=201,
     )
+
+
+def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, create_model_function):
+    brain_region_ids = [
+        create_brain_region(
+            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+        ).id
+        for i in range(2)
+    ]
+
+    _ = [
+        add_db(db, create_model_function(db, name=f"name-{i}", brain_region_id=brain_region_id))
+        for i, brain_region_id in enumerate(brain_region_ids)
+    ]
+    data = assert_request(
+        client.get,
+        url=route,
+        params={"brain_region__name": "region-0", "with_facets": True},
+    ).json()
+    assert len(data["data"]) == 1
+    assert data["facets"]["brain_region"] == [
+        {"id": ANY, "label": "region-0", "count": 1, "type": "brain_region"},
+    ]

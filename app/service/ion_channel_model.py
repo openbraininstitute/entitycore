@@ -5,9 +5,15 @@ import sqlalchemy as sa
 from fastapi import Depends
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, Ion, IonChannelModel, Species
+from app.db.model import BrainRegion, Contribution, Ion, IonChannelModel, Species
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import InBrainRegionDep, PaginationQuery, SearchDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
@@ -36,9 +42,16 @@ def read_many(
     with_search: SearchDep,
     icm_filter: IonChannelModelFilterDep,
     in_brain_region: InBrainRegionDep,
+    facets: FacetsDep,
 ) -> ListResponse[IonChannelModelRead]:
-    def filter_query_ops(q: Select[IonChannelModel]):
-        return q.join(Species, IonChannelModel.species_id == Species.id)
+    name_to_facet_query_params: dict[str, FacetQueryParams] = {
+        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
+    }
+
+    def apply_filter_query(q: Select[IonChannelModel]):
+        return q.join(Species, IonChannelModel.species_id == Species.id).join(
+            BrainRegion, IonChannelModel.brain_region_id == BrainRegion.id
+        )
 
     return router_read_many(
         db=db,
@@ -46,13 +59,13 @@ def read_many(
         authorized_project_id=user_context.project_id,
         with_search=with_search,
         with_in_brain_region=in_brain_region,
-        facets=None,
+        facets=facets,
         aliases=None,
         apply_data_query_operations=_load,
-        apply_filter_query_operations=filter_query_ops,
+        apply_filter_query_operations=apply_filter_query,
         pagination_request=pagination_request,
         response_schema_class=IonChannelModelRead,
-        name_to_facet_query_params=None,
+        name_to_facet_query_params=name_to_facet_query_params,
         filter_model=icm_filter,
     )
 

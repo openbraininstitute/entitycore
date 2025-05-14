@@ -36,7 +36,7 @@ from app.db.model import (
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.dependencies import auth
-from app.schemas.auth import UserContext
+from app.schemas.auth import UserContext, UserProfile
 
 from . import utils
 from .utils import (
@@ -83,8 +83,10 @@ def _create_buckets(s3):
 def user_context_admin():
     """Admin authenticated user."""
     return UserContext(
-        subject=UUID(int=1),
-        email=None,
+        profile=UserProfile(
+            subject=UUID(int=1),
+            name="Admin User",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
@@ -97,8 +99,10 @@ def user_context_admin():
 def user_context_user_1():
     """Admin authenticated user."""
     return UserContext(
-        subject=UUID(int=1),
-        email=None,
+        profile=UserProfile(
+            subject=UUID(int=1),
+            name="Admin User",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
@@ -111,8 +115,10 @@ def user_context_user_1():
 def user_context_user_2():
     """Regular authenticated user with different project-id."""
     return UserContext(
-        subject=UUID(int=2),
-        email=None,
+        profile=UserProfile(
+            subject=UUID(int=2),
+            name="Regular User With Project Id",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
@@ -125,8 +131,10 @@ def user_context_user_2():
 def user_context_no_project():
     """Regular authenticated user without project-id."""
     return UserContext(
-        subject=UUID(int=3),
-        email=None,
+        profile=UserProfile(
+            subject=UUID(int=3),
+            name="Regular User Without Project Id",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,

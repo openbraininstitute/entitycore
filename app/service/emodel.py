@@ -82,7 +82,7 @@ def create_one(
 ) -> EModelRead:
     return router_create_one(
         db=db,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         db_model_class=EModel,
         json_model=emodel,
         response_schema_class=EModelRead,

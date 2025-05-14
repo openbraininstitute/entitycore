@@ -32,7 +32,7 @@ def create_one(
     return app.queries.common.router_create_one(
         db=db,
         db_model_class=Species,
-        authorized_project_id=None,
+        user_context=None,
         json_model=species,
         response_schema_class=SpeciesRead,
     )

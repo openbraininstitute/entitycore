@@ -116,8 +116,8 @@ def create_one(
 ) -> ReconstructionMorphologyRead:
     return router_create_one(
         db=db,
+        user_context=user_context,
         db_model_class=ReconstructionMorphology,
-        authorized_project_id=user_context.project_id,
         json_model=reconstruction,
         response_schema_class=ReconstructionMorphologyRead,
     )

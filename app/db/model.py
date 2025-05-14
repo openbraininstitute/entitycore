@@ -204,8 +204,9 @@ class Person(Agent):
     __tablename__ = AgentType.person.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
-    givenName: Mapped[str]
-    familyName: Mapped[str]
+    givenName: Mapped[str | None]
+    familyName: Mapped[str | None]
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,

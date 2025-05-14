@@ -52,8 +52,8 @@ def create_one(
     return router_create_one(
         db=db,
         json_model=json_model,
+        user_context=user_context,
         db_model_class=SingleNeuronSynaptome,
-        authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSynaptomeRead,
     )
 

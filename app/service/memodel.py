@@ -95,7 +95,7 @@ def create_one(
     return router_create_one(
         db=db,
         db_model_class=MEModel,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=MEModelRead,
         json_model=memodel,
         apply_operations=_load,

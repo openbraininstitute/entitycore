@@ -1,8 +1,8 @@
 """base_models
 
-Revision ID: 3f90bd686d06
+Revision ID: d34350f9942d
 Revises:
-Create Date: 2025-05-13 09:49:29.358774
+Create Date: 2025-05-14 12:59:19.143221
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "3f90bd686d06"
+revision: str = "d34350f9942d"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -89,9 +89,14 @@ def upgrade() -> None:
         "sum",
         name="measurementstatistic",
     ).create(op.get_bind())
-    sa.Enum("apical_dendrite", "basal_dendrite", "axon", name="structuraldomain").create(
-        op.get_bind()
-    )
+    sa.Enum(
+        "apical_dendrite",
+        "basal_dendrite",
+        "axon",
+        "soma",
+        "neuron_morphology",
+        name="structuraldomain",
+    ).create(op.get_bind())
     sa.Enum(
         "created", "initialized", "running", "done", "error", name="me_model_validation_status"
     ).create(op.get_bind())
@@ -1599,6 +1604,8 @@ def upgrade() -> None:
                 "apical_dendrite",
                 "basal_dendrite",
                 "axon",
+                "soma",
+                "neuron_morphology",
                 name="structuraldomain",
                 create_type=False,
             ),
@@ -2360,9 +2367,14 @@ def downgrade() -> None:
     sa.Enum(
         "created", "initialized", "running", "done", "error", name="me_model_validation_status"
     ).drop(op.get_bind())
-    sa.Enum("apical_dendrite", "basal_dendrite", "axon", name="structuraldomain").drop(
-        op.get_bind()
-    )
+    sa.Enum(
+        "apical_dendrite",
+        "basal_dendrite",
+        "axon",
+        "soma",
+        "neuron_morphology",
+        name="structuraldomain",
+    ).drop(op.get_bind())
     sa.Enum(
         "mean",
         "median",

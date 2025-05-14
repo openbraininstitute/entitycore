@@ -6,7 +6,6 @@ from app.db.model import ExperimentalSynapsesPerConnection
 from app.db.types import EntityType
 
 from .utils import (
-    PROJECT_ID,
     assert_request,
     check_authorization,
     check_brain_region_filter,
@@ -16,6 +15,7 @@ from .utils import (
     create_mtype,
 )
 
+MODEL = ExperimentalSynapsesPerConnection
 ROUTE = "/experimental-synapses-per-connection"
 
 
@@ -65,6 +65,14 @@ def create_id(client, json_data):
 
 
 @pytest.fixture
+def create_db(db, create_id):
+    def _create_db(**kwargs):
+        return db.get(MODEL, create_id(**kwargs))
+
+    return _create_db
+
+
+@pytest.fixture
 def model_id(create_id):
     return create_id()
 
@@ -100,18 +108,13 @@ def test_pagination(client, create_id):
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, synaptic_pathway_id, subject_id
+    db,
+    client,
+    create_db,
+    brain_region_hierarchy_id,
 ):
     def create_model_function(_db, name, brain_region_id):
-        return ExperimentalSynapsesPerConnection(
-            name=name,
-            description="my-description",
-            brain_region_id=brain_region_id,
-            subject_id=subject_id,
-            license_id=None,
-            synaptic_pathway_id=synaptic_pathway_id,
-            authorized_project_id=PROJECT_ID,
-        )
+        return create_db(name=name, brain_region_id=str(brain_region_id))
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
 

@@ -88,7 +88,7 @@ def read_many(
     }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.contribution | fc.species | fc.strain | synaptic_pathway_facets
+        fc.brain_region | fc.contribution | fc.species | fc.strain | synaptic_pathway_facets
     )
 
     db_cls = ExperimentalSynapsesPerConnection

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
@@ -48,6 +48,7 @@ def read_one(
                 SingleNeuronSynaptome.me_model
             ),
             joinedload(SingleNeuronSynaptomeSimulation.brain_region),
+            selectinload(SingleNeuronSynaptomeSimulation.assets),
             raiseload("*"),
         ),
     )
@@ -98,15 +99,13 @@ def read_many(
         query.options(
             joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
                 SingleNeuronSynaptome.me_model
-            )
-        )
-        .options(
+            ),
             joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
                 SingleNeuronSynaptome.me_model
-            )
-        )
-        .options(joinedload(SingleNeuronSynaptomeSimulation.brain_region))
-        .options(raiseload("*"))
+            ),
+            joinedload(SingleNeuronSynaptomeSimulation.brain_region),
+            selectinload(SingleNeuronSynaptomeSimulation.assets),
+        ).options(raiseload("*"))
     )
     return router_read_many(
         db=db,

@@ -448,6 +448,8 @@ def create_memodel_ids(
                     emodel_id=emodel_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
+                    holding_current=0,
+                    threshold_current=0,
                 ),
             ).id
 
@@ -623,6 +625,8 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
                 emodel_id=emodel_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
+                holding_current=0,
+                threshold_current=0,
             ),
         )
 

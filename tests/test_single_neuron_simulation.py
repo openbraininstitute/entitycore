@@ -69,6 +69,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
+    assert "assets" in data
 
 
 @pytest.mark.parametrize(
@@ -165,6 +166,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
+            holding_current=0,
+            threshold_current=0,
         ),
     )
     me_model_2 = add_db(
@@ -177,6 +180,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
+            holding_current=0,
+            threshold_current=0,
         ),
     )
 
@@ -207,6 +212,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
     assert "data" in response_json
     assert response_json["facets"] is None
     assert len(response_json["data"]) == 3
+    assert "assets" in response_json["data"][0]
 
 
 @pytest.fixture
@@ -228,6 +234,8 @@ def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species
                 "emodel_id": emodel_id,
                 "morphology_id": morphology_id,
                 "species_id": species_id,
+                "holding_current": 0,
+                "threshold_current": 0,
             },
         )
         for i in range(2)
@@ -325,6 +333,8 @@ def test_brain_region_filter(
                     "emodel_id": emodel_id,
                     "morphology_id": morphology_id,
                     "species_id": species_id,
+                    "holding_current": 0,
+                    "threshold_current": 0,
                 },
             )
         )

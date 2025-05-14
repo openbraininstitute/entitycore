@@ -49,6 +49,7 @@ def _assert_read_response(data, json_data):
     assert data["createdBy"]["id"] == json_data["createdBy_id"]
     assert data["updatedBy"]["id"] == json_data["updatedBy_id"]
     assert data["type"] == EntityType.single_neuron_synaptome
+    assert "assets" in data
 
 
 def _assert_create_response(data, json_data):
@@ -192,6 +193,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
+            holding_current=0,
+            threshold_current=0,
         ),
     )
     me_model_2 = add_db(
@@ -204,6 +207,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
+            holding_current=0,
+            threshold_current=0,
         ),
     )
 
@@ -356,6 +361,8 @@ def test_brain_region_filter(
                     emodel_id=emodel_id,
                     morphology_id=morphology_id,
                     species_id=species_id,
+                    holding_current=0,
+                    threshold_current=0,
                 ),
             ).id
         )

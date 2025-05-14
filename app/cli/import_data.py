@@ -848,7 +848,10 @@ class ImportMEModel(Import):
                 strain_id=morphology.strain_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
+                holding_current=data.get("holding_current"),
+                threshold_current=data.get("threshold_current"),
             )
+
             db.add(db_item)
             db.flush()
 

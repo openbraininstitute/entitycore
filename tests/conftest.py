@@ -33,7 +33,6 @@ from app.db.model import (
     Species,
     Strain,
     Subject,
-    SynapticPathway,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.dependencies import auth
@@ -333,7 +332,7 @@ def brain_region_hierarchy_id(db):
 
 @pytest.fixture
 def brain_region_id(db, brain_region_hierarchy_id):
-    return utils.create_brain_region(db, brain_region_hierarchy_id, 64, "RedRegion").id
+    return str(utils.create_brain_region(db, brain_region_hierarchy_id, 64, "RedRegion").id)
 
 
 @pytest.fixture
@@ -638,21 +637,4 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
         species_ids=species_ids,
         brain_region_ids=brain_region_ids,
         agent_ids=agent_ids,
-    )
-
-
-@pytest.fixture
-def synaptic_pathway_id(db, brain_region_id, mtype_class_id):
-    return str(
-        add_db(
-            db,
-            SynapticPathway(
-                pre_mtype_id=mtype_class_id,
-                post_mtype_id=mtype_class_id,
-                pre_region_id=brain_region_id,
-                post_region_id=brain_region_id,
-                authorized_public=False,
-                authorized_project_id=PROJECT_ID,
-            ),
-        ).id
     )

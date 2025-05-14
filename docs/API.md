@@ -212,6 +212,48 @@ GET /reconstruction-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40
 In other words, the name of the hierarchy, and the id which will be recursively included.
 This can happen in either by the `descendants` (the default) or by `ascendants`.
 
+# Brain Atlas:
+
+A BrainAtlas is an volumetric concept describing the locatations of brain regions in space.
+It is composed of an `annotation` (also known as `parecellation`) of a voxels, storred in an NRRD file.
+Each of the voxels is assigned an ID, which corresponds to `annotation_value` in the hierarchy.
+In addition, there is metadata assocated with an atlas:
+
+    # the volume of each region
+    # meshes of regions
+
+The following endpoints exist:
+
+`GET brain-atlas`
+
+Returns all the atlases that exist
+
+`GET brain-atlas/$UUID`
+
+Returns metadata about the atlas:
+
+```
+{
+    "creation_date": "2025-05-09T13:32:18.034672Z",
+    "id": $UUID,
+    "name": "human_v0.1.1",
+    "species_id": $UUID,
+    "hierarchy_id: $UUID,
+    "update_date": "2025-05-09T13:32:18.034672Z"
+}
+```
+
+
+`GET brain-atlas/$UUID/regions`
+
+[{
+    "brain_region_id: $UUID,
+    "volume": 33
+}]
+The volume is in um^3.
+Note: It returns only the leaf-nodes, and is meant to be used with the associated hierarchy.
+By only storing the leaf nodes, it composes with the different views by clibing the tree, and summing all the children along the way.
+
 # Authorization:
 Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.
 As such, results returned will be gated by this, based on the logged in user.

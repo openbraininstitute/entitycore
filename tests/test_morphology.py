@@ -162,6 +162,14 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
+        "brain_region": [
+            {
+                "count": 11,
+                "id": str(brain_region_id),
+                "label": "RedRegion",
+                "type": "brain_region",
+            },
+        ],
         "contribution": [],
         "mtype": [],
         "species": [
@@ -181,6 +189,9 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
+        "brain_region": [
+            {"count": 11, "id": str(brain_region_id), "label": "RedRegion", "type": "brain_region"}
+        ],
         "contribution": [],
         "mtype": [],
         "species": [
@@ -201,6 +212,9 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     assert "facets" in data
     facets = data["facets"]
     assert facets == {
+        "brain_region": [
+            {"count": 6, "id": str(brain_region_id), "label": "RedRegion", "type": "brain_region"}
+        ],
         "contribution": [],
         "mtype": [],
         "species": [
@@ -236,6 +250,9 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     assert len(data["data"]) == data["pagination"]["total_items"]
     assert "facets" in data
     assert data["facets"] == {
+        "brain_region": [
+            {"count": 1, "id": str(brain_region_id), "label": "RedRegion", "type": "brain_region"}
+        ],
         "contribution": [],
         "mtype": [],
         "species": [

@@ -371,13 +371,29 @@ def test_brain_region_filter(
                 ),
             ).id
         )
+        synaptome_id = str(
+            add_db(
+                db,
+                SingleNeuronSynaptome(
+                    name=name,
+                    description="description",
+                    me_model_id=me_model_id,
+                    brain_region_id=brain_region_id,
+                    seed=1,
+                    authorized_project_id=PROJECT_ID,
+                ),
+            ).id
+        )
 
-        return SingleNeuronSynaptome(
+        return SingleNeuronSynaptomeSimulation(
             name=name,
             description="description",
-            me_model_id=me_model_id,
-            brain_region_id=brain_region_id,
+            injectionLocation=["soma[0]"],
+            recordingLocation=["soma[0]_0.5"],
+            status="success",
             seed=1,
+            synaptome_id=synaptome_id,
+            brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
         )
 

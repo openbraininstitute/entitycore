@@ -16,6 +16,8 @@ from app.db.model import (
     ExperimentalNeuronDensity,
     MTypeClass,
     MTypeClassification,
+    Species,
+    Strain,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -50,6 +52,8 @@ def read_many(
     apply_filter_query = lambda query: (
         query.join(BrainRegion, ExperimentalNeuronDensity.brain_region_id == BrainRegion.id)
         .outerjoin(subject_alias, ExperimentalNeuronDensity.subject_id == subject_alias.id)
+        .outerjoin(Species, subject_alias.species_id == Species.id)
+        .outerjoin(Strain, subject_alias.strain_id == Strain.id)
         .outerjoin(Contribution, ExperimentalNeuronDensity.id == Contribution.entity_id)
         .outerjoin(Agent, Contribution.agent_id == Agent.id)
         .outerjoin(

@@ -215,7 +215,7 @@ This can happen in either by the `descendants` (the default) or by `ascendants`.
 # Brain Atlas:
 
 A BrainAtlas is an volumetric concept describing the locatations of brain regions in space.
-It is composed of an `annotation` (also known as `parecellation`) of a voxels, storred in an NRRD file.
+It is composed of an `annotation` (also known as `parecellation`) of voxels, storred in an NRRD file.
 Each of the voxels is assigned an ID, which corresponds to `annotation_value` in the hierarchy.
 In addition, there is metadata assocated with an atlas:
 

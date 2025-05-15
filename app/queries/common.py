@@ -118,7 +118,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
 
 
 def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
-    if db_agent := db.query(Agent).filter(Person.subject_id == user_profile.subject).first():
+    if db_agent := db.query(Person).filter(Person.subject_id == user_profile.subject).first():
         return db_agent
 
     db_agent = Person(

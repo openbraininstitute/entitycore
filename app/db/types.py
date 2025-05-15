@@ -67,6 +67,7 @@ class EntityType(StrEnum):
     ion_channel_model = auto()
     subject = auto()
     synaptic_pathway = auto()
+    validation_result = auto()
 
 
 class AgentType(StrEnum):

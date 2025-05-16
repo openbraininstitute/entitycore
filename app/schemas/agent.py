@@ -9,8 +9,8 @@ from app.schemas.base import (
 class PersonBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    givenName: str
-    familyName: str
+    given_name: str
+    family_name: str
     pref_label: str
 
 

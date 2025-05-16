@@ -123,8 +123,8 @@ def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
 
     db_agent = Person(
         pref_label=user_profile.name,
-        givenName=user_profile.given_name,
-        familyName=user_profile.family_name,
+        given_name=user_profile.given_name,
+        family_name=user_profile.family_name,
         subject_id=user_profile.subject,
     )
 

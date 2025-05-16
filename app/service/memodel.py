@@ -67,6 +67,8 @@ def _load(select: Select):
             joinedload(ReconstructionMorphology.license),
             joinedload(ReconstructionMorphology.species),
             joinedload(ReconstructionMorphology.strain),
+            joinedload(ReconstructionMorphology.createdBy),
+            joinedload(ReconstructionMorphology.updatedBy),
             selectinload(ReconstructionMorphology.assets),
         ),
         joinedload(MEModel.brain_region),

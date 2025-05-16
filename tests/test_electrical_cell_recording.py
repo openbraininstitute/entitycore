@@ -16,6 +16,7 @@ from .utils import (
     create_brain_region,
 )
 
+MODEL = ElectricalCellRecording
 ROUTE = "electrical-cell-recording"
 
 
@@ -30,8 +31,33 @@ def json_data(brain_region_id, subject_id, license_id):
         "recording_location": ["soma[0]_0.5"],
         "recording_type": "intracellular",
         "recording_origin": "in_vivo",
+        "ljp": 11.5,
         "authorized_public": False,
     }
+
+
+@pytest.fixture
+def create(client, json_data):
+    def _create(**kwargs):
+        return assert_request(client.post, url=ROUTE, json=json_data | kwargs).json()
+
+    return _create
+
+
+@pytest.fixture
+def create_id(create):
+    def _create_id(**kwargs):
+        return create(**kwargs)["id"]
+
+    return _create_id
+
+
+@pytest.fixture
+def create_db(db, create_id):
+    def _create_db(**kwargs):
+        return db.get(MODEL, create_id(**kwargs))
+
+    return _create_db
 
 
 def _create_electrical_recording_id(
@@ -55,51 +81,10 @@ def _create_electrical_recording_id(
     ).id
 
 
-def _create_electrical_cell_recording_id(
-    db,
-    *,
-    subject_id,
-    license_id,
-    brain_region_id,
-    name="my-name",
-    ljp=11.5,
-    description="my-description",
-    recording_location=None,
-    recording_origin="in_vivo",
-    authorized_public=False,
-    authorized_project_id=PROJECT_ID,
-):
-    if recording_location is None:
-        recording_location = ["soma[0]_0.5"]
-
-    return add_db(
-        db,
-        ElectricalCellRecording(
-            name=name,
-            description=description,
-            license_id=str(license_id),
-            brain_region_id=brain_region_id,
-            subject_id=str(subject_id),
-            ljp=ljp,
-            recording_location=recording_location,
-            recording_origin=recording_origin,
-            recording_type="intracellular",
-            authorized_public=authorized_public,
-            authorized_project_id=authorized_project_id,
-            legacy_id=[],
-            comment="my-comment",
-        ),
-    ).id
-
-
 @pytest.fixture
-def trace_id(tmp_path, client, db, subject_id, brain_region_id, license_id):
-    trace_id = _create_electrical_cell_recording_id(
-        db,
-        subject_id=subject_id,
-        license_id=license_id,
-        brain_region_id=brain_region_id,
-    )
+def trace_id(tmp_path, client, db, create_id):
+    trace_id = create_id()
+
     # add two protocols that refer to it
     _create_electrical_recording_id(db, trace_id)
     _create_electrical_recording_id(db, trace_id)
@@ -133,6 +118,7 @@ def test_create_one(client, subject_id, license_id, brain_region_id, json_data):
     assert data["license"]["id"] == str(license_id)
     assert data["authorized_project_id"] == str(PROJECT_ID)
     assert data["type"] == EntityType.electrical_cell_recording
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
@@ -151,6 +137,7 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
     assert len(data["stimuli"]) == 2
     assert len(data["assets"]) == 1
     assert data["type"] == EntityType.electrical_cell_recording
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 def test_missing(client):
@@ -161,17 +148,8 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
     check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
 
 
-def test_pagination(db, client, subject_id, brain_region_id, license_id):
-    _ = [
-        _create_electrical_cell_recording_id(
-            db,
-            name=f"entity-{i}",
-            subject_id=subject_id,
-            brain_region_id=brain_region_id,
-            license_id=license_id,
-        )
-        for i in range(2)
-    ]
+def test_pagination(client, create_id):
+    _ = [create_id(name=f"entity-{i}") for i in range(2)]
     response = assert_request(
         client.get,
         url=ROUTE,
@@ -185,7 +163,7 @@ def test_pagination(db, client, subject_id, brain_region_id, license_id):
 
 
 @pytest.fixture
-def faceted_ids(db, brain_region_hierarchy_id, subject_id, license_id):
+def faceted_ids(db, brain_region_hierarchy_id, create_id):
     brain_region_ids = [
         create_brain_region(
             db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
@@ -194,13 +172,8 @@ def faceted_ids(db, brain_region_hierarchy_id, subject_id, license_id):
     ]
 
     trace_ids = [
-        _create_electrical_cell_recording_id(
-            db,
-            name=f"trace-{i}",
-            description=f"brain-region-{i}",
-            subject_id=subject_id,
-            license_id=license_id,
-            brain_region_id=region_id,
+        create_id(
+            name=f"trace-{i}", description=f"brain-region-{i}", brain_region_id=str(region_id)
         )
         for i, region_id in enumerate(brain_region_ids)
     ]
@@ -252,21 +225,8 @@ def test_facets(client, faceted_ids):
     ]
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id):
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, create_db):
     def create_model_function(_db, name, brain_region_id):
-        return ElectricalCellRecording(
-            name=name,
-            description="description",
-            license_id=None,
-            brain_region_id=brain_region_id,
-            subject_id=str(subject_id),
-            ljp=11.5,
-            recording_location=["soma[0]_0.5"],
-            recording_origin="in_vivo",
-            recording_type="intracellular",
-            authorized_project_id=PROJECT_ID,
-            legacy_id=None,
-            comment="comment",
-        )
+        return create_db(name=name, brain_region_id=str(brain_region_id))
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

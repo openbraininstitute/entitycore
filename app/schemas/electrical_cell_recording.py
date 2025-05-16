@@ -9,6 +9,7 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
 )
+from app.schemas.agent import AgentRead
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
     AuthorizationMixin,
@@ -102,3 +103,5 @@ class ElectricalCellRecordingRead(
             description="List of stimuli applied to the cell with their respective time steps",
         ),
     ] = None
+    createdBy: AgentRead | None
+    updatedBy: AgentRead | None

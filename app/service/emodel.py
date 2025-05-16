@@ -46,6 +46,8 @@ def _load(select: sa.Select[tuple[EModel]]):
         selectinload(EModel.contributions).joinedload(Contribution.role),
         joinedload(EModel.mtypes),
         joinedload(EModel.etypes),
+        joinedload(EModel.createdBy),
+        joinedload(EModel.updatedBy),
         raiseload("*"),
     )
 
@@ -101,8 +103,16 @@ def read_many(
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[EModelRead]:
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
     aliases: Aliases = {
         ReconstructionMorphology: morphology_alias,
+        Agent: {
+            "contribution": agent_alias,
+            "createdBy": created_by_alias,
+            "updatedBy": updated_by_alias,
+        },
     }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -110,14 +120,24 @@ def read_many(
         "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "contribution": {
-            "id": Agent.id,
-            "label": Agent.pref_label,
-            "type": Agent.type,
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "exemplar_morphology": {
             "id": morphology_alias.id,
             "label": morphology_alias.name,
+        },
+        "createdBy": {
+            "id": created_by_alias.id,
+            "label": created_by_alias.pref_label,
+            "type": created_by_alias.type,
+        },
+        "updatedBy": {
+            "id": updated_by_alias.id,
+            "label": updated_by_alias.pref_label,
+            "type": updated_by_alias.type,
         },
     }
 
@@ -127,11 +147,13 @@ def read_many(
             .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
             .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)
             .outerjoin(Contribution, EModel.id == Contribution.entity_id)
-            .outerjoin(Agent, Contribution.agent_id == Agent.id)
+            .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
             .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
             .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
             .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
             .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
+            .outerjoin(created_by_alias, EModel.createdBy_id == created_by_alias.id)
+            .outerjoin(updated_by_alias, EModel.updatedBy_id == updated_by_alias.id)
         )
 
     return router_read_many(

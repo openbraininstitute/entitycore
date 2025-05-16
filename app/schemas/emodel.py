@@ -2,6 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.agent import AgentRead
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -48,6 +49,8 @@ class EModelRead(EModelBase, CreationMixin, AuthorizationMixin, EntityTypeMixin,
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
+    createdBy: AgentRead | None
+    updatedBy: AgentRead | None
 
 
 class EModelReadExpanded(EModelRead, AssetsMixin):

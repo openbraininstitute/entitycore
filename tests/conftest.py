@@ -54,6 +54,7 @@ from .utils import (
     VIRTUAL_LAB_ID,
     ClientProxy,
     add_db,
+    assert_request,
 )
 
 
@@ -396,24 +397,27 @@ def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id:
 
 @pytest.fixture
 def create_emodel_ids(
-    db, morphology_id, brain_region_id, species_id, strain_id, agents
+    client, db, morphology_id, brain_region_id, species_id, strain_id, agents
 ) -> CreateIds:
     def _create_emodels(count: int):
         emodel_ids: list[str] = []
         for i in range(count):
-            emodel_id = add_db(
-                db,
-                EModel(
-                    name=f"{i}",
-                    description=f"{i}_description",
-                    brain_region_id=brain_region_id,
-                    species_id=species_id,
-                    strain_id=strain_id,
-                    exemplar_morphology_id=morphology_id,
-                    authorized_public=False,
-                    authorized_project_id=PROJECT_ID,
-                ),
-            ).id
+            emodel_id = assert_request(
+                client.post,
+                url="/emodel",
+                json={
+                    "name": f"{i}",
+                    "brain_region_id": str(brain_region_id),
+                    "description": f"{i}_description",
+                    "species_id": str(species_id),
+                    "strain_id": str(strain_id),
+                    "iteration": "test iteration",
+                    "score": -1,
+                    "seed": -1,
+                    "exemplar_morphology_id": str(morphology_id),
+                    "authorized_public": False,
+                },
+            ).json()["id"]
 
             add_contributions(db, agents, emodel_id)
 
@@ -541,19 +545,21 @@ def faceted_emodel_ids(db: Session, client):
     for species_id, brain_region_id, morphology_id in it.product(
         species_ids, brain_region_ids, morphology_ids
     ):
-        emodel_id = add_db(
-            db,
-            EModel(
-                name="",
-                description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
-                brain_region_id=brain_region_id,
-                species_id=species_id,
-                strain_id=None,
-                exemplar_morphology_id=morphology_id,
-                authorized_public=False,
-                authorized_project_id=PROJECT_ID,
-            ),
-        ).id
+        emodel_id = assert_request(
+            client.post,
+            url="/emodel",
+            json={
+                "name": "",
+                "brain_region_id": str(brain_region_id),
+                "description": f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
+                "species_id": str(species_id),
+                "iteration": "test iteration",
+                "score": -1,
+                "seed": -1,
+                "exemplar_morphology_id": str(morphology_id),
+                "authorized_public": False,
+            },
+        ).json()["id"]
 
         emodel_ids.append(str(emodel_id))
 

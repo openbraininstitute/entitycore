@@ -91,23 +91,34 @@ def read_many(
     }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.species | fc.strain | synaptic_pathway_facets
+        fc.brain_region | fc.contribution | synaptic_pathway_facets
     )
+    name_to_facet_query_params |= {
+        "subject.species": {"id": Species.id, "label": Species.name},
+        "subject.strain": {"id": Strain.id, "label": Strain.name},
+    }
 
     db_cls = ExperimentalSynapsesPerConnection
 
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, db_cls.brain_region_id == BrainRegion.id)
-        .join(pre_mtype_alias, db_cls.pre_mtype_id == pre_mtype_alias.id)
-        .join(post_mtype_alias, db_cls.post_mtype_id == post_mtype_alias.id)
-        .join(pre_region_alias, db_cls.pre_region_id == pre_region_alias.id)
-        .join(post_region_alias, db_cls.post_region_id == post_region_alias.id)
-        .outerjoin(subject_alias, db_cls.subject_id == subject_alias.id)
-        .outerjoin(Species, subject_alias.species_id == Species.id)
-        .outerjoin(Strain, subject_alias.strain_id == Strain.id)
-        .outerjoin(Contribution, db_cls.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-    )
+    filter_joins = {
+        "brain_region": lambda q: q.join(BrainRegion, db_cls.brain_region_id == BrainRegion.id),
+        "pre_mtype": lambda q: q.join(pre_mtype_alias, db_cls.pre_mtype_id == pre_mtype_alias.id),
+        "post_mtype": lambda q: q.join(
+            post_mtype_alias, db_cls.post_mtype_id == post_mtype_alias.id
+        ),
+        "pre_region": lambda q: q.join(
+            pre_region_alias, db_cls.pre_region_id == pre_region_alias.id
+        ),
+        "post_region": lambda q: q.join(
+            post_region_alias, db_cls.post_region_id == post_region_alias.id
+        ),
+        "subject": lambda q: q.outerjoin(subject_alias, db_cls.subject_id == subject_alias.id),
+        "subject.species": lambda q: q.outerjoin(Species, subject_alias.species_id == Species.id),
+        "subject.strain": lambda q: q.outerjoin(Strain, subject_alias.strain_id == Strain.id),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, db_cls.id == Contribution.entity_id
+        ).outerjoin(Agent, Contribution.agent_id == Agent.id),
+    }
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -127,11 +138,12 @@ def read_many(
             },
         },
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,
         response_schema_class=ExperimentalSynapsesPerConnectionRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )
 
 

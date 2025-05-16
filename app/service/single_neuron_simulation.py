@@ -73,12 +73,17 @@ def read_many(
         "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
     }
 
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, SingleNeuronSimulation.brain_region_id == BrainRegion.id)
-        .outerjoin(Contribution, SingleNeuronSimulation.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-        .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)
-    )
+    filter_joins = {
+        "brain_region": lambda q: q.join(
+            BrainRegion, SingleNeuronSimulation.brain_region_id == BrainRegion.id
+        ),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, SingleNeuronSimulation.id == Contribution.entity_id
+        ).outerjoin(Agent, Contribution.agent_id == Agent.id),
+        "me_model": lambda q: q.outerjoin(
+            me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id
+        ),
+    }
     apply_data_options = lambda query: (
         query.options(
             joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes),
@@ -95,10 +100,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=apply_data_options,
         aliases={MEModel: me_model_alias},
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSimulationRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )

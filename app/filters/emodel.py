@@ -5,6 +5,7 @@ from fastapi_filter import FilterDepends, with_prefix
 from app.db.model import EModel
 from app.filters.base import CustomFilter
 from app.filters.common import (
+    BrainRegionFilterMixin,
     EntityFilterMixin,
     ETypeClassFilterMixin,
     MTypeClassFilterMixin,
@@ -15,6 +16,7 @@ from app.filters.morphology import MorphologyFilter, NestedExemplarMorphologyFil
 
 class EModelFilter(
     CustomFilter,
+    BrainRegionFilterMixin,
     EntityFilterMixin,
     MTypeClassFilterMixin,
     ETypeClassFilterMixin,

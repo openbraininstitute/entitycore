@@ -138,10 +138,7 @@ class SubjectFilterMixin:
     subject: Annotated[SubjectFilter | None, NestedSubjectFilterDep] = None
 
 
-class BrainRegionFilter(NameFilterMixin, CustomFilter):
-    # TODO: Use IdFilterMixin when brain region keys migrate from int to uuid
-    id: int | None = None
-    id__in: list[int] | None = None
+class BrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     acronym: str | None = None
     acronym__in: list[str] | None = None
     order_by: list[str] = ["name"]  # noqa: RUF012

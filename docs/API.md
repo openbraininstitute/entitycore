@@ -200,13 +200,13 @@ This is inefficient.
 Instead, one can use the following query parameters:
 
 ```
-    within_brain_region_hierachy_id: uuid.UUID | None = None
+    within_brain_region_hierarchy_id: uuid.UUID | None = None
     within_brain_region_brain_region_id: uuid.UUID | None = None
     within_brain_region_ascendants: bool = False
 ```
 
 ```
-GET /reconstruction-morphology?within_brain_region_hierachy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
+GET /reconstruction-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
 ```
 
 In other words, the name of the hierarchy, and the id which will be recursively included.

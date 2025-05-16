@@ -314,18 +314,18 @@ def test_facets(client, faceted_ids):
         {"id": str(brain_region_ids[0]), "label": "region-0", "count": 2, "type": "brain_region"},
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 2, "type": "brain_region"},
     ]
-    assert facets["single_neuron_synaptome"] == [
+    assert facets["synaptome"] == [
         {
             "id": str(synaptome_ids[0]),
             "label": "synaptome-0",
             "count": 2,
-            "type": "single_neuron_synaptome",
+            "type": "synaptome",
         },
         {
             "id": str(synaptome_ids[1]),
             "label": "synaptome-1",
             "count": 2,
-            "type": "single_neuron_synaptome",
+            "type": "synaptome",
         },
     ]
 
@@ -338,12 +338,12 @@ def test_facets(client, faceted_ids):
     assert "facets" in data
     facets = data["facets"]
 
-    assert facets["single_neuron_synaptome"] == [
+    assert facets["synaptome"] == [
         {
             "id": str(synaptome_ids[0]),
             "label": "synaptome-0",
             "count": 2,
-            "type": "single_neuron_synaptome",
+            "type": "synaptome",
         }
     ]
 

@@ -121,18 +121,22 @@ def read_many(
         },
     }
 
-    def filter_query_operations(q: sa.Select):
-        return (
-            q.join(Species, EModel.species_id == Species.id)
-            .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
-            .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)
-            .outerjoin(Contribution, EModel.id == Contribution.entity_id)
-            .outerjoin(Agent, Contribution.agent_id == Agent.id)
-            .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
-            .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-            .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
-            .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
-        )
+    filter_joins = {
+        "species": lambda q: q.join(Species, EModel.species_id == Species.id),
+        "exemplar_morphology": lambda q: q.join(
+            morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id
+        ),
+        "brain_region": lambda q: q.join(BrainRegion, EModel.brain_region_id == BrainRegion.id),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, EModel.id == Contribution.entity_id
+        ).outerjoin(Agent, Contribution.agent_id == Agent.id),
+        "mtype": lambda q: q.outerjoin(
+            MTypeClassification, EModel.id == MTypeClassification.entity_id
+        ).outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),
+        "etype": lambda q: q.outerjoin(
+            ETypeClassification, EModel.id == ETypeClassification.entity_id
+        ).outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id),
+    }
 
     return router_read_many(
         db=db,
@@ -142,10 +146,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
-        apply_filter_query_operations=filter_query_operations,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,
         response_schema_class=EModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=emodel_filter,
+        filter_joins=filter_joins,
     )

@@ -82,13 +82,20 @@ def read_many(
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
         fc.brain_region | fc.contribution | memodel_alias_facets_params | created_by_facet
     )
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)
-        .outerjoin(Contribution, SingleNeuronSynaptome.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-        .outerjoin(created_by_alias, SingleNeuronSynaptome.createdBy_id == created_by_alias.id)
-        .outerjoin(me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id)
-    )
+    filter_joins = {
+        "brain_region": lambda q: q.join(
+            BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id
+        ),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, SingleNeuronSynaptome.id == Contribution.entity_id
+        ).outerjoin(Agent, Contribution.agent_id == Agent.id),
+        "createdBy": lambda q: q.outerjoin(
+            created_by_alias, SingleNeuronSynaptome.createdBy_id == created_by_alias.id
+        ),
+        "me_model": lambda q: q.outerjoin(
+            me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id
+        ),
+    }
     apply_data_query = lambda query: (
         query.options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.mtypes))
         .options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.etypes))
@@ -108,10 +115,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=apply_data_query,
         aliases={MEModel: me_model_alias, Agent: created_by_alias},
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSynaptomeRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )

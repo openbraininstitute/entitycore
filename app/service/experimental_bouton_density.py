@@ -45,20 +45,28 @@ def read_many(
 ) -> ListResponse[ExperimentalBoutonDensityRead]:
     subject = aliased(Subject, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.mtype | fc.species | fc.strain
+        fc.brain_region | fc.contribution | fc.mtype
     )
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, ExperimentalBoutonDensity.brain_region_id == BrainRegion.id)
-        .outerjoin(subject, ExperimentalBoutonDensity.subject_id == subject.id)
-        .outerjoin(Species, subject.species_id == Species.id)
-        .outerjoin(Strain, subject.strain_id == Strain.id)
-        .outerjoin(Contribution, ExperimentalBoutonDensity.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-        .outerjoin(
+    name_to_facet_query_params |= {
+        "subject.species": {"id": Species.id, "label": Species.name},
+        "subject.strain": {"id": Strain.id, "label": Strain.name},
+    }
+    filter_joins = {
+        "brain_region": lambda q: q.join(
+            BrainRegion, ExperimentalBoutonDensity.brain_region_id == BrainRegion.id
+        ),
+        "subject": lambda q: q.outerjoin(
+            subject, ExperimentalBoutonDensity.subject_id == subject.id
+        ),
+        "subject.species": lambda q: q.outerjoin(Species, subject.species_id == Species.id),
+        "subject.strain": lambda q: q.outerjoin(Strain, subject.strain_id == Strain.id),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, ExperimentalBoutonDensity.id == Contribution.entity_id
+        ).outerjoin(Agent, Contribution.agent_id == Agent.id),
+        "mtype": lambda q: q.outerjoin(
             MTypeClassification, ExperimentalBoutonDensity.id == MTypeClassification.entity_id
-        )
-        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-    )
+        ).outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),
+    }
     apply_data_options = lambda query: (
         query.options(joinedload(ExperimentalBoutonDensity.brain_region))
         .options(
@@ -83,12 +91,13 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=apply_data_options,
         aliases={Subject: subject},
         pagination_request=pagination_request,
         response_schema_class=ExperimentalBoutonDensityRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )
 
 

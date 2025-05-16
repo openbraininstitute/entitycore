@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.model import ValidationStatus
+from app.schemas.agent import AgentRead
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
     AuthorizationMixin,
@@ -57,3 +58,5 @@ class MEModelRead(
     etypes: list[ETypeClassRead] | None
     morphology: ReconstructionMorphologyRead
     emodel: EModelRead
+    createdBy: AgentRead | None
+    updatedBy: AgentRead | None

@@ -145,7 +145,7 @@ def create_annotation(annotation_, entity_id, db):
             # 'contribution': {'@type': 'Contribution',
             #                  'agent': {'@id': 'https://bbp.epfl.ch/nexus/v1/realms/bbp/users/foobar',
             #                            '@type': ['Agent', 'Person'],
-            #                            'family_name': 'Bar', 'given_name': 'Foo'}},
+            #                            'familyName': 'Bar', 'givenName': 'Foo'}},
             contribution = annotation_["contribution"]
             assert contribution["@type"] == "Contribution"
             legacy_id = contribution["agent"]["@id"]
@@ -348,8 +348,8 @@ class ImportAgent(Import):
                 if not db_agent:
                     try:
                         data = curate.curate_person(data)
-                        given_name = data["given_name"]
-                        family_name = data["family_name"]
+                        given_name = data["givenName"]
+                        family_name = data["familyName"]
                         label = f"{given_name} {family_name}"
                         db_agent = (
                             db.query(Person)
@@ -368,8 +368,8 @@ class ImportAgent(Import):
                             db_agent = Person(
                                 legacy_id=[legacy_id],
                                 legacy_self=[legacy_self],
-                                given_name=data["given_name"],
-                                family_name=data["family_name"],
+                                given_name=data["givenName"],
+                                family_name=data["familyName"],
                                 pref_label=label,
                                 creation_date=createdAt,
                                 update_date=updatedAt,

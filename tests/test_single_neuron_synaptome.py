@@ -20,20 +20,18 @@ from .utils import (
 )
 from tests.conftest import CreateIds
 
+MODEL = SingleNeuronSynaptome
 ROUTE = "/single-neuron-synaptome"
 
 
 @pytest.fixture
-def json_data(brain_region_id, memodel_id, agents):
-    organization, person, _ = agents
+def json_data(brain_region_id, memodel_id):
     return {
         "name": "my-synaptome",
         "description": "my-description",
         "me_model_id": str(memodel_id),
         "seed": 1,
         "brain_region_id": str(brain_region_id),
-        "createdBy_id": str(person.id),
-        "updatedBy_id": str(organization.id),
     }
 
 
@@ -46,8 +44,7 @@ def _assert_read_response(data, json_data):
     assert len(data["contributions"]) == 2
     assert len(data["me_model"]["mtypes"]) == 1
     assert len(data["me_model"]["etypes"]) == 1
-    assert data["createdBy"]["id"] == json_data["createdBy_id"]
-    assert data["updatedBy"]["id"] == json_data["updatedBy_id"]
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
     assert data["type"] == EntityType.single_neuron_synaptome
     assert "assets" in data
 
@@ -58,16 +55,20 @@ def _assert_create_response(data, json_data):
     assert data["name"] == "my-synaptome"
     assert data["me_model"]["id"] == json_data["me_model_id"]
     assert data["authorized_project_id"] == PROJECT_ID
-
-
-def _create_id(db, data):
-    return add_db(db, SingleNeuronSynaptome(**data)).id
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 @pytest.fixture
-def model_id(db, json_data, agents):
-    data = json_data | {"authorized_project_id": PROJECT_ID}
-    model_id = _create_id(db, data)
+def create_id(client, json_data):
+    def _create_id(**kwargs):
+        return assert_request(client.post, url=ROUTE, json=json_data | kwargs).json()["id"]
+
+    return _create_id
+
+
+@pytest.fixture
+def model_id(db, create_id, agents):
+    model_id = create_id()
 
     agent_1, agent_2, role = agents
     add_db(db, Contribution(agent_id=agent_1.id, role_id=role.id, entity_id=model_id))
@@ -243,7 +244,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
 
 
 @pytest.fixture
-def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, agents):
+def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, create_id):
     brain_region_ids = [
         create_brain_region(
             db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
@@ -252,26 +253,22 @@ def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, ag
     ]
     memodel_ids = create_memodel_ids(2)
     single_simulation_synaptome_ids = [
-        _create_id(
-            db,
-            {
-                "name": f"synaptome-{i}",
-                "description": f"brain-region-{brain_region_id} me-model-{memodel_id}",
-                "me_model_id": str(memodel_id),
-                "seed": i,
-                "brain_region_id": str(brain_region_id),
-                "authorized_project_id": PROJECT_ID,
-                "createdBy_id": str(agents[1].id),
-                "updatedBy_id": str(agents[0].id),
-            },
+        create_id(
+            name=f"synaptome-{i}",
+            description=f"brain-region-{brain_region_id} me-model-{memodel_id}",
+            me_model_id=str(memodel_id),
+            seed=i,
+            brain_region_id=str(brain_region_id),
         )
         for i, (memodel_id, brain_region_id) in enumerate(it.product(memodel_ids, brain_region_ids))
     ]
-    return brain_region_ids, memodel_ids, agents, single_simulation_synaptome_ids
+    return brain_region_ids, memodel_ids, single_simulation_synaptome_ids
 
 
-def test_facets(client, faceted_ids):
-    brain_region_ids, memodel_ids, agents, _ = faceted_ids
+def test_facets(db, client, faceted_ids):
+    brain_region_ids, memodel_ids, syn_ids = faceted_ids
+
+    agent = db.get(MODEL, syn_ids[0]).createdBy
 
     data = assert_request(
         client.get,
@@ -312,7 +309,10 @@ def test_facets(client, faceted_ids):
             },
         ],
         "createdBy": [
-            {"id": str(agents[1].id), "label": "test_person_1", "count": 4, "type": "person"}
+            {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
+        ],
+        "updatedBy": [
+            {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
         ],
     }
 

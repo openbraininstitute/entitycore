@@ -39,8 +39,8 @@ def test_create_contribution(
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["givenName"] == "jd"
-    assert data["agent"]["familyName"] == "courcol"
+    assert data["agent"]["given_name"] == "jd"
+    assert data["agent"]["family_name"] == "courcol"
     assert data["agent"]["pref_label"] == "jd courcol"
     assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == str(role_id)
@@ -54,8 +54,8 @@ def test_create_contribution(
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["givenName"] == "jd"
-    assert data["agent"]["familyName"] == "courcol"
+    assert data["agent"]["given_name"] == "jd"
+    assert data["agent"]["family_name"] == "courcol"
     assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
@@ -215,7 +215,7 @@ def test_contribution_facets(
     brain_region_id,
 ):
     person = add_db(
-        db, Person(givenName="givenName", familyName="FamilyName", pref_label="person_pref_label")
+        db, Person(given_name="GivenName", family_name="FamilyName", pref_label="person_pref_label")
     )
     person_role = add_db(db, Role(name="PersonRoleName", role_id="role_id"))
 

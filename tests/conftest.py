@@ -235,8 +235,8 @@ def _db_cleanup(db):
 @pytest.fixture
 def person_id(db):
     row = Person(
-        givenName="jd",
-        familyName="courcol",
+        given_name="jd",
+        family_name="courcol",
         pref_label="jd courcol",
     )
     db.add(row)
@@ -380,7 +380,8 @@ def agents(db: Session):
         db, Organization(pref_label="test_organization_1", alternative_name="alt name 1")
     )
     person_1 = add_db(
-        db, Person(pref_label="test_person_1", givenName="given name 1", familyName="family name 1")
+        db,
+        Person(pref_label="test_person_1", given_name="given name 1", family_name="family name 1"),
     )
     role = add_db(db, Role(role_id=1, name="test role"))
 

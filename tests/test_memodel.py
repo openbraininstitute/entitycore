@@ -4,7 +4,7 @@ import uuid
 from fastapi.testclient import TestClient
 
 from app.db.model import MEModel
-from app.schemas.me_model import MEModelRead
+from app.schemas.me_model import MEModelWithSimulationsRead
 
 from .conftest import CreateIds, MEModels
 from .utils import (
@@ -28,7 +28,7 @@ def test_get_memodel(client: TestClient, memodel_id):
     assert "strain" in data
     assert "mtypes" in data
     assert "etypes" in data
-    MEModelRead.model_validate(data)
+    MEModelWithSimulationsRead.model_validate(data)
 
 
 def test_missing(client):

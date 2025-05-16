@@ -1,8 +1,5 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
-from app.db.types import SingleNeuronSimulationStatus
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
@@ -12,19 +9,10 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    SingleNeuronSimulationBase,
 )
 from app.schemas.me_model import NestedMEModel
 from app.schemas.synaptome import NestedSynaptome
-
-
-class SingleNeuronSimulationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
-    seed: int
-    status: SingleNeuronSimulationStatus
-    injectionLocation: list[str]
-    recordingLocation: list[str]
 
 
 class SingleNeuronSimulationCreate(

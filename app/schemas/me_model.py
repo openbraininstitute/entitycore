@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.db.model import ValidationStatus
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
+from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
@@ -11,6 +12,7 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    SingleNeuronSimulationBase,
     SpeciesRead,
     StrainRead,
 )
@@ -57,3 +59,11 @@ class MEModelRead(
     etypes: list[ETypeClassRead] | None
     morphology: ReconstructionMorphologyRead
     emodel: EModelRead
+
+
+class NestedSingleNeuronSimulation(SingleNeuronSimulationBase, IdentifiableMixin, AssetsMixin):
+    pass
+
+
+class MEModelWithSimulationsRead(MEModelRead):
+    simulations: list[NestedSingleNeuronSimulation]

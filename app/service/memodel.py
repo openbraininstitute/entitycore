@@ -8,7 +8,6 @@ from sqlalchemy.orm import (
     raiseload,
     selectinload,
 )
-from sqlalchemy.sql.selectable import Select
 
 from app.db.model import (
     Agent,
@@ -23,6 +22,7 @@ from app.db.model import (
     ReconstructionMorphology,
     Species,
     Strain,
+    SingleNeuronSimulation,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -35,14 +35,14 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.memodel import MEModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
-from app.schemas.me_model import MEModelCreate, MEModelRead
-from app.schemas.types import ListResponse
+from app.schemas.me_model import MEModelCreate, MEModelRead, MEModelWithSimulationsRead
+from app.schemas.types import ListResponse, Select
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-def _load(select: Select):
+def _load(select: Select[MEModel]):
     return select.options(
         joinedload(MEModel.species),
         joinedload(MEModel.strain),
@@ -77,13 +77,18 @@ def _load(select: Select):
 
 
 def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> MEModelRead:
+    def apply_operations(select: Select[MEModel]):
+        return _load(select).options(
+            selectinload(MEModel.simulations).selectinload(SingleNeuronSimulation.assets)
+        )
+
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=MEModel,
         authorized_project_id=user_context.project_id,
-        response_schema_class=MEModelRead,
-        apply_operations=_load,
+        response_schema_class=MEModelWithSimulationsRead,
+        apply_operations=apply_operations,
     )
 
 

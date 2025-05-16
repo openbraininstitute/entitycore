@@ -360,10 +360,7 @@ class Entity(LegacyMixin, Identifiable):
 
     contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
     assets: Mapped[list["Asset"]] = relationship(
-        "Asset",
-        foreign_keys="Asset.entity_id",
-        uselist=True,
-        viewonly=True,
+        "Asset", foreign_keys="Asset.entity_id", uselist=True, viewonly=True, lazy="selectin"
     )
 
     __mapper_args__ = {  # noqa: RUF012
@@ -494,6 +491,9 @@ class MEModel(
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
+    simulations = relationship(
+        "SingleNeuronSimulation", foreign_keys="[SingleNeuronSimulation.me_model_id]", uselist=True
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

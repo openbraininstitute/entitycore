@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-from app.db.types import EntityType
+from app.db.types import EntityType, SingleNeuronSimulationStatus
 
 
 class EntityTypeMixin(BaseModel):
@@ -109,3 +109,13 @@ class LicensedCreateMixin(BaseModel):
 class LicensedReadMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     license: LicenseRead | None
+
+
+class SingleNeuronSimulationBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    name: str
+    description: str
+    seed: int
+    status: SingleNeuronSimulationStatus
+    injectionLocation: list[str]
+    recordingLocation: list[str]

@@ -27,21 +27,7 @@ class PublishedInType(BaseModel):
 
 from app.filters.common import BrainRegionFilterMixin
 
-#class ScientificArtifactMixin(BaseModel,BrainRegionFilterMixin):
-#    name :str
-#    description:str  
-#    subject_id : uuid.UUID | None = None
-#    license_id: uuid.UUID | None = None #only needed when public 
-#    experiment_date: date | None = None 
-#    PublishedIn : PublishedInType
-#    validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
-#    contact_id : uuid.UUID | None = None
-
-#    class Config:
-#        from_attributes = True  # Allow mapping from SQLAlchemy objects
-
-
-class ScientificArtifactCreate(BaseModel,BrainRegionFilterMixin):
+class ScientificArtifactCreate(BrainRegionFilterMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: Optional[str] = None
@@ -53,32 +39,11 @@ class ScientificArtifactCreate(BaseModel,BrainRegionFilterMixin):
     updatedBy_id: Optional[UUID] = None
     experiment_date: date | None = None 
     published_in : PublishedInType
-    validation_tags: dict[str, bool] #This is a dict{“properties_check”: T/F} (determined by a script not a user input. Should this be here or an annotation?) 
     contact_id : uuid.UUID | None = None
 
 
 class ScientificArtifactRead(ScientificArtifactCreate,BrainRegionFilterMixin):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
-    creation_date: str
-    update_date: Optional[str] = None
-
-
-#class ScientificArtifactCreate(ScientificArtifactBase):
-#    pass
-
-#class ScientificArtifactRead(ScientificArtifactBase):
-#    id: UUID
-#    creation_date: datetime
-#    update_date: datetime
-#    authorized_project_id: Optional[UUID] = None
-#    license: Optional[LicenseRead] = None
-#    contributions: List[ContributionRead] = []
-#    assets: List[AssetRead] = []
-
-#    class Config:
-#        from_attributes = True
-
-
-
-
+    creation_date: datetime
+    update_date: Optional[datetime] = None

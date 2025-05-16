@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import PointLocationBase
+from app.schemas.agent import AgentRead
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -54,6 +55,8 @@ class ReconstructionMorphologyRead(
     brain_region: BrainRegionRead
     contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
+    createdBy: AgentRead | None
+    updatedBy: AgentRead | None
 
 
 class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):

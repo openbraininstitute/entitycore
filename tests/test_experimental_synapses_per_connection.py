@@ -46,6 +46,7 @@ def _assert_read_response(data, json_data):
     assert data["pre_region"]["id"] == json_data["pre_region_id"]
     assert data["post_region"]["id"] == json_data["post_region_id"]
     assert data["type"] == EntityType.experimental_synapses_per_connection
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 @pytest.fixture
@@ -88,6 +89,7 @@ def test_read_one(client, model_id, json_data):
 
     data = assert_request(client.get, url=ROUTE).json()
     assert len(data["data"]) == 1
+    _assert_read_response(data["data"][0], json_data)
 
 
 def test_missing(client):

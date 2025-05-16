@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import MeasurementUnit
+from app.schemas.agent import AgentRead
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
@@ -54,6 +55,8 @@ class ExperimentalDensityRead(
     assets: list[AssetRead] | None
     contributions: list[ContributionReadWithoutEntity] | None
     brain_region: BrainRegionRead
+    createdBy: AgentRead | None
+    updatedBy: AgentRead | None
 
 
 class ExperimentalNeuronDensityCreate(ExperimentalDensityCreate):

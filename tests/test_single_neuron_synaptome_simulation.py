@@ -106,8 +106,7 @@ def _create_simulation_id(
 
 @pytest.fixture
 def simulation_id(client, json_data):
-    data = json_data | {"authorized_project_id": PROJECT_ID}
-    return _create_simulation_id(client, **data)
+    return _create_simulation_id(client, **json_data)
 
 
 def test_create_one(client, json_data, brain_region_id, synaptome_id):

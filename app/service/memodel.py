@@ -76,7 +76,9 @@ def _load(select: Select[MEModel]):
     )
 
 
-def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep):
+def read_one(
+    db: SessionDep, id_: uuid.UUID, user_context: UserContextDep
+) -> MEModelWithSimulationsRead:
     def apply_operations(select: Select[MEModel]):
         return _load(select).options(
             selectinload(MEModel.simulations).selectinload(SingleNeuronSimulation.assets)

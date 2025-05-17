@@ -348,14 +348,14 @@ class ImportAgent(Import):
                 if not db_agent:
                     try:
                         data = curate.curate_person(data)
-                        givenName = data["givenName"]
-                        familyName = data["familyName"]
-                        label = f"{givenName} {familyName}"
+                        given_name = data["givenName"]
+                        family_name = data["familyName"]
+                        label = f"{given_name} {family_name}"
                         db_agent = (
                             db.query(Person)
                             .filter(
-                                Person.givenName == givenName,
-                                Person.familyName == familyName,
+                                Person.given_name == given_name,
+                                Person.family_name == family_name,
                             )
                             .first()
                         )
@@ -368,8 +368,8 @@ class ImportAgent(Import):
                             db_agent = Person(
                                 legacy_id=[legacy_id],
                                 legacy_self=[legacy_self],
-                                givenName=data["givenName"],
-                                familyName=data["familyName"],
+                                given_name=data["givenName"],
+                                family_name=data["familyName"],
                                 pref_label=label,
                                 creation_date=createdAt,
                                 update_date=updatedAt,

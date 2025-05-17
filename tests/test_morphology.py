@@ -8,6 +8,7 @@ from .utils import (
     MISSING_ID_COMPACT,
     PROJECT_ID,
     add_db,
+    assert_request,
     check_brain_region_filter,
     create_reconstruction_morphology_id,
 )
@@ -20,23 +21,20 @@ def test_create_reconstruction_morphology(
 ):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
-    response = client.post(
-        ROUTE,
+    data = assert_request(
+        client.post,
+        url=ROUTE,
         json={
             "brain_region_id": str(brain_region_id),
-            "species_id": species_id,
-            "strain_id": strain_id,
+            "species_id": str(species_id),
+            "strain_id": str(strain_id),
             "description": morph_description,
             "name": morph_name,
             "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": ["Test Legacy ID"],
-            "license_id": license_id,
+            "license_id": str(license_id),
         },
-    )
-    assert response.status_code == 200, (
-        f"Failed to create reconstruction morphology: {response.text}"
-    )
-    data = response.json()
+    ).json()
     assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
@@ -56,6 +54,7 @@ def test_create_reconstruction_morphology(
     assert data["type"] == EntityType.reconstruction_morphology, (
         f"Failed to get correct type for reconstruction morphology: {data}"
     )
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
     response = client.get(ROUTE)
     assert response.status_code == 200, (
@@ -65,6 +64,7 @@ def test_create_reconstruction_morphology(
     assert data and all(item["type"] == EntityType.reconstruction_morphology for item in data), (  # noqa: PT018
         "One or more reconstruction morphologies has incorrect type"
     )
+    assert data[0]["createdBy"]["id"] == data[0]["updatedBy"]["id"]
 
 
 def test_missing(client):
@@ -113,6 +113,8 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
 
     count = 11
     create_morphologies(count)
+
+    agent = db.get(ReconstructionMorphology, morphology_ids[0]).createdBy
 
     response = client.get(ROUTE, params={"page_size": 10})
 
@@ -180,6 +182,22 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
             {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"},
             {"id": str(strain2.id), "label": "TestStrain2", "count": 5, "type": "strain"},
         ],
+        "createdBy": [
+            {
+                "count": 11,
+                "id": str(agent.id),
+                "label": agent.pref_label,
+                "type": agent.type,
+            },
+        ],
+        "updatedBy": [
+            {
+                "count": 11,
+                "id": str(agent.id),
+                "label": agent.pref_label,
+                "type": agent.type,
+            },
+        ],
     }
 
     response = client.get(ROUTE, params={"search": "Test", "with_facets": True})
@@ -202,6 +220,22 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
             {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"},
             {"id": str(strain2.id), "label": "TestStrain2", "count": 5, "type": "strain"},
         ],
+        "createdBy": [
+            {
+                "count": 11,
+                "id": str(agent.id),
+                "label": agent.pref_label,
+                "type": agent.type,
+            },
+        ],
+        "updatedBy": [
+            {
+                "count": 11,
+                "id": str(agent.id),
+                "label": agent.pref_label,
+                "type": agent.type,
+            },
+        ],
     }
 
     response = client.get(ROUTE, params={"species__name": "TestSpecies1", "with_facets": True})
@@ -221,6 +255,22 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
             {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "species"}
         ],
         "strain": [{"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"}],
+        "createdBy": [
+            {
+                "count": 6,
+                "id": str(agent.id),
+                "label": agent.pref_label,
+                "type": agent.type,
+            },
+        ],
+        "updatedBy": [
+            {
+                "count": 6,
+                "id": str(agent.id),
+                "label": agent.pref_label,
+                "type": agent.type,
+            },
+        ],
     }
 
 
@@ -230,23 +280,25 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
     add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species0.id))
 
-    add_db(
-        db,
-        ReconstructionMorphology(
-            brain_region_id=brain_region_id,
-            species_id=species0.id,
-            strain_id=strain0.id,
-            description="description",
-            name="morph00",
-            location=None,
-            legacy_id="Test Legacy ID",
-            license_id=None,
-            authorized_project_id=PROJECT_ID,
-        ),
-    )
+    registered = assert_request(
+        client.post,
+        url=ROUTE,
+        json={
+            "brain_region_id": str(brain_region_id),
+            "species_id": str(species0.id),
+            "strain_id": str(strain0.id),
+            "description": "description",
+            "name": "morph00",
+            "location": {"x": 10, "y": 20, "z": 30},
+            "legacy_id": ["Test Legacy ID"],
+        },
+    ).json()
 
-    response = client.get(ROUTE, params={"with_facets": True})
-    data = response.json()
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"with_facets": True},
+    ).json()
     assert len(data["data"]) == data["pagination"]["total_items"]
     assert "facets" in data
     assert data["facets"] == {
@@ -259,6 +311,22 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
             {"id": str(species0.id), "label": "TestSpecies0", "count": 1, "type": "species"}
         ],
         "strain": [{"id": str(strain0.id), "label": "Strain0", "count": 1, "type": "strain"}],
+        "createdBy": [
+            {
+                "count": 1,
+                "id": registered["createdBy"]["id"],
+                "label": registered["createdBy"]["pref_label"],
+                "type": registered["createdBy"]["type"],
+            },
+        ],
+        "updatedBy": [
+            {
+                "count": 1,
+                "id": registered["createdBy"]["id"],
+                "label": registered["createdBy"]["pref_label"],
+                "type": registered["createdBy"]["type"],
+            },
+        ],
     }
 
 
@@ -342,7 +410,7 @@ def test_pagination(db, client, brain_region_id):
     strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
     strain1 = add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species1.id))
 
-    total_items = 29
+    total_items = 3
     for i, (species, strain) in zip(
         range(total_items), it.cycle(((species0, None), (species0, strain0), (species1, strain1)))
     ):

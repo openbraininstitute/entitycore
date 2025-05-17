@@ -1,5 +1,6 @@
 import uuid
 
+import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
@@ -32,6 +33,20 @@ from app.schemas.electrical_cell_recording import (
 from app.schemas.types import ListResponse
 
 
+def _load(query: sa.Select):
+    return query.options(
+        joinedload(ElectricalCellRecording.license),
+        joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
+        joinedload(ElectricalCellRecording.subject),
+        joinedload(ElectricalCellRecording.brain_region),
+        joinedload(ElectricalCellRecording.createdBy),
+        joinedload(ElectricalCellRecording.updatedBy),
+        selectinload(ElectricalCellRecording.assets),
+        selectinload(ElectricalCellRecording.stimuli),
+        raiseload("*"),
+    )
+
+
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,
@@ -43,15 +58,7 @@ def read_one(
         db_model_class=ElectricalCellRecording,
         authorized_project_id=user_context.project_id,
         response_schema_class=ElectricalCellRecordingRead,
-        apply_operations=lambda q: q.options(
-            joinedload(ElectricalCellRecording.license),
-            joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
-            joinedload(ElectricalCellRecording.subject),
-            joinedload(ElectricalCellRecording.brain_region),
-            selectinload(ElectricalCellRecording.assets),
-            selectinload(ElectricalCellRecording.stimuli),
-            raiseload("*"),
-        ),
+        apply_operations=_load,
     )
 
 
@@ -63,8 +70,8 @@ def create_one(
     return router_create_one(
         db=db,
         json_model=json_model,
+        user_context=user_context,
         db_model_class=ElectricalCellRecording,
-        authorized_project_id=user_context.project_id,
         response_schema_class=ElectricalCellRecordingRead,
     )
 
@@ -79,6 +86,8 @@ def read_many(
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ElectricalCellRecordingRead]:
     agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
     protocol_alias = aliased(ElectricalRecordingStimulus, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
@@ -87,6 +96,16 @@ def read_many(
             "type": agent_alias.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
+        "createdBy": {
+            "id": created_by_alias.id,
+            "label": created_by_alias.pref_label,
+            "type": created_by_alias.type,
+        },
+        "updatedBy": {
+            "id": updated_by_alias.id,
+            "label": updated_by_alias.pref_label,
+            "type": updated_by_alias.type,
+        },
     }
     apply_filter_query = lambda query: (
         query.join(BrainRegion, ElectricalCellRecording.brain_region_id == BrainRegion.id)
@@ -96,15 +115,8 @@ def read_many(
             ElectricalCellRecording.id == protocol_alias.recording_id,
         )
         .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-    )
-    apply_data_query = lambda query: (
-        query.options(joinedload(ElectricalCellRecording.subject).joinedload(Subject.species))
-        .options(joinedload(ElectricalCellRecording.subject))
-        .options(joinedload(ElectricalCellRecording.brain_region))
-        .options(joinedload(ElectricalCellRecording.license))
-        .options(selectinload(ElectricalCellRecording.assets))
-        .options(selectinload(ElectricalCellRecording.stimuli))
-        .options(raiseload("*"))
+        .outerjoin(created_by_alias, ElectricalCellRecording.createdBy_id == created_by_alias.id)
+        .outerjoin(updated_by_alias, ElectricalCellRecording.updatedBy_id == updated_by_alias.id)
     )
     return router_read_many(
         db=db,
@@ -115,8 +127,15 @@ def read_many(
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,
-        apply_data_query_operations=apply_data_query,
-        aliases={Agent: agent_alias, ElectricalRecordingStimulus: protocol_alias},
+        apply_data_query_operations=_load,
+        aliases={
+            Agent: {
+                "contribution": agent_alias,
+                "createdBy": created_by_alias,
+                "updatedBy": updated_by_alias,
+            },
+            ElectricalRecordingStimulus: protocol_alias,
+        },
         pagination_request=pagination_request,
         response_schema_class=ElectricalCellRecordingRead,
         authorized_project_id=user_context.project_id,

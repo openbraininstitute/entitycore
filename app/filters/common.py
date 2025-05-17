@@ -102,12 +102,14 @@ NestedMTypeClassFilterDep = FilterDepends(with_prefix("mtype", MTypeClassFilter)
 NestedETypeClassFilterDep = FilterDepends(with_prefix("etype", ETypeClassFilter))
 NestedSpeciesFilterDep = FilterDepends(with_prefix("species", SpeciesFilter))
 NestedStrainFilterDep = FilterDepends(with_prefix("strain", StrainFilter))
-NestedAgentFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
+NestedContributionFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
+NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", AgentFilter))
+NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", AgentFilter))
 
 
 class CreatorFilterMixin:
-    createdBy: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
-    updatedBy: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
+    createdBy: Annotated[AgentFilter | None, NestedCreatedByFilterDep] = None
+    updatedBy: Annotated[AgentFilter | None, NestedUpdatedByFilterDep] = None
 
 
 class SpeciesFilterMixin:
@@ -117,7 +119,7 @@ class SpeciesFilterMixin:
 
 
 class ContributionFilterMixin:
-    contribution: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
+    contribution: Annotated[AgentFilter | None, NestedContributionFilterDep] = None
 
 
 class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin, CustomFilter):

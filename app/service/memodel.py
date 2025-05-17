@@ -20,9 +20,9 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
+    SingleNeuronSimulation,
     Species,
     Strain,
-    SingleNeuronSimulation,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -76,7 +76,7 @@ def _load(select: Select[MEModel]):
     )
 
 
-def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> MEModelRead:
+def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep):
     def apply_operations(select: Select[MEModel]):
         return _load(select).options(
             selectinload(MEModel.simulations).selectinload(SingleNeuronSimulation.assets)

@@ -12,6 +12,7 @@ from app.db.model import (
     ETypeClass,
     ETypeClassification,
     IonChannelModel,
+    IonChannelModelToEModel,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
@@ -46,6 +47,11 @@ def _load(select: sa.Select[tuple[EModel]]):
         selectinload(EModel.contributions).joinedload(Contribution.role),
         joinedload(EModel.mtypes),
         joinedload(EModel.etypes),
+        selectinload(EModel.assets),
+        selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.species),
+        selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
+        selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
+        selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
         raiseload("*"),
     )
 
@@ -55,23 +61,13 @@ def read_one(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> EModelReadExpanded:
-    def _load_expanded(select: sa.Select[tuple[EModel]]):
-        return _load(select).options(
-            selectinload(EModel.assets),
-            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.species),
-            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
-            selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
-            selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
-            raiseload("*"),
-        )
-
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=EModel,
         authorized_project_id=user_context.project_id,
         response_schema_class=EModelReadExpanded,
-        apply_operations=_load_expanded,
+        apply_operations=_load,
     )
 
 
@@ -99,10 +95,12 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[EModelRead]:
+) -> ListResponse[EModelReadExpanded]:
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
+    ion_channel_model_alias = aliased(IonChannelModel, flat=True)
     aliases: Aliases = {
         ReconstructionMorphology: morphology_alias,
+        IonChannelModel: ion_channel_model_alias,
     }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -132,6 +130,8 @@ def read_many(
             .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
             .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
             .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
+            .outerjoin(IonChannelModelToEModel, EModel.id == IonChannelModelToEModel.emodel_id)
+            .outerjoin(ion_channel_model_alias, ion_channel_model_alias.id == IonChannelModelToEModel.ion_channel_model_id)
         )
 
     return router_read_many(
@@ -145,7 +145,7 @@ def read_many(
         apply_filter_query_operations=filter_query_operations,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,
-        response_schema_class=EModelRead,
+        response_schema_class=EModelReadExpanded,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=emodel_filter,
     )

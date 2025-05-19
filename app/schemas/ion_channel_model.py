@@ -8,6 +8,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     BrainRegionRead,
     CreationMixin,
+    EntityTypeMixin,
     IdentifiableMixin,
     SpeciesRead,
     StrainRead,
@@ -49,7 +50,7 @@ class IonChannelModelCreate(IonChannelModelBase, AuthorizationOptionalPublicMixi
 
 
 class IonChannelModelRead(
-    IonChannelModelBase, CreationMixin, IdentifiableMixin, AuthorizationMixin
+    IonChannelModelBase, CreationMixin, IdentifiableMixin, AuthorizationMixin, EntityTypeMixin
 ):
     species: SpeciesRead
     strain: StrainRead | None

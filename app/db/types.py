@@ -187,6 +187,8 @@ class AssetLabel(StrEnum):
     hdf5 = auto()
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
+    single_neuron_synaptome_config = auto()
+    single_neuron_synaptome_simulation_io_result = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -198,5 +200,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
     EntityType.cell_composition: {
         AssetLabel.cell_composition_summary,
         AssetLabel.cell_composition_volumes,
+    },
+    EntityType.single_neuron_synaptome: {AssetLabel.single_neuron_synaptome_config},
+    EntityType.single_neuron_synaptome_simulation: {
+        AssetLabel.single_neuron_synaptome_simulation_io_result
     },
 }

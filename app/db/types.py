@@ -198,16 +198,6 @@ class AssetLabel(StrEnum):
     single_cell_simulation_data = auto()
 
 
-class CircuitScale(StrEnum):
-    single = auto()
-    pair = auto()
-    tiny = auto()
-    microcircuit = auto()
-    region = auto()
-    system = auto()
-    whole_brain = auto()
-
-
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
     EntityType.reconstruction_morphology: {
         AssetLabel.neurolucida,
@@ -224,3 +214,20 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
     },
     EntityType.single_neuron_simulation: {AssetLabel.single_cell_simulation_data},
 }
+
+
+class CircuitBuildCategory(StrEnum):
+    data_driven_model = auto()
+    statistical_model = auto()
+    em_reconstruction = auto()
+    # TODO: Add & refine categories
+
+
+class CircuitScale(StrEnum):
+    single = auto()
+    pair = auto()
+    tiny = auto()
+    microcircuit = auto()
+    region = auto()
+    system = auto()
+    whole_brain = auto()

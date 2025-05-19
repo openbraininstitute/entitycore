@@ -41,6 +41,7 @@ from app.db.types import (
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
+    CircuitBuildCategory,
     CircuitScale,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
@@ -1052,18 +1053,40 @@ class ScientificArtifactPublicationLink(Identifiable):
 
 class Circuit(ScientificArtifact):
     __tablename__ = "circuit"
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
     # Derived from ScientificArtifact:
     # name: ...
     # description: ...
+    # brain_region: ...
+    # specific_brain_regions: ...
     # ...
 
-    scale: Mapped[CircuitScale]
     parent_circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True, nullable=True, default=None)
     parent_circuit: Mapped[Circuit] = relationship("Circuit", uselist=False, foreign_keys=[parent_circuit_id])
+
+    atlas_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_atlas.id"), index=True, nullable=True, default=None)
+    atlas: Mapped[BrainAtlas] = relationship("BrainAtlas", uselist=False, foreign_keys=[atlas_id])
+
+    build_category: Mapped[CircuitBuildCategory]
+    scale: Mapped[CircuitScale]
+
     has_morphologies: Mapped[bool] = mapped_column()
+    has_point_neurons: Mapped[bool] = mapped_column()
     has_electrical_cell_models: Mapped[bool] = mapped_column()
     has_spines: Mapped[bool] = mapped_column()
     is_simulatable: Mapped[bool] = mapped_column()
+
+    version: Mapped[str] = mapped_column(default="")
+
+    # TODO:
+    # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id"), index=True, nullable=False, default=None)
+    # building_workflow: Mapped[BuildingWorkflow] = relationship("BuildingWorkflow", uselist=False, foreign_keys=[building_workflow_id])
+
+    # flatmap_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flatmap.id"), index=True, nullable=True, default=None)
+    # flatmap: Mapped[FlatMap] = relationship("FlatMap", uselist=False, foreign_keys=[flatmap_id])
+
+    # connectivity_matrices: ...
+    # calibration_data: ...
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

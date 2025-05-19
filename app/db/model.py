@@ -13,20 +13,18 @@ from sqlalchemy import (
     Index,
     LargeBinary,
     MetaData,
-    String,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    Mapped,
-    declared_attr,
-    mapped_column,
-    relationship,
-    validates,
-)
+
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR, UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column, relationship
+from sqlalchemy import Column, DateTime, JSON, String, Boolean, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from uuid import uuid4
+from datetime import datetime
 
 from app.db.types import (
     BIGINT,
@@ -35,7 +33,6 @@ from app.db.types import (
     AgentType,
     AgePeriod,
     AnnotationBodyType,
-    AssetLabel,
     AssetStatus,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
@@ -48,10 +45,15 @@ from app.db.types import (
     PointLocationType,
     Sex,
     SingleNeuronSimulationStatus,
-    StructuralDomain,
     ValidationStatus,
+    MorphologyType,
 )
 from app.utils.uuid import create_uuid
+
+
+#class Project(Identifiable):
+#    __tablename__ = "project"
+#    name: Mapped[str] = mapped_column(String, nullable=False, index=True)
 
 
 class Base(DeclarativeBase):
@@ -59,7 +61,6 @@ class Base(DeclarativeBase):
         datetime: DateTime(timezone=True),
         PointLocation: PointLocationType,
     }
-    # See https://alembic.sqlalchemy.org/en/latest/naming.html
     metadata = MetaData(
         naming_convention={
             "ix": "ix_%(column_0_label)s",
@@ -88,56 +89,42 @@ class LegacyMixin:
 
 
 class Identifiable(TimestampMixin, Base):
-    __abstract__ = True  # This class is abstract and not directly mapped to a table
+    __abstract__ = True
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
 
-class BrainRegionHierarchy(Identifiable):
-    __tablename__ = "brain_region_hierarchy"
-
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-
-
-class BrainRegion(Identifiable):
-    __tablename__ = "brain_region"
-
-    annotation_value: Mapped[int] = mapped_column(BigInteger, index=True)
+class NameDescriptionVectorMixin:
+    __abstract__ = True
     name: Mapped[str] = mapped_column(index=True)
-    acronym: Mapped[str] = mapped_column(index=True)
-    color_hex_triplet: Mapped[str] = mapped_column(String(6))
-    parent_structure_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("brain_region.id"), index=True, nullable=True
-    )
+    description: Mapped[str] = mapped_column(default="")
+    description_vector: Mapped[TSVECTOR | None] = mapped_column(TSVECTOR)
 
-    hierarchy_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("brain_region_hierarchy.id"), index=True
-    )
-
-
-class Species(Identifiable):
-    __tablename__ = "species"
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-    taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
-
-
-class Strain(Identifiable):
-    __tablename__ = "strain"
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-    taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
-    species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
-    species = relationship("Species", uselist=False)
-
-    __table_args__ = (
-        # needed for the composite foreign key in SpeciesMixin
-        UniqueConstraint("id", "species_id", name="uq_strain_id_species_id"),
-    )
-
-
-class License(LegacyMixin, Identifiable):
-    __tablename__ = "license"
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-    description: Mapped[str]
-    label: Mapped[str]
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):
+        # Define the index only for classes that own the description_vector column's table
+        if cls.__name__ in (
+            "ScientificArtifact",
+            "Subject",
+            "EModel",
+            "MEModel",
+            "Mesh",
+            "SingleNeuronSynaptome",
+            "SingleNeuronSimulation",
+            "SingleNeuronSynaptomeSimulation",
+            "ExperimentalNeuronDensity",
+            "ExperimentalBoutonDensity",
+            "ExperimentalSynapsesPerConnection",
+            "AnalysisSoftwareSourceCode"
+        ):
+            return (
+                Index(
+                    f"ix_{cls.__tablename__}_description_vector",
+                    cls.description_vector,
+                    postgresql_using="gin",
+                ),
+            )
+        return getattr(super(), "__table_args__", ())
 
 
 class LicensedMixin:
@@ -150,12 +137,24 @@ class LicensedMixin:
 
 
 class LocationMixin:
-    brain_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    brain_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
 
     @declared_attr
     @classmethod
     def brain_region(cls):
-        return relationship("BrainRegion", uselist=False, foreign_keys=[cls.brain_region_id])
+        return relationship("BrainRegion", uselist=False)
+
+
+class Strain(Identifiable):
+    __tablename__ = "strain"
+    name: Mapped[str] = mapped_column(unique=True, index=True)
+    taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
+    species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
+    species = relationship("Species", uselist=False)
+    __table_args__ = (
+        UniqueConstraint("id", "species_id", name="uq_strain_id_species_id"),
+    )
+
 
 class SpeciesMixin:
     __abstract__ = True
@@ -198,84 +197,14 @@ class SpeciesMixin:
                 *getattr(super(), "__table_args__", ()),
             )
         return getattr(super(), "__table_args__", ())
-        
 
-class Agent(LegacyMixin, Identifiable):
-    __tablename__ = "agent"
-    type: Mapped[AgentType]
-    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "polymorphic_on": "type",
-    }
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
 
-
-class Person(Agent):
-    __tablename__ = AgentType.person.value
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
-    givenName: Mapped[str]
-    familyName: Mapped[str]
-
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "polymorphic_load": "selectin",
-    }
-    __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
-
-
-class Organization(Agent):
-    __tablename__ = AgentType.organization.value
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
-    # what is the difference between name and label here ?
-    alternative_name: Mapped[str]
-
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "polymorphic_load": "selectin",
-    }
-
-
-class AnnotationBody(LegacyMixin, Identifiable):
-    __tablename__ = "annotation_body"
-    type: Mapped[AnnotationBodyType]
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "polymorphic_on": "type",
-    }
-
-
-class AnnotationMixin:
-    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
-    definition: Mapped[str]
-    alt_label: Mapped[str | None]
-
-
-class ClassificationMixin:
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-
-
-class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
-    __tablename__ = "mtype_class"
-
-
-class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
-    __tablename__ = "etype_class"
-
-
-class MTypeClassification(ClassificationMixin, Identifiable):
-    __tablename__ = "mtype_classification"
-
-    mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-
-
-class ETypeClassification(ClassificationMixin, Identifiable):
-    __tablename__ = "etype_classification"
-
-    etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
 class MTypesMixin:
@@ -312,11 +241,168 @@ class ETypesMixin:
         )
 
 
+class MeasurementsMixin:
+    @declared_attr
+    @classmethod
+    def measurements(cls):
+        return relationship(
+            "Measurement",
+            foreign_keys=Measurement.entity_id,
+            uselist=True,
+        )
+
+
+class Entity(LegacyMixin, Identifiable):
+    __tablename__ = "entity"
+    type: Mapped[EntityType]
+    annotations = relationship("Annotation", back_populates="entity")
+    createdBy = relationship("Agent", uselist=False, foreign_keys="Entity.createdBy_id")
+    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updatedBy = relationship("Agent", uselist=False, foreign_keys="Entity.updatedBy_id")
+    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    authorized_project_id: Mapped[uuid.UUID]
+    authorized_public: Mapped[bool] = mapped_column(default=False)
+    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+    assets: Mapped[list["Asset"]] = relationship(
+        "Asset",
+        foreign_keys="Asset.entity_id",
+        uselist=True,
+        viewonly=True,
+    )
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
+    }
+
+
+
+class ScientificArtifact(
+    Entity,
+    SubjectMixin,
+    NameDescriptionVectorMixin,
+    SpeciesMixin,
+    LocationMixin,
+    LicensedMixin
+):
+    __tablename__ = "scientific_artifact"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    experiment_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    published_in: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    validation_tags: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
+    __table_args__ = {
+        "extend_existing": True
+    }
+    __mapper_args__ = {
+        "polymorphic_identity": EntityType.scientific_artifact,
+        "inherit_condition": id == Entity.id,
+    }
+
+    @staticmethod
+    def is_scientific_artifact(entity_type: EntityType) -> bool:
+        return entity_type in [
+            EntityType.cell_morphology,
+            EntityType.electrical_cell_recording,
+        ]
+    
+class BrainRegion(TimestampMixin, Base):
+    __tablename__ = "brain_region"
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
+    brain_region_name: Mapped[str] = mapped_column(unique=True, index=True)
+    acronym: Mapped[str] = mapped_column(unique=True, index=True)
+    children: Mapped[list[int] | None] = mapped_column(ARRAY(BigInteger))
+
+
+class Species(Identifiable):
+    __tablename__ = "species"
+    name: Mapped[str] = mapped_column(unique=True, index=True)
+    taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
+
+
+
+class License(LegacyMixin, Identifiable):
+    __tablename__ = "license"
+    name: Mapped[str] = mapped_column(unique=True, index=True)
+    description: Mapped[str]
+    label: Mapped[str]
+
+
+class Agent(LegacyMixin, Identifiable):
+    __tablename__ = "agent"
+    type: Mapped[AgentType]
+    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
+    }
+
+
+class Person(Agent):
+    __tablename__ = AgentType.person.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
+    givenName: Mapped[str]
+    familyName: Mapped[str]
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+        "polymorphic_load": "selectin",
+    }
+    __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
+
+
+class Organization(Agent):
+    __tablename__ = AgentType.organization.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
+    alternative_name: Mapped[str]
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+        "polymorphic_load": "selectin",
+    }
+
+
+class AnnotationBody(LegacyMixin, Identifiable):
+    __tablename__ = "annotation_body"
+    type: Mapped[AnnotationBodyType]
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
+    }
+
+
+class AnnotationMixin:
+    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
+    definition: Mapped[str]
+    alt_label: Mapped[str | None]
+
+
+class ClassificationMixin:
+    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+
+
+class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
+    __tablename__ = "mtype_class"
+
+
+class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
+    __tablename__ = "etype_class"
+
+
+class MTypeClassification(ClassificationMixin, Identifiable):
+    __tablename__ = "mtype_classification"
+    mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+
+
+class ETypeClassification(ClassificationMixin, Identifiable):
+    __tablename__ = "etype_classification"
+    etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
+
+
 class DataMaturityAnnotationBody(AnnotationBody):
     __tablename__ = AnnotationBodyType.datamaturity_annotation_body.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("annotation_body.id"), primary_key=True)
     pref_label: Mapped[str] = mapped_column(unique=True, index=True)
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
 
@@ -331,69 +417,6 @@ class Annotation(LegacyMixin, Identifiable):
     )
     annotation_body = relationship("AnnotationBody", uselist=False)
 
-class NameDescriptionVectorMixin:
-    __abstract__ = True
-    name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str] = mapped_column(default="")
-    description_vector: Mapped[TSVECTOR | None] = mapped_column(TSVECTOR)
-
-    @declared_attr.directive
-    @classmethod
-    def __table_args__(cls):
-        # Define the index only for classes that own the description_vector column's table
-        if cls.__name__ in (
-            "ScientificArtifact",
-            "Subject",
-            "EModel",
-            "MEModel",
-            "Mesh",
-            "SingleNeuronSynaptome",
-            "SingleNeuronSimulation",
-            "SingleNeuronSynaptomeSimulation",
-            "ExperimentalNeuronDensity",
-            "ExperimentalBoutonDensity",
-            "ExperimentalSynapsesPerConnection",
-            "AnalysisSoftwareSourceCode"
-        ):
-            return (
-                Index(
-                    f"ix_{cls.__tablename__}_description_vector",
-                    cls.description_vector,
-                    postgresql_using="gin",
-                ),
-            )
-        return getattr(super(), "__table_args__", ())
-
-class Entity(LegacyMixin, Identifiable):
-    __tablename__ = "entity"
-
-    type: Mapped[EntityType]
-    annotations = relationship("Annotation", back_populates="entity")
-
-    # TODO: keep the _ ? put on agent ?
-    createdBy = relationship("Agent", uselist=False, foreign_keys="Entity.createdBy_id")
-    # TODO: move to mandatory
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy = relationship("Agent", uselist=False, foreign_keys="Entity.updatedBy_id")
-    # TODO: move to mandatory
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-
-    authorized_project_id: Mapped[uuid.UUID]
-    authorized_public: Mapped[bool] = mapped_column(default=False)
-
-    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
-    assets: Mapped[list["Asset"]] = relationship(
-        "Asset",
-        foreign_keys="Asset.entity_id",
-        uselist=True,
-        viewonly=True,
-    )
-
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "polymorphic_on": "type",
-    }
-
 
 class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.subject.value
@@ -403,40 +426,23 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     age_max: Mapped[timedelta | None]
     age_period: Mapped[AgePeriod | None]
     sex: Mapped[Sex | None]
-    weight: Mapped[float | None]  # in grams
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class SubjectMixin:
-    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
-
-    @declared_attr
-    @classmethod
-    def subject(cls):
-        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
+    weight: Mapped[float | None]
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.analysis_software_source_code.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    # TODO: identify what is mandatory
     branch: Mapped[str] = mapped_column(default="")
     codeRepository: Mapped[str] = mapped_column(default="")
     command: Mapped[str] = mapped_column(default="")
     commit: Mapped[str] = mapped_column(default="")
-    # TODO: understand what is this
-    # configurationTemplate: Mapped[str] = mapped_column(default="")
     subdirectory: Mapped[str] = mapped_column(default="")
-    # TODO: foreign key to entity
     targetEntity: Mapped[str] = mapped_column(default="")
-    # TODO: should be enum
     programmingLanguage: Mapped[str] = mapped_column(default="")
-    # TODO: should be enum
     runtimePlatform: Mapped[str] = mapped_column(default="")
     version: Mapped[str] = mapped_column(default="")
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class Contribution(Identifiable):
@@ -447,7 +453,6 @@ class Contribution(Identifiable):
     role = relationship("Role", uselist=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
     entity = relationship("Entity", uselist=False)
-
     __table_args__ = (
         UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
     )
@@ -458,38 +463,24 @@ class EModel(
 ):
     __tablename__ = EntityType.emodel.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    # what is this
     eModel: Mapped[str] = mapped_column(default="")
-    # what is this
     eType: Mapped[str] = mapped_column(default="")
-    # what is this
     iteration: Mapped[str] = mapped_column(default="")
     score: Mapped[float] = mapped_column(default=-1)
     seed: Mapped[int] = mapped_column(default=-1)
-
     exemplar_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
+        ForeignKey(f"{EntityType.cell_morphology}.id")
     )
-
     exemplar_morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
-
-    ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
-        primaryjoin="EModel.id == IonChannelModelToEModel.emodel_id",
-        secondary="ion_channel_model__emodel",
-        uselist=True,
-        viewonly=True,
-        order_by="IonChannelModel.creation_date",
-    )
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class Mesh(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.mesh.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class MEModel(
@@ -497,144 +488,63 @@ class MEModel(
 ):
     __tablename__ = EntityType.memodel.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
     validation_status: Mapped[ValidationStatus] = mapped_column(
         Enum(ValidationStatus, name="me_model_validation_status"),
         default=ValidationStatus.created,
     )
-
     morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
+        ForeignKey(f"{EntityType.cell_morphology}.id")
     )
-
     morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[morphology_id], uselist=False
     )
-
-    holding_current: Mapped[float | None]
-    threshold_current: Mapped[float | None]
-
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
-
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class MeasurableEntity(Entity):
-    """Abstract class for measurable entities."""
-
-    __abstract__ = True
-
-    @declared_attr
-    @classmethod
-    def measurement_annotation(cls):
-        return relationship(
-            "MeasurementAnnotation",
-            foreign_keys="MeasurementAnnotation.entity_id",
-            uselist=False,
-            viewonly=True,
-        )
-
-
-class ReconstructionMorphology(
-    MTypesMixin,
-    LicensedMixin,
-    LocationMixin,
-    SpeciesMixin,
-    NameDescriptionVectorMixin,
-    MeasurableEntity,
-):
-    __tablename__ = EntityType.reconstruction_morphology.value
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    location: Mapped[PointLocation | None]
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class MeasurementAnnotation(LegacyMixin, Identifiable):
-    __tablename__ = "measurement_annotation"
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True, unique=True)
-    entity: Mapped["Entity"] = relationship(
-        viewonly=True,
-        foreign_keys=[entity_id],
-        primaryjoin=entity_id == Entity.id,
-        lazy="raise",
+ 
+class CellMorphology(MTypesMixin, ScientificArtifact):
+    __tablename__ = EntityType.cell_morphology.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+    morphology_type = mapped_column(
+        Enum(MorphologyType, name="morphologytype"),
+        nullable=False,
+        default=MorphologyType.GENERIC,
     )
-    measurement_kinds: Mapped[list["MeasurementKind"]] = relationship(
-        back_populates="measurement_annotation", passive_deletes=True
+    location: Mapped[dict] = mapped_column(JSONB, nullable=True)
+    __mapper_args__ = {"polymorphic_identity": EntityType.cell_morphology}
+
+
+class MorphologyFeatureAnnotation(Identifiable):
+    __tablename__ = "morphology_feature_annotation"
+    cell_morphology_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.cell_morphology}.id"), index=True, unique=True
     )
-
-    @hybrid_property
-    def entity_type(self) -> str:
-        """Return the type of the associated Entity as a string.
-
-        This is a hybrid property that can be used in Python expressions.
-        """
-        return str(self.entity.type)
-
-    @entity_type.inplace.expression
-    @classmethod
-    def _entity_type(cls):
-        """SQL expression for the entity_type hybrid property.
-
-        Allow the use of entity_type in SQL queries by selecting the type of the associated Entity.
-        """
-        return (
-            sa.select(Entity.type)
-            .where(Entity.id == cls.entity_id)
-            .correlate(cls)
-            .scalar_subquery()
-        )
+    cell_morphology = relationship(
+        "CellMorphology",
+        uselist=False,
+        back_populates="morphology_feature_annotation",
+    )
+    measurements = relationship("MorphologyMeasurement", uselist=True)
 
 
-class MeasurementKind(Base):
-    __tablename__ = "measurement_kind"
+class MorphologyMeasurement(Base):
+    __tablename__ = "measurement"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    pref_label: Mapped[str] = mapped_column(index=True)
-    structural_domain: Mapped[StructuralDomain | None]
-    measurement_annotation_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("measurement_annotation.id", ondelete="CASCADE"),
-        index=True,
+    measurement_of: Mapped[str] = mapped_column(index=True)
+    morphology_feature_annotation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("morphology_feature_annotation.id"), index=True
     )
-    measurement_annotation: Mapped["MeasurementAnnotation"] = relationship(
-        back_populates="measurement_kinds", viewonly=True
-    )
-    measurement_items: Mapped[list["MeasurementItem"]] = relationship(
-        back_populates="measurement_kind", passive_deletes=True
-    )
-    __table_args__ = (
-        UniqueConstraint(
-            "measurement_annotation_id",
-            "pref_label",
-            "structural_domain",
-            name=f"uq_{__tablename__}_measurement_annotation_id",
-            postgresql_nulls_not_distinct=True,
-        ),
-    )
+    measurement_serie = relationship("MorphologyMeasurementSerieElement", uselist=True)
 
 
-class MeasurementItem(Base):
-    __tablename__ = "measurement_item"
+class MorphologyMeasurementSerieElement(Base):
+    __tablename__ = "measurement_serie_element"
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    name: Mapped[MeasurementStatistic]
-    unit: Mapped[MeasurementUnit]
-    value: Mapped[float]
-    measurement_kind_id: Mapped[int] = mapped_column(
-        ForeignKey("measurement_kind.id", ondelete="CASCADE"), index=True
-    )
-    measurement_kind: Mapped["MeasurementKind"] = relationship(
-        back_populates="measurement_items", viewonly=True
-    )
-    __table_args__ = (
-        UniqueConstraint(
-            "measurement_kind_id",
-            "name",
-            name=f"uq_{__tablename__}_measurement_kind_id",
-            postgresql_nulls_not_distinct=True,
-        ),
-    )
+    name: Mapped[str | None]
+    value: Mapped[float | None]
+    measurement_id: Mapped[int] = mapped_column(ForeignKey("measurement.id"), index=True)
 
 
 class Role(LegacyMixin, Identifiable):
@@ -646,45 +556,33 @@ class Role(LegacyMixin, Identifiable):
 class ElectricalRecordingStimulus(Entity):
     __tablename__ = EntityType.electrical_recording_stimulus.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
     name: Mapped[str]
     description: Mapped[str] = mapped_column(default="")
-
     dt: Mapped[float | None]
     injection_type: Mapped[ElectricalRecordingStimulusType]
     shape: Mapped[ElectricalRecordingStimulusShape]
     start_time: Mapped[float | None]
     end_time: Mapped[float | None]
-
     recording_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("electrical_cell_recording.id"),
+        ForeignKey(f"{EntityType.electrical_cell_recording}.id"),
         index=True,
     )
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
-
-class ElectricalCellRecording(
-    NameDescriptionVectorMixin,
-    LocationMixin,
-    SubjectMixin,
-    LicensedMixin,
-    Entity,
-):
+class ElectricalCellRecording(ScientificArtifact):
     __tablename__ = EntityType.electrical_cell_recording.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]
     recording_origin: Mapped[ElectricalRecordingOrigin]
     recording_location: Mapped[STRING_LIST]
     ljp: Mapped[float] = mapped_column(default=0.0)
     comment: Mapped[str] = mapped_column(default="")
-
     stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(
         uselist=True,
         foreign_keys="ElectricalRecordingStimulus.recording_id",
     )
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": EntityType.electrical_cell_recording}
 
 
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -695,7 +593,7 @@ class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
         ForeignKey(f"{EntityType.memodel}.id"), index=True
     )
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -705,12 +603,11 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
-    # TODO: called used ?
     me_model_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.memodel}.id"), index=True
     )
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -724,28 +621,16 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True
     )
     synaptome = relationship("SingleNeuronSynaptome", uselist=False, foreign_keys=[synaptome_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class Measurement(Base):
     __tablename__ = "measurement_record"
-
     id: Mapped[BIGINT] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[MeasurementStatistic]
     unit: Mapped[MeasurementUnit]
     value: Mapped[float]
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-
-
-class MeasurementsMixin:
-    @declared_attr
-    @classmethod
-    def measurements(cls):
-        return relationship(
-            "Measurement",
-            foreign_keys=Measurement.entity_id,
-            uselist=True,
-        )
 
 
 class ExperimentalNeuronDensity(
@@ -760,7 +645,30 @@ class ExperimentalNeuronDensity(
 ):
     __tablename__ = EntityType.experimental_neuron_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
+
+
+class SynapticPathway(Entity):
+    __tablename__ = EntityType.synaptic_pathway.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    pre_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    pre_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[pre_mtype_id])
+    post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
+    pre_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    pre_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[pre_region_id])
+    post_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    post_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[post_region_id])
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
+    __table_args__ = (
+        UniqueConstraint(
+            "pre_mtype_id",
+            "post_mtype_id",
+            "pre_region_id",
+            "post_region_id",
+            name="unique_pathway",
+        ),
+    )
 
 
 class ExperimentalBoutonDensity(
@@ -773,92 +681,40 @@ class ExperimentalBoutonDensity(
     Entity,
 ):
     __tablename__ = EntityType.experimental_bouton_density.value
-
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class ExperimentalSynapsesPerConnection(
     NameDescriptionVectorMixin,
     MeasurementsMixin,
-    SubjectMixin,
     LocationMixin,
+    SubjectMixin,
     LicensedMixin,
     Entity,
 ):
     __tablename__ = EntityType.experimental_synapses_per_connection.value
-
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    pre_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    pre_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[pre_mtype_id])
-
-    post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
-
-    pre_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
-    pre_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[pre_region_id])
-
-    post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
-    post_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[post_region_id])
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class Ion(Identifiable):
-    __tablename__ = "ion"
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-    ontology_id: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
-
-    @validates("name")
-    def _normalize_name(self, key, value):  # noqa: PLR6301, ARG002
-        return value.lower() if value else value
-
-
-class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.ion_channel_model.value
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
-    is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
-    temperature_celsius: Mapped[int]
-    is_stochastic: Mapped[bool] = mapped_column(default=False)
-    nmodl_suffix: Mapped[str]
-    neuron_block: Mapped[JSON_DICT]
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class IonChannelModelToEModel(Base):
-    __tablename__ = "ion_channel_model__emodel"
-
-    ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
+    synaptic_pathway_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("synaptic_pathway.id"), index=True
     )
-    emodel_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.emodel}.id", ondelete="CASCADE"), primary_key=True
+    synaptic_pathway: Mapped[SynapticPathway] = relationship(
+        uselist=False, foreign_keys=[synaptic_pathway_id]
     )
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class Asset(Identifiable):
-    """Asset table."""
-
     __tablename__ = "asset"
     status: Mapped[AssetStatus] = mapped_column()
-    path: Mapped[str]  # relative path
-    full_path: Mapped[str]  # full path on S3
+    path: Mapped[str]
+    full_path: Mapped[str]
     is_directory: Mapped[bool]
     content_type: Mapped[str]
     size: Mapped[BIGINT]
     sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32))
-    meta: Mapped[JSON_DICT]  # not used yet. can be useful?
-    label: Mapped[AssetLabel | None]
+    meta: Mapped[JSON_DICT]
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-
-    # partial unique index
     __table_args__ = (
         Index(
             "ix_asset_full_path",
@@ -867,26 +723,6 @@ class Asset(Identifiable):
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
     )
-
-
-class METypeDensity(
-    NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, MTypesMixin, ETypesMixin, Entity
-):
-    __tablename__ = EntityType.me_type_density
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class BrainAtlas(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.brain_atlas
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.cell_composition
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 

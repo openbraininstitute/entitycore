@@ -1,3 +1,4 @@
+from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
@@ -37,6 +38,7 @@ from app.db.types import (
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
+    CircuitScale,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
@@ -863,4 +865,28 @@ class BrainAtlas(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.cell_composition
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class ScientificArtifact(Entity):
+    """FIXME: Dummy class, to be replaced by actual ScientificArtifact."""
+    __abstract__ = True
+
+
+class Circuit(ScientificArtifact):
+    __tablename__ = "circuit"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    # Derived from ScientificArtifact:
+    # name: ...
+    # description: ...
+    # ...
+
+    scale: Mapped[CircuitScale]
+    parent_circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True, nullable=True, default=None)
+    parent_circuit: Mapped[Circuit] = relationship("Circuit", uselist=False, foreign_keys=[parent_circuit_id])
+    has_morphologies: Mapped[bool] = mapped_column()
+    has_electrical_cell_models: Mapped[bool] = mapped_column()
+    has_spines: Mapped[bool] = mapped_column()
+    is_simulatable: Mapped[bool] = mapped_column()
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

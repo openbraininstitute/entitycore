@@ -66,6 +66,7 @@ class EntityType(StrEnum):
     single_neuron_synaptome_simulation = auto()
     ion_channel_model = auto()
     subject = auto()
+    circuit = auto()
 
 
 class AgentType(StrEnum):
@@ -187,6 +188,16 @@ class AssetLabel(StrEnum):
     hdf5 = auto()
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
+
+
+class CircuitScale(StrEnum):
+    single = auto()
+    pair = auto()
+    tiny = auto()
+    microcircuit = auto()
+    region = auto()
+    system = auto()
+    whole_brain = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {

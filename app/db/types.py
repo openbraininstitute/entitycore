@@ -71,6 +71,7 @@ class EntityType(StrEnum):
     single_neuron_synaptome_simulation = auto()
     subject = auto()
     validation_result = auto()
+    circuit = auto()
 
 
 class AgentType(StrEnum):
@@ -195,6 +196,16 @@ class AssetLabel(StrEnum):
     single_neuron_synaptome_config = auto()
     single_neuron_synaptome_simulation_io_result = auto()
     single_cell_simulation_data = auto()
+
+
+class CircuitScale(StrEnum):
+    single = auto()
+    pair = auto()
+    tiny = auto()
+    microcircuit = auto()
+    region = auto()
+    system = auto()
+    whole_brain = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {

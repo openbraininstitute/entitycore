@@ -131,7 +131,10 @@ def read_many(
             .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
             .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
             .outerjoin(IonChannelModelToEModel, EModel.id == IonChannelModelToEModel.emodel_id)
-            .outerjoin(ion_channel_model_alias, ion_channel_model_alias.id == IonChannelModelToEModel.ion_channel_model_id)
+            .outerjoin(
+                ion_channel_model_alias,
+                ion_channel_model_alias.id == IonChannelModelToEModel.ion_channel_model_id,
+            )
         )
 
     return router_read_many(

@@ -135,14 +135,29 @@ class LicensedMixin:
     def license(cls):
         return relationship("License", uselist=False)
 
-
 class LocationMixin:
+    __abstract__ = True
     brain_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    specific_brain_region_ids: Mapped[list[int] | None] = mapped_column(ARRAY(BigInteger), nullable=True, index=True)
 
     @declared_attr
     @classmethod
     def brain_region(cls):
-        return relationship("BrainRegion", uselist=False)
+        return relationship("BrainRegion", uselist=False, foreign_keys=[cls.brain_region_id])
+
+    @declared_attr
+    @classmethod
+    def specific_brain_regions(cls):
+        return relationship(
+            "BrainRegion",
+            primaryjoin=lambda: sa.or_(
+                cls.specific_brain_region_ids.any(BrainRegion.id),
+                cls.brain_region_id == BrainRegion.id
+            ),
+            uselist=True,
+            viewonly=True,
+            order_by="BrainRegion.brain_region_name"
+        )
 
 
 class Strain(Identifiable):
@@ -723,7 +738,4 @@ class Asset(Identifiable):
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
     )
-
-
-
 

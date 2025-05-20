@@ -522,11 +522,6 @@ class CellMorphology(MTypesMixin, ScientificArtifact):
     __tablename__ = EntityType.cell_morphology.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
-    morphology_type = mapped_column(
-        Enum(MorphologyType, name="morphologytype"),
-        nullable=False,
-        default=MorphologyType.GENERIC,
-    )
     location: Mapped[dict] = mapped_column(JSONB, nullable=True)
     __mapper_args__ = {"polymorphic_identity": EntityType.cell_morphology}
 

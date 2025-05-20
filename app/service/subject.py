@@ -38,7 +38,7 @@ def create_one(
         db=db,
         json_model=json_model,
         db_model_class=Subject,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=SubjectRead,
     )
 

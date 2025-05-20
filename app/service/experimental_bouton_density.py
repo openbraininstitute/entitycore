@@ -1,5 +1,6 @@
 import uuid
 
+import sqlalchemy as sa
 from sqlalchemy.orm import (
     aliased,
     joinedload,
@@ -34,6 +35,23 @@ from app.schemas.density import ExperimentalBoutonDensityCreate, ExperimentalBou
 from app.schemas.types import ListResponse
 
 
+def _load(query: sa.Select):
+    return query.options(
+        joinedload(ExperimentalBoutonDensity.brain_region),
+        joinedload(ExperimentalBoutonDensity.mtypes),
+        joinedload(ExperimentalBoutonDensity.subject).joinedload(Subject.species),
+        joinedload(ExperimentalBoutonDensity.subject).joinedload(Subject.strain),
+        joinedload(ExperimentalBoutonDensity.assets),
+        joinedload(ExperimentalBoutonDensity.license),
+        joinedload(ExperimentalBoutonDensity.createdBy),
+        joinedload(ExperimentalBoutonDensity.updatedBy),
+        selectinload(ExperimentalBoutonDensity.measurements),
+        selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.agent),
+        selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.role),
+        raiseload("*"),
+    )
+
+
 def read_many(
     user_context: UserContextDep,
     db: SessionDep,
@@ -44,8 +62,36 @@ def read_many(
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ExperimentalBoutonDensityRead]:
     subject = aliased(Subject, flat=True)
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
+    aliases = {
+        Subject: subject,
+        Agent: {
+            "contribution": agent_alias,
+            "createdBy": created_by_alias,
+            "updatedBy": updated_by_alias,
+        },
+    }
+    aliased_facets: dict[str, FacetQueryParams] = {
+        "contribution": {
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
+        },
+        "createdBy": {
+            "id": created_by_alias.id,
+            "label": created_by_alias.pref_label,
+            "type": created_by_alias.type,
+        },
+        "updatedBy": {
+            "id": updated_by_alias.id,
+            "label": updated_by_alias.pref_label,
+            "type": updated_by_alias.type,
+        },
+    }
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.mtype | fc.species | fc.strain
+        fc.brain_region | fc.mtype | fc.species | fc.strain | aliased_facets
     )
     apply_filter_query = lambda query: (
         query.join(BrainRegion, ExperimentalBoutonDensity.brain_region_id == BrainRegion.id)
@@ -53,27 +99,13 @@ def read_many(
         .outerjoin(Species, subject.species_id == Species.id)
         .outerjoin(Strain, subject.strain_id == Strain.id)
         .outerjoin(Contribution, ExperimentalBoutonDensity.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
+        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+        .outerjoin(created_by_alias, ExperimentalBoutonDensity.createdBy_id == created_by_alias.id)
+        .outerjoin(updated_by_alias, ExperimentalBoutonDensity.updatedBy_id == updated_by_alias.id)
         .outerjoin(
             MTypeClassification, ExperimentalBoutonDensity.id == MTypeClassification.entity_id
         )
         .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-    )
-    apply_data_options = lambda query: (
-        query.options(joinedload(ExperimentalBoutonDensity.brain_region))
-        .options(
-            selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.agent)
-        )
-        .options(
-            selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.role)
-        )
-        .options(joinedload(ExperimentalBoutonDensity.mtypes))
-        .options(joinedload(ExperimentalBoutonDensity.license))
-        .options(joinedload(ExperimentalBoutonDensity.subject).joinedload(Subject.species))
-        .options(joinedload(ExperimentalBoutonDensity.subject).joinedload(Subject.strain))
-        .options(selectinload(ExperimentalBoutonDensity.assets))
-        .options(selectinload(ExperimentalBoutonDensity.measurements))
-        .options(raiseload("*"))
     )
     return router_read_many(
         db=db,
@@ -84,8 +116,8 @@ def read_many(
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,
-        apply_data_query_operations=apply_data_options,
-        aliases={Subject: subject},
+        apply_data_query_operations=_load,
+        aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ExperimentalBoutonDensityRead,
         authorized_project_id=user_context.project_id,
@@ -103,18 +135,7 @@ def read_one(
         db_model_class=ExperimentalBoutonDensity,
         authorized_project_id=user_context.project_id,
         response_schema_class=ExperimentalBoutonDensityRead,
-        apply_operations=lambda q: q.options(
-            joinedload(ExperimentalBoutonDensity.brain_region),
-            joinedload(ExperimentalBoutonDensity.mtypes),
-            joinedload(ExperimentalBoutonDensity.subject).joinedload(Subject.species),
-            joinedload(ExperimentalBoutonDensity.subject).joinedload(Subject.strain),
-            joinedload(ExperimentalBoutonDensity.assets),
-            joinedload(ExperimentalBoutonDensity.license),
-            selectinload(ExperimentalBoutonDensity.measurements),
-            selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.agent),
-            selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.role),
-            raiseload("*"),
-        ),
+        apply_operations=lambda q: q.options(),
     )
 
 
@@ -126,7 +147,7 @@ def create_one(
     return router_create_one(
         db=db,
         json_model=json_model,
+        user_context=user_context,
         db_model_class=ExperimentalBoutonDensity,
-        authorized_project_id=user_context.project_id,
         response_schema_class=ExperimentalBoutonDensityRead,
     )

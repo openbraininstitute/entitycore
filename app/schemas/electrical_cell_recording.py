@@ -9,6 +9,7 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
 )
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
     AuthorizationMixin,
@@ -91,6 +92,7 @@ class ElectricalCellRecordingRead(
     AuthorizationMixin,
     IdentifiableMixin,
     EntityTypeMixin,
+    CreatedByUpdatedByMixin,
 ):
     subject: SubjectRead
     brain_region: BrainRegionRead

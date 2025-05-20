@@ -70,12 +70,14 @@ def test_create_memodel(
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
     assert "assets" in data["emodel"]
     assert "assets" in data["morphology"]
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
     response = client.get(f"{ROUTE}/{data['id']}")
     assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
     data = response.json()
     assert "assets" in data["emodel"]
     assert "assets" in data["morphology"]
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):
@@ -165,6 +167,8 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             },
         ],
+        "createdBy": [],
+        "updatedBy": [],
     }
 
 
@@ -246,6 +250,8 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             }
         ],
+        "createdBy": [],
+        "updatedBy": [],
     }
 
 
@@ -329,11 +335,13 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             },
         ],
+        "createdBy": [],
+        "updatedBy": [],
     }
 
 
 def test_pagination(client, create_memodel_ids: CreateIds):
-    total_items = 29
+    total_items = 3
     create_memodel_ids(total_items)
 
     response = client.get(ROUTE, params={"page_size": total_items + 1})

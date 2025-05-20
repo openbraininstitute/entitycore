@@ -204,14 +204,15 @@ class Person(Agent):
     __tablename__ = AgentType.person.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
-    givenName: Mapped[str]
-    familyName: Mapped[str]
+    given_name: Mapped[str | None]
+    family_name: Mapped[str | None]
+    sub_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
-    __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
+    __table_args__ = (UniqueConstraint("given_name", "family_name", name="unique_person_name_1"),)
 
 
 class Organization(Agent):

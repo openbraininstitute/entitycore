@@ -6,25 +6,25 @@ ROUTE = "/person"
 def test_create_person(client, client_admin):
     response = client_admin.post(
         ROUTE,
-        json={"givenName": "jd", "familyName": "courcol", "pref_label": "jd courcol"},
+        json={"given_name": "jd", "family_name": "courcol", "pref_label": "jd courcol"},
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["givenName"] == "jd"
-    assert data["familyName"] == "courcol"
+    assert data["given_name"] == "jd"
+    assert data["family_name"] == "courcol"
     assert "id" in data
     id_ = data["id"]
 
     response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
-    assert data["givenName"] == "jd"
+    assert data["given_name"] == "jd"
     assert data["id"] == id_
 
     response = client.get(ROUTE)
     assert response.status_code == 200
     data = response.json()["data"]
-    assert data[0]["givenName"] == "jd"
+    assert data[0]["given_name"] == "jd"
     assert data[0]["id"] == id_
     assert len(data) == 1
 

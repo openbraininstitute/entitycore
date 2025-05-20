@@ -113,7 +113,7 @@ class CreatorFilterMixin:
 
 
 class SpeciesFilterMixin:
-    species_id_in: list[int] | None = None
+    species_id__in: list[int] | None = None
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
     strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
 

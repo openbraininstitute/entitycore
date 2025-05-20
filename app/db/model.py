@@ -679,8 +679,8 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
-    injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
-    recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
+    recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
     # TODO: called used ?
     me_model_id: Mapped[uuid.UUID] = mapped_column(
@@ -694,8 +694,8 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     __tablename__ = EntityType.single_neuron_synaptome_simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
-    injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
-    recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
+    recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
     synaptome_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True

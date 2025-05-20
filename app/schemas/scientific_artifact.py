@@ -27,8 +27,10 @@ class PublishedInType(BaseModel):
 
 from app.filters.common import LocationFilterMixin
 
-class ScientificArtifactCreate(LocationFilterMixin, BaseModel):
+class ScientificArtifactBase(LocationFilterMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
+    creation_date: datetime
+    update_date: Optional[datetime] = None
     name: str
     description: Optional[str] = None
     subject_id : uuid.UUID | None = None
@@ -41,10 +43,12 @@ class ScientificArtifactCreate(LocationFilterMixin, BaseModel):
     published_in : PublishedInType
     contact_id : uuid.UUID | None = None
 
+class ScientificArtifactCreate(ScientificArtifactBase):
+    pass
 
-class ScientificArtifactRead(ScientificArtifactCreate,LocationFilterMixin):
-    model_config = ConfigDict(from_attributes=True)
+class ScientificArtifactRead(ScientificArtifactBase):
     id: UUID
-    creation_date: datetime
-    update_date: Optional[datetime] = None
+
+
+
 

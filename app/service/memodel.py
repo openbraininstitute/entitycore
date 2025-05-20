@@ -54,6 +54,8 @@ def _load(select: Select):
             selectinload(EModel.contributions).joinedload(Contribution.role),
             joinedload(EModel.mtypes),
             joinedload(EModel.etypes),
+            joinedload(EModel.createdBy),
+            joinedload(EModel.updatedBy),
             selectinload(EModel.assets),
         ),
         joinedload(MEModel.morphology).options(
@@ -64,6 +66,8 @@ def _load(select: Select):
             joinedload(ReconstructionMorphology.license),
             joinedload(ReconstructionMorphology.species),
             joinedload(ReconstructionMorphology.strain),
+            joinedload(ReconstructionMorphology.createdBy),
+            joinedload(ReconstructionMorphology.updatedBy),
             selectinload(ReconstructionMorphology.assets),
         ),
         joinedload(MEModel.brain_region),
@@ -71,6 +75,8 @@ def _load(select: Select):
         selectinload(MEModel.contributions).joinedload(Contribution.role),
         joinedload(MEModel.mtypes),
         joinedload(MEModel.etypes),
+        joinedload(MEModel.createdBy),
+        joinedload(MEModel.updatedBy),
         raiseload("*"),
     )
 
@@ -94,7 +100,7 @@ def create_one(
     return router_create_one(
         db=db,
         db_model_class=MEModel,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=MEModelRead,
         json_model=memodel,
         apply_operations=_load,
@@ -113,10 +119,18 @@ def read_many(
 ) -> ListResponse[MEModelRead]:
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
     emodel_alias = aliased(EModel, flat=True)
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
 
     aliases: Aliases = {
         ReconstructionMorphology: morphology_alias,
         EModel: emodel_alias,
+        Agent: {
+            "contribution": agent_alias,
+            "createdBy": created_by_alias,
+            "updatedBy": updated_by_alias,
+        },
     }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -124,11 +138,6 @@ def read_many(
         "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "strain": {"id": Strain.id, "label": Strain.name},
-        "contribution": {
-            "id": Agent.id,
-            "label": Agent.pref_label,
-            "type": Agent.type,
-        },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "morphology": {
             "id": morphology_alias.id,
@@ -137,6 +146,21 @@ def read_many(
         "emodel": {
             "id": emodel_alias.id,
             "label": emodel_alias.name,
+        },
+        "contribution": {
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
+        },
+        "createdBy": {
+            "id": created_by_alias.id,
+            "label": created_by_alias.pref_label,
+            "type": created_by_alias.type,
+        },
+        "updatedBy": {
+            "id": updated_by_alias.id,
+            "label": updated_by_alias.pref_label,
+            "type": updated_by_alias.type,
         },
     }
 
@@ -150,7 +174,13 @@ def read_many(
         "brain_region": lambda q: q.join(BrainRegion, MEModel.brain_region_id == BrainRegion.id),
         "contribution": lambda q: q.outerjoin(
             Contribution, MEModel.id == Contribution.entity_id
-        ).outerjoin(Agent, Contribution.agent_id == Agent.id),
+        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
+        "createdBy": lambda q: q.outerjoin(
+            created_by_alias, MEModel.createdBy_id == created_by_alias.id
+        ),
+        "updatedBy": lambda q: q.outerjoin(
+            updated_by_alias, MEModel.updatedBy_id == updated_by_alias.id
+        ),
         "mtype": lambda q: q.outerjoin(
             MTypeClassification, MEModel.id == MTypeClassification.entity_id
         ).outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id),

@@ -19,39 +19,22 @@ class CacheKey(BaseModel):
     token_digest: str
 
 
-class UserContextBase(BaseModel):
-    model_config = ConfigDict(frozen=True)
-    subject: UUID | None
-    email: str | None
-    expiration: float | None
-    is_authorized: bool
-    is_service_admin: bool = False
-    auth_error_reason: AuthErrorReason | None = None
+class UserInfoBase(BaseModel):
+    """Basic user info keycloak information."""
+
+    sub: UUID
+    name: str | None = None
+    preferred_username: str
+    exp: float | None = None
+    given_name: str | None = None
+    family_name: str | None = None
 
 
-class UserContext(UserContextBase):
-    """User Context."""
-
-    virtual_lab_id: UUID | None = None
-    project_id: UUID | None = None
-
-
-class UserContextWithProjectId(UserContextBase):
-    """User Context with valid virtual_lab_id and project_id."""
-
-    virtual_lab_id: UUID
-    project_id: UUID
-
-
-class DecodedToken(BaseModel):
+class DecodedToken(UserInfoBase):
     """Decoded JWT token.
 
     Only a subset of the claims is extracted.
     """
-
-    sub: UUID
-    exp: float | None = None
-    email: str | None = None
 
     @classmethod
     def from_jwt(cls, token: HTTPAuthorizationCredentials) -> Self | None:
@@ -64,7 +47,7 @@ class DecodedToken(BaseModel):
         return None
 
 
-class UserInfoResponse(BaseModel):
+class UserInfoResponse(UserInfoBase):
     """UserInfoResponse model received from KeyCloak.
 
     Built from a KeyCloak response that should look like:
@@ -87,9 +70,6 @@ class UserInfoResponse(BaseModel):
     }
     """
 
-    sub: UUID
-    name: str
-    email: str
     groups: set[str] = set()
 
     def is_service_admin(self, service_name: str) -> bool:
@@ -124,3 +104,44 @@ class UserInfoResponse(BaseModel):
                         f"/proj/{virtual_lab_id}/{project_id}/member",
                     ]
                 )
+
+
+class UserProfile(BaseModel):
+    """User profile representing a keycloak user."""
+
+    name: str
+    subject: UUID
+    given_name: str | None = None
+    family_name: str | None = None
+
+    @classmethod
+    def from_user_info(cls, info: UserInfoBase):
+        return cls(
+            subject=info.sub,
+            name=info.name or info.preferred_username,
+            given_name=info.given_name,
+            family_name=info.family_name,
+        )
+
+
+class UserContextBase(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    profile: UserProfile | None
+    expiration: float | None
+    is_authorized: bool
+    is_service_admin: bool = False
+    auth_error_reason: AuthErrorReason | None = None
+
+
+class UserContext(UserContextBase):
+    """User Context."""
+
+    virtual_lab_id: UUID | None = None
+    project_id: UUID | None = None
+
+
+class UserContextWithProjectId(UserContextBase):
+    """User Context with valid virtual_lab_id and project_id."""
+
+    virtual_lab_id: UUID
+    project_id: UUID

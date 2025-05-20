@@ -204,14 +204,15 @@ class Person(Agent):
     __tablename__ = AgentType.person.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
-    givenName: Mapped[str]
-    familyName: Mapped[str]
+    given_name: Mapped[str | None]
+    family_name: Mapped[str | None]
+    sub_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
-    __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
+    __table_args__ = (UniqueConstraint("given_name", "family_name", name="unique_person_name_1"),)
 
 
 class Organization(Agent):
@@ -679,8 +680,8 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
-    injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
-    recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
+    recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
     # TODO: called used ?
     me_model_id: Mapped[uuid.UUID] = mapped_column(
@@ -694,8 +695,8 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     __tablename__ = EntityType.single_neuron_synaptome_simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
-    injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
-    recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
+    recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
     synaptome_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True

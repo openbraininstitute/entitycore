@@ -38,4 +38,4 @@ class MEModelFilter(
 # Dependencies
 MEModelFilterDep = Annotated[MEModelFilter, FilterDepends(MEModelFilter)]
 # Nested dependencies
-NestedMEModelFilterDep = FilterDepends(with_prefix("me_type", MEModelFilter))
+NestedMEModelFilterDep = FilterDepends(with_prefix("me_model", MEModelFilter))

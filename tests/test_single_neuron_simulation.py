@@ -3,7 +3,7 @@ import itertools as it
 import pytest
 
 from app.db.model import MEModel, SingleNeuronSimulation
-from app.db.types import EntityType
+from app.db.types import AssetLabel, EntityType
 
 from .utils import (
     MISSING_ID,
@@ -14,6 +14,7 @@ from .utils import (
     check_brain_region_filter,
     create_brain_region,
 )
+from tests.routers.test_asset import _upload_entity_asset
 
 ROUTE = "/single-neuron-simulation"
 
@@ -33,8 +34,8 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
         json={
             "name": "foo",
             "description": "my-description",
-            "injectionLocation": ["soma[0]"],
-            "recordingLocation": ["soma[0]_0.5"],
+            "injection_location": ["soma[0]"],
+            "recording_location": ["soma[0]_0.5"],
             "me_model_id": memodel_id,
             "status": "success",
             "seed": 1,
@@ -44,17 +45,24 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     )
 
     data = response.json()
+    _upload_entity_asset(
+        client,
+        EntityType.single_neuron_simulation,
+        data["id"],
+        label=AssetLabel.single_cell_simulation_data,
+    )
     assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
     assert data["description"] == "my-description"
     assert data["name"] == "foo"
-    assert data["injectionLocation"] == ["soma[0]"]
-    assert data["recordingLocation"] == ["soma[0]_0.5"]
+    assert data["injection_location"] == ["soma[0]"]
+    assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
     response = assert_request(client.get, url=f"{ROUTE}/{data['id']}")
     data = response.json()
@@ -63,13 +71,15 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     )
     assert data["description"] == "my-description"
     assert data["name"] == "foo"
-    assert data["injectionLocation"] == ["soma[0]"]
-    assert data["recordingLocation"] == ["soma[0]_0.5"]
+    assert data["injection_location"] == ["soma[0]"]
+    assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
     assert "assets" in data
+    assert data["assets"][0]["label"] == AssetLabel.single_cell_simulation_data
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 @pytest.mark.parametrize(
@@ -95,8 +105,8 @@ def test_authorization(
     json_data = {
         "name": "foo",
         "description": "my-description",
-        "injectionLocation": ["soma[0]"],
-        "recordingLocation": ["soma[0]_0.5"],
+        "injection_location": ["soma[0]"],
+        "recording_location": ["soma[0]_0.5"],
         "me_model_id": memodel_id,
         "status": "failure",
         "seed": 1,
@@ -191,8 +201,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             row = SingleNeuronSimulation(
                 name=f"sim-{i}",
                 description="my-description",
-                injectionLocation=["soma[0]"],
-                recordingLocation=["soma[0]_0.5"],
+                injection_location=["soma[0]"],
+                recording_location=["soma[0]_0.5"],
                 me_model_id=me_model.id,
                 status="success",
                 seed=1,
@@ -248,8 +258,8 @@ def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species
                 "description": f"brain-region-{brain_region_id} me-model-{me_model_id}",
                 "me_model_id": str(me_model_id),
                 "status": "success",
-                "injectionLocation": ["soma[0]"],
-                "recordingLocation": ["soma[0]_0.5"],
+                "injection_location": ["soma[0]"],
+                "recording_location": ["soma[0]_0.5"],
                 "seed": i,
                 "brain_region_id": str(brain_region_id),
                 "authorized_project_id": PROJECT_ID,
@@ -344,8 +354,8 @@ def test_brain_region_filter(
             brain_region_id=brain_region_id,
             description="description",
             legacy_id="Test Legacy ID",
-            injectionLocation=["soma[0]"],
-            recordingLocation=["soma[0]_0.5"],
+            injection_location=["soma[0]"],
+            recording_location=["soma[0]_0.5"],
             me_model_id=me_model_id,
             status="success",
             seed=1,

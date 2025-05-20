@@ -124,9 +124,9 @@ def create_one(
 ) -> IonChannelModelRead:
     return router_create_one(
         db=db,
-        authorized_project_id=user_context.project_id,
-        db_model_class=IonChannelModel,
-        json_model=ion_channel_model,
-        response_schema_class=IonChannelModelRead,
         apply_operations=_load,
+        user_context=user_context,
+        json_model=ion_channel_model,
+        db_model_class=IonChannelModel,
+        response_schema_class=IonChannelModelRead,
     )

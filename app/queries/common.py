@@ -8,7 +8,7 @@ from app.db.auth import (
     constrain_entity_query_to_project,
     constrain_to_accessible_entities,
 )
-from app.db.model import Entity, Identifiable
+from app.db.model import Agent, Entity, Identifiable, Person
 from app.db.utils import load_db_model_from_pydantic
 from app.dependencies.common import (
     FacetQueryParams,
@@ -26,6 +26,7 @@ from app.errors import (
 from app.filters.base import Aliases, CustomFilter
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations
+from app.schemas.auth import UserContextWithProjectId, UserProfile
 from app.schemas.types import ListResponse, PaginationResponse
 
 
@@ -65,7 +66,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     *,
     db: Session,
     db_model_class: type[I],
-    authorized_project_id: uuid.UUID | None,
+    user_context: UserContextWithProjectId | None,
     json_model: BaseModel,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
@@ -75,7 +76,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     Args:
         db: database session.
         db_model_class: database model class.
-        authorized_project_id: id of the authorized project.
+        user_context: the user context with project id and user information.
         json_model: instance of the Pydantic model.
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
@@ -83,8 +84,18 @@ def router_create_one[T: BaseModel, I: Identifiable](
     Returns:
         the written model data as a Pydantic model.
     """
+    created_by_id = updated_by_id = project_id = None
+    if user_context and user_context.profile:
+        db_agent = get_or_create_user_agent(db, user_context.profile)
+        created_by_id = updated_by_id = db_agent.id
+        project_id = user_context.project_id
+
     db_model_instance = load_db_model_from_pydantic(
-        json_model, db_model_class, authorized_project_id=authorized_project_id
+        json_model,
+        db_model_class,
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id,
+        authorized_project_id=project_id,
     )
     with (
         ensure_foreign_keys_integrity("One or more foreign keys do not exist in the db"),
@@ -103,6 +114,25 @@ def router_create_one[T: BaseModel, I: Identifiable](
     else:
         db.refresh(db_model_instance)
     return response_schema_class.model_validate(db_model_instance)
+
+
+def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
+    query = sa.select(Person).where(Person.sub_id == user_profile.subject)
+
+    if db_agent := db.execute(query).scalars().first():
+        return db_agent
+
+    db_agent = Person(
+        pref_label=user_profile.name,
+        given_name=user_profile.given_name,
+        family_name=user_profile.family_name,
+        sub_id=user_profile.subject,
+    )
+
+    db.add(db_agent)
+    db.flush()
+
+    return db_agent
 
 
 def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913

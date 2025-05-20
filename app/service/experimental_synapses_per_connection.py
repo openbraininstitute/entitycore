@@ -46,6 +46,8 @@ def _load(q: sa.Select):
         joinedload(db_cls.license),
         joinedload(db_cls.subject).joinedload(Subject.species),
         joinedload(db_cls.subject).joinedload(Subject.strain),
+        joinedload(db_cls.createdBy),
+        joinedload(db_cls.updatedBy),
         joinedload(db_cls.pre_mtype),
         joinedload(db_cls.post_mtype),
         joinedload(db_cls.pre_region),
@@ -70,8 +72,26 @@ def read_many(
     post_mtype_alias = aliased(MTypeClass, flat=True)
     pre_region_alias = aliased(BrainRegion, flat=True)
     post_region_alias = aliased(BrainRegion, flat=True)
-
-    synaptic_pathway_facets: dict[str, FacetQueryParams] = {
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
+    aliases = {
+        Subject: subject_alias,
+        BrainRegion: {
+            "pre_region": pre_region_alias,
+            "post_region": post_region_alias,
+        },
+        MTypeClass: {
+            "pre_mtype": pre_mtype_alias,
+            "post_mtype": post_mtype_alias,
+        },
+        Agent: {
+            "contribution": agent_alias,
+            "createdBy": created_by_alias,
+            "updatedBy": updated_by_alias,
+        },
+    }
+    aliased_facets: dict[str, FacetQueryParams] = {
         "pre_mtype": {
             "id": pre_mtype_alias.id,
             "label": pre_mtype_alias.pref_label,
@@ -88,15 +108,30 @@ def read_many(
             "id": post_region_alias.id,
             "label": post_region_alias.name,
         },
+        "contribution": {
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
+        },
+        "createdBy": {
+            "id": created_by_alias.id,
+            "label": created_by_alias.pref_label,
+            "type": created_by_alias.type,
+        },
+        "updatedBy": {
+            "id": updated_by_alias.id,
+            "label": updated_by_alias.pref_label,
+            "type": updated_by_alias.type,
+        },
     }
-
-    name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | synaptic_pathway_facets
-    )
-    name_to_facet_query_params |= {
+    subject_facets = {
         "subject.species": {"id": Species.id, "label": Species.name},
         "subject.strain": {"id": Strain.id, "label": Strain.name},
     }
+
+    name_to_facet_query_params: dict[str, FacetQueryParams] = (
+        fc.brain_region | aliased_facets | subject_facets
+    )
 
     db_cls = ExperimentalSynapsesPerConnection
 
@@ -117,7 +152,13 @@ def read_many(
         "subject.strain": lambda q: q.outerjoin(Strain, subject_alias.strain_id == Strain.id),
         "contribution": lambda q: q.outerjoin(
             Contribution, db_cls.id == Contribution.entity_id
-        ).outerjoin(Agent, Contribution.agent_id == Agent.id),
+        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
+        "createdBy": lambda q: q.outerjoin(
+            created_by_alias, db_cls.createdBy_id == created_by_alias.id
+        ),
+        "updatedBy": lambda q: q.outerjoin(
+            updated_by_alias, db_cls.updatedBy_id == updated_by_alias.id
+        ),
     }
     return router_read_many(
         db=db,
@@ -126,17 +167,7 @@ def read_many(
         with_search=with_search,
         with_in_brain_region=in_brain_region,
         facets=facets,
-        aliases={
-            Subject: subject_alias,
-            BrainRegion: {
-                "pre_region": pre_region_alias,
-                "post_region": post_region_alias,
-            },
-            MTypeClass: {
-                "pre_mtype": pre_mtype_alias,
-                "post_mtype": post_mtype_alias,
-            },
-        },
+        aliases=aliases,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=None,
         apply_data_query_operations=_load,
@@ -170,7 +201,7 @@ def create_one(
     return router_create_one(
         db=db,
         json_model=json_model,
+        user_context=user_context,
         db_model_class=ExperimentalSynapsesPerConnection,
-        authorized_project_id=user_context.project_id,
         response_schema_class=ExperimentalSynapsesPerConnectionRead,
     )

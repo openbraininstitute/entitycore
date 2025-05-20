@@ -23,8 +23,8 @@ class SingleNeuronSimulationBase(BaseModel):
     description: str
     seed: int
     status: SingleNeuronSimulationStatus
-    injectionLocation: list[str]
-    recordingLocation: list[str]
+    injection_location: list[str]
+    recording_location: list[str]
 
 
 class SingleNeuronSimulationCreate(

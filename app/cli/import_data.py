@@ -885,14 +885,16 @@ class ImportSingleNeuronSimulation(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             me_model_lid = data.get("used", {}).get("@id", None)
             me_model = utils._find_by_legacy_id(me_model_lid, MEModel, db)
+
             rm = SingleNeuronSimulation(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data.get("name", None),
                 description=data.get("description", None),
                 seed=data.get("seed", None),
-                injectionLocation=data.get("injectionLocation", None),
-                recordingLocation=data.get("recordingLocation", None),
+                injection_location=data.get("injectionLocation")
+                or data.get("injection_location"),  # TODO: Get from config file if not existent?
+                recording_location=data.get("recordingLocation") or data.get("recording_location"),
                 me_model_id=me_model.id,
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,

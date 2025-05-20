@@ -1,8 +1,8 @@
-"""base_models
+"""models
 
-Revision ID: 86d71ad2c889
+Revision ID: 68d09ed03b67
 Revises:
-Create Date: 2025-05-20 10:15:17.881085
+Create Date: 2025-05-20 11:12:32.797689
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "86d71ad2c889"
+revision: str = "68d09ed03b67"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -30,6 +30,9 @@ def upgrade() -> None:
         "hdf5",
         "cell_composition_summary",
         "cell_composition_volumes",
+        "single_neuron_synaptome_config",
+        "single_neuron_synaptome_simulation_io_result",
+        "single_cell_simulation_data",
         name="assetlabel",
     ).create(op.get_bind())
     sa.Enum("CREATED", "DELETED", name="assetstatus").create(op.get_bind())
@@ -625,6 +628,9 @@ def upgrade() -> None:
                 "hdf5",
                 "cell_composition_summary",
                 "cell_composition_volumes",
+                "single_neuron_synaptome_config",
+                "single_neuron_synaptome_simulation_io_result",
+                "single_cell_simulation_data",
                 name="assetlabel",
                 create_type=False,
             ),
@@ -1842,8 +1848,8 @@ def upgrade() -> None:
         "single_neuron_simulation",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
-        sa.Column("injectionLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
-        sa.Column("recordingLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
+        sa.Column("injection_location", sa.ARRAY(sa.VARCHAR()), nullable=False),
+        sa.Column("recording_location", sa.ARRAY(sa.VARCHAR()), nullable=False),
         sa.Column(
             "status",
             postgresql.ENUM(
@@ -1947,8 +1953,8 @@ def upgrade() -> None:
         "single_neuron_synaptome_simulation",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("seed", sa.Integer(), nullable=False),
-        sa.Column("injectionLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
-        sa.Column("recordingLocation", sa.ARRAY(sa.VARCHAR()), nullable=False),
+        sa.Column("injection_location", sa.ARRAY(sa.VARCHAR()), nullable=False),
+        sa.Column("recording_location", sa.ARRAY(sa.VARCHAR()), nullable=False),
         sa.Column(
             "status",
             postgresql.ENUM(
@@ -2443,6 +2449,9 @@ def downgrade() -> None:
         "hdf5",
         "cell_composition_summary",
         "cell_composition_volumes",
+        "single_neuron_synaptome_config",
+        "single_neuron_synaptome_simulation_io_result",
+        "single_cell_simulation_data",
         name="assetlabel",
     ).drop(op.get_bind())
     # ### end Alembic commands ###

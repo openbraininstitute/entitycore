@@ -93,8 +93,8 @@ def _create_simulation_id(
         json={
             "name": name,
             "description": description,
-            "injection_location": injectionLocation,
-            "recording_location": recordingLocation,
+            "injection_location": injection_location,
+            "recording_location": recording_location,
             "status": status,
             "seed": seed,
             "synaptome_id": str(synaptome_id),

@@ -1064,6 +1064,7 @@ class Circuit(ScientificArtifact):
 
     # Asset(s):
     # - sonata_circuit: Folder containing SONATA circuit
+    # - ...
 
     parent_circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True, nullable=True, default=None)
     parent_circuit: Mapped[Circuit] = relationship("Circuit", uselist=False, foreign_keys=[parent_circuit_id])
@@ -1082,6 +1083,10 @@ class Circuit(ScientificArtifact):
 
     version: Mapped[str] = mapped_column(default="")
 
+    number_neuron: Mapped[int] = mapped_column()
+    number_connections: Mapped[int] = mapped_column()
+    number_synapses: Mapped[int] = mapped_column()
+
     # TODO:
     # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id"), index=True, nullable=False, default=None)
     # building_workflow: Mapped[BuildingWorkflow] = relationship("BuildingWorkflow", uselist=False, foreign_keys=[building_workflow_id])
@@ -1089,7 +1094,9 @@ class Circuit(ScientificArtifact):
     # flatmap_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flatmap.id"), index=True, nullable=True, default=None)
     # flatmap: Mapped[FlatMap] = relationship("FlatMap", uselist=False, foreign_keys=[flatmap_id])
 
-    # connectivity_matrices: ...
-    # calibration_data: ...
+    # literature (multiple circuit source/component source/application paper references): ...
+    # connectivity_matrices (multiple .h5 files): ...
+    # overview_figures (multiple .png files): ...
+    # calibration_data (multiple entities): ...
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

@@ -43,7 +43,6 @@ class CircuitCreate(CircuitBase, AuthorizationOptionalPublicMixin, LicensedCreat
     # has_point_neurons: bool
     # has_electrical_cell_models: bool
     # has_spines: bool
-    # is_simulatable: bool
     # version: str | None
 
 

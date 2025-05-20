@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi_filter import FilterDepends
 
@@ -19,6 +20,7 @@ class SingleNeuronSimulationFilter(
 ):
     status: SingleNeuronSimulationStatus | None = None
 
+    me_model_id: UUID | None = None
     me_model: Annotated[MEModelFilter | None, NestedMEModelFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

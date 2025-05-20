@@ -1062,7 +1062,7 @@ class Circuit(ScientificArtifact):
     # - specific_brain_regions: ...
     # - ...
 
-    # Assets:
+    # Asset(s):
     # - sonata_circuit: Folder containing SONATA circuit
 
     parent_circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True, nullable=True, default=None)
@@ -1078,10 +1078,10 @@ class Circuit(ScientificArtifact):
     has_point_neurons: Mapped[bool] = mapped_column()
     has_electrical_cell_models: Mapped[bool] = mapped_column()
     has_spines: Mapped[bool] = mapped_column()
-    is_simulatable: Mapped[bool] = mapped_column()
+    # is_simulatable: Mapped[bool] = mapped_column()  # FIXME: Could be more like a validation (?)
 
     version: Mapped[str] = mapped_column(default="")
-    
+
     # TODO:
     # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id"), index=True, nullable=False, default=None)
     # building_workflow: Mapped[BuildingWorkflow] = relationship("BuildingWorkflow", uselist=False, foreign_keys=[building_workflow_id])

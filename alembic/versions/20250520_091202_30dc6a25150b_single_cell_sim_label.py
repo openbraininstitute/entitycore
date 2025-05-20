@@ -1,8 +1,8 @@
 """Single cell sim label
 
-Revision ID: 25379012ccfb
+Revision ID: 30dc6a25150b
 Revises: 4da94988fa4f
-Create Date: 2025-05-20 05:43:03.249581
+Create Date: 2025-05-20 09:12:02.870780
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "25379012ccfb"
+revision: str = "30dc6a25150b"
 down_revision: Union[str, None] = "4da94988fa4f"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -35,7 +35,7 @@ def upgrade() -> None:
             "cell_composition_volumes",
             "single_neuron_synaptome_config",
             "single_neuron_synaptome_simulation_io_result",
-            "single_cell_simulation",
+            "single_cell_simulation_data",
         ],
         affected_columns=[
             TableReference(table_schema="public", table_name="asset", column_name="label")

@@ -22,8 +22,8 @@ class EModelFilter(
     ETypeClassFilterMixin,
     SpeciesFilterMixin,
 ):
-    score__lte: int | None = None
-    score__gte: int | None = None
+    score__lte: float | None = None
+    score__gte: float | None = None
 
     exemplar_morphology: Annotated[MorphologyFilter | None, NestedExemplarMorphologyFilterDep] = (
         None

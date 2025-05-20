@@ -25,9 +25,9 @@ class PublishedInType(BaseModel):
     original_source_location : str
     other: str | None = None # Optional alternative identifier as a string
 
-from app.filters.common import BrainRegionFilterMixin
+from app.filters.common import LocationFilterMixin
 
-class ScientificArtifactCreate(BrainRegionFilterMixin, BaseModel):
+class ScientificArtifactCreate(LocationFilterMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: Optional[str] = None
@@ -42,8 +42,9 @@ class ScientificArtifactCreate(BrainRegionFilterMixin, BaseModel):
     contact_id : uuid.UUID | None = None
 
 
-class ScientificArtifactRead(ScientificArtifactCreate,BrainRegionFilterMixin):
+class ScientificArtifactRead(ScientificArtifactCreate,LocationFilterMixin):
     model_config = ConfigDict(from_attributes=True)
     id: UUID
     creation_date: datetime
     update_date: Optional[datetime] = None
+

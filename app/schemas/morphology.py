@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import PointLocationBase
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -48,6 +49,7 @@ class ReconstructionMorphologyRead(
     AuthorizationMixin,
     AssetsMixin,
     EntityTypeMixin,
+    CreatedByUpdatedByMixin,
 ):
     species: SpeciesRead
     strain: StrainRead | None

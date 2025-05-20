@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import MeasurementUnit
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
@@ -48,6 +49,7 @@ class ExperimentalDensityRead(
     LicensedReadMixin,
     AuthorizationMixin,
     EntityTypeMixin,
+    CreatedByUpdatedByMixin,
 ):
     subject: SubjectRead
     measurements: list[MeasurementRead] | None

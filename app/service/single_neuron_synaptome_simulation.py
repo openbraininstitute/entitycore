@@ -1,5 +1,6 @@
 import uuid
 
+import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
@@ -29,6 +30,22 @@ from app.schemas.simulation import (
 from app.schemas.types import ListResponse
 
 
+def _load(query: sa.Select):
+    return query.options(
+        joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+            SingleNeuronSynaptome.me_model
+        ),
+        joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
+            SingleNeuronSynaptome.me_model
+        ),
+        joinedload(SingleNeuronSynaptomeSimulation.brain_region),
+        selectinload(SingleNeuronSynaptomeSimulation.assets),
+        joinedload(SingleNeuronSynaptomeSimulation.createdBy),
+        joinedload(SingleNeuronSynaptomeSimulation.updatedBy),
+        raiseload("*"),
+    )
+
+
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,
@@ -40,17 +57,7 @@ def read_one(
         authorized_project_id=user_context.project_id,
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
-        apply_operations=lambda q: q.options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.me_model
-            ),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.me_model
-            ),
-            joinedload(SingleNeuronSynaptomeSimulation.brain_region),
-            selectinload(SingleNeuronSynaptomeSimulation.assets),
-            raiseload("*"),
-        ),
+        apply_operations=_load,
     )
 
 
@@ -62,8 +69,8 @@ def create_one(
     return router_create_one(
         db=db,
         json_model=json_model,
+        user_context=user_context,
         db_model_class=SingleNeuronSynaptomeSimulation,
-        authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
     )
 
@@ -78,11 +85,32 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[SingleNeuronSynaptomeSimulationRead]:
     synaptome_alias = aliased(SingleNeuronSynaptome, flat=True)
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
+    aliases = {
+        SingleNeuronSynaptome: synaptome_alias,
+        Agent: {
+            "contribution": agent_alias,
+            "createdBy": created_by_alias,
+            "updatedBy": updated_by_alias,
+        },
+    }
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
-            "id": Agent.id,
-            "label": Agent.pref_label,
-            "type": Agent.type,
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
+        },
+        "createdBy": {
+            "id": created_by_alias.id,
+            "label": created_by_alias.pref_label,
+            "type": created_by_alias.type,
+        },
+        "updatedBy": {
+            "id": updated_by_alias.id,
+            "label": updated_by_alias.pref_label,
+            "type": updated_by_alias.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "single_neuron_synaptome": {"id": synaptome_alias.id, "label": synaptome_alias.name},
@@ -90,22 +118,16 @@ def read_many(
     apply_filter_query = lambda query: (
         query.join(BrainRegion, SingleNeuronSynaptomeSimulation.brain_region_id == BrainRegion.id)
         .outerjoin(Contribution, SingleNeuronSynaptomeSimulation.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
+        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
+        .outerjoin(
+            created_by_alias, SingleNeuronSynaptomeSimulation.createdBy_id == created_by_alias.id
+        )
+        .outerjoin(
+            updated_by_alias, SingleNeuronSynaptomeSimulation.updatedBy_id == updated_by_alias.id
+        )
         .outerjoin(
             synaptome_alias, SingleNeuronSynaptomeSimulation.synaptome_id == synaptome_alias.id
         )
-    )
-    apply_data_query = lambda query: (
-        query.options(
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.me_model
-            ),
-            joinedload(SingleNeuronSynaptomeSimulation.synaptome).joinedload(
-                SingleNeuronSynaptome.me_model
-            ),
-            joinedload(SingleNeuronSynaptomeSimulation.brain_region),
-            selectinload(SingleNeuronSynaptomeSimulation.assets),
-        ).options(raiseload("*"))
     )
     return router_read_many(
         db=db,
@@ -116,8 +138,8 @@ def read_many(
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=apply_filter_query,
-        apply_data_query_operations=apply_data_query,
-        aliases={SingleNeuronSynaptome: synaptome_alias},
+        apply_data_query_operations=_load,
+        aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
         authorized_project_id=user_context.project_id,

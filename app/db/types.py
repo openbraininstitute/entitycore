@@ -190,6 +190,7 @@ class AssetLabel(StrEnum):
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()
     single_neuron_synaptome_simulation_io_result = auto()
+    single_cell_simulation_data = auto()
     sonata_circuit = auto()
 
 
@@ -207,6 +208,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
     EntityType.single_neuron_synaptome_simulation: {
         AssetLabel.single_neuron_synaptome_simulation_io_result
     },
+    EntityType.single_neuron_simulation: {AssetLabel.single_cell_simulation_data},
     EntityType.circuit: {AssetLabel.sonata_circuit},
 }
 

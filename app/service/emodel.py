@@ -52,6 +52,8 @@ def _load(select: sa.Select[tuple[EModel]]):
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
         selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
+        joinedload(EModel.createdBy),
+        joinedload(EModel.updatedBy),
         raiseload("*"),
     )
 
@@ -78,7 +80,7 @@ def create_one(
 ) -> EModelRead:
     return router_create_one(
         db=db,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         db_model_class=EModel,
         json_model=emodel,
         response_schema_class=EModelRead,
@@ -98,8 +100,16 @@ def read_many(
 ) -> ListResponse[EModelReadExpanded]:
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
     ion_channel_model_alias = aliased(IonChannelModel, flat=True)
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
     aliases: Aliases = {
         ReconstructionMorphology: morphology_alias,
+        Agent: {
+            "contribution": agent_alias,
+            "createdBy": created_by_alias,
+            "updatedBy": updated_by_alias,
+        },
         IonChannelModel: ion_channel_model_alias,
     }
 
@@ -108,14 +118,24 @@ def read_many(
         "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
         "contribution": {
-            "id": Agent.id,
-            "label": Agent.pref_label,
-            "type": Agent.type,
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "exemplar_morphology": {
             "id": morphology_alias.id,
             "label": morphology_alias.name,
+        },
+        "createdBy": {
+            "id": created_by_alias.id,
+            "label": created_by_alias.pref_label,
+            "type": created_by_alias.type,
+        },
+        "updatedBy": {
+            "id": updated_by_alias.id,
+            "label": updated_by_alias.pref_label,
+            "type": updated_by_alias.type,
         },
     }
 
@@ -125,7 +145,7 @@ def read_many(
             .join(morphology_alias, EModel.exemplar_morphology_id == morphology_alias.id)
             .join(BrainRegion, EModel.brain_region_id == BrainRegion.id)
             .outerjoin(Contribution, EModel.id == Contribution.entity_id)
-            .outerjoin(Agent, Contribution.agent_id == Agent.id)
+            .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
             .outerjoin(MTypeClassification, EModel.id == MTypeClassification.entity_id)
             .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
             .outerjoin(ETypeClassification, EModel.id == ETypeClassification.entity_id)
@@ -135,6 +155,8 @@ def read_many(
                 ion_channel_model_alias,
                 ion_channel_model_alias.id == IonChannelModelToEModel.ion_channel_model_id,
             )
+            .outerjoin(created_by_alias, EModel.createdBy_id == created_by_alias.id)
+            .outerjoin(updated_by_alias, EModel.updatedBy_id == updated_by_alias.id)
         )
 
     return router_read_many(

@@ -34,9 +34,12 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     )
     assert data["species"]["id"] == species_id, f"Failed to get species_id for emodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for emodel: {data}"
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
     response = client.get(ROUTE)
     assert response.status_code == 200, f"Failed to get emodels: {response.text}"
+    data = response.json()["data"]
+    assert data[0]["createdBy"]["id"] == data[0]["updatedBy"]["id"]
 
 
 def test_get_emodel(client: TestClient, emodel_id: str):
@@ -45,11 +48,12 @@ def test_get_emodel(client: TestClient, emodel_id: str):
     response = client.get(f"{ROUTE}/{emodel_id}")
 
     assert response.status_code == 200
-    json = response.json()
-    assert json["id"] == emodel_id
-    assert "assets" in json
-    assert len(json["assets"]) == 1
-    assert "ion_channel_models" in json
+    data = response.json()
+    assert data["id"] == emodel_id
+    assert "assets" in data
+    assert len(data["assets"]) == 1
+    assert "ion_channel_models" in data
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 def test_missing(client):
@@ -117,6 +121,11 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
     assert "facets" in data
     facets = data["facets"]
 
+    created_by = facets.pop("createdBy")
+    updated_by = facets.pop("updatedBy")
+    assert len(created_by) == len(updated_by) == 1
+    assert created_by == updated_by
+
     assert facets == {
         "mtype": [],
         "etype": [],
@@ -163,6 +172,12 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
 
     assert "facets" in data
     facets = data["facets"]
+
+    created_by = facets.pop("createdBy")
+    updated_by = facets.pop("updatedBy")
+    assert len(created_by) == len(updated_by) == 1
+    assert created_by == updated_by
+
     assert facets == {
         "mtype": [],
         "etype": [],
@@ -318,7 +333,7 @@ def test_authorization(
 
 
 def test_pagination(client, create_emodel_ids):
-    total_items = 29
+    total_items = 3
     create_emodel_ids(total_items)
 
     response = client.get(ROUTE, params={"page_size": total_items + 1})

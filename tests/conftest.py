@@ -36,7 +36,7 @@ from app.db.model import (
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.dependencies import auth
-from app.schemas.auth import UserContext
+from app.schemas.auth import UserContext, UserProfile
 
 from . import utils
 from .utils import (
@@ -54,6 +54,7 @@ from .utils import (
     VIRTUAL_LAB_ID,
     ClientProxy,
     add_db,
+    assert_request,
 )
 
 
@@ -83,8 +84,10 @@ def _create_buckets(s3):
 def user_context_admin():
     """Admin authenticated user."""
     return UserContext(
-        subject=UUID(int=1),
-        email=None,
+        profile=UserProfile(
+            subject=UUID(int=1),
+            name="Admin User",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
@@ -97,8 +100,10 @@ def user_context_admin():
 def user_context_user_1():
     """Admin authenticated user."""
     return UserContext(
-        subject=UUID(int=1),
-        email=None,
+        profile=UserProfile(
+            subject=UUID(int=1),
+            name="Admin User",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
@@ -111,8 +116,10 @@ def user_context_user_1():
 def user_context_user_2():
     """Regular authenticated user with different project-id."""
     return UserContext(
-        subject=UUID(int=2),
-        email=None,
+        profile=UserProfile(
+            subject=UUID(int=2),
+            name="Regular User With Project Id",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
@@ -125,8 +132,10 @@ def user_context_user_2():
 def user_context_no_project():
     """Regular authenticated user without project-id."""
     return UserContext(
-        subject=UUID(int=3),
-        email=None,
+        profile=UserProfile(
+            subject=UUID(int=3),
+            name="Regular User Without Project Id",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
@@ -227,8 +236,8 @@ def _db_cleanup(db):
 @pytest.fixture
 def person_id(db):
     row = Person(
-        givenName="jd",
-        familyName="courcol",
+        given_name="jd",
+        family_name="courcol",
         pref_label="jd courcol",
     )
     db.add(row)
@@ -372,7 +381,8 @@ def agents(db: Session):
         db, Organization(pref_label="test_organization_1", alternative_name="alt name 1")
     )
     person_1 = add_db(
-        db, Person(pref_label="test_person_1", givenName="given name 1", familyName="family name 1")
+        db,
+        Person(pref_label="test_person_1", given_name="given name 1", family_name="family name 1"),
     )
     role = add_db(db, Role(role_id=1, name="test role"))
 
@@ -387,24 +397,27 @@ def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id:
 
 @pytest.fixture
 def create_emodel_ids(
-    db, morphology_id, brain_region_id, species_id, strain_id, agents
+    client, db, morphology_id, brain_region_id, species_id, strain_id, agents
 ) -> CreateIds:
     def _create_emodels(count: int):
         emodel_ids: list[str] = []
         for i in range(count):
-            emodel_id = add_db(
-                db,
-                EModel(
-                    name=f"{i}",
-                    description=f"{i}_description",
-                    brain_region_id=brain_region_id,
-                    species_id=species_id,
-                    strain_id=strain_id,
-                    exemplar_morphology_id=morphology_id,
-                    authorized_public=False,
-                    authorized_project_id=PROJECT_ID,
-                ),
-            ).id
+            emodel_id = assert_request(
+                client.post,
+                url="/emodel",
+                json={
+                    "name": f"{i}",
+                    "brain_region_id": str(brain_region_id),
+                    "description": f"{i}_description",
+                    "species_id": str(species_id),
+                    "strain_id": str(strain_id),
+                    "iteration": "test iteration",
+                    "score": -1,
+                    "seed": -1,
+                    "exemplar_morphology_id": str(morphology_id),
+                    "authorized_public": False,
+                },
+            ).json()["id"]
 
             add_contributions(db, agents, emodel_id)
 
@@ -532,19 +545,21 @@ def faceted_emodel_ids(db: Session, client):
     for species_id, brain_region_id, morphology_id in it.product(
         species_ids, brain_region_ids, morphology_ids
     ):
-        emodel_id = add_db(
-            db,
-            EModel(
-                name="",
-                description=f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
-                brain_region_id=brain_region_id,
-                species_id=species_id,
-                strain_id=None,
-                exemplar_morphology_id=morphology_id,
-                authorized_public=False,
-                authorized_project_id=PROJECT_ID,
-            ),
-        ).id
+        emodel_id = assert_request(
+            client.post,
+            url="/emodel",
+            json={
+                "name": "",
+                "brain_region_id": str(brain_region_id),
+                "description": f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
+                "species_id": str(species_id),
+                "iteration": "test iteration",
+                "score": -1,
+                "seed": -1,
+                "exemplar_morphology_id": str(morphology_id),
+                "authorized_public": False,
+            },
+        ).json()["id"]
 
         emodel_ids.append(str(emodel_id))
 

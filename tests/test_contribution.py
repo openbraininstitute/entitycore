@@ -1,4 +1,4 @@
-from app.db.model import Contribution, Organization, Person, Role
+from app.db.model import Contribution, Organization, Person, ReconstructionMorphology, Role
 
 from .utils import (
     MISSING_ID,
@@ -39,8 +39,8 @@ def test_create_contribution(
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["givenName"] == "jd"
-    assert data["agent"]["familyName"] == "courcol"
+    assert data["agent"]["given_name"] == "jd"
+    assert data["agent"]["family_name"] == "courcol"
     assert data["agent"]["pref_label"] == "jd courcol"
     assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == str(role_id)
@@ -54,8 +54,8 @@ def test_create_contribution(
     assert response.status_code == 200
     data = response.json()
     assert data["agent"]["id"] == str(person_id)
-    assert data["agent"]["givenName"] == "jd"
-    assert data["agent"]["familyName"] == "courcol"
+    assert data["agent"]["given_name"] == "jd"
+    assert data["agent"]["family_name"] == "courcol"
     assert data["agent"]["type"] == "person"
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
@@ -215,7 +215,7 @@ def test_contribution_facets(
     brain_region_id,
 ):
     person = add_db(
-        db, Person(givenName="givenName", familyName="FamilyName", pref_label="person_pref_label")
+        db, Person(given_name="GivenName", family_name="FamilyName", pref_label="person_pref_label")
     )
     person_role = add_db(db, Role(name="PersonRoleName", role_id="role_id"))
 
@@ -261,6 +261,8 @@ def test_contribution_facets(
     assert len(morphology_ids) == 12
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
+    agent = db.get(ReconstructionMorphology, morphology_ids[0]).createdBy
+    """
     response = client.get(ROUTE_MORPH, params={"with_facets": True, "page_size": 10})
     assert response.status_code == 200
     data = response.json()
@@ -278,6 +280,12 @@ def test_contribution_facets(
             {"count": 12, "id": str(species_id), "label": "Test Species", "type": "species"}
         ],
         "strain": [{"count": 12, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
+        "createdBy": [
+            {"count": 12, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
+        ],
+        "updatedBy": [
+            {"count": 12, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
+        ],
     }
     assert len(data["data"]) == 10
     expected_indexes = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
@@ -287,7 +295,7 @@ def test_contribution_facets(
 
     expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
     assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
-
+    """
     response = client.get(
         f"{ROUTE_MORPH}",
         params={"with_facets": True, "contribution__pref_label": "person_pref_label"},
@@ -307,6 +315,12 @@ def test_contribution_facets(
             {"count": 9, "id": str(species_id), "label": "Test Species", "type": "species"}
         ],
         "strain": [{"count": 9, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
+        "createdBy": [
+            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
+        ],
+        "updatedBy": [
+            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
+        ],
     }
     assert len(data["data"]) == 9
     expected_indexes = [11, 10, 6, 5, 4, 3, 2, 1, 0]

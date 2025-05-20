@@ -91,12 +91,8 @@ def read_many(
         },
     }
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.mtype | aliased_facets
+        fc.brain_region | fc.mtype | fc.subject | aliased_facets
     )
-    name_to_facet_query_params |= {
-        "subject.species": {"id": Species.id, "label": Species.name},
-        "subject.strain": {"id": Strain.id, "label": Strain.name},
-    }
     filter_joins = {
         "brain_region": lambda q: q.join(
             BrainRegion, ExperimentalBoutonDensity.brain_region_id == BrainRegion.id

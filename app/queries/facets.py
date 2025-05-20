@@ -35,3 +35,7 @@ species: dict[str, FacetQueryParams] = {
     }
 }
 strain: dict[str, FacetQueryParams] = {"strain": {"id": Strain.id, "label": Strain.name}}
+subject: dict[str, FacetQueryParams] = {
+    "subject.species": {"id": Species.id, "label": Species.name},
+    "subject.strain": {"id": Strain.id, "label": Strain.name},
+}

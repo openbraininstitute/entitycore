@@ -124,13 +124,9 @@ def read_many(
             "type": updated_by_alias.type,
         },
     }
-    subject_facets = {
-        "subject.species": {"id": Species.id, "label": Species.name},
-        "subject.strain": {"id": Strain.id, "label": Strain.name},
-    }
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | aliased_facets | subject_facets
+        fc.brain_region | fc.subject | aliased_facets
     )
 
     db_cls = ExperimentalSynapsesPerConnection

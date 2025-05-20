@@ -122,17 +122,6 @@ def read_many(
             me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id
         ),
     }
-    apply_data_query = lambda query: (
-        query.options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.mtypes))
-        .options(joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.etypes))
-        .options(joinedload(SingleNeuronSynaptome.createdBy))
-        .options(joinedload(SingleNeuronSynaptome.updatedBy))
-        .options(joinedload(SingleNeuronSynaptome.brain_region))
-        .options(selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent))
-        .options(selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role))
-        .options(selectinload(SingleNeuronSynaptome.assets))
-        .options(raiseload("*"))
-    )
     return router_read_many(
         db=db,
         filter_model=filter_model,

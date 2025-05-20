@@ -74,18 +74,18 @@ def _create_simulation_id(
     brain_region_id,
     name="my-synaptome-simulation",
     description="my-synaptome-simulation-description",
-    injection_location=None,  # noqa: N803
-    recording_location=None,  # noqa: N803
+    injection_location=None,
+    recording_location=None,
     status="success",
     seed=1,
     authorized_public=False,
     authorized_project_id=PROJECT_ID,
 ):
     if injection_location is None:
-        injection_location = ["soma[0]"]  # noqa: N806
+        injection_location = ["soma[0]"]
 
     if recording_location is None:
-        recording_location = ["soma[0]_0.5"]  # noqa: N806
+        recording_location = ["soma[0]_0.5"]
 
     return add_db(
         db,

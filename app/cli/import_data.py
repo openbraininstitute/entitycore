@@ -894,7 +894,7 @@ class ImportSingleNeuronSimulation(Import):
                 seed=data.get("seed", None),
                 injection_location=data.get("injectionLocation")
                 or data.get("injection_location"),  # TODO: Get from config file if not existent?
-                recording_location=data.get("recordingLocation") or data.get("injection_location"),
+                recording_location=data.get("recordingLocation") or data.get("recording_location"),
                 me_model_id=me_model.id,
                 brain_region_id=brain_region_id,
                 createdBy_id=created_by_id,

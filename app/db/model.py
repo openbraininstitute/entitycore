@@ -1083,7 +1083,7 @@ class Circuit(ScientificArtifact):
 
     version: Mapped[str] = mapped_column(default="")
 
-    number_neuron: Mapped[int] = mapped_column()
+    number_neurons: Mapped[int] = mapped_column()
     number_connections: Mapped[int] = mapped_column()
     number_synapses: Mapped[int] = mapped_column()
 

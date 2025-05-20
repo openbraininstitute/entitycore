@@ -61,4 +61,4 @@ class AssetCreate(AssetBase):
 
 
 class AssetsMixin(BaseModel):
-    assets: list[AssetRead] | None
+    assets: list[AssetRead]

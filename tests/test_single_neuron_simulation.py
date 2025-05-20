@@ -3,7 +3,7 @@ import itertools as it
 import pytest
 
 from app.db.model import MEModel, SingleNeuronSimulation
-from app.db.types import EntityType
+from app.db.types import AssetLabel, EntityType
 
 from .utils import (
     MISSING_ID,
@@ -14,6 +14,7 @@ from .utils import (
     check_brain_region_filter,
     create_brain_region,
 )
+from tests.routers.test_asset import _upload_entity_asset
 
 ROUTE = "/single-neuron-simulation"
 
@@ -44,6 +45,12 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     )
 
     data = response.json()
+    _upload_entity_asset(
+        client,
+        EntityType.single_neuron_simulation,
+        data["id"],
+        label=AssetLabel.single_cell_simulation_data,
+    )
     assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
@@ -70,6 +77,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
     assert "assets" in data
+    assert data["assets"][0]["label"] == AssetLabel.single_cell_simulation_data
 
 
 @pytest.mark.parametrize(

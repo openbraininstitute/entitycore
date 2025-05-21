@@ -33,7 +33,6 @@ from app.db.model import (
     Species,
     Strain,
     Subject,
-    ValidationResult,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.dependencies import auth
@@ -374,19 +373,17 @@ def mtype_class_id(db):
 
 
 @pytest.fixture
-def validation_result_id(db, morphology_id):
-    return str(
-        add_db(
-            db,
-            ValidationResult(
-                name="test_validation_result",
-                passed=True,
-                validated_entity_id=morphology_id,
-                authorized_public=False,
-                authorized_project_id=PROJECT_ID,
-            ),
-        ).id
-    )
+def validation_result_id(client, morphology_id):
+    return assert_request(
+        client.post,
+        url="/validation-result",
+        json={
+            "name": "test_validation_result",
+            "passed": True,
+            "validated_entity_id": str(morphology_id),
+            "authorized_public": False,
+        },
+    ).json()["id"]
 
 
 CreateIds = Callable[[int], list[str]]

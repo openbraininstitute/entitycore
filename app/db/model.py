@@ -293,13 +293,6 @@ class ScientificArtifact(
         "polymorphic_identity": EntityType.scientific_artifact,
         "inherit_condition": id == Entity.id,
     }
-
-    @staticmethod
-    def is_scientific_artifact(entity_type: EntityType) -> bool:
-        return entity_type in [
-            EntityType.cell_morphology,
-            EntityType.electrical_cell_recording,
-        ]
     
 class BrainRegion(TimestampMixin, Base):
     __tablename__ = "brain_region"

@@ -1,59 +1,69 @@
 import itertools as it
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 
+from app.db.model import EModel
 from app.db.types import EntityType
 
 from .conftest import CreateIds, EModelIds
-from .utils import create_reconstruction_morphology_id
+from .utils import assert_request, create_reconstruction_morphology_id
 from tests.routers.test_asset import _upload_entity_asset
 
 ROUTE = "/emodel"
 
 
-def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, morphology_id):
-    response = client.post(
-        ROUTE,
-        json={
-            "brain_region_id": str(brain_region_id),
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": "Test EModel Description",
-            "name": "Test EModel Name",
-            "iteration": "test iteration",
-            "score": -1,
-            "seed": -1,
-            "exemplar_morphology_id": morphology_id,
-        },
-    )
-    assert response.status_code == 200, f"Failed to create emodel: {response.text}"
-    data = response.json()
-    assert data["brain_region"]["id"] == str(brain_region_id), (
-        f"Failed to get id for emodel: {data}"
-    )
-    assert data["species"]["id"] == species_id, f"Failed to get species_id for emodel: {data}"
-    assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for emodel: {data}"
+@pytest.fixture
+def json_data(db, emodel_id):
+    emodel = db.get(EModel, emodel_id)
+    return {
+        "brain_region_id": str(emodel.brain_region_id),
+        "species_id": str(emodel.species_id),
+        "strain_id": str(emodel.strain_id),
+        "description": emodel.description,
+        "name": emodel.name,
+        "iteration": emodel.iteration,
+        "score": emodel.score,
+        "seed": emodel.seed,
+        "exemplar_morphology_id": str(emodel.exemplar_morphology_id),
+    }
+
+
+def _assert_read_response(data, json_data):
+    assert data["name"] == json_data["name"]
+    assert data["description"] == json_data["description"]
+    assert data["brain_region"]["id"] == json_data["brain_region_id"]
+    assert data["species"]["id"] == json_data["species_id"]
+    assert data["strain"]["id"] == json_data["strain_id"]
     assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["exemplar_morphology"]["id"] == json_data["exemplar_morphology_id"]
+    assert data["iteration"] == json_data["iteration"]
+    assert data["score"] == json_data["score"]
+    assert data["seed"] == json_data["seed"]
+    assert "ion_channel_models" in data
+    assert "assets" in data
 
-    response = client.get(ROUTE)
-    assert response.status_code == 200, f"Failed to get emodels: {response.text}"
-    data = response.json()["data"]
-    assert data[0]["createdBy"]["id"] == data[0]["updatedBy"]["id"]
+
+def test_create_emodel(client: TestClient, json_data):
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
+
+    data = assert_request(client.get, url=ROUTE).json()["data"]
+    _assert_read_response(data[0], json_data)
 
 
-def test_get_emodel(client: TestClient, emodel_id: str):
+def test_get_emodel(client: TestClient, emodel_id: str, json_data):
     _upload_entity_asset(client, EntityType.emodel, uuid.UUID(emodel_id))
 
-    response = client.get(f"{ROUTE}/{emodel_id}")
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE}/{emodel_id}",
+    ).json()
+    _assert_read_response(data, json_data)
 
-    assert response.status_code == 200
-    data = response.json()
     assert data["id"] == emodel_id
-    assert "assets" in data
     assert len(data["assets"]) == 1
-    assert "ion_channel_models" in data
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
 
 
 def test_missing(client):

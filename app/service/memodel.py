@@ -57,6 +57,7 @@ def _load(select: Select):
             joinedload(EModel.createdBy),
             joinedload(EModel.updatedBy),
             selectinload(EModel.assets),
+            selectinload(EModel.ion_channel_models),
         ),
         joinedload(MEModel.morphology).options(
             joinedload(ReconstructionMorphology.brain_region),

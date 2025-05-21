@@ -458,27 +458,27 @@ def emodel_id(create_emodel_ids: CreateIds) -> str:
 
 @pytest.fixture
 def create_memodel_ids(
-    db, morphology_id, brain_region_id, species_id, strain_id, emodel_id, agents
+    db, client, morphology_id, brain_region_id, species_id, strain_id, emodel_id, agents
 ) -> CreateIds:
     def _create_memodel_ids(count: int):
         memodel_ids: list[str] = []
         for i in range(count):
-            memodel_id = add_db(
-                db,
-                MEModel(
-                    name=f"{i}",
-                    description=f"{i}_description",
-                    brain_region_id=brain_region_id,
-                    species_id=species_id,
-                    strain_id=strain_id,
-                    morphology_id=morphology_id,
-                    emodel_id=emodel_id,
-                    authorized_public=False,
-                    authorized_project_id=PROJECT_ID,
-                    holding_current=0,
-                    threshold_current=0,
-                ),
-            ).id
+            memodel_id = assert_request(
+                client.post,
+                url="/memodel",
+                json={
+                    "name": f"{i}",
+                    "description": f"{i}_description",
+                    "brain_region_id": str(brain_region_id),
+                    "species_id": str(species_id),
+                    "strain_id": str(strain_id),
+                    "morphology_id": str(morphology_id),
+                    "emodel_id": str(emodel_id),
+                    "authorized_public": False,
+                    "holding_current": 0,
+                    "threshold_current": 0,
+                },
+            ).json()["id"]
 
             add_contributions(db, agents, memodel_id)
 

@@ -28,7 +28,7 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.emodel import EModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
-from app.schemas.emodel import EModelCreate, EModelRead, EModelReadExpanded
+from app.schemas.emodel import EModelCreate, EModelRead
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -61,13 +61,13 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> EModelReadExpanded:
+) -> EModelRead:
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=EModel,
         authorized_project_id=user_context.project_id,
-        response_schema_class=EModelReadExpanded,
+        response_schema_class=EModelRead,
         apply_operations=_load,
     )
 
@@ -96,7 +96,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[EModelReadExpanded]:
+) -> ListResponse[EModelRead]:
     morphology_alias = aliased(ReconstructionMorphology, flat=True)
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
@@ -170,7 +170,7 @@ def read_many(
         apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,
-        response_schema_class=EModelReadExpanded,
+        response_schema_class=EModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=emodel_filter,
         filter_joins=filter_joins,

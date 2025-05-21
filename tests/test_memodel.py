@@ -1,6 +1,7 @@
 import operator as op
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db.model import MEModel
@@ -9,6 +10,7 @@ from app.schemas.me_model import MEModelRead
 from .conftest import CreateIds, MEModels
 from .utils import (
     PROJECT_ID,
+    assert_request,
     check_brain_region_filter,
     create_reconstruction_morphology_id,
 )
@@ -16,19 +18,48 @@ from .utils import (
 ROUTE = "/memodel"
 
 
-def test_get_memodel(client: TestClient, memodel_id):
-    response = client.get(f"{ROUTE}/{memodel_id}")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["id"] == memodel_id
-    assert "morphology" in data
-    assert "emodel" in data
-    assert "brain_region" in data
-    assert "species" in data
-    assert "strain" in data
+@pytest.fixture
+def json_data(db, memodel_id):
+    me_model = db.get(MEModel, memodel_id)
+    return {
+        "brain_region_id": str(me_model.brain_region_id),
+        "species_id": str(me_model.species_id),
+        "strain_id": str(me_model.strain_id),
+        "description": me_model.description,
+        "name": me_model.name,
+        "morphology_id": str(me_model.morphology_id),
+        "emodel_id": str(me_model.emodel_id),
+        "holding_current": me_model.holding_current,
+        "threshold_current": me_model.threshold_current,
+    }
+
+
+def _assert_read_response(data, json_data):
+    assert data["name"] == json_data["name"]
+    assert data["description"] == json_data["description"]
+    assert data["brain_region"]["id"] == json_data["brain_region_id"]
+    assert data["species"]["id"] == json_data["species_id"]
+    assert data["strain"]["id"] == json_data["strain_id"]
+    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["threshold_current"] == json_data["threshold_current"]
+    assert data["holding_current"] == json_data["holding_current"]
+    assert data["emodel"]["id"] == json_data["emodel_id"]
+    assert "ion_channel_models" in data["emodel"]
+    assert data["morphology"]["id"] == json_data["morphology_id"]
+    assert "assets" in data["emodel"]
+    assert "assets" in data["morphology"]
     assert "mtypes" in data
     assert "etypes" in data
     MEModelRead.model_validate(data)
+
+
+def test_get_memodel(client: TestClient, memodel_id, json_data):
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE}/{memodel_id}",
+    ).json()
+    _assert_read_response(data, json_data)
+    assert data["id"] == memodel_id
 
 
 def test_missing(client):
@@ -41,43 +72,16 @@ def test_missing(client):
 
 def test_create_memodel(
     client: TestClient,
-    species_id: str,
-    strain_id: str,
-    brain_region_id: int,
-    morphology_id: str,
-    emodel_id: str,
+    json_data,
 ):
-    response = client.post(
-        ROUTE,
-        json={
-            "brain_region_id": str(brain_region_id),
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": "Test MEModel Description",
-            "name": "Test MEModel Name",
-            "morphology_id": morphology_id,
-            "emodel_id": emodel_id,
-            "holding_current": 0,
-            "threshold_current": 0,
-        },
-    )
-    assert response.status_code == 200, f"Failed to create memodel: {response.text}"
-    data = response.json()
-    assert data["brain_region"]["id"] == str(brain_region_id), (
-        f"Failed to get id for memodel: {data}"
-    )
-    assert data["species"]["id"] == species_id, f"Failed to get species_id for memodel: {data}"
-    assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
-    assert "assets" in data["emodel"]
-    assert "assets" in data["morphology"]
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
 
-    response = client.get(f"{ROUTE}/{data['id']}")
-    assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
-    data = response.json()
-    assert "assets" in data["emodel"]
-    assert "assets" in data["morphology"]
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    data = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
+    _assert_read_response(data, json_data)
+
+    data = assert_request(client.get, url=ROUTE).json()["data"][0]
+    _assert_read_response(data, json_data)
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):

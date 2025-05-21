@@ -91,40 +91,23 @@ class Identifiable(TimestampMixin, Base):
     __abstract__ = True
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
-
-class NameDescriptionVectorMixin:
+class NameDescriptionVectorMixin(Base):
     __abstract__ = True
     name: Mapped[str] = mapped_column(index=True)
     description: Mapped[str] = mapped_column(default="")
-    description_vector: Mapped[TSVECTOR | None] = mapped_column(TSVECTOR)
+    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):
-        # Define the index only for classes that own the description_vector column's table
-        if cls.__name__ in (
-            "ScientificArtifact",
-            "Subject",
-            "EModel",
-            "MEModel",
-            "Mesh",
-            "SingleNeuronSynaptome",
-            "SingleNeuronSimulation",
-            "SingleNeuronSynaptomeSimulation",
-            "ExperimentalNeuronDensity",
-            "ExperimentalBoutonDensity",
-            "ExperimentalSynapsesPerConnection",
-            "AnalysisSoftwareSourceCode"
-        ):
-            return (
-                Index(
-                    f"ix_{cls.__tablename__}_description_vector",
-                    cls.description_vector,
-                    postgresql_using="gin",
-                ),
-            )
-        return getattr(super(), "__table_args__", ())
-
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        return (
+            Index(
+                f"ix_{cls.__tablename__}_description_vector",
+                cls.description_vector,
+                postgresql_using="gin",
+            ),
+            *getattr(super(), "__table_args__", ()),
+        )
 
 class LicensedMixin:
     license_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("license.id"), index=True)

@@ -22,4 +22,6 @@ class CalibrationResultFilter(
         ordering_model_fields = ["name"]  # noqa: RUF012
 
 
-CalibrationResultFilterDep = Annotated[CalibrationResultFilter, FilterDepends(CalibrationResultFilter)]
+CalibrationResultFilterDep = Annotated[
+    CalibrationResultFilter, FilterDepends(CalibrationResultFilter)
+]

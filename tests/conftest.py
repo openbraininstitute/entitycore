@@ -400,6 +400,7 @@ def calibration_result_id(client, memodel_id):
         },
     ).json()["id"]
 
+
 CreateIds = Callable[[int], list[str]]
 
 

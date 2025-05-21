@@ -3,7 +3,7 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload
 
-from app.db.model import Subject, CalibrationResult
+from app.db.model import CalibrationResult, Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -14,8 +14,8 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.calibration_result import CalibrationResultFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
-from app.schemas.types import ListResponse
 from app.schemas.calibration import CalibrationResultCreate, CalibrationResultRead
+from app.schemas.types import ListResponse
 
 
 def _load(query: sa.Select):

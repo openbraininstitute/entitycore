@@ -56,7 +56,4 @@ class EModelRead(
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology
-
-
-class EModelReadExpanded(EModelRead, AssetsMixin):
     ion_channel_models: list[IonChannelModelWAssets]

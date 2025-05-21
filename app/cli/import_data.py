@@ -167,7 +167,7 @@ def create_annotation(annotation_, entity_id, db):
             entity_id=entity_id,
             mtype_class_id=annotation_body_id,
             created_by_id=agent_id,
-            update_by_id=agent_id,
+            updated_by_id=agent_id,
         )
 
     elif annotation_type is ETypeClass:

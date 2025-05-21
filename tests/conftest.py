@@ -372,6 +372,20 @@ def mtype_class_id(db):
     )
 
 
+@pytest.fixture
+def validation_result_id(client, morphology_id):
+    return assert_request(
+        client.post,
+        url="/validation-result",
+        json={
+            "name": "test_validation_result",
+            "passed": True,
+            "validated_entity_id": str(morphology_id),
+            "authorized_public": False,
+        },
+    ).json()["id"]
+
+
 CreateIds = Callable[[int], list[str]]
 
 

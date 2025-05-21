@@ -821,6 +821,26 @@ class IonChannelModelToEModel(Base):
     )
 
 
+class ValidationResult(Entity):
+    __tablename__ = EntityType.validation_result.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    passed: Mapped[bool] = mapped_column(default=False)
+
+    name: Mapped[str] = mapped_column(index=True)
+
+    validated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    validated_entity: Mapped[Entity] = relationship(
+        "Entity",
+        uselist=False,
+        foreign_keys=[validated_entity_id],
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
 class Asset(Identifiable):
     """Asset table."""
 

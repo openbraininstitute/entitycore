@@ -46,7 +46,6 @@ from app.db.types import (
     Sex,
     SingleNeuronSimulationStatus,
     ValidationStatus,
-    MorphologyType,
 )
 from app.utils.uuid import create_uuid
 
@@ -515,20 +514,6 @@ class MEModel(
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
     __mapper_args__ = {"polymorphic_identity": __tablename__}
-
- 
-class CellMorphology(MTypesMixin, ScientificArtifact):
-    __tablename__ = EntityType.cell_morphology.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
-    morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
-    morphology_type = mapped_column(
-        Enum(MorphologyType, name="morphologytype"),
-        nullable=False,
-        default=MorphologyType.GENERIC,
-    )
-    location: Mapped[dict] = mapped_column(JSONB, nullable=True)
-    __mapper_args__ = {"polymorphic_identity": EntityType.cell_morphology}
-
 
 class MorphologyFeatureAnnotation(Identifiable):
     __tablename__ = "morphology_feature_annotation"

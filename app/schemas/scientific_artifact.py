@@ -10,7 +10,7 @@ from app.schemas.contribution import ContributionReadWithoutEntity
 #from app.schemas.base import BaseSchema
 from app.schemas.contribution import ContributionRead
 from app.schemas.asset import AssetRead
-from app.schemas.base import LicenseRead
+from app.schemas.base import LicenseRead,BrainRegionRead
 from app.db.model import Entity
 
 # where was the artifact published?
@@ -25,11 +25,10 @@ class PublishedInType(BaseModel):
     original_source_location : str
     other: str | None = None # Optional alternative identifier as a string
 
-from app.filters.common import LocationFilterMixin
 
-class ScientificArtifactBase(LocationFilterMixin, BaseModel):
+class ScientificArtifactBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    creation_date: datetime
+    creation_date: datetime| None = None
     update_date: Optional[datetime] = None
     name: str
     description: Optional[str] = None
@@ -40,14 +39,16 @@ class ScientificArtifactBase(LocationFilterMixin, BaseModel):
     createdBy_id: Optional[UUID] = None
     updatedBy_id: Optional[UUID] = None
     experiment_date: date | None = None 
-    published_in : PublishedInType
+    published_in : PublishedInType| None = None
     contact_id : uuid.UUID | None = None
+    
 
 class ScientificArtifactCreate(ScientificArtifactBase):
-    pass
+    brain_region_id: uuid.UUID | None = None
 
 class ScientificArtifactRead(ScientificArtifactBase):
-    id: UUID
+    id: uuid.UUID
+    brain_region: BrainRegionRead
 
 
 

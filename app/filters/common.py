@@ -120,9 +120,7 @@ NestedSubjectFilterDep = FilterDepends(with_prefix("subject", SubjectFilter))
 class LocationFilterMixin:
  #   classification_tree: str | None = None #this is the name of the classifcation scheme used
     brain_region_id: int | None = None #this is the coarsest level of the brain region
-    specific_brain_region_ids: list[int] | None = None #this is the list of specific brain regions that are a subset of the above brain region and for which the artifact is applicable
-    #if left blank then the artifact is only applicable to the coarsest level described by brain_region_id
-
+  
 class BrainRegionFilterMixin:
  #   classification_tree: str | None = None #this is the name of the classifcation scheme used
     brain_region_id: int | None = None #this is the coarsest level of the brain region
@@ -156,3 +154,5 @@ NestedSynapticPathwayFilterDep = FilterDepends(
 
 class SynapticPathwayFilterMixin:
     synaptic_pathway: Annotated[SynapticPathwayFilter | None, NestedSynapticPathwayFilterDep] = None
+
+

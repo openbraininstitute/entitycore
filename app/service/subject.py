@@ -58,11 +58,11 @@ def read_many(
             "type": Agent.type,
         },
     }
-    apply_filter_query = lambda query: (
-        query.outerjoin(Contribution, Subject.id == Contribution.entity_id).outerjoin(
-            Agent, Contribution.agent_id == Agent.id
-        )
-    )
+    filter_joins = {
+        "contribution": lambda q: q.outerjoin(
+            Contribution, Subject.id == Contribution.entity_id
+        ).outerjoin(Agent, Contribution.agent_id == Agent.id)
+    }
     apply_data_options = lambda query: (
         query.options(joinedload(Subject.species)).options(raiseload("*"))
     )
@@ -74,10 +74,11 @@ def read_many(
         with_in_brain_region=None,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=apply_data_options,
         aliases={},
         pagination_request=pagination_request,
         response_schema_class=SubjectRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )

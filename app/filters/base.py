@@ -1,3 +1,4 @@
+from operator import attrgetter
 from typing import cast
 
 from fastapi_filter.contrib.sqlalchemy import Filter
@@ -106,3 +107,15 @@ class CustomFilter[T: DeclarativeBase](Filter):
             if field_value.has_filtering_fields():
                 return True
         return False
+
+    def get_nested_filter(self, name: str) -> "CustomFilter[T] | None":
+        """Return the nested filter if it has filtering fields, or None otherwise.
+
+        Args:
+            name: The name of the nested filter. It's possible to specify deeply nested filters
+            using the dot notation, e.g. "measurement_annotation.measurement_kind".
+        """
+        attr = attrgetter(name)(self)
+        if isinstance(attr, CustomFilter) and attr.has_filtering_fields():
+            return attr
+        return None

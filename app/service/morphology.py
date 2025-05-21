@@ -25,7 +25,13 @@ from app.db.model import (
     Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetsDep, InBrainRegionDep, PaginationQuery, SearchDep
+from app.dependencies.common import (
+    FacetQueryParams,
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
@@ -145,27 +151,35 @@ def read_many(
             "type": updated_by_alias.type,
         },
     }
-    apply_filter_query = lambda query: (
-        query.join(Species, ReconstructionMorphology.species_id == Species.id)
-        .join(BrainRegion, ReconstructionMorphology.brain_region_id == BrainRegion.id)
-        .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
-        .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(created_by_alias, ReconstructionMorphology.createdBy_id == created_by_alias.id)
-        .outerjoin(updated_by_alias, ReconstructionMorphology.updatedBy_id == updated_by_alias.id)
-        .outerjoin(
+    filter_joins = {
+        "species": lambda q: q.join(Species, ReconstructionMorphology.species_id == Species.id),
+        "brain_region": lambda q: q.join(
+            BrainRegion, ReconstructionMorphology.brain_region_id == BrainRegion.id
+        ),
+        "strain": lambda q: q.outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, ReconstructionMorphology.id == Contribution.entity_id
+        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
+        "createdBy": lambda q: q.outerjoin(
+            created_by_alias, ReconstructionMorphology.createdBy_id == created_by_alias.id
+        ),
+        "updatedBy": lambda q: q.outerjoin(
+            updated_by_alias, ReconstructionMorphology.updatedBy_id == updated_by_alias.id
+        ),
+        "mtype": lambda q: q.outerjoin(
             MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id
-        )
-        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-        .outerjoin(
-            MeasurementAnnotation,
-            MeasurementAnnotation.entity_id == ReconstructionMorphology.id,
-        )
-        .outerjoin(
-            MeasurementKind, MeasurementKind.measurement_annotation_id == MeasurementAnnotation.id
-        )
-        .outerjoin(MeasurementItem, MeasurementItem.measurement_kind_id == MeasurementKind.id)
-    )
+        ).outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),
+        "measurement_annotation": lambda q: q.outerjoin(
+            MeasurementAnnotation, MeasurementAnnotation.entity_id == ReconstructionMorphology.id
+        ),
+        "measurement_annotation.measurement_kind": lambda q: q.outerjoin(
+            MeasurementKind,
+            MeasurementKind.measurement_annotation_id == MeasurementAnnotation.id,
+        ),
+        "measurement_annotation.measurement_kind.measurement_item": lambda q: q.outerjoin(
+            MeasurementItem, MeasurementItem.measurement_kind_id == MeasurementKind.id
+        ),
+    }
     return router_read_many(
         db=db,
         db_model_class=ReconstructionMorphology,
@@ -174,10 +188,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=with_facets,
         aliases=aliases,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load_from_db,
         pagination_request=pagination_request,
         response_schema_class=ReconstructionMorphologyRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=morphology_filter,
+        filter_joins=filter_joins,
     )

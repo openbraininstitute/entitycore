@@ -46,12 +46,15 @@ def read_many(
 ) -> ListResponse[IonChannelModelRead]:
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
+        "species": {"id": Species.id, "label": Species.name},
     }
 
-    def apply_filter_query(q: Select[IonChannelModel]):
-        return q.join(Species, IonChannelModel.species_id == Species.id).join(
+    filter_joins = {
+        "brain_region": lambda q: q.join(
             BrainRegion, IonChannelModel.brain_region_id == BrainRegion.id
-        )
+        ),
+        "species": lambda q: q.join(Species, IonChannelModel.species_id == Species.id),
+    }
 
     return router_read_many(
         db=db,
@@ -62,11 +65,12 @@ def read_many(
         facets=facets,
         aliases=None,
         apply_data_query_operations=_load,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         pagination_request=pagination_request,
         response_schema_class=IonChannelModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=icm_filter,
+        filter_joins=filter_joins,
     )
 
 

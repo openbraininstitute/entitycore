@@ -1,7 +1,6 @@
 import uuid
 from typing import TYPE_CHECKING
 
-import sqlalchemy as sa
 from sqlalchemy.orm import (
     aliased,
     joinedload,
@@ -165,22 +164,30 @@ def read_many(
         },
     }
 
-    def filter_query_operations(q: sa.Select):
-        return (
-            q.join(Species, MEModel.species_id == Species.id)
-            .outerjoin(Strain, MEModel.strain_id == Strain.id)
-            .join(morphology_alias, MEModel.morphology_id == morphology_alias.id)
-            .join(emodel_alias, MEModel.emodel_id == emodel_alias.id)
-            .join(BrainRegion, MEModel.brain_region_id == BrainRegion.id)
-            .outerjoin(Contribution, MEModel.id == Contribution.entity_id)
-            .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-            .outerjoin(created_by_alias, MEModel.createdBy_id == created_by_alias.id)
-            .outerjoin(updated_by_alias, MEModel.updatedBy_id == updated_by_alias.id)
-            .outerjoin(MTypeClassification, MEModel.id == MTypeClassification.entity_id)
-            .outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id)
-            .outerjoin(ETypeClassification, MEModel.id == ETypeClassification.entity_id)
-            .outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id)
-        )
+    filter_joins = {
+        "species": lambda q: q.join(Species, MEModel.species_id == Species.id),
+        "strain": lambda q: q.outerjoin(Strain, MEModel.strain_id == Strain.id),
+        "morphology": lambda q: q.join(
+            morphology_alias, MEModel.morphology_id == morphology_alias.id
+        ),
+        "emodel": lambda q: q.join(emodel_alias, MEModel.emodel_id == emodel_alias.id),
+        "brain_region": lambda q: q.join(BrainRegion, MEModel.brain_region_id == BrainRegion.id),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, MEModel.id == Contribution.entity_id
+        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
+        "createdBy": lambda q: q.outerjoin(
+            created_by_alias, MEModel.createdBy_id == created_by_alias.id
+        ),
+        "updatedBy": lambda q: q.outerjoin(
+            updated_by_alias, MEModel.updatedBy_id == updated_by_alias.id
+        ),
+        "mtype": lambda q: q.outerjoin(
+            MTypeClassification, MEModel.id == MTypeClassification.entity_id
+        ).outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id),
+        "etype": lambda q: q.outerjoin(
+            ETypeClassification, MEModel.id == ETypeClassification.entity_id
+        ).outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id),
+    }
 
     return router_read_many(
         db=db,
@@ -190,10 +197,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load,
-        apply_filter_query_operations=filter_query_operations,
         pagination_request=pagination_request,
         response_schema_class=MEModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=memodel_filter,
+        filter_joins=filter_joins,
     )

@@ -15,7 +15,7 @@ from app.filters.common import (
     ETypeClassFilterMixin,
     MTypeClassFilter,
     MTypeClassFilterMixin,
-    SpeciesFilterMixin,
+    SubjectFilterMixin,
     with_prefix,
 )
 
@@ -23,8 +23,8 @@ from app.filters.common import (
 class DensityFilterBase(
     CustomFilter,
     EntityFilterMixin,
-    SpeciesFilterMixin,
     BrainRegionFilterMixin,
+    SubjectFilterMixin,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

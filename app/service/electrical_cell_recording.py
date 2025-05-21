@@ -8,7 +8,6 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     ElectricalCellRecording,
-    ElectricalRecordingStimulus,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -21,11 +20,7 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.electrical_cell_recording import ElectricalCellRecordingFilterDep
-from app.queries.common import (
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.schemas.electrical_cell_recording import (
     ElectricalCellRecordingCreate,
     ElectricalCellRecordingRead,
@@ -88,7 +83,6 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
-    protocol_alias = aliased(ElectricalRecordingStimulus, flat=True)
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "contribution": {
             "id": agent_alias.id,
@@ -107,17 +101,20 @@ def read_many(
             "type": updated_by_alias.type,
         },
     }
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, ElectricalCellRecording.brain_region_id == BrainRegion.id)
-        .outerjoin(Contribution, ElectricalCellRecording.id == Contribution.entity_id)
-        .outerjoin(
-            protocol_alias,
-            ElectricalCellRecording.id == protocol_alias.recording_id,
-        )
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(created_by_alias, ElectricalCellRecording.createdBy_id == created_by_alias.id)
-        .outerjoin(updated_by_alias, ElectricalCellRecording.updatedBy_id == updated_by_alias.id)
-    )
+    filter_joins = {
+        "brain_region": lambda q: q.join(
+            BrainRegion, ElectricalCellRecording.brain_region_id == BrainRegion.id
+        ),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, ElectricalCellRecording.id == Contribution.entity_id
+        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
+        "createdBy": lambda q: q.outerjoin(
+            created_by_alias, ElectricalCellRecording.createdBy_id == created_by_alias.id
+        ),
+        "updatedBy": lambda q: q.outerjoin(
+            updated_by_alias, ElectricalCellRecording.updatedBy_id == updated_by_alias.id
+        ),
+    }
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -126,7 +123,7 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         aliases={
             Agent: {
@@ -134,9 +131,9 @@ def read_many(
                 "createdBy": created_by_alias,
                 "updatedBy": updated_by_alias,
             },
-            ElectricalRecordingStimulus: protocol_alias,
         },
         pagination_request=pagination_request,
         response_schema_class=ElectricalCellRecordingRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )

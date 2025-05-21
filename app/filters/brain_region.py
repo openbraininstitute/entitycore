@@ -11,7 +11,7 @@ from app.filters.common import NameFilterMixin
 
 def _get_family_query(
     *, hierarchy_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
-):
+) -> sa.CTE:
     """Create query for BrainRegions that returns ids.
 
     Can either traverse down (the default) or up (with_ascendants=True)
@@ -52,7 +52,7 @@ def filter_by_hierarchy_and_region(
         brain_region_id=brain_region_id,
         with_ascendants=with_ascendants,
     )
-    query = query.filter(model.brain_region_id.in_(sa.select(brain_region_query.c.id)))
+    query = query.join(brain_region_query, model.brain_region_id == brain_region_query.c.id)
     return query
 
 

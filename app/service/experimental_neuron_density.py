@@ -94,26 +94,33 @@ def read_many(
         },
     }
     name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.etype | fc.mtype | fc.species | fc.strain | aliased_facets
+        fc.brain_region | fc.etype | fc.mtype | fc.subject | aliased_facets
     )
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, ExperimentalNeuronDensity.brain_region_id == BrainRegion.id)
-        .outerjoin(subject_alias, ExperimentalNeuronDensity.subject_id == subject_alias.id)
-        .outerjoin(Species, subject_alias.species_id == Species.id)
-        .outerjoin(Strain, subject_alias.strain_id == Strain.id)
-        .outerjoin(Contribution, ExperimentalNeuronDensity.id == Contribution.entity_id)
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(created_by_alias, ExperimentalNeuronDensity.createdBy_id == created_by_alias.id)
-        .outerjoin(updated_by_alias, ExperimentalNeuronDensity.updatedBy_id == updated_by_alias.id)
-        .outerjoin(
+    filter_joins = {
+        "brain_region": lambda q: q.join(
+            BrainRegion, ExperimentalNeuronDensity.brain_region_id == BrainRegion.id
+        ),
+        "subject": lambda q: q.outerjoin(
+            subject_alias, ExperimentalNeuronDensity.subject_id == subject_alias.id
+        ),
+        "subject.species": lambda q: q.outerjoin(Species, subject_alias.species_id == Species.id),
+        "subject.strain": lambda q: q.outerjoin(Strain, subject_alias.strain_id == Strain.id),
+        "contribution": lambda q: q.outerjoin(
+            Contribution, ExperimentalNeuronDensity.id == Contribution.entity_id
+        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
+        "createdBy": lambda q: q.outerjoin(
+            created_by_alias, ExperimentalNeuronDensity.createdBy_id == created_by_alias.id
+        ),
+        "updatedBy": lambda q: q.outerjoin(
+            updated_by_alias, ExperimentalNeuronDensity.updatedBy_id == updated_by_alias.id
+        ),
+        "mtype": lambda q: q.outerjoin(
             MTypeClassification, ExperimentalNeuronDensity.id == MTypeClassification.entity_id
-        )
-        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-        .outerjoin(
+        ).outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),
+        "etype": lambda q: q.outerjoin(
             ETypeClassification, ExperimentalNeuronDensity.id == ETypeClassification.entity_id
-        )
-        .outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id)
-    )
+        ).outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id),
+    }
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -122,12 +129,13 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ExperimentalNeuronDensityRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )
 
 

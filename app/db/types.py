@@ -66,6 +66,7 @@ class EntityType(StrEnum):
     single_neuron_synaptome_simulation = auto()
     ion_channel_model = auto()
     subject = auto()
+    circuit = auto()
 
 
 class AgentType(StrEnum):
@@ -190,6 +191,7 @@ class AssetLabel(StrEnum):
     single_neuron_synaptome_config = auto()
     single_neuron_synaptome_simulation_io_result = auto()
     single_cell_simulation_data = auto()
+    sonata_circuit = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -207,4 +209,22 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.single_neuron_synaptome_simulation_io_result
     },
     EntityType.single_neuron_simulation: {AssetLabel.single_cell_simulation_data},
+    EntityType.circuit: {AssetLabel.sonata_circuit},
 }
+
+
+class CircuitBuildCategory(StrEnum):
+    data_driven_model = auto()
+    statistical_model = auto()
+    em_reconstruction = auto()
+    # TODO: Add & refine categories
+
+
+class CircuitScale(StrEnum):
+    single = auto()
+    pair = auto()
+    tiny = auto()
+    microcircuit = auto()
+    region = auto()
+    system = auto()
+    whole_brain = auto()

@@ -138,14 +138,13 @@ class LicensedMixin:
 class LocationMixin:
     __abstract__ = True
     brain_region_id: Mapped[int] = mapped_column(ForeignKey("brain_region.id"), index=True)
-    specific_brain_region_ids: Mapped[list[int] | None] = mapped_column(ARRAY(BigInteger), nullable=True, index=True)
-
+  
     @declared_attr
     @classmethod
     def brain_region(cls):
         return relationship("BrainRegion", uselist=False, foreign_keys=[cls.brain_region_id])
 
-    @declared_attr
+    """   @declared_attr
     @classmethod
     def specific_brain_regions(cls):
         return relationship(
@@ -157,8 +156,8 @@ class LocationMixin:
             uselist=True,
             viewonly=True,
             order_by="BrainRegion.brain_region_name"
-        )
-
+        ) 
+    """
 
 class Strain(Identifiable):
     __tablename__ = "strain"
@@ -522,6 +521,11 @@ class CellMorphology(MTypesMixin, ScientificArtifact):
     __tablename__ = EntityType.cell_morphology.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     morphology_feature_annotation = relationship("MorphologyFeatureAnnotation", uselist=False)
+    morphology_type = mapped_column(
+        Enum(MorphologyType, name="morphologytype"),
+        nullable=False,
+        default=MorphologyType.GENERIC,
+    )
     location: Mapped[dict] = mapped_column(JSONB, nullable=True)
     __mapper_args__ = {"polymorphic_identity": EntityType.cell_morphology}
 
@@ -733,4 +737,3 @@ class Asset(Identifiable):
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
     )
-

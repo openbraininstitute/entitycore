@@ -124,7 +124,7 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["synaptome"]["id"] == str(synaptome_id)
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
@@ -141,7 +141,7 @@ def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
     assert data["synaptome"]["id"] == str(synaptome_id)
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 @pytest.mark.parametrize(
@@ -301,7 +301,7 @@ def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id):
 def test_facets(db, client, faceted_ids):
     brain_region_ids, synaptome_ids, sim_ids = faceted_ids
 
-    agent = db.get(MODEL, sim_ids[0]).createdBy
+    agent = db.get(MODEL, sim_ids[0]).created_by
 
     data = assert_request(
         client.get,
@@ -331,10 +331,10 @@ def test_facets(db, client, faceted_ids):
             "type": "synaptome",
         },
     ]
-    assert facets["createdBy"] == [
+    assert facets["created_by"] == [
         {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
     ]
-    assert facets["updatedBy"] == [
+    assert facets["updated_by"] == [
         {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
     ]
 
@@ -360,10 +360,10 @@ def test_facets(db, client, faceted_ids):
         {"id": str(brain_region_ids[0]), "label": "region-0", "count": 1, "type": "brain_region"},
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]
-    assert facets["createdBy"] == [
+    assert facets["created_by"] == [
         {"id": str(agent.id), "label": agent.pref_label, "count": 2, "type": agent.type}
     ]
-    assert facets["updatedBy"] == [
+    assert facets["updated_by"] == [
         {"id": str(agent.id), "label": agent.pref_label, "count": 2, "type": agent.type}
     ]
 

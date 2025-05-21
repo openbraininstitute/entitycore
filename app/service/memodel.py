@@ -54,8 +54,8 @@ def _load(select: Select):
             selectinload(EModel.contributions).joinedload(Contribution.role),
             joinedload(EModel.mtypes),
             joinedload(EModel.etypes),
-            joinedload(EModel.createdBy),
-            joinedload(EModel.updatedBy),
+            joinedload(EModel.created_by),
+            joinedload(EModel.updated_by),
             selectinload(EModel.assets),
         ),
         joinedload(MEModel.morphology).options(
@@ -66,8 +66,8 @@ def _load(select: Select):
             joinedload(ReconstructionMorphology.license),
             joinedload(ReconstructionMorphology.species),
             joinedload(ReconstructionMorphology.strain),
-            joinedload(ReconstructionMorphology.createdBy),
-            joinedload(ReconstructionMorphology.updatedBy),
+            joinedload(ReconstructionMorphology.created_by),
+            joinedload(ReconstructionMorphology.updated_by),
             selectinload(ReconstructionMorphology.assets),
         ),
         joinedload(MEModel.brain_region),
@@ -75,8 +75,8 @@ def _load(select: Select):
         selectinload(MEModel.contributions).joinedload(Contribution.role),
         joinedload(MEModel.mtypes),
         joinedload(MEModel.etypes),
-        joinedload(MEModel.createdBy),
-        joinedload(MEModel.updatedBy),
+        joinedload(MEModel.created_by),
+        joinedload(MEModel.updated_by),
         raiseload("*"),
     )
 
@@ -128,8 +128,8 @@ def read_many(
         EModel: emodel_alias,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
 
@@ -152,12 +152,12 @@ def read_many(
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -175,11 +175,11 @@ def read_many(
         "contribution": lambda q: q.outerjoin(
             Contribution, MEModel.id == Contribution.entity_id
         ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, MEModel.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, MEModel.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, MEModel.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, MEModel.updated_by_id == updated_by_alias.id
         ),
         "mtype": lambda q: q.outerjoin(
             MTypeClassification, MEModel.id == MTypeClassification.entity_id

@@ -24,11 +24,11 @@ def _load(query: sa.Select):
     return query.options(
         joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.mtypes),
         joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.etypes),
-        joinedload(SingleNeuronSynaptome.createdBy),
-        joinedload(SingleNeuronSynaptome.updatedBy),
+        joinedload(SingleNeuronSynaptome.created_by),
+        joinedload(SingleNeuronSynaptome.updated_by),
         joinedload(SingleNeuronSynaptome.brain_region),
-        joinedload(SingleNeuronSynaptome.createdBy),
-        joinedload(SingleNeuronSynaptome.updatedBy),
+        joinedload(SingleNeuronSynaptome.created_by),
+        joinedload(SingleNeuronSynaptome.updated_by),
         selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent),
         selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role),
         selectinload(SingleNeuronSynaptome.assets),
@@ -81,8 +81,8 @@ def read_many(
     aliases = {
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
         MEModel: me_model_alias,
     }
@@ -92,12 +92,12 @@ def read_many(
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -112,11 +112,11 @@ def read_many(
         "contribution": lambda q: q.outerjoin(
             Contribution, SingleNeuronSynaptome.id == Contribution.entity_id
         ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, SingleNeuronSynaptome.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, SingleNeuronSynaptome.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, SingleNeuronSynaptome.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, SingleNeuronSynaptome.updated_by_id == updated_by_alias.id
         ),
         "me_model": lambda q: q.outerjoin(
             me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id

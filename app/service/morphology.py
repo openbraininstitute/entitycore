@@ -58,8 +58,8 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
         joinedload(ReconstructionMorphology.species, innerjoin=True),
         joinedload(ReconstructionMorphology.strain),
         selectinload(ReconstructionMorphology.assets),
-        joinedload(ReconstructionMorphology.createdBy),
-        joinedload(ReconstructionMorphology.updatedBy),
+        joinedload(ReconstructionMorphology.created_by),
+        joinedload(ReconstructionMorphology.updated_by),
         raiseload("*"),
     )
     if expand_measurement_annotation:
@@ -126,8 +126,8 @@ def read_many(
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -140,12 +140,12 @@ def read_many(
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -160,11 +160,11 @@ def read_many(
         "contribution": lambda q: q.outerjoin(
             Contribution, ReconstructionMorphology.id == Contribution.entity_id
         ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, ReconstructionMorphology.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, ReconstructionMorphology.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, ReconstructionMorphology.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, ReconstructionMorphology.updated_by_id == updated_by_alias.id
         ),
         "mtype": lambda q: q.outerjoin(
             MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id

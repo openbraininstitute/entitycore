@@ -171,15 +171,15 @@ In the world of biology, there are multiple types of animals.
 They may have different hierarchies.
 This means there is also a `brain-region-hierarchy` endpoint:
 
-`GET brain-region`
+`GET brain-region-hierarchy`
 
 Gets the hierarchies.
 
-`GET brain-region/$UUID`
+`GET brain-region-hierarchy/$UUID`
 
 Gets a particular hierarchy.
 
-`GET brain-region/$UUID/hierarchy`
+`GET brain-region-hierarchy/$UUID/hierarchy`
 
 This returns the 1.json style hierarchy; w/ the tree layout.
 

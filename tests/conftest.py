@@ -386,6 +386,20 @@ def validation_result_id(client, morphology_id):
     ).json()["id"]
 
 
+@pytest.fixture
+def calibration_result_id(client, memodel_id):
+    return assert_request(
+        client.post,
+        url="/calibration-result",
+        json={
+            "name": "threshold_current",
+            "description": "threshold_current (mV) of the memodel for testing",
+            "value": 0.0654321,
+            "calibrated_entity_id": str(memodel_id),
+            "authorized_public": False,
+        },
+    ).json()["id"]
+
 CreateIds = Callable[[int], list[str]]
 
 

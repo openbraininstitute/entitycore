@@ -284,7 +284,6 @@ class ScientificArtifact(
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     experiment_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     published_in: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    validation_tags: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
     __table_args__ = {
         "extend_existing": True

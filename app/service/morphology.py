@@ -13,20 +13,13 @@ from sqlalchemy.orm import (
 
 from app.db.model import (
     Agent,
-    BrainRegion,
     Contribution,
     MeasurementAnnotation,
-    MeasurementItem,
     MeasurementKind,
-    MTypeClass,
-    MTypeClassification,
     ReconstructionMorphology,
-    Species,
-    Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -35,6 +28,7 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
@@ -44,7 +38,6 @@ from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
-    from app.queries.common import FacetQueryParams
 
 
 def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = False) -> sa.Select:
@@ -130,56 +123,27 @@ def read_many(
             "updatedBy": updated_by_alias,
         },
     }
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
-        "species": {"id": Species.id, "label": Species.name},
-        "strain": {"id": Strain.id, "label": Strain.name},
-        "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
-        },
-        "createdBy": {
-            "id": created_by_alias.id,
-            "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
-        },
-        "updatedBy": {
-            "id": updated_by_alias.id,
-            "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
-        },
-    }
-    filter_joins = {
-        "species": lambda q: q.join(Species, ReconstructionMorphology.species_id == Species.id),
-        "brain_region": lambda q: q.join(
-            BrainRegion, ReconstructionMorphology.brain_region_id == BrainRegion.id
-        ),
-        "strain": lambda q: q.outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id),
-        "contribution": lambda q: q.outerjoin(
-            Contribution, ReconstructionMorphology.id == Contribution.entity_id
-        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, ReconstructionMorphology.createdBy_id == created_by_alias.id
-        ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, ReconstructionMorphology.updatedBy_id == updated_by_alias.id
-        ),
-        "mtype": lambda q: q.outerjoin(
-            MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id
-        ).outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),
-        "measurement_annotation": lambda q: q.outerjoin(
-            MeasurementAnnotation, MeasurementAnnotation.entity_id == ReconstructionMorphology.id
-        ),
-        "measurement_annotation.measurement_kind": lambda q: q.outerjoin(
-            MeasurementKind,
-            MeasurementKind.measurement_annotation_id == MeasurementAnnotation.id,
-        ),
-        "measurement_annotation.measurement_kind.measurement_item": lambda q: q.outerjoin(
-            MeasurementItem, MeasurementItem.measurement_kind_id == MeasurementKind.id
-        ),
-    }
+    facet_keys = [
+        "brain_region",
+        "mtype",
+        "species",
+        "strain",
+        "contribution",
+        "createdBy",
+        "updatedBy",
+    ]
+    filter_keys = [
+        *facet_keys,
+        "measurement_annotation",
+        "measurement_annotation.measurement_kind",
+        "measurement_annotation.measurement_kind.measurement_item",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=ReconstructionMorphology,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
+    )
     return router_read_many(
         db=db,
         db_model_class=ReconstructionMorphology,

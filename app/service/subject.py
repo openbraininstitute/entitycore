@@ -2,12 +2,13 @@ import uuid
 
 from sqlalchemy.orm import joinedload, raiseload
 
-from app.db.model import Agent, Contribution, Subject
+from app.db.model import Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetQueryParams, FacetsDep, PaginationQuery, SearchDep
+from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.filters.common import SubjectFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.subject import SubjectCreate, SubjectRead
 from app.schemas.types import ListResponse
 
@@ -51,18 +52,15 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[SubjectRead]:
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "contribution": {
-            "id": Agent.id,
-            "label": Agent.pref_label,
-            "type": Agent.type,
-        },
-    }
-    filter_joins = {
-        "contribution": lambda q: q.outerjoin(
-            Contribution, Subject.id == Contribution.entity_id
-        ).outerjoin(Agent, Contribution.agent_id == Agent.id)
-    }
+    facet_keys = filter_keys = [
+        "contribution",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=Subject,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases={},
+    )
     apply_data_options = lambda query: (
         query.options(joinedload(Subject.species)).options(raiseload("*"))
     )

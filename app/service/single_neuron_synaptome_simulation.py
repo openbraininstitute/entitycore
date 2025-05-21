@@ -5,14 +5,11 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
-    BrainRegion,
-    Contribution,
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -23,6 +20,7 @@ from app.filters.single_neuron_synaptome_simulation import (
     SingleNeuronSynaptomeSimulationFilterDep,
 )
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.simulation import (
     SingleNeuronSynaptomeSimulationCreate,
     SingleNeuronSynaptomeSimulationRead,
@@ -96,42 +94,19 @@ def read_many(
             "updatedBy": updated_by_alias,
         },
     }
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
-        },
-        "createdBy": {
-            "id": created_by_alias.id,
-            "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
-        },
-        "updatedBy": {
-            "id": updated_by_alias.id,
-            "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
-        },
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "synaptome": {"id": synaptome_alias.id, "label": synaptome_alias.name},
-    }
-    filter_joins = {
-        "brain_region": lambda q: q.join(
-            BrainRegion, SingleNeuronSynaptomeSimulation.brain_region_id == BrainRegion.id
-        ),
-        "contribution": lambda q: q.outerjoin(
-            Contribution, SingleNeuronSynaptomeSimulation.id == Contribution.entity_id
-        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, SingleNeuronSynaptomeSimulation.createdBy_id == created_by_alias.id
-        ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, SingleNeuronSynaptomeSimulation.updatedBy_id == updated_by_alias.id
-        ),
-        "synaptome": lambda q: q.outerjoin(
-            synaptome_alias, SingleNeuronSynaptomeSimulation.synaptome_id == synaptome_alias.id
-        ),
-    }
+    facet_keys = filter_keys = [
+        "brain_region",
+        "synaptome",
+        "contribution",
+        "createdBy",
+        "updatedBy",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=SingleNeuronSynaptomeSimulation,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
+    )
     return router_read_many(
         db=db,
         filter_model=filter_model,

@@ -38,8 +38,8 @@ def _load(query: sa.Select):
         ),
         joinedload(SingleNeuronSynaptomeSimulation.brain_region),
         selectinload(SingleNeuronSynaptomeSimulation.assets),
-        joinedload(SingleNeuronSynaptomeSimulation.createdBy),
-        joinedload(SingleNeuronSynaptomeSimulation.updatedBy),
+        joinedload(SingleNeuronSynaptomeSimulation.created_by),
+        joinedload(SingleNeuronSynaptomeSimulation.updated_by),
         raiseload("*"),
     )
 
@@ -90,15 +90,15 @@ def read_many(
         SingleNeuronSynaptome: synaptome_alias,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     facet_keys = filter_keys = [
         "brain_region",
         "synaptome",
-        "createdBy",
-        "updatedBy",
+        "created_by",
+        "updated_by",
         "contribution",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(

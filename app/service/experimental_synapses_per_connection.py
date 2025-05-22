@@ -43,8 +43,8 @@ def _load(q: sa.Select):
         joinedload(db_cls.license),
         joinedload(db_cls.subject).joinedload(Subject.species),
         joinedload(db_cls.subject).joinedload(Subject.strain),
-        joinedload(db_cls.createdBy),
-        joinedload(db_cls.updatedBy),
+        joinedload(db_cls.created_by),
+        joinedload(db_cls.updated_by),
         joinedload(db_cls.pre_mtype),
         joinedload(db_cls.post_mtype),
         joinedload(db_cls.pre_region),
@@ -84,8 +84,8 @@ def read_many(
         },
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     facet_keys = [
@@ -94,11 +94,11 @@ def read_many(
         "pre_region",
         "post_region",
         "brain_region",
+        "created_by",
+        "updated_by",
+        "contribution",
         "subject.species",
         "subject.strain",
-        "contribution",
-        "createdBy",
-        "updatedBy",
     ]
     filter_keys = [
         "pre_mtype",
@@ -106,8 +106,8 @@ def read_many(
         "pre_region",
         "post_region",
         "brain_region",
-        "createdBy",
-        "updatedBy",
+        "created_by",
+        "updated_by",
         "contribution",
         "subject",
         "subject.species",

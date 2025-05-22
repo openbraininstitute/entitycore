@@ -46,7 +46,7 @@ def _assert_read_response(data, json_data):
     assert data["pre_region"]["id"] == json_data["pre_region_id"]
     assert data["post_region"]["id"] == json_data["post_region_id"]
     assert data["type"] == EntityType.experimental_synapses_per_connection
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 @pytest.fixture

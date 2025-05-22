@@ -108,8 +108,8 @@ NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", AgentFilter))
 
 
 class CreatorFilterMixin:
-    createdBy: Annotated[AgentFilter | None, NestedCreatedByFilterDep] = None
-    updatedBy: Annotated[AgentFilter | None, NestedUpdatedByFilterDep] = None
+    created_by: Annotated[AgentFilter | None, NestedCreatedByFilterDep] = None
+    updated_by: Annotated[AgentFilter | None, NestedUpdatedByFilterDep] = None
 
 
 class SpeciesFilterMixin:

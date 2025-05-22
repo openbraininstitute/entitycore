@@ -36,8 +36,8 @@ def _load(query: sa.Select):
         joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
         joinedload(ElectricalCellRecording.subject),
         joinedload(ElectricalCellRecording.brain_region),
-        joinedload(ElectricalCellRecording.createdBy),
-        joinedload(ElectricalCellRecording.updatedBy),
+        joinedload(ElectricalCellRecording.created_by),
+        joinedload(ElectricalCellRecording.updated_by),
         selectinload(ElectricalCellRecording.assets),
         selectinload(ElectricalCellRecording.stimuli),
         raiseload("*"),
@@ -88,14 +88,14 @@ def read_many(
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     facet_keys = filter_keys = [
         "brain_region",
-        "createdBy",
-        "updatedBy",
+        "created_by",
+        "updated_by",
         "contribution",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(

@@ -45,8 +45,8 @@ def _load(select: sa.Select[tuple[EModel]]):
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
         selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
-        joinedload(EModel.createdBy),
-        joinedload(EModel.updatedBy),
+        joinedload(EModel.created_by),
+        joinedload(EModel.updated_by),
         raiseload("*"),
     )
 
@@ -99,16 +99,16 @@ def read_many(
         ReconstructionMorphology: morphology_alias,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     facet_keys = filter_keys = [
         "brain_region",
         "species",
         "exemplar_morphology",
-        "createdBy",
-        "updatedBy",
+        "created_by",
+        "updated_by",
         "contribution",
         "mtype",
         "etype",

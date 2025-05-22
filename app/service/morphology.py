@@ -51,8 +51,8 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
         joinedload(ReconstructionMorphology.species, innerjoin=True),
         joinedload(ReconstructionMorphology.strain),
         selectinload(ReconstructionMorphology.assets),
-        joinedload(ReconstructionMorphology.createdBy),
-        joinedload(ReconstructionMorphology.updatedBy),
+        joinedload(ReconstructionMorphology.created_by),
+        joinedload(ReconstructionMorphology.updated_by),
         raiseload("*"),
     )
     if expand_measurement_annotation:
@@ -119,15 +119,15 @@ def read_many(
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     facet_keys = [
         "brain_region",
         "species",
-        "createdBy",
-        "updatedBy",
+        "created_by",
+        "updated_by",
         "contribution",
         "mtype",
         "strain",

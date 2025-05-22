@@ -36,7 +36,7 @@ class ScientificArtifactBase(EntityTypeMixin):
     license_id: Optional[UUID] = None
     authorized_project_id: UUID
     authorized_public: bool = False
-    createdBy_id: Optional[UUID] 
+    createdBy_id: uuid.UUID 
     updatedBy_id: Optional[UUID] 
     experiment_date: date | None = None 
     published_in : list[PublishedInType]| None = None
@@ -49,6 +49,7 @@ class ScientificArtifactCreate(ScientificArtifactBase):
 class ScientificArtifactRead(ScientificArtifactBase):
     id: UUID
     brain_region: BrainRegionRead
+
 
 
 

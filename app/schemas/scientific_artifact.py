@@ -7,11 +7,11 @@ from pydantic import UUID4, BaseModel, ConfigDict
 from app.schemas.agent import PersonRead
 from app.schemas.contribution import ContributionReadWithoutEntity
  
-#from app.schemas.base import BaseSchema
 from app.schemas.contribution import ContributionRead
 from app.schemas.asset import AssetRead
-from app.schemas.base import LicenseRead,BrainRegionRead
+from app.schemas.base import LicenseRead,BrainRegionRead, EntityTypeMixin
 from app.db.model import Entity
+
 
 # where was the artifact published?
 class PublishedInType(BaseModel):
@@ -26,7 +26,7 @@ class PublishedInType(BaseModel):
     other: str | None = None # Optional alternative identifier as a string
 
 
-class ScientificArtifactBase(BaseModel):
+class ScientificArtifactBase(EntityTypeMixin):
     model_config = ConfigDict(from_attributes=True)
     creation_date: datetime| None = None
     update_date: Optional[datetime] = None
@@ -47,7 +47,7 @@ class ScientificArtifactCreate(ScientificArtifactBase):
     brain_region_id: uuid.UUID | None = None
 
 class ScientificArtifactRead(ScientificArtifactBase):
-    id: uuid.UUID
+    id: UUID
     brain_region: BrainRegionRead
 
 

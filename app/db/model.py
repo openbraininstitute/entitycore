@@ -483,9 +483,6 @@ class MEModel(
         "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
-    holding_current: Mapped[float | None]
-    threshold_current: Mapped[float | None]
-
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
@@ -837,7 +834,7 @@ class MEModelCalibrationResult(Entity):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     holding_current: Mapped[float]
     threshold_current: Mapped[float]
-    rin: Mapped[float]
+    rin: Mapped[float | None]
     calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("MEModel.id"), index=True)
     calibrated_entity: Mapped[Entity] = relationship(
         "MEModel",

@@ -5,10 +5,9 @@ import sqlalchemy as sa
 from fastapi import Depends
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import BrainRegion, Contribution, Ion, IonChannelModel, Species
+from app.db.model import Contribution, Ion, IonChannelModel
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -18,6 +17,7 @@ from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_model import (
     IonChannelModelCreate,
     IonChannelModelExpanded,
@@ -44,18 +44,16 @@ def read_many(
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
 ) -> ListResponse[IonChannelModelRead]:
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "species": {"id": Species.id, "label": Species.name},
-    }
-
-    filter_joins = {
-        "brain_region": lambda q: q.join(
-            BrainRegion, IonChannelModel.brain_region_id == BrainRegion.id
-        ),
-        "species": lambda q: q.join(Species, IonChannelModel.species_id == Species.id),
-    }
-
+    facet_keys = filter_keys = [
+        "brain_region",
+        "species",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=IonChannelModel,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases={},
+    )
     return router_read_many(
         db=db,
         db_model_class=IonChannelModel,

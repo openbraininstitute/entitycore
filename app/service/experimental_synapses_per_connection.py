@@ -14,13 +14,10 @@ from app.db.model import (
     Contribution,
     ExperimentalSynapsesPerConnection,
     MTypeClass,
-    Species,
-    Strain,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -28,8 +25,8 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.density import ExperimentalSynapsesPerConnectionFilterDep
-from app.queries import facets as fc
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
@@ -91,71 +88,37 @@ def read_many(
             "updated_by": updated_by_alias,
         },
     }
-    aliased_facets: dict[str, FacetQueryParams] = {
-        "pre_mtype": {
-            "id": pre_mtype_alias.id,
-            "label": pre_mtype_alias.pref_label,
-        },
-        "post_mtype": {
-            "id": post_mtype_alias.id,
-            "label": post_mtype_alias.pref_label,
-        },
-        "pre_region": {
-            "id": pre_region_alias.id,
-            "label": pre_region_alias.name,
-        },
-        "post_region": {
-            "id": post_region_alias.id,
-            "label": post_region_alias.name,
-        },
-        "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
-        },
-        "created_by": {
-            "id": created_by_alias.id,
-            "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
-        },
-        "updated_by": {
-            "id": updated_by_alias.id,
-            "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
-        },
-    }
-
-    name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.subject | aliased_facets
+    facet_keys = [
+        "pre_mtype",
+        "post_mtype",
+        "pre_region",
+        "post_region",
+        "brain_region",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "subject.species",
+        "subject.strain",
+    ]
+    filter_keys = [
+        "pre_mtype",
+        "post_mtype",
+        "pre_region",
+        "post_region",
+        "brain_region",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "subject",
+        "subject.species",
+        "subject.strain",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=ExperimentalSynapsesPerConnection,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
     )
-
-    db_cls = ExperimentalSynapsesPerConnection
-
-    filter_joins = {
-        "brain_region": lambda q: q.join(BrainRegion, db_cls.brain_region_id == BrainRegion.id),
-        "pre_mtype": lambda q: q.join(pre_mtype_alias, db_cls.pre_mtype_id == pre_mtype_alias.id),
-        "post_mtype": lambda q: q.join(
-            post_mtype_alias, db_cls.post_mtype_id == post_mtype_alias.id
-        ),
-        "pre_region": lambda q: q.join(
-            pre_region_alias, db_cls.pre_region_id == pre_region_alias.id
-        ),
-        "post_region": lambda q: q.join(
-            post_region_alias, db_cls.post_region_id == post_region_alias.id
-        ),
-        "subject": lambda q: q.outerjoin(subject_alias, db_cls.subject_id == subject_alias.id),
-        "subject.species": lambda q: q.outerjoin(Species, subject_alias.species_id == Species.id),
-        "subject.strain": lambda q: q.outerjoin(Strain, subject_alias.strain_id == Strain.id),
-        "contribution": lambda q: q.outerjoin(
-            Contribution, db_cls.id == Contribution.entity_id
-        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "created_by": lambda q: q.outerjoin(
-            created_by_alias, db_cls.created_by_id == created_by_alias.id
-        ),
-        "updated_by": lambda q: q.outerjoin(
-            updated_by_alias, db_cls.updated_by_id == updated_by_alias.id
-        ),
-    }
     return router_read_many(
         db=db,
         filter_model=filter_model,

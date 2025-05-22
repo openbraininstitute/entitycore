@@ -11,21 +11,13 @@ from sqlalchemy.sql.selectable import Select
 
 from app.db.model import (
     Agent,
-    BrainRegion,
     Contribution,
     EModel,
-    ETypeClass,
-    ETypeClassification,
     MEModel,
-    MTypeClass,
-    MTypeClassification,
     ReconstructionMorphology,
-    Species,
-    Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -34,6 +26,7 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.memodel import MEModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.me_model import MEModelCreate, MEModelRead
 from app.schemas.types import ListResponse
 
@@ -132,63 +125,24 @@ def read_many(
             "updated_by": updated_by_alias,
         },
     }
-
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
-        "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
-        "species": {"id": Species.id, "label": Species.name},
-        "strain": {"id": Strain.id, "label": Strain.name},
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "morphology": {
-            "id": morphology_alias.id,
-            "label": morphology_alias.name,
-        },
-        "emodel": {
-            "id": emodel_alias.id,
-            "label": emodel_alias.name,
-        },
-        "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
-        },
-        "created_by": {
-            "id": created_by_alias.id,
-            "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
-        },
-        "updated_by": {
-            "id": updated_by_alias.id,
-            "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
-        },
-    }
-
-    filter_joins = {
-        "species": lambda q: q.join(Species, MEModel.species_id == Species.id),
-        "strain": lambda q: q.outerjoin(Strain, MEModel.strain_id == Strain.id),
-        "morphology": lambda q: q.join(
-            morphology_alias, MEModel.morphology_id == morphology_alias.id
-        ),
-        "emodel": lambda q: q.join(emodel_alias, MEModel.emodel_id == emodel_alias.id),
-        "brain_region": lambda q: q.join(BrainRegion, MEModel.brain_region_id == BrainRegion.id),
-        "contribution": lambda q: q.outerjoin(
-            Contribution, MEModel.id == Contribution.entity_id
-        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "created_by": lambda q: q.outerjoin(
-            created_by_alias, MEModel.created_by_id == created_by_alias.id
-        ),
-        "updated_by": lambda q: q.outerjoin(
-            updated_by_alias, MEModel.updated_by_id == updated_by_alias.id
-        ),
-        "mtype": lambda q: q.outerjoin(
-            MTypeClassification, MEModel.id == MTypeClassification.entity_id
-        ).outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id),
-        "etype": lambda q: q.outerjoin(
-            ETypeClassification, MEModel.id == ETypeClassification.entity_id
-        ).outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id),
-    }
-
+    facet_keys = filter_keys = [
+        "brain_region",
+        "species",
+        "morphology",
+        "emodel",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "mtype",
+        "etype",
+        "strain",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=MEModel,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
+    )
     return router_read_many(
         db=db,
         db_model_class=MEModel,

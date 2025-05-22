@@ -11,7 +11,6 @@ from app.db.auth import constrain_entity_query_to_project, constrain_to_accessib
 from app.db.model import (
     Entity,
     MeasurementAnnotation,
-    MeasurementItem,
     MeasurementKind,
 )
 from app.db.utils import MEASURABLE_ENTITIES
@@ -28,6 +27,7 @@ from app.queries.common import (
     router_read_one,
 )
 from app.queries.entity import get_writable_entity
+from app.queries.factory import query_params_factory
 from app.schemas.measurement_annotation import (
     MeasurementAnnotationCreate,
     MeasurementAnnotationRead,
@@ -56,10 +56,17 @@ def read_many(
         q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
         project_id=user_context.project_id,
     )
-    filter_joins = {
-        "measurement_kind": lambda q: q.join(MeasurementKind),
-        "measurement_kind.measurement_item": lambda q: q.join(MeasurementItem),
-    }
+    facet_keys = []
+    filter_keys = [
+        "measurement_kind",
+        "measurement_kind.measurement_item",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=MeasurementAnnotation,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases={},
+    )
     return router_read_many(
         db=db,
         db_model_class=MeasurementAnnotation,
@@ -72,7 +79,7 @@ def read_many(
         apply_data_query_operations=_load_from_db,
         pagination_request=pagination_request,
         response_schema_class=MeasurementAnnotationRead,
-        name_to_facet_query_params=None,
+        name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         filter_joins=filter_joins,
     )

@@ -10,18 +10,12 @@ from sqlalchemy.orm import (
 
 from app.db.model import (
     Agent,
-    BrainRegion,
     Contribution,
     ExperimentalBoutonDensity,
-    MTypeClass,
-    MTypeClassification,
-    Species,
-    Strain,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -29,8 +23,8 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.density import ExperimentalBoutonDensityFilterDep
-from app.queries import facets as fc
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.density import ExperimentalBoutonDensityCreate, ExperimentalBoutonDensityRead
 from app.schemas.types import ListResponse
 
@@ -73,48 +67,31 @@ def read_many(
             "updated_by": updated_by_alias,
         },
     }
-    aliased_facets: dict[str, FacetQueryParams] = {
-        "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
-        },
-        "created_by": {
-            "id": created_by_alias.id,
-            "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
-        },
-        "updated_by": {
-            "id": updated_by_alias.id,
-            "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
-        },
-    }
-    name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.mtype | fc.subject | aliased_facets
+    facet_keys = [
+        "brain_region",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "mtype",
+        "subject.species",
+        "subject.strain",
+    ]
+    filter_keys = [
+        "brain_region",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "mtype",
+        "subject",
+        "subject.species",
+        "subject.strain",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=ExperimentalBoutonDensity,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
     )
-    filter_joins = {
-        "brain_region": lambda q: q.join(
-            BrainRegion, ExperimentalBoutonDensity.brain_region_id == BrainRegion.id
-        ),
-        "subject": lambda q: q.outerjoin(
-            subject, ExperimentalBoutonDensity.subject_id == subject.id
-        ),
-        "subject.species": lambda q: q.outerjoin(Species, subject.species_id == Species.id),
-        "subject.strain": lambda q: q.outerjoin(Strain, subject.strain_id == Strain.id),
-        "contribution": lambda q: q.outerjoin(
-            Contribution, ExperimentalBoutonDensity.id == Contribution.entity_id
-        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "created_by": lambda q: q.outerjoin(
-            created_by_alias, ExperimentalBoutonDensity.created_by_id == created_by_alias.id
-        ),
-        "updated_by": lambda q: q.outerjoin(
-            updated_by_alias, ExperimentalBoutonDensity.updated_by_id == updated_by_alias.id
-        ),
-        "mtype": lambda q: q.outerjoin(
-            MTypeClassification, ExperimentalBoutonDensity.id == MTypeClassification.entity_id
-        ).outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),
-    }
     return router_read_many(
         db=db,
         filter_model=filter_model,

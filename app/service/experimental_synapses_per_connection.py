@@ -46,8 +46,8 @@ def _load(q: sa.Select):
         joinedload(db_cls.license),
         joinedload(db_cls.subject).joinedload(Subject.species),
         joinedload(db_cls.subject).joinedload(Subject.strain),
-        joinedload(db_cls.createdBy),
-        joinedload(db_cls.updatedBy),
+        joinedload(db_cls.created_by),
+        joinedload(db_cls.updated_by),
         joinedload(db_cls.pre_mtype),
         joinedload(db_cls.post_mtype),
         joinedload(db_cls.pre_region),
@@ -87,8 +87,8 @@ def read_many(
         },
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     aliased_facets: dict[str, FacetQueryParams] = {
@@ -113,12 +113,12 @@ def read_many(
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -149,11 +149,11 @@ def read_many(
         "contribution": lambda q: q.outerjoin(
             Contribution, db_cls.id == Contribution.entity_id
         ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, db_cls.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, db_cls.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, db_cls.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, db_cls.updated_by_id == updated_by_alias.id
         ),
     }
     return router_read_many(

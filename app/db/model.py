@@ -244,8 +244,8 @@ class AnnotationMixin:
 
 
 class ClassificationMixin:
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
@@ -349,12 +349,12 @@ class Entity(LegacyMixin, Identifiable):
     annotations = relationship("Annotation", back_populates="entity")
 
     # TODO: keep the _ ? put on agent ?
-    createdBy = relationship("Agent", uselist=False, foreign_keys="Entity.createdBy_id")
+    created_by = relationship("Agent", uselist=False, foreign_keys="Entity.created_by_id")
     # TODO: move to mandatory
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy = relationship("Agent", uselist=False, foreign_keys="Entity.updatedBy_id")
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by = relationship("Agent", uselist=False, foreign_keys="Entity.updated_by_id")
     # TODO: move to mandatory
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)

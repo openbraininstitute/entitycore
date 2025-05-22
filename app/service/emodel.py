@@ -51,8 +51,8 @@ def _load(select: sa.Select[tuple[EModel]]):
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
         selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
-        joinedload(EModel.createdBy),
-        joinedload(EModel.updatedBy),
+        joinedload(EModel.created_by),
+        joinedload(EModel.updated_by),
         raiseload("*"),
     )
 
@@ -105,8 +105,8 @@ def read_many(
         ReconstructionMorphology: morphology_alias,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
 
@@ -124,12 +124,12 @@ def read_many(
             "id": morphology_alias.id,
             "label": morphology_alias.name,
         },
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -151,11 +151,11 @@ def read_many(
         "etype": lambda q: q.outerjoin(
             ETypeClassification, EModel.id == ETypeClassification.entity_id
         ).outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, EModel.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, EModel.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, EModel.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, EModel.updated_by_id == updated_by_alias.id
         ),
     }
 

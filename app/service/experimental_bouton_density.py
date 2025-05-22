@@ -43,8 +43,8 @@ def _load(query: sa.Select):
         joinedload(ExperimentalBoutonDensity.subject).joinedload(Subject.strain),
         joinedload(ExperimentalBoutonDensity.assets),
         joinedload(ExperimentalBoutonDensity.license),
-        joinedload(ExperimentalBoutonDensity.createdBy),
-        joinedload(ExperimentalBoutonDensity.updatedBy),
+        joinedload(ExperimentalBoutonDensity.created_by),
+        joinedload(ExperimentalBoutonDensity.updated_by),
         selectinload(ExperimentalBoutonDensity.measurements),
         selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.agent),
         selectinload(ExperimentalBoutonDensity.contributions).selectinload(Contribution.role),
@@ -69,8 +69,8 @@ def read_many(
         Subject: subject,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     aliased_facets: dict[str, FacetQueryParams] = {
@@ -79,12 +79,12 @@ def read_many(
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -105,11 +105,11 @@ def read_many(
         "contribution": lambda q: q.outerjoin(
             Contribution, ExperimentalBoutonDensity.id == Contribution.entity_id
         ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, ExperimentalBoutonDensity.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, ExperimentalBoutonDensity.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, ExperimentalBoutonDensity.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, ExperimentalBoutonDensity.updated_by_id == updated_by_alias.id
         ),
         "mtype": lambda q: q.outerjoin(
             MTypeClassification, ExperimentalBoutonDensity.id == MTypeClassification.entity_id

@@ -24,8 +24,8 @@ def _load(query: sa.Select):
         joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes),
         joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes),
         joinedload(SingleNeuronSimulation.brain_region),
-        joinedload(SingleNeuronSimulation.createdBy),
-        joinedload(SingleNeuronSimulation.updatedBy),
+        joinedload(SingleNeuronSimulation.created_by),
+        joinedload(SingleNeuronSimulation.updated_by),
         selectinload(SingleNeuronSimulation.assets),
         raiseload("*"),
     )
@@ -77,8 +77,8 @@ def read_many(
         MEModel: me_model_alias,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -88,12 +88,12 @@ def read_many(
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -108,11 +108,11 @@ def read_many(
         "contribution": lambda q: q.outerjoin(
             Contribution, SingleNeuronSimulation.id == Contribution.entity_id
         ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, SingleNeuronSimulation.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, SingleNeuronSimulation.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, SingleNeuronSimulation.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, SingleNeuronSimulation.updated_by_id == updated_by_alias.id
         ),
         "me_model": lambda q: q.outerjoin(
             me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id

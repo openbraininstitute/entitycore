@@ -35,7 +35,7 @@ def _assert_read_response(data, json_data):
     assert data["name"] == json_data["name"]
     assert data["license"]["name"] == "Test License"
     assert data["type"] == EntityType.experimental_bouton_density
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 @pytest.fixture

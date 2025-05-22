@@ -46,8 +46,8 @@ def _load(query: sa.Select):
         joinedload(ExperimentalNeuronDensity.license),
         joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.strain),
         joinedload(ExperimentalNeuronDensity.subject).joinedload(Subject.species),
-        joinedload(ExperimentalNeuronDensity.createdBy),
-        joinedload(ExperimentalNeuronDensity.updatedBy),
+        joinedload(ExperimentalNeuronDensity.created_by),
+        joinedload(ExperimentalNeuronDensity.updated_by),
         selectinload(ExperimentalNeuronDensity.measurements),
         selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.agent),
         selectinload(ExperimentalNeuronDensity.contributions).selectinload(Contribution.role),
@@ -72,8 +72,8 @@ def read_many(
         Subject: subject_alias,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
     aliased_facets: dict[str, FacetQueryParams] = {
@@ -82,12 +82,12 @@ def read_many(
             "label": agent_alias.pref_label,
             "type": agent_alias.type,
         },
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -108,11 +108,11 @@ def read_many(
         "contribution": lambda q: q.outerjoin(
             Contribution, ExperimentalNeuronDensity.id == Contribution.entity_id
         ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, ExperimentalNeuronDensity.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, ExperimentalNeuronDensity.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, ExperimentalNeuronDensity.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, ExperimentalNeuronDensity.updated_by_id == updated_by_alias.id
         ),
         "mtype": lambda q: q.outerjoin(
             MTypeClassification, ExperimentalNeuronDensity.id == MTypeClassification.entity_id

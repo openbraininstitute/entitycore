@@ -34,8 +34,8 @@ def _load(query: sa.Select):
         joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
         joinedload(ElectricalCellRecording.subject),
         joinedload(ElectricalCellRecording.brain_region),
-        joinedload(ElectricalCellRecording.createdBy),
-        joinedload(ElectricalCellRecording.updatedBy),
+        joinedload(ElectricalCellRecording.created_by),
+        joinedload(ElectricalCellRecording.updated_by),
         selectinload(ElectricalCellRecording.assets),
         selectinload(ElectricalCellRecording.stimuli),
         raiseload("*"),
@@ -90,12 +90,12 @@ def read_many(
             "type": agent_alias.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -108,11 +108,11 @@ def read_many(
         "contribution": lambda q: q.outerjoin(
             Contribution, ElectricalCellRecording.id == Contribution.entity_id
         ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, ElectricalCellRecording.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, ElectricalCellRecording.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, ElectricalCellRecording.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, ElectricalCellRecording.updated_by_id == updated_by_alias.id
         ),
     }
     return router_read_many(
@@ -128,8 +128,8 @@ def read_many(
         aliases={
             Agent: {
                 "contribution": agent_alias,
-                "createdBy": created_by_alias,
-                "updatedBy": updated_by_alias,
+                "created_by": created_by_alias,
+                "updated_by": updated_by_alias,
             },
         },
         pagination_request=pagination_request,

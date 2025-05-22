@@ -76,26 +76,11 @@ def query_params_factory[I: Identifiable](
             "type": agent_alias.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "morphology": {
-            "id": morphology_alias.id,
-            "label": morphology_alias.name,
-        },
-        "exemplar_morphology": {
-            "id": morphology_alias.id,
-            "label": morphology_alias.name,
-        },
-        "emodel": {
-            "id": emodel_alias.id,
-            "label": emodel_alias.name,
-        },
-        "me_model": {
-            "id": me_model_alias.id,
-            "label": me_model_alias.name,
-        },
-        "synaptome": {
-            "id": synaptome_alias.id,
-            "label": synaptome_alias.name,
-        },
+        "morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
+        "exemplar_morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
+        "emodel": {"id": emodel_alias.id, "label": emodel_alias.name},
+        "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
+        "synaptome": {"id": synaptome_alias.id, "label": synaptome_alias.name},
         "createdBy": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
@@ -106,22 +91,10 @@ def query_params_factory[I: Identifiable](
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
         },
-        "pre_mtype": {
-            "id": pre_mtype_alias.id,
-            "label": pre_mtype_alias.pref_label,
-        },
-        "post_mtype": {
-            "id": post_mtype_alias.id,
-            "label": post_mtype_alias.pref_label,
-        },
-        "pre_region": {
-            "id": pre_region_alias.id,
-            "label": pre_region_alias.name,
-        },
-        "post_region": {
-            "id": post_region_alias.id,
-            "label": post_region_alias.name,
-        },
+        "pre_mtype": {"id": pre_mtype_alias.id, "label": pre_mtype_alias.pref_label},
+        "post_mtype": {"id": post_mtype_alias.id, "label": post_mtype_alias.pref_label},
+        "pre_region": {"id": pre_region_alias.id, "label": pre_region_alias.name},
+        "post_region": {"id": post_region_alias.id, "label": post_region_alias.name},
     }
     filter_joins = {
         "species": lambda q: q.join(Species, db_model_class.species_id == Species.id),

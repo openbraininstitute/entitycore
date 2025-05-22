@@ -106,12 +106,12 @@ def read_many(
         "pre_region",
         "post_region",
         "brain_region",
+        "createdBy",
+        "updatedBy",
+        "contribution",
         "subject",
         "subject.species",
         "subject.strain",
-        "contribution",
-        "createdBy",
-        "updatedBy",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=ExperimentalSynapsesPerConnection,

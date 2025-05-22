@@ -77,14 +77,14 @@ def read_many(
         "updatedBy",
     ]
     filter_keys = [
-        "mtype",
         "brain_region",
+        "createdBy",
+        "updatedBy",
+        "contribution",
+        "mtype",
         "subject",
         "subject.species",
         "subject.strain",
-        "contribution",
-        "createdBy",
-        "updatedBy",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=ExperimentalBoutonDensity,

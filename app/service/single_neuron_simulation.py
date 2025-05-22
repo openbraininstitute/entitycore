@@ -84,9 +84,9 @@ def read_many(
     facet_keys = filter_keys = [
         "brain_region",
         "me_model",
-        "contribution",
         "createdBy",
         "updatedBy",
+        "contribution",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=SingleNeuronSimulation,

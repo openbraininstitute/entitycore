@@ -79,15 +79,15 @@ def read_many(
         "updatedBy",
     ]
     filter_keys = [
+        "brain_region",
+        "createdBy",
+        "updatedBy",
+        "contribution",
         "etype",
         "mtype",
-        "brain_region",
         "subject",
         "subject.species",
         "subject.strain",
-        "contribution",
-        "createdBy",
-        "updatedBy",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=ExperimentalNeuronDensity,

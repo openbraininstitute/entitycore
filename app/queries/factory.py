@@ -28,8 +28,22 @@ from app.queries.types import ApplyOperations
 def query_params_factory[I: Identifiable](
     db_model_class: Any, facet_keys: list[str], filter_keys: list[str], aliases: Aliases
 ) -> tuple[dict[str, FacetQueryParams], dict[str, ApplyOperations[I]]]:
-    def _get_alias[T: type[Identifiable]](cls: T, name: str | None = None) -> T:
-        value = aliases.get(cls, cls)
+    """Build and return query parameters.
+
+    Args:
+        db_model_class: The database model class.
+        facet_keys: List of facet keys, used to build the dict of FacetQueryParams.
+        filter_keys: List of filter keys, used to build the dict of ApplyOperations.
+            The order of the keys is important to apply joins operations correctly and efficiently.
+            In general, joins should be applied before left joins.
+        aliases: Dict of aliases. It can be empty if aliases are not needed.
+
+    Returns:
+        Tuple with a dict of FacetQueryParams and a dict of ApplyOperations.
+    """
+
+    def _get_alias[T: type[Identifiable]](db_cls: T, name: str | None = None) -> T:
+        value = aliases.get(db_cls, db_cls)
         if isinstance(value, dict):
             assert name is not None  # noqa: S101
             value = value[name]
@@ -119,10 +133,10 @@ def query_params_factory[I: Identifiable](
             morphology_alias, db_model_class.exemplar_morphology_id == morphology_alias.id
         ),
         "emodel": lambda q: q.join(emodel_alias, db_model_class.emodel_id == emodel_alias.id),
-        "me_model": lambda q: q.outerjoin(
+        "me_model": lambda q: q.join(
             me_model_alias, db_model_class.me_model_id == me_model_alias.id
         ),
-        "synaptome": lambda q: q.outerjoin(
+        "synaptome": lambda q: q.join(
             synaptome_alias, db_model_class.synaptome_id == synaptome_alias.id
         ),
         "brain_region": lambda q: q.join(

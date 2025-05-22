@@ -104,14 +104,14 @@ def read_many(
         },
     }
     facet_keys = filter_keys = [
-        "mtype",
-        "etype",
-        "species",
         "brain_region",
+        "species",
         "exemplar_morphology",
-        "contribution",
         "createdBy",
         "updatedBy",
+        "contribution",
+        "mtype",
+        "etype",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=EModel,

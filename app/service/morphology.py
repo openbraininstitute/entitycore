@@ -125,12 +125,12 @@ def read_many(
     }
     facet_keys = [
         "brain_region",
-        "mtype",
         "species",
-        "strain",
-        "contribution",
         "createdBy",
         "updatedBy",
+        "contribution",
+        "mtype",
+        "strain",
     ]
     filter_keys = [
         *facet_keys,

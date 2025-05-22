@@ -353,6 +353,7 @@ class ValidationResult(Entity):
         "inherit_condition": id == Entity.id,
     }
 
+
 class ValidationResultsMixin:
     @declared_attr
     @classmethod
@@ -366,7 +367,7 @@ class ValidationResultsMixin:
             primaryjoin=f"foreign(ValidationResult.validated_entity_id) == {cls.__name__}.id",
             foreign_keys="[ValidationResult.validated_entity_id]",
             cascade="all, delete-orphan",
-            lazy="dynamic"  # or "select", as needed
+            lazy="dynamic",  # or "select", as needed
         )
 
 
@@ -507,7 +508,13 @@ class Mesh(LocationMixin, NameDescriptionVectorMixin, Entity):
 
 
 class MEModel(
-    ValidationResultsMixin, MTypesMixin, ETypesMixin, SpeciesMixin, LocationMixin, NameDescriptionVectorMixin, Entity
+    ValidationResultsMixin,
+    MTypesMixin,
+    ETypesMixin,
+    SpeciesMixin,
+    LocationMixin,
+    NameDescriptionVectorMixin,
+    Entity,
 ):
     __tablename__ = EntityType.memodel.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -855,7 +862,6 @@ class IonChannelModelToEModel(Base):
     emodel_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.emodel}.id", ondelete="CASCADE"), primary_key=True
     )
-
 
 
 class Asset(Identifiable):

@@ -56,8 +56,8 @@ def query_params_factory[I: Identifiable](
     synaptome_alias = _get_alias(SingleNeuronSynaptome)
     subject_alias = _get_alias(Subject)
     agent_alias = _get_alias(Agent, "contribution")
-    created_by_alias = _get_alias(Agent, "createdBy")
-    updated_by_alias = _get_alias(Agent, "updatedBy")
+    created_by_alias = _get_alias(Agent, "created_by")
+    updated_by_alias = _get_alias(Agent, "updated_by")
     pre_mtype_alias = _get_alias(MTypeClass, "pre_mtype")
     post_mtype_alias = _get_alias(MTypeClass, "post_mtype")
     pre_region_alias = _get_alias(BrainRegion, "pre_region")
@@ -81,12 +81,12 @@ def query_params_factory[I: Identifiable](
         "emodel": {"id": emodel_alias.id, "label": emodel_alias.name},
         "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
         "synaptome": {"id": synaptome_alias.id, "label": synaptome_alias.name},
-        "createdBy": {
+        "created_by": {
             "id": created_by_alias.id,
             "label": created_by_alias.pref_label,
             "type": created_by_alias.type,
         },
-        "updatedBy": {
+        "updated_by": {
             "id": updated_by_alias.id,
             "label": updated_by_alias.pref_label,
             "type": updated_by_alias.type,
@@ -124,11 +124,11 @@ def query_params_factory[I: Identifiable](
         "etype": lambda q: q.outerjoin(
             ETypeClassification, db_model_class.id == ETypeClassification.entity_id
         ).outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id),
-        "createdBy": lambda q: q.outerjoin(
-            created_by_alias, db_model_class.createdBy_id == created_by_alias.id
+        "created_by": lambda q: q.outerjoin(
+            created_by_alias, db_model_class.created_by_id == created_by_alias.id
         ),
-        "updatedBy": lambda q: q.outerjoin(
-            updated_by_alias, db_model_class.updatedBy_id == updated_by_alias.id
+        "updated_by": lambda q: q.outerjoin(
+            updated_by_alias, db_model_class.updated_by_id == updated_by_alias.id
         ),
         "subject": lambda q: q.outerjoin(
             subject_alias, db_model_class.subject_id == subject_alias.id

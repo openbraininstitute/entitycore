@@ -303,6 +303,23 @@ class ETypesMixin:
         )
 
 
+class ValidationResultsMixin:
+    @declared_attr
+    @classmethod
+    def validation_results(cls) -> Mapped[list["ValidationResult"]]:
+        if not issubclass(cls, Entity):
+            msg = f"{cls} should be an Entity"
+            raise TypeError(msg)
+
+        return relationship(
+            "ValidationResult",
+            primaryjoin=f"foreign(ValidationResult.validated_entity_id) == {cls.__name__}.id",
+            foreign_keys="[ValidationResult.validated_entity_id]",
+            cascade="all, delete-orphan",
+            lazy="dynamic",  # or "select", as needed
+        )
+
+
 class DataMaturityAnnotationBody(AnnotationBody):
     __tablename__ = AnnotationBodyType.datamaturity_annotation_body.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("annotation_body.id"), primary_key=True)
@@ -471,7 +488,13 @@ class Mesh(LocationMixin, NameDescriptionVectorMixin, Entity):
 
 
 class MEModel(
-    MTypesMixin, ETypesMixin, SpeciesMixin, LocationMixin, NameDescriptionVectorMixin, Entity
+    ValidationResultsMixin,
+    MTypesMixin,
+    ETypesMixin,
+    SpeciesMixin,
+    LocationMixin,
+    NameDescriptionVectorMixin,
+    Entity,
 ):
     __tablename__ = EntityType.memodel.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)

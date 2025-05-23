@@ -18,6 +18,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntity
 from app.schemas.emodel import EModelRead
 from app.schemas.morphology import ReconstructionMorphologyRead
+from app.schemas.validation import ValidationResultRead
 
 
 class MEModelBase(BaseModel):
@@ -59,3 +60,4 @@ class MEModelRead(
     etypes: list[ETypeClassRead] | None
     morphology: ReconstructionMorphologyRead
     emodel: EModelRead
+    validation_results: list[ValidationResultRead] | None = None

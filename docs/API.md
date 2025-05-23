@@ -234,25 +234,47 @@ Returns metadata about the atlas:
 
 ```
 {
-    "creation_date": "2025-05-09T13:32:18.034672Z",
-    "id": $UUID,
-    "name": "human_v0.1.1",
-    "species_id": $UUID,
-    "hierarchy_id: $UUID,
-    "update_date": "2025-05-09T13:32:18.034672Z"
-}
+        "creation_date": ...,
+        "hierarchy_id": $UUID,
+        "id": str(brain_atlas.id),
+        "name": "test brain atlas",
+        "species": {
+            "creation_date": ...,
+            "id": species_id,
+            "name": "Test Species",
+            "taxonomy_id": "12345",
+            "update_date": ...,
+        },
+        "update_date": ANY,
+    }
 ```
 
 
 `GET brain-atlas/$UUID/regions`
+    [
+        {
+            "brain_atlas_id": $UUID,
+            "brain_region_id": $UUID,
+            "creation_date": ...,
+            "id": $UUID,
+            "leaf_region": False,
+            "update_date": ...,
+            "volume": -1_000_000.0, # this is negative, since it's a leaf region;
+        },
+        {
+            "brain_atlas_id": $UUID,
+            "brain_region_id": $UUID,
+            "creation_date": ...,
+            "id": $UUID,
+            "leaf_region": False,
+            "update_date": ...,
+            "volume": 123456789.0,
+        },
+        ....
+    ]
 
-[{
-    "brain_region_id: $UUID,
-    "volume": 33
-}]
 The volume is in um^3.
-Note: It returns only the leaf-nodes, and is meant to be used with the associated hierarchy.
-By only storing the leaf nodes, it composes with the different views by clibing the tree, and summing all the children along the way.
+By only storing the volume for leaf nodes, it composes with the different views by clibing the tree, and summing all the children along the way.
 
 # Authorization:
 Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.

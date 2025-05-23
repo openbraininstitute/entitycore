@@ -3,6 +3,7 @@ import uuid
 from pathlib import Path
 from unittest.mock import ANY
 
+import sqlalchemy as sa
 from httpx import Headers
 from starlette.testclient import TestClient
 
@@ -317,3 +318,34 @@ def with_creation_fields(d):
         "update_date": ANY,
         "id": ANY,
     }
+
+
+def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
+    regions = []
+
+    def recurse(i):
+        children = []
+        item = i | {"children": children}
+        for child in i["children"]:
+            children.append(child["id"])
+            recurse(child)
+        regions.append(item)
+
+    recurse(hierarchy)
+
+    ids = {None: None}
+    for region in reversed(regions):
+        row = BrainRegion(
+            annotation_value=region["id"],
+            acronym=region["acronym"],
+            name=region["name"],
+            color_hex_triplet=region["color_hex_triplet"],
+            parent_structure_id=ids[region["parent_structure_id"]],
+            hierarchy_id=hierarchy_id,
+        )
+        db_br = add_db(db, row)
+        db.flush()
+        ids[region["id"]] = db_br.id
+
+    ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
+    return ret

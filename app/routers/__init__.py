@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from app.dependencies.auth import user_verified
 from app.routers import (
     asset,
+    brain_atlas,
     brain_region,
     brain_region_hierarchy,
     cell_composition,
@@ -38,6 +39,7 @@ router = APIRouter()
 router.include_router(root.router)
 authenticated_routers = [
     asset.router,
+    brain_atlas.router,
     brain_region.router,
     brain_region_hierarchy.router,
     cell_composition.router,

@@ -60,13 +60,9 @@ def _find_by_legacy_id(legacy_id, db_type, db, _cache={}):
     return res
 
 
-def get_brain_region_by_hier_id(brain_region, hierarchy_name, db, _cache={}):
-    brain_region = curate.curate_brain_region(brain_region)
-
-    brain_region_id = int(brain_region["@id"])
+def get_brain_region_by_annotation_id(brain_region_id: int, hierarchy_name: str, db, _cache={}):
     if (hierarchy_name, brain_region_id) in _cache:
         return _cache[hierarchy_name, brain_region_id]
-
     br = db.execute(
         sa.select(BrainRegion)
         .join(BrainRegionHierarchy, BrainRegion.hierarchy_id == BrainRegionHierarchy.id)
@@ -77,11 +73,20 @@ def get_brain_region_by_hier_id(brain_region, hierarchy_name, db, _cache={}):
     ).scalar_one_or_none()
 
     if br is None:
-        msg = f"({hierarchy_name}, {brain_region}) not found in database"
+        msg = f"({hierarchy_name}, {brain_region_id}) not found in database"
         raise RuntimeError(msg)
 
     _cache[hierarchy_name, brain_region_id] = br.id
+
     return br.id
+
+
+def get_brain_region_by_hier_id(brain_region, hierarchy_name, db):
+    brain_region = curate.curate_brain_region(brain_region)
+
+    brain_region_id = int(brain_region["@id"])
+
+    return get_brain_region_by_annotation_id(brain_region_id, hierarchy_name, db)
 
 
 def get_or_create_species(species, db, _cache={}):

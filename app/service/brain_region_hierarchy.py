@@ -38,7 +38,7 @@ def read_many(
 
 
 def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyRead:
-    with ensure_result(error_message="Brain Region Hierarchy Name not found"):
+    with ensure_result(error_message="Brain Region Hierarchy not found"):
         stmt = sa.select(BrainRegionHierarchy).filter(BrainRegionHierarchy.id == id_)
         row = db.execute(stmt).scalar_one()
     return BrainRegionHierarchyRead.model_validate(row)

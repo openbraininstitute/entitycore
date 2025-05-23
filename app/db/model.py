@@ -464,12 +464,6 @@ class EModel(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class Mesh(LocationMixin, NameDescriptionVectorMixin, Entity):
-    __tablename__ = EntityType.mesh.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
 class MEModel(
     MTypesMixin, ETypesMixin, SpeciesMixin, LocationMixin, NameDescriptionVectorMixin, Entity
 ):
@@ -875,9 +869,30 @@ class METypeDensity(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class BrainAtlas(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.brain_atlas
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    hierarchy_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_region_hierarchy.id"), index=True
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class BrainAtlasRegion(Entity, LocationMixin):
+    __tablename__ = EntityType.brain_atlas_region
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    # only the volume for leaf nodes is saved; the consumer must calculate
+    # volumes depending on which view of the hierarchy they are using
+    volume: Mapped[float] = mapped_column(nullable=True)
+    leaf_region: Mapped[bool] = mapped_column(default=False)
+
+    brain_atlas_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

@@ -303,56 +303,6 @@ class ETypesMixin:
         )
 
 
-class Entity(LegacyMixin, Identifiable):
-    __tablename__ = "entity"
-
-    type: Mapped[EntityType]
-    annotations = relationship("Annotation", back_populates="entity")
-
-    # TODO: keep the _ ? put on agent ?
-    created_by = relationship("Agent", uselist=False, foreign_keys="Entity.created_by_id")
-    # TODO: move to mandatory
-    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updated_by = relationship("Agent", uselist=False, foreign_keys="Entity.updated_by_id")
-    # TODO: move to mandatory
-    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-
-    authorized_project_id: Mapped[uuid.UUID]
-    authorized_public: Mapped[bool] = mapped_column(default=False)
-
-    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
-    assets: Mapped[list["Asset"]] = relationship(
-        "Asset",
-        foreign_keys="Asset.entity_id",
-        uselist=True,
-        viewonly=True,
-    )
-
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "polymorphic_on": "type",
-    }
-
-
-class ValidationResult(Entity):
-    __tablename__ = EntityType.validation_result.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    passed: Mapped[bool] = mapped_column(default=False)
-
-    name: Mapped[str] = mapped_column(index=True)
-
-    validated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    validated_entity: Mapped[Entity] = relationship(
-        "Entity",
-        uselist=False,
-        foreign_keys=[validated_entity_id],
-    )
-
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-        "inherit_condition": id == Entity.id,
-    }
-
 
 class ValidationResultsMixin:
     @declared_attr
@@ -408,6 +358,37 @@ class NameDescriptionVectorMixin(Base):
             ),
             *getattr(super(), "__table_args__", ()),
         )
+
+
+class Entity(LegacyMixin, Identifiable):
+    __tablename__ = "entity"
+
+    type: Mapped[EntityType]
+    annotations = relationship("Annotation", back_populates="entity")
+
+    # TODO: keep the _ ? put on agent ?
+    created_by = relationship("Agent", uselist=False, foreign_keys="Entity.created_by_id")
+    # TODO: move to mandatory
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by = relationship("Agent", uselist=False, foreign_keys="Entity.updated_by_id")
+    # TODO: move to mandatory
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+
+    authorized_project_id: Mapped[uuid.UUID]
+    authorized_public: Mapped[bool] = mapped_column(default=False)
+
+    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+    assets: Mapped[list["Asset"]] = relationship(
+        "Asset",
+        foreign_keys="Asset.entity_id",
+        uselist=True,
+        viewonly=True,
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
+    }
 
 
 class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
@@ -862,6 +843,26 @@ class IonChannelModelToEModel(Base):
     emodel_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.emodel}.id", ondelete="CASCADE"), primary_key=True
     )
+
+
+class ValidationResult(Entity):
+    __tablename__ = EntityType.validation_result.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    passed: Mapped[bool] = mapped_column(default=False)
+
+    name: Mapped[str] = mapped_column(index=True)
+
+    validated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    validated_entity: Mapped[Entity] = relationship(
+        "Entity",
+        uselist=False,
+        foreign_keys=[validated_entity_id],
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
 
 
 class Asset(Identifiable):

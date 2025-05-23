@@ -631,7 +631,7 @@ class ImportBrainAtlas(Import):
 
             if atlas_region is None:
                 annotation_id = curate.curate_brain_region(brain_region_data)["@id"]
-                volume = -1
+                volume = -1_000_000_000
 
                 leaf_region = False
                 if annotation_id in BRAIN_ATLAS_REGION_VOLUMES:

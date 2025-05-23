@@ -8,6 +8,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
+    NameFilterMixin,
 )
 from app.filters.memodel import MEModelFilter, NestedMEModelFilterDep
 
@@ -16,6 +17,7 @@ class SingleNeuronSimulationFilter(
     CustomFilter,
     EntityFilterMixin,
     BrainRegionFilterMixin,
+    NameFilterMixin,
 ):
     status: SingleNeuronSimulationStatus | None = None
 

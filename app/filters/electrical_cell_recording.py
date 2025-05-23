@@ -4,11 +4,16 @@ from fastapi_filter import FilterDepends
 
 from app.db.model import ElectricalCellRecording
 from app.filters.base import CustomFilter
-from app.filters.common import BrainRegionFilterMixin, EntityFilterMixin, SubjectFilterMixin
+from app.filters.common import (
+    BrainRegionFilterMixin,
+    EntityFilterMixin,
+    NameFilterMixin,
+    SubjectFilterMixin,
+)
 
 
 class ElectricalCellRecordingFilter(
-    CustomFilter, BrainRegionFilterMixin, SubjectFilterMixin, EntityFilterMixin
+    CustomFilter, BrainRegionFilterMixin, SubjectFilterMixin, EntityFilterMixin, NameFilterMixin
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

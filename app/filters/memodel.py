@@ -9,6 +9,7 @@ from app.filters.common import (
     EntityFilterMixin,
     ETypeClassFilterMixin,
     MTypeClassFilterMixin,
+    NameFilterMixin,
     SpeciesFilterMixin,
 )
 from app.filters.emodel import EModelFilter, NestedEModelFilterDep
@@ -22,6 +23,7 @@ class MEModelFilter(
     MTypeClassFilterMixin,
     ETypeClassFilterMixin,
     BrainRegionFilterMixin,
+    NameFilterMixin,
 ):
     validation_status: ValidationStatus | None = None
 

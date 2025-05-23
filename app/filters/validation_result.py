@@ -5,12 +5,13 @@ from fastapi_filter import FilterDepends
 
 from app.db.model import ValidationResult
 from app.filters.base import CustomFilter
-from app.filters.common import EntityFilterMixin
+from app.filters.common import EntityFilterMixin, NameFilterMixin
 
 
 class ValidationResultFilter(
     CustomFilter,
     EntityFilterMixin,
+    NameFilterMixin,
 ):
     passed: bool | None = None
     validated_entity_id: uuid.UUID | None = None

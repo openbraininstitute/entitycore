@@ -303,7 +303,6 @@ class ETypesMixin:
         )
 
 
-
 class ValidationResultsMixin:
     @declared_attr
     @classmethod

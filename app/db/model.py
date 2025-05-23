@@ -841,6 +841,27 @@ class ValidationResult(Entity):
     }
 
 
+class CalibrationResult(Entity):
+    __tablename__ = EntityType.calibration_result.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    value: Mapped[float] = mapped_column(default=False)
+
+    name: Mapped[str] = mapped_column(index=True)
+    description: Mapped[str] = mapped_column(index=True)
+
+    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    calibrated_entity: Mapped[Entity] = relationship(
+        "Entity",
+        uselist=False,
+        foreign_keys=[calibrated_entity_id],
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
 class Asset(Identifiable):
     """Asset table."""
 

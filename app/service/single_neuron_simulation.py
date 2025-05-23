@@ -1,11 +1,11 @@
 import uuid
 
-from sqlalchemy.orm import aliased, joinedload, raiseload
+import sqlalchemy as sa
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSimulation
+from app.db.model import Agent, MEModel, SingleNeuronSimulation
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -14,8 +14,21 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_simulation import SingleNeuronSimulationFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.simulation import SingleNeuronSimulationCreate, SingleNeuronSimulationRead
 from app.schemas.types import ListResponse
+
+
+def _load(query: sa.Select):
+    return query.options(
+        joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes),
+        joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes),
+        joinedload(SingleNeuronSimulation.brain_region),
+        joinedload(SingleNeuronSimulation.created_by),
+        joinedload(SingleNeuronSimulation.updated_by),
+        selectinload(SingleNeuronSimulation.assets),
+        raiseload("*"),
+    )
 
 
 def read_one(
@@ -29,12 +42,7 @@ def read_one(
         db_model_class=SingleNeuronSimulation,
         authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSimulationRead,
-        apply_operations=lambda q: q.options(
-            joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes),
-            joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes),
-            joinedload(SingleNeuronSimulation.brain_region),
-            raiseload("*"),
-        ),
+        apply_operations=_load,
     )
 
 
@@ -46,8 +54,8 @@ def create_one(
     return router_create_one(
         db=db,
         json_model=json_model,
+        user_context=user_context,
         db_model_class=SingleNeuronSimulation,
-        authorized_project_id=user_context.project_id,
         response_schema_class=SingleNeuronSimulationRead,
     )
 
@@ -62,27 +70,29 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[SingleNeuronSimulationRead]:
     me_model_alias = aliased(MEModel, flat=True)
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "contribution": {
-            "id": Agent.id,
-            "label": Agent.pref_label,
-            "type": Agent.type,
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
+    aliases = {
+        MEModel: me_model_alias,
+        Agent: {
+            "contribution": agent_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
     }
-
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, SingleNeuronSimulation.brain_region_id == BrainRegion.id)
-        .outerjoin(Contribution, SingleNeuronSimulation.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-        .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)
-    )
-    apply_data_options = lambda query: (
-        query.options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes))
-        .options(joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes))
-        .options(joinedload(SingleNeuronSimulation.brain_region))
-        .options(raiseload("*"))
+    facet_keys = filter_keys = [
+        "brain_region",
+        "me_model",
+        "created_by",
+        "updated_by",
+        "contribution",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=SingleNeuronSimulation,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -92,10 +102,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
-        apply_data_query_operations=apply_data_options,
-        aliases={MEModel: me_model_alias},
+        apply_filter_query_operations=None,
+        apply_data_query_operations=_load,
+        aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSimulationRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )

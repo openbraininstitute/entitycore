@@ -5,9 +5,11 @@ from fastapi_filter import FilterDepends, with_prefix
 from app.db.model import EModel
 from app.filters.base import CustomFilter
 from app.filters.common import (
+    BrainRegionFilterMixin,
     EntityFilterMixin,
     ETypeClassFilterMixin,
     MTypeClassFilterMixin,
+    NameFilterMixin,
     SpeciesFilterMixin,
 )
 from app.filters.morphology import MorphologyFilter, NestedExemplarMorphologyFilterDep
@@ -15,13 +17,15 @@ from app.filters.morphology import MorphologyFilter, NestedExemplarMorphologyFil
 
 class EModelFilter(
     CustomFilter,
+    BrainRegionFilterMixin,
     EntityFilterMixin,
     MTypeClassFilterMixin,
     ETypeClassFilterMixin,
     SpeciesFilterMixin,
+    NameFilterMixin,
 ):
-    score__lte: int | None = None
-    score__gte: int | None = None
+    score__lte: float | None = None
+    score__gte: float | None = None
 
     exemplar_morphology: Annotated[MorphologyFilter | None, NestedExemplarMorphologyFilterDep] = (
         None

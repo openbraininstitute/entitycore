@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Annotated
 import sqlalchemy as sa
 from fastapi import Query
 from sqlalchemy.orm import (
+    aliased,
     joinedload,
     raiseload,
     selectinload,
@@ -12,22 +13,22 @@ from sqlalchemy.orm import (
 
 from app.db.model import (
     Agent,
-    BrainRegion,
     Contribution,
     MeasurementAnnotation,
-    MeasurementItem,
     MeasurementKind,
-    MTypeClass,
-    MTypeClassification,
     ReconstructionMorphology,
-    Species,
-    Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import FacetsDep, InBrainRegionDep, PaginationQuery, SearchDep
+from app.dependencies.common import (
+    FacetsDep,
+    InBrainRegionDep,
+    PaginationQuery,
+    SearchDep,
+)
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
@@ -36,30 +37,7 @@ from app.schemas.morphology import (
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
-    from app.queries.common import FacetQueryParams
-
-
-def _filter_from_db(query: sa.Select) -> sa.Select:
-    """Return the query with the required joins to filter the result."""
-    return (
-        query.join(Species, ReconstructionMorphology.species_id == Species.id)
-        .join(BrainRegion, ReconstructionMorphology.brain_region_id == BrainRegion.id)
-        .outerjoin(Strain, ReconstructionMorphology.strain_id == Strain.id)
-        .outerjoin(Contribution, ReconstructionMorphology.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-        .outerjoin(
-            MTypeClassification, ReconstructionMorphology.id == MTypeClassification.entity_id
-        )
-        .outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id)
-        .outerjoin(
-            MeasurementAnnotation,
-            MeasurementAnnotation.entity_id == ReconstructionMorphology.id,
-        )
-        .outerjoin(
-            MeasurementKind, MeasurementKind.measurement_annotation_id == MeasurementAnnotation.id
-        )
-        .outerjoin(MeasurementItem, MeasurementItem.measurement_kind_id == MeasurementKind.id)
-    )
+    from app.filters.base import Aliases
 
 
 def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = False) -> sa.Select:
@@ -73,6 +51,8 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
         joinedload(ReconstructionMorphology.species, innerjoin=True),
         joinedload(ReconstructionMorphology.strain),
         selectinload(ReconstructionMorphology.assets),
+        joinedload(ReconstructionMorphology.created_by),
+        joinedload(ReconstructionMorphology.updated_by),
         raiseload("*"),
     )
     if expand_measurement_annotation:
@@ -116,8 +96,8 @@ def create_one(
 ) -> ReconstructionMorphologyRead:
     return router_create_one(
         db=db,
+        user_context=user_context,
         db_model_class=ReconstructionMorphology,
-        authorized_project_id=user_context.project_id,
         json_model=reconstruction,
         response_schema_class=ReconstructionMorphologyRead,
     )
@@ -133,17 +113,37 @@ def read_many(
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ReconstructionMorphologyRead]:
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
-        "species": {"id": Species.id, "label": Species.name},
-        "strain": {"id": Strain.id, "label": Strain.name},
-        "contribution": {
-            "id": Agent.id,
-            "label": Agent.pref_label,
-            "type": Agent.type,
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
+    aliases: Aliases = {
+        Agent: {
+            "contribution": agent_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
+    facet_keys = [
+        "brain_region",
+        "species",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "mtype",
+        "strain",
+    ]
+    filter_keys = [
+        *facet_keys,
+        "measurement_annotation",
+        "measurement_annotation.measurement_kind",
+        "measurement_annotation.measurement_kind.measurement_item",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=ReconstructionMorphology,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
+    )
     return router_read_many(
         db=db,
         db_model_class=ReconstructionMorphology,
@@ -151,11 +151,12 @@ def read_many(
         with_search=search,
         with_in_brain_region=in_brain_region,
         facets=with_facets,
-        aliases=None,
-        apply_filter_query_operations=_filter_from_db,
+        aliases=aliases,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load_from_db,
         pagination_request=pagination_request,
         response_schema_class=ReconstructionMorphologyRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=morphology_filter,
+        filter_joins=filter_joins,
     )

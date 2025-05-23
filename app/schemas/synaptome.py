@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.agent import AgentRead
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
@@ -43,8 +43,7 @@ class SingleNeuronSynaptomeRead(
     ContributionReadWithoutEntityMixin,
     EntityTypeMixin,
     AssetsMixin,
+    CreatedByUpdatedByMixin,
 ):
     me_model: NestedMEModel
     brain_region: BrainRegionRead
-    createdBy: AgentRead | None
-    updatedBy: AgentRead | None

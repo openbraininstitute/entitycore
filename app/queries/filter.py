@@ -1,0 +1,47 @@
+from itertools import chain
+
+import sqlalchemy as sa
+
+from app.db.model import Identifiable
+from app.filters.base import CustomFilter
+from app.logger import L
+from app.queries.types import ApplyOperations
+
+
+def _to_parts(s: str) -> list[str]:
+    """Convert a dot-separated string to a list of substrings based on the dots.
+
+    Examples:
+        "a.b.c" -> ["a", "a.b", "a.b.c"]
+    """
+    parts = s.split(".")
+    return [".".join(parts[: i + 1]) for i in range(len(parts))]
+
+
+def filter_from_db[I: Identifiable](
+    query: sa.Select,
+    filter_model: CustomFilter[I],
+    filter_joins: dict[str, ApplyOperations],
+    forced_joins: set[str] | None = None,
+) -> sa.Select:
+    """Apply the required joins based on the filter.
+
+    Args:
+        query: select query.
+        filter_model: filter model instance.
+        filter_joins: dict of names and operations to apply to the query. The names should be
+            valid names of nested filters, and it's possible to specify deeply nested filters using
+            the dot notation, e.g. "measurement_annotation.measurement_kind".
+        forced_joins: subset of keys of filter_joins, that are applied only if the corresponding
+            nested filters have not been specified. This is useful to avoid duplicate joins.
+    """
+    forced_joins = set(chain.from_iterable(_to_parts(s) for s in forced_joins or ()))
+    if diff := forced_joins.difference(filter_joins):
+        msg = f"Not allowed in forced_joins: {diff}"
+        raise RuntimeError(msg)
+    for name, func in filter_joins.items():
+        nested_filter = filter_model.get_nested_filter(name)
+        if (nested_filter and not forced_joins) or (not nested_filter and name in forced_joins):
+            L.debug("Applying join filter for {!r}", name)
+            query = func(query)
+    return query

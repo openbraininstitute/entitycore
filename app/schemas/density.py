@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import MeasurementUnit
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
@@ -48,12 +49,13 @@ class ExperimentalDensityRead(
     LicensedReadMixin,
     AuthorizationMixin,
     EntityTypeMixin,
+    CreatedByUpdatedByMixin,
 ):
     subject: SubjectRead
-    brain_region: BrainRegionRead
     measurements: list[MeasurementRead] | None
     assets: list[AssetRead] | None
     contributions: list[ContributionReadWithoutEntity] | None
+    brain_region: BrainRegionRead
 
 
 class ExperimentalNeuronDensityCreate(ExperimentalDensityCreate):
@@ -65,7 +67,10 @@ class ExperimentalBoutonDensityCreate(ExperimentalDensityCreate):
 
 
 class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
-    synaptic_pathway_id: uuid.UUID
+    pre_mtype_id: uuid.UUID
+    post_mtype_id: uuid.UUID
+    pre_region_id: uuid.UUID
+    post_region_id: uuid.UUID
 
 
 class ExperimentalNeuronDensityRead(ExperimentalDensityRead):
@@ -77,12 +82,8 @@ class ExperimentalBoutonDensityRead(ExperimentalDensityRead):
     mtypes: list[MTypeClassRead] | None
 
 
-class SynapticPathwayRead(CreationMixin, IdentifiableMixin):
+class ExperimentalSynapsesPerConnectionRead(ExperimentalDensityRead):
     pre_mtype: MTypeClassRead
     post_mtype: MTypeClassRead
     pre_region: BrainRegionRead
     post_region: BrainRegionRead
-
-
-class ExperimentalSynapsesPerConnectionRead(ExperimentalDensityRead):
-    synaptic_pathway: SynapticPathwayRead

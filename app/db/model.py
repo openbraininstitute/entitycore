@@ -155,7 +155,7 @@ class LocationMixin:
     @declared_attr
     @classmethod
     def brain_region(cls):
-        return relationship("BrainRegion", uselist=False)
+        return relationship("BrainRegion", uselist=False, foreign_keys=[cls.brain_region_id])
 
 
 class SpeciesMixin(Base):
@@ -204,14 +204,15 @@ class Person(Agent):
     __tablename__ = AgentType.person.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
-    givenName: Mapped[str]
-    familyName: Mapped[str]
+    given_name: Mapped[str | None]
+    family_name: Mapped[str | None]
+    sub_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
-    __table_args__ = (UniqueConstraint("givenName", "familyName", name="unique_person_name_1"),)
+    __table_args__ = (UniqueConstraint("given_name", "family_name", name="unique_person_name_1"),)
 
 
 class Organization(Agent):
@@ -243,8 +244,8 @@ class AnnotationMixin:
 
 
 class ClassificationMixin:
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
@@ -348,12 +349,12 @@ class Entity(LegacyMixin, Identifiable):
     annotations = relationship("Annotation", back_populates="entity")
 
     # TODO: keep the _ ? put on agent ?
-    createdBy = relationship("Agent", uselist=False, foreign_keys="Entity.createdBy_id")
+    created_by = relationship("Agent", uselist=False, foreign_keys="Entity.created_by_id")
     # TODO: move to mandatory
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy = relationship("Agent", uselist=False, foreign_keys="Entity.updatedBy_id")
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by = relationship("Agent", uselist=False, foreign_keys="Entity.updated_by_id")
     # TODO: move to mandatory
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -488,6 +489,9 @@ class MEModel(
         "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
+    holding_current: Mapped[float | None]
+    threshold_current: Mapped[float | None]
+
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
@@ -594,7 +598,7 @@ class MeasurementItem(Base):
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[MeasurementStatistic]
     unit: Mapped[MeasurementUnit]
-    value: Mapped[float]
+    value: Mapped[float] = mapped_column(index=True)
     measurement_kind_id: Mapped[int] = mapped_column(
         ForeignKey("measurement_kind.id", ondelete="CASCADE"), index=True
     )
@@ -676,8 +680,8 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
-    injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
-    recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
+    recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
     # TODO: called used ?
     me_model_id: Mapped[uuid.UUID] = mapped_column(
@@ -691,8 +695,8 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     __tablename__ = EntityType.single_neuron_synaptome_simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
-    injectionLocation: Mapped[STRING_LIST] = mapped_column(default=[])
-    recordingLocation: Mapped[STRING_LIST] = mapped_column(default=[])
+    injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
+    recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
     status: Mapped[SingleNeuronSimulationStatus]
     synaptome_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True
@@ -737,35 +741,6 @@ class ExperimentalNeuronDensity(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class SynapticPathway(Entity):
-    __tablename__ = EntityType.synaptic_pathway.value
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    pre_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    pre_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[pre_mtype_id])
-
-    post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
-
-    pre_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
-    pre_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[pre_region_id])
-
-    post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
-    post_region: Mapped["BrainRegion"] = relationship(uselist=False, foreign_keys=[post_region_id])
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-    __table_args__ = (
-        UniqueConstraint(
-            "pre_mtype_id",
-            "post_mtype_id",
-            "pre_region_id",
-            "post_region_id",
-            name="unique_pathway",
-        ),
-    )
-
-
 class ExperimentalBoutonDensity(
     NameDescriptionVectorMixin,
     MeasurementsMixin,
@@ -785,8 +760,8 @@ class ExperimentalBoutonDensity(
 class ExperimentalSynapsesPerConnection(
     NameDescriptionVectorMixin,
     MeasurementsMixin,
-    LocationMixin,
     SubjectMixin,
+    LocationMixin,
     LicensedMixin,
     Entity,
 ):
@@ -794,12 +769,17 @@ class ExperimentalSynapsesPerConnection(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    synaptic_pathway_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("synaptic_pathway.id"), index=True
-    )
-    synaptic_pathway: Mapped[SynapticPathway] = relationship(
-        uselist=False, foreign_keys=[synaptic_pathway_id]
-    )
+    pre_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    pre_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[pre_mtype_id])
+
+    post_mtype_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    post_mtype: Mapped[MTypeClass] = relationship(uselist=False, foreign_keys=[post_mtype_id])
+
+    pre_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    pre_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[pre_region_id])
+
+    post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
+    post_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[post_region_id])
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -839,6 +819,26 @@ class IonChannelModelToEModel(Base):
     emodel_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.emodel}.id", ondelete="CASCADE"), primary_key=True
     )
+
+
+class ValidationResult(Entity):
+    __tablename__ = EntityType.validation_result.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    passed: Mapped[bool] = mapped_column(default=False)
+
+    name: Mapped[str] = mapped_column(index=True)
+
+    validated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    validated_entity: Mapped[Entity] = relationship(
+        "Entity",
+        uselist=False,
+        foreign_keys=[validated_entity_id],
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
 
 
 class Asset(Identifiable):

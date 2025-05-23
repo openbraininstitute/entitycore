@@ -166,16 +166,16 @@ def create_annotation(annotation_, entity_id, db):
         row = MTypeClassification(
             entity_id=entity_id,
             mtype_class_id=annotation_body_id,
-            createdBy_id=agent_id,
-            updatedBy_id=agent_id,
+            created_by_id=agent_id,
+            updated_by_id=agent_id,
         )
 
     elif annotation_type is ETypeClass:
         row = ETypeClassification(
             entity_id=entity_id,
             etype_class_id=annotation_body_id,
-            createdBy_id=agent_id,
-            updatedBy_id=agent_id,
+            created_by_id=agent_id,
+            updated_by_id=agent_id,
         )
 
     else:
@@ -348,14 +348,14 @@ class ImportAgent(Import):
                 if not db_agent:
                     try:
                         data = curate.curate_person(data)
-                        givenName = data["givenName"]
-                        familyName = data["familyName"]
-                        label = f"{givenName} {familyName}"
+                        given_name = data["givenName"]
+                        family_name = data["familyName"]
+                        label = f"{given_name} {family_name}"
                         db_agent = (
                             db.query(Person)
                             .filter(
-                                Person.givenName == givenName,
-                                Person.familyName == familyName,
+                                Person.given_name == given_name,
+                                Person.family_name == family_name,
                             )
                             .first()
                         )
@@ -368,8 +368,8 @@ class ImportAgent(Import):
                             db_agent = Person(
                                 legacy_id=[legacy_id],
                                 legacy_self=[legacy_self],
-                                givenName=data["givenName"],
-                                familyName=data["familyName"],
+                                given_name=data["givenName"],
+                                family_name=data["familyName"],
                                 pref_label=label,
                                 creation_date=createdAt,
                                 update_date=updatedAt,
@@ -434,8 +434,8 @@ class ImportAnalysisSoftwareSourceCode(Import):
                 legacy_self=[legacy_self],
                 name=data.get("name", ""),
                 description=data.get("description", ""),
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 branch=data.get("branch", ""),
                 commit=data.get("commit", ""),
                 codeRepository=data.get("codeRepository", ""),
@@ -525,8 +525,8 @@ class ImportEModels(Import):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -838,8 +838,8 @@ class ImportMEModel(Import):
                 description=data.get("description", None),
                 validation_status=data.get("status", None),
                 brain_region_id=brain_region_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
                 species_id=morphology.species_id,
@@ -848,7 +848,10 @@ class ImportMEModel(Import):
                 strain_id=morphology.strain_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
+                holding_current=data.get("holding_current"),
+                threshold_current=data.get("threshold_current"),
             )
+
             db.add(db_item)
             db.flush()
 
@@ -882,18 +885,20 @@ class ImportSingleNeuronSimulation(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             me_model_lid = data.get("used", {}).get("@id", None)
             me_model = utils._find_by_legacy_id(me_model_lid, MEModel, db)
+
             rm = SingleNeuronSimulation(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data.get("name", None),
                 description=data.get("description", None),
                 seed=data.get("seed", None),
-                injectionLocation=data.get("injectionLocation", None),
-                recordingLocation=data.get("recordingLocation", None),
+                injection_location=data.get("injectionLocation")
+                or data.get("injection_location"),  # TODO: Get from config file if not existent?
+                recording_location=data.get("recordingLocation") or data.get("recording_location"),
                 me_model_id=me_model.id,
                 brain_region_id=brain_region_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
             )
@@ -947,8 +952,8 @@ class ImportMETypeDensity(Import):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -1015,8 +1020,8 @@ class ImportCellComposition(Import):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -1066,8 +1071,8 @@ class ImportBrainAtlas(Import):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -1218,7 +1223,7 @@ def _import_experimental_densities(
         subject_id = utils.get_or_create_subject(data, project_context, db)
 
         brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
-        createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
+        created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
 
         createdAt, updatedAt = utils.get_created_and_updated(data)
 
@@ -1230,8 +1235,8 @@ def _import_experimental_densities(
             "subject_id": subject_id,
             "license_id": license_id,
             "brain_region_id": brain_region_id,
-            "createdBy_id": createdBy_id,
-            "updatedBy_id": updatedBy_id,
+            "created_by_id": created_by_id,
+            "updated_by_id": updated_by_id,
             "creation_date": createdAt,
             "update_date": updatedAt,
             "authorized_project_id": project_context.project_id,
@@ -1240,10 +1245,12 @@ def _import_experimental_densities(
 
         if model_type is ExperimentalSynapsesPerConnection:
             try:
-                pathway_id = utils.get_or_create_synaptic_pathway(
-                    data["synapticPathway"], project_context, hierarchy_name, db
-                )
-                kwargs["synaptic_pathway_id"] = pathway_id
+                (
+                    kwargs["pre_mtype_id"],
+                    kwargs["post_mtype_id"],
+                    kwargs["pre_region_id"],
+                    kwargs["post_region_id"],
+                ) = utils.get_synaptic_pathway(data["synapticPathway"], hierarchy_name, db)
             except Exception as e:
                 msg = f"Failed to create synaptic pathway: {data['synapticPathway']}.\nReason: {e}"
                 L.warning(msg)

@@ -10,7 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.config import settings
 from app.dependencies import auth as test_module
 from app.errors import ApiError, ApiErrorCode, AuthErrorReason
-from app.schemas.auth import UserContext, UserContextWithProjectId
+from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
 from app.schemas.base import OptionalProjectContext
 
 from tests.utils import PROJECT_ID, UNRELATED_PROJECT_ID, UNRELATED_VIRTUAL_LAB_ID, VIRTUAL_LAB_ID
@@ -46,7 +46,11 @@ def request_mock(http_client):
 
 
 def _get_token(exp):
-    decoded = {"sub": TEST_USER_SUB, "exp": exp, "email": TEST_USER_EMAIL}
+    decoded = {
+        "sub": TEST_USER_SUB,
+        "exp": exp,
+        "preferred_username": TEST_USER_NAME,
+    }
     encoded = jwt.encode(decoded, "secret", algorithm="HS256")
     return HTTPAuthorizationCredentials(scheme="Bearer", credentials=encoded)
 
@@ -69,8 +73,7 @@ def test_user_verified_ok(httpx_mock, request_mock, is_admin, is_token_jwt, proj
         match_headers={"Authorization": f"{token.scheme} {token.credentials}"},
         json={
             "sub": TEST_USER_SUB,
-            "name": TEST_USER_NAME,
-            "email": TEST_USER_EMAIL,
+            "preferred_username": TEST_USER_NAME,
             "groups": [
                 "/service/entitycore/admin" if is_admin else "/other",
                 f"/proj/{VIRTUAL_LAB_ID}/{PROJECT_ID}/admin",
@@ -84,8 +87,10 @@ def test_user_verified_ok(httpx_mock, request_mock, is_admin, is_token_jwt, proj
     )
     assert isinstance(result, UserContext)
     assert result == UserContext(
-        subject=uuid.UUID(TEST_USER_SUB),
-        email=TEST_USER_EMAIL,
+        profile=UserProfile(
+            subject=uuid.UUID(TEST_USER_SUB),
+            name=TEST_USER_NAME,
+        ),
         expiration=token_expiration,
         is_authorized=True,
         is_service_admin=is_admin,
@@ -102,8 +107,10 @@ def test_user_verified_ok_when_auth_is_disabled(monkeypatch, request_mock, proje
     )
     assert isinstance(result, UserContext)
     assert result == UserContext(
-        subject=uuid.UUID(ZERO_UUID),
-        email=None,
+        profile=UserProfile(
+            subject=uuid.UUID(ZERO_UUID),
+            name="Admin User",
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
@@ -226,8 +233,7 @@ def test_user_verified_not_authorized_for_project(httpx_mock, request_mock, proj
         match_headers={"Authorization": f"{token.scheme} {token.credentials}"},
         json={
             "sub": TEST_USER_SUB,
-            "name": TEST_USER_NAME,
-            "email": TEST_USER_EMAIL,
+            "preferred_username": TEST_USER_NAME,
             "groups": [
                 "/service/entitycore/admin",
                 f"/proj/{UNRELATED_VIRTUAL_LAB_ID}/{UNRELATED_PROJECT_ID}/admin",
@@ -249,8 +255,10 @@ def test_user_verified_not_authorized_for_project(httpx_mock, request_mock, proj
 
 def test_user_with_project_id_ok():
     user_context = UserContext(
-        subject=uuid.UUID(TEST_USER_SUB),
-        email=TEST_USER_EMAIL,
+        profile=UserProfile(
+            subject=uuid.UUID(TEST_USER_SUB),
+            name=TEST_USER_NAME,
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
@@ -274,8 +282,10 @@ def test_user_with_project_id_ok():
 )
 def test_user_with_project_id_raises(project_context):
     user_context = UserContext(
-        subject=uuid.UUID(TEST_USER_SUB),
-        email=TEST_USER_EMAIL,
+        profile=UserProfile(
+            subject=uuid.UUID(TEST_USER_SUB),
+            name=TEST_USER_NAME,
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
@@ -294,8 +304,10 @@ def test_user_with_project_id_raises(project_context):
 
 def test_user_with_service_admin_role_ok():
     user_context = UserContext(
-        subject=uuid.UUID(TEST_USER_SUB),
-        email=TEST_USER_EMAIL,
+        profile=UserProfile(
+            subject=uuid.UUID(TEST_USER_SUB),
+            name=TEST_USER_NAME,
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
@@ -309,8 +321,10 @@ def test_user_with_service_admin_role_ok():
 
 def test_user_with_service_admin_role_raises():
     user_context = UserContext(
-        subject=uuid.UUID(TEST_USER_SUB),
-        email=TEST_USER_EMAIL,
+        profile=UserProfile(
+            subject=uuid.UUID(TEST_USER_SUB),
+            name=TEST_USER_NAME,
+        ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,

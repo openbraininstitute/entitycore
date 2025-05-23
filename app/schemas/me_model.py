@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.model import ValidationStatus
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
     AuthorizationMixin,
@@ -24,6 +25,8 @@ class MEModelBase(BaseModel):
     name: str
     description: str
     validation_status: ValidationStatus = ValidationStatus.created
+    holding_current: float | None = None
+    threshold_current: float | None = None
 
 
 # To be used by entities who reference MEModel
@@ -45,6 +48,7 @@ class MEModelRead(
     CreationMixin,
     AuthorizationMixin,
     EntityTypeMixin,
+    CreatedByUpdatedByMixin,
 ):
     id: uuid.UUID
     species: SpeciesRead

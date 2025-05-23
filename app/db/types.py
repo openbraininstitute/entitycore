@@ -66,7 +66,7 @@ class EntityType(StrEnum):
     single_neuron_synaptome_simulation = auto()
     ion_channel_model = auto()
     subject = auto()
-    synaptic_pathway = auto()
+    validation_result = auto()
 
 
 class AgentType(StrEnum):
@@ -188,6 +188,9 @@ class AssetLabel(StrEnum):
     hdf5 = auto()
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
+    single_neuron_synaptome_config = auto()
+    single_neuron_synaptome_simulation_io_result = auto()
+    single_cell_simulation_data = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -200,4 +203,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.cell_composition_summary,
         AssetLabel.cell_composition_volumes,
     },
+    EntityType.single_neuron_synaptome: {AssetLabel.single_neuron_synaptome_config},
+    EntityType.single_neuron_synaptome_simulation: {
+        AssetLabel.single_neuron_synaptome_simulation_io_result
+    },
+    EntityType.single_neuron_simulation: {AssetLabel.single_cell_simulation_data},
 }

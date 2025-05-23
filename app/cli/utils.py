@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 import deepdiff
 import sqlalchemy as sa
-from sqlalchemy import and_, any_
+from sqlalchemy import any_
 from sqlalchemy.orm import Session
 
 from app.cli import curate
@@ -34,7 +34,6 @@ from app.db.model import (
     Species,
     Strain,
     Subject,
-    SynapticPathway,
 )
 from app.db.types import AssetStatus, EntityType, Sex
 from app.logger import L
@@ -592,7 +591,7 @@ def import_ion_channel_models(
     db.flush()
 
 
-def _get_pathway_info(data, hierarchy_name, db):  # noqa: C901
+def get_synaptic_pathway(data, hierarchy_name, db):  # noqa: C901
     pre_region_id = pre_mtype_label = post_region_id = post_mtype_label = None
 
     for entry in data["preSynaptic"]:
@@ -625,38 +624,6 @@ def _get_pathway_info(data, hierarchy_name, db):  # noqa: C901
         raise RuntimeError(msg)
 
     return pre_mtype.id, post_mtype.id, pre_region_id, post_region_id  # pyright: ignore [reportPossiblyUnboundVariable]
-
-
-def get_or_create_synaptic_pathway(data, project_context, hierarchy_name, db):
-    pre_mtype_id, post_mtype_id, pre_region_id, post_region_id = _get_pathway_info(
-        data, hierarchy_name, db
-    )
-
-    res = (
-        db.query(SynapticPathway)
-        .where(
-            and_(
-                SynapticPathway.pre_mtype_id == pre_mtype_id,
-                SynapticPathway.post_mtype_id == post_mtype_id,
-                SynapticPathway.pre_region_id == pre_region_id,
-                SynapticPathway.post_region_id == post_region_id,
-            )
-        )
-        .first()
-    )
-
-    if not res:
-        res = SynapticPathway(
-            pre_mtype_id=pre_mtype_id,
-            post_mtype_id=post_mtype_id,
-            pre_region_id=pre_region_id,
-            post_region_id=post_region_id,
-            authorized_project_id=project_context.project_id,
-        )
-        db.add(res)
-        db.commit()
-
-    return res.id
 
 
 def get_or_create_subject(data, project_context, db):

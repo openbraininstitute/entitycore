@@ -1,3 +1,4 @@
+from operator import attrgetter
 from typing import cast
 
 from fastapi_filter.contrib.sqlalchemy import Filter
@@ -8,7 +9,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.db.model import Identifiable
 
-Aliases = dict[type[Identifiable], type[Identifiable]]
+Aliases = dict[type[Identifiable], type[Identifiable] | dict[str, type[Identifiable]]]
 
 
 class CustomFilter[T: DeclarativeBase](Filter):
@@ -51,7 +52,21 @@ class CustomFilter[T: DeclarativeBase](Filter):
         for field_name, value in self.filtering_fields:
             field_value = getattr(self, field_name)
             if isinstance(field_value, CustomFilter):
-                query = field_value.filter(query, aliases)
+                # Allow specifying for a model the alias to map the field_name to
+                # {"MTypeClass": {"pre_mtype": alias1, "post_mtype": alias2}}
+                new_aliases: Aliases | None = aliases
+                if (
+                    aliases
+                    and (alias := aliases.get(field_value.Constants.model))
+                    and isinstance(alias, dict)
+                ):
+                    if alias_value := alias.get(field_name):
+                        new_aliases = {field_value.Constants.model: alias_value}
+                    else:
+                        # There is no alias for this particular field_name, use model as normal
+                        new_aliases = None
+
+                query = field_value.filter(query, new_aliases)
             else:
                 if "__" in field_name:
                     # PLW2901 `for` loop variable `field_name` overwritten by assignment target
@@ -92,3 +107,15 @@ class CustomFilter[T: DeclarativeBase](Filter):
             if field_value.has_filtering_fields():
                 return True
         return False
+
+    def get_nested_filter(self, name: str) -> "CustomFilter[T] | None":
+        """Return the nested filter if it has filtering fields, or None otherwise.
+
+        Args:
+            name: The name of the nested filter. It's possible to specify deeply nested filters
+            using the dot notation, e.g. "measurement_annotation.measurement_kind".
+        """
+        attr = attrgetter(name)(self)
+        if isinstance(attr, CustomFilter) and attr.has_filtering_fields():
+            return attr
+        return None

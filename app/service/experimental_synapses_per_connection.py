@@ -1,5 +1,6 @@
 import uuid
 
+import sqlalchemy as sa
 from sqlalchemy.orm import (
     aliased,
     joinedload,
@@ -12,12 +13,11 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     ExperimentalSynapsesPerConnection,
+    MTypeClass,
     Subject,
-    SynapticPathway,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -25,13 +25,34 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.density import ExperimentalSynapsesPerConnectionFilterDep
-from app.queries import facets as fc
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.density import (
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
 )
 from app.schemas.types import ListResponse
+
+
+def _load(q: sa.Select):
+    db_cls = ExperimentalSynapsesPerConnection
+    return q.options(
+        joinedload(db_cls.brain_region),
+        selectinload(db_cls.contributions).selectinload(Contribution.agent),
+        selectinload(db_cls.contributions).selectinload(Contribution.role),
+        joinedload(db_cls.license),
+        joinedload(db_cls.subject).joinedload(Subject.species),
+        joinedload(db_cls.subject).joinedload(Subject.strain),
+        joinedload(db_cls.created_by),
+        joinedload(db_cls.updated_by),
+        joinedload(db_cls.pre_mtype),
+        joinedload(db_cls.post_mtype),
+        joinedload(db_cls.pre_region),
+        joinedload(db_cls.post_region),
+        selectinload(db_cls.assets),
+        selectinload(db_cls.measurements),
+        raiseload("*"),
+    )
 
 
 def read_many(
@@ -43,60 +64,60 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ExperimentalSynapsesPerConnectionRead]:
-    pathway_alias = aliased(SynapticPathway, flat=True)
     subject_alias = aliased(Subject, flat=True)
-    name_to_facet_query_params: dict[str, FacetQueryParams] = (
-        fc.brain_region | fc.contribution | fc.mtype | fc.species | fc.strain | fc.synaptic_pathway
-    )
-
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, ExperimentalSynapsesPerConnection.brain_region_id == BrainRegion.id)
-        .outerjoin(subject_alias, ExperimentalSynapsesPerConnection.subject_id == subject_alias.id)
-        .outerjoin(
-            pathway_alias,
-            ExperimentalSynapsesPerConnection.synaptic_pathway_id == pathway_alias.id,
-        )
-        .outerjoin(Contribution, ExperimentalSynapsesPerConnection.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-    )
-    apply_data_options = lambda query: (
-        query.options(joinedload(ExperimentalSynapsesPerConnection.brain_region))
-        .options(
-            selectinload(ExperimentalSynapsesPerConnection.contributions).selectinload(
-                Contribution.agent
-            )
-        )
-        .options(
-            selectinload(ExperimentalSynapsesPerConnection.contributions).selectinload(
-                Contribution.role
-            )
-        )
-        .options(joinedload(ExperimentalSynapsesPerConnection.license))
-        .options(joinedload(ExperimentalSynapsesPerConnection.subject).joinedload(Subject.species))
-        .options(joinedload(ExperimentalSynapsesPerConnection.subject).joinedload(Subject.strain))
-        .options(
-            joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
-                SynapticPathway.pre_mtype
-            )
-        )
-        .options(
-            joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
-                SynapticPathway.post_mtype
-            )
-        )
-        .options(
-            joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
-                SynapticPathway.pre_region
-            )
-        )
-        .options(
-            joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
-                SynapticPathway.post_region
-            )
-        )
-        .options(selectinload(ExperimentalSynapsesPerConnection.assets))
-        .options(selectinload(ExperimentalSynapsesPerConnection.measurements))
-        .options(raiseload("*"))
+    pre_mtype_alias = aliased(MTypeClass, flat=True)
+    post_mtype_alias = aliased(MTypeClass, flat=True)
+    pre_region_alias = aliased(BrainRegion, flat=True)
+    post_region_alias = aliased(BrainRegion, flat=True)
+    agent_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
+    aliases = {
+        Subject: subject_alias,
+        BrainRegion: {
+            "pre_region": pre_region_alias,
+            "post_region": post_region_alias,
+        },
+        MTypeClass: {
+            "pre_mtype": pre_mtype_alias,
+            "post_mtype": post_mtype_alias,
+        },
+        Agent: {
+            "contribution": agent_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
+        },
+    }
+    facet_keys = [
+        "pre_mtype",
+        "post_mtype",
+        "pre_region",
+        "post_region",
+        "brain_region",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "subject.species",
+        "subject.strain",
+    ]
+    filter_keys = [
+        "pre_mtype",
+        "post_mtype",
+        "pre_region",
+        "post_region",
+        "brain_region",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "subject",
+        "subject.species",
+        "subject.strain",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=ExperimentalSynapsesPerConnection,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -105,13 +126,14 @@ def read_many(
         with_search=with_search,
         with_in_brain_region=in_brain_region,
         facets=facets,
-        aliases={SynapticPathway: pathway_alias, Subject: subject_alias},
+        aliases=aliases,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
-        apply_data_query_operations=apply_data_options,
+        apply_filter_query_operations=None,
+        apply_data_query_operations=_load,
         pagination_request=pagination_request,
         response_schema_class=ExperimentalSynapsesPerConnectionRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )
 
 
@@ -126,33 +148,7 @@ def read_one(
         db_model_class=ExperimentalSynapsesPerConnection,
         authorized_project_id=user_context.project_id,
         response_schema_class=ExperimentalSynapsesPerConnectionRead,
-        apply_operations=lambda q: q.options(
-            joinedload(ExperimentalSynapsesPerConnection.brain_region),
-            joinedload(ExperimentalSynapsesPerConnection.assets),
-            joinedload(ExperimentalSynapsesPerConnection.license),
-            joinedload(ExperimentalSynapsesPerConnection.subject).joinedload(Subject.species),
-            joinedload(ExperimentalSynapsesPerConnection.subject).joinedload(Subject.strain),
-            joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
-                SynapticPathway.pre_mtype
-            ),
-            joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
-                SynapticPathway.post_mtype
-            ),
-            joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
-                SynapticPathway.pre_region
-            ),
-            joinedload(ExperimentalSynapsesPerConnection.synaptic_pathway).joinedload(
-                SynapticPathway.post_region
-            ),
-            selectinload(ExperimentalSynapsesPerConnection.measurements),
-            selectinload(ExperimentalSynapsesPerConnection.contributions).selectinload(
-                Contribution.agent
-            ),
-            selectinload(ExperimentalSynapsesPerConnection.contributions).selectinload(
-                Contribution.role
-            ),
-            raiseload("*"),
-        ),
+        apply_operations=_load,
     )
 
 
@@ -164,7 +160,7 @@ def create_one(
     return router_create_one(
         db=db,
         json_model=json_model,
+        user_context=user_context,
         db_model_class=ExperimentalSynapsesPerConnection,
-        authorized_project_id=user_context.project_id,
         response_schema_class=ExperimentalSynapsesPerConnectionRead,
     )

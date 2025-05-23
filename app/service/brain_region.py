@@ -9,6 +9,7 @@ from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilterDep
 from app.schemas.base import BrainRegionRead
+from app.schemas.types import ListResponse
 
 
 def read_many(
@@ -16,7 +17,7 @@ def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     brain_region_filter: BrainRegionFilterDep,
-):
+) -> ListResponse[BrainRegionRead]:
     return app.queries.common.router_read_many(
         db=db,
         db_model_class=BrainRegion,

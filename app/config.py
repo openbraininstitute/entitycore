@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value
     S3_PRESIGNED_URL_EXPIRATION: int = 600  # seconds  # TODO: decide an appropriate value
 
-    API_ASSET_POST_MAX_SIZE: int = 10 * 1024**2  # bytes  # TODO: decide an appropriate value
+    API_ASSET_POST_MAX_SIZE: int = 150 * 1024**2  # bytes  # TODO: decide an appropriate value
 
     DB_ENGINE: str = "postgresql+psycopg2"
     DB_USER: str = "entitycore"

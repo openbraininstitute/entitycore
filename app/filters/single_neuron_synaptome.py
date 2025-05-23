@@ -7,6 +7,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
+    NameFilterMixin,
 )
 from app.filters.memodel import MEModelFilter, NestedMEModelFilterDep
 
@@ -15,6 +16,7 @@ class SingleNeuronSynaptomeFilter(
     CustomFilter,
     BrainRegionFilterMixin,
     EntityFilterMixin,
+    NameFilterMixin,
 ):
     me_model: Annotated[MEModelFilter | None, NestedMEModelFilterDep] = None
 

@@ -11,7 +11,6 @@ from app.db.auth import constrain_entity_query_to_project, constrain_to_accessib
 from app.db.model import (
     Entity,
     MeasurementAnnotation,
-    MeasurementItem,
     MeasurementKind,
 )
 from app.db.utils import MEASURABLE_ENTITIES
@@ -19,17 +18,16 @@ from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import InBrainRegionDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.measurement_annotation import (
-    MeasurementAnnotationFilter,
     MeasurementAnnotationFilterDep,
 )
 from app.queries.common import (
-    ApplyOperations,
     router_create_one,
     router_delete_one,
     router_read_many,
     router_read_one,
 )
 from app.queries.entity import get_writable_entity
+from app.queries.factory import query_params_factory
 from app.schemas.measurement_annotation import (
     MeasurementAnnotationCreate,
     MeasurementAnnotationRead,
@@ -47,27 +45,6 @@ def _load_from_db(q: sa.Select) -> sa.Select:
     )
 
 
-def _get_filter_function(
-    filter_model: MeasurementAnnotationFilter, project_id: uuid.UUID | None
-) -> ApplyOperations:
-    """Return the base query needed to filter the annotations."""
-
-    def _filter_from_db(q: sa.Select) -> sa.Select:
-        q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_to_accessible_entities(q, project_id=project_id)
-        # join with kinds and items only if needed, for better performances
-        if filter_model.measurement_kind and filter_model.measurement_kind.has_filtering_fields():
-            q = q.join(MeasurementKind)
-            if (
-                filter_model.measurement_kind.measurement_item
-                and filter_model.measurement_kind.measurement_item.has_filtering_fields()
-            ):
-                q = q.join(MeasurementItem)
-        return q
-
-    return _filter_from_db
-
-
 def read_many(
     user_context: UserContextDep,
     db: SessionDep,
@@ -75,6 +52,21 @@ def read_many(
     pagination_request: PaginationQuery,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[MeasurementAnnotationRead]:
+    apply_filter_query_operations = lambda q: constrain_to_accessible_entities(
+        q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
+        project_id=user_context.project_id,
+    )
+    facet_keys = []
+    filter_keys = [
+        "measurement_kind",
+        "measurement_kind.measurement_item",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=MeasurementAnnotation,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases={},
+    )
     return router_read_many(
         db=db,
         db_model_class=MeasurementAnnotation,
@@ -83,14 +75,13 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=None,
         aliases=None,
-        apply_filter_query_operations=_get_filter_function(
-            filter_model=filter_model, project_id=user_context.project_id
-        ),
+        apply_filter_query_operations=apply_filter_query_operations,
         apply_data_query_operations=_load_from_db,
         pagination_request=pagination_request,
         response_schema_class=MeasurementAnnotationRead,
-        name_to_facet_query_params=None,
+        name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
+        filter_joins=filter_joins,
     )
 
 
@@ -133,7 +124,7 @@ def create_one(
     response = router_create_one(
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # not needed for creation
+        user_context=None,  # not needed for creation
         json_model=measurement_annotation,
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,

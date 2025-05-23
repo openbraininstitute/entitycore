@@ -45,6 +45,7 @@ dev = [
     "pytest-cov",
     "pytest-freezer>=0.4.9",
     "pytest-httpx>=0.35.0",
+    "rich>=14.0.0",
     "ruff",
     "types-boto3-lite[essential]>=1.36.11",
     "types-cachetools>=5.5.0.20240820",
@@ -173,7 +174,8 @@ testpaths = [
     "tests",
 ]
 filterwarnings = [
-    "ignore:datetime.datetime.utcnow:DeprecationWarning:botocore"  # https://github.com/boto/boto3/issues/3889
+    "ignore:datetime.datetime.utcnow:DeprecationWarning:botocore",  # https://github.com/boto/boto3/issues/3889
+    "error::sqlalchemy.exc.SAWarning",
 ]
 
 [tool.coverage.run]
@@ -186,7 +188,7 @@ source_pkgs = [
 [tool.coverage.report]
 show_missing = true
 precision = 0
-fail_under = 45
+fail_under = 90
 omit = [
     "__main__.py",
     "app/cli/*",

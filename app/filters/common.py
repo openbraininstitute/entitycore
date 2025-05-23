@@ -160,7 +160,6 @@ class BrainRegionFilterMixin:
 
 class EntityFilterMixin(
     IdFilterMixin,
-    NameFilterMixin,
     CreatorFilterMixin,
     CreationFilterMixin,
     ContributionFilterMixin,

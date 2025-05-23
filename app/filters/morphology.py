@@ -8,6 +8,7 @@ from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
     MTypeClassFilterMixin,
+    NameFilterMixin,
     SpeciesFilterMixin,
 )
 from app.filters.measurement_annotation import MeasurableFilterMixin
@@ -20,6 +21,7 @@ class MorphologyFilter(
     MTypeClassFilterMixin,
     MeasurableFilterMixin,
     EntityFilterMixin,
+    NameFilterMixin,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

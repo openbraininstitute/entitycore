@@ -9,6 +9,7 @@ from app.filters.common import (
     EntityFilterMixin,
     ETypeClassFilterMixin,
     MTypeClassFilterMixin,
+    NameFilterMixin,
     SpeciesFilterMixin,
 )
 from app.filters.morphology import MorphologyFilter, NestedExemplarMorphologyFilterDep
@@ -21,6 +22,7 @@ class EModelFilter(
     MTypeClassFilterMixin,
     ETypeClassFilterMixin,
     SpeciesFilterMixin,
+    NameFilterMixin,
 ):
     score__lte: float | None = None
     score__gte: float | None = None

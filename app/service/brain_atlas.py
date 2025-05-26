@@ -1,7 +1,5 @@
 import uuid
 
-import sqlalchemy as sa
-
 import app.queries.common
 from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.dependencies.auth import UserContextDep
@@ -35,9 +33,9 @@ def read_many(
     )
 
 
-def read_one(user_context: UserContextDep, id_: uuid.UUID, db: SessionDep) -> BrainAtlasRead:
+def read_one(user_context: UserContextDep, atlas_id: uuid.UUID, db: SessionDep) -> BrainAtlasRead:
     return app.queries.common.router_read_one(
-        id_=id_,
+        id_=atlas_id,
         db=db,
         db_model_class=BrainAtlas,
         authorized_project_id=user_context.project_id,
@@ -48,6 +46,7 @@ def read_one(user_context: UserContextDep, id_: uuid.UUID, db: SessionDep) -> Br
 
 def read_many_region(
     user_context: UserContextDep,
+    atlas_id: uuid.UUID,
     db: SessionDep,
     pagination_request: PaginationQuery,
     brain_atlas_region_filter: BrainAtlasRegionFilterDep,
@@ -60,7 +59,9 @@ def read_many_region(
         with_in_brain_region=None,
         facets=None,
         aliases=None,
-        apply_filter_query_operations=None,
+        apply_filter_query_operations=lambda q: q.filter(
+            BrainAtlasRegion.brain_atlas_id == atlas_id
+        ),
         apply_data_query_operations=None,
         pagination_request=pagination_request,
         response_schema_class=BrainAtlasRegionRead,
@@ -70,15 +71,13 @@ def read_many_region(
 
 
 def read_one_region(
-    user_context: UserContextDep, id_: uuid.UUID, region_id: uuid.UUID, db: SessionDep
+    user_context: UserContextDep, atlas_id: uuid.UUID, atlas_region_id: uuid.UUID, db: SessionDep
 ) -> BrainAtlasRegionRead:
     return app.queries.common.router_read_one(
-        id_=region_id,
+        id_=atlas_region_id,
         db=db,
         db_model_class=BrainAtlasRegion,
         authorized_project_id=user_context.project_id,
         response_schema_class=BrainAtlasRegionRead,
-        apply_operations=lambda q: q.filter(
-            sa.and_(BrainAtlasRegion.brain_atlas_id == id_, BrainAtlasRegion.id == region_id)
-        ),
+        apply_operations=lambda q: q.filter(BrainAtlasRegion.brain_atlas_id == atlas_id),
     )

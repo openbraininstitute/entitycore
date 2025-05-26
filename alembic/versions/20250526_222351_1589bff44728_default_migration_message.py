@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 6e5778b48a1c
-Revises: 634224e88212
-Create Date: 2025-05-26 17:02:23.140215
+Revision ID: 1589bff44728
+Revises: 8d1610d7c882
+Create Date: 2025-05-26 22:23:51.082630
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "6e5778b48a1c"
-down_revision: Union[str, None] = "634224e88212"
+revision: str = "1589bff44728"
+down_revision: Union[str, None] = "8d1610d7c882"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -47,8 +47,8 @@ def upgrade() -> None:
         ["calibrated_entity_id"],
         unique=False,
     )
-    op.drop_column("memodel", "threshold_current")
     op.drop_column("memodel", "holding_current")
+    op.drop_column("memodel", "threshold_current")
     op.sync_enum_values(
         enum_schema="public",
         enum_name="entitytype",
@@ -118,16 +118,16 @@ def downgrade() -> None:
     op.add_column(
         "memodel",
         sa.Column(
-            "holding_current", sa.DOUBLE_PRECISION(precision=53), autoincrement=False, nullable=True
+            "threshold_current",
+            sa.DOUBLE_PRECISION(precision=53),
+            autoincrement=False,
+            nullable=True,
         ),
     )
     op.add_column(
         "memodel",
         sa.Column(
-            "threshold_current",
-            sa.DOUBLE_PRECISION(precision=53),
-            autoincrement=False,
-            nullable=True,
+            "holding_current", sa.DOUBLE_PRECISION(precision=53), autoincrement=False, nullable=True
         ),
     )
     op.drop_index(

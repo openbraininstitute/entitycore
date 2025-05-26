@@ -92,6 +92,25 @@ class Identifiable(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
 
+class NameDescriptionVectorMixin(Base):
+    __abstract__ = True
+    name: Mapped[str] = mapped_column(index=True)
+    description: Mapped[str] = mapped_column(default="")
+    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        return (
+            Index(
+                f"ix_{cls.__tablename__}_description_vector",
+                cls.description_vector,
+                postgresql_using="gin",
+            ),
+            *getattr(super(), "__table_args__", ()),
+        )
+
+
 class BrainRegionHierarchy(Identifiable):
     __tablename__ = "brain_region_hierarchy"
 
@@ -133,7 +152,7 @@ class Strain(Identifiable):
     )
 
 
-class License(LegacyMixin, Identifiable):
+class License(LegacyMixin, Identifiable, NameDescriptionVectorMixin):
     __tablename__ = "license"
     name: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str]
@@ -321,25 +340,6 @@ class Annotation(LegacyMixin, Identifiable):
         ForeignKey("annotation_body.id"), index=True
     )
     annotation_body = relationship("AnnotationBody", uselist=False)
-
-
-class NameDescriptionVectorMixin(Base):
-    __abstract__ = True
-    name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str] = mapped_column(default="")
-    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
-
-    @declared_attr.directive
-    @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
-        return (
-            Index(
-                f"ix_{cls.__tablename__}_description_vector",
-                cls.description_vector,
-                postgresql_using="gin",
-            ),
-            *getattr(super(), "__table_args__", ()),
-        )
 
 
 class Entity(LegacyMixin, Identifiable):
@@ -621,12 +621,9 @@ class Role(LegacyMixin, Identifiable):
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class ElectricalRecordingStimulus(Entity):
+class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.electrical_recording_stimulus.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    name: Mapped[str]
-    description: Mapped[str] = mapped_column(default="")
 
     dt: Mapped[float | None]
     injection_type: Mapped[ElectricalRecordingStimulusType]

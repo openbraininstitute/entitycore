@@ -219,10 +219,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
 
 
 class CircuitBuildCategory(StrEnum):
-    data_driven_model = auto()
-    statistical_model = auto()
-    em_reconstruction = auto()
-    # TODO: Add & refine categories
+    data_driven_model = auto()  # Any type of data-driven model
+    em_reconstruction = auto()  # Reconstruction from EM
+    # (More categories may be added later, if needed)
 
 
 class CircuitScale(StrEnum):

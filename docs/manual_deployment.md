@@ -24,6 +24,7 @@ ln -s ../entitycore-data/out
 ```
 - git fetch && git pull
 - make install
+- make destroy
 - make import
 - rm -Rf public
 - rm -Rf curated

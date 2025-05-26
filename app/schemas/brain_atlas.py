@@ -20,8 +20,8 @@ class BrainAtlasRead(BrainAtlasBase, CreationMixin, IdentifiableMixin):
 class BrainAtlasRegionBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    volume: float
-    leaf_region: bool
+    volume: float | None
+    is_leaf_region: bool
 
     brain_atlas_id: uuid.UUID
     brain_region_id: uuid.UUID

@@ -885,8 +885,8 @@ class BrainAtlasRegion(Entity, LocationMixin):
 
     # only the volume for leaf nodes is saved; the consumer must calculate
     # volumes depending on which view of the hierarchy they are using
-    volume: Mapped[float] = mapped_column(nullable=True)
-    leaf_region: Mapped[bool] = mapped_column(default=False)
+    volume: Mapped[float | None]
+    is_leaf_region: Mapped[bool] = mapped_column(default=False)
 
     brain_atlas_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
 

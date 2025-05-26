@@ -1,8 +1,6 @@
 import itertools as it
 from unittest.mock import ANY
 
-import pytest
-
 from app.db.model import BrainAtlas, BrainAtlasRegion
 
 from . import utils
@@ -44,11 +42,6 @@ HIERARCHY = {
         },
     ],
 }
-
-
-@pytest.fixture
-def asdf():
-    pass
 
 
 def test_brain_atlas(db, client, species_id):
@@ -103,7 +96,7 @@ def test_brain_atlas(db, client, species_id):
     response = response.json()
     assert response == expected
 
-    data = (("root", False, -1), ("blue", False, -1), ("red", True, 15), ("grey", True, 10))
+    data = (("root", False, None), ("blue", False, None), ("red", True, 15), ("grey", True, 10))
     ids = {}
     for brain_atlas, (name, leaf, volume) in it.product(
         (
@@ -114,7 +107,7 @@ def test_brain_atlas(db, client, species_id):
     ):
         row = BrainAtlasRegion(
             volume=volume,
-            leaf_region=leaf,
+            is_leaf_region=leaf,
             brain_region_id=regions[name].id,
             brain_atlas_id=brain_atlas.id,
             authorized_project_id=utils.PROJECT_ID,
@@ -132,25 +125,25 @@ def test_brain_atlas(db, client, species_id):
             "brain_region_id": str(regions["root"].id),
             "creation_date": ANY,
             "id": str(ids[brain_atlas0.name, "root"].id),
-            "leaf_region": False,
+            "is_leaf_region": False,
             "update_date": ANY,
-            "volume": -1.0,
+            "volume": None,
         },
         {
             "brain_atlas_id": str(brain_atlas0.id),
             "brain_region_id": str(regions["blue"].id),
             "creation_date": ANY,
             "id": str(ids[brain_atlas0.name, "blue"].id),
-            "leaf_region": False,
+            "is_leaf_region": False,
             "update_date": ANY,
-            "volume": -1.0,
+            "volume": None,
         },
         {
             "brain_atlas_id": str(brain_atlas0.id),
             "brain_region_id": str(regions["red"].id),
             "creation_date": ANY,
             "id": str(ids[brain_atlas0.name, "red"].id),
-            "leaf_region": True,
+            "is_leaf_region": True,
             "update_date": ANY,
             "volume": 15.0,
         },
@@ -159,7 +152,7 @@ def test_brain_atlas(db, client, species_id):
             "brain_region_id": str(regions["grey"].id),
             "creation_date": ANY,
             "id": str(ids[brain_atlas0.name, "grey"].id),
-            "leaf_region": True,
+            "is_leaf_region": True,
             "update_date": ANY,
             "volume": 10.0,
         },
@@ -172,7 +165,7 @@ def test_brain_atlas(db, client, species_id):
         "brain_region_id": str(regions["root"].id),
         "creation_date": ANY,
         "id": str(ids[brain_atlas0.name, "root"].id),
-        "leaf_region": False,
+        "is_leaf_region": False,
         "update_date": ANY,
-        "volume": -1.0,
+        "volume": None,
     }

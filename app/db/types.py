@@ -219,15 +219,28 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
 
 
 class CircuitBuildCategory(StrEnum):
-    data_driven_model = auto()  # Any type of data-driven model
-    em_reconstruction = auto()  # Reconstruction from EM
-    # (More categories may be added later, if needed)
+    """Information about how/from what source a circuit was built:
+        - data_driven_model: Any type of data-driven model
+        - em_reconstruction: Reconstruction from EM
+        (More categories may be added later, if needed)
+    """
+    data_driven_model = auto()
+    em_reconstruction = auto()
 
 
 class CircuitScale(StrEnum):
+    """Scale of the circuit:
+        - single: Single neuron + extrinsic connectivity
+        - pair: Two connected neurons + intrinsic connectivity + extrinsic connectivity
+        - motif: Small number of neurons (3-20 neurons) + intrinsic connectivity + extrinsic connectivity; usually containing specific connectivity motifs
+        - microcircuit: Any circuit larger than a motif circuit but not covering an entire region or continuous sub-regions; may be atlas-based or not
+        - region: Atlas-based continuous volume of an entire brain region or a set of continuous sub-regions
+        - system: Non-continuous circuit consisting of at least two microcircuits/regions that are connected by inter-region connectivity
+        - whole_brain: Circuit representing an entire brain
+    """
     single = auto()
     pair = auto()
-    tiny = auto()
+    motif = auto()
     microcircuit = auto()
     region = auto()
     system = auto()

@@ -35,7 +35,7 @@ def _assert_read_response(data, json_data):
     assert data["holding_current"] == json_data["holding_current"]
     assert data["rin"] == json_data.get("rin")
     assert data["calibrated_entity_id"] == json_data["calibrated_entity_id"]
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["creation_date"] == data["update_date"]
 
 

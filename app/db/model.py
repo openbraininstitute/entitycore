@@ -621,12 +621,9 @@ class Role(LegacyMixin, Identifiable):
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class ElectricalRecordingStimulus(Entity):
+class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.electrical_recording_stimulus.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    name: Mapped[str]
-    description: Mapped[str] = mapped_column(default="")
 
     dt: Mapped[float | None]
     injection_type: Mapped[ElectricalRecordingStimulusType]

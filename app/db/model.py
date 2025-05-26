@@ -231,7 +231,6 @@ class Person(Agent):
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
-    __table_args__ = (UniqueConstraint("given_name", "family_name", name="unique_person_name_1"),)
 
 
 class Organization(Agent):

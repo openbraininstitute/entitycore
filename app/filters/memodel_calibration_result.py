@@ -22,4 +22,6 @@ class MEModelCalibrationResultFilter(
         ordering_model_fields = ["calibrated_entity_id"]  # noqa: RUF012
 
 
-MEModelCalibrationResultFilterDep = Annotated[MEModelCalibrationResultFilter, FilterDepends(MEModelCalibrationResultFilter)]
+MEModelCalibrationResultFilterDep = Annotated[
+    MEModelCalibrationResultFilter, FilterDepends(MEModelCalibrationResultFilter)
+]

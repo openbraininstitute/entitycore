@@ -385,6 +385,7 @@ def validation_result_id(client, morphology_id):
         },
     ).json()["id"]
 
+
 @pytest.fixture
 def memodel_calibration_result_id(client, memodel_id):
     return assert_request(

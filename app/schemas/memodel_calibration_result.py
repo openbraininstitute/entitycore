@@ -17,7 +17,9 @@ class MEModelCalibrationResultBase(BaseModel):
     rin: float | None = None
 
 
-class MEModelCalibrationResultRead(MEModelCalibrationResultBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin):
+class MEModelCalibrationResultRead(
+    MEModelCalibrationResultBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin
+):
     """Read model for MEModel calibration results, including entity metadata."""
 
     calibrated_entity_id: uuid.UUID

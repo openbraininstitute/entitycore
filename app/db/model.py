@@ -212,7 +212,7 @@ class SpeciesMixin(Base):
 class Agent(LegacyMixin, Identifiable):
     __tablename__ = "agent"
     type: Mapped[AgentType]
-    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
+    pref_label: Mapped[str] = mapped_column(index=True)
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",

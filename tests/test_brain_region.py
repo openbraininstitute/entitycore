@@ -1,10 +1,6 @@
 import itertools as it
 from unittest.mock import ANY
 
-import sqlalchemy as sa
-
-from app.db.model import BrainRegion
-
 from . import utils
 
 ROUTE = "/brain-region"
@@ -46,40 +42,9 @@ HIERARCHY = {
 }
 
 
-def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
-    regions = []
-
-    def recurse(i):
-        children = []
-        item = i | {"children": children}
-        for child in i["children"]:
-            children.append(child["id"])
-            recurse(child)
-        regions.append(item)
-
-    recurse(hierarchy)
-
-    ids = {None: None}
-    for region in reversed(regions):
-        row = BrainRegion(
-            annotation_value=region["id"],
-            acronym=region["acronym"],
-            name=region["name"],
-            color_hex_triplet=region["color_hex_triplet"],
-            parent_structure_id=ids[region["parent_structure_id"]],
-            hierarchy_id=hierarchy_id,
-        )
-        db_br = utils.add_db(db, row)
-        db.flush()
-        ids[region["id"]] = db_br.id
-
-    ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
-    return ret
-
-
 def test_brain_region_id(db, client):
     hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy")
-    add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
+    utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
     response = client.get(ROUTE)
     assert response.status_code == 200
@@ -146,10 +111,10 @@ def test_brain_region_id(db, client):
 
 def test_family_queries(db, client, species_id, strain_id):
     hierarchy_name0 = utils.create_hiearchy_name(db, "hier0")
-    brain_regions0 = add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name0.id)
+    brain_regions0 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name0.id)
 
     hierarchy_name1 = utils.create_hiearchy_name(db, "hier1")
-    brain_regions1 = add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name1.id)
+    brain_regions1 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name1.id)
 
     for acronym, row in it.chain(brain_regions0.items(), brain_regions1.items()):
         hier = "hier0" if row.hierarchy_id == hierarchy_name0.id else "hier1"

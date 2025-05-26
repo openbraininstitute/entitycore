@@ -13,7 +13,6 @@ Objects exist independently and have states that can change over time.
 
      - AnalysisSoftwareSourceCode
      - EModel
-     - Mesh
      - MEModel
      - ReconstructionMorphology
      - SingleCellExperimentalTrace

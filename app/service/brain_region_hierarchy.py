@@ -9,7 +9,6 @@ import app.queries.common
 from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ensure_result
 from app.filters.brain_region_hierarchy import BrainRegionHierarchyFilterDep
 from app.schemas.brain_region_hierarchy import BrainRegionHierarchyRead
 from app.schemas.types import ListResponse
@@ -38,10 +37,14 @@ def read_many(
 
 
 def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyRead:
-    with ensure_result(error_message="Brain Region Hierarchy Name not found"):
-        stmt = sa.select(BrainRegionHierarchy).filter(BrainRegionHierarchy.id == id_)
-        row = db.execute(stmt).scalar_one()
-    return BrainRegionHierarchyRead.model_validate(row)
+    return app.queries.common.router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=BrainRegionHierarchy,
+        authorized_project_id=None,
+        response_schema_class=BrainRegionHierarchyRead,
+        apply_operations=None,
+    )
 
 
 class _JSONEncoder(json.JSONEncoder):

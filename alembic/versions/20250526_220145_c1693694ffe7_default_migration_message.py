@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: a864888b6a39
-Revises: 9730c55381f3
-Create Date: 2025-05-26 12:43:51.408647
+Revision ID: c1693694ffe7
+Revises: 634224e88212
+Create Date: 2025-05-26 22:01:45.625516
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "a864888b6a39"
-down_revision: Union[str, None] = "9730c55381f3"
+revision: str = "c1693694ffe7"
+down_revision: Union[str, None] = "634224e88212"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -47,14 +47,15 @@ def upgrade() -> None:
         ["calibrated_entity_id"],
         unique=False,
     )
-    op.drop_column("memodel", "holding_current")
     op.drop_column("memodel", "threshold_current")
+    op.drop_column("memodel", "holding_current")
     op.sync_enum_values(
         enum_schema="public",
         enum_name="entitytype",
         new_values=[
             "analysis_software_source_code",
             "brain_atlas",
+            "brain_atlas_region",
             "emodel",
             "cell_composition",
             "memodel_calibration_result",
@@ -90,6 +91,7 @@ def downgrade() -> None:
         new_values=[
             "analysis_software_source_code",
             "brain_atlas",
+            "brain_atlas_region",
             "emodel",
             "cell_composition",
             "experimental_bouton_density",
@@ -116,16 +118,16 @@ def downgrade() -> None:
     op.add_column(
         "memodel",
         sa.Column(
-            "threshold_current",
-            sa.DOUBLE_PRECISION(precision=53),
-            autoincrement=False,
-            nullable=True,
+            "holding_current", sa.DOUBLE_PRECISION(precision=53), autoincrement=False, nullable=True
         ),
     )
     op.add_column(
         "memodel",
         sa.Column(
-            "holding_current", sa.DOUBLE_PRECISION(precision=53), autoincrement=False, nullable=True
+            "threshold_current",
+            sa.DOUBLE_PRECISION(precision=53),
+            autoincrement=False,
+            nullable=True,
         ),
     )
     op.drop_index(

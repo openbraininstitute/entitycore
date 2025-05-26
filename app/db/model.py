@@ -835,7 +835,7 @@ class MEModelCalibrationResult(Entity):
     holding_current: Mapped[float]
     threshold_current: Mapped[float]
     rin: Mapped[float | None]
-    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("MEModel.id"), index=True)
+    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
     calibrated_entity: Mapped[Entity] = relationship(
         "MEModel",
         uselist=False,

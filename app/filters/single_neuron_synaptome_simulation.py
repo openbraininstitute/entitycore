@@ -8,6 +8,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
+    NameFilterMixin,
 )
 from app.filters.single_neuron_synaptome import (
     NestedSingleNeuronSynaptomeFilterDep,
@@ -19,6 +20,7 @@ class SingleNeuronSynaptomeSimulationFilter(
     CustomFilter,
     EntityFilterMixin,
     BrainRegionFilterMixin,
+    NameFilterMixin,
 ):
     status: SingleNeuronSimulationStatus | None = None
 

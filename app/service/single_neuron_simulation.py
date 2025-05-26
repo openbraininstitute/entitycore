@@ -3,10 +3,9 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSimulation
+from app.db.model import Agent, MEModel, SingleNeuronSimulation
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -15,6 +14,7 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_simulation import SingleNeuronSimulationFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.simulation import SingleNeuronSimulationCreate, SingleNeuronSimulationRead
 from app.schemas.types import ListResponse
 
@@ -24,8 +24,8 @@ def _load(query: sa.Select):
         joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.mtypes),
         joinedload(SingleNeuronSimulation.me_model).joinedload(MEModel.etypes),
         joinedload(SingleNeuronSimulation.brain_region),
-        joinedload(SingleNeuronSimulation.createdBy),
-        joinedload(SingleNeuronSimulation.updatedBy),
+        joinedload(SingleNeuronSimulation.created_by),
+        joinedload(SingleNeuronSimulation.updated_by),
         selectinload(SingleNeuronSimulation.assets),
         raiseload("*"),
     )
@@ -77,37 +77,22 @@ def read_many(
         MEModel: me_model_alias,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
-        },
-        "createdBy": {
-            "id": created_by_alias.id,
-            "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
-        },
-        "updatedBy": {
-            "id": updated_by_alias.id,
-            "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
-        },
-        "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
-    }
-
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, SingleNeuronSimulation.brain_region_id == BrainRegion.id)
-        .outerjoin(Contribution, SingleNeuronSimulation.id == Contribution.entity_id)
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(created_by_alias, SingleNeuronSimulation.createdBy_id == created_by_alias.id)
-        .outerjoin(updated_by_alias, SingleNeuronSimulation.updatedBy_id == updated_by_alias.id)
-        .outerjoin(me_model_alias, SingleNeuronSimulation.me_model_id == me_model_alias.id)
+    facet_keys = filter_keys = [
+        "brain_region",
+        "me_model",
+        "created_by",
+        "updated_by",
+        "contribution",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=SingleNeuronSimulation,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -117,10 +102,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSimulationRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )

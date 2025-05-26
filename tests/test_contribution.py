@@ -261,7 +261,7 @@ def test_contribution_facets(
     assert len(morphology_ids) == 12
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
-    agent = db.get(ReconstructionMorphology, morphology_ids[0]).createdBy
+    agent = db.get(ReconstructionMorphology, morphology_ids[0]).created_by
     """
     response = client.get(ROUTE_MORPH, params={"with_facets": True, "page_size": 10})
     assert response.status_code == 200
@@ -280,10 +280,10 @@ def test_contribution_facets(
             {"count": 12, "id": str(species_id), "label": "Test Species", "type": "species"}
         ],
         "strain": [{"count": 12, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
-        "createdBy": [
+        "created_by": [
             {"count": 12, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
         ],
-        "updatedBy": [
+        "updated_by": [
             {"count": 12, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
         ],
     }
@@ -315,10 +315,10 @@ def test_contribution_facets(
             {"count": 9, "id": str(species_id), "label": "Test Species", "type": "species"}
         ],
         "strain": [{"count": 9, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
-        "createdBy": [
+        "created_by": [
             {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
         ],
-        "updatedBy": [
+        "updated_by": [
             {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
         ],
     }

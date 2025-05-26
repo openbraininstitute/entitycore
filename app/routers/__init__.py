@@ -32,6 +32,7 @@ from app.routers import (
     species,
     strain,
     subject,
+    validation_result,
 )
 
 router = APIRouter()
@@ -49,6 +50,7 @@ authenticated_routers = [
     experimental_bouton_density.router,
     experimental_neuron_density.router,
     experimental_synapses_per_connection.router,
+    ion_channel_model.router,
     license.router,
     measurement_annotation.router,
     memodel.router,
@@ -63,7 +65,7 @@ authenticated_routers = [
     species.router,
     strain.router,
     subject.router,
-    ion_channel_model.router,
+    validation_result.router,
 ]
 for r in authenticated_routers:
     router.include_router(r, dependencies=[Depends(user_verified)])

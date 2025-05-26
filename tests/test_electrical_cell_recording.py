@@ -118,7 +118,7 @@ def test_create_one(client, subject_id, license_id, brain_region_id, json_data):
     assert data["license"]["id"] == str(license_id)
     assert data["authorized_project_id"] == str(PROJECT_ID)
     assert data["type"] == EntityType.electrical_cell_recording
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
@@ -137,7 +137,7 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id):
     assert len(data["stimuli"]) == 2
     assert len(data["assets"]) == 1
     assert data["type"] == EntityType.electrical_cell_recording
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 def test_missing(client):

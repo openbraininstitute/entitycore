@@ -41,5 +41,5 @@ type AgentRead = PersonRead | OrganizationRead
 
 
 class CreatedByUpdatedByMixin(BaseModel):
-    createdBy: PersonRead | None
-    updatedBy: PersonRead | None
+    created_by: PersonRead | None
+    updated_by: PersonRead | None

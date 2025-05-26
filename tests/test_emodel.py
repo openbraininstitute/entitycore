@@ -34,12 +34,12 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     )
     assert data["species"]["id"] == species_id, f"Failed to get species_id for emodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for emodel: {data}"
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
     response = client.get(ROUTE)
     assert response.status_code == 200, f"Failed to get emodels: {response.text}"
     data = response.json()["data"]
-    assert data[0]["createdBy"]["id"] == data[0]["updatedBy"]["id"]
+    assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
 
 
 def test_get_emodel(client: TestClient, emodel_id: str):
@@ -53,7 +53,7 @@ def test_get_emodel(client: TestClient, emodel_id: str):
     assert "assets" in data
     assert len(data["assets"]) == 1
     assert "ion_channel_models" in data
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 def test_missing(client):
@@ -121,8 +121,8 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
     assert "facets" in data
     facets = data["facets"]
 
-    created_by = facets.pop("createdBy")
-    updated_by = facets.pop("updatedBy")
+    created_by = facets.pop("created_by")
+    updated_by = facets.pop("updated_by")
     assert len(created_by) == len(updated_by) == 1
     assert created_by == updated_by
 
@@ -173,8 +173,8 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
     assert "facets" in data
     facets = data["facets"]
 
-    created_by = facets.pop("createdBy")
-    updated_by = facets.pop("updatedBy")
+    created_by = facets.pop("created_by")
+    updated_by = facets.pop("updated_by")
     assert len(created_by) == len(updated_by) == 1
     assert created_by == updated_by
 

@@ -54,7 +54,7 @@ def test_create_reconstruction_morphology(
     assert data["type"] == EntityType.reconstruction_morphology, (
         f"Failed to get correct type for reconstruction morphology: {data}"
     )
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
     response = client.get(ROUTE)
     assert response.status_code == 200, (
@@ -64,7 +64,7 @@ def test_create_reconstruction_morphology(
     assert data and all(item["type"] == EntityType.reconstruction_morphology for item in data), (  # noqa: PT018
         "One or more reconstruction morphologies has incorrect type"
     )
-    assert data[0]["createdBy"]["id"] == data[0]["updatedBy"]["id"]
+    assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
 
 
 def test_missing(client):
@@ -114,7 +114,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     count = 11
     create_morphologies(count)
 
-    agent = db.get(ReconstructionMorphology, morphology_ids[0]).createdBy
+    agent = db.get(ReconstructionMorphology, morphology_ids[0]).created_by
 
     response = client.get(ROUTE, params={"page_size": 10})
 
@@ -182,7 +182,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
             {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"},
             {"id": str(strain2.id), "label": "TestStrain2", "count": 5, "type": "strain"},
         ],
-        "createdBy": [
+        "created_by": [
             {
                 "count": 11,
                 "id": str(agent.id),
@@ -190,7 +190,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
                 "type": agent.type,
             },
         ],
-        "updatedBy": [
+        "updated_by": [
             {
                 "count": 11,
                 "id": str(agent.id),
@@ -220,7 +220,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
             {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"},
             {"id": str(strain2.id), "label": "TestStrain2", "count": 5, "type": "strain"},
         ],
-        "createdBy": [
+        "created_by": [
             {
                 "count": 11,
                 "id": str(agent.id),
@@ -228,7 +228,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
                 "type": agent.type,
             },
         ],
-        "updatedBy": [
+        "updated_by": [
             {
                 "count": 11,
                 "id": str(agent.id),
@@ -255,7 +255,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
             {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "species"}
         ],
         "strain": [{"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"}],
-        "createdBy": [
+        "created_by": [
             {
                 "count": 6,
                 "id": str(agent.id),
@@ -263,7 +263,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
                 "type": agent.type,
             },
         ],
-        "updatedBy": [
+        "updated_by": [
             {
                 "count": 6,
                 "id": str(agent.id),
@@ -311,20 +311,20 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
             {"id": str(species0.id), "label": "TestSpecies0", "count": 1, "type": "species"}
         ],
         "strain": [{"id": str(strain0.id), "label": "Strain0", "count": 1, "type": "strain"}],
-        "createdBy": [
+        "created_by": [
             {
                 "count": 1,
-                "id": registered["createdBy"]["id"],
-                "label": registered["createdBy"]["pref_label"],
-                "type": registered["createdBy"]["type"],
+                "id": registered["created_by"]["id"],
+                "label": registered["created_by"]["pref_label"],
+                "type": registered["created_by"]["type"],
             },
         ],
-        "updatedBy": [
+        "updated_by": [
             {
                 "count": 1,
-                "id": registered["createdBy"]["id"],
-                "label": registered["createdBy"]["pref_label"],
-                "type": registered["createdBy"]["type"],
+                "id": registered["created_by"]["id"],
+                "label": registered["created_by"]["pref_label"],
+                "type": registered["created_by"]["type"],
             },
         ],
     }

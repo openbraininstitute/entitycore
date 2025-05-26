@@ -1,8 +1,8 @@
 """models
 
-Revision ID: 68d09ed03b67
+Revision ID: 478cb2e9eb55
 Revises:
-Create Date: 2025-05-20 11:12:32.797689
+Create Date: 2025-05-21 16:05:44.426230
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "68d09ed03b67"
+revision: str = "478cb2e9eb55"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -124,6 +124,7 @@ def upgrade() -> None:
         "single_neuron_synaptome_simulation",
         "ion_channel_model",
         "subject",
+        "validation_result",
         name="entitytype",
     ).create(op.get_bind())
     sa.Enum("datamaturity_annotation_body", name="annotationbodytype").create(op.get_bind())
@@ -453,13 +454,14 @@ def upgrade() -> None:
                 "single_neuron_synaptome_simulation",
                 "ion_channel_model",
                 "subject",
+                "validation_result",
                 name="entitytype",
                 create_type=False,
             ),
             nullable=False,
         ),
-        sa.Column("createdBy_id", sa.Uuid(), nullable=True),
-        sa.Column("updatedBy_id", sa.Uuid(), nullable=True),
+        sa.Column("created_by_id", sa.Uuid(), nullable=True),
+        sa.Column("updated_by_id", sa.Uuid(), nullable=True),
         sa.Column("authorized_project_id", sa.Uuid(), nullable=False),
         sa.Column("authorized_public", sa.Boolean(), nullable=False),
         sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
@@ -478,17 +480,17 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["createdBy_id"], ["agent.id"], name=op.f("fk_entity_createdBy_id_agent")
+            ["created_by_id"], ["agent.id"], name=op.f("fk_entity_created_by_id_agent")
         ),
         sa.ForeignKeyConstraint(
-            ["updatedBy_id"], ["agent.id"], name=op.f("fk_entity_updatedBy_id_agent")
+            ["updated_by_id"], ["agent.id"], name=op.f("fk_entity_updated_by_id_agent")
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_entity")),
     )
-    op.create_index(op.f("ix_entity_createdBy_id"), "entity", ["createdBy_id"], unique=False)
+    op.create_index(op.f("ix_entity_created_by_id"), "entity", ["created_by_id"], unique=False)
     op.create_index(op.f("ix_entity_creation_date"), "entity", ["creation_date"], unique=False)
     op.create_index(op.f("ix_entity_legacy_id"), "entity", ["legacy_id"], unique=False)
-    op.create_index(op.f("ix_entity_updatedBy_id"), "entity", ["updatedBy_id"], unique=False)
+    op.create_index(op.f("ix_entity_updated_by_id"), "entity", ["updated_by_id"], unique=False)
     op.create_table(
         "organization",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -786,8 +788,8 @@ def upgrade() -> None:
     op.create_table(
         "etype_classification",
         sa.Column("etype_class_id", sa.Uuid(), nullable=False),
-        sa.Column("createdBy_id", sa.Uuid(), nullable=True),
-        sa.Column("updatedBy_id", sa.Uuid(), nullable=True),
+        sa.Column("created_by_id", sa.Uuid(), nullable=True),
+        sa.Column("updated_by_id", sa.Uuid(), nullable=True),
         sa.Column("entity_id", sa.Uuid(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
@@ -803,7 +805,9 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["createdBy_id"], ["agent.id"], name=op.f("fk_etype_classification_createdBy_id_agent")
+            ["created_by_id"],
+            ["agent.id"],
+            name=op.f("fk_etype_classification_created_by_id_agent"),
         ),
         sa.ForeignKeyConstraint(
             ["entity_id"], ["entity.id"], name=op.f("fk_etype_classification_entity_id_entity")
@@ -814,14 +818,16 @@ def upgrade() -> None:
             name=op.f("fk_etype_classification_etype_class_id_etype_class"),
         ),
         sa.ForeignKeyConstraint(
-            ["updatedBy_id"], ["agent.id"], name=op.f("fk_etype_classification_updatedBy_id_agent")
+            ["updated_by_id"],
+            ["agent.id"],
+            name=op.f("fk_etype_classification_updated_by_id_agent"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_etype_classification")),
     )
     op.create_index(
-        op.f("ix_etype_classification_createdBy_id"),
+        op.f("ix_etype_classification_created_by_id"),
         "etype_classification",
-        ["createdBy_id"],
+        ["created_by_id"],
         unique=False,
     )
     op.create_index(
@@ -843,9 +849,9 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
-        op.f("ix_etype_classification_updatedBy_id"),
+        op.f("ix_etype_classification_updated_by_id"),
         "etype_classification",
-        ["updatedBy_id"],
+        ["updated_by_id"],
         unique=False,
     )
     op.create_table(
@@ -1060,8 +1066,8 @@ def upgrade() -> None:
     op.create_table(
         "mtype_classification",
         sa.Column("mtype_class_id", sa.Uuid(), nullable=False),
-        sa.Column("createdBy_id", sa.Uuid(), nullable=True),
-        sa.Column("updatedBy_id", sa.Uuid(), nullable=True),
+        sa.Column("created_by_id", sa.Uuid(), nullable=True),
+        sa.Column("updated_by_id", sa.Uuid(), nullable=True),
         sa.Column("entity_id", sa.Uuid(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
@@ -1077,7 +1083,9 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["createdBy_id"], ["agent.id"], name=op.f("fk_mtype_classification_createdBy_id_agent")
+            ["created_by_id"],
+            ["agent.id"],
+            name=op.f("fk_mtype_classification_created_by_id_agent"),
         ),
         sa.ForeignKeyConstraint(
             ["entity_id"], ["entity.id"], name=op.f("fk_mtype_classification_entity_id_entity")
@@ -1088,14 +1096,16 @@ def upgrade() -> None:
             name=op.f("fk_mtype_classification_mtype_class_id_mtype_class"),
         ),
         sa.ForeignKeyConstraint(
-            ["updatedBy_id"], ["agent.id"], name=op.f("fk_mtype_classification_updatedBy_id_agent")
+            ["updated_by_id"],
+            ["agent.id"],
+            name=op.f("fk_mtype_classification_updated_by_id_agent"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_mtype_classification")),
     )
     op.create_index(
-        op.f("ix_mtype_classification_createdBy_id"),
+        op.f("ix_mtype_classification_created_by_id"),
         "mtype_classification",
-        ["createdBy_id"],
+        ["created_by_id"],
         unique=False,
     )
     op.create_index(
@@ -1117,9 +1127,9 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
-        op.f("ix_mtype_classification_updatedBy_id"),
+        op.f("ix_mtype_classification_updated_by_id"),
         "mtype_classification",
-        ["updatedBy_id"],
+        ["updated_by_id"],
         unique=False,
     )
     op.create_table(
@@ -1240,6 +1250,27 @@ def upgrade() -> None:
     op.create_index(op.f("ix_subject_name"), "subject", ["name"], unique=False)
     op.create_index(op.f("ix_subject_species_id"), "subject", ["species_id"], unique=False)
     op.create_index(op.f("ix_subject_strain_id"), "subject", ["strain_id"], unique=False)
+    op.create_table(
+        "validation_result",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("passed", sa.Boolean(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("validated_entity_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_validation_result_id_entity")),
+        sa.ForeignKeyConstraint(
+            ["validated_entity_id"],
+            ["entity.id"],
+            name=op.f("fk_validation_result_validated_entity_id_entity"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_validation_result")),
+    )
+    op.create_index(op.f("ix_validation_result_name"), "validation_result", ["name"], unique=False)
+    op.create_index(
+        op.f("ix_validation_result_validated_entity_id"),
+        "validation_result",
+        ["validated_entity_id"],
+        unique=False,
+    )
     op.create_table(
         "electrical_cell_recording",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -2177,6 +2208,9 @@ def downgrade() -> None:
         op.f("ix_electrical_cell_recording_brain_region_id"), table_name="electrical_cell_recording"
     )
     op.drop_table("electrical_cell_recording")
+    op.drop_index(op.f("ix_validation_result_validated_entity_id"), table_name="validation_result")
+    op.drop_index(op.f("ix_validation_result_name"), table_name="validation_result")
+    op.drop_table("validation_result")
     op.drop_index(op.f("ix_subject_strain_id"), table_name="subject")
     op.drop_index(op.f("ix_subject_species_id"), table_name="subject")
     op.drop_index(op.f("ix_subject_name"), table_name="subject")
@@ -2201,11 +2235,11 @@ def downgrade() -> None:
         op.f("ix_reconstruction_morphology_brain_region_id"), table_name="reconstruction_morphology"
     )
     op.drop_table("reconstruction_morphology")
-    op.drop_index(op.f("ix_mtype_classification_updatedBy_id"), table_name="mtype_classification")
+    op.drop_index(op.f("ix_mtype_classification_updated_by_id"), table_name="mtype_classification")
     op.drop_index(op.f("ix_mtype_classification_mtype_class_id"), table_name="mtype_classification")
     op.drop_index(op.f("ix_mtype_classification_entity_id"), table_name="mtype_classification")
     op.drop_index(op.f("ix_mtype_classification_creation_date"), table_name="mtype_classification")
-    op.drop_index(op.f("ix_mtype_classification_createdBy_id"), table_name="mtype_classification")
+    op.drop_index(op.f("ix_mtype_classification_created_by_id"), table_name="mtype_classification")
     op.drop_table("mtype_classification")
     op.drop_index(op.f("ix_mesh_name"), table_name="mesh")
     op.drop_index("ix_mesh_description_vector", table_name="mesh", postgresql_using="gin")
@@ -2239,11 +2273,11 @@ def downgrade() -> None:
     )
     op.drop_index(op.f("ix_ion_channel_model_brain_region_id"), table_name="ion_channel_model")
     op.drop_table("ion_channel_model")
-    op.drop_index(op.f("ix_etype_classification_updatedBy_id"), table_name="etype_classification")
+    op.drop_index(op.f("ix_etype_classification_updated_by_id"), table_name="etype_classification")
     op.drop_index(op.f("ix_etype_classification_etype_class_id"), table_name="etype_classification")
     op.drop_index(op.f("ix_etype_classification_entity_id"), table_name="etype_classification")
     op.drop_index(op.f("ix_etype_classification_creation_date"), table_name="etype_classification")
-    op.drop_index(op.f("ix_etype_classification_createdBy_id"), table_name="etype_classification")
+    op.drop_index(op.f("ix_etype_classification_created_by_id"), table_name="etype_classification")
     op.drop_table("etype_classification")
     op.drop_index(op.f("ix_contribution_role_id"), table_name="contribution")
     op.drop_index(op.f("ix_contribution_entity_id"), table_name="contribution")
@@ -2296,10 +2330,10 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_person_sub_id"), table_name="person")
     op.drop_table("person")
     op.drop_table("organization")
-    op.drop_index(op.f("ix_entity_updatedBy_id"), table_name="entity")
+    op.drop_index(op.f("ix_entity_updated_by_id"), table_name="entity")
     op.drop_index(op.f("ix_entity_legacy_id"), table_name="entity")
     op.drop_index(op.f("ix_entity_creation_date"), table_name="entity")
-    op.drop_index(op.f("ix_entity_createdBy_id"), table_name="entity")
+    op.drop_index(op.f("ix_entity_created_by_id"), table_name="entity")
     op.drop_table("entity")
     op.drop_index(
         op.f("ix_datamaturity_annotation_body_pref_label"),
@@ -2371,6 +2405,7 @@ def downgrade() -> None:
         "single_neuron_synaptome_simulation",
         "ion_channel_model",
         "subject",
+        "validation_result",
         name="entitytype",
     ).drop(op.get_bind())
     sa.Enum("prenatal", "postnatal", "unknown", name="ageperiod").drop(op.get_bind())

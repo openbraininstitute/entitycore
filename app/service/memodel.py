@@ -1,7 +1,6 @@
 import uuid
 from typing import TYPE_CHECKING
 
-import sqlalchemy as sa
 from sqlalchemy.orm import (
     aliased,
     joinedload,
@@ -12,21 +11,13 @@ from sqlalchemy.sql.selectable import Select
 
 from app.db.model import (
     Agent,
-    BrainRegion,
     Contribution,
     EModel,
-    ETypeClass,
-    ETypeClassification,
     MEModel,
-    MTypeClass,
-    MTypeClassification,
     ReconstructionMorphology,
-    Species,
-    Strain,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -35,6 +26,7 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.memodel import MEModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.me_model import MEModelCreate, MEModelRead
 from app.schemas.types import ListResponse
 
@@ -55,8 +47,8 @@ def _load(select: Select):
             selectinload(EModel.contributions).joinedload(Contribution.role),
             joinedload(EModel.mtypes),
             joinedload(EModel.etypes),
-            joinedload(EModel.createdBy),
-            joinedload(EModel.updatedBy),
+            joinedload(EModel.created_by),
+            joinedload(EModel.updated_by),
             selectinload(EModel.assets),
         ),
         joinedload(MEModel.morphology).options(
@@ -67,8 +59,8 @@ def _load(select: Select):
             joinedload(ReconstructionMorphology.license),
             joinedload(ReconstructionMorphology.species),
             joinedload(ReconstructionMorphology.strain),
-            joinedload(ReconstructionMorphology.createdBy),
-            joinedload(ReconstructionMorphology.updatedBy),
+            joinedload(ReconstructionMorphology.created_by),
+            joinedload(ReconstructionMorphology.updated_by),
             selectinload(ReconstructionMorphology.assets),
         ),
         joinedload(MEModel.brain_region),
@@ -76,8 +68,8 @@ def _load(select: Select):
         selectinload(MEModel.contributions).joinedload(Contribution.role),
         joinedload(MEModel.mtypes),
         joinedload(MEModel.etypes),
-        joinedload(MEModel.createdBy),
-        joinedload(MEModel.updatedBy),
+        joinedload(MEModel.created_by),
+        joinedload(MEModel.updated_by),
         raiseload("*"),
     )
 
@@ -129,59 +121,28 @@ def read_many(
         EModel: emodel_alias,
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
     }
-
-    name_to_facet_query_params: dict[str, FacetQueryParams] = {
-        "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
-        "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
-        "species": {"id": Species.id, "label": Species.name},
-        "strain": {"id": Strain.id, "label": Strain.name},
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
-        "morphology": {
-            "id": morphology_alias.id,
-            "label": morphology_alias.name,
-        },
-        "emodel": {
-            "id": emodel_alias.id,
-            "label": emodel_alias.name,
-        },
-        "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
-        },
-        "createdBy": {
-            "id": created_by_alias.id,
-            "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
-        },
-        "updatedBy": {
-            "id": updated_by_alias.id,
-            "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
-        },
-    }
-
-    def filter_query_operations(q: sa.Select):
-        return (
-            q.join(Species, MEModel.species_id == Species.id)
-            .outerjoin(Strain, MEModel.strain_id == Strain.id)
-            .join(morphology_alias, MEModel.morphology_id == morphology_alias.id)
-            .join(emodel_alias, MEModel.emodel_id == emodel_alias.id)
-            .join(BrainRegion, MEModel.brain_region_id == BrainRegion.id)
-            .outerjoin(Contribution, MEModel.id == Contribution.entity_id)
-            .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-            .outerjoin(created_by_alias, MEModel.createdBy_id == created_by_alias.id)
-            .outerjoin(updated_by_alias, MEModel.updatedBy_id == updated_by_alias.id)
-            .outerjoin(MTypeClassification, MEModel.id == MTypeClassification.entity_id)
-            .outerjoin(MTypeClass, MTypeClassification.mtype_class_id == MTypeClass.id)
-            .outerjoin(ETypeClassification, MEModel.id == ETypeClassification.entity_id)
-            .outerjoin(ETypeClass, ETypeClassification.etype_class_id == ETypeClass.id)
-        )
-
+    facet_keys = filter_keys = [
+        "brain_region",
+        "species",
+        "morphology",
+        "emodel",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "mtype",
+        "etype",
+        "strain",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=MEModel,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
+    )
     return router_read_many(
         db=db,
         db_model_class=MEModel,
@@ -190,10 +151,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load,
-        apply_filter_query_operations=filter_query_operations,
         pagination_request=pagination_request,
         response_schema_class=MEModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=memodel_filter,
+        filter_joins=filter_joins,
     )

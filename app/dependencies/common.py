@@ -10,7 +10,10 @@ from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
 from app.errors import ApiError, ApiErrorCode
+from app.filters.base import CustomFilter
 from app.filters.brain_region import filter_by_hierarchy_and_region
+from app.queries.filter import filter_from_db
+from app.queries.types import ApplyOperations
 from app.schemas.types import Facet, Facets, PaginationRequest
 
 
@@ -71,6 +74,8 @@ def _get_facets(
     query: sa.Select,
     name_to_facet_query_params: dict[str, FacetQueryParams],
     count_distinct_field: InstrumentedAttribute,
+    filter_model: CustomFilter,
+    filter_joins: dict[str, ApplyOperations] | None = None,
 ) -> Facets:
     facets = {}
     groupby_keys = ["id", "label", "type"]
@@ -80,7 +85,14 @@ def _get_facets(
         groupby_columns = [groupby_fields[key].label(key) for key in groupby_keys]  # type: ignore[attr-defined]
         groupby_ids = [sa.literal(i + 1) for i in range(len(groupby_columns))]
         facet_q = (
-            query.with_only_columns(
+            # ensure that only the required joins are added
+            filter_from_db(query, filter_model, filter_joins, forced_joins={facet_type})
+            if filter_joins
+            else query
+        )
+        # ensure that only the required columns are selected
+        facet_q = (
+            facet_q.with_only_columns(
                 *groupby_columns,
                 sa.func.count(sa.func.distinct(count_distinct_field)).label("count"),
             )
@@ -88,7 +100,8 @@ def _get_facets(
             .order_by(*orderby_keys)
         )
 
-        facets[facet_type] = [
+        # use only the inner name as the key, in case of nested filters
+        facets[facet_type.rsplit(".", maxsplit=1)[-1]] = [
             Facet.model_validate(row, from_attributes=True)
             for row in db.execute(facet_q).all()
             if row.id is not None  # exclude null rows if present
@@ -106,11 +119,20 @@ class WithFacets(BaseModel):
         query: sa.Select,
         name_to_facet_query_params: dict[str, FacetQueryParams],
         count_distinct_field: InstrumentedAttribute,
+        filter_model: CustomFilter,
+        filter_joins: dict[str, ApplyOperations] | None = None,
     ):
         if not self.with_facets:
             return None
 
-        return _get_facets(db, query, name_to_facet_query_params, count_distinct_field)
+        return _get_facets(
+            db,
+            query,
+            name_to_facet_query_params,
+            count_distinct_field,
+            filter_model=filter_model,
+            filter_joins=filter_joins,
+        )
 
 
 class Search[T: DeclarativeBase](BaseModel):
@@ -124,13 +146,13 @@ class Search[T: DeclarativeBase](BaseModel):
 
 
 class InBrainRegionQuery(BaseModel):
-    within_brain_region_hierachy_id: uuid.UUID | None = None
+    within_brain_region_hierarchy_id: uuid.UUID | None = None
     within_brain_region_brain_region_id: uuid.UUID | None = None
     within_brain_region_ascendants: bool = False
 
     def __call__(self, query: sa.Select, db_model_class):
         if (
-            self.within_brain_region_hierachy_id is None
+            self.within_brain_region_hierarchy_id is None
             or self.within_brain_region_brain_region_id is None
         ):
             return query
@@ -138,7 +160,7 @@ class InBrainRegionQuery(BaseModel):
         return filter_by_hierarchy_and_region(
             query=query,
             model=db_model_class,
-            hierarchy_id=self.within_brain_region_hierachy_id,
+            hierarchy_id=self.within_brain_region_hierarchy_id,
             brain_region_id=self.within_brain_region_brain_region_id,
             with_ascendants=self.within_brain_region_ascendants,
         )

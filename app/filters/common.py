@@ -108,12 +108,12 @@ NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", AgentFilter))
 
 
 class CreatorFilterMixin:
-    createdBy: Annotated[AgentFilter | None, NestedCreatedByFilterDep] = None
-    updatedBy: Annotated[AgentFilter | None, NestedUpdatedByFilterDep] = None
+    created_by: Annotated[AgentFilter | None, NestedCreatedByFilterDep] = None
+    updated_by: Annotated[AgentFilter | None, NestedUpdatedByFilterDep] = None
 
 
 class SpeciesFilterMixin:
-    species_id_in: list[int] | None = None
+    species_id__in: list[int] | None = None
     species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
     strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
 
@@ -140,10 +140,7 @@ class SubjectFilterMixin:
     subject: Annotated[SubjectFilter | None, NestedSubjectFilterDep] = None
 
 
-class BrainRegionFilter(NameFilterMixin, CustomFilter):
-    # TODO: Use IdFilterMixin when brain region keys migrate from int to uuid
-    id: int | None = None
-    id__in: list[int] | None = None
+class BrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     acronym: str | None = None
     acronym__in: list[str] | None = None
     order_by: list[str] = ["name"]  # noqa: RUF012
@@ -163,7 +160,6 @@ class BrainRegionFilterMixin:
 
 class EntityFilterMixin(
     IdFilterMixin,
-    NameFilterMixin,
     CreatorFilterMixin,
     CreationFilterMixin,
     ContributionFilterMixin,

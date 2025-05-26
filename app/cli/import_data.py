@@ -166,16 +166,16 @@ def create_annotation(annotation_, entity_id, db):
         row = MTypeClassification(
             entity_id=entity_id,
             mtype_class_id=annotation_body_id,
-            createdBy_id=agent_id,
-            updatedBy_id=agent_id,
+            created_by_id=agent_id,
+            updated_by_id=agent_id,
         )
 
     elif annotation_type is ETypeClass:
         row = ETypeClassification(
             entity_id=entity_id,
             etype_class_id=annotation_body_id,
-            createdBy_id=agent_id,
-            updatedBy_id=agent_id,
+            created_by_id=agent_id,
+            updated_by_id=agent_id,
         )
 
     else:
@@ -434,8 +434,8 @@ class ImportAnalysisSoftwareSourceCode(Import):
                 legacy_self=[legacy_self],
                 name=data.get("name", ""),
                 description=data.get("description", ""),
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 branch=data.get("branch", ""),
                 commit=data.get("commit", ""),
                 codeRepository=data.get("codeRepository", ""),
@@ -525,8 +525,8 @@ class ImportEModels(Import):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -838,8 +838,8 @@ class ImportMEModel(Import):
                 description=data.get("description", None),
                 validation_status=data.get("status", None),
                 brain_region_id=brain_region_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
                 species_id=morphology.species_id,
@@ -897,8 +897,8 @@ class ImportSingleNeuronSimulation(Import):
                 recording_location=data.get("recordingLocation") or data.get("recording_location"),
                 me_model_id=me_model.id,
                 brain_region_id=brain_region_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
             )
@@ -952,8 +952,8 @@ class ImportMETypeDensity(Import):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -1020,8 +1020,8 @@ class ImportCellComposition(Import):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -1071,8 +1071,8 @@ class ImportBrainAtlas(Import):
                 brain_region_id=brain_region_id,
                 species_id=species_id,
                 strain_id=strain_id,
-                createdBy_id=created_by_id,
-                updatedBy_id=updated_by_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
@@ -1223,7 +1223,7 @@ def _import_experimental_densities(
         subject_id = utils.get_or_create_subject(data, project_context, db)
 
         brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
-        createdBy_id, updatedBy_id = utils.get_agent_mixin(data, db)
+        created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
 
         createdAt, updatedAt = utils.get_created_and_updated(data)
 
@@ -1235,8 +1235,8 @@ def _import_experimental_densities(
             "subject_id": subject_id,
             "license_id": license_id,
             "brain_region_id": brain_region_id,
-            "createdBy_id": createdBy_id,
-            "updatedBy_id": updatedBy_id,
+            "created_by_id": created_by_id,
+            "updated_by_id": updated_by_id,
             "creation_date": createdAt,
             "update_date": updatedAt,
             "authorized_project_id": project_context.project_id,

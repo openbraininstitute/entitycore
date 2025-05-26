@@ -170,13 +170,14 @@ def test_family_queries(db, client, species_id, strain_id):
             brain_regions0[acronym].id if hier == "hier0" else brain_regions1[acronym].id
         )
 
-        url = (
-            "/reconstruction-morphology"
-            f"?within_brain_region_hierachy_id={hierarchy_id}"
-            f"&within_brain_region_brain_region_id={brain_region_id}"
-            f"&within_brain_region_ascendants={ascendents}"
+        return client.get(
+            "/reconstruction-morphology",
+            params={
+                "within_brain_region_hierarchy_id": hierarchy_id,
+                "within_brain_region_brain_region_id": brain_region_id,
+                "within_brain_region_ascendants": ascendents,
+            },
         )
-        return client.get(url)
 
     for hier in ("hier0", "hier1"):
         # descendents

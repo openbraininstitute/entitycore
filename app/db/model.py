@@ -95,6 +95,25 @@ class Identifiable(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
 
+class NameDescriptionVectorMixin(Base):
+    __abstract__ = True
+    name: Mapped[str] = mapped_column(index=True)
+    description: Mapped[str] = mapped_column(default="")
+    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        return (
+            Index(
+                f"ix_{cls.__tablename__}_description_vector",
+                cls.description_vector,
+                postgresql_using="gin",
+            ),
+            *getattr(super(), "__table_args__", ()),
+        )
+
+
 class BrainRegionHierarchy(Identifiable):
     __tablename__ = "brain_region_hierarchy"
 
@@ -136,7 +155,7 @@ class Strain(Identifiable):
     )
 
 
-class License(LegacyMixin, Identifiable):
+class License(LegacyMixin, Identifiable, NameDescriptionVectorMixin):
     __tablename__ = "license"
     name: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str]
@@ -247,8 +266,8 @@ class AnnotationMixin:
 
 
 class ClassificationMixin:
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
@@ -326,25 +345,6 @@ class Annotation(LegacyMixin, Identifiable):
     annotation_body = relationship("AnnotationBody", uselist=False)
 
 
-class NameDescriptionVectorMixin(Base):
-    __abstract__ = True
-    name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str] = mapped_column(default="")
-    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
-
-    @declared_attr.directive
-    @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
-        return (
-            Index(
-                f"ix_{cls.__tablename__}_description_vector",
-                cls.description_vector,
-                postgresql_using="gin",
-            ),
-            *getattr(super(), "__table_args__", ()),
-        )
-
-
 class Entity(LegacyMixin, Identifiable):
     __tablename__ = "entity"
 
@@ -352,12 +352,12 @@ class Entity(LegacyMixin, Identifiable):
     annotations = relationship("Annotation", back_populates="entity")
 
     # TODO: keep the _ ? put on agent ?
-    createdBy = relationship("Agent", uselist=False, foreign_keys="Entity.createdBy_id")
+    created_by = relationship("Agent", uselist=False, foreign_keys="Entity.created_by_id")
     # TODO: move to mandatory
-    createdBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updatedBy = relationship("Agent", uselist=False, foreign_keys="Entity.updatedBy_id")
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by = relationship("Agent", uselist=False, foreign_keys="Entity.updated_by_id")
     # TODO: move to mandatory
-    updatedBy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -601,7 +601,7 @@ class MeasurementItem(Base):
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[MeasurementStatistic]
     unit: Mapped[MeasurementUnit]
-    value: Mapped[float]
+    value: Mapped[float] = mapped_column(index=True)
     measurement_kind_id: Mapped[int] = mapped_column(
         ForeignKey("measurement_kind.id", ondelete="CASCADE"), index=True
     )
@@ -624,12 +624,9 @@ class Role(LegacyMixin, Identifiable):
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class ElectricalRecordingStimulus(Entity):
+class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.electrical_recording_stimulus.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    name: Mapped[str]
-    description: Mapped[str] = mapped_column(default="")
 
     dt: Mapped[float | None]
     injection_type: Mapped[ElectricalRecordingStimulusType]
@@ -822,6 +819,26 @@ class IonChannelModelToEModel(Base):
     emodel_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.emodel}.id", ondelete="CASCADE"), primary_key=True
     )
+
+
+class ValidationResult(Entity):
+    __tablename__ = EntityType.validation_result.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    passed: Mapped[bool] = mapped_column(default=False)
+
+    name: Mapped[str] = mapped_column(index=True)
+
+    validated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    validated_entity: Mapped[Entity] = relationship(
+        "Entity",
+        uselist=False,
+        foreign_keys=[validated_entity_id],
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
 
 
 class Asset(Identifiable):

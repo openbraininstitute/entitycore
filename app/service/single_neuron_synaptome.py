@@ -3,10 +3,9 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, BrainRegion, Contribution, MEModel, SingleNeuronSynaptome
+from app.db.model import Agent, Contribution, MEModel, SingleNeuronSynaptome
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
-    FacetQueryParams,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -14,8 +13,8 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeFilterDep
-from app.queries import facets as fc
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.synaptome import SingleNeuronSynaptomeCreate, SingleNeuronSynaptomeRead
 from app.schemas.types import ListResponse
 
@@ -24,11 +23,11 @@ def _load(query: sa.Select):
     return query.options(
         joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.mtypes),
         joinedload(SingleNeuronSynaptome.me_model).joinedload(MEModel.etypes),
-        joinedload(SingleNeuronSynaptome.createdBy),
-        joinedload(SingleNeuronSynaptome.updatedBy),
+        joinedload(SingleNeuronSynaptome.created_by),
+        joinedload(SingleNeuronSynaptome.updated_by),
         joinedload(SingleNeuronSynaptome.brain_region),
-        joinedload(SingleNeuronSynaptome.createdBy),
-        joinedload(SingleNeuronSynaptome.updatedBy),
+        joinedload(SingleNeuronSynaptome.created_by),
+        joinedload(SingleNeuronSynaptome.updated_by),
         selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent),
         selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role),
         selectinload(SingleNeuronSynaptome.assets),
@@ -81,38 +80,23 @@ def read_many(
     aliases = {
         Agent: {
             "contribution": agent_alias,
-            "createdBy": created_by_alias,
-            "updatedBy": updated_by_alias,
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
         },
         MEModel: me_model_alias,
     }
-    aliased_facets: dict[str, FacetQueryParams] = {
-        "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
-        },
-        "createdBy": {
-            "id": created_by_alias.id,
-            "label": created_by_alias.pref_label,
-            "type": created_by_alias.type,
-        },
-        "updatedBy": {
-            "id": updated_by_alias.id,
-            "label": updated_by_alias.pref_label,
-            "type": updated_by_alias.type,
-        },
-        "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
-    }
-    name_to_facet_query_params: dict[str, FacetQueryParams] = fc.brain_region | aliased_facets
-    apply_filter_query = lambda query: (
-        query.join(BrainRegion, SingleNeuronSynaptome.brain_region_id == BrainRegion.id)
-        .outerjoin(Contribution, SingleNeuronSynaptome.id == Contribution.entity_id)
-        .outerjoin(Agent, Contribution.agent_id == Agent.id)
-        .outerjoin(agent_alias, Contribution.agent_id == agent_alias.id)
-        .outerjoin(created_by_alias, SingleNeuronSynaptome.createdBy_id == created_by_alias.id)
-        .outerjoin(updated_by_alias, SingleNeuronSynaptome.updatedBy_id == updated_by_alias.id)
-        .outerjoin(me_model_alias, SingleNeuronSynaptome.me_model_id == me_model_alias.id)
+    facet_keys = filter_keys = [
+        "brain_region",
+        "me_model",
+        "created_by",
+        "updated_by",
+        "contribution",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=SingleNeuronSynaptome,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -122,10 +106,11 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
-        apply_filter_query_operations=apply_filter_query,
+        apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSynaptomeRead,
         authorized_project_id=user_context.project_id,
+        filter_joins=filter_joins,
     )

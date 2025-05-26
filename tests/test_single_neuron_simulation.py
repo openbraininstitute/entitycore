@@ -62,7 +62,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["status"] == "success"
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
     response = assert_request(client.get, url=f"{ROUTE}/{data['id']}")
     data = response.json()
@@ -79,7 +79,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["type"] == EntityType.single_neuron_simulation
     assert "assets" in data
     assert data["assets"][0]["label"] == AssetLabel.single_cell_simulation_data
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 @pytest.mark.parametrize(

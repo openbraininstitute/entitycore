@@ -5,9 +5,11 @@ from fastapi_filter import FilterDepends, with_prefix
 from app.db.model import MEModel, ValidationStatus
 from app.filters.base import CustomFilter
 from app.filters.common import (
+    BrainRegionFilterMixin,
     EntityFilterMixin,
     ETypeClassFilterMixin,
     MTypeClassFilterMixin,
+    NameFilterMixin,
     SpeciesFilterMixin,
 )
 from app.filters.emodel import EModelFilter, NestedEModelFilterDep
@@ -20,6 +22,8 @@ class MEModelFilter(
     EntityFilterMixin,
     MTypeClassFilterMixin,
     ETypeClassFilterMixin,
+    BrainRegionFilterMixin,
+    NameFilterMixin,
 ):
     validation_status: ValidationStatus | None = None
 

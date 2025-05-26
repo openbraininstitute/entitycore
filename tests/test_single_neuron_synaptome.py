@@ -44,7 +44,7 @@ def _assert_read_response(data, json_data):
     assert len(data["contributions"]) == 2
     assert len(data["me_model"]["mtypes"]) == 1
     assert len(data["me_model"]["etypes"]) == 1
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["type"] == EntityType.single_neuron_synaptome
     assert "assets" in data
 
@@ -55,7 +55,7 @@ def _assert_create_response(data, json_data):
     assert data["name"] == "my-synaptome"
     assert data["me_model"]["id"] == json_data["me_model_id"]
     assert data["authorized_project_id"] == PROJECT_ID
-    assert data["createdBy"]["id"] == data["updatedBy"]["id"]
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
 @pytest.fixture
@@ -268,7 +268,7 @@ def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, cr
 def test_facets(db, client, faceted_ids):
     brain_region_ids, memodel_ids, syn_ids = faceted_ids
 
-    agent = db.get(MODEL, syn_ids[0]).createdBy
+    agent = db.get(MODEL, syn_ids[0]).created_by
 
     data = assert_request(
         client.get,
@@ -308,10 +308,10 @@ def test_facets(db, client, faceted_ids):
                 "type": "me_model",
             },
         ],
-        "createdBy": [
+        "created_by": [
             {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
         ],
-        "updatedBy": [
+        "updated_by": [
             {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
         ],
     }

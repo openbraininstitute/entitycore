@@ -91,6 +91,26 @@ class Identifiable(TimestampMixin, Base):
     __abstract__ = True  # This class is abstract and not directly mapped to a table
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
+    @declared_attr
+    @classmethod
+    def created_by_id(cls) -> Mapped[uuid.UUID]:
+        return mapped_column(ForeignKey("agent.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def created_by(cls) -> Mapped["Agent"]:
+        return relationship("Agent", uselist=False, foreign_keys=cls.created_by_id)
+
+    @declared_attr
+    @classmethod
+    def updated_by_id(cls) -> Mapped[uuid.UUID]:
+        return mapped_column(ForeignKey("agent.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def updated_by(cls) -> Mapped["Agent"]:
+        return relationship("Agent", uselist=False, foreign_keys=cls.updated_by_id)
+
 
 class NameDescriptionVectorMixin(Base):
     __abstract__ = True
@@ -209,8 +229,9 @@ class SpeciesMixin(Base):
         )
 
 
-class Agent(LegacyMixin, Identifiable):
+class Agent(LegacyMixin, TimestampMixin, Base):
     __tablename__ = "agent"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     type: Mapped[AgentType]
     pref_label: Mapped[str] = mapped_column(index=True)
     __mapper_args__ = {  # noqa: RUF012
@@ -261,12 +282,6 @@ class AnnotationMixin:
     alt_label: Mapped[str | None]
 
 
-class ClassificationMixin:
-    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-
-
 class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
     __tablename__ = "mtype_class"
 
@@ -275,16 +290,18 @@ class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
     __tablename__ = "etype_class"
 
 
-class MTypeClassification(ClassificationMixin, Identifiable):
+class MTypeClassification(Identifiable):
     __tablename__ = "mtype_classification"
 
     mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
-class ETypeClassification(ClassificationMixin, Identifiable):
+class ETypeClassification(Identifiable):
     __tablename__ = "etype_classification"
 
     etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
 class MTypesMixin:
@@ -346,14 +363,6 @@ class Entity(LegacyMixin, Identifiable):
 
     type: Mapped[EntityType]
     annotations = relationship("Annotation", back_populates="entity")
-
-    # TODO: keep the _ ? put on agent ?
-    created_by = relationship("Agent", uselist=False, foreign_keys="Entity.created_by_id")
-    # TODO: move to mandatory
-    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updated_by = relationship("Agent", uselist=False, foreign_keys="Entity.updated_by_id")
-    # TODO: move to mandatory
-    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -419,7 +428,7 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
 class Contribution(Identifiable):
     __tablename__ = "contribution"
     agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
-    agent = relationship("Agent", uselist=False)
+    agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
     role = relationship("Role", uselist=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)

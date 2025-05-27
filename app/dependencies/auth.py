@@ -243,4 +243,5 @@ def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
 
 
 UserContextDep = Annotated[UserContext, Depends(user_verified)]
+AdminContextDep = Annotated[UserContext, Depends(user_with_service_admin_role)]
 UserContextWithProjectIdDep = Annotated[UserContextWithProjectId, Depends(user_with_project_id)]

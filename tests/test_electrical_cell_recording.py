@@ -64,6 +64,7 @@ def _create_electrical_recording_id(
     db,
     recording_id,
 ):
+    db_recording = db.get(ElectricalCellRecording, recording_id)
     return add_db(
         db,
         ElectricalRecordingStimulus(
@@ -77,6 +78,8 @@ def _create_electrical_recording_id(
             recording_id=recording_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
+            created_by_id=db_recording.created_by_id,
+            updated_by_id=db_recording.updated_by_id,
         ),
     ).id
 
@@ -163,10 +166,14 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def faceted_ids(db, brain_region_hierarchy_id, create_id):
+def faceted_ids(db, brain_region_hierarchy_id, create_id, person_id):
     brain_region_ids = [
         create_brain_region(
-            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+            db,
+            brain_region_hierarchy_id,
+            annotation_value=i,
+            name=f"region-{i}",
+            created_by_id=person_id,
         ).id
         for i in range(2)
     ]

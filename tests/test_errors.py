@@ -40,9 +40,14 @@ def test_ensure_result(db):
     assert exc_info.value.message == "Custom error"
 
 
-def test_ensure_uniqueness(db):
+def test_ensure_uniqueness(db, person_id):
     query = sa.insert(License).values(
-        id=MISSING_ID, name="Test License", description="a license description", label="test label"
+        id=MISSING_ID,
+        name="Test License",
+        description="a license description",
+        label="test label",
+        created_by_id=person_id,
+        updated_by_id=person_id,
     )
     db.execute(query)
     with (

@@ -68,6 +68,7 @@ class EntityType(StrEnum):
     ion_channel_model = auto()
     subject = auto()
     validation_result = auto()
+    calibration_result = auto()
 
 
 class AgentType(StrEnum):

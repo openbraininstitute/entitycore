@@ -236,7 +236,7 @@ Returns metadata about the atlas:
 {
         "creation_date": ...,
         "hierarchy_id": $UUID,
-        "id": str(brain_atlas.id),
+        "id": brain_atlas.id,
         "name": "test brain atlas",
         "species": {
             "creation_date": ...,
@@ -245,7 +245,7 @@ Returns metadata about the atlas:
             "taxonomy_id": "12345",
             "update_date": ...,
         },
-        "update_date": ANY,
+        "update_date": ...,
     }
 ```
 
@@ -259,7 +259,7 @@ Returns metadata about the atlas:
             "id": $UUID,
             "leaf_region": False,
             "update_date": ...,
-            "volume": -1_000_000.0, # this is negative, since it's a leaf region;
+            "volume": null, # this is null, since it's a leaf region;
         },
         {
             "brain_atlas_id": $UUID,

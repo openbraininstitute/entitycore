@@ -15,6 +15,7 @@ class MEModelCalibrationResultBase(BaseModel):
     holding_current: float
     threshold_current: float
     rin: float | None = None
+    calibrated_entity_id: uuid.UUID
 
 
 class MEModelCalibrationResultRead(
@@ -22,10 +23,6 @@ class MEModelCalibrationResultRead(
 ):
     """Read model for MEModel calibration results, including entity metadata."""
 
-    calibrated_entity_id: uuid.UUID
-
 
 class MEModelCalibrationResultCreate(MEModelCalibrationResultBase):
     """Create model for MEModel calibration results."""
-
-    calibrated_entity_id: uuid.UUID

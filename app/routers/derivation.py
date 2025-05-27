@@ -9,4 +9,4 @@ router = APIRouter(
     tags=["derivation"],
 )
 
-router.get("/{entity_route}/{entity_id}/generated-by")(app.service.derivation.read_many)
+router.get("/{entity_route}/{entity_id}/derived-from")(app.service.derivation.read_many)

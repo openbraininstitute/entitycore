@@ -19,7 +19,7 @@ def test_get_electrical_cell_recording(
     ]
     add_all_db(db, derivations)
 
-    response = client.get(url=f"/emodel/{generated_emodel_id}/generated-by")
+    response = client.get(url=f"/emodel/{generated_emodel_id}/derived-from")
 
     assert_response(response, 200)
     data = response.json()["data"]
@@ -27,7 +27,7 @@ def test_get_electrical_cell_recording(
     assert {data[0]["id"], data[1]["id"]} == {str(id_) for id_ in trace_ids}
     assert all(d["type"] == "electrical_cell_recording" for d in data)
 
-    response = client.get(url=f"/emodel/{other_emodel_id}/generated-by")
+    response = client.get(url=f"/emodel/{other_emodel_id}/derived-from")
 
     assert_response(response, 200)
     data = response.json()["data"]

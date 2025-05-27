@@ -5,7 +5,7 @@ from fastapi import APIRouter
 import app.service.electrical_cell_recording
 import app.service.emodel
 from app.dependencies.auth import UserContextDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import InBrainRegionQuery, PaginationQuery, Search, WithFacets
 from app.dependencies.db import SessionDep
 from app.filters.electrical_cell_recording import ElectricalCellRecordingFilter
 from app.schemas.electrical_cell_recording import ElectricalCellRecordingRead
@@ -36,7 +36,7 @@ def get_electrical_cell_recording(
         db=db,
         pagination_request=pagination_request,
         filter_model=filter_model,
-        with_search=None,
-        facets=None,
-        in_brain_region=None,
+        with_search=Search(),
+        facets=WithFacets(),
+        in_brain_region=InBrainRegionQuery(),
     )

@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 653df0eee898
-Revises: 698536102bc8
-Create Date: 2025-05-26 14:25:04.120757
+Revision ID: d20b8917d3ab
+Revises: 8d1610d7c882
+Create Date: 2025-05-27 11:45:36.409166
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "653df0eee898"
-down_revision: Union[str, None] = "698536102bc8"
+revision: str = "d20b8917d3ab"
+down_revision: Union[str, None] = "8d1610d7c882"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

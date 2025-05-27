@@ -21,6 +21,50 @@ ROUTE = "electrical-cell-recording"
 def test_create_one(
     client, subject_id, license_id, brain_region_id, electrical_cell_recording_json_data
 ):
+    db_recording = db.get(ElectricalCellRecording, recording_id)
+    return add_db(
+        db,
+        ElectricalRecordingStimulus(
+            name="protocol",
+            description="protocol-description",
+            dt=0.1,
+            injection_type="current_clamp",
+            shape="sinusoidal",
+            start_time=0.0,
+            end_time=1.0,
+            recording_id=recording_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
+            created_by_id=db_recording.created_by_id,
+            updated_by_id=db_recording.updated_by_id,
+        ),
+    ).id
+
+
+@pytest.fixture
+def trace_id(tmp_path, client, db, create_id):
+    trace_id = create_id()
+
+    # add two protocols that refer to it
+    _create_electrical_recording_id(db, trace_id)
+    _create_electrical_recording_id(db, trace_id)
+
+    filepath = tmp_path / "trace.nwb"
+    filepath.write_bytes(b"trace")
+
+    # add an asset too
+    create_asset_file(
+        client=client,
+        entity_type="electrical_cell_recording",
+        entity_id=trace_id,
+        file_name="my-trace.nwb",
+        file_obj=filepath.read_bytes(),
+    )
+
+    return trace_id
+
+
+def test_create_one(client, subject_id, license_id, brain_region_id, json_data):
     data = assert_request(
         client.post,
         url=ROUTE,
@@ -88,10 +132,14 @@ def test_pagination(client, electrical_cell_recording_json_data):
 
 
 @pytest.fixture
-def faceted_ids(db, client, brain_region_hierarchy_id, electrical_cell_recording_json_data):
+def faceted_ids(db, client, brain_region_hierarchy_id, electrical_cell_recording_json_data, person_id):
     brain_region_ids = [
         create_brain_region(
-            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+            db,
+            brain_region_hierarchy_id,
+            annotation_value=i,
+            name=f"region-{i}",
+            created_by_id=person_id,
         ).id
         for i in range(2)
     ]

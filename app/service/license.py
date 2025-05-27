@@ -3,6 +3,7 @@ import uuid
 import sqlalchemy as sa
 
 from app.db.model import License
+from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -43,11 +44,13 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> LicenseRead:
     return LicenseRead.model_validate(row)
 
 
-def create_one(license: LicenseCreate, db: SessionDep) -> LicenseRead:
+def create_one(
+    license: LicenseCreate, db: SessionDep, user_context: AdminContextDep
+) -> LicenseRead:
     return router_create_one(
         db=db,
         db_model_class=License,
         json_model=license,
         response_schema_class=LicenseRead,
-        user_context=None,
+        user_context=user_context,
     )

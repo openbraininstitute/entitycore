@@ -1,4 +1,5 @@
 import itertools as it
+import uuid
 
 import pytest
 
@@ -29,6 +30,8 @@ def _create_synaptome_id(
     seed=1,
     authorized_public=False,
     authorized_project_id=PROJECT_ID,
+    created_by_id: uuid.UUID,
+    updated_by_id: uuid.UUID | None = None,
 ):
     return add_db(
         db,
@@ -40,16 +43,19 @@ def _create_synaptome_id(
             seed=seed,
             authorized_public=authorized_public,
             authorized_project_id=authorized_project_id,
+            created_by_id=created_by_id,
+            updated_by_id=updated_by_id or created_by_id,
         ),
     ).id
 
 
 @pytest.fixture
-def synaptome_id(db, memodel_id, brain_region_id):
+def synaptome_id(db, memodel_id, brain_region_id, person_id):
     return _create_synaptome_id(
         db,
         memodel_id=memodel_id,
         brain_region_id=brain_region_id,
+        created_by_id=person_id,
     )
 
 
@@ -227,15 +233,20 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
     assert data[0]["id"] == public_morph["id"]
 
 
-def test_pagination(db, client, brain_region_id, memodel_id):
+def test_pagination(db, client, brain_region_id, memodel_id, person_id):
     synaptome_1_id = _create_synaptome_id(
-        db, name="syn-1", memodel_id=memodel_id, brain_region_id=brain_region_id
+        db,
+        name="syn-1",
+        memodel_id=memodel_id,
+        brain_region_id=brain_region_id,
+        created_by_id=person_id,
     )
     synaptome_2_id = _create_synaptome_id(
         db,
         name="syn-2",
         memodel_id=memodel_id,
         brain_region_id=brain_region_id,
+        created_by_id=person_id,
     )
 
     def create(count):
@@ -265,10 +276,14 @@ def test_pagination(db, client, brain_region_id, memodel_id):
 
 
 @pytest.fixture
-def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id):
+def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id, person_id):
     brain_region_ids = [
         create_brain_region(
-            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+            db,
+            brain_region_hierarchy_id,
+            annotation_value=i,
+            name=f"region-{i}",
+            created_by_id=person_id,
         ).id
         for i in range(2)
     ]
@@ -279,6 +294,7 @@ def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id):
             description=f"description-{i}",
             brain_region_id=brain_region_ids[i],
             memodel_id=memodel_id,
+            created_by_id=person_id,
         )
         for i in range(2)
     ]
@@ -369,7 +385,7 @@ def test_facets(db, client, faceted_ids):
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id
+    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id, person_id
 ):
     def create_model_function(db, name, brain_region_id):
         me_model_id = str(
@@ -383,6 +399,8 @@ def test_brain_region_filter(
                     emodel_id=emodel_id,
                     morphology_id=morphology_id,
                     species_id=species_id,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
                 ),
             ).id
         )
@@ -396,6 +414,8 @@ def test_brain_region_filter(
                     brain_region_id=brain_region_id,
                     seed=1,
                     authorized_project_id=PROJECT_ID,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
                 ),
             ).id
         )
@@ -410,6 +430,8 @@ def test_brain_region_filter(
             synaptome_id=synaptome_id,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

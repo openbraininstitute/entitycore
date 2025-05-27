@@ -46,8 +46,8 @@ HIERARCHY = {
 }
 
 
-def test_brain_atlas(db, client, species_id):
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy")
+def test_brain_atlas(db, client, species_id, person_id):
+    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy", created_by_id=person_id)
     regions = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
     brain_atlas0 = utils.add_db(
@@ -59,6 +59,8 @@ def test_brain_atlas(db, client, species_id):
             hierarchy_id=hierarchy_name.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         ),
     )
     with FILE_EXAMPLE_PATH.open("rb") as f:
@@ -77,6 +79,8 @@ def test_brain_atlas(db, client, species_id):
             hierarchy_id=hierarchy_name.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         ),
     )
     expected = {
@@ -132,6 +136,8 @@ def test_brain_atlas(db, client, species_id):
             brain_atlas_id=brain_atlas.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         )
         ids[brain_atlas.name, name] = utils.add_db(db, row)
 

@@ -232,7 +232,7 @@ def test_paginate(client: TestClient, species_id: str, strain_id: str, brain_reg
     assert list(reversed(data_ids)) == list(range(total_items))
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id):
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id, person_id):
     def create_model_function(_db, name, brain_region_id):
         return IonChannelModel(
             name=name,
@@ -244,6 +244,8 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id):
             species_id=species_id,
             strain_id=None,
             authorized_project_id=PROJECT_ID,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

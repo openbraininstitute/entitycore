@@ -71,7 +71,7 @@ def asset(client, entity) -> AssetRead:
 
 
 @pytest.fixture
-def asset_directory(db, entity) -> AssetRead:
+def asset_directory(db, entity, person_id) -> AssetRead:
     s3_path = _get_expected_full_path(entity=entity, path="my-directory")
     asset = Asset(
         path="my-directory",
@@ -83,6 +83,8 @@ def asset_directory(db, entity) -> AssetRead:
         sha256_digest=None,
         meta={},
         entity_id=entity.id,
+        created_by_id=person_id,
+        updated_by_id=person_id,
     )
     add_db(db, asset)
     return asset

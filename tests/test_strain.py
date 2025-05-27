@@ -3,7 +3,7 @@ from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 ROUTE = "/strain"
 
 
-def test_create_strain(client, client_admin, species_id):
+def test_create_strain(client, client_admin, species_id, person_id):
     count = 3
     items = []
     for i in range(count):
@@ -15,6 +15,8 @@ def test_create_strain(client, client_admin, species_id):
                 "name": name,
                 "taxonomy_id": taxonomy_id,
                 "species_id": species_id,
+                "created_by_id": str(person_id),
+                "updated_by_id": str(person_id),
             },
         )
         assert response.status_code == 200

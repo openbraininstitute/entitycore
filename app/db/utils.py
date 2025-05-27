@@ -51,11 +51,10 @@ def load_db_model_from_pydantic[I: Identifiable](
     created_by_id: uuid.UUID | None = None,
     updated_by_id: uuid.UUID | None = None,
 ) -> I:
-    data = json_model.model_dump(by_alias=True)
+    data = json_model.model_dump(by_alias=True) | {
+        "created_by_id": created_by_id,
+        "updated_by_id": updated_by_id,
+    }
     if issubclass(db_model_class, Entity):
-        data |= {
-            "authorized_project_id": authorized_project_id,
-            "created_by_id": created_by_id,
-            "updated_by_id": updated_by_id,
-        }
+        data["authorized_project_id"] = authorized_project_id
     return construct_model(db_model_class, data)

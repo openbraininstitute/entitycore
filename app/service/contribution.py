@@ -4,6 +4,7 @@ import sqlalchemy as sa
 from fastapi import HTTPException
 from sqlalchemy.orm import contains_eager
 
+import app.queries.common
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Contribution, Entity
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -78,13 +79,10 @@ def create_one(
             status_code=404, detail=f"Cannot access entity {contribution.entity_id}"
         )
 
-    row = Contribution(
-        agent_id=contribution.agent_id,
-        role_id=contribution.role_id,
-        entity_id=contribution.entity_id,
+    return app.queries.common.router_create_one(
+        db=db,
+        db_model_class=Contribution,
+        json_model=contribution,
+        response_schema_class=ContributionRead,
+        user_context=user_context,
     )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-
-    return ContributionRead.model_validate(row)

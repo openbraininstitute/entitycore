@@ -2,6 +2,7 @@ import uuid
 
 import app.queries.common
 from app.db.model import Species
+from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.common import SpeciesFilterDep
@@ -28,11 +29,12 @@ def create_one(
     *,
     db: SessionDep,
     species: SpeciesCreate,
+    user_context: AdminContextDep,
 ) -> SpeciesRead:
     return app.queries.common.router_create_one(
         db=db,
         db_model_class=Species,
-        user_context=None,
+        user_context=user_context,
         json_model=species,
         response_schema_class=SpeciesRead,
     )

@@ -213,14 +213,31 @@ def test_contribution_facets(
     species_id,
     strain_id,
     brain_region_id,
+    person_id,
 ):
     person = add_db(
         db, Person(given_name="GivenName", family_name="FamilyName", pref_label="person_pref_label")
     )
-    person_role = add_db(db, Role(name="PersonRoleName", role_id="role_id"))
+    person_role = add_db(
+        db,
+        Role(
+            name="PersonRoleName",
+            role_id="role_id",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     org = add_db(db, Organization(pref_label="org_pref_label", alternative_name="org_alt_name"))
-    org_role = add_db(db, Role(name="OrgRoleName", role_id="role_id_org"))
+    org_role = add_db(
+        db,
+        Role(
+            name="OrgRoleName",
+            role_id="role_id_org",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     morphology_ids = []
     contribution_sizes = []  # len of contributions for each morphology
@@ -254,7 +271,11 @@ def test_contribution_facets(
             add_db(
                 db,
                 Contribution(
-                    agent_id=agent.id, role_id=agent_role.id, entity_id=reconstruction_morphology_id
+                    agent_id=agent.id,
+                    role_id=agent_role.id,
+                    entity_id=reconstruction_morphology_id,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
                 ),
             )
 

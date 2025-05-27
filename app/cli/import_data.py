@@ -49,6 +49,7 @@ from app.db.model import (
     Measurement,
     MeasurementAnnotation,
     MEModel,
+    MEModelCalibrationResult,
     METypeDensity,
     MTypeClass,
     MTypeClassification,
@@ -901,13 +902,23 @@ class ImportMEModel(Import):
                 strain_id=morphology.strain_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                holding_current=data.get("holding_current"),
-                threshold_current=data.get("threshold_current"),
             )
 
             db.add(db_item)
             db.flush()
-
+            db_calibration = MEModelCalibrationResult(
+                calibrated_entity_id=db_item.id,
+                holding_current=data.get("holding_current", 0),
+                threshold_current=data.get("threshold_current", 0),
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
+            )
+            db.add(db_calibration)
+            db.flush()
             utils.import_contribution(data, db_item.id, db)
 
             for annotation in ensurelist(data.get("annotation", [])):

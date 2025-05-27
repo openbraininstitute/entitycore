@@ -315,8 +315,8 @@ class ValidationResultsMixin:
             "ValidationResult",
             primaryjoin=f"foreign(ValidationResult.validated_entity_id) == {cls.__name__}.id",
             foreign_keys="[ValidationResult.validated_entity_id]",
-            cascade="all, delete-orphan",
-            lazy="dynamic",  # or "select", as needed
+            cascade="all, delete",
+            uselist=True,
         )
 
 

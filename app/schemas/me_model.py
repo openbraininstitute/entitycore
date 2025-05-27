@@ -60,4 +60,4 @@ class MEModelRead(
     etypes: list[ETypeClassRead] | None
     morphology: ReconstructionMorphologyRead
     emodel: EModelRead
-    validation_results: list[ValidationResultRead] | None = None
+    validation_results: list[ValidationResultRead] = []

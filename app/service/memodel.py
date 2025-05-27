@@ -70,6 +70,7 @@ def _load(select: Select):
         joinedload(MEModel.etypes),
         joinedload(MEModel.created_by),
         joinedload(MEModel.updated_by),
+        selectinload(MEModel.validation_results),
         raiseload("*"),
     )
 

@@ -107,7 +107,20 @@ Can be controlled by an agent or occur automatically.
   We may need to know who did what modification on entities. However, we don't have to store that information the same way as the latest version of the entities as we won't perform queries on previous state of the entity.
   We may store for instance, in some system/table, an entry with: entity_id, date, who, entity_serialized_as_json.
   We can initially start w/o auditing
-  
+
+- **Immutability**:
+
+  Entities expose a set of properties which may evolve over time. These property changes are considered non-structural; that is, they do not alter the fundamental identity or semantic role of the entity.
+  Properties changing the fundamental identity of the entity should be marked as immutable (TBD: how technically) and cannot be assigned outside of the creation of the entity.
+
+  For instance:
+  - memodel and calibration values. As different calibration values mean a different behaviour of the memodel, we store the memodel in one entity and the calibration values in another entity. The combination of the 2 entities defines the behaviour of the memodel.
+  - description, name are not changing the fundamental identity of an entity. Usually, the (TBD: main) asset is the one defining the entity.
+  - derived properties (e.g. metrics) are not changing the fundamental identity of an entity.
+
+- **Deletion**:
+  - Entities can be deleted except if they are referenced by other entities. In that case, the entity is marked as deprecated.
+
   
   
   

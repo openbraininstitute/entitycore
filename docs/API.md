@@ -257,7 +257,7 @@ Returns metadata about the atlas:
             "brain_region_id": $UUID,
             "creation_date": ...,
             "id": $UUID,
-            "leaf_region": False,
+            "is_leaf_region": False,
             "update_date": ...,
             "volume": null, # this is null, since it's a leaf region;
         },
@@ -266,7 +266,7 @@ Returns metadata about the atlas:
             "brain_region_id": $UUID,
             "creation_date": ...,
             "id": $UUID,
-            "leaf_region": False,
+            "is_leaf_region": False,
             "update_date": ...,
             "volume": 123456789.0,
         },

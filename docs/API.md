@@ -215,7 +215,7 @@ This can happen in either by the `descendants` (the default) or by `ascendants`.
 # Brain Atlas:
 
 A BrainAtlas is an volumetric concept describing the locatations of brain regions in space.
-It is composed of an `annotation` (also known as `parecellation`) of voxels, storred in an NRRD file.
+It is composed of an `annotation` (also known as `parcellation`) of voxels, storred in an NRRD file.
 Each of the voxels is assigned an ID, which corresponds to `annotation_value` in the hierarchy.
 In addition, there is metadata assocated with an atlas:
 
@@ -274,7 +274,7 @@ Returns metadata about the atlas:
     ]
 
 The volume is in um^3.
-By only storing the volume for leaf nodes, it composes with the different views by clibing the tree, and summing all the children along the way.
+By only storing the volume for leaf nodes, it composes with the different views by climbing the tree, and summing all the children along the way.
 
 # Authorization:
 Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.

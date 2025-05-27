@@ -119,7 +119,10 @@ Can be controlled by an agent or occur automatically.
   - derived properties (e.g. metrics) are not changing the fundamental identity of an entity.
 
 - **Deletion**:
-  - Entities can be deleted except if they are referenced by other entities. In that case, the entity is marked as deprecated.
+  - Entities can be deleted except if they are referenced by other entities.
+  
+- **Deprecation**:
+  - Entity can marked as deprecated.
   - Deprecated entities would be ignored from queries except if explicitly asked for.
 
   

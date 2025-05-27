@@ -71,7 +71,7 @@ def read_hierarchy(
         parent_map[region.parent_structure_id].append(region)
 
     def build_tree(parent_id):
-        children = parent_map.get(parent_id, [])
+        children = sorted(parent_map.get(parent_id, []), key=lambda n: n.name)
         return [
             {
                 "id": node.id,

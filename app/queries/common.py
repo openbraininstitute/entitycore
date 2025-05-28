@@ -130,6 +130,11 @@ def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
     )
 
     db.add(db_agent)
+    db.flush()  # assing uuid
+
+    # use uuid to update the self references
+    db_agent.created_by_id = db_agent.id
+    db_agent.updated_by_id = db_agent.id
     db.flush()
 
     return db_agent

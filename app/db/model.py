@@ -93,7 +93,7 @@ class Identifiable(TimestampMixin, Base):
 
     @declared_attr
     @classmethod
-    def created_by_id(cls) -> Mapped[uuid.UUID]:
+    def created_by_id(cls) -> Mapped[uuid.UUID | None]:
         return mapped_column(ForeignKey("agent.id"), index=True)
 
     @declared_attr
@@ -103,7 +103,7 @@ class Identifiable(TimestampMixin, Base):
 
     @declared_attr
     @classmethod
-    def updated_by_id(cls) -> Mapped[uuid.UUID]:
+    def updated_by_id(cls) -> Mapped[uuid.UUID | None]:
         return mapped_column(ForeignKey("agent.id"), index=True)
 
     @declared_attr
@@ -229,9 +229,8 @@ class SpeciesMixin(Base):
         )
 
 
-class Agent(LegacyMixin, TimestampMixin, Base):
+class Agent(LegacyMixin, Identifiable):
     __tablename__ = "agent"
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     type: Mapped[AgentType]
     pref_label: Mapped[str] = mapped_column(index=True)
     __mapper_args__ = {  # noqa: RUF012

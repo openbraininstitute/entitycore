@@ -12,6 +12,7 @@ from app.db.model import (
     BrainRegionHierarchy,
     MTypeClass,
     MTypeClassification,
+    Person,
 )
 from app.db.types import EntityType
 
@@ -369,3 +370,20 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
 
     ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
     return ret
+
+
+def create_person(
+    db, *, pref_label: str, given_name: str | None = None, family_name: str | None = None
+):
+    row = Person(
+        given_name=given_name,
+        family_name=family_name,
+        pref_label=pref_label,
+    )
+    db.add(row)
+    db.flush()
+    row.created_by_id = row.id
+    row.updated_by_id = row.id
+    db.commit()
+    db.refresh(row)
+    return row

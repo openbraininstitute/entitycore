@@ -85,6 +85,12 @@ def test_filtering__one_entry(client, memodel_calibration_result_id, memodel_id,
     assert data[0]["id"] == str(memodel_calibration_result_id)
 
 
+def test_memodel_relationship(client, memodel_id, memodel_calibration_result_id):
+    data = assert_request(client.get, url=f"memodel/{memodel_id}").json()
+    assert data["calibration_result"]["id"] == str(memodel_calibration_result_id)
+    assert data["calibration_result"]["calibrated_entity_id"] == str(memodel_id)
+
+
 @pytest.fixture
 def models(create, memodel_id):
     return [

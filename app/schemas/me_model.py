@@ -17,6 +17,7 @@ from app.schemas.base import (
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
 from app.schemas.emodel import EModelRead
+from app.schemas.memodel_calibration_result import MEModelCalibrationResultRead
 from app.schemas.morphology import ReconstructionMorphologyRead
 
 
@@ -57,3 +58,4 @@ class MEModelRead(
     etypes: list[ETypeClassRead] | None
     morphology: ReconstructionMorphologyRead
     emodel: EModelRead
+    calibration_result: MEModelCalibrationResultRead | None

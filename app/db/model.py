@@ -486,6 +486,13 @@ class MEModel(
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
 
+    calibration_result = relationship(
+        "MEModelCalibrationResult",
+        uselist=False,
+        foreign_keys="MEModelCalibrationResult.calibrated_entity_id",
+        lazy="joined",
+    )
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

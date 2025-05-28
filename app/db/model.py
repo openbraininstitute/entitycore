@@ -375,11 +375,9 @@ class Entity(LegacyMixin, Identifiable):
     }
 
 
-
 # Database model for PublicationBase
 class Publication(Entity, NameDescriptionVectorMixin):
     __tablename__ = "publication"
-    id: Mapped[UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     DOI: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     PMID: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
     original_source_location: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -391,11 +389,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     publication_year: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
     abstract: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
-    __table_args__ = (
-        UniqueConstraint("DOI", name="uq_publication_doi"),
-        UniqueConstraint("PMID", name="uq_publication_pmid"),
-        {"extend_existing": True},
-    )
+ 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
@@ -430,15 +424,6 @@ class PublishedIn(Base):
         {"extend_existing": True},
     )
 
-class SubjectMixin:
-    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
-
-    @declared_attr
-    @classmethod
-    def subject(cls):
-        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
-
-
 class ScientificArtifact(
     Entity,
     SubjectMixin,
@@ -451,12 +436,18 @@ class ScientificArtifact(
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
     published_in: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
-    __table_args__ = {
-        "extend_existing": True
-    }
+ 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.subject.value

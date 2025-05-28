@@ -16,6 +16,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
+    Person,
 )
 from app.db.types import EntityType
 from app.routers.asset import EntityRoute
@@ -454,3 +455,20 @@ def upload_entity_asset(
     if label:
         data = {"label": label}
     return client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)
+
+
+def create_person(
+    db, *, pref_label: str, given_name: str | None = None, family_name: str | None = None
+):
+    row = Person(
+        given_name=given_name,
+        family_name=family_name,
+        pref_label=pref_label,
+    )
+    db.add(row)
+    db.flush()
+    row.created_by_id = row.id
+    row.updated_by_id = row.id
+    db.commit()
+    db.refresh(row)
+    return row

@@ -27,7 +27,6 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Organization,
-    Person,
     ReconstructionMorphology,
     Role,
     Species,
@@ -236,22 +235,21 @@ def _db_cleanup(db):
 
 @pytest.fixture
 def person_id(db):
-    row = Person(
+    return utils.create_person(
+        db,
         given_name="jd",
         family_name="courcol",
         pref_label="jd courcol",
-    )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row.id
+    ).id
 
 
 @pytest.fixture
-def organization_id(db):
+def organization_id(db, person_id):
     row = Organization(
         pref_label="ACME",
         alternative_name="A Company Making Everything",
+        created_by_id=person_id,
+        updated_by_id=person_id,
     )
     db.add(row)
     db.commit()
@@ -452,9 +450,8 @@ def agents(db: Session, person_id):
     organization_1 = add_db(
         db, Organization(pref_label="test_organization_1", alternative_name="alt name 1")
     )
-    person_1 = add_db(
-        db,
-        Person(pref_label="test_person_1", given_name="given name 1", family_name="family name 1"),
+    person_1 = utils.create_person(
+        db, pref_label="test_person_1", given_name="given name 1", family_name="family name 1"
     )
     role = add_db(
         db, Role(role_id=1, name="test role", created_by_id=person_id, updated_by_id=person_id)

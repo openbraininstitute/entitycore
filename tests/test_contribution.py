@@ -1,9 +1,10 @@
-from app.db.model import Contribution, Organization, Person, ReconstructionMorphology, Role
+from app.db.model import Contribution, Organization, ReconstructionMorphology, Role
 
 from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     add_db,
+    create_person,
     create_reconstruction_morphology_id,
 )
 
@@ -215,9 +216,10 @@ def test_contribution_facets(
     brain_region_id,
     person_id,
 ):
-    person = add_db(
-        db, Person(given_name="GivenName", family_name="FamilyName", pref_label="person_pref_label")
+    person = create_person(
+        db, given_name="GivenName", family_name="FamilyName", pref_label="person_pref_label"
     )
+
     person_role = add_db(
         db,
         Role(

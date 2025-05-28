@@ -124,10 +124,10 @@ def query_params_factory[I: Identifiable](
         "etype": lambda q: q.outerjoin(
             ETypeClassification, db_model_class.id == ETypeClassification.entity_id
         ).outerjoin(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id),
-        "created_by": lambda q: q.outerjoin(
+        "created_by": lambda q: q.join(
             created_by_alias, db_model_class.created_by_id == created_by_alias.id
         ),
-        "updated_by": lambda q: q.outerjoin(
+        "updated_by": lambda q: q.join(
             updated_by_alias, db_model_class.updated_by_id == updated_by_alias.id
         ),
         "subject": lambda q: q.outerjoin(

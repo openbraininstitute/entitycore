@@ -63,4 +63,5 @@ class ScientificArtifactRead(ScientificArtifactBase):
     id: UUID
     brain_region: BrainRegionRead
     creation_date: datetime| None = None
-    update_date: datetime = None 
+    update_date: datetime | None = None
+

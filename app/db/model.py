@@ -380,6 +380,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     Database model for PublicationBase
     """
     __tablename__ = "publication"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     DOI: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
     PMID: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
     original_source_location: Mapped[Optional[str]] = mapped_column(String, nullable=True)
@@ -394,6 +395,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
+
 
 class PublishedIn(Base):
     """

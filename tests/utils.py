@@ -15,6 +15,7 @@ from app.db.model import (
     Person,
 )
 from app.db.types import EntityType
+from app.utils.uuid import create_uuid
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
@@ -373,17 +374,24 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
 
 
 def create_person(
-    db, *, pref_label: str, given_name: str | None = None, family_name: str | None = None
+    db,
+    *,
+    pref_label: str,
+    given_name: str | None = None,
+    family_name: str | None = None,
+    created_by_id: uuid.UUID | None = None,
 ):
+    agent_id = create_uuid()
+
     row = Person(
+        id=agent_id,
         given_name=given_name,
         family_name=family_name,
         pref_label=pref_label,
+        created_by_id=created_by_id or agent_id,
+        updated_by_id=created_by_id or agent_id,
     )
     db.add(row)
-    db.flush()
-    row.created_by_id = row.id
-    row.updated_by_id = row.id
     db.commit()
     db.refresh(row)
     return row

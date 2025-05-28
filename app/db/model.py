@@ -93,7 +93,7 @@ class Identifiable(TimestampMixin, Base):
 
     @declared_attr
     @classmethod
-    def created_by_id(cls) -> Mapped[uuid.UUID | None]:
+    def created_by_id(cls) -> Mapped[uuid.UUID]:
         return mapped_column(ForeignKey("agent.id"), index=True)
 
     @declared_attr
@@ -103,7 +103,7 @@ class Identifiable(TimestampMixin, Base):
 
     @declared_attr
     @classmethod
-    def updated_by_id(cls) -> Mapped[uuid.UUID | None]:
+    def updated_by_id(cls) -> Mapped[uuid.UUID]:
         return mapped_column(ForeignKey("agent.id"), index=True)
 
     @declared_attr

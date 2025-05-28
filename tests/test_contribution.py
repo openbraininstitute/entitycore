@@ -217,7 +217,11 @@ def test_contribution_facets(
     person_id,
 ):
     person = create_person(
-        db, given_name="GivenName", family_name="FamilyName", pref_label="person_pref_label"
+        db,
+        given_name="GivenName",
+        family_name="FamilyName",
+        pref_label="person_pref_label",
+        created_by_id=person_id,
     )
 
     person_role = add_db(
@@ -230,7 +234,15 @@ def test_contribution_facets(
         ),
     )
 
-    org = add_db(db, Organization(pref_label="org_pref_label", alternative_name="org_alt_name"))
+    org = add_db(
+        db,
+        Organization(
+            pref_label="org_pref_label",
+            alternative_name="org_alt_name",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
     org_role = add_db(
         db,
         Role(

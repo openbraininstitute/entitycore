@@ -14,6 +14,7 @@ from app.db.model import (
     Contribution,
     EModel,
     MEModel,
+    MEModelCalibrationResult,
     ReconstructionMorphology,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -70,6 +71,8 @@ def _load(select: Select):
         joinedload(MEModel.etypes),
         joinedload(MEModel.created_by),
         joinedload(MEModel.updated_by),
+        joinedload(MEModel.calibration_result).joinedload(MEModelCalibrationResult.created_by),
+        joinedload(MEModel.calibration_result).joinedload(MEModelCalibrationResult.updated_by),
         raiseload("*"),
     )
 

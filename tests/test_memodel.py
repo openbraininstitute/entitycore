@@ -57,8 +57,6 @@ def test_create_memodel(
             "name": "Test MEModel Name",
             "morphology_id": morphology_id,
             "emodel_id": emodel_id,
-            "holding_current": 0,
-            "threshold_current": 0,
         },
     )
     assert response.status_code == 200, f"Failed to create memodel: {response.text}"
@@ -490,8 +488,6 @@ def test_authorization(
         "strain_id": strain_id,
         "emodel_id": emodel_id,
         "morphology_id": morphology_id,
-        "holding_current": 0,
-        "threshold_current": 0,
     }
 
     public_obj = client_user_1.post(
@@ -645,8 +641,6 @@ def test_brain_region_filter(
             morphology_id=morphology_id,
             emodel_id=emodel_id,
             authorized_project_id=PROJECT_ID,
-            holding_current=0,
-            threshold_current=0,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

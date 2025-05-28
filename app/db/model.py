@@ -1,6 +1,7 @@
 import uuid
+from uuid import UUID
 from datetime import datetime, timedelta
-from typing import ClassVar, List, Optional, TypedDict
+from typing import ClassVar, List, Optional
 
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -11,6 +12,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Index,
+    JSONB,
     LargeBinary,
     MetaData,
     String,
@@ -427,6 +429,15 @@ class PublishedIn(Base):
         UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
         {"extend_existing": True},
     )
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
+
 
 class ScientificArtifact(
     Entity,

@@ -439,11 +439,7 @@ class SubjectMixin:
 
 
 class ScientificArtifact(
-    Entity,
-    SubjectMixin,
-    NameDescriptionVectorMixin,
-    LocationMixin,
-    LicensedMixin
+    Entity, SubjectMixin, NameDescriptionVectorMixin, LocationMixin, LicensedMixin
 ):
     """Base class for scientific artifacts."""
 
@@ -453,9 +449,7 @@ class ScientificArtifact(
     published_in: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
 
-    __table_args__: ClassVar[dict] = {
-        "extend_existing": True
-    }
+    __table_args__: ClassVar[dict] = {"extend_existing": True}
     __mapper_args__: ClassVar[dict] = {
         "polymorphic_identity": __tablename__,
     }

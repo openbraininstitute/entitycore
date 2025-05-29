@@ -414,11 +414,11 @@ class PublishedIn(Base):
     )
 
     # Relationships - assuming ScientificArtifact and Publication exist
-    #publication: Mapped["Publication"] = relationship(
-    #    "Publication",
-    #    foreign_keys=[publication_id],
-    #    uselist=False,
-    #)
+    publication: Mapped["Publication"] = relationship(
+        "Publication",
+        foreign_keys=[publication_id],
+        uselist=False,
+    )
     scientific_artifact: Mapped["ScientificArtifact"] = relationship(
         "ScientificArtifact",
         foreign_keys=[scientific_artifact_id],

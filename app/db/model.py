@@ -392,7 +392,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     publication_year: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    __mapper_args__: ClassVar[dict] = {
+    __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
     }
 
@@ -449,8 +449,7 @@ class ScientificArtifact(
     published_in: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
 
-    __table_args__: ClassVar[dict] = {"extend_existing": True}
-    __mapper_args__: ClassVar[dict] = {
+    __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
     }
 
@@ -466,15 +465,6 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     weight: Mapped[float | None]  # in grams
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class SubjectMixin:
-    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
-
-    @declared_attr
-    @classmethod
-    def subject(cls):
-        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):

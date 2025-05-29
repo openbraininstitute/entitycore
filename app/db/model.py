@@ -1,11 +1,12 @@
+# Standard library imports
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
 from uuid import UUID
 
+# Third-party imports
 import sqlalchemy as sa
 from sqlalchemy import (
-    JSON,
     BigInteger,
     DateTime,
     Enum,
@@ -19,7 +20,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR, JSONB
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -30,6 +31,7 @@ from sqlalchemy.orm import (
     validates,
 )
 
+# Local application imports
 from app.db.types import (
     BIGINT,
     JSON_DICT,

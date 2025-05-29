@@ -1,10 +1,11 @@
 import uuid
-from uuid import UUID
 from datetime import datetime, timedelta
-from typing import ClassVar, List, Optional
+from typing import ClassVar
+from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import (
+    JSONB,
     BigInteger,
     DateTime,
     Enum,
@@ -12,7 +13,6 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Index,
-    JSONB,
     LargeBinary,
     MetaData,
     String,
@@ -53,8 +53,9 @@ from app.db.types import (
     StructuralDomain,
     ValidationStatus,
 )
+from app.schemas.scientific_artifact import Author, PublicationType
 from app.utils.uuid import create_uuid
-from app.schemas.scientific_artifact import PublicationType, Author
+
 
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
@@ -374,6 +375,7 @@ class Entity(LegacyMixin, Identifiable):
         "polymorphic_on": "type",
     }
 
+
 class Publication(Entity, NameDescriptionVectorMixin):
     """Database model for PublicationBase."""
 
@@ -427,6 +429,15 @@ class PublishedIn(Base):
     )
 
 
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
+
+
 class ScientificArtifact(
     Entity,
     SubjectMixin,
@@ -442,21 +453,12 @@ class ScientificArtifact(
     published_in: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
 
-    __table_args__ = {
+    __table_args__: ClassVar[dict] = {
         "extend_existing": True
     }
     __mapper_args__: ClassVar[dict] = {
         "polymorphic_identity": __tablename__,
     }
-
-
-class SubjectMixin:
-    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
-
-    @declared_attr
-    @classmethod
-    def subject(cls):
-        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
 class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):

@@ -374,33 +374,30 @@ class Entity(LegacyMixin, Identifiable):
         "polymorphic_on": "type",
     }
 
-
 class Publication(Entity, NameDescriptionVectorMixin):
-    """
-    Database model for PublicationBase
-    """
+    """Database model for PublicationBase."""
+
     __tablename__ = "publication"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    DOI: Mapped[Optional[str]] = mapped_column(String, nullable=True, index=True)
-    PMID: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True, index=True)
-    original_source_location: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    other: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    title: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    authors: Mapped[Optional[List[Author]]] = mapped_column(JSONB, nullable=True)
-    url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    journal: Mapped[Optional[str]] = mapped_column(String, nullable=True)
-    publication_year: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    abstract: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    PMID: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    original_source_location: Mapped[str | None] = mapped_column(String, nullable=True)
+    other: Mapped[str | None] = mapped_column(String, nullable=True)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
+    url: Mapped[str | None] = mapped_column(String, nullable=True)
+    journal: Mapped[str | None] = mapped_column(String, nullable=True)
+    publication_year: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    __mapper_args__ = {
+    __mapper_args__: ClassVar[dict] = {
         "polymorphic_identity": __tablename__,
     }
 
 
 class PublishedIn(Base):
-    """
-    Database model for PublishedInBase
-    """
+    """Database model for PublishedInBase."""
+
     __tablename__ = "published_in"
     publication_id: Mapped[UUID] = mapped_column(
         ForeignKey("publication.id"), primary_key=True, index=True
@@ -437,17 +434,18 @@ class ScientificArtifact(
     LocationMixin,
     LicensedMixin
 ):
-    """
-    Base class for scientific artifacts,
-    which are entities that can be linked to publications.
-    """
+    """Base class for scientific artifacts."""
+
     __tablename__ = "scientific_artifact"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
     published_in: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
 
-    __mapper_args__ = {
+    __table_args__ = {
+        "extend_existing": True
+    }
+    __mapper_args__: ClassVar[dict] = {
         "polymorphic_identity": __tablename__,
     }
 

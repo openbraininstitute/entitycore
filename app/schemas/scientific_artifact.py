@@ -22,6 +22,7 @@ class PublicationType(StrEnum):
 
 class Author(TypedDict):
     """The names of authors of a publication."""
+
     name: str
     lastname: str
 
@@ -33,6 +34,7 @@ class PublicationBase(EntityRead):
     Fields include DOI, PMID, UUID, and other means.
     All fields are optional.
     """
+
     DOI: str | None = None  # Optional DOI (Digital Object Identifier) as a string
     PMID: int | None = None  # Optional PMID (PubMed Identifier) as an integer
     UUID: uuid.UUID | None = None  # Using uuid.UUID type for clarity
@@ -86,4 +88,6 @@ class ScientificArtifactRead(ScientificArtifactBase):
     id: UUID
     brain_region: BrainRegionRead
     creation_date: datetime | None = None
+    update_date: datetime | None = None
+
     update_date: datetime | None = None

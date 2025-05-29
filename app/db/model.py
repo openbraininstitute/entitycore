@@ -5,7 +5,7 @@ from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import (
-    JSONB,
+    JSON,
     BigInteger,
     DateTime,
     Enum,
@@ -19,7 +19,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import TSVECTOR, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -446,7 +446,6 @@ class ScientificArtifact(
     __tablename__ = "scientific_artifact"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
-    published_in: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
 
     __mapper_args__ = {  # noqa: RUF012

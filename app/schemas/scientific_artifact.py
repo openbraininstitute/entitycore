@@ -89,5 +89,3 @@ class ScientificArtifactRead(ScientificArtifactBase):
     brain_region: BrainRegionRead
     creation_date: datetime | None = None
     update_date: datetime | None = None
-
-    update_date: datetime | None = None

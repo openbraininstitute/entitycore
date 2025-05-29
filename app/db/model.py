@@ -1,7 +1,10 @@
+# Standard library imports
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
+from uuid import UUID
 
+# Third-party imports
 import sqlalchemy as sa
 from sqlalchemy import (
     BigInteger,
@@ -17,7 +20,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -28,6 +31,7 @@ from sqlalchemy.orm import (
     validates,
 )
 
+# Local application imports
 from app.db.types import (
     BIGINT,
     JSON_DICT,
@@ -51,6 +55,7 @@ from app.db.types import (
     StructuralDomain,
     ValidationStatus,
 )
+from app.schemas.scientific_artifact import Author, PublicationType
 from app.utils.uuid import create_uuid
 
 
@@ -372,6 +377,83 @@ class Entity(LegacyMixin, Identifiable):
     }
 
 
+class Publication(Entity, NameDescriptionVectorMixin):
+    """Database model for PublicationBase."""
+
+    __tablename__ = "publication"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    PMID: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    original_source_location: Mapped[str | None] = mapped_column(String, nullable=True)
+    other: Mapped[str | None] = mapped_column(String, nullable=True)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
+    url: Mapped[str | None] = mapped_column(String, nullable=True)
+    journal: Mapped[str | None] = mapped_column(String, nullable=True)
+    publication_year: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    abstract: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class PublishedIn(Base):
+    """Database model for PublishedInBase."""
+
+    __tablename__ = "published_in"
+    publication_id: Mapped[UUID] = mapped_column(
+        ForeignKey("publication.id"), primary_key=True, index=True
+    )
+    publication_type: Mapped[PublicationType] = mapped_column(
+        Enum(PublicationType, name="publicationtype_publishedin"), primary_key=True
+    )
+    scientific_artifact_id: Mapped[UUID] = mapped_column(
+        ForeignKey("scientific_artifact.id"), primary_key=True, index=True
+    )
+
+    # Relationships - assuming ScientificArtifact and Publication exist
+    publication: Mapped["Publication"] = relationship(
+        "Publication",
+        foreign_keys=[publication_id],
+        uselist=False,
+    )
+    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+        "ScientificArtifact",
+        foreign_keys=[scientific_artifact_id],
+        uselist=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
+        {"extend_existing": True},
+    )
+
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
+
+
+class ScientificArtifact(
+    Entity, SubjectMixin, NameDescriptionVectorMixin, LocationMixin, LicensedMixin
+):
+    """Base class for scientific artifacts."""
+
+    __tablename__ = "scientific_artifact"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
+    contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+    }
+
+
 class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.subject.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -383,15 +465,6 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     weight: Mapped[float | None]  # in grams
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class SubjectMixin:
-    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
-
-    @declared_attr
-    @classmethod
-    def subject(cls):
-        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):

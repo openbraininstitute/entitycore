@@ -4,7 +4,6 @@ from app.db.model import (
     Agent,
     BrainRegion,
     Contribution,
-    Derivation,
     EModel,
     ETypeClass,
     ETypeClassification,
@@ -107,9 +106,6 @@ def query_params_factory[I: Identifiable](
             morphology_alias, db_model_class.exemplar_morphology_id == morphology_alias.id
         ),
         "emodel": lambda q: q.join(emodel_alias, db_model_class.emodel_id == emodel_alias.id),
-        "generated_emodel": lambda q: q.join(
-            Derivation, Derivation.used_id == db_model_class.id
-        ).join(emodel_alias, Derivation.generated_id == emodel_alias.id),
         "me_model": lambda q: q.join(
             me_model_alias, db_model_class.me_model_id == me_model_alias.id
         ),

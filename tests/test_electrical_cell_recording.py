@@ -2,14 +2,11 @@ from unittest.mock import ANY
 
 import pytest
 
-from app.db.model import Derivation
 from app.db.types import EntityType
 
 from .utils import (
     PROJECT_ID,
-    add_all_db,
     assert_request,
-    assert_response,
     check_authorization,
     check_brain_region_filter,
     check_missing,
@@ -171,34 +168,3 @@ def test_brain_region_filter(
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
-
-
-def test_get_traces_for_generated_emodel(
-    db, client, create_emodel_ids, electrical_cell_recording_json_data
-):
-    # create two emodels, one with derivations and one without
-    generated_emodel_id, other_emodel_id = create_emodel_ids(2)
-    trace_ids = [
-        create_electrical_cell_recording_id(
-            client, json_data=electrical_cell_recording_json_data | {"name": f"name-{i}"}
-        )
-        for i in range(2)
-    ]
-    derivations = [
-        Derivation(used_id=ecr_id, generated_id=generated_emodel_id) for ecr_id in trace_ids
-    ]
-    add_all_db(db, derivations)
-
-    response = client.get(url=ROUTE, params={"generated_emodel__id": generated_emodel_id})
-
-    assert_response(response, 200)
-    data = response.json()["data"]
-    assert len(data) == 2
-    assert {data[0]["id"], data[1]["id"]} == {str(id_) for id_ in trace_ids}
-    assert all(d["type"] == "electrical_cell_recording" for d in data)
-
-    response = client.get(url=ROUTE, params={"generated_emodel__id": other_emodel_id})
-
-    assert_response(response, 200)
-    data = response.json()["data"]
-    assert len(data) == 0

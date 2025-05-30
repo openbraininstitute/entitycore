@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+import app.service.electrical_cell_recording
 import app.service.emodel
 
 router = APIRouter(

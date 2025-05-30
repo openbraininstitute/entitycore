@@ -6,7 +6,9 @@ from fastapi.testclient import TestClient
 from app.db.types import EntityType
 
 from .conftest import CreateIds, EModelIds
-from .utils import create_reconstruction_morphology_id
+from .utils import (
+    create_reconstruction_morphology_id,
+)
 from tests.routers.test_asset import _upload_entity_asset
 
 ROUTE = "/emodel"
@@ -53,6 +55,7 @@ def test_get_emodel(client: TestClient, emodel_id: str):
     assert "assets" in data
     assert len(data["assets"]) == 1
     assert "ion_channel_models" in data
+    assert "electrical_cell_recordings" in data
     assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 

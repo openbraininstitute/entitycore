@@ -12,8 +12,10 @@ from app.db.model import (
     BrainRegionHierarchy,
     MTypeClass,
     MTypeClassification,
+    Person,
 )
 from app.db.types import EntityType
+from app.utils.uuid import create_uuid
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
@@ -124,8 +126,12 @@ def assert_request(client_method, *, expected_status_code=200, **kwargs):
     return response
 
 
-def create_hiearchy_name(db, name: str):
-    row = BrainRegionHierarchy(name=name)
+def create_hiearchy_name(
+    db, name: str, created_by_id: uuid.UUID, updated_by_id: uuid.UUID | None = None
+):
+    row = BrainRegionHierarchy(
+        name=name, created_by_id=created_by_id, updated_by_id=updated_by_id or created_by_id
+    )
     return add_db(db, row)
 
 
@@ -134,7 +140,9 @@ def create_brain_region(
     hierarchy_id,
     annotation_value: int,
     name: str,
+    created_by_id: uuid.UUID,
     parent_id: uuid.UUID | None = None,
+    updated_by_id: uuid.UUID | None = None,
 ):
     row = BrainRegion(
         annotation_value=annotation_value,
@@ -143,17 +151,21 @@ def create_brain_region(
         color_hex_triplet="FF0000",
         parent_structure_id=parent_id,
         hierarchy_id=hierarchy_id,
+        created_by_id=created_by_id,
+        updated_by_id=created_by_id or updated_by_id,
     )
     return add_db(db, row)
 
 
-def create_mtype(db, pref_label: str, alt_label=None, definition=None):
+def create_mtype(db, pref_label: str, created_by_id: uuid.UUID, alt_label=None, definition=None):
     return add_db(
         db,
         MTypeClass(
             pref_label=pref_label,
             alt_label=alt_label or pref_label,
             definition=definition or "",
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
         ),
     )
 
@@ -290,9 +302,15 @@ def create_asset_file(client, entity_type, entity_id, file_name, file_obj):
 
 
 def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, create_model_function):
+    db_hierarchy = db.get(BrainRegionHierarchy, brain_region_hierarchy_id)
+
     brain_region_ids = [
         create_brain_region(
-            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+            db,
+            brain_region_hierarchy_id,
+            annotation_value=i,
+            name=f"region-{i}",
+            created_by_id=db_hierarchy.created_by_id,
         ).id
         for i in range(2)
     ]
@@ -323,6 +341,8 @@ def with_creation_fields(d):
 def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
     regions = []
 
+    db_hierarchy = db.get(BrainRegionHierarchy, hierarchy_id)
+
     def recurse(i):
         children = []
         item = i | {"children": children}
@@ -342,6 +362,8 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
             color_hex_triplet=region["color_hex_triplet"],
             parent_structure_id=ids[region["parent_structure_id"]],
             hierarchy_id=hierarchy_id,
+            created_by_id=db_hierarchy.created_by_id,
+            updated_by_id=db_hierarchy.created_by_id,
         )
         db_br = add_db(db, row)
         db.flush()
@@ -349,3 +371,27 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
 
     ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
     return ret
+
+
+def create_person(
+    db,
+    *,
+    pref_label: str,
+    given_name: str | None = None,
+    family_name: str | None = None,
+    created_by_id: uuid.UUID | None = None,
+):
+    agent_id = create_uuid()
+
+    row = Person(
+        id=agent_id,
+        given_name=given_name,
+        family_name=family_name,
+        pref_label=pref_label,
+        created_by_id=created_by_id or agent_id,
+        updated_by_id=created_by_id or agent_id,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row

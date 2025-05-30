@@ -2,6 +2,7 @@ import uuid
 
 from app.db.types import AssetLabel, AssetStatus, EntityType
 from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
+from app.queries.common import get_or_create_user_agent
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import AssetCreate, AssetRead
 from app.schemas.auth import UserContext, UserContextWithProjectId
@@ -77,6 +78,8 @@ def create_entity_asset(
         is_public=entity.authorized_public,
     )
 
+    db_agent = get_or_create_user_agent(repos.db, user_profile=user_context.profile)
+
     with ensure_valid_schema(
         "Asset schema is invalid", error_code=ApiErrorCode.ASSET_INVALID_SCHEMA
     ):
@@ -90,6 +93,8 @@ def create_entity_asset(
             meta=meta or {},
             label=label,
             entity_type=entity_type,
+            created_by_id=db_agent.id,
+            updated_by_id=db_agent.id,
         )
     with ensure_uniqueness(
         f"Asset with path {asset_create.path!r} already exists",

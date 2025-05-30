@@ -2,7 +2,9 @@ import uuid
 
 import sqlalchemy as sa
 
+import app.queries.common
 from app.db.model import Strain
+from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -45,9 +47,13 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
     return StrainRead.model_validate(row)
 
 
-def create_one(strain: StrainCreate, db: SessionDep) -> StrainRead:
-    row = Strain(name=strain.name, taxonomy_id=strain.taxonomy_id, species_id=strain.species_id)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return StrainRead.model_validate(row)
+def create_one(
+    json_model: StrainCreate, db: SessionDep, user_context: AdminContextDep
+) -> StrainRead:
+    return app.queries.common.router_create_one(
+        db=db,
+        db_model_class=Strain,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=StrainRead,
+    )

@@ -2,7 +2,9 @@ import uuid
 
 import sqlalchemy as sa
 
+import app.queries.common
 from app.db.model import Role
+from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
@@ -41,9 +43,11 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> RoleRead:
     return RoleRead.model_validate(row)
 
 
-def create_one(role: RoleCreate, db: SessionDep) -> RoleRead:
-    row = Role(name=role.name, role_id=role.role_id)
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return RoleRead.model_validate(row)
+def create_one(json_model: RoleCreate, db: SessionDep, user_context: AdminContextDep) -> RoleRead:
+    return app.queries.common.router_create_one(
+        db=db,
+        db_model_class=Role,
+        json_model=json_model,
+        response_schema_class=RoleRead,
+        user_context=user_context,
+    )

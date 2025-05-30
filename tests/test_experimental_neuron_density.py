@@ -82,7 +82,7 @@ def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id):
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, person_id):
     def create_model_function(_db, name, brain_region_id):
         return MODEL_CLASS(
             name=name,
@@ -91,6 +91,8 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id):
             subject_id=subject_id,
             license_id=None,
             authorized_project_id=PROJECT_ID,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

@@ -30,6 +30,7 @@ from app.db.model import (
     MeasurementItem,
     MeasurementKind,
     MTypeClass,
+    Person,
     Role,
     Species,
     Strain,
@@ -40,6 +41,9 @@ from app.logger import L
 from app.schemas.base import ProjectContext
 from app.schemas.ion_channel_model import NeuronBlock
 from app.utils.s3 import build_s3_path
+from app.utils.uuid import create_uuid
+
+ADMIN_SUBJECT_ID = uuid.UUID(int=0)
 
 AUTHORIZED_PUBLIC = True
 
@@ -97,8 +101,15 @@ def get_or_create_species(species, db, _cache={}):
     # Check if the species already exists in the database
     sp = db.query(Species).filter(Species.taxonomy_id == id_).first()
     if not sp:
+        admin = get_or_create_admin(db)
+
         # If not, create a new one
-        sp = Species(name=species["label"], taxonomy_id=species["@id"])
+        sp = Species(
+            name=species["label"],
+            taxonomy_id=species["@id"],
+            created_by_id=admin.id,
+            updated_by_id=admin.id,
+        )
         db.add(sp)
         db.commit()
 
@@ -107,7 +118,7 @@ def get_or_create_species(species, db, _cache={}):
     return sp.id
 
 
-def create_stimulus(data, entity_id, project_context, db):
+def create_stimulus(data, entity_id, project_context, db, created_by_id, updated_by_id):
     label = data["label"]
 
     info = STIMULUS_INFO[label]
@@ -123,6 +134,8 @@ def create_stimulus(data, entity_id, project_context, db):
         recording_id=entity_id,
         authorized_public=AUTHORIZED_PUBLIC,
         authorized_project_id=project_context.project_id,
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id,
     )
     db.add(row)
     db.commit()
@@ -190,11 +203,14 @@ def get_or_create_strain(strain, species_id, db, _cache={}):
         raise RuntimeError(msg)
 
     if not st:
+        admin = get_or_create_admin(db)
         # If not, create a new one
         st = Strain(
             name=strain["label"],
             taxonomy_id=strain["@id"],
             species_id=species_id,
+            created_by_id=admin.id,
+            updated_by_id=admin.id,
         )
         db.add(st)
         db.commit()
@@ -226,13 +242,24 @@ def get_license_mixin(data, db):
 
 
 def get_agent_mixin(data, db):
+    # if the resource has not createdBy info, return the admin
+    if "_createdBy" not in data:
+        admin = get_or_create_admin(db)
+        return [admin.id, admin.id]
+
     result = []
     for prop in ["_createdBy", "_updatedBy"]:
         legacy_id = data.get(prop, {})
         if not legacy_id:
             msg = f"legacy_id is None: {data}"
             raise RuntimeError(msg)
+
         agent_db = _find_by_legacy_id(legacy_id, Agent, db)
+
+        # if the agent is not found by legacy id, return the admin
+        if agent_db is None:
+            agent_db = get_or_create_admin(db)
+
         if not agent_db:
             msg = f"legacy_id not found: {legacy_id}"
             raise RuntimeError(msg)
@@ -240,9 +267,10 @@ def get_agent_mixin(data, db):
     return result
 
 
-def get_or_create_role(role_, db, _cache={}):
+def get_or_create_role(role_, db, created_by_id, updated_by_id, _cache={}):
     # Check if the role already exists in the database
     role_ = curate.curate_role(role_)
+
     role_id = role_["@id"]
 
     if role_id in _cache:
@@ -253,7 +281,12 @@ def get_or_create_role(role_, db, _cache={}):
     if not r:
         # If not, create a new one
         try:
-            r = Role(role_id=role_["@id"], name=role_["label"])
+            r = Role(
+                role_id=role_["@id"],
+                name=role_["label"],
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+            )
             db.add(r)
             db.commit()
         except Exception:
@@ -265,11 +298,11 @@ def get_or_create_role(role_, db, _cache={}):
     return r.id
 
 
-def get_or_create_contribution(contribution_, entity_id, db):
+def get_or_create_contribution(contribution_, entity_id, db, created_by_id, updated_by_id):
     # Check if the Contribution already exists in the database
     if isinstance(contribution_, list):
         for c in contribution_:
-            get_or_create_contribution(c, entity_id, db)
+            get_or_create_contribution(c, entity_id, db, created_by_id, updated_by_id)
         return None
 
     agent_legacy_id = contribution_["agent"]["@id"]
@@ -280,7 +313,7 @@ def get_or_create_contribution(contribution_, entity_id, db):
 
     agent_id = db_agent.id
     role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})
-    role_id = get_or_create_role(role_, db)
+    role_id = get_or_create_role(role_, db, created_by_id, updated_by_id)
     c = (
         db.query(Contribution)
         .filter(
@@ -292,17 +325,23 @@ def get_or_create_contribution(contribution_, entity_id, db):
     )
     if not c:
         # If not, create a new one
-        c = Contribution(agent_id=agent_id, role_id=role_id, entity_id=entity_id)
+        c = Contribution(
+            agent_id=agent_id,
+            role_id=role_id,
+            entity_id=entity_id,
+            created_by_id=created_by_id,
+            updated_by_id=updated_by_id,
+        )
         db.add(c)
         db.commit()
     return c.id
 
 
-def import_contribution(data, db_item_id, db):
+def import_contribution(data, db_item_id, db, created_by_id, updated_by_id):
     contribution = data.get("contribution", [])
     contribution = curate.curate_contribution(contribution)
     if contribution:
-        get_or_create_contribution(contribution, db_item_id, db)
+        get_or_create_contribution(contribution, db_item_id, db, created_by_id, updated_by_id)
 
 
 def get_created_and_updated(data):
@@ -318,11 +357,15 @@ def get_or_create_distribution(
     entity_type: str,
     db: Session,
     project_context: ProjectContext,
+    created_by_id,
+    updated_by_id,
 ):
     # Check if the Distribution already exists in the database
     if isinstance(distribution, list):
         for c in distribution:
-            get_or_create_distribution(c, entity_id, entity_type, db, project_context)
+            get_or_create_distribution(
+                c, entity_id, entity_type, db, project_context, created_by_id, updated_by_id
+            )
         return
 
     full_path = build_s3_path(
@@ -353,6 +396,8 @@ def get_or_create_distribution(
         sha256_digest=bytes.fromhex(distribution["digest"]["value"]),
         meta={},
         entity_id=entity_id,
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id,
     )
     db.add(asset)
     db.commit()
@@ -386,8 +431,18 @@ def import_distribution(
     distribution = data.get("distribution", [])
     distribution = curate.curate_distribution(distribution, project_context)
 
+    created_by_id, updated_by_id = get_agent_mixin(data, db)
+
     if distribution:
-        get_or_create_distribution(distribution, db_item_id, db_item_type, db, project_context)
+        get_or_create_distribution(
+            distribution,
+            db_item_id,
+            db_item_type,
+            db,
+            project_context,
+            created_by_id,
+            updated_by_id,
+        )
 
 
 def find_part_id(data: dict[str, Any], type_: Literal["NeuronMorphology", "EModel"]) -> str | None:
@@ -417,7 +472,13 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
     q = sa.select(Ion).where(Ion.name == label.lower())
     db_ion = db.execute(q).scalar_one_or_none()
     if not db_ion:
-        db_ion = Ion(name=ion.get("label"), ontology_id=ontology_id)
+        admin = get_or_create_admin(db)
+        db_ion = Ion(
+            name=ion.get("label"),
+            ontology_id=ontology_id,
+            created_by_id=admin.id,
+            updated_by_id=admin.id,
+        )
         db.add(db_ion)
         db.flush()
 
@@ -427,7 +488,10 @@ def get_or_create_ion(ion: dict[str, Any], db: Session, _cache={}):
 
 
 def import_ion_channel_model(
-    script: dict[str, Any], project_context: ProjectContext, hierarchy_name, db: Session
+    script: dict[str, Any],
+    project_context: ProjectContext,
+    hierarchy_name,
+    db: Session,
 ):
     legacy_id = script["@id"]
     legacy_self = script["_self"]
@@ -515,6 +579,7 @@ def import_ion_channel_model(
     brain_region_id = get_brain_region(script, hierarchy_name, db)
     species_id, strain_id = get_species_mixin(script, db)
     created_at, updated_at = get_created_and_updated(script)
+    created_by_id, updated_by_id = get_agent_mixin(script, db)
 
     assert neuron_block_validated
 
@@ -539,14 +604,26 @@ def import_ion_channel_model(
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
         is_stochastic=script.get("name", "").lower().startswith("stoch"),
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id,
     )
 
     db.add(db_ion_channel_model)
     db.flush()
 
-    import_contribution(script, db_ion_channel_model.id, db)
+    import_contribution(
+        script,
+        db_ion_channel_model.id,
+        db,
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id,
+    )
     import_distribution(
-        script, db_ion_channel_model.id, EntityType.ion_channel_model, db, project_context
+        script,
+        db_ion_channel_model.id,
+        EntityType.ion_channel_model,
+        db,
+        project_context,
     )
 
     return db_ion_channel_model
@@ -647,6 +724,8 @@ def get_or_create_subject(data, project_context, db):
     if age := subject.get("age", {}):
         age_fields = curate_age(age)
 
+    created_by_id, updated_by_id = get_agent_mixin(data, db)
+
     subject = Subject(
         name=subject.get("name", "Unknown"),
         description=subject.get("description", ""),
@@ -660,6 +739,8 @@ def get_or_create_subject(data, project_context, db):
         age_period=age_fields.get("age_period", None),
         authorized_project_id=project_context.project_id,
         authorized_public=AUTHORIZED_PUBLIC,
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id,
     )
     db.add(subject)
     db.commit()
@@ -734,7 +815,7 @@ def _measurement_items_to_dict(items: list[MeasurementItem]) -> dict:
     return {item.name: {"unit": item.unit, "value": item.value} for item in items}
 
 
-def merge_measurements_annotations(entity_annotations, entity_id):
+def merge_measurements_annotations(entity_annotations, entity_id, created_by_id, updated_by_id):
     different = 0
     creation_date = None
     update_date = None
@@ -768,4 +849,25 @@ def merge_measurements_annotations(entity_annotations, entity_id):
         legacy_id=legacy_id,
         legacy_self=legacy_self,
         measurement_kinds=measurement_kinds,
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id,
     )
+
+
+def get_or_create_admin(db):
+    if admin := db.query(Person).filter(Person.sub_id == ADMIN_SUBJECT_ID).first():
+        return admin
+
+    admin_id = create_uuid()
+
+    admin = Person(
+        id=admin_id,
+        pref_label="Admin",
+        sub_id=ADMIN_SUBJECT_ID,
+        created_by_id=admin_id,
+        updated_by_id=admin_id,
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin

@@ -146,6 +146,15 @@ def default_agents():
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },
+        {
+            "@id": "f:0fdadef7-b2b9-492b-af46-c65492d459c2:ikilic",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Ilkan",
+            "familyName": "Kilic",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
         # TODO: find out who that is.
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/harikris",
@@ -280,6 +289,15 @@ def default_agents():
             "@type": "Person",
             "givenName": "Vignayanandam",
             "familyName": "Muddapu",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "f:0fdadef7-b2b9-492b-af46-c65492d459c2:damart",
+            "_self": "",
+            "@type": "Person",
+            "givenName": "Tanguy",
+            "familyName": "Damart",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },

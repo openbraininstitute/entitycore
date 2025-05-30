@@ -51,16 +51,6 @@ class ETypeClassFilter(CustomFilter):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
 
 
-class SpeciesFilter(NameFilterMixin, CustomFilter):
-    id: uuid.UUID | None = None
-
-    order_by: list[str] = ["name"]  # noqa: RUF012
-
-    class Constants(CustomFilter.Constants):
-        model = Species
-        ordering_model_fields = ["name"]  # noqa: RUF012
-
-
 class StrainFilter(NameFilterMixin, CustomFilter):
     id: uuid.UUID | None = None
 
@@ -93,14 +83,12 @@ class CreationFilterMixin:
 # Dependencies
 MTypeClassFilterDep = Annotated[MTypeClassFilter, FilterDepends(MTypeClassFilter)]
 ETypeClassFilterDep = Annotated[ETypeClassFilter, FilterDepends(ETypeClassFilter)]
-SpeciesFilterDep = Annotated[SpeciesFilter, FilterDepends(SpeciesFilter)]
 StrainFilterDep = Annotated[StrainFilter, FilterDepends(StrainFilter)]
 AgentFilterDep = Annotated[AgentFilter, FilterDepends(AgentFilter)]
 
 # Nested dependencies
 NestedMTypeClassFilterDep = FilterDepends(with_prefix("mtype", MTypeClassFilter))
 NestedETypeClassFilterDep = FilterDepends(with_prefix("etype", ETypeClassFilter))
-NestedSpeciesFilterDep = FilterDepends(with_prefix("species", SpeciesFilter))
 NestedStrainFilterDep = FilterDepends(with_prefix("strain", StrainFilter))
 NestedContributionFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
 NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", AgentFilter))
@@ -112,9 +100,29 @@ class CreatorFilterMixin:
     updated_by: Annotated[AgentFilter | None, NestedUpdatedByFilterDep] = None
 
 
+class NestedSpeciesFilter(NameFilterMixin, CustomFilter):
+    """Species filter with limited fields for nesting."""
+
+    id: uuid.UUID | None = None
+
+    order_by: list[str] = ["name"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = Species
+        ordering_model_fields = ["name"]  # noqa: RUF012
+
+
+class SpeciesFilter(NestedSpeciesFilter, CreationFilterMixin, CreatorFilterMixin):
+    """Full species filter for filtering standalone species."""
+
+
+SpeciesFilterDep = Annotated[SpeciesFilter, FilterDepends(SpeciesFilter)]
+NestedSpeciesFilterDep = FilterDepends(with_prefix("species", NestedSpeciesFilter))
+
+
 class SpeciesFilterMixin:
     species_id__in: list[int] | None = None
-    species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
+    species: Annotated[NestedSpeciesFilter | None, NestedSpeciesFilterDep] = None
     strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
 
 

@@ -91,16 +91,6 @@ class StrainRead(StrainCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
-class SpeciesCreate(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    name: str
-    taxonomy_id: str
-
-
-class SpeciesRead(SpeciesCreate, CreationMixin, IdentifiableMixin):
-    pass
-
-
 class LicensedCreateMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     license_id: uuid.UUID | None = None

@@ -480,3 +480,10 @@ def create_person(
     db.commit()
     db.refresh(row)
     return row
+
+
+def check_creation_fields(data: dict):
+    assert data["creation_date"] == ANY
+    assert data["update_date"] == ANY
+    assert data["created_by"]["id"] == ANY
+    assert data["updated_by"]["id"] == ANY

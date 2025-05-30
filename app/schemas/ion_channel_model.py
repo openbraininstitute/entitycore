@@ -10,10 +10,10 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
-    SpeciesRead,
     StrainRead,
 )
 from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.species import NestedSpeciesRead
 
 
 class UseIon(BaseModel):
@@ -52,7 +52,7 @@ class IonChannelModelCreate(IonChannelModelBase, AuthorizationOptionalPublicMixi
 class IonChannelModelRead(
     IonChannelModelBase, CreationMixin, IdentifiableMixin, AuthorizationMixin, EntityTypeMixin
 ):
-    species: SpeciesRead
+    species: NestedSpeciesRead
     strain: StrainRead | None
     brain_region: BrainRegionRead
 

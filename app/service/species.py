@@ -6,7 +6,7 @@ from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.common import SpeciesFilterDep
-from app.schemas.base import SpeciesCreate, SpeciesRead
+from app.schemas.species import SpeciesCreate, SpeciesRead
 from app.schemas.types import ListResponse
 
 

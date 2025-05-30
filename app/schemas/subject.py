@@ -10,8 +10,8 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     CreationMixin,
     IdentifiableMixin,
-    SpeciesRead,
 )
+from app.schemas.species import NestedSpeciesRead
 
 
 class SubjectBase(BaseModel):
@@ -78,4 +78,4 @@ class SubjectCreate(AuthorizationOptionalPublicMixin, SubjectBase):
 
 
 class SubjectRead(SubjectBase, CreationMixin, AuthorizationMixin, IdentifiableMixin):
-    species: SpeciesRead
+    species: NestedSpeciesRead

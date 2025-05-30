@@ -351,9 +351,7 @@ def get_or_create_distribution(
         content_type=distribution["encodingFormat"],
         size=distribution["contentSize"]["value"],
         sha256_digest=bytes.fromhex(distribution["digest"]["value"]),
-        meta={
-            "legacy": distribution,  # for inspection
-        },
+        meta={},
         entity_id=entity_id,
     )
     db.add(asset)

@@ -14,6 +14,7 @@ from sqlalchemy import (
     LargeBinary,
     MetaData,
     String,
+    Table,
     UniqueConstraint,
     func,
 )
@@ -32,6 +33,7 @@ from app.db.types import (
     BIGINT,
     JSON_DICT,
     STRING_LIST,
+    ActivityType,
     AgentType,
     AgePeriod,
     AnnotationBodyType,
@@ -47,6 +49,7 @@ from app.db.types import (
     PointLocation,
     PointLocationType,
     Sex,
+    SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
     StructuralDomain,
     ValidationStatus,
@@ -243,6 +246,39 @@ class Organization(Agent):
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
+    }
+
+
+class Activity(Identifiable):
+    __tablename__ = "activity"
+    type: Mapped[ActivityType]
+    start_time: Mapped[datetime | None]
+    end_time: Mapped[datetime | None]
+    used_ids: Mapped[list[uuid.UUID]] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"),
+        index=True,
+        default=[],
+    )
+    used: Mapped[list["Entity"]] = relationship(
+        "Entity",
+        secondary="entity_activity_used",
+        primaryjoin=used_ids == id,
+        viewonly=True,
+    )
+    generated_ids: Mapped[list[uuid.UUID]] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"),
+        index=True,
+        default=[],
+    )
+    generated: Mapped[list["Entity"]] = relationship(
+        "Entity",
+        secondary="entity_activity_generated",
+        primaryjoin=generated_ids == id,
+        viewonly=True,
+    )
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
     }
 
 
@@ -895,4 +931,89 @@ class BrainAtlasRegion(Entity, LocationMixin):
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.cell_composition
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SimulationCampaign(
+    NameDescriptionVectorMixin,
+    Entity,
+):
+    """Represents a simulation campaign entity in the database.
+
+    it has an asset which is the simulation campaign configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the simulation campaign, referencing the entity ID.
+    """
+
+    __tablename__ = EntityType.simulation_campaign.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    simulations = relationship("Simulation", back_populates="simulation_campaign")
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class Simulation(Entity):
+    """Represents a simulation entity in the database.
+
+    it has an asset which is the SONATA simulation configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the simulation, referencing the entity ID.
+    """
+
+    __tablename__ = EntityType.simulation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    simulation_campaign_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("simulation_campaign.id"), index=True
+    )
+    simulation_campaign: Mapped[SimulationCampaign] = relationship(
+        "SimulationCampaign",
+        uselist=False,
+        foreign_keys=[simulation_campaign_id],
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SimulationExecution(Activity):
+    """Represents a simulation execution entity in the database.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the simulation execution, referencing the entity ID.
+    """
+
+    __tablename__ = ActivityType.simulation_execution.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    status: Mapped[SimulationExecutionStatus] = mapped_column(
+        Enum(SimulationExecutionStatus, name="simulation_execution_status"),
+        default=SimulationExecutionStatus.created,
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SimulationReport(Entity):
+    """Represents a simulation report entity in the database.
+
+    it has an asset which is the SONATA simulation report file.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the simulation report, referencing the entity ID.
+    """
+
+    __tablename__ = EntityType.simulation_report.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SimulationGeneration(Activity):
+    """Represents a simulation generation activity in the database.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the simulation generation, referencing the activity ID.
+    """
+
+    __tablename__ = ActivityType.simulation_generation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

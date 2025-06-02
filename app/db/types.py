@@ -58,6 +58,7 @@ class EntityType(StrEnum):
     memodel = auto()
     mesh = auto()
     me_type_density = auto()
+    publication = auto()
     reconstruction_morphology = auto()
     electrical_cell_recording = auto()
     electrical_recording_stimulus = auto()

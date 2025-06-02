@@ -445,7 +445,7 @@ class ScientificArtifact(
 ):
     """Base class for scientific artifacts."""
 
-    __tablename__ = "scientific_artifact"
+    __tablename__ = __tablename__ = EntityType.scientific_artifact.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)

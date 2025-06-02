@@ -9,13 +9,15 @@ from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     PROJECT_ID,
+    TEST_DATA_DIR,
     add_db,
     assert_request,
     check_brain_region_filter,
     create_brain_region,
+    upload_entity_asset,
 )
-from tests.routers.test_asset import _upload_entity_asset
 
+FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/single-neuron-simulation"
 
 
@@ -45,12 +47,15 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     )
 
     data = response.json()
-    _upload_entity_asset(
-        client,
-        EntityType.single_neuron_simulation,
-        data["id"],
-        label=AssetLabel.single_cell_simulation_data,
-    )
+
+    with FILE_EXAMPLE_PATH.open("rb") as f:
+        upload_entity_asset(
+            client,
+            EntityType.single_neuron_simulation,
+            data["id"],
+            label=AssetLabel.single_cell_simulation_data,
+            files={"file": ("a/b/c.txt", f, "text/plain")},
+        )
     assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
@@ -176,8 +181,6 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
-            holding_current=0,
-            threshold_current=0,
         ),
     )
     me_model_2 = add_db(
@@ -190,8 +193,6 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
-            holding_current=0,
-            threshold_current=0,
         ),
     )
 
@@ -244,8 +245,6 @@ def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species
                 "emodel_id": emodel_id,
                 "morphology_id": morphology_id,
                 "species_id": species_id,
-                "holding_current": 0,
-                "threshold_current": 0,
             },
         )
         for i in range(2)
@@ -343,8 +342,6 @@ def test_brain_region_filter(
                     "emodel_id": emodel_id,
                     "morphology_id": morphology_id,
                     "species_id": species_id,
-                    "holding_current": 0,
-                    "threshold_current": 0,
                 },
             )
         )

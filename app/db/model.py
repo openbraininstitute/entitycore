@@ -488,12 +488,16 @@ class MEModel(
         "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
-    holding_current: Mapped[float | None]
-    threshold_current: Mapped[float | None]
-
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
+
+    calibration_result = relationship(
+        "MEModelCalibrationResult",
+        uselist=False,
+        foreign_keys="MEModelCalibrationResult.calibrated_entity_id",
+        lazy="joined",
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -829,6 +833,25 @@ class ValidationResult(Entity):
         "Entity",
         uselist=False,
         foreign_keys=[validated_entity_id],
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
+class MEModelCalibrationResult(Entity):
+    __tablename__ = EntityType.memodel_calibration_result.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    holding_current: Mapped[float]
+    threshold_current: Mapped[float]
+    rin: Mapped[float | None]
+    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
+    calibrated_entity: Mapped[Entity] = relationship(
+        "MEModel",
+        uselist=False,
+        foreign_keys=[calibrated_entity_id],
     )
 
     __mapper_args__ = {  # noqa: RUF012

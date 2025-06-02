@@ -2,6 +2,7 @@ import functools
 import uuid
 from pathlib import Path
 from unittest.mock import ANY
+from uuid import UUID
 
 import sqlalchemy as sa
 from httpx import Headers
@@ -17,6 +18,7 @@ from app.db.model import (
     ReconstructionMorphology,
 )
 from app.db.types import EntityType
+from app.routers.asset import EntityRoute
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
@@ -407,3 +409,28 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
 
     ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
     return ret
+
+
+def _entity_type_to_route(entity_type: EntityType) -> EntityRoute:
+    return EntityRoute[entity_type.name]
+
+
+def route(entity_type: EntityType) -> str:
+    return f"/{_entity_type_to_route(entity_type)}"
+
+
+def upload_entity_asset(
+    client,
+    entity_type: EntityType,
+    entity_id: UUID,
+    files: dict[str, tuple],
+    label: str | None = None,
+):
+    """Attach a file to an entity
+
+    files maps to: (filename, file (or bytes), content_type, headers)
+    """
+    data = None
+    if label:
+        data = {"label": label}
+    return client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)

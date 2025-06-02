@@ -387,6 +387,22 @@ def validation_result_id(client, morphology_id):
     ).json()["id"]
 
 
+@pytest.fixture
+def memodel_calibration_result_id(client, memodel_id):
+    return assert_request(
+        client.post,
+        url="/memodel-calibration-result",
+        json={
+            "name": "test_memodel_calibration_result",
+            "calibrated_entity_id": str(memodel_id),
+            "authorized_public": False,
+            "threshold_current": 0.8,
+            "holding_current": 0.2,
+            "rin": 100.0,  # Optional field, can be None
+        },
+    ).json()["id"]
+
+
 CreateIds = Callable[[int], list[str]]
 
 
@@ -476,8 +492,6 @@ def create_memodel_ids(
                     emodel_id=emodel_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
-                    holding_current=0,
-                    threshold_current=0,
                 ),
             ).id
 
@@ -655,8 +669,6 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
                 emodel_id=emodel_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
-                holding_current=0,
-                threshold_current=0,
             ),
         )
 

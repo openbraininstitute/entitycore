@@ -7,9 +7,9 @@ from app.db.model import IonChannelModel
 from app.db.types import EntityType
 from app.schemas.ion_channel_model import IonChannelModelRead
 
-from .utils import PROJECT_ID, check_brain_region_filter
-from tests.routers.test_asset import _upload_entity_asset
+from .utils import PROJECT_ID, TEST_DATA_DIR, check_brain_region_filter, upload_entity_asset
 
+FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/ion-channel-model"
 
 
@@ -56,7 +56,13 @@ def test_read_one(client: TestClient, species_id: str, strain_id: str, brain_reg
     icm_res = create(client, species_id, strain_id, brain_region_id)
     icm: dict = icm_res.json()
     icm_id = icm.get("id")
-    _upload_entity_asset(client, EntityType.ion_channel_model, uuid.UUID(icm_id))
+    with FILE_EXAMPLE_PATH.open("rb") as f:
+        upload_entity_asset(
+            client,
+            EntityType.ion_channel_model,
+            uuid.UUID(icm_id),
+            files={"file": ("a/b/c.txt", f, "text/plain")},
+        )
 
     response = client.get(f"{ROUTE}/{icm_id}")
 

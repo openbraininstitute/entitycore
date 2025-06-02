@@ -381,7 +381,7 @@ class Entity(LegacyMixin, Identifiable):
 class Publication(Entity, NameDescriptionVectorMixin):
     """Database model for PublicationBase."""
 
-    __tablename__ = "publication"
+    __tablename__ = EntityType.publication.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     PMID: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)

@@ -40,7 +40,6 @@ def _load(select: sa.Select[tuple[EModel]]):
         selectinload(EModel.contributions).joinedload(Contribution.role),
         joinedload(EModel.mtypes),
         joinedload(EModel.etypes),
-        selectinload(EModel.assets),
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.species),
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),

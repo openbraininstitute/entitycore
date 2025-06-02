@@ -1,12 +1,10 @@
 from unittest.mock import ANY
-from uuid import UUID
 
 import pytest
 
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, EntityType
 from app.errors import ApiErrorCode
-from app.routers.asset import EntityRoute
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
 from app.utils.s3 import build_s3_path
@@ -18,6 +16,8 @@ from tests.utils import (
     VIRTUAL_LAB_ID,
     add_db,
     create_reconstruction_morphology_id,
+    route,
+    upload_entity_asset,
 )
 
 DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
@@ -25,28 +25,6 @@ DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 FILE_EXAMPLE_DIGEST = "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91"
 FILE_EXAMPLE_SIZE = 31
-
-
-def _entity_type_to_route(entity_type: EntityType) -> EntityRoute:
-    return EntityRoute[entity_type.name]
-
-
-def _route(entity_type: EntityType) -> str:
-    return f"/{_entity_type_to_route(entity_type)}"
-
-
-def _upload_entity_asset(
-    client, entity_type: EntityType, entity_id: UUID, label: str | None = None
-):
-    with FILE_EXAMPLE_PATH.open("rb") as f:
-        files = {
-            # (filename, file (or bytes), content_type, headers)
-            "file": ("a/b/c.txt", f, "text/plain")
-        }
-        data = None
-        if label:
-            data = {"label": label}
-        return client.post(f"{_route(entity_type)}/{entity_id}/assets", files=files, data=data)
 
 
 def _get_expected_full_path(entity, path):
@@ -71,6 +49,17 @@ def entity(client, species_id, strain_id, brain_region_id) -> Entity:
         authorized_public=False,
     )
     return Entity(id=entity_id, type=entity_type)
+
+
+def _upload_entity_asset(client, entity_type, entity_id, label=None):
+    with FILE_EXAMPLE_PATH.open("rb") as f:
+        files = {
+            # (filename, file (or bytes), content_type, headers)
+            "file": ("a/b/c.txt", f, "text/plain")
+        }
+        return upload_entity_asset(
+            client=client, entity_type=entity_type, entity_id=entity_id, files=files, label=label
+        )
 
 
 @pytest.fixture
@@ -178,7 +167,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
 
 
 def test_get_entity_asset(client, entity, asset):
-    response = client.get(f"{_route(entity.type)}/{entity.id}/assets/{asset.id}")
+    response = client.get(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
 
     assert response.status_code == 200, f"Failed to get asset: {response.text}"
     data = response.json()
@@ -197,20 +186,20 @@ def test_get_entity_asset(client, entity, asset):
     }
 
     # try to get an asset with non-existent entity id
-    response = client.get(f"{_route(entity.type)}/{MISSING_ID}/assets/{asset.id}")
+    response = client.get(f"{route(entity.type)}/{MISSING_ID}/assets/{asset.id}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to get an asset with non-existent asset id
-    response = client.get(f"{_route(entity.type)}/{entity.id}/assets/{MISSING_ID}")
+    response = client.get(f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
 
 def test_get_entity_assets(client, entity, asset):
-    response = client.get(f"{_route(entity.type)}/{entity.id}/assets")
+    response = client.get(f"{route(entity.type)}/{entity.id}/assets")
 
     assert response.status_code == 200, f"Failed to get asset: {response.text}"
     data = response.json()["data"]
@@ -231,7 +220,7 @@ def test_get_entity_assets(client, entity, asset):
     ]
 
     # try to get assets with non-existent entity id
-    response = client.get(f"{_route(entity.type)}/{MISSING_ID}/assets")
+    response = client.get(f"{route(entity.type)}/{MISSING_ID}/assets")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
@@ -239,7 +228,7 @@ def test_get_entity_assets(client, entity, asset):
 
 def test_download_entity_asset(client, entity, asset):
     response = client.get(
-        f"{_route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
         follow_redirects=False,
     )
 
@@ -250,20 +239,20 @@ def test_download_entity_asset(client, entity, asset):
     assert expected_params.issubset(response.next_request.url.params)
 
     # try to download an asset with non-existent entity id
-    response = client.get(f"{_route(entity.type)}/{MISSING_ID}/assets/{asset.id}/download")
+    response = client.get(f"{route(entity.type)}/{MISSING_ID}/assets/{asset.id}/download")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to download an asset with non-existent asset id
-    response = client.get(f"{_route(entity.type)}/{entity.id}/assets/{MISSING_ID}/download")
+    response = client.get(f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/download")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
     # when downloading a single file asset_path should not be passed as a parameter
     response = client.get(
-        f"{_route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
         params={"asset_path": "foo"},
         follow_redirects=False,
     )
@@ -273,21 +262,21 @@ def test_download_entity_asset(client, entity, asset):
 
 
 def test_delete_entity_asset(client, entity, asset):
-    response = client.delete(f"{_route(entity.type)}/{entity.id}/assets/{asset.id}")
+    response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
     assert response.status_code == 200, f"Failed to delete asset: {response.text}"
     data = response.json()
     assert data == asset.model_copy(update={"status": AssetStatus.DELETED}).model_dump(mode="json")
 
     # try to delete again the same asset
-    response = client.delete(f"{_route(entity.type)}/{entity.id}/assets/{asset.id}")
+    response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
 
     # try to delete an asset with non-existent entity id
-    response = client.delete(f"{_route(entity.type)}/{MISSING_ID}/assets/{asset.id}")
+    response = client.delete(f"{route(entity.type)}/{MISSING_ID}/assets/{asset.id}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
 
     # try to delete an asset with non-existent asset id
-    response = client.delete(f"{_route(entity.type)}/{entity.id}/assets/{MISSING_ID}")
+    response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
 
 
@@ -297,7 +286,7 @@ def test_upload_delete_upload_entity_asset(client, entity):
     data = response.json()
     asset0 = AssetRead.model_validate(data)
 
-    response = client.delete(f"{_route(entity.type)}/{entity.id}/assets/{asset0.id}")
+    response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset0.id}")
     assert response.status_code == 200, f"Failed to delete asset: {response.text}"
 
     # upload the asset with the same path
@@ -307,7 +296,7 @@ def test_upload_delete_upload_entity_asset(client, entity):
     asset1 = AssetRead.model_validate(data)
 
     # test that the deleted assets are filtered out
-    response = client.get(f"{_route(entity.type)}/{entity.id}/assets")
+    response = client.get(f"{route(entity.type)}/{entity.id}/assets")
 
     assert response.status_code == 200, f"Failed to get assest: {response.text}"
     data = response.json()["data"]
@@ -320,7 +309,7 @@ def test_upload_delete_upload_entity_asset(client, entity):
 
 def test_download_directory_file(client, entity, asset_directory):
     response = client.get(
-        url=f"{_route(entity.type)}/{entity.id}/assets/{asset_directory.id}/download",
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset_directory.id}/download",
         params={"asset_path": "file1.txt"},
         follow_redirects=False,
     )
@@ -328,7 +317,7 @@ def test_download_directory_file(client, entity, asset_directory):
 
     # asset_path is mandatory if the asset is a direcotory
     response = client.get(
-        url=f"{_route(entity.type)}/{entity.id}/assets/{asset_directory.id}/download",
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset_directory.id}/download",
         follow_redirects=False,
     )
     assert response.status_code == 409, (

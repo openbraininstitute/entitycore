@@ -2,6 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.asset import AssetsMixin
 from app.schemas.base import CreationMixin, IdentifiableMixin, SpeciesRead
 
 
@@ -13,7 +14,7 @@ class BrainAtlasBase(BaseModel):
     species: SpeciesRead
 
 
-class BrainAtlasRead(BrainAtlasBase, CreationMixin, IdentifiableMixin):
+class BrainAtlasRead(BrainAtlasBase, CreationMixin, IdentifiableMixin, AssetsMixin):
     pass
 
 
@@ -27,5 +28,5 @@ class BrainAtlasRegionBase(BaseModel):
     brain_region_id: uuid.UUID
 
 
-class BrainAtlasRegionRead(BrainAtlasRegionBase, CreationMixin, IdentifiableMixin):
+class BrainAtlasRegionRead(BrainAtlasRegionBase, CreationMixin, IdentifiableMixin, AssetsMixin):
     pass

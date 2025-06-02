@@ -1,13 +1,16 @@
 from operator import attrgetter
-from typing import cast
+from types import NoneType, UnionType
+from typing import cast, get_args, get_origin
 
+from fastapi_filter.base.filter import BaseFilterModel, with_prefix
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
-from pydantic import field_validator
+from pydantic import create_model, field_validator
 from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
 from app.db.model import Identifiable
+from app.logger import L
 
 Aliases = dict[type[Identifiable], type[Identifiable] | dict[str, type[Identifiable]]]
 
@@ -119,3 +122,36 @@ class CustomFilter[T: DeclarativeBase](Filter):
         if isinstance(attr, CustomFilter) and attr.has_filtering_fields():
             return attr
         return None
+
+
+def optional_filter_type(tp) -> type[BaseFilterModel] | None:
+    origin = get_origin(tp)
+    args = get_args(tp)
+    if origin is UnionType and NoneType in args:
+        for t in args:
+            if isinstance(t, type) and issubclass(t, BaseFilterModel):
+                return t
+    return None
+
+
+def with_nested_prefix(prefix: str, Filter: type[BaseFilterModel]) -> type[BaseFilterModel]:  # noqa: N803
+    """Allow re-using existing filter under a prefix, applied recursively for nested filters."""
+    L.warning("Processing filter {} with prefix {}", Filter, prefix)
+    new_fields = {}
+    for field_name, field_info in Filter.model_fields.items():
+        field_type = field_info.annotation
+        if actual_type := optional_filter_type(field_type):
+            new_field_type = with_nested_prefix(f"{prefix}__{field_name}", actual_type) | None
+            L.warning("{} is a field of type {} -> {}", field_name, field_type, new_field_type)
+        elif isinstance(field_type, type) and issubclass(field_type, BaseFilterModel):
+            new_field_type = with_nested_prefix(f"{prefix}__{field_name}", field_type)
+            L.warning("{} is a field of type {} -> {}", field_name, field_type, new_field_type)
+        else:
+            new_field_type = field_type
+        new_fields[field_name] = (
+            new_field_type,
+            field_info.default if field_info.default is not Ellipsis else ...,
+        )
+    new_model = create_model(Filter.__name__, __base__=BaseFilterModel, **new_fields)
+    new_model = with_prefix(prefix, new_model)
+    return new_model

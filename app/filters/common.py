@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter import FilterDepends
 
 from app.db.model import (
     Agent,
@@ -13,7 +13,7 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.filters.base import CustomFilter
+from app.filters.base import CustomFilter, with_nested_prefix
 
 
 class IdFilterMixin:
@@ -98,13 +98,13 @@ StrainFilterDep = Annotated[StrainFilter, FilterDepends(StrainFilter)]
 AgentFilterDep = Annotated[AgentFilter, FilterDepends(AgentFilter)]
 
 # Nested dependencies
-NestedMTypeClassFilterDep = FilterDepends(with_prefix("mtype", MTypeClassFilter))
-NestedETypeClassFilterDep = FilterDepends(with_prefix("etype", ETypeClassFilter))
-NestedSpeciesFilterDep = FilterDepends(with_prefix("species", SpeciesFilter))
-NestedStrainFilterDep = FilterDepends(with_prefix("strain", StrainFilter))
-NestedContributionFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
-NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", AgentFilter))
-NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", AgentFilter))
+NestedMTypeClassFilterDep = FilterDepends(with_nested_prefix("mtype", MTypeClassFilter))
+NestedETypeClassFilterDep = FilterDepends(with_nested_prefix("etype", ETypeClassFilter))
+NestedSpeciesFilterDep = FilterDepends(with_nested_prefix("species", SpeciesFilter))
+NestedStrainFilterDep = FilterDepends(with_nested_prefix("strain", StrainFilter))
+NestedContributionFilterDep = FilterDepends(with_nested_prefix("contribution", AgentFilter))
+NestedCreatedByFilterDep = FilterDepends(with_nested_prefix("created_by", AgentFilter))
+NestedUpdatedByFilterDep = FilterDepends(with_nested_prefix("updated_by", AgentFilter))
 
 
 class CreatorFilterMixin:
@@ -133,7 +133,7 @@ class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin
 
 
 SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
-NestedSubjectFilterDep = FilterDepends(with_prefix("subject", SubjectFilter))
+NestedSubjectFilterDep = FilterDepends(with_nested_prefix("subject", SubjectFilter))
 
 
 class SubjectFilterMixin:
@@ -151,7 +151,7 @@ class BrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
 
 
 BrainRegionFilterDep = Annotated[BrainRegionFilter, FilterDepends(BrainRegionFilter)]
-NestedBrainRegionFilterDep = FilterDepends(with_prefix("brain_region", BrainRegionFilter))
+NestedBrainRegionFilterDep = FilterDepends(with_nested_prefix("brain_region", BrainRegionFilter))
 
 
 class BrainRegionFilterMixin:

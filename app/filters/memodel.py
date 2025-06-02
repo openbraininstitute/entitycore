@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter import FilterDepends
 
 from app.db.model import MEModel, ValidationStatus
-from app.filters.base import CustomFilter
+from app.filters.base import CustomFilter, with_nested_prefix
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
@@ -40,4 +40,4 @@ class MEModelFilter(
 # Dependencies
 MEModelFilterDep = Annotated[MEModelFilter, FilterDepends(MEModelFilter)]
 # Nested dependencies
-NestedMEModelFilterDep = FilterDepends(with_prefix("me_model", MEModelFilter))
+NestedMEModelFilterDep = FilterDepends(with_nested_prefix("me_model", MEModelFilter))

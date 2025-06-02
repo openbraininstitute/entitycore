@@ -1,12 +1,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter import FilterDepends
 
 from app.db.model import MeasurementAnnotation, MeasurementItem, MeasurementKind
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
-from app.filters.base import CustomFilter
+from app.filters.base import CustomFilter, with_nested_prefix
 from app.filters.common import CreationFilterMixin
 
 
@@ -21,7 +21,7 @@ class MeasurementItemFilter(CustomFilter):
 
 
 NestedMeasurementItemFilterDep = FilterDepends(
-    with_prefix("measurement_item", MeasurementItemFilter)
+    with_nested_prefix("measurement_item", MeasurementItemFilter)
 )
 
 
@@ -36,7 +36,7 @@ class MeasurementKindFilter(CustomFilter):
 
 
 NestedMeasurementKindFilterDep = FilterDepends(
-    with_prefix("measurement_kind", MeasurementKindFilter)
+    with_nested_prefix("measurement_kind", MeasurementKindFilter)
 )
 
 
@@ -65,7 +65,7 @@ MeasurementAnnotationFilterDep = Annotated[
     MeasurementAnnotationFilter, FilterDepends(MeasurementAnnotationFilter)
 ]
 NestedMeasurementAnnotationFilterDep = FilterDepends(
-    with_prefix("measurement_annotation", NestedMeasurementAnnotationFilter)
+    with_nested_prefix("measurement_annotation", NestedMeasurementAnnotationFilter)
 )
 
 

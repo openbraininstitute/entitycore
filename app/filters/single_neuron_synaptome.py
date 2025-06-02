@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter import FilterDepends
 
 from app.db.model import SingleNeuronSynaptome
-from app.filters.base import CustomFilter
+from app.filters.base import CustomFilter, with_nested_prefix
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
@@ -33,5 +33,5 @@ SingleNeuronSynaptomeFilterDep = Annotated[
 ]
 # Nested dependencies
 NestedSingleNeuronSynaptomeFilterDep = FilterDepends(
-    with_prefix("synaptome", SingleNeuronSynaptomeFilter)
+    with_nested_prefix("synaptome", SingleNeuronSynaptomeFilter)
 )

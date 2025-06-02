@@ -1,9 +1,9 @@
 from typing import Annotated
 
-from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter import FilterDepends
 
 from app.db.model import ReconstructionMorphology
-from app.filters.base import CustomFilter
+from app.filters.base import CustomFilter, with_nested_prefix
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
@@ -34,7 +34,7 @@ class MorphologyFilter(
 MorphologyFilterDep = Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)]
 
 # Nested dependencies
-NestedMorphologyFilterDep = FilterDepends(with_prefix("morphology", MorphologyFilter))
+NestedMorphologyFilterDep = FilterDepends(with_nested_prefix("morphology", MorphologyFilter))
 NestedExemplarMorphologyFilterDep = FilterDepends(
-    with_prefix("exemplar_morphology", MorphologyFilter)
+    with_nested_prefix("exemplar_morphology", MorphologyFilter)
 )

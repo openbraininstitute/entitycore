@@ -7,7 +7,7 @@ from app.db.model import (
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
 )
-from app.filters.base import CustomFilter
+from app.filters.base import CustomFilter, with_nested_prefix
 from app.filters.common import (
     BrainRegionFilter,
     BrainRegionFilterMixin,
@@ -17,7 +17,6 @@ from app.filters.common import (
     MTypeClassFilterMixin,
     NameFilterMixin,
     SubjectFilterMixin,
-    with_prefix,
 )
 
 
@@ -64,16 +63,17 @@ class ExperimentalSynapsesPerConnectionFilter(
     DensityFilterBase,
 ):
     pre_mtype: Annotated[
-        MTypeClassFilter | None, FilterDepends(with_prefix("pre_mtype", MTypeClassFilter))
+        MTypeClassFilter | None, FilterDepends(with_nested_prefix("pre_mtype", MTypeClassFilter))
     ] = None
     post_mtype: Annotated[
-        MTypeClassFilter | None, FilterDepends(with_prefix("post_mtype", MTypeClassFilter))
+        MTypeClassFilter | None, FilterDepends(with_nested_prefix("post_mtype", MTypeClassFilter))
     ] = None
     pre_region: Annotated[
-        BrainRegionFilter | None, FilterDepends(with_prefix("pre_region", BrainRegionFilter))
+        BrainRegionFilter | None, FilterDepends(with_nested_prefix("pre_region", BrainRegionFilter))
     ] = None
     post_region: Annotated[
-        BrainRegionFilter | None, FilterDepends(with_prefix("post_region", BrainRegionFilter))
+        BrainRegionFilter | None,
+        FilterDepends(with_nested_prefix("post_region", BrainRegionFilter)),
     ] = None
 
     class Constants(CustomFilter.Constants):

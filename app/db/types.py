@@ -62,6 +62,7 @@ class EntityType(StrEnum):
     reconstruction_morphology = auto()
     electrical_cell_recording = auto()
     electrical_recording_stimulus = auto()
+    scientific_artifact = auto()
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()
     single_neuron_synaptome_simulation = auto()

@@ -59,7 +59,6 @@ def test_get_emodel(client: TestClient, emodel_id: str):
     assert "assets" in data
     assert len(data["assets"]) == 1
     assert "ion_channel_models" in data
-    assert "electrical_cell_recordings" in data
     assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 

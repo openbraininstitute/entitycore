@@ -8,7 +8,6 @@ from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BasicEntityRead,
     BrainRegionRead,
     CreationMixin,
     EntityTypeMixin,
@@ -61,4 +60,3 @@ class EModelRead(
 
 class EModelReadExpanded(EModelRead, AssetsMixin):
     ion_channel_models: list[IonChannelModelWAssets]
-    electrical_cell_recordings: list[BasicEntityRead]

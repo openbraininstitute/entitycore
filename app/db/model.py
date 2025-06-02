@@ -459,12 +459,6 @@ class EModel(
         viewonly=True,
         order_by="IonChannelModel.creation_date",
     )
-    electrical_cell_recordings: Mapped[list["ElectricalCellRecording"]] = relationship(
-        primaryjoin="EModel.id == Derivation.generated_id",
-        secondaryjoin="Entity.id == Derivation.used_id",
-        secondary="derivation",
-        viewonly=True,
-    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

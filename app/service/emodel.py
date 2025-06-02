@@ -44,7 +44,6 @@ def _load(select: sa.Select[tuple[EModel]]):
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.strain),
         selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
         selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
-        selectinload(EModel.electrical_cell_recordings),
         joinedload(EModel.created_by),
         joinedload(EModel.updated_by),
         raiseload("*"),

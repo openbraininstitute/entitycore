@@ -23,8 +23,8 @@ class PublicationType(StrEnum):
 class Author(TypedDict):
     """The names of authors of a publication."""
 
-    name: str
-    lastname: str
+    given_name: str
+    family_name: str
 
 
 # where was the artifact published?

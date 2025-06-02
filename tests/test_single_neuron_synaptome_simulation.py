@@ -3,7 +3,7 @@ import uuid
 
 import pytest
 
-from app.db.model import MEModel, SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation
+from app.db.model import Agent, MEModel, SingleNeuronSynaptome, SingleNeuronSynaptomeSimulation
 from app.db.types import EntityType
 
 from .utils import (
@@ -317,7 +317,7 @@ def faceted_ids(db, client, brain_region_hierarchy_id, memodel_id, person_id):
 def test_facets(db, client, faceted_ids):
     brain_region_ids, synaptome_ids, sim_ids = faceted_ids
 
-    agent = db.get(MODEL, sim_ids[0]).created_by
+    agent = db.get(Agent, db.get(MODEL, sim_ids[0]).created_by_id)
 
     data = assert_request(
         client.get,

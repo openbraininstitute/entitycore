@@ -7,6 +7,8 @@ from fastapi_filter import FilterDepends, with_prefix
 from app.db.model import (
     Agent,
     BrainRegion,
+    Contribution,
+    Entity,
     ETypeClass,
     MTypeClass,
     Species,
@@ -51,16 +53,6 @@ class ETypeClassFilter(CustomFilter):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
 
 
-class StrainFilter(NameFilterMixin, CustomFilter):
-    id: uuid.UUID | None = None
-
-    order_by: list[str] = ["name"]  # noqa: RUF012
-
-    class Constants(CustomFilter.Constants):
-        model = Strain
-        ordering_model_fields = ["name"]  # noqa: RUF012
-
-
 class AgentFilter(CustomFilter):
     id: uuid.UUID | None = None
     pref_label: str | None = None
@@ -83,16 +75,15 @@ class CreationFilterMixin:
 # Dependencies
 MTypeClassFilterDep = Annotated[MTypeClassFilter, FilterDepends(MTypeClassFilter)]
 ETypeClassFilterDep = Annotated[ETypeClassFilter, FilterDepends(ETypeClassFilter)]
-StrainFilterDep = Annotated[StrainFilter, FilterDepends(StrainFilter)]
 AgentFilterDep = Annotated[AgentFilter, FilterDepends(AgentFilter)]
 
 # Nested dependencies
 NestedMTypeClassFilterDep = FilterDepends(with_prefix("mtype", MTypeClassFilter))
 NestedETypeClassFilterDep = FilterDepends(with_prefix("etype", ETypeClassFilter))
-NestedStrainFilterDep = FilterDepends(with_prefix("strain", StrainFilter))
 NestedContributionFilterDep = FilterDepends(with_prefix("contribution", AgentFilter))
 NestedCreatedByFilterDep = FilterDepends(with_prefix("created_by", AgentFilter))
 NestedUpdatedByFilterDep = FilterDepends(with_prefix("updated_by", AgentFilter))
+NestedAgentFilterDep = FilterDepends(with_prefix("agent", AgentFilter))
 
 
 class CreatorFilterMixin:
@@ -113,17 +104,62 @@ class NestedSpeciesFilter(NameFilterMixin, CustomFilter):
 
 
 class SpeciesFilter(NestedSpeciesFilter, CreationFilterMixin, CreatorFilterMixin):
-    """Full species filter for filtering standalone species."""
+    """Full species filter."""
 
 
 SpeciesFilterDep = Annotated[SpeciesFilter, FilterDepends(SpeciesFilter)]
 NestedSpeciesFilterDep = FilterDepends(with_prefix("species", NestedSpeciesFilter))
 
 
+class NestedStrainFilter(NameFilterMixin, CustomFilter):
+    id: uuid.UUID | None = None
+
+    order_by: list[str] = ["name"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = Strain
+        ordering_model_fields = ["name"]  # noqa: RUF012
+
+
+class StrainFilter(NestedStrainFilter, CreationFilterMixin, CreatorFilterMixin):
+    """Full strain filter."""
+
+
+StrainFilterDep = Annotated[StrainFilter, FilterDepends(StrainFilter)]
+NestedStrainFilterDep = FilterDepends(with_prefix("strain", NestedStrainFilter))
+
+
 class SpeciesFilterMixin:
     species_id__in: list[int] | None = None
     species: Annotated[NestedSpeciesFilter | None, NestedSpeciesFilterDep] = None
-    strain: Annotated[StrainFilter | None, NestedStrainFilterDep] = None
+    strain: Annotated[NestedStrainFilter | None, NestedStrainFilterDep] = None
+
+
+class NestedEntityFilter(CustomFilter, IdFilterMixin):
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = Entity
+        ordering_model_fields = ["-creation_date"]  # noqa: RUF012
+
+
+NestedEntityFilterDep = FilterDepends(with_prefix("entity", NestedEntityFilter))
+
+
+class ContributionFilter(CustomFilter, CreationFilterMixin, CreatorFilterMixin):
+    id: uuid.UUID | None = None
+
+    agent: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
+    entity: Annotated[NestedEntityFilter | None, NestedEntityFilterDep] = None
+
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = Contribution
+        ordering_model_fields = ["-creation_date"]  # noqa: RUF012
+
+
+ContributionFilterDep = Annotated[ContributionFilter, FilterDepends(ContributionFilter)]
 
 
 class ContributionFilterMixin:

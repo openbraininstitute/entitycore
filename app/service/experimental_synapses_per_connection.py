@@ -163,4 +163,5 @@ def create_one(
         user_context=user_context,
         db_model_class=ExperimentalSynapsesPerConnection,
         response_schema_class=ExperimentalSynapsesPerConnectionRead,
+        apply_operations=_load,
     )

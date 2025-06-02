@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
@@ -14,5 +16,20 @@ class SpeciesRead(SpeciesCreate, CreationMixin, CreatedByUpdatedByMixin, Identif
     pass
 
 
-class NestedSpeciesRead(SpeciesCreate, CreationMixin, IdentifiableMixin):
+class NestedSpeciesRead(SpeciesCreate, IdentifiableMixin):
+    pass
+
+
+class StrainCreate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    name: str
+    taxonomy_id: str
+    species_id: UUID
+
+
+class StrainRead(StrainCreate, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
+    pass
+
+
+class NestedStrainRead(StrainCreate, IdentifiableMixin):
     pass

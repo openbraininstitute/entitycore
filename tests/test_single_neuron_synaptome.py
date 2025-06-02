@@ -3,6 +3,7 @@ import itertools as it
 import pytest
 
 from app.db.model import (
+    Agent,
     Contribution,
     MEModel,
     SingleNeuronSynaptome,
@@ -292,7 +293,7 @@ def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, cr
 def test_facets(db, client, faceted_ids):
     brain_region_ids, memodel_ids, syn_ids = faceted_ids
 
-    agent = db.get(MODEL, syn_ids[0]).created_by
+    agent = db.get(Agent, db.get(MODEL, syn_ids[0]).created_by_id)
 
     data = assert_request(
         client.get,

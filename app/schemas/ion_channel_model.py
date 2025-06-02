@@ -2,6 +2,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
@@ -10,10 +11,9 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
-    StrainRead,
 )
-from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.species import NestedSpeciesRead
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 
 class UseIon(BaseModel):
@@ -53,7 +53,7 @@ class IonChannelModelRead(
     IonChannelModelBase, CreationMixin, IdentifiableMixin, AuthorizationMixin, EntityTypeMixin
 ):
     species: NestedSpeciesRead
-    strain: StrainRead | None
+    strain: NestedStrainRead | None
     brain_region: BrainRegionRead
 
 
@@ -61,5 +61,7 @@ class IonChannelModelWAssets(IonChannelModelRead, AssetsMixin):
     pass
 
 
-class IonChannelModelExpanded(IonChannelModelWAssets):
-    contributions: list[ContributionReadWithoutEntity]
+class IonChannelModelExpanded(
+    IonChannelModelWAssets, CreatedByUpdatedByMixin, ContributionReadWithoutEntityMixin
+):
+    pass

@@ -100,6 +100,7 @@ def create_one(
         db_model_class=ReconstructionMorphology,
         json_model=reconstruction,
         response_schema_class=ReconstructionMorphologyRead,
+        apply_operations=_load_from_db,
     )
 
 

@@ -1,7 +1,7 @@
 import uuid
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import Subject, ValidationResult
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -21,6 +21,9 @@ from app.schemas.validation import ValidationResultCreate, ValidationResultRead
 def _load(query: sa.Select):
     return query.options(
         joinedload(Subject.species),
+        joinedload(ValidationResult.created_by),
+        joinedload(ValidationResult.updated_by),
+        raiseload("*"),
     )
 
 
@@ -50,6 +53,7 @@ def create_one(
         db_model_class=ValidationResult,
         json_model=json_model,
         response_schema_class=ValidationResultRead,
+        apply_operations=_load,
     )
 
 

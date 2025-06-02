@@ -2,9 +2,9 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.agent import AgentRead
+from app.schemas.agent import AgentRead, CreatedByUpdatedByMixin
 from app.schemas.base import CreationMixin, IdentifiableMixin
-from app.schemas.entity import EntityRead
+from app.schemas.entity import NestedEntityRead
 from app.schemas.role import RoleRead
 
 # LNMC contributions
@@ -24,16 +24,16 @@ class ContributionCreate(ContributionBase):
     entity_id: uuid.UUID
 
 
-class ContributionRead(ContributionBase, CreationMixin, IdentifiableMixin):
+class NestedContributionRead(ContributionBase, IdentifiableMixin):
     agent: AgentRead
     role: RoleRead
-    entity: EntityRead
 
 
-class ContributionReadWithoutEntity(ContributionBase, CreationMixin, IdentifiableMixin):
-    agent: AgentRead
-    role: RoleRead
+class ContributionRead(
+    NestedContributionRead, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
+):
+    entity: NestedEntityRead
 
 
 class ContributionReadWithoutEntityMixin(BaseModel):
-    contributions: list[ContributionReadWithoutEntity] | None
+    contributions: list[NestedContributionRead] | None

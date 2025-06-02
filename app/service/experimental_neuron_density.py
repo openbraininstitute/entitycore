@@ -139,4 +139,5 @@ def create_one(
         user_context=user_context,
         db_model_class=ExperimentalNeuronDensity,
         response_schema_class=ExperimentalNeuronDensityRead,
+        apply_operations=_load,
     )

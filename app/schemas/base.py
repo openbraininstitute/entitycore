@@ -80,17 +80,6 @@ class BrainRegionReadMixin(BaseModel):
     brain_region: BrainRegionRead
 
 
-class StrainCreate(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    name: str
-    taxonomy_id: str
-    species_id: uuid.UUID
-
-
-class StrainRead(StrainCreate, CreationMixin, IdentifiableMixin):
-    pass
-
-
 class LicensedCreateMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     license_id: uuid.UUID | None = None

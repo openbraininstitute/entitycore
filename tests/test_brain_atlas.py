@@ -103,13 +103,13 @@ def test_brain_atlas(db, client, species_id, person_id):
         "id": str(brain_atlas0.id),
         "name": "test brain atlas",
         "species": {
-            "creation_date": ANY,
             "id": species_id,
             "name": "Test Species",
             "taxonomy_id": "12345",
-            "update_date": ANY,
         },
         "update_date": ANY,
+        "created_by": ANY,
+        "updated_by": ANY,
     }
 
     response = client.get(ROUTE)

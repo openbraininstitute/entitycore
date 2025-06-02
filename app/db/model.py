@@ -23,6 +23,7 @@ from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     declared_attr,
+    foreign,
     mapped_column,
     relationship,
     validates,
@@ -99,7 +100,12 @@ class Identifiable(TimestampMixin, Base):
     @declared_attr
     @classmethod
     def created_by(cls) -> Mapped["Agent"]:
-        return relationship("Agent", uselist=False, foreign_keys=cls.created_by_id)
+        return relationship(
+            "Agent",
+            primaryjoin=lambda: cls.created_by_id == foreign(Agent.id),
+            uselist=False,
+            viewonly=True,
+        )
 
     @declared_attr
     @classmethod
@@ -109,7 +115,12 @@ class Identifiable(TimestampMixin, Base):
     @declared_attr
     @classmethod
     def updated_by(cls) -> Mapped["Agent"]:
-        return relationship("Agent", uselist=False, foreign_keys=cls.updated_by_id)
+        return relationship(
+            "Agent",
+            primaryjoin=lambda: cls.updated_by_id == foreign(Agent.id),
+            uselist=False,
+            viewonly=True,
+        )
 
 
 class NameDescriptionVectorMixin(Base):

@@ -89,9 +89,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     if user_context:
         db_agent = get_or_create_user_agent(db, user_context.profile)
         created_by_id = updated_by_id = db_agent.id
-
-        if isinstance(user_context, UserContextWithProjectId):
-            project_id = user_context.project_id
+        project_id = user_context.project_id
 
     db_model_instance = load_db_model_from_pydantic(
         json_model,

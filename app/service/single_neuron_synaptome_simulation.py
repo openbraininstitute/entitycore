@@ -70,6 +70,7 @@ def create_one(
         user_context=user_context,
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
+        apply_operations=_load,
     )
 
 

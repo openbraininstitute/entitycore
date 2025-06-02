@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import sqlalchemy as sa
 from fastapi import HTTPException, Response
+from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
 from app.db.model import BrainRegion, BrainRegionHierarchy
@@ -12,6 +13,14 @@ from app.dependencies.db import SessionDep
 from app.filters.brain_region_hierarchy import BrainRegionHierarchyFilterDep
 from app.schemas.brain_region_hierarchy import BrainRegionHierarchyRead
 from app.schemas.types import ListResponse
+
+
+def _load(query: sa.Select):
+    return query.options(
+        joinedload(BrainRegionHierarchy.created_by),
+        joinedload(BrainRegionHierarchy.updated_by),
+        raiseload("*"),
+    )
 
 
 def read_many(
@@ -28,7 +37,7 @@ def read_many(
         facets=None,
         aliases=None,
         apply_filter_query_operations=None,
-        apply_data_query_operations=None,
+        apply_data_query_operations=_load,
         pagination_request=pagination_request,
         response_schema_class=BrainRegionHierarchyRead,
         name_to_facet_query_params=None,
@@ -43,7 +52,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyRead:
         db_model_class=BrainRegionHierarchy,
         authorized_project_id=None,
         response_schema_class=BrainRegionHierarchyRead,
-        apply_operations=None,
+        apply_operations=_load,
     )
 
 

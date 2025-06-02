@@ -4,6 +4,7 @@ from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     add_db,
+    check_creation_fields,
     create_person,
     create_reconstruction_morphology_id,
 )
@@ -48,6 +49,7 @@ def test_create_contribution(
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == reconstruction_morphology_id
+    check_creation_fields(data)
 
     contribution_id = data["id"]
 
@@ -63,6 +65,7 @@ def test_create_contribution(
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == reconstruction_morphology_id
     assert data["id"] == contribution_id
+    check_creation_fields(data)
 
     response = client.post(
         ROUTE,
@@ -78,6 +81,7 @@ def test_create_contribution(
     assert data["agent"]["pref_label"] == "ACME"
     assert data["agent"]["alternative_name"] == "A Company Making Everything"
     assert data["agent"]["type"] == "organization"
+    check_creation_fields(data)
 
     response = client.get(ROUTE)
     assert response.status_code == 200

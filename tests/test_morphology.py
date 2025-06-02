@@ -1,6 +1,6 @@
 import itertools as it
 
-from app.db.model import ReconstructionMorphology, Species, Strain
+from app.db.model import Agent, ReconstructionMorphology, Species, Strain
 from app.db.types import EntityType
 
 from .utils import (
@@ -142,7 +142,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id, person_id)
     count = 11
     create_morphologies(count)
 
-    agent = db.get(ReconstructionMorphology, morphology_ids[0]).created_by
+    agent = db.get(Agent, db.get(ReconstructionMorphology, morphology_ids[0]).created_by_id)
 
     response = client.get(ROUTE, params={"page_size": 10})
 

@@ -15,11 +15,10 @@ from app.schemas.base import (
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
-    StrainRead,
 )
-from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
-from app.schemas.species import NestedSpeciesRead
+from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 
 class ReconstructionMorphologyBase(BaseModel):
@@ -50,11 +49,11 @@ class ReconstructionMorphologyRead(
     AssetsMixin,
     EntityTypeMixin,
     CreatedByUpdatedByMixin,
+    ContributionReadWithoutEntityMixin,
 ):
     species: NestedSpeciesRead
-    strain: StrainRead | None
+    strain: NestedStrainRead | None
     brain_region: BrainRegionRead
-    contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
 
 

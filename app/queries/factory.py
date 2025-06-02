@@ -5,6 +5,7 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     EModel,
+    Entity,
     ETypeClass,
     ETypeClassification,
     Identifiable,
@@ -46,7 +47,7 @@ def query_params_factory[I: Identifiable](
         value = aliases.get(db_cls, db_cls)
         if isinstance(value, dict):
             assert name is not None  # noqa: S101
-            value = value[name]
+            value = value.get(name, db_cls)
         assert value is not None  # noqa: S101
         return cast("T", value)
 
@@ -55,15 +56,22 @@ def query_params_factory[I: Identifiable](
     me_model_alias = _get_alias(MEModel)
     synaptome_alias = _get_alias(SingleNeuronSynaptome)
     subject_alias = _get_alias(Subject)
-    agent_alias = _get_alias(Agent, "contribution")
+    agent_alias = _get_alias(Agent, "agent")
+    contribution_alias = _get_alias(Agent, "contribution")
     created_by_alias = _get_alias(Agent, "created_by")
     updated_by_alias = _get_alias(Agent, "updated_by")
     pre_mtype_alias = _get_alias(MTypeClass, "pre_mtype")
     post_mtype_alias = _get_alias(MTypeClass, "post_mtype")
     pre_region_alias = _get_alias(BrainRegion, "pre_region")
     post_region_alias = _get_alias(BrainRegion, "post_region")
+    entity_alias = _get_alias(Entity)
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
+        "agent": {
+            "id": agent_alias.id,
+            "label": agent_alias.pref_label,
+            "type": agent_alias.type,
+        },
         "mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
         "etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
         "species": {"id": Species.id, "label": Species.name},
@@ -71,9 +79,9 @@ def query_params_factory[I: Identifiable](
         "subject.species": {"id": Species.id, "label": Species.name},
         "subject.strain": {"id": Strain.id, "label": Strain.name},
         "contribution": {
-            "id": agent_alias.id,
-            "label": agent_alias.pref_label,
-            "type": agent_alias.type,
+            "id": contribution_alias.id,
+            "label": contribution_alias.pref_label,
+            "type": contribution_alias.type,
         },
         "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
         "morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
@@ -106,6 +114,7 @@ def query_params_factory[I: Identifiable](
             morphology_alias, db_model_class.exemplar_morphology_id == morphology_alias.id
         ),
         "emodel": lambda q: q.join(emodel_alias, db_model_class.emodel_id == emodel_alias.id),
+        "entity": lambda q: q.join(entity_alias, db_model_class.entity_id == entity_alias.id),
         "me_model": lambda q: q.join(
             me_model_alias, db_model_class.me_model_id == me_model_alias.id
         ),
@@ -115,9 +124,10 @@ def query_params_factory[I: Identifiable](
         "brain_region": lambda q: q.join(
             BrainRegion, db_model_class.brain_region_id == BrainRegion.id
         ),
+        "agent": lambda q: q.join(Agent, db_model_class.agent_id == Agent.id),
         "contribution": lambda q: q.outerjoin(
             Contribution, db_model_class.id == Contribution.entity_id
-        ).outerjoin(agent_alias, Contribution.agent_id == agent_alias.id),
+        ).outerjoin(contribution_alias, Contribution.agent_id == contribution_alias.id),
         "mtype": lambda q: q.outerjoin(
             MTypeClassification, db_model_class.id == MTypeClassification.entity_id
         ).outerjoin(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),

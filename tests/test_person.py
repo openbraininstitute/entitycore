@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 
 ROUTE = "/person"
@@ -14,12 +16,14 @@ def test_create_person(client, client_admin):
     assert data["family_name"] == "courcol"
     assert "id" in data
     id_ = data["id"]
+    assert data["sub_id"] == ANY
 
     response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
     assert data["given_name"] == "jd"
     assert data["id"] == id_
+    assert data["sub_id"] == ANY
 
     response = client.get(ROUTE)
     assert response.status_code == 200
@@ -27,6 +31,7 @@ def test_create_person(client, client_admin):
     assert data[0]["given_name"] == "jd"
     assert data[0]["id"] == id_
     assert len(data) == 1
+    assert data[0]["sub_id"] == ANY
 
 
 def test_missing(client):

@@ -52,7 +52,7 @@ class PublicationCreate(PublicationBase):
     """Create a publication."""
 
 
-class PublishedInBase(BaseModel):
+class ScientificArtifactPublicationLinkBase(BaseModel):
     """Based class for linking a scientific artifact to a publication."""
 
     publication_id: UUID
@@ -60,7 +60,7 @@ class PublishedInBase(BaseModel):
     scientific_artifact_id: UUID
 
 
-class PublishedInCreate(PublishedInBase):
+class ScientificArtifactPublicationLinkCreate(ScientificArtifactPublicationLinkBase):
     """Create a link between a scientific artifact and a publication."""
 
 

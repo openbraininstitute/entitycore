@@ -81,6 +81,19 @@ class AgentType(StrEnum):
     organization = auto()
 
 
+class DerivationType(StrEnum):
+    """Represents the type of derivation relationship between two entities.
+
+    Attributes:
+        circuit_extraction: Indicates that the entity was derived by extracting a set of nodes from 
+         a circuit.
+        circuit_rewiring: Indicates that the entity was derived by rewiring the connectivity of
+          a circuit.
+    """
+    circuit_extraction = auto()
+    circuit_rewiring = auto()
+
+
 class AnnotationBodyType(StrEnum):
     """AnnotationBody types."""
 

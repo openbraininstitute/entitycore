@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
@@ -43,6 +44,7 @@ from app.db.types import (
     AssetStatus,
     CircuitBuildCategory,
     CircuitScale,
+    DerivationType,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
@@ -1052,35 +1054,53 @@ class ScientificArtifactPublicationLink(Identifiable):
 
 
 class Circuit(ScientificArtifact):
+    """Represents a neural circuit as a scientific artifact.
+
+       It can be a single neuron up to a whole brain model.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        root_circuit_id (uuid.UUID | None): Optional reference to the root circuit
+            (self-referential).
+        root_circuit (Circuit | None): Relationship to the root Circuit instance. A root
+            circuit does not derive from another circuit.
+        atlas_id (uuid.UUID | None): Optional reference to the associated BrainAtlas.
+        atlas (BrainAtlas | None): Relationship to the BrainAtlas instance.
+        build_category (CircuitBuildCategory): Category describing how the circuit was built.
+        scale (CircuitScale): Scale of the circuit (e.g., microcircuit, mesocircuit).
+        has_morphologies (bool): Indicates if the circuit includes morphologies.
+        has_point_neurons (bool): Indicates if the circuit includes point neurons.
+        has_electrical_cell_models (bool): Indicates if the circuit includes electrical cell models.
+        has_spines (bool): Indicates if the circuit includes spines.
+        number_neurons (int): Number of neurons in the circuit.
+        number_synapses (int): Number of synapses in the circuit.
+        number_connections (int | None): Number of connections in the circuit, if available.
+
+    Notes:
+        - Inherits additional attributes from ScientificArtifact (e.g., name, description,
+          brain_region).
+        - References to assets such as SONATA circuit folders, connectivity matrices,
+          figures, and statistics.
+        - Asset: folder containing SONATA circuit files.
+    """
     __tablename__ = "circuit"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
-
-    # Derived from ScientificArtifact:
-    # - name: ...
-    # - description: ...
-    # - brain_region: ...
-    # - specific_brain_regions: ...
-    # - published_in: ...
-    # - ...
-
-    # Asset(s):
-    # - sonata_circuit: Folder containing SONATA circuit
 
     # Still missing:
     # - connectivity_matrices: Folder containing multiple .h5 files in ConnectomeUtilities format
     # - circuit_figures: Folder containing all pre-computed overview figures
     # - circuit_statistics: Folder containing all pre-computed circuit statistics
-    
-    parent_circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True, nullable=True, default=None)
-    parent_circuit: Mapped[Circuit] = relationship("Circuit", uselist=False, foreign_keys=[parent_circuit_id])
 
-    root_circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True, nullable=True, default=None)
-    root_circuit: Mapped[Circuit] = relationship("Circuit", uselist=False, foreign_keys=[root_circuit_id])
+    root_circuit_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("circuit.id"), index=True, nullable=True, default=None
+    )
+    root_circuit: Mapped[Circuit] = relationship(
+        "Circuit", uselist=False, foreign_keys=[root_circuit_id]
+    )
 
-    was_derived_from_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True, nullable=True, default=None)
-    was_derived_from: Mapped[Circuit] = relationship("Circuit", uselist=False, foreign_keys=[was_derived_from_id])
-
-    atlas_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_atlas.id"), index=True, nullable=True, default=None)
+    atlas_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_atlas.id"), index=True, nullable=True, default=None
+    )
     atlas: Mapped[BrainAtlas] = relationship("BrainAtlas", uselist=False, foreign_keys=[atlas_id])
 
     build_category: Mapped[CircuitBuildCategory]
@@ -1097,7 +1117,7 @@ class Circuit(ScientificArtifact):
 
     # To be added later:
     # version: Mapped[str] = mapped_column(default="")
-    
+
     # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id"), index=True, nullable=False, default=None)
     # building_workflow: Mapped[BuildingWorkflow] = relationship("BuildingWorkflow", uselist=False, foreign_keys=[building_workflow_id])
 

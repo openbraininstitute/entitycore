@@ -15,8 +15,8 @@ from app.db.model import (
     ElectricalRecordingStimulus,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
     Person,
+    ReconstructionMorphology,
 )
 from app.db.types import EntityType
 from app.routers.asset import EntityRoute
@@ -184,7 +184,7 @@ def attach_mtype(db, entity_id, mtype_id):
     return add_db(db, MTypeClassification(entity_id=str(entity_id), mtype_class_id=str(mtype_id)))
 
 
-def create_electrical_recording_stimulus_id(db, recording_id):
+def create_electrical_recording_stimulus_id(db, recording_id, created_by_id):
     return add_db(
         db,
         ElectricalRecordingStimulus(
@@ -198,6 +198,8 @@ def create_electrical_recording_stimulus_id(db, recording_id):
             recording_id=recording_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
         ),
     ).id
 
@@ -215,9 +217,11 @@ def create_electrical_cell_recording_db(db, client, json_data):
 def create_electrical_cell_recording_id_with_assets(db, client, tmp_path, json_data):
     trace_id = create_electrical_cell_recording_id(client, json_data)
 
+    trace = db.get(ElectricalCellRecording, trace_id)
+
     # add two protocols that refer to it
-    create_electrical_recording_stimulus_id(db, trace_id)
-    create_electrical_recording_stimulus_id(db, trace_id)
+    create_electrical_recording_stimulus_id(db, trace_id, created_by_id=trace.created_by_id)
+    create_electrical_recording_stimulus_id(db, trace_id, created_by_id=trace.created_by_id)
 
     filepath = tmp_path / "trace.nwb"
     filepath.write_bytes(b"trace")

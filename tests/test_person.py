@@ -1,5 +1,5 @@
-from unittest.mock import ANY
 import uuid
+from unittest.mock import ANY
 
 from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 

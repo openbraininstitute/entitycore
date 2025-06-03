@@ -1,8 +1,8 @@
 """created_by
 
-Revision ID: 502574fb5f58
-Revises: 8d1610d7c882
-Create Date: 2025-05-28 09:35:26.483125
+Revision ID: 7fe565907ec6
+Revises: 8f0d631d2bd4
+Create Date: 2025-06-03 19:36:05.015120
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "502574fb5f58"
-down_revision: Union[str, None] = "8d1610d7c882"
+revision: str = "7fe565907ec6"
+down_revision: Union[str, None] = "8f0d631d2bd4"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -29,10 +29,10 @@ def upgrade() -> None:
     op.create_index(op.f("ix_agent_created_by_id"), "agent", ["created_by_id"], unique=False)
     op.create_index(op.f("ix_agent_updated_by_id"), "agent", ["updated_by_id"], unique=False)
     op.create_foreign_key(
-        op.f("fk_agent_updated_by_id_agent"), "agent", "agent", ["updated_by_id"], ["id"]
+        op.f("fk_agent_created_by_id_agent"), "agent", "agent", ["created_by_id"], ["id"]
     )
     op.create_foreign_key(
-        op.f("fk_agent_created_by_id_agent"), "agent", "agent", ["created_by_id"], ["id"]
+        op.f("fk_agent_updated_by_id_agent"), "agent", "agent", ["updated_by_id"], ["id"]
     )
     op.add_column("annotation", sa.Column("created_by_id", sa.Uuid(), nullable=False))
     op.add_column("annotation", sa.Column("updated_by_id", sa.Uuid(), nullable=False))
@@ -57,17 +57,17 @@ def upgrade() -> None:
         op.f("ix_annotation_body_updated_by_id"), "annotation_body", ["updated_by_id"], unique=False
     )
     op.create_foreign_key(
-        op.f("fk_annotation_body_updated_by_id_agent"),
-        "annotation_body",
-        "agent",
-        ["updated_by_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
         op.f("fk_annotation_body_created_by_id_agent"),
         "annotation_body",
         "agent",
         ["created_by_id"],
+        ["id"],
+    )
+    op.create_foreign_key(
+        op.f("fk_annotation_body_updated_by_id_agent"),
+        "annotation_body",
+        "agent",
+        ["updated_by_id"],
         ["id"],
     )
     op.add_column("asset", sa.Column("created_by_id", sa.Uuid(), nullable=False))
@@ -75,10 +75,10 @@ def upgrade() -> None:
     op.create_index(op.f("ix_asset_created_by_id"), "asset", ["created_by_id"], unique=False)
     op.create_index(op.f("ix_asset_updated_by_id"), "asset", ["updated_by_id"], unique=False)
     op.create_foreign_key(
-        op.f("fk_asset_created_by_id_agent"), "asset", "agent", ["created_by_id"], ["id"]
+        op.f("fk_asset_updated_by_id_agent"), "asset", "agent", ["updated_by_id"], ["id"]
     )
     op.create_foreign_key(
-        op.f("fk_asset_updated_by_id_agent"), "asset", "agent", ["updated_by_id"], ["id"]
+        op.f("fk_asset_created_by_id_agent"), "asset", "agent", ["created_by_id"], ["id"]
     )
     op.add_column("brain_region", sa.Column("created_by_id", sa.Uuid(), nullable=False))
     op.add_column("brain_region", sa.Column("updated_by_id", sa.Uuid(), nullable=False))
@@ -89,17 +89,17 @@ def upgrade() -> None:
         op.f("ix_brain_region_updated_by_id"), "brain_region", ["updated_by_id"], unique=False
     )
     op.create_foreign_key(
-        op.f("fk_brain_region_created_by_id_agent"),
-        "brain_region",
-        "agent",
-        ["created_by_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
         op.f("fk_brain_region_updated_by_id_agent"),
         "brain_region",
         "agent",
         ["updated_by_id"],
+        ["id"],
+    )
+    op.create_foreign_key(
+        op.f("fk_brain_region_created_by_id_agent"),
+        "brain_region",
+        "agent",
+        ["created_by_id"],
         ["id"],
     )
     op.add_column("brain_region_hierarchy", sa.Column("created_by_id", sa.Uuid(), nullable=False))
@@ -117,17 +117,17 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_foreign_key(
-        op.f("fk_brain_region_hierarchy_updated_by_id_agent"),
-        "brain_region_hierarchy",
-        "agent",
-        ["updated_by_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
         op.f("fk_brain_region_hierarchy_created_by_id_agent"),
         "brain_region_hierarchy",
         "agent",
         ["created_by_id"],
+        ["id"],
+    )
+    op.create_foreign_key(
+        op.f("fk_brain_region_hierarchy_updated_by_id_agent"),
+        "brain_region_hierarchy",
+        "agent",
+        ["updated_by_id"],
         ["id"],
     )
     op.add_column("contribution", sa.Column("created_by_id", sa.Uuid(), nullable=False))
@@ -139,17 +139,17 @@ def upgrade() -> None:
         op.f("ix_contribution_updated_by_id"), "contribution", ["updated_by_id"], unique=False
     )
     op.create_foreign_key(
-        op.f("fk_contribution_updated_by_id_agent"),
-        "contribution",
-        "agent",
-        ["updated_by_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
         op.f("fk_contribution_created_by_id_agent"),
         "contribution",
         "agent",
         ["created_by_id"],
+        ["id"],
+    )
+    op.create_foreign_key(
+        op.f("fk_contribution_updated_by_id_agent"),
+        "contribution",
+        "agent",
+        ["updated_by_id"],
         ["id"],
     )
     op.alter_column("entity", "created_by_id", existing_type=sa.UUID(), nullable=False)
@@ -217,17 +217,17 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_foreign_key(
-        op.f("fk_measurement_annotation_updated_by_id_agent"),
-        "measurement_annotation",
-        "agent",
-        ["updated_by_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
         op.f("fk_measurement_annotation_created_by_id_agent"),
         "measurement_annotation",
         "agent",
         ["created_by_id"],
+        ["id"],
+    )
+    op.create_foreign_key(
+        op.f("fk_measurement_annotation_updated_by_id_agent"),
+        "measurement_annotation",
+        "agent",
+        ["updated_by_id"],
         ["id"],
     )
     op.add_column("mtype_class", sa.Column("created_by_id", sa.Uuid(), nullable=False))
@@ -239,17 +239,17 @@ def upgrade() -> None:
         op.f("ix_mtype_class_updated_by_id"), "mtype_class", ["updated_by_id"], unique=False
     )
     op.create_foreign_key(
-        op.f("fk_mtype_class_updated_by_id_agent"),
-        "mtype_class",
-        "agent",
-        ["updated_by_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
         op.f("fk_mtype_class_created_by_id_agent"),
         "mtype_class",
         "agent",
         ["created_by_id"],
+        ["id"],
+    )
+    op.create_foreign_key(
+        op.f("fk_mtype_class_updated_by_id_agent"),
+        "mtype_class",
+        "agent",
+        ["updated_by_id"],
         ["id"],
     )
     op.alter_column(
@@ -263,10 +263,10 @@ def upgrade() -> None:
     op.create_index(op.f("ix_role_created_by_id"), "role", ["created_by_id"], unique=False)
     op.create_index(op.f("ix_role_updated_by_id"), "role", ["updated_by_id"], unique=False)
     op.create_foreign_key(
-        op.f("fk_role_updated_by_id_agent"), "role", "agent", ["updated_by_id"], ["id"]
+        op.f("fk_role_created_by_id_agent"), "role", "agent", ["created_by_id"], ["id"]
     )
     op.create_foreign_key(
-        op.f("fk_role_created_by_id_agent"), "role", "agent", ["created_by_id"], ["id"]
+        op.f("fk_role_updated_by_id_agent"), "role", "agent", ["updated_by_id"], ["id"]
     )
     op.add_column("species", sa.Column("created_by_id", sa.Uuid(), nullable=False))
     op.add_column("species", sa.Column("updated_by_id", sa.Uuid(), nullable=False))
@@ -283,18 +283,18 @@ def upgrade() -> None:
     op.create_index(op.f("ix_strain_created_by_id"), "strain", ["created_by_id"], unique=False)
     op.create_index(op.f("ix_strain_updated_by_id"), "strain", ["updated_by_id"], unique=False)
     op.create_foreign_key(
-        op.f("fk_strain_updated_by_id_agent"), "strain", "agent", ["updated_by_id"], ["id"]
+        op.f("fk_strain_created_by_id_agent"), "strain", "agent", ["created_by_id"], ["id"]
     )
     op.create_foreign_key(
-        op.f("fk_strain_created_by_id_agent"), "strain", "agent", ["created_by_id"], ["id"]
+        op.f("fk_strain_updated_by_id_agent"), "strain", "agent", ["updated_by_id"], ["id"]
     )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_constraint(op.f("fk_strain_created_by_id_agent"), "strain", type_="foreignkey")
     op.drop_constraint(op.f("fk_strain_updated_by_id_agent"), "strain", type_="foreignkey")
+    op.drop_constraint(op.f("fk_strain_created_by_id_agent"), "strain", type_="foreignkey")
     op.drop_index(op.f("ix_strain_updated_by_id"), table_name="strain")
     op.drop_index(op.f("ix_strain_created_by_id"), table_name="strain")
     op.drop_column("strain", "updated_by_id")
@@ -305,8 +305,8 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_species_created_by_id"), table_name="species")
     op.drop_column("species", "updated_by_id")
     op.drop_column("species", "created_by_id")
-    op.drop_constraint(op.f("fk_role_created_by_id_agent"), "role", type_="foreignkey")
     op.drop_constraint(op.f("fk_role_updated_by_id_agent"), "role", type_="foreignkey")
+    op.drop_constraint(op.f("fk_role_created_by_id_agent"), "role", type_="foreignkey")
     op.drop_index(op.f("ix_role_updated_by_id"), table_name="role")
     op.drop_index(op.f("ix_role_created_by_id"), table_name="role")
     op.drop_column("role", "updated_by_id")
@@ -314,22 +314,22 @@ def downgrade() -> None:
     op.alter_column("mtype_classification", "updated_by_id", existing_type=sa.UUID(), nullable=True)
     op.alter_column("mtype_classification", "created_by_id", existing_type=sa.UUID(), nullable=True)
     op.drop_constraint(
-        op.f("fk_mtype_class_created_by_id_agent"), "mtype_class", type_="foreignkey"
+        op.f("fk_mtype_class_updated_by_id_agent"), "mtype_class", type_="foreignkey"
     )
     op.drop_constraint(
-        op.f("fk_mtype_class_updated_by_id_agent"), "mtype_class", type_="foreignkey"
+        op.f("fk_mtype_class_created_by_id_agent"), "mtype_class", type_="foreignkey"
     )
     op.drop_index(op.f("ix_mtype_class_updated_by_id"), table_name="mtype_class")
     op.drop_index(op.f("ix_mtype_class_created_by_id"), table_name="mtype_class")
     op.drop_column("mtype_class", "updated_by_id")
     op.drop_column("mtype_class", "created_by_id")
     op.drop_constraint(
-        op.f("fk_measurement_annotation_created_by_id_agent"),
+        op.f("fk_measurement_annotation_updated_by_id_agent"),
         "measurement_annotation",
         type_="foreignkey",
     )
     op.drop_constraint(
-        op.f("fk_measurement_annotation_updated_by_id_agent"),
+        op.f("fk_measurement_annotation_created_by_id_agent"),
         "measurement_annotation",
         type_="foreignkey",
     )
@@ -368,22 +368,22 @@ def downgrade() -> None:
     op.alter_column("entity", "updated_by_id", existing_type=sa.UUID(), nullable=True)
     op.alter_column("entity", "created_by_id", existing_type=sa.UUID(), nullable=True)
     op.drop_constraint(
-        op.f("fk_contribution_created_by_id_agent"), "contribution", type_="foreignkey"
+        op.f("fk_contribution_updated_by_id_agent"), "contribution", type_="foreignkey"
     )
     op.drop_constraint(
-        op.f("fk_contribution_updated_by_id_agent"), "contribution", type_="foreignkey"
+        op.f("fk_contribution_created_by_id_agent"), "contribution", type_="foreignkey"
     )
     op.drop_index(op.f("ix_contribution_updated_by_id"), table_name="contribution")
     op.drop_index(op.f("ix_contribution_created_by_id"), table_name="contribution")
     op.drop_column("contribution", "updated_by_id")
     op.drop_column("contribution", "created_by_id")
     op.drop_constraint(
-        op.f("fk_brain_region_hierarchy_created_by_id_agent"),
+        op.f("fk_brain_region_hierarchy_updated_by_id_agent"),
         "brain_region_hierarchy",
         type_="foreignkey",
     )
     op.drop_constraint(
-        op.f("fk_brain_region_hierarchy_updated_by_id_agent"),
+        op.f("fk_brain_region_hierarchy_created_by_id_agent"),
         "brain_region_hierarchy",
         type_="foreignkey",
     )
@@ -396,26 +396,26 @@ def downgrade() -> None:
     op.drop_column("brain_region_hierarchy", "updated_by_id")
     op.drop_column("brain_region_hierarchy", "created_by_id")
     op.drop_constraint(
-        op.f("fk_brain_region_updated_by_id_agent"), "brain_region", type_="foreignkey"
+        op.f("fk_brain_region_created_by_id_agent"), "brain_region", type_="foreignkey"
     )
     op.drop_constraint(
-        op.f("fk_brain_region_created_by_id_agent"), "brain_region", type_="foreignkey"
+        op.f("fk_brain_region_updated_by_id_agent"), "brain_region", type_="foreignkey"
     )
     op.drop_index(op.f("ix_brain_region_updated_by_id"), table_name="brain_region")
     op.drop_index(op.f("ix_brain_region_created_by_id"), table_name="brain_region")
     op.drop_column("brain_region", "updated_by_id")
     op.drop_column("brain_region", "created_by_id")
-    op.drop_constraint(op.f("fk_asset_updated_by_id_agent"), "asset", type_="foreignkey")
     op.drop_constraint(op.f("fk_asset_created_by_id_agent"), "asset", type_="foreignkey")
+    op.drop_constraint(op.f("fk_asset_updated_by_id_agent"), "asset", type_="foreignkey")
     op.drop_index(op.f("ix_asset_updated_by_id"), table_name="asset")
     op.drop_index(op.f("ix_asset_created_by_id"), table_name="asset")
     op.drop_column("asset", "updated_by_id")
     op.drop_column("asset", "created_by_id")
     op.drop_constraint(
-        op.f("fk_annotation_body_created_by_id_agent"), "annotation_body", type_="foreignkey"
+        op.f("fk_annotation_body_updated_by_id_agent"), "annotation_body", type_="foreignkey"
     )
     op.drop_constraint(
-        op.f("fk_annotation_body_updated_by_id_agent"), "annotation_body", type_="foreignkey"
+        op.f("fk_annotation_body_created_by_id_agent"), "annotation_body", type_="foreignkey"
     )
     op.drop_index(op.f("ix_annotation_body_updated_by_id"), table_name="annotation_body")
     op.drop_index(op.f("ix_annotation_body_created_by_id"), table_name="annotation_body")
@@ -427,8 +427,8 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_annotation_created_by_id"), table_name="annotation")
     op.drop_column("annotation", "updated_by_id")
     op.drop_column("annotation", "created_by_id")
-    op.drop_constraint(op.f("fk_agent_created_by_id_agent"), "agent", type_="foreignkey")
     op.drop_constraint(op.f("fk_agent_updated_by_id_agent"), "agent", type_="foreignkey")
+    op.drop_constraint(op.f("fk_agent_created_by_id_agent"), "agent", type_="foreignkey")
     op.drop_index(op.f("ix_agent_updated_by_id"), table_name="agent")
     op.drop_index(op.f("ix_agent_created_by_id"), table_name="agent")
     op.drop_column("agent", "updated_by_id")

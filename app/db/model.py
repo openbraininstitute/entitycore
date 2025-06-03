@@ -385,13 +385,8 @@ class Publication(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.publication.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
-    PMID: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
-    original_source_location: Mapped[str | None] = mapped_column(String, nullable=True)
-    other_identifier: Mapped[str | None] = mapped_column(String, nullable=True)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
-    url: Mapped[str | None] = mapped_column(String, nullable=True)
-    journal: Mapped[str | None] = mapped_column(String, nullable=True)
     publication_year: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 

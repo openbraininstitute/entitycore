@@ -5,10 +5,12 @@ from fastapi import APIRouter, Depends
 from app.dependencies.auth import user_verified
 from app.routers import (
     asset,
+    brain_atlas,
     brain_region,
     brain_region_hierarchy,
     cell_composition,
     contribution,
+    derivation,
     electrical_cell_recording,
     emodel,
     etype,
@@ -19,6 +21,7 @@ from app.routers import (
     license,
     measurement_annotation,
     memodel,
+    memodel_calibration_result,
     morphology,
     mtype,
     organization,
@@ -38,10 +41,12 @@ router = APIRouter()
 router.include_router(root.router)
 authenticated_routers = [
     asset.router,
+    brain_atlas.router,
     brain_region.router,
     brain_region_hierarchy.router,
     cell_composition.router,
     contribution.router,
+    derivation.router,
     electrical_cell_recording.router,
     emodel.router,
     etype.router,
@@ -52,6 +57,7 @@ authenticated_routers = [
     license.router,
     measurement_annotation.router,
     memodel.router,
+    memodel_calibration_result.router,
     morphology.router,
     mtype.router,
     organization.router,

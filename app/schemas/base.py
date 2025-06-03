@@ -109,3 +109,7 @@ class LicensedCreateMixin(BaseModel):
 class LicensedReadMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     license: LicenseRead | None
+
+
+class BasicEntityRead(IdentifiableMixin, EntityTypeMixin):
+    pass

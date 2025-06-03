@@ -1,8 +1,8 @@
-"""models
+"""base models
 
-Revision ID: 478cb2e9eb55
+Revision ID: f69bb778caa6
 Revises:
-Create Date: 2025-05-21 16:05:44.426230
+Create Date: 2025-05-26 12:13:10.599423
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "478cb2e9eb55"
+revision: str = "f69bb778caa6"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -108,6 +108,7 @@ def upgrade() -> None:
     sa.Enum(
         "analysis_software_source_code",
         "brain_atlas",
+        "brain_atlas_region",
         "emodel",
         "cell_composition",
         "experimental_bouton_density",
@@ -268,7 +269,6 @@ def upgrade() -> None:
     op.create_table(
         "license",
         sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
         sa.Column("label", sa.String(), nullable=False),
         sa.Column("legacy_id", sa.ARRAY(sa.VARCHAR()), nullable=True),
         sa.Column("legacy_self", sa.ARRAY(sa.VARCHAR()), nullable=True),
@@ -285,9 +285,18 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_license")),
     )
     op.create_index(op.f("ix_license_creation_date"), "license", ["creation_date"], unique=False)
+    op.create_index(
+        "ix_license_description_vector",
+        "license",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
     op.create_index(op.f("ix_license_legacy_id"), "license", ["legacy_id"], unique=False)
     op.create_index(op.f("ix_license_name"), "license", ["name"], unique=True)
     op.create_table(
@@ -438,6 +447,7 @@ def upgrade() -> None:
             postgresql.ENUM(
                 "analysis_software_source_code",
                 "brain_atlas",
+                "brain_atlas_region",
                 "emodel",
                 "cell_composition",
                 "experimental_bouton_density",
@@ -669,16 +679,16 @@ def upgrade() -> None:
     op.create_table(
         "brain_atlas",
         sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("hierarchy_id", sa.Uuid(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.Column("brain_region_id", sa.Uuid(), nullable=False),
         sa.Column("species_id", sa.Uuid(), nullable=False),
         sa.Column("strain_id", sa.Uuid(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-            name=op.f("fk_brain_atlas_brain_region_id_brain_region"),
+            ["hierarchy_id"],
+            ["brain_region_hierarchy.id"],
+            name=op.f("fk_brain_atlas_hierarchy_id_brain_region_hierarchy"),
         ),
         sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_brain_atlas_id_entity")),
         sa.ForeignKeyConstraint(
@@ -692,14 +702,14 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_brain_atlas")),
     )
     op.create_index(
-        op.f("ix_brain_atlas_brain_region_id"), "brain_atlas", ["brain_region_id"], unique=False
-    )
-    op.create_index(
         "ix_brain_atlas_description_vector",
         "brain_atlas",
         ["description_vector"],
         unique=False,
         postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_brain_atlas_hierarchy_id"), "brain_atlas", ["hierarchy_id"], unique=False
     )
     op.create_index(op.f("ix_brain_atlas_name"), "brain_atlas", ["name"], unique=False)
     op.create_index(op.f("ix_brain_atlas_species_id"), "brain_atlas", ["species_id"], unique=False)
@@ -1040,30 +1050,6 @@ def upgrade() -> None:
         op.f("ix_measurement_record_entity_id"), "measurement_record", ["entity_id"], unique=False
     )
     op.create_table(
-        "mesh",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("brain_region_id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["brain_region_id"],
-            ["brain_region.id"],
-            name=op.f("fk_mesh_brain_region_id_brain_region"),
-        ),
-        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_mesh_id_entity")),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_mesh")),
-    )
-    op.create_index(op.f("ix_mesh_brain_region_id"), "mesh", ["brain_region_id"], unique=False)
-    op.create_index(
-        "ix_mesh_description_vector",
-        "mesh",
-        ["description_vector"],
-        unique=False,
-        postgresql_using="gin",
-    )
-    op.create_index(op.f("ix_mesh_name"), "mesh", ["name"], unique=False)
-    op.create_table(
         "mtype_classification",
         sa.Column("mtype_class_id", sa.Uuid(), nullable=False),
         sa.Column("created_by_id", sa.Uuid(), nullable=True),
@@ -1269,6 +1255,40 @@ def upgrade() -> None:
         op.f("ix_validation_result_validated_entity_id"),
         "validation_result",
         ["validated_entity_id"],
+        unique=False,
+    )
+    op.create_table(
+        "brain_atlas_region",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("volume", sa.Float(), nullable=True),
+        sa.Column("is_leaf_region", sa.Boolean(), nullable=False),
+        sa.Column("brain_atlas_id", sa.Uuid(), nullable=False),
+        sa.Column("brain_region_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["brain_atlas_id"],
+            ["brain_atlas.id"],
+            name=op.f("fk_brain_atlas_region_brain_atlas_id_brain_atlas"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["brain_region_id"],
+            ["brain_region.id"],
+            name=op.f("fk_brain_atlas_region_brain_region_id_brain_region"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["id"], ["entity.id"], name=op.f("fk_brain_atlas_region_id_entity")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_brain_atlas_region")),
+    )
+    op.create_index(
+        op.f("ix_brain_atlas_region_brain_atlas_id"),
+        "brain_atlas_region",
+        ["brain_atlas_id"],
+        unique=False,
+    )
+    op.create_index(
+        op.f("ix_brain_atlas_region_brain_region_id"),
+        "brain_atlas_region",
+        ["brain_region_id"],
         unique=False,
     )
     op.create_table(
@@ -1678,8 +1698,6 @@ def upgrade() -> None:
     op.create_table(
         "electrical_recording_stimulus",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
         sa.Column("dt", sa.Float(), nullable=True),
         sa.Column(
             "injection_type",
@@ -1716,6 +1734,9 @@ def upgrade() -> None:
         sa.Column("start_time", sa.Float(), nullable=True),
         sa.Column("end_time", sa.Float(), nullable=True),
         sa.Column("recording_id", sa.Uuid(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["id"], ["entity.id"], name=op.f("fk_electrical_recording_stimulus_id_entity")
         ),
@@ -1725,6 +1746,19 @@ def upgrade() -> None:
             name=op.f("fk_electrical_recording_stimulus_recording_id_electrical_cell_recording"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_electrical_recording_stimulus")),
+    )
+    op.create_index(
+        "ix_electrical_recording_stimulus_description_vector",
+        "electrical_recording_stimulus",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_electrical_recording_stimulus_name"),
+        "electrical_recording_stimulus",
+        ["name"],
+        unique=False,
     )
     op.create_index(
         op.f("ix_electrical_recording_stimulus_recording_id"),
@@ -1812,6 +1846,7 @@ def upgrade() -> None:
         ["measurement_kind_id"],
         unique=False,
     )
+    op.create_index(op.f("ix_measurement_item_value"), "measurement_item", ["value"], unique=False)
     op.create_table(
         "memodel",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -2097,12 +2132,21 @@ def downgrade() -> None:
     op.drop_index("ix_memodel_description_vector", table_name="memodel", postgresql_using="gin")
     op.drop_index(op.f("ix_memodel_brain_region_id"), table_name="memodel")
     op.drop_table("memodel")
+    op.drop_index(op.f("ix_measurement_item_value"), table_name="measurement_item")
     op.drop_index(op.f("ix_measurement_item_measurement_kind_id"), table_name="measurement_item")
     op.drop_table("measurement_item")
     op.drop_table("ion_channel_model__emodel")
     op.drop_index(
         op.f("ix_electrical_recording_stimulus_recording_id"),
         table_name="electrical_recording_stimulus",
+    )
+    op.drop_index(
+        op.f("ix_electrical_recording_stimulus_name"), table_name="electrical_recording_stimulus"
+    )
+    op.drop_index(
+        "ix_electrical_recording_stimulus_description_vector",
+        table_name="electrical_recording_stimulus",
+        postgresql_using="gin",
     )
     op.drop_table("electrical_recording_stimulus")
     op.drop_index(op.f("ix_measurement_kind_pref_label"), table_name="measurement_kind")
@@ -2208,6 +2252,9 @@ def downgrade() -> None:
         op.f("ix_electrical_cell_recording_brain_region_id"), table_name="electrical_cell_recording"
     )
     op.drop_table("electrical_cell_recording")
+    op.drop_index(op.f("ix_brain_atlas_region_brain_region_id"), table_name="brain_atlas_region")
+    op.drop_index(op.f("ix_brain_atlas_region_brain_atlas_id"), table_name="brain_atlas_region")
+    op.drop_table("brain_atlas_region")
     op.drop_index(op.f("ix_validation_result_validated_entity_id"), table_name="validation_result")
     op.drop_index(op.f("ix_validation_result_name"), table_name="validation_result")
     op.drop_table("validation_result")
@@ -2241,10 +2288,6 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_mtype_classification_creation_date"), table_name="mtype_classification")
     op.drop_index(op.f("ix_mtype_classification_created_by_id"), table_name="mtype_classification")
     op.drop_table("mtype_classification")
-    op.drop_index(op.f("ix_mesh_name"), table_name="mesh")
-    op.drop_index("ix_mesh_description_vector", table_name="mesh", postgresql_using="gin")
-    op.drop_index(op.f("ix_mesh_brain_region_id"), table_name="mesh")
-    op.drop_table("mesh")
     op.drop_index(op.f("ix_measurement_record_entity_id"), table_name="measurement_record")
     op.drop_table("measurement_record")
     op.drop_index(op.f("ix_measurement_annotation_legacy_id"), table_name="measurement_annotation")
@@ -2297,10 +2340,10 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_brain_atlas_strain_id"), table_name="brain_atlas")
     op.drop_index(op.f("ix_brain_atlas_species_id"), table_name="brain_atlas")
     op.drop_index(op.f("ix_brain_atlas_name"), table_name="brain_atlas")
+    op.drop_index(op.f("ix_brain_atlas_hierarchy_id"), table_name="brain_atlas")
     op.drop_index(
         "ix_brain_atlas_description_vector", table_name="brain_atlas", postgresql_using="gin"
     )
-    op.drop_index(op.f("ix_brain_atlas_brain_region_id"), table_name="brain_atlas")
     op.drop_table("brain_atlas")
     op.drop_index(
         "ix_asset_full_path", table_name="asset", postgresql_where=sa.text("status != 'DELETED'")
@@ -2362,6 +2405,7 @@ def downgrade() -> None:
     op.drop_table("mtype_class")
     op.drop_index(op.f("ix_license_name"), table_name="license")
     op.drop_index(op.f("ix_license_legacy_id"), table_name="license")
+    op.drop_index("ix_license_description_vector", table_name="license", postgresql_using="gin")
     op.drop_index(op.f("ix_license_creation_date"), table_name="license")
     op.drop_table("license")
     op.drop_index(op.f("ix_ion_ontology_id"), table_name="ion")
@@ -2389,6 +2433,7 @@ def downgrade() -> None:
     sa.Enum(
         "analysis_software_source_code",
         "brain_atlas",
+        "brain_atlas_region",
         "emodel",
         "cell_composition",
         "experimental_bouton_density",

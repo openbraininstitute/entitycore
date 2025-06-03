@@ -55,6 +55,7 @@ from .utils import (
     ClientProxy,
     add_db,
     assert_request,
+    create_electrical_cell_recording_id_with_assets,
 )
 
 
@@ -386,6 +387,22 @@ def validation_result_id(client, morphology_id):
     ).json()["id"]
 
 
+@pytest.fixture
+def memodel_calibration_result_id(client, memodel_id):
+    return assert_request(
+        client.post,
+        url="/memodel-calibration-result",
+        json={
+            "name": "test_memodel_calibration_result",
+            "calibrated_entity_id": str(memodel_id),
+            "authorized_public": False,
+            "threshold_current": 0.8,
+            "holding_current": 0.2,
+            "rin": 100.0,  # Optional field, can be None
+        },
+    ).json()["id"]
+
+
 CreateIds = Callable[[int], list[str]]
 
 
@@ -475,8 +492,6 @@ def create_memodel_ids(
                     emodel_id=emodel_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
-                    holding_current=0,
-                    threshold_current=0,
                 ),
             ).id
 
@@ -654,8 +669,6 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
                 emodel_id=emodel_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
-                holding_current=0,
-                threshold_current=0,
             ),
         )
 
@@ -670,4 +683,27 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
         species_ids=species_ids,
         brain_region_ids=brain_region_ids,
         agent_ids=agent_ids,
+    )
+
+
+@pytest.fixture
+def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id):
+    return {
+        "name": "my-name",
+        "description": "my-description",
+        "subject_id": subject_id,
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+        "recording_location": ["soma[0]_0.5"],
+        "recording_type": "intracellular",
+        "recording_origin": "in_vivo",
+        "ljp": 11.5,
+        "authorized_public": False,
+    }
+
+
+@pytest.fixture
+def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
+    return create_electrical_cell_recording_id_with_assets(
+        db, client, tmp_path, electrical_cell_recording_json_data
     )

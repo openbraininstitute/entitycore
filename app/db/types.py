@@ -50,8 +50,10 @@ class EntityType(StrEnum):
 
     analysis_software_source_code = auto()
     brain_atlas = auto()
+    brain_atlas_region = auto()
     emodel = auto()
     cell_composition = auto()
+    memodel_calibration_result = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()

@@ -6,9 +6,9 @@ from fastapi.testclient import TestClient
 from app.db.types import EntityType
 
 from .conftest import CreateIds, EModelIds
-from .utils import create_reconstruction_morphology_id
-from tests.routers.test_asset import _upload_entity_asset
+from .utils import TEST_DATA_DIR, create_reconstruction_morphology_id, upload_entity_asset
 
+FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/emodel"
 
 
@@ -43,7 +43,13 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
 
 
 def test_get_emodel(client: TestClient, emodel_id: str):
-    _upload_entity_asset(client, EntityType.emodel, uuid.UUID(emodel_id))
+    with FILE_EXAMPLE_PATH.open("rb") as f:
+        upload_entity_asset(
+            client,
+            EntityType.emodel,
+            uuid.UUID(emodel_id),
+            files={"file": ("a/b/c.txt", f, "text/plain")},
+        )
 
     response = client.get(f"{ROUTE}/{emodel_id}")
 

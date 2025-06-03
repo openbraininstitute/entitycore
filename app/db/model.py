@@ -98,6 +98,25 @@ class Identifiable(TimestampMixin, Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
 
 
+class NameDescriptionVectorMixin(Base):
+    __abstract__ = True
+    name: Mapped[str] = mapped_column(index=True)
+    description: Mapped[str] = mapped_column(default="")
+    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        return (
+            Index(
+                f"ix_{cls.__tablename__}_description_vector",
+                cls.description_vector,
+                postgresql_using="gin",
+            ),
+            *getattr(super(), "__table_args__", ()),
+        )
+
+
 class BrainRegionHierarchy(Identifiable):
     __tablename__ = "brain_region_hierarchy"
 
@@ -139,7 +158,7 @@ class Strain(Identifiable):
     )
 
 
-class License(LegacyMixin, Identifiable):
+class License(LegacyMixin, Identifiable, NameDescriptionVectorMixin):
     __tablename__ = "license"
     name: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str]
@@ -199,7 +218,7 @@ class SpeciesMixin(Base):
 class Agent(LegacyMixin, Identifiable):
     __tablename__ = "agent"
     type: Mapped[AgentType]
-    pref_label: Mapped[str] = mapped_column(unique=True, index=True)
+    pref_label: Mapped[str] = mapped_column(index=True)
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
@@ -218,7 +237,6 @@ class Person(Agent):
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
-    __table_args__ = (UniqueConstraint("given_name", "family_name", name="unique_person_name_1"),)
 
 
 class Organization(Agent):
@@ -327,25 +345,6 @@ class Annotation(LegacyMixin, Identifiable):
         ForeignKey("annotation_body.id"), index=True
     )
     annotation_body = relationship("AnnotationBody", uselist=False)
-
-
-class NameDescriptionVectorMixin(Base):
-    __abstract__ = True
-    name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str] = mapped_column(default="")
-    description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
-
-    @declared_attr.directive
-    @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
-        return (
-            Index(
-                f"ix_{cls.__tablename__}_description_vector",
-                cls.description_vector,
-                postgresql_using="gin",
-            ),
-            *getattr(super(), "__table_args__", ()),
-        )
 
 
 class Entity(LegacyMixin, Identifiable):
@@ -534,12 +533,6 @@ class EModel(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class Mesh(LocationMixin, NameDescriptionVectorMixin, Entity):
-    __tablename__ = EntityType.mesh.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
 class MEModel(
     MTypesMixin, ETypesMixin, SpeciesMixin, LocationMixin, NameDescriptionVectorMixin, Entity
 ):
@@ -559,12 +552,16 @@ class MEModel(
         "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
-    holding_current: Mapped[float | None]
-    threshold_current: Mapped[float | None]
-
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
+
+    calibration_result = relationship(
+        "MEModelCalibrationResult",
+        uselist=False,
+        foreign_keys="MEModelCalibrationResult.calibrated_entity_id",
+        lazy="joined",
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -691,12 +688,9 @@ class Role(LegacyMixin, Identifiable):
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
-class ElectricalRecordingStimulus(Entity):
+class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.electrical_recording_stimulus.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-    name: Mapped[str]
-    description: Mapped[str] = mapped_column(default="")
 
     dt: Mapped[float | None]
     injection_type: Mapped[ElectricalRecordingStimulusType]
@@ -911,6 +905,25 @@ class ValidationResult(Entity):
     }
 
 
+class MEModelCalibrationResult(Entity):
+    __tablename__ = EntityType.memodel_calibration_result.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    holding_current: Mapped[float]
+    threshold_current: Mapped[float]
+    rin: Mapped[float | None]
+    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
+    calibrated_entity: Mapped[Entity] = relationship(
+        "MEModel",
+        uselist=False,
+        foreign_keys=[calibrated_entity_id],
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
 class Asset(Identifiable):
     """Asset table."""
 
@@ -945,9 +958,30 @@ class METypeDensity(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class BrainAtlas(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.brain_atlas
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    hierarchy_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_region_hierarchy.id"), index=True
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class BrainAtlasRegion(Entity, LocationMixin):
+    __tablename__ = EntityType.brain_atlas_region
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    # only the volume for leaf nodes is saved; the consumer must calculate
+    # volumes depending on which view of the hierarchy they are using
+    volume: Mapped[float | None]
+    is_leaf_region: Mapped[bool] = mapped_column(default=False)
+
+    brain_atlas_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
@@ -955,3 +989,11 @@ class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     __tablename__ = EntityType.cell_composition
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class Derivation(Base):
+    __tablename__ = "derivation"
+    used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
+    generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])

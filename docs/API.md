@@ -212,6 +212,70 @@ GET /reconstruction-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40
 In other words, the name of the hierarchy, and the id which will be recursively included.
 This can happen in either by the `descendants` (the default) or by `ascendants`.
 
+# Brain Atlas:
+
+A BrainAtlas is an volumetric concept describing the locatations of brain regions in space.
+It is composed of an `annotation` (also known as `parcellation`) of voxels, storred in an NRRD file.
+Each of the voxels is assigned an ID, which corresponds to `annotation_value` in the hierarchy.
+In addition, there is metadata assocated with an atlas:
+
+    # the volume of each region
+    # meshes of regions
+
+The following endpoints exist:
+
+`GET brain-atlas`
+
+Returns all the atlases that exist
+
+`GET brain-atlas/$UUID`
+
+Returns metadata about the atlas:
+
+```
+{
+        "creation_date": ...,
+        "hierarchy_id": $UUID,
+        "id": brain_atlas.id,
+        "name": "test brain atlas",
+        "species": {
+            "creation_date": ...,
+            "id": species_id,
+            "name": "Test Species",
+            "taxonomy_id": "12345",
+            "update_date": ...,
+        },
+        "update_date": ...,
+    }
+```
+
+
+`GET brain-atlas/$UUID/regions`
+    [
+        {
+            "brain_atlas_id": $UUID,
+            "brain_region_id": $UUID,
+            "creation_date": ...,
+            "id": $UUID,
+            "is_leaf_region": False,
+            "update_date": ...,
+            "volume": null, # this is null, since it's a leaf region;
+        },
+        {
+            "brain_atlas_id": $UUID,
+            "brain_region_id": $UUID,
+            "creation_date": ...,
+            "id": $UUID,
+            "is_leaf_region": False,
+            "update_date": ...,
+            "volume": 123456789.0,
+        },
+        ....
+    ]
+
+The volume is in um^3.
+By only storing the volume for leaf nodes, it composes with the different views by climbing the tree, and summing all the children along the way.
+
 # Authorization:
 Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.
 As such, results returned will be gated by this, based on the logged in user.

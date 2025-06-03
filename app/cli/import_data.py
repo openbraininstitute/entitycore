@@ -7,7 +7,6 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
-from operator import attrgetter
 from pathlib import Path
 from typing import Any
 
@@ -17,7 +16,8 @@ from sqlalchemy.orm import Session
 from tqdm import tqdm
 
 from app.cli import curate, utils
-from app.cli.curation import electrical_cell_recording
+from app.cli.brain_region_data import BRAIN_ATLAS_REGION_VOLUMES
+from app.cli.curation import cell_composition, electrical_cell_recording
 from app.cli.types import ContentType
 from app.cli.utils import (
     AUTHORIZED_PUBLIC,
@@ -31,10 +31,12 @@ from app.db.model import (
     Annotation,
     Asset,
     BrainAtlas,
+    BrainAtlasRegion,
     BrainRegion,
     BrainRegionHierarchy,
     CellComposition,
     DataMaturityAnnotationBody,
+    Derivation,
     ElectricalCellRecording,
     EModel,
     Entity,
@@ -47,7 +49,7 @@ from app.db.model import (
     Measurement,
     MeasurementAnnotation,
     MEModel,
-    Mesh,
+    MEModelCalibrationResult,
     METypeDensity,
     MTypeClass,
     MTypeClassification,
@@ -55,6 +57,7 @@ from app.db.model import (
     Person,
     ReconstructionMorphology,
     SingleNeuronSimulation,
+    Species,
 )
 from app.db.session import configure_database_session_manager
 from app.db.types import (
@@ -68,8 +71,7 @@ from app.db.types import (
 from app.logger import L
 from app.schemas.base import ProjectContext
 
-from app.cli.curation import electrical_cell_recording, cell_composition
-from app.cli.types import ContentType
+BRAIN_ATLAS_NAME = "BlueBrain Atlas"
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
@@ -555,47 +557,166 @@ class ImportEModels(Import):
         db.commit()
 
 
-class ImportBrainRegionMeshes(Import):
-    name = "BrainRegionMeshes"
+class ImportEModelDerivations(Import):
+    name = "EModelWorkflow"
 
     @staticmethod
     def is_correct_type(data):
         types = ensurelist(data["@type"])
-        return "BrainParcellationMesh" in types
+        return "EModelWorkflow" in types
+
+    @staticmethod
+    def ingest(
+        db,
+        project_context,
+        data_list: list[dict],
+        all_data_by_id: dict[str, dict],
+        hierarchy_name: str,
+    ):
+        """Import emodel derivations from EModelWorkflow."""
+        legacy_emodel_ids = set()
+        derivations = {}
+        for data in tqdm(data_list, desc="EModelWorkflow"):
+            legacy_emodel_id = utils.find_id_in_entity(data, "EModel", "generates")
+            legacy_etc_id = utils.find_id_in_entity(
+                data, "ExtractionTargetsConfiguration", "hasPart"
+            )
+            if not legacy_emodel_id:
+                L.warning("Not found EModel id in EModelWorkflow: {}", data["@id"])
+                continue
+            if not legacy_etc_id:
+                L.warning(
+                    "Not found ExtractionTargetsConfiguration id in EModelWorkflow: {}", data["@id"]
+                )
+                continue
+            if not (etc := all_data_by_id.get(legacy_etc_id)):
+                L.warning("Not found ExtractionTargetsConfiguration with id {}", legacy_etc_id)
+                continue
+            if not (legacy_trace_ids := list(utils.find_ids_in_entity(etc, "Trace", "uses"))):
+                L.warning(
+                    "Not found traces in ExtractionTargetsConfiguration with id {}", legacy_etc_id
+                )
+                continue
+            if legacy_emodel_id in legacy_emodel_ids:
+                L.warning("Duplicated and ignored traces for EModel id {}", legacy_emodel_id)
+                continue
+            legacy_emodel_ids.add(legacy_emodel_id)
+            if not (emodel := utils._find_by_legacy_id(legacy_emodel_id, EModel, db)):
+                L.warning("Not found EModel with legacy id {}", legacy_emodel_id)
+                continue
+            if emodel.id in derivations:
+                L.warning("Duplicated and ignored traces for EModel uuid {}", emodel.id)
+            derivations[emodel.id] = [
+                utils._find_by_legacy_id(legacy_trace_id, ElectricalCellRecording, db).id
+                for legacy_trace_id in legacy_trace_ids
+            ]
+
+        rows = [
+            Derivation(used_id=trace_id, generated_id=emodel_id)
+            for emodel_id, trace_ids in derivations.items()
+            for trace_id in trace_ids
+        ]
+        L.info(
+            "Imported derivations for {} EModels from {} records", len(derivations), len(data_list)
+        )
+        # delete everything from derivation table before adding the records
+        query = sa.delete(Derivation)
+        db.execute(query)
+        db.add_all(rows)
+        db.commit()
+
+
+class ImportBrainAtlas(Import):
+    name = "BrainAtlas"
+
+    @staticmethod
+    def is_correct_type(data):
+        # for reasons unknown, the annotations are tagged as v1.2.0
+        # the contents of the annotations is the same as in
+        # s3://openbluebrain/Model_Data/Brain_atlas/Mouse/resolution_25_um/version_1.1.0/Annotation_volume/annotation_ccfv3_l23split_barrelsplit_validated.nrrd
+        # but their sha256 hashes differ
+        return (
+            utils.is_type(data, "BrainParcellationMesh")
+            and "atlasRelease" in data
+            and data["atlasRelease"].get("tag") == "v1.1.0"
+        ) or (
+            utils.is_type(data, "BrainParcellationDataLayer")
+            and "atlasRelease" in data
+            and data["atlasRelease"].get("tag") == "v1.2.0"
+        )
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
-        for data in tqdm(data_list):
-            if "atlasRelease" not in data or data["atlasRelease"].get("tag", "") != "v1.1.0":
-                continue
+        meshes, annotations = [], []
+        for d in data_list:
+            if utils.is_type(d, "BrainParcellationMesh"):
+                meshes.append(d)
+            else:
+                annotations.append(d)
 
-            legacy_id = data["@id"]
-            legacy_self = data["_self"]
-            rm = utils._find_by_legacy_id(legacy_id, Mesh, db)
-            if rm:
-                continue
+        assert len(annotations) == 1
+        brain_atlas = db.execute(
+            sa.select(BrainAtlas).filter(BrainAtlas.name == BRAIN_ATLAS_NAME)
+        ).scalar_one_or_none()
+        if brain_atlas is None:
+            hierarchy = db.execute(
+                sa.select(BrainRegionHierarchy).filter(BrainRegionHierarchy.name == hierarchy_name)
+            ).scalar_one()
 
-            try:
-                brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
-            except RuntimeError:
-                L.exception("Cannot import mesh")
-                continue
+            mouse = db.execute(
+                sa.select(Species).filter(Species.name == "Mus musculus")
+            ).scalar_one()
 
-            createdAt, updatedAt = utils.get_created_and_updated(data)
-
-            db_item = Mesh(
-                name=data["name"],
-                description=data["description"],
-                legacy_id=[legacy_id],
-                legacy_self=[legacy_self],
-                brain_region_id=brain_region_id,
-                creation_date=createdAt,
-                update_date=updatedAt,
+            brain_atlas = BrainAtlas(
+                name=BRAIN_ATLAS_NAME,
+                description="version v1.1.0 from NEXUS",
+                species_id=mouse.id,
+                hierarchy_id=hierarchy.id,
                 authorized_project_id=project_context.project_id,
-                authorized_public=AUTHORIZED_PUBLIC,
+                authorized_public=True,
             )
-            db.add(db_item)
-        db.commit()
+            db.add(brain_atlas)
+            db.commit()
+
+            utils.import_distribution(
+                annotations[0], brain_atlas.id, EntityType.brain_atlas, db, project_context
+            )
+
+        for mesh in tqdm(meshes):
+            brain_region_data = mesh["brainLocation"]["brainRegion"]
+            brain_region_id = utils.get_brain_region_by_hier_id(
+                brain_region_data, hierarchy_name, db
+            )
+
+            atlas_region = db.execute(
+                sa.select(BrainAtlasRegion).filter(
+                    BrainAtlasRegion.brain_region_id == str(brain_region_id)
+                )
+            ).scalar_one_or_none()
+
+            if atlas_region is None:
+                annotation_id = curate.curate_brain_region(brain_region_data)["@id"]
+                volume = None
+
+                is_leaf_region = False
+                if annotation_id in BRAIN_ATLAS_REGION_VOLUMES:
+                    volume = BRAIN_ATLAS_REGION_VOLUMES[annotation_id]
+                    is_leaf_region = True
+
+                atlas_region = BrainAtlasRegion(
+                    brain_atlas_id=brain_atlas.id,
+                    brain_region_id=brain_region_id,
+                    volume=volume,
+                    is_leaf_region=is_leaf_region,
+                    authorized_project_id=project_context.project_id,
+                    authorized_public=True,
+                )
+                db.add(atlas_region)
+                db.commit()
+
+            utils.import_distribution(
+                mesh, atlas_region.id, EntityType.brain_atlas, db, project_context
+            )
 
 
 class ImportMorphologies(Import):
@@ -743,8 +864,6 @@ class ImportElectricalCellRecording(Import):
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             license_id = utils.get_license_mixin(data, db)
-            # species_id, strain_id = utils.get_species_mixin(data, db)
-
             subject_id = utils.get_or_create_subject(data, project_context, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
 
@@ -848,13 +967,23 @@ class ImportMEModel(Import):
                 strain_id=morphology.strain_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                holding_current=data.get("holding_current"),
-                threshold_current=data.get("threshold_current"),
             )
 
             db.add(db_item)
             db.flush()
-
+            db_calibration = MEModelCalibrationResult(
+                calibrated_entity_id=db_item.id,
+                holding_current=data.get("holding_current", 0),
+                threshold_current=data.get("threshold_current", 0),
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
+            )
+            db.add(db_calibration)
+            db.flush()
             utils.import_contribution(data, db_item.id, db)
 
             for annotation in ensurelist(data.get("annotation", [])):
@@ -1036,50 +1165,6 @@ class ImportCellComposition(Import):
                 create_annotation(annotation, db_item.id, db)
 
 
-class ImportBrainAtlas(Import):
-    name = "Brain Atlas"
-
-    @staticmethod
-    def is_correct_type(data):
-        return "BrainAtlasRelease" in ensurelist(data["@type"]) and data["@id"] == BRAIN_ATLAS_ID
-
-    @staticmethod
-    def ingest(
-        db: Session,
-        project_context: ProjectContext,
-        data_list: list[dict],
-        all_data_by_id: dict,
-        hierarchy_name: str,
-    ):
-        for data in data_list:
-            legacy_id, legacy_self = data["@id"], data["_self"]
-            rm = utils._find_by_legacy_id(legacy_id, BrainAtlas, db)
-            if rm:
-                continue
-
-            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
-            createdAt, updatedAt = utils.get_created_and_updated(data)
-            species_id, strain_id = utils.get_species_mixin(data, db)
-
-            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
-
-            db_item = BrainAtlas(
-                legacy_id=[legacy_id],
-                legacy_self=[legacy_self],
-                name=data["name"],
-                description=data.get("description", ""),
-                brain_region_id=brain_region_id,
-                species_id=species_id,
-                strain_id=strain_id,
-                created_by_id=created_by_id,
-                updated_by_id=updated_by_id,
-                creation_date=createdAt,
-                update_date=updatedAt,
-                authorized_project_id=project_context.project_id,
-                authorized_public=AUTHORIZED_PUBLIC,
-            )
-
-
 class ImportDistribution(Import):
     name = "Distribution"
 
@@ -1098,8 +1183,7 @@ class ImportDistribution(Import):
         ignored: dict[tuple[dict], int] = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
-            root = utils._find_by_legacy_id(legacy_id, Entity, db)
-            if root:
+            if root := utils._find_by_legacy_id(legacy_id, Entity, db):
                 utils.import_distribution(data, root.id, root.type, db, project_context)
             else:
                 dt = data["@type"]
@@ -1339,9 +1423,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportAgent,
         ImportMETypeDensity,
         ImportCellComposition,
-        ImportBrainAtlas,
         ImportAnalysisSoftwareSourceCode,
-        ImportBrainRegionMeshes,
         ImportMorphologies,
         ImportEModels,
         ImportExperimentalNeuronDensities,
@@ -1350,8 +1432,10 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportMEModel,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
+        ImportBrainAtlas,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,
+        ImportEModelDerivations,
     ]
 
     for importer in importers:
@@ -1579,7 +1663,7 @@ def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
         closing(configure_database_session_manager()) as database_session_manager,
         database_session_manager.session() as db,
     ):
-        # Group assets by ntity_type/entity_id/content_type
+        # Group assets by entity_type/entity_id/content_type
         assets_per_entity_type = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
         for asset in db.query(Asset).all():
             entity_type = asset.full_path.split("/")[4]

@@ -2,17 +2,23 @@ import functools
 import uuid
 from pathlib import Path
 from unittest.mock import ANY
+from uuid import UUID
 
+import sqlalchemy as sa
 from httpx import Headers
 from starlette.testclient import TestClient
 
 from app.db.model import (
     BrainRegion,
     BrainRegionHierarchy,
+    ElectricalCellRecording,
+    ElectricalRecordingStimulus,
     MTypeClass,
     MTypeClassification,
+    ReconstructionMorphology,
 )
 from app.db.types import EntityType
+from app.routers.asset import EntityRoute
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
@@ -39,6 +45,11 @@ PROJECT_HEADERS = {
 UNRELATED_PROJECT_HEADERS = {
     "virtual-lab-id": UNRELATED_VIRTUAL_LAB_ID,
     "project-id": UNRELATED_PROJECT_ID,
+}
+
+ROUTES = {
+    ReconstructionMorphology: "/reconstruction-morphology",
+    ElectricalCellRecording: "/electrical-cell-recording",
 }
 
 
@@ -77,7 +88,7 @@ def create_reconstruction_morphology_id(
     description="Test Morphology Description",
 ):
     response = client.post(
-        "/reconstruction-morphology",
+        ROUTES[ReconstructionMorphology],
         json={
             "name": name,
             "description": description,
@@ -159,6 +170,56 @@ def create_mtype(db, pref_label: str, alt_label=None, definition=None):
 
 def attach_mtype(db, entity_id, mtype_id):
     return add_db(db, MTypeClassification(entity_id=str(entity_id), mtype_class_id=str(mtype_id)))
+
+
+def create_electrical_recording_stimulus_id(db, recording_id):
+    return add_db(
+        db,
+        ElectricalRecordingStimulus(
+            name="protocol",
+            description="protocol-description",
+            dt=0.1,
+            injection_type="current_clamp",
+            shape="sinusoidal",
+            start_time=0.0,
+            end_time=1.0,
+            recording_id=recording_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
+        ),
+    ).id
+
+
+def create_electrical_cell_recording_id(client, json_data):
+    result = assert_request(client.post, url=ROUTES[ElectricalCellRecording], json=json_data).json()
+    return uuid.UUID(result["id"])
+
+
+def create_electrical_cell_recording_db(db, client, json_data):
+    trace_id = create_electrical_cell_recording_id(client, json_data)
+    return db.get(ElectricalCellRecording, trace_id)
+
+
+def create_electrical_cell_recording_id_with_assets(db, client, tmp_path, json_data):
+    trace_id = create_electrical_cell_recording_id(client, json_data)
+
+    # add two protocols that refer to it
+    create_electrical_recording_stimulus_id(db, trace_id)
+    create_electrical_recording_stimulus_id(db, trace_id)
+
+    filepath = tmp_path / "trace.nwb"
+    filepath.write_bytes(b"trace")
+
+    # add an asset too
+    create_asset_file(
+        client=client,
+        entity_type="electrical_cell_recording",
+        entity_id=trace_id,
+        file_name="my-trace.nwb",
+        file_obj=filepath.read_bytes(),
+    )
+
+    return trace_id
 
 
 def check_missing(route, client):
@@ -317,3 +378,59 @@ def with_creation_fields(d):
         "update_date": ANY,
         "id": ANY,
     }
+
+
+def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
+    regions = []
+
+    def recurse(i):
+        children = []
+        item = i | {"children": children}
+        for child in i["children"]:
+            children.append(child["id"])
+            recurse(child)
+        regions.append(item)
+
+    recurse(hierarchy)
+
+    ids = {None: None}
+    for region in reversed(regions):
+        row = BrainRegion(
+            annotation_value=region["id"],
+            acronym=region["acronym"],
+            name=region["name"],
+            color_hex_triplet=region["color_hex_triplet"],
+            parent_structure_id=ids[region["parent_structure_id"]],
+            hierarchy_id=hierarchy_id,
+        )
+        db_br = add_db(db, row)
+        db.flush()
+        ids[region["id"]] = db_br.id
+
+    ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
+    return ret
+
+
+def _entity_type_to_route(entity_type: EntityType) -> EntityRoute:
+    return EntityRoute[entity_type.name]
+
+
+def route(entity_type: EntityType) -> str:
+    return f"/{_entity_type_to_route(entity_type)}"
+
+
+def upload_entity_asset(
+    client,
+    entity_type: EntityType,
+    entity_id: UUID,
+    files: dict[str, tuple],
+    label: str | None = None,
+):
+    """Attach a file to an entity
+
+    files maps to: (filename, file (or bytes), content_type, headers)
+    """
+    data = None
+    if label:
+        data = {"label": label}
+    return client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)

@@ -14,6 +14,7 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Index,
+    Integer,
     LargeBinary,
     MetaData,
     String,
@@ -384,7 +385,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.publication.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
-    PMID: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    PMID: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     original_source_location: Mapped[str | None] = mapped_column(String, nullable=True)
     other_identifier: Mapped[str | None] = mapped_column(String, nullable=True)
     title: Mapped[str | None] = mapped_column(String, nullable=True)

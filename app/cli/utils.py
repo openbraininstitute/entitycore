@@ -43,8 +43,6 @@ from app.schemas.ion_channel_model import NeuronBlock
 from app.utils.s3 import build_s3_path
 from app.utils.uuid import create_uuid
 
-ADMIN_SUBJECT_ID = uuid.UUID(int=0, version=4)
-
 AUTHORIZED_PUBLIC = True
 
 
@@ -854,20 +852,22 @@ def merge_measurements_annotations(entity_annotations, entity_id, created_by_id,
     )
 
 
-def get_or_create_admin(db):
-    if admin := db.query(Person).filter(Person.sub_id == ADMIN_SUBJECT_ID).first():
-        return admin
+def get_or_create_admin(db, _cache=None):
+    if _cache:
+        return _cache
 
     admin_id = create_uuid()
 
     admin = Person(
         id=admin_id,
         pref_label="Admin",
-        sub_id=ADMIN_SUBJECT_ID,
         created_by_id=admin_id,
         updated_by_id=admin_id,
     )
     db.add(admin)
     db.commit()
     db.refresh(admin)
+
+    _cache = admin
+
     return admin

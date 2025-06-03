@@ -400,16 +400,16 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
-class PublishedIn(Identifiable):
+class ScientificArtifactPublicationLink(Identifiable):
 
-    """Database model for PublishedInBase."""
+    """Database model for ScientificArtifactPublicationLink."""
 
     __tablename__ = "published_in"
     publication_id: Mapped[UUID] = mapped_column(
         ForeignKey("publication.id"), primary_key=True, index=True
     )
     publication_type: Mapped[PublicationType] = mapped_column(
-        Enum(PublicationType, name="publicationtype_publishedin"), primary_key=True
+        Enum(PublicationType, name="publicationtype_ScientificArtifactPublicationLink"), primary_key=True
     )
     scientific_artifact_id: Mapped[UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), primary_key=True, index=True

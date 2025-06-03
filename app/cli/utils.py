@@ -265,7 +265,7 @@ def get_agent_mixin(data, db):
     return result
 
 
-def get_or_create_role(role_, db, created_by_id, updated_by_id, _cache={}):
+def get_or_create_role(role_, db, _cache={}):
     # Check if the role already exists in the database
     role_ = curate.curate_role(role_)
 
@@ -274,16 +274,19 @@ def get_or_create_role(role_, db, created_by_id, updated_by_id, _cache={}):
     if role_id in _cache:
         return _cache[role_id]
 
+    admin = get_or_create_admin(db)
+
     r = db.query(Role).filter(Role.role_id == role_id).first()
 
     if not r:
         # If not, create a new one
+        # Role is an entity managed by admin only
         try:
             r = Role(
                 role_id=role_["@id"],
                 name=role_["label"],
-                created_by_id=created_by_id,
-                updated_by_id=updated_by_id,
+                created_by_id=admin.id,
+                updated_by_id=admin.id,
             )
             db.add(r)
             db.commit()
@@ -311,7 +314,7 @@ def get_or_create_contribution(contribution_, entity_id, db, created_by_id, upda
 
     agent_id = db_agent.id
     role_ = contribution_.get("hadRole", {"@id": "unspecified", "label": "unspecified"})
-    role_id = get_or_create_role(role_, db, created_by_id, updated_by_id)
+    role_id = get_or_create_role(role_, db)
     c = (
         db.query(Contribution)
         .filter(

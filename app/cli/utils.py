@@ -43,7 +43,7 @@ from app.schemas.ion_channel_model import NeuronBlock
 from app.utils.s3 import build_s3_path
 from app.utils.uuid import create_uuid
 
-ADMIN_SUBJECT_ID = uuid.UUID(int=0)
+ADMIN_SUBJECT_ID = uuid.UUID(int=0, version=4)
 
 AUTHORIZED_PUBLIC = True
 

@@ -15,9 +15,9 @@ from app.schemas.entity import EntityRead
 class PublicationType(StrEnum):
     """The type of publication for a scientific artifact."""
 
-    ENTITYSOURCE = "EntitySource"  # where the model is published
-    COMPONENTSOURCE = "ComponentSource"  # source of any one item used in the model
-    APPLICATION = "Application"  # any publication which uses the model
+    entity_source = auto()
+    component_source = auto()
+    application = auto()
 
 
 class Author(TypedDict):
@@ -39,7 +39,7 @@ class PublicationBase(EntityRead):
     PMID: int | None = None  # Optional PMID (PubMed Identifier) as an integer
     UUID: uuid.UUID | None = None  # Using uuid.UUID type for clarity
     original_source_location: str | None = None
-    other: str | None = None  # Optional alternative identifier as a string
+    other_identifier: str | None = None  # Optional alternative identifier as a string
     title: str | None = None
     authors: list[Author] | None = None  # list of {"name", "lastname"} entries
     url: str | None = None

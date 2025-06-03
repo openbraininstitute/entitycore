@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
@@ -20,6 +22,7 @@ class PersonCreate(PersonBase):
 
 class PersonRead(PersonBase, CreationMixin, IdentifiableMixin):
     type: str
+    sub_id: uuid.UUID | None
 
 
 class OrganizationBase(BaseModel):

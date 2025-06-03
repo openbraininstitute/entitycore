@@ -386,7 +386,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     PMID: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
     original_source_location: Mapped[str | None] = mapped_column(String, nullable=True)
-    other: Mapped[str | None] = mapped_column(String, nullable=True)
+    other_identifier: Mapped[str | None] = mapped_column(String, nullable=True)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
     url: Mapped[str | None] = mapped_column(String, nullable=True)

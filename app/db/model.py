@@ -399,7 +399,8 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
-class PublishedIn(Base):
+class PublishedIn(Identifiable):
+
     """Database model for PublishedInBase."""
 
     __tablename__ = "published_in"

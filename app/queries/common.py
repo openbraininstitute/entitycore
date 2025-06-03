@@ -67,7 +67,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     *,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext | UserContextWithProjectId | None,
+    user_context: UserContext | UserContextWithProjectId,
     json_model: BaseModel,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
@@ -86,10 +86,10 @@ def router_create_one[T: BaseModel, I: Identifiable](
         the written model data as a Pydantic model.
     """
     created_by_id = updated_by_id = project_id = None
-    if user_context:
-        db_agent = get_or_create_user_agent(db, user_context.profile)
-        created_by_id = updated_by_id = db_agent.id
-        project_id = user_context.project_id
+
+    db_agent = get_or_create_user_agent(db, user_context.profile)
+    created_by_id = updated_by_id = db_agent.id
+    project_id = user_context.project_id
 
     db_model_instance = load_db_model_from_pydantic(
         json_model,

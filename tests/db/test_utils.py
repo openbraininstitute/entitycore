@@ -50,7 +50,7 @@ MEASUREMENT_ANNOTATION = {
 }
 
 
-def test_construct_model_measurement_annotation():
+def test_construct_model_measurement_annotation(person_id):
     def _check_result(r):
         assert isinstance(r, MeasurementAnnotation)
         assert str(r.entity_id) == MEASUREMENT_ANNOTATION["entity_id"]
@@ -65,12 +65,16 @@ def test_construct_model_measurement_annotation():
 
     json_model = MeasurementAnnotationCreate.model_validate(MEASUREMENT_ANNOTATION)
     result = test_module.load_db_model_from_pydantic(
-        json_model, db_model_class=MeasurementAnnotation, authorized_project_id=None
+        json_model,
+        db_model_class=MeasurementAnnotation,
+        authorized_project_id=None,
+        created_by_id=person_id,
+        updated_by_id=person_id,
     )
     _check_result(result)
 
 
-def test_construct_model_reconstruction_morphology(brain_region_id):
+def test_construct_model_reconstruction_morphology(brain_region_id, person_id):
     reconstruction_morphology = {
         "name": "morph-0",
         "description": "desc-0",
@@ -91,6 +95,10 @@ def test_construct_model_reconstruction_morphology(brain_region_id):
 
     json_model = ReconstructionMorphologyCreate.model_validate(reconstruction_morphology)
     result = test_module.load_db_model_from_pydantic(
-        json_model, db_model_class=ReconstructionMorphology, authorized_project_id=PROJECT_ID
+        json_model,
+        db_model_class=ReconstructionMorphology,
+        authorized_project_id=PROJECT_ID,
+        created_by_id=person_id,
+        updated_by_id=person_id,
     )
     _check_result(result)

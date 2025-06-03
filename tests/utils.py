@@ -11,8 +11,11 @@ from starlette.testclient import TestClient
 from app.db.model import (
     BrainRegion,
     BrainRegionHierarchy,
+    ElectricalCellRecording,
+    ElectricalRecordingStimulus,
     MTypeClass,
     MTypeClassification,
+    ReconstructionMorphology,
 )
 from app.db.types import EntityType
 from app.routers.asset import EntityRoute
@@ -42,6 +45,11 @@ PROJECT_HEADERS = {
 UNRELATED_PROJECT_HEADERS = {
     "virtual-lab-id": UNRELATED_VIRTUAL_LAB_ID,
     "project-id": UNRELATED_PROJECT_ID,
+}
+
+ROUTES = {
+    ReconstructionMorphology: "/reconstruction-morphology",
+    ElectricalCellRecording: "/electrical-cell-recording",
 }
 
 
@@ -80,7 +88,7 @@ def create_reconstruction_morphology_id(
     description="Test Morphology Description",
 ):
     response = client.post(
-        "/reconstruction-morphology",
+        ROUTES[ReconstructionMorphology],
         json={
             "name": name,
             "description": description,
@@ -162,6 +170,56 @@ def create_mtype(db, pref_label: str, alt_label=None, definition=None):
 
 def attach_mtype(db, entity_id, mtype_id):
     return add_db(db, MTypeClassification(entity_id=str(entity_id), mtype_class_id=str(mtype_id)))
+
+
+def create_electrical_recording_stimulus_id(db, recording_id):
+    return add_db(
+        db,
+        ElectricalRecordingStimulus(
+            name="protocol",
+            description="protocol-description",
+            dt=0.1,
+            injection_type="current_clamp",
+            shape="sinusoidal",
+            start_time=0.0,
+            end_time=1.0,
+            recording_id=recording_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
+        ),
+    ).id
+
+
+def create_electrical_cell_recording_id(client, json_data):
+    result = assert_request(client.post, url=ROUTES[ElectricalCellRecording], json=json_data).json()
+    return uuid.UUID(result["id"])
+
+
+def create_electrical_cell_recording_db(db, client, json_data):
+    trace_id = create_electrical_cell_recording_id(client, json_data)
+    return db.get(ElectricalCellRecording, trace_id)
+
+
+def create_electrical_cell_recording_id_with_assets(db, client, tmp_path, json_data):
+    trace_id = create_electrical_cell_recording_id(client, json_data)
+
+    # add two protocols that refer to it
+    create_electrical_recording_stimulus_id(db, trace_id)
+    create_electrical_recording_stimulus_id(db, trace_id)
+
+    filepath = tmp_path / "trace.nwb"
+    filepath.write_bytes(b"trace")
+
+    # add an asset too
+    create_asset_file(
+        client=client,
+        entity_type="electrical_cell_recording",
+        entity_id=trace_id,
+        file_name="my-trace.nwb",
+        file_obj=filepath.read_bytes(),
+    )
+
+    return trace_id
 
 
 def check_missing(route, client):

@@ -55,6 +55,7 @@ from .utils import (
     ClientProxy,
     add_db,
     assert_request,
+    create_electrical_cell_recording_id_with_assets,
 )
 
 
@@ -682,4 +683,27 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
         species_ids=species_ids,
         brain_region_ids=brain_region_ids,
         agent_ids=agent_ids,
+    )
+
+
+@pytest.fixture
+def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id):
+    return {
+        "name": "my-name",
+        "description": "my-description",
+        "subject_id": subject_id,
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+        "recording_location": ["soma[0]_0.5"],
+        "recording_type": "intracellular",
+        "recording_origin": "in_vivo",
+        "ljp": 11.5,
+        "authorized_public": False,
+    }
+
+
+@pytest.fixture
+def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
+    return create_electrical_cell_recording_id_with_assets(
+        db, client, tmp_path, electrical_cell_recording_json_data
     )

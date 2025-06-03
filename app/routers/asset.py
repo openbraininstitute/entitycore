@@ -1,16 +1,15 @@
 """Generic asset routes."""
 
 import uuid
-from enum import StrEnum
 from http import HTTPStatus
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from starlette.responses import RedirectResponse
 
 from app.config import settings
-from app.db.types import AssetLabel, EntityType
+from app.db.types import AssetLabel
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
@@ -19,6 +18,7 @@ from app.schemas.asset import AssetRead
 from app.schemas.types import ListResponse, PaginationResponse
 from app.service import asset as asset_service
 from app.utils.files import calculate_sha256_digest, get_content_type
+from app.utils.routers import EntityRoute, entity_route_to_type
 from app.utils.s3 import (
     delete_from_s3,
     generate_presigned_url,
@@ -32,18 +32,6 @@ router = APIRouter(
     tags=["assets"],
 )
 
-if not TYPE_CHECKING:
-    # EntityRoute (hyphen-separated) <-> EntityType (underscore_separated)
-    EntityRoute = StrEnum(
-        "EntityRoute", {item.name: item.name.replace("_", "-") for item in EntityType}
-    )
-else:
-    EntityRoute = StrEnum
-
-
-def _entity_route_to_type(entity_route: EntityRoute) -> EntityType:
-    return EntityType[entity_route.name]
-
 
 @router.get("/{entity_route}/{entity_id}/assets")
 def get_entity_assets(
@@ -56,7 +44,7 @@ def get_entity_assets(
     assets = asset_service.get_entity_assets(
         repos,
         user_context=user_context,
-        entity_type=_entity_route_to_type(entity_route),
+        entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
     )
     # TODO: proper pagination
@@ -76,7 +64,7 @@ def get_entity_asset(
     return asset_service.get_entity_asset(
         repos,
         user_context=user_context,
-        entity_type=_entity_route_to_type(entity_route),
+        entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
     )
@@ -117,7 +105,7 @@ def upload_entity_asset(
     asset_read = asset_service.create_entity_asset(
         repos=repos,
         user_context=user_context,
-        entity_type=_entity_route_to_type(entity_route),
+        entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         filename=file.filename,
         content_type=content_type,
@@ -149,7 +137,7 @@ def download_entity_asset(
     asset = asset_service.get_entity_asset(
         repos,
         user_context=user_context,
-        entity_type=_entity_route_to_type(entity_route),
+        entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
     )
@@ -205,7 +193,7 @@ def delete_entity_asset(
     asset = asset_service.delete_entity_asset(
         repos,
         user_context=user_context,
-        entity_type=_entity_route_to_type(entity_route),
+        entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
     )

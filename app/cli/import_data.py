@@ -7,7 +7,6 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
-from operator import attrgetter
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +17,7 @@ from tqdm import tqdm
 
 from app.cli import curate, utils
 from app.cli.brain_region_data import BRAIN_ATLAS_REGION_VOLUMES
-from app.cli.curation import electrical_cell_recording
+from app.cli.curation import cell_composition, electrical_cell_recording
 from app.cli.types import ContentType
 from app.cli.utils import (
     AUTHORIZED_PUBLIC,
@@ -37,6 +36,7 @@ from app.db.model import (
     BrainRegionHierarchy,
     CellComposition,
     DataMaturityAnnotationBody,
+    Derivation,
     ElectricalCellRecording,
     EModel,
     Entity,
@@ -70,10 +70,6 @@ from app.db.types import (
 )
 from app.logger import L
 from app.schemas.base import ProjectContext
-
-from app.cli.curation import electrical_cell_recording, cell_composition
-from app.cli.types import ContentType
-
 
 BRAIN_ATLAS_NAME = "BlueBrain Atlas"
 
@@ -558,6 +554,75 @@ class ImportEModels(Import):
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(annotation, db_emodel.id, db)
 
+        db.commit()
+
+
+class ImportEModelDerivations(Import):
+    name = "EModelWorkflow"
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data["@type"])
+        return "EModelWorkflow" in types
+
+    @staticmethod
+    def ingest(
+        db,
+        project_context,
+        data_list: list[dict],
+        all_data_by_id: dict[str, dict],
+        hierarchy_name: str,
+    ):
+        """Import emodel derivations from EModelWorkflow."""
+        legacy_emodel_ids = set()
+        derivations = {}
+        for data in tqdm(data_list, desc="EModelWorkflow"):
+            legacy_emodel_id = utils.find_id_in_entity(data, "EModel", "generates")
+            legacy_etc_id = utils.find_id_in_entity(
+                data, "ExtractionTargetsConfiguration", "hasPart"
+            )
+            if not legacy_emodel_id:
+                L.warning("Not found EModel id in EModelWorkflow: {}", data["@id"])
+                continue
+            if not legacy_etc_id:
+                L.warning(
+                    "Not found ExtractionTargetsConfiguration id in EModelWorkflow: {}", data["@id"]
+                )
+                continue
+            if not (etc := all_data_by_id.get(legacy_etc_id)):
+                L.warning("Not found ExtractionTargetsConfiguration with id {}", legacy_etc_id)
+                continue
+            if not (legacy_trace_ids := list(utils.find_ids_in_entity(etc, "Trace", "uses"))):
+                L.warning(
+                    "Not found traces in ExtractionTargetsConfiguration with id {}", legacy_etc_id
+                )
+                continue
+            if legacy_emodel_id in legacy_emodel_ids:
+                L.warning("Duplicated and ignored traces for EModel id {}", legacy_emodel_id)
+                continue
+            legacy_emodel_ids.add(legacy_emodel_id)
+            if not (emodel := utils._find_by_legacy_id(legacy_emodel_id, EModel, db)):
+                L.warning("Not found EModel with legacy id {}", legacy_emodel_id)
+                continue
+            if emodel.id in derivations:
+                L.warning("Duplicated and ignored traces for EModel uuid {}", emodel.id)
+            derivations[emodel.id] = [
+                utils._find_by_legacy_id(legacy_trace_id, ElectricalCellRecording, db).id
+                for legacy_trace_id in legacy_trace_ids
+            ]
+
+        rows = [
+            Derivation(used_id=trace_id, generated_id=emodel_id)
+            for emodel_id, trace_ids in derivations.items()
+            for trace_id in trace_ids
+        ]
+        L.info(
+            "Imported derivations for {} EModels from {} records", len(derivations), len(data_list)
+        )
+        # delete everything from derivation table before adding the records
+        query = sa.delete(Derivation)
+        db.execute(query)
+        db.add_all(rows)
         db.commit()
 
 
@@ -1370,6 +1435,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportBrainAtlas,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,
+        ImportEModelDerivations,
     ]
 
     for importer in importers:

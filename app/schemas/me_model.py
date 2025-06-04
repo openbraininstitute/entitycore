@@ -12,13 +12,12 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
-    SpeciesRead,
-    StrainRead,
 )
-from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.emodel import EModelRead
 from app.schemas.memodel_calibration_result import MEModelCalibrationResultRead
 from app.schemas.morphology import ReconstructionMorphologyRead
+from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 
 class MEModelBase(BaseModel):
@@ -48,12 +47,12 @@ class MEModelRead(
     AuthorizationMixin,
     EntityTypeMixin,
     CreatedByUpdatedByMixin,
+    ContributionReadWithoutEntityMixin,
 ):
     id: uuid.UUID
-    species: SpeciesRead
-    strain: StrainRead | None
+    species: NestedSpeciesRead
+    strain: NestedStrainRead | None
     brain_region: BrainRegionRead
-    contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     morphology: ReconstructionMorphologyRead

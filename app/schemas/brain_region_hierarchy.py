@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import CreationMixin, IdentifiableMixin
 
 
@@ -9,5 +10,7 @@ class BrainRegionHierarchyBase(BaseModel):
     name: str
 
 
-class BrainRegionHierarchyRead(BrainRegionHierarchyBase, CreationMixin, IdentifiableMixin):
+class BrainRegionHierarchyRead(
+    BrainRegionHierarchyBase, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
+):
     pass

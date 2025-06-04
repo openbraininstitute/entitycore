@@ -122,13 +122,14 @@ def test_brain_region_filter(
 
 
 @pytest.fixture
-def models(db, brain_region_hierarchy_id, create):
+def models(db, brain_region_hierarchy_id, create, person_id):
     pre_region_ids = [
         create_brain_region(
             db,
             hierarchy_id=brain_region_hierarchy_id,
             annotation_value=i,
             name=f"pre-r{i}",
+            created_by_id=person_id,
         ).id
         for i in [0, 1]
     ]
@@ -138,11 +139,16 @@ def models(db, brain_region_hierarchy_id, create):
             hierarchy_id=brain_region_hierarchy_id,
             annotation_value=i,
             name=f"post-r{i}",
+            created_by_id=person_id,
         ).id
         for i in [2, 3]
     ]
-    pre_mtype_ids = [create_mtype(db, pref_label=f"pre-m{i}").id for i in [0, 1]]
-    post_mtype_ids = [create_mtype(db, pref_label=f"post-m{i}").id for i in [2, 3]]
+    pre_mtype_ids = [
+        create_mtype(db, pref_label=f"pre-m{i}", created_by_id=person_id).id for i in [0, 1]
+    ]
+    post_mtype_ids = [
+        create_mtype(db, pref_label=f"post-m{i}", created_by_id=person_id).id for i in [2, 3]
+    ]
 
     synapses_per_connection = []
     for i, (pre_region_id, post_region_id, pre_mtype_id, post_mtype_id) in enumerate(

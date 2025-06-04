@@ -37,6 +37,8 @@ class AssetCreate(AssetBase):
     """Asset model for creation."""
 
     entity_type: EntityType
+    created_by_id: uuid.UUID
+    updated_by_id: uuid.UUID
 
     @model_validator(mode="after")
     def ensure_entity_type_label_consistency(self):

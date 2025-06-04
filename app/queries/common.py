@@ -26,8 +26,9 @@ from app.errors import (
 from app.filters.base import Aliases, CustomFilter
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations
-from app.schemas.auth import UserContextWithProjectId, UserProfile
+from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
 from app.schemas.types import ListResponse, PaginationResponse
+from app.utils.uuid import create_uuid
 
 
 def router_read_one[T: BaseModel, I: Identifiable](
@@ -66,7 +67,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     *,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContextWithProjectId | None,
+    user_context: UserContext | UserContextWithProjectId,
     json_model: BaseModel,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
@@ -85,10 +86,10 @@ def router_create_one[T: BaseModel, I: Identifiable](
         the written model data as a Pydantic model.
     """
     created_by_id = updated_by_id = project_id = None
-    if user_context and user_context.profile:
-        db_agent = get_or_create_user_agent(db, user_context.profile)
-        created_by_id = updated_by_id = db_agent.id
-        project_id = user_context.project_id
+
+    db_agent = get_or_create_user_agent(db, user_context.profile)
+    created_by_id = updated_by_id = db_agent.id
+    project_id = user_context.project_id
 
     db_model_instance = load_db_model_from_pydantic(
         json_model,
@@ -122,11 +123,16 @@ def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
     if db_agent := db.execute(query).scalars().first():
         return db_agent
 
+    agent_id = create_uuid()
+
     db_agent = Person(
+        id=agent_id,
         pref_label=user_profile.name,
         given_name=user_profile.given_name,
         family_name=user_profile.family_name,
         sub_id=user_profile.subject,
+        created_by_id=agent_id,
+        updated_by_id=agent_id,
     )
 
     db.add(db_agent)

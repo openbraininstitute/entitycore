@@ -26,8 +26,6 @@ def _load(query: sa.Select):
         joinedload(SingleNeuronSynaptome.created_by),
         joinedload(SingleNeuronSynaptome.updated_by),
         joinedload(SingleNeuronSynaptome.brain_region),
-        joinedload(SingleNeuronSynaptome.created_by),
-        joinedload(SingleNeuronSynaptome.updated_by),
         selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.agent),
         selectinload(SingleNeuronSynaptome.contributions).joinedload(Contribution.role),
         selectinload(SingleNeuronSynaptome.assets),
@@ -61,6 +59,7 @@ def create_one(
         user_context=user_context,
         db_model_class=SingleNeuronSynaptome,
         response_schema_class=SingleNeuronSynaptomeRead,
+        apply_operations=_load,
     )
 
 

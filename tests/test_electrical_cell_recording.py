@@ -88,10 +88,16 @@ def test_pagination(client, electrical_cell_recording_json_data):
 
 
 @pytest.fixture
-def faceted_ids(db, client, brain_region_hierarchy_id, electrical_cell_recording_json_data):
+def faceted_ids(
+    db, client, brain_region_hierarchy_id, electrical_cell_recording_json_data, person_id
+):
     brain_region_ids = [
         create_brain_region(
-            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+            db,
+            brain_region_hierarchy_id,
+            annotation_value=i,
+            name=f"region-{i}",
+            created_by_id=person_id,
         ).id
         for i in range(2)
     ]

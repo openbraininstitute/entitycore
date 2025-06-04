@@ -1,4 +1,3 @@
-import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends
@@ -8,19 +7,14 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
     CreationFilterMixin,
-    NestedSpeciesFilterDep,
-    SpeciesFilter,
+    SpeciesFilterMixin,
 )
 
 
 class IonChannelModelFilter(
-    CustomFilter,
-    CreationFilterMixin,
-    BrainRegionFilterMixin,
+    CustomFilter, CreationFilterMixin, BrainRegionFilterMixin, SpeciesFilterMixin
 ):
     nmodl_suffix: str | None = None
-    species_id__in: list[uuid.UUID] | None = None
-    species: Annotated[SpeciesFilter | None, NestedSpeciesFilterDep] = None
 
     is_ljp_corrected: bool | None = None
     is_temperature_dependent: bool | None = None

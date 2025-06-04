@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 import app.service.license
-from app.dependencies.auth import user_with_service_admin_role
 
 router = APIRouter(
     prefix="/license",
@@ -10,6 +9,4 @@ router = APIRouter(
 
 read_many = router.get("")(app.service.license.read_many)
 read_one = router.get("/{id_}")(app.service.license.read_one)
-create_one = router.post("", dependencies=[Depends(user_with_service_admin_role)])(
-    app.service.license.create_one
-)
+create_one = router.post("")(app.service.license.create_one)

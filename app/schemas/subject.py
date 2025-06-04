@@ -5,13 +5,14 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.db.types import AgePeriod, Sex
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
     CreationMixin,
     IdentifiableMixin,
-    SpeciesRead,
 )
+from app.schemas.species import NestedSpeciesRead
 
 
 class SubjectBase(BaseModel):
@@ -77,5 +78,15 @@ class SubjectCreate(AuthorizationOptionalPublicMixin, SubjectBase):
     species_id: uuid.UUID
 
 
-class SubjectRead(SubjectBase, CreationMixin, AuthorizationMixin, IdentifiableMixin):
-    species: SpeciesRead
+class NestedSubjectRead(SubjectBase, IdentifiableMixin):
+    species: NestedSpeciesRead
+
+
+class SubjectRead(
+    NestedSubjectRead, CreationMixin, CreatedByUpdatedByMixin, AuthorizationMixin, IdentifiableMixin
+):
+    pass
+
+
+class SubjectReadMixin:
+    subject: NestedSubjectRead

@@ -12,12 +12,11 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
-    SpeciesRead,
-    StrainRead,
 )
-from app.schemas.contribution import ContributionReadWithoutEntity
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.ion_channel_model import IonChannelModelWAssets
 from app.schemas.morphology import ReconstructionMorphologyBase
+from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 
 class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase, IdentifiableMixin):
@@ -47,12 +46,12 @@ class EModelRead(
     EntityTypeMixin,
     AssetsMixin,
     CreatedByUpdatedByMixin,
+    ContributionReadWithoutEntityMixin,
 ):
     id: uuid.UUID
-    species: SpeciesRead
-    strain: StrainRead | None
+    species: NestedSpeciesRead
+    strain: NestedStrainRead | None
     brain_region: BrainRegionRead
-    contributions: list[ContributionReadWithoutEntity] | None
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology

@@ -2,8 +2,10 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin, SpeciesRead
+from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.species import NestedSpeciesRead
 
 
 class BrainAtlasBase(BaseModel):
@@ -11,10 +13,12 @@ class BrainAtlasBase(BaseModel):
 
     name: str
     hierarchy_id: uuid.UUID
-    species: SpeciesRead
+    species: NestedSpeciesRead
 
 
-class BrainAtlasRead(BrainAtlasBase, CreationMixin, IdentifiableMixin, AssetsMixin):
+class BrainAtlasRead(
+    BrainAtlasBase, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin, AssetsMixin
+):
     pass
 
 

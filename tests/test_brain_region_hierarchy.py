@@ -11,6 +11,7 @@ def test_brain_region_hierarchy(client, brain_region_hierarchy_id):
     data = response.json()
     assert data["name"] == "AIBS"
     assert data["id"] == str(brain_region_hierarchy_id)
+    utils.check_creation_fields(data)
 
     response = client.get(ROUTE)
     assert response.status_code == 200
@@ -18,6 +19,7 @@ def test_brain_region_hierarchy(client, brain_region_hierarchy_id):
     assert len(data) == 1
     assert data[0]["name"] == "AIBS"
     assert data[0]["id"] == str(brain_region_hierarchy_id)
+    utils.check_creation_fields(data[0])
 
 
 def test_missing(client):

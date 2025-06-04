@@ -12,7 +12,7 @@ ROUTE = "/etype"
 ROUTE_EMODEL = "/emodel"
 
 
-def test_retrieve(db, client):
+def test_retrieve(db, client, person_id):
     count = 10
     items = [
         {
@@ -22,7 +22,13 @@ def test_retrieve(db, client):
         }
         for i in range(count)
     ]
-    etypes = add_all_db(db, [ETypeClass(**item) for item in items])
+    etypes = add_all_db(
+        db,
+        [
+            ETypeClass(**item | {"created_by_id": person_id, "updated_by_id": person_id})
+            for item in items
+        ],
+    )
 
     response = client.get(ROUTE)
     assert response.status_code == 200
@@ -56,7 +62,9 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_emodel_etypes(db, client, species_id, strain_id, brain_region_id, morphology_id):
+def test_emodel_etypes(
+    db, client, species_id, strain_id, brain_region_id, morphology_id, person_id
+):
     emodel_id = add_db(
         db,
         EModel(
@@ -68,16 +76,46 @@ def test_emodel_etypes(db, client, species_id, strain_id, brain_region_id, morph
             exemplar_morphology_id=morphology_id,
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         ),
     ).id
 
-    etype1_json = {"pref_label": "e1", "alt_label": "e1", "definition": "e1d"}
-    etype2_json = {"pref_label": "e2", "alt_label": "e2", "definition": "e2d"}
-    etype1 = add_db(db, ETypeClass(**etype1_json))
-    etype2 = add_db(db, ETypeClass(**etype2_json))
+    etype1_json = {
+        "pref_label": "e1",
+        "alt_label": "e1",
+        "definition": "e1d",
+    }
+    etype2_json = {
+        "pref_label": "e2",
+        "alt_label": "e2",
+        "definition": "e2d",
+    }
+    etype1 = add_db(
+        db, ETypeClass(**etype1_json | {"created_by_id": person_id, "updated_by_id": person_id})
+    )
+    etype2 = add_db(
+        db, ETypeClass(**etype2_json | {"created_by_id": person_id, "updated_by_id": person_id})
+    )
 
-    add_db(db, ETypeClassification(entity_id=emodel_id, etype_class_id=etype1.id))
-    add_db(db, ETypeClassification(entity_id=emodel_id, etype_class_id=etype2.id))
+    add_db(
+        db,
+        ETypeClassification(
+            entity_id=emodel_id,
+            etype_class_id=etype1.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    add_db(
+        db,
+        ETypeClassification(
+            entity_id=emodel_id,
+            etype_class_id=etype2.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     response = client.get(ROUTE_EMODEL, params={"with_facets": True})
     assert response.status_code == 200

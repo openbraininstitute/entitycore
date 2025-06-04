@@ -123,10 +123,17 @@ class UserProfile(BaseModel):
             family_name=info.family_name,
         )
 
+    @classmethod
+    def unknown(cls):
+        return cls(
+            subject=UUID(int=0, version=4),
+            name="Unknown",
+        )
+
 
 class UserContextBase(BaseModel):
     model_config = ConfigDict(frozen=True)
-    profile: UserProfile | None
+    profile: UserProfile
     expiration: float | None
     is_authorized: bool
     is_service_admin: bool = False

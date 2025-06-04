@@ -1,3 +1,4 @@
+from .utils import check_creation_fields
 from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 
 ROUTE = "/species"
@@ -14,6 +15,7 @@ def test_create_species(client, client_admin):
         data = response.json()
         assert data["name"] == name
         assert data["taxonomy_id"] == taxonomy_id
+        check_creation_fields(data)
         assert "id" in data
         items.append(data)
 
@@ -21,12 +23,14 @@ def test_create_species(client, client_admin):
     assert response.status_code == 200
     data = response.json()
     assert data == items[0]
+    check_creation_fields(data)
 
     response = client.get(ROUTE)
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count
     assert data == items
+    check_creation_fields(data[0])
 
     # test filter
     response = client.get(ROUTE, params={"name": "Test Species 1"})
@@ -34,6 +38,7 @@ def test_create_species(client, client_admin):
     data = response.json()["data"]
     assert len(data) == 1
     assert data == [items[1]]
+    check_creation_fields(data[0])
 
 
 def test_missing(client):

@@ -1,6 +1,6 @@
 import itertools as it
 
-from app.db.model import ReconstructionMorphology, Species, Strain
+from app.db.model import Agent, ReconstructionMorphology, Species, Strain
 from app.db.types import EntityType
 
 from .utils import (
@@ -81,12 +81,40 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_query_reconstruction_morphology(db, client, brain_region_id):
-    species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="0"))
-    species2 = add_db(db, Species(name="TestSpecies2", taxonomy_id="1"))
+def test_query_reconstruction_morphology(db, client, brain_region_id, person_id):
+    species1 = add_db(
+        db,
+        Species(
+            name="TestSpecies1", taxonomy_id="0", created_by_id=person_id, updated_by_id=person_id
+        ),
+    )
+    species2 = add_db(
+        db,
+        Species(
+            name="TestSpecies2", taxonomy_id="1", created_by_id=person_id, updated_by_id=person_id
+        ),
+    )
 
-    strain1 = add_db(db, Strain(name="TestStrain1", species_id=species1.id, taxonomy_id="0"))
-    strain2 = add_db(db, Strain(name="TestStrain2", species_id=species2.id, taxonomy_id="1"))
+    strain1 = add_db(
+        db,
+        Strain(
+            name="TestStrain1",
+            species_id=species1.id,
+            taxonomy_id="0",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    strain2 = add_db(
+        db,
+        Strain(
+            name="TestStrain2",
+            species_id=species2.id,
+            taxonomy_id="1",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     morphology_ids = []
 
@@ -114,7 +142,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     count = 11
     create_morphologies(count)
 
-    agent = db.get(ReconstructionMorphology, morphology_ids[0]).created_by
+    agent = db.get(Agent, db.get(ReconstructionMorphology, morphology_ids[0]).created_by_id)
 
     response = client.get(ROUTE, params={"page_size": 10})
 
@@ -274,11 +302,34 @@ def test_query_reconstruction_morphology(db, client, brain_region_id):
     }
 
 
-def test_query_reconstruction_morphology_species_join(db, client, brain_region_id):
+def test_query_reconstruction_morphology_species_join(db, client, brain_region_id, person_id):
     """Make sure not to join all the species w/ their strains while doing query"""
-    species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="1"))
-    strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
-    add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species0.id))
+    species0 = add_db(
+        db,
+        Species(
+            name="TestSpecies0", taxonomy_id="1", created_by_id=person_id, updated_by_id=person_id
+        ),
+    )
+    strain0 = add_db(
+        db,
+        Strain(
+            name="Strain0",
+            taxonomy_id="strain0",
+            species_id=species0.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    add_db(
+        db,
+        Strain(
+            name="Strain1",
+            taxonomy_id="strain1",
+            species_id=species0.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     registered = assert_request(
         client.post,
@@ -404,11 +455,39 @@ def test_authorization(
     assert data[0]["id"] == public_morph["id"]
 
 
-def test_pagination(db, client, brain_region_id):
-    species0 = add_db(db, Species(name="TestSpecies0", taxonomy_id="0"))
-    species1 = add_db(db, Species(name="TestSpecies1", taxonomy_id="1"))
-    strain0 = add_db(db, Strain(name="Strain0", taxonomy_id="strain0", species_id=species0.id))
-    strain1 = add_db(db, Strain(name="Strain1", taxonomy_id="strain1", species_id=species1.id))
+def test_pagination(db, client, brain_region_id, person_id):
+    species0 = add_db(
+        db,
+        Species(
+            name="TestSpecies0", taxonomy_id="0", created_by_id=person_id, updated_by_id=person_id
+        ),
+    )
+    species1 = add_db(
+        db,
+        Species(
+            name="TestSpecies1", taxonomy_id="1", created_by_id=person_id, updated_by_id=person_id
+        ),
+    )
+    strain0 = add_db(
+        db,
+        Strain(
+            name="Strain0",
+            taxonomy_id="strain0",
+            species_id=species0.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    strain1 = add_db(
+        db,
+        Strain(
+            name="Strain1",
+            taxonomy_id="strain1",
+            species_id=species1.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     total_items = 3
     for i, (species, strain) in zip(
@@ -456,10 +535,27 @@ def test_pagination(db, client, brain_region_id):
     assert list(reversed(names)) == list(range(total_items))
 
 
-def test_filter_by_id__in(db, client, brain_region_id):
+def test_filter_by_id__in(db, client, brain_region_id, person_id):
     """Test filtering reconstruction morphologies by id__in parameter."""
-    species = add_db(db, Species(name="TestSpeciesFilter", taxonomy_id="0"))
-    strain = add_db(db, Strain(name="TestStrainFilter", species_id=species.id, taxonomy_id="0"))
+    species = add_db(
+        db,
+        Species(
+            name="TestSpeciesFilter",
+            taxonomy_id="0",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    strain = add_db(
+        db,
+        Strain(
+            name="TestStrainFilter",
+            species_id=species.id,
+            taxonomy_id="0",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     morphology_ids = []
     for i in range(5):
@@ -518,7 +614,7 @@ def test_filter_by_id__in(db, client, brain_region_id):
     assert data[0]["id"] == morphology_ids[2]
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id):
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id, person_id):
     def create_model_function(_db, name, brain_region_id):
         return ReconstructionMorphology(
             name=name,
@@ -530,6 +626,8 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id):
             legacy_id="Test Legacy ID",
             license_id=None,
             authorized_project_id=PROJECT_ID,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

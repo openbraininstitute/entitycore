@@ -12,7 +12,7 @@ ROUTE = "/mtype"
 ROUTE_MORPH = "/reconstruction-morphology"
 
 
-def test_retrieve(db, client):
+def test_retrieve(db, client, person_id):
     count = 10
     items = [
         {
@@ -22,7 +22,13 @@ def test_retrieve(db, client):
         }
         for i in range(count)
     ]
-    mtypes = add_all_db(db, [MTypeClass(**item) for item in items])
+    mtypes = add_all_db(
+        db,
+        [
+            MTypeClass(**item | {"created_by_id": person_id, "updated_by_id": person_id})
+            for item in items
+        ],
+    )
 
     response = client.get(ROUTE)
     assert response.status_code == 200
@@ -56,7 +62,7 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
+def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id, person_id):
     morph_id = create_reconstruction_morphology_id(
         client,
         species_id,
@@ -65,13 +71,41 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id):
         authorized_public=False,
     )
 
-    mtype1_json = {"pref_label": "m1", "alt_label": "m1", "definition": "m1d"}
-    mtype2_json = {"pref_label": "m2", "alt_label": "m2", "definition": "m2d"}
-    mtype1 = add_db(db, MTypeClass(**mtype1_json))
-    mtype2 = add_db(db, MTypeClass(**mtype2_json))
+    mtype1_json = {
+        "pref_label": "m1",
+        "alt_label": "m1",
+        "definition": "m1d",
+    }
+    mtype2_json = {
+        "pref_label": "m2",
+        "alt_label": "m2",
+        "definition": "m2d",
+    }
+    mtype1 = add_db(
+        db, MTypeClass(**mtype1_json | {"created_by_id": person_id, "updated_by_id": person_id})
+    )
+    mtype2 = add_db(
+        db, MTypeClass(**mtype2_json | {"created_by_id": person_id, "updated_by_id": person_id})
+    )
 
-    add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype1.id))
-    add_db(db, MTypeClassification(entity_id=morph_id, mtype_class_id=mtype2.id))
+    add_db(
+        db,
+        MTypeClassification(
+            entity_id=morph_id,
+            mtype_class_id=mtype1.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    add_db(
+        db,
+        MTypeClassification(
+            entity_id=morph_id,
+            mtype_class_id=mtype2.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     response = client.get(ROUTE_MORPH, params={"with_facets": True})
     assert response.status_code == 200

@@ -57,6 +57,7 @@ def create_one(
         user_context=user_context,
         db_model_class=SingleNeuronSimulation,
         response_schema_class=SingleNeuronSimulationRead,
+        apply_operations=_load,
     )
 
 

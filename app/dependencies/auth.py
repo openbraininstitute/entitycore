@@ -118,7 +118,7 @@ def _check_user_info(
 
     if response.status_code in http_status_errors:
         return UserContext(
-            profile=UserProfile.from_user_info(decoded) if decoded else None,
+            profile=UserProfile.from_user_info(decoded) if decoded else UserProfile.unknown(),
             expiration=decoded.exp if decoded else None,
             is_authorized=False,
             virtual_lab_id=project_context.virtual_lab_id,
@@ -243,4 +243,5 @@ def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
 
 
 UserContextDep = Annotated[UserContext, Depends(user_verified)]
+AdminContextDep = Annotated[UserContext, Depends(user_with_service_admin_role)]
 UserContextWithProjectIdDep = Annotated[UserContextWithProjectId, Depends(user_with_project_id)]

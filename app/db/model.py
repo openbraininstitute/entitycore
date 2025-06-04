@@ -102,6 +102,7 @@ class Identifiable(TimestampMixin, Base):
     def created_by(cls) -> Mapped["Agent"]:
         return relationship(
             "Agent",
+            # needed to enforce the correct direction of joins in Agent-derived tables
             primaryjoin=lambda: cls.created_by_id == foreign(Agent.id),
             uselist=False,
             viewonly=True,
@@ -117,6 +118,7 @@ class Identifiable(TimestampMixin, Base):
     def updated_by(cls) -> Mapped["Agent"]:
         return relationship(
             "Agent",
+            # needed to enforce the correct direction of joins in Agent-derived tables
             primaryjoin=lambda: cls.updated_by_id == foreign(Agent.id),
             uselist=False,
             viewonly=True,

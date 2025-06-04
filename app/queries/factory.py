@@ -45,8 +45,10 @@ def query_params_factory[I: Identifiable](
 
     def _get_alias[T: type[Identifiable]](db_cls: T, name: str | None = None) -> T:
         value = aliases.get(db_cls, db_cls)
+        # if multiple aliases for a db_cls e.g, {Agent: {"agent": alias1, "created_by": "alias2"}
         if isinstance(value, dict):
             assert name is not None  # noqa: S101
+            # Fetch alias by name or assign db_cls if the alias is not passed as not needed
             value = value.get(name, db_cls)
         assert value is not None  # noqa: S101
         return cast("T", value)

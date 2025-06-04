@@ -1024,5 +1024,4 @@ class ScientificArtifactPublicationLink(Identifiable):
 
     __table_args__ = (
         UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
-        {"extend_existing": True},
     )

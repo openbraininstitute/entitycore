@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
+from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -11,13 +12,14 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Index,
+    Integer,
     LargeBinary,
     MetaData,
     String,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -51,6 +53,7 @@ from app.db.types import (
     StructuralDomain,
     ValidationStatus,
 )
+from app.schemas.publication import Author, PublicationType
 from app.utils.uuid import create_uuid
 
 
@@ -392,6 +395,57 @@ class SubjectMixin:
     @classmethod
     def subject(cls):
         return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
+
+
+class Publication(Entity, NameDescriptionVectorMixin):
+    """Represents a scientific publication entity in the database.
+
+    Attributes:
+        id (uuid.UUID): Primary key, references the base entity ID.
+        DOI (str | None): Digital Object Identifier for the publication, if available.
+        title (str | None): Title of the publication.
+        authors (list[Author] | None): List of authors associated with the publication.
+        publication_year (int | None): Year the publication was released.
+        abstract (str | None): Abstract or summary of the publication.
+
+    """
+
+    __tablename__ = EntityType.publication.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
+    publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    abstract: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class ScientificArtifact(
+    Entity, SubjectMixin, NameDescriptionVectorMixin, LocationMixin, LicensedMixin
+):
+    """Represents a scientific artifact entity in the database.
+
+    Attributes:
+        __tablename__ (str): Name of the database table for scientific artifacts.
+        id (uuid.UUID): Primary key, references the base entity ID.
+        experiment_date (datetime | None): Date of the experiment associated with the artifact.
+        contact_id (uuid.UUID | None): Optional reference to a contact person (person.id).
+
+    Mapper Args:
+        polymorphic_identity (str): Used for SQLAlchemy polymorphic inheritance.
+    """
+
+    __tablename__ = EntityType.scientific_artifact.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
+    contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+    }
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
@@ -927,3 +981,47 @@ class Derivation(Base):
     generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
+
+
+class ScientificArtifactPublicationLink(Identifiable):
+    """Represents the association between a scientific artifact and a publication in the database.
+
+    This model links a scientific artifact to a publication, specifying the type of publication.
+    It enforces uniqueness on the combination of publication and scientific artifact, ensuring that
+    each artifact-publication pair is unique. The publication type determines if the artefact was
+    used by the publication, or if the publication is used to generate the artifact or if the
+    artefact is a result of the publication.
+
+    Attributes:
+        publication_id (UUID): Foreign key referencing the associated publication.
+        publication_type (PublicationType): Enum indicating the nature of the relationship.
+        scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
+        publication (Publication): Relationship to the Publication model.
+        scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
+
+    Table:
+        Unique constraint on (publication_id, scientific_artifact_id).
+    """
+
+    __tablename__ = "scientific_artifact_publication_link"
+    publication_id: Mapped[UUID] = mapped_column(ForeignKey("publication.id"), index=True)
+    publication_type: Mapped[PublicationType]
+    scientific_artifact_id: Mapped[UUID] = mapped_column(
+        ForeignKey("scientific_artifact.id"), index=True
+    )
+
+    # Relationships - assuming ScientificArtifact and Publication exist
+    publication: Mapped["Publication"] = relationship(
+        "Publication",
+        foreign_keys=[publication_id],
+        uselist=False,
+    )
+    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+        "ScientificArtifact",
+        foreign_keys=[scientific_artifact_id],
+        uselist=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
+    )

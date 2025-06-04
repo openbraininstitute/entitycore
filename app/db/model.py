@@ -1007,15 +1007,13 @@ class ScientificArtifactPublicationLink(Identifiable):
     """
 
     __tablename__ = "scientific_artifact_publication_link"
-    publication_id: Mapped[UUID] = mapped_column(
-        ForeignKey("publication.id"), primary_key=True, index=True
-    )
+    publication_id: Mapped[UUID] = mapped_column(ForeignKey("publication.id"), index=True)
     publication_type: Mapped[PublicationType] = mapped_column(
         Enum(PublicationType, name="publicationtype_ScientificArtifactPublicationLink"),
         primary_key=True,
     )
     scientific_artifact_id: Mapped[UUID] = mapped_column(
-        ForeignKey("scientific_artifact.id"), primary_key=True, index=True
+        ForeignKey("scientific_artifact.id"), index=True
     )
 
     # Relationships - assuming ScientificArtifact and Publication exist

@@ -418,7 +418,7 @@ class ImportLicense(Import):
         hierarchy_name: str,
     ):
         for data in tqdm(data_list):
-            if db_item := utils._find_by_legacy_id(data["@id"], License, db):
+            if utils._find_by_legacy_id(data["@id"], License, db):
                 continue
 
             createdAt, updatedAt = utils.get_created_and_updated(data)

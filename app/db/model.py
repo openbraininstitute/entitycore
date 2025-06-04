@@ -404,55 +404,6 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
-class ScientificArtifactPublicationLink(Identifiable):
-    """Represents the association between a scientific artifact and a publication in the database.
-
-    This model links a scientific artifact to a publication, specifying the type of publication.
-    It enforces uniqueness on the combination of publication and scientific artifact, ensuring that
-    each artifact-publication pair is unique. The publication type determines if the artefact was
-    used by the publication, or if the publication is used to generate the artifact or if the
-    artefact is a result of the publication.
-
-    Attributes:
-        publication_id (UUID): Foreign key referencing the associated publication.
-        publication_type (PublicationType): Enum indicating the nature of the relationship.
-        scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
-        publication (Publication): Relationship to the Publication model.
-        scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
-
-    Table:
-        Unique constraint on (publication_id, scientific_artifact_id).
-    """
-
-    __tablename__ = "scientific_artifact_publication_link"
-    publication_id: Mapped[UUID] = mapped_column(
-        ForeignKey("publication.id"), primary_key=True, index=True
-    )
-    publication_type: Mapped[PublicationType] = mapped_column(
-        Enum(PublicationType, name="publicationtype_ScientificArtifactPublicationLink"),
-        primary_key=True
-    )
-    scientific_artifact_id: Mapped[UUID] = mapped_column(
-        ForeignKey("scientific_artifact.id"), primary_key=True, index=True
-    )
-
-    # Relationships - assuming ScientificArtifact and Publication exist
-    publication: Mapped["Publication"] = relationship(
-        "Publication",
-        foreign_keys=[publication_id],
-        uselist=False,
-    )
-    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
-        "ScientificArtifact",
-        foreign_keys=[scientific_artifact_id],
-        uselist=False,
-    )
-
-    __table_args__ = (
-        UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
-        {"extend_existing": True},
-    )
-
 
 class SubjectMixin:
     subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
@@ -1034,3 +985,53 @@ class Derivation(Base):
     generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
+
+class ScientificArtifactPublicationLink(Identifiable):
+    """Represents the association between a scientific artifact and a publication in the database.
+
+    This model links a scientific artifact to a publication, specifying the type of publication.
+    It enforces uniqueness on the combination of publication and scientific artifact, ensuring that
+    each artifact-publication pair is unique. The publication type determines if the artefact was
+    used by the publication, or if the publication is used to generate the artifact or if the
+    artefact is a result of the publication.
+
+    Attributes:
+        publication_id (UUID): Foreign key referencing the associated publication.
+        publication_type (PublicationType): Enum indicating the nature of the relationship.
+        scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
+        publication (Publication): Relationship to the Publication model.
+        scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
+
+    Table:
+        Unique constraint on (publication_id, scientific_artifact_id).
+    """
+
+    __tablename__ = "scientific_artifact_publication_link"
+    publication_id: Mapped[UUID] = mapped_column(
+        ForeignKey("publication.id"), primary_key=True, index=True
+    )
+    publication_type: Mapped[PublicationType] = mapped_column(
+        Enum(PublicationType, name="publicationtype_ScientificArtifactPublicationLink"),
+        primary_key=True
+    )
+    scientific_artifact_id: Mapped[UUID] = mapped_column(
+        ForeignKey("scientific_artifact.id"), primary_key=True, index=True
+    )
+
+    # Relationships - assuming ScientificArtifact and Publication exist
+    publication: Mapped["Publication"] = relationship(
+        "Publication",
+        foreign_keys=[publication_id],
+        uselist=False,
+    )
+    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+        "ScientificArtifact",
+        foreign_keys=[scientific_artifact_id],
+        uselist=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
+        {"extend_existing": True},
+    )
+

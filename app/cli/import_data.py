@@ -421,30 +421,25 @@ class ImportLicense(Import):
             if db_license := db.query(License).filter(License.name == data["@id"]).first():
                 continue
 
-            try:
-                createdAt, updatedAt = utils.get_created_and_updated(data)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
 
-                created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
 
-                label = data["label"] if "label" in data else data["name"]
+            label = data["label"] if "label" in data else data["name"]
 
-                db_license = License(
-                    name=data["@id"],
-                    label=label,
-                    description=data["description"],
-                    legacy_id=[data["@id"]],
-                    legacy_self=[data["_self"]],
-                    creation_date=createdAt,
-                    update_date=updatedAt,
-                    created_by_id=created_by_id,
-                    updated_by_id=updated_by_id,
-                )
+            db_license = License(
+                name=data["@id"],
+                label=label,
+                description=data["description"],
+                legacy_id=[data["@id"]],
+                legacy_self=[data["_self"]],
+                creation_date=createdAt,
+                update_date=updatedAt,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+            )
 
-                db.add(db_license)
-            except Exception as e:
-                print(f"Error creating license: {e!r}")
-                print(data)
-                raise
+            db.add(db_license)
 
         db.commit()
 

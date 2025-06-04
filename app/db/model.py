@@ -396,7 +396,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
-    publication_year: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
     __mapper_args__ = {  # noqa: RUF012
@@ -424,9 +424,7 @@ class ScientificArtifactPublicationLink(Identifiable):
         Unique constraint on (publication_id, scientific_artifact_id).
     """
 
-    """Database model for ScientificArtifactPublicationLink."""
-
-    __tablename__ = "published_in"
+    __tablename__ = "scientific_artifact_publication_link"
     publication_id: Mapped[UUID] = mapped_column(
         ForeignKey("publication.id"), primary_key=True, index=True
     )

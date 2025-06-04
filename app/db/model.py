@@ -1012,7 +1012,7 @@ class ScientificArtifactPublicationLink(Identifiable):
     )
     publication_type: Mapped[PublicationType] = mapped_column(
         Enum(PublicationType, name="publicationtype_ScientificArtifactPublicationLink"),
-        primary_key=True
+        primary_key=True,
     )
     scientific_artifact_id: Mapped[UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), primary_key=True, index=True

@@ -44,6 +44,7 @@ from app.utils.s3 import build_s3_path
 from app.utils.uuid import create_uuid
 
 AUTHORIZED_PUBLIC = True
+ADMIN = None
 
 
 def ensurelist(x):
@@ -256,11 +257,9 @@ def get_agent_mixin(data, db):
 
         # if the agent is not found by legacy id, return the admin
         if agent_db is None:
+            L.warning(f"legacy_id not found, used admin instead: {legacy_id}")
             agent_db = get_or_create_admin(db)
 
-        if not agent_db:
-            msg = f"legacy_id not found: {legacy_id}"
-            raise RuntimeError(msg)
         result.append(agent_db.id)
     return result
 
@@ -855,9 +854,14 @@ def merge_measurements_annotations(entity_annotations, entity_id, created_by_id,
     )
 
 
-def get_or_create_admin(db, _cache=None):
+def get_or_create_admin(db, _cache={}):
     if _cache:
-        return _cache
+        return _cache["admin"]
+
+    # Admin already in db but not in global yet
+    if admin := db.query(Person).filter(Person.pref_label == "Admin").first():
+        _cache["admin"] = admin
+        return admin
 
     admin_id = create_uuid()
 
@@ -871,6 +875,6 @@ def get_or_create_admin(db, _cache=None):
     db.commit()
     db.refresh(admin)
 
-    _cache = admin
+    _cache["admin"] = admin
 
     return admin

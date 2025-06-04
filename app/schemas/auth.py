@@ -124,10 +124,10 @@ class UserProfile(BaseModel):
         )
 
     @classmethod
-    def dummy(cls):
+    def unknown(cls):
         return cls(
-            subject=UUID(int=0),
-            name="Dummy",
+            subject=UUID(int=0, version=4),
+            name="Unknown",
         )
 
 

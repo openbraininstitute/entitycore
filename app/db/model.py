@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import uuid
+import uuid  # noqa: TC003
 from datetime import datetime, timedelta
 from typing import ClassVar
-from uuid import UUID
+from uuid import UUID  # noqa: TC003
 
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -59,7 +59,7 @@ from app.db.types import (
     StructuralDomain,
     ValidationStatus,
 )
-from app.schemas.publication import Author, PublicationType
+from app.schemas.publication import Author, PublicationType  # noqa: TC001
 from app.utils.uuid import create_uuid
 
 
@@ -327,7 +327,7 @@ class ETypeClassification(Identifiable):
 class MTypesMixin:
     @declared_attr
     @classmethod
-    def mtypes(cls) -> Mapped[list["MTypeClass"]]:
+    def mtypes(cls) -> Mapped[list[MTypeClass]]:
         if not issubclass(cls, Entity):
             msg = f"{cls} should be an Entity"
             raise TypeError(msg)
@@ -344,7 +344,7 @@ class MTypesMixin:
 class ETypesMixin:
     @declared_attr
     @classmethod
-    def etypes(cls) -> Mapped[list["ETypeClass"]]:
+    def etypes(cls) -> Mapped[list[ETypeClass]]:
         if not issubclass(cls, Entity):
             msg = f"{cls} should be an Entity"
             raise TypeError(msg)
@@ -387,8 +387,8 @@ class Entity(LegacyMixin, Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
-    assets: Mapped[list["Asset"]] = relationship(
+    contributions: Mapped[list[Contribution]] = relationship(uselist=True, viewonly=True)
+    assets: Mapped[list[Asset]] = relationship(
         "Asset",
         foreign_keys="Asset.entity_id",
         uselist=True,
@@ -532,7 +532,7 @@ class EModel(
         "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
-    ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
+    ion_channel_models: Mapped[list[IonChannelModel]] = relationship(
         primaryjoin="EModel.id == IonChannelModelToEModel.emodel_id",
         secondary="ion_channel_model__emodel",
         uselist=True,
@@ -611,13 +611,13 @@ class ReconstructionMorphology(
 class MeasurementAnnotation(LegacyMixin, Identifiable):
     __tablename__ = "measurement_annotation"
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True, unique=True)
-    entity: Mapped["Entity"] = relationship(
+    entity: Mapped[Entity] = relationship(
         viewonly=True,
         foreign_keys=[entity_id],
         primaryjoin=entity_id == Entity.id,
         lazy="raise",
     )
-    measurement_kinds: Mapped[list["MeasurementKind"]] = relationship(
+    measurement_kinds: Mapped[list[MeasurementKind]] = relationship(
         back_populates="measurement_annotation", passive_deletes=True
     )
 
@@ -653,10 +653,10 @@ class MeasurementKind(Base):
         ForeignKey("measurement_annotation.id", ondelete="CASCADE"),
         index=True,
     )
-    measurement_annotation: Mapped["MeasurementAnnotation"] = relationship(
+    measurement_annotation: Mapped[MeasurementAnnotation] = relationship(
         back_populates="measurement_kinds", viewonly=True
     )
-    measurement_items: Mapped[list["MeasurementItem"]] = relationship(
+    measurement_items: Mapped[list[MeasurementItem]] = relationship(
         back_populates="measurement_kind", passive_deletes=True
     )
     __table_args__ = (
@@ -679,7 +679,7 @@ class MeasurementItem(Base):
     measurement_kind_id: Mapped[int] = mapped_column(
         ForeignKey("measurement_kind.id", ondelete="CASCADE"), index=True
     )
-    measurement_kind: Mapped["MeasurementKind"] = relationship(
+    measurement_kind: Mapped[MeasurementKind] = relationship(
         back_populates="measurement_items", viewonly=True
     )
     __table_args__ = (
@@ -1083,6 +1083,7 @@ class Circuit(ScientificArtifact):
           figures, and statistics.
         - Asset: folder containing SONATA circuit files.
     """
+
     __tablename__ = "circuit"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
@@ -1118,10 +1119,13 @@ class Circuit(ScientificArtifact):
     # To be added later:
     # version: Mapped[str] = mapped_column(default="")
 
-    # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id"), index=True, nullable=False, default=None)
-    # building_workflow: Mapped[BuildingWorkflow] = relationship("BuildingWorkflow", uselist=False, foreign_keys=[building_workflow_id])
+    # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id")
+    # , index=True, nullable=False, default=None)
+    # building_workflow: Mapped[BuildingWorkflow] = relationship("BuildingWorkflow", uselist=False,i
+    #  foreign_keys=[building_workflow_id])
 
-    # flatmap_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flatmap.id"), index=True, nullable=True, default=None)
+    # flatmap_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flatmap.id"), index=True,i
+    #  nullable=True, default=None)
     # flatmap: Mapped[FlatMap] = relationship("FlatMap", uselist=False, foreign_keys=[flatmap_id])
 
     # calibration_data (multiple entities): ...

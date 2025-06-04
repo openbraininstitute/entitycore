@@ -407,7 +407,7 @@ class ImportLicense(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return "License" in ensurelist(data["@type"])
+        return utils.is_type(data, "License")
 
     @staticmethod
     def ingest(

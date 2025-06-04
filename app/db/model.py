@@ -56,7 +56,7 @@ from app.db.types import (
     StructuralDomain,
     ValidationStatus,
 )
-from app.schemas.scientific_artifact import Author, PublicationType
+from app.schemas.publication import Author, PublicationType
 from app.utils.uuid import create_uuid
 
 

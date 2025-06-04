@@ -404,7 +404,6 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
-
 class SubjectMixin:
     subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
 
@@ -986,6 +985,7 @@ class Derivation(Base):
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
 
+
 class ScientificArtifactPublicationLink(Identifiable):
     """Represents the association between a scientific artifact and a publication in the database.
 
@@ -1034,4 +1034,3 @@ class ScientificArtifactPublicationLink(Identifiable):
         UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
         {"extend_existing": True},
     )
-

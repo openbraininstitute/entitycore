@@ -1,10 +1,8 @@
-# Standard library imports
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
 from uuid import UUID
 
-# Third-party imports
 import sqlalchemy as sa
 from sqlalchemy import (
     BigInteger,
@@ -32,7 +30,6 @@ from sqlalchemy.orm import (
     validates,
 )
 
-# Local application imports
 from app.db.types import (
     BIGINT,
     JSON_DICT,
@@ -378,6 +375,28 @@ class Entity(LegacyMixin, Identifiable):
     }
 
 
+class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
+    __tablename__ = EntityType.subject.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    age_value: Mapped[timedelta | None]
+    age_min: Mapped[timedelta | None]
+    age_max: Mapped[timedelta | None]
+    age_period: Mapped[AgePeriod | None]
+    sex: Mapped[Sex | None]
+    weight: Mapped[float | None]  # in grams
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SubjectMixin:
+    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def subject(cls):
+        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
+
+
 class Publication(Entity, NameDescriptionVectorMixin):
     """Represents a scientific publication entity in the database.
 
@@ -404,15 +423,6 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
-class SubjectMixin:
-    subject_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("subject.id"), index=True)
-
-    @declared_attr
-    @classmethod
-    def subject(cls):
-        return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
-
-
 class ScientificArtifact(
     Entity, SubjectMixin, NameDescriptionVectorMixin, LocationMixin, LicensedMixin
 ):
@@ -436,19 +446,6 @@ class ScientificArtifact(
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
     }
-
-
-class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.subject.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    age_value: Mapped[timedelta | None]
-    age_min: Mapped[timedelta | None]
-    age_max: Mapped[timedelta | None]
-    age_period: Mapped[AgePeriod | None]
-    sex: Mapped[Sex | None]
-    weight: Mapped[float | None]  # in grams
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):

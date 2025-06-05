@@ -84,8 +84,10 @@ class AgentType(StrEnum):
 
 class ActivityType(StrEnum):
     """Activity types."""
+
     simulation_execution = auto()
     simulation_generation = auto()
+
 
 class AnnotationBodyType(StrEnum):
     """AnnotationBody types."""

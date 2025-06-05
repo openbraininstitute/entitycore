@@ -417,8 +417,8 @@ class ImportSpecies(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
 
             db_species = Species(
-                name=data["@id"],
-                taxonomy_id=data["taxonomy_id"],
+                name=data["label"],
+                taxonomy_id=data["@id"],
                 created_by_id=created_by_id,
                 updated_by_id=updated_by_id,
                 creation_date=createdAt,

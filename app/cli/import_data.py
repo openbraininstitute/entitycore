@@ -401,6 +401,35 @@ class ImportAgent(Import):
                         print(f"{e!r}")
 
 
+class ImportSpecies(Import):
+    name = "Species"
+    defaults = curate.default_species()
+
+    @staticmethod
+    def is_correct_type(data):
+        return utils.is_type(data, "Species")
+
+    @staticmethod
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name):
+        for data in tqdm(data_list):
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+
+            db_species = Species(
+                name=data["@id"],
+                taxonomy_id=data["taxonomy_id"],
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
+            )
+
+            db.add(db_species)
+
+        db.commit()
+
+
 class ImportLicense(Import):
     name = "Licenses"
     defaults = curate.default_licenses()
@@ -1265,7 +1294,11 @@ class ImportDistribution(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return "distribution" in data and not utils.is_type(data, "SubCellularModelScript")
+        return (
+            "distribution" in data
+            and not utils.is_type(data, "SubCellularModelScript")
+            and not utils.is_type(data, "License")
+        )
 
     @staticmethod
     def ingest(
@@ -1500,6 +1533,7 @@ def create_measurement(data, entity_id, db):
 def _do_import(db, input_dir, project_context, hierarchy_name):
     importers = [
         ImportAgent,
+        ImportSpecies,
         ImportLicense,
         ImportMTypeAnnotation,
         ImportETypeAnnotation,

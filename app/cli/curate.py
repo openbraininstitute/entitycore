@@ -168,8 +168,8 @@ def default_species():
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },
         {
-            "@id": "NCBITaxon:8407",
-            "label": "Rana catesbeiana",
+            "@id": "NCBITaxon:8400",
+            "label": "Aquarana catesbeiana",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },

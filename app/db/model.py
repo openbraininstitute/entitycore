@@ -55,6 +55,7 @@ from app.db.types import (
     SingleNeuronSimulationStatus,
     StructuralDomain,
     ValidationStatus,
+    DerivationType,
 )
 from app.schemas.publication import Author, PublicationType
 from app.utils.uuid import create_uuid
@@ -1005,6 +1006,7 @@ class Derivation(Base):
     generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
+    derivation_type: Mapped[DerivationType | None]
 
 
 class ScientificArtifactPublicationLink(Identifiable):

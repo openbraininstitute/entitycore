@@ -1,8 +1,8 @@
 """circuit_model
 
-Revision ID: 7803439c8f77
+Revision ID: 1a5cec5b629b
 Revises: 0b6f073c2628
-Create Date: 2025-06-05 12:57:46.788606
+Create Date: 2025-06-05 13:20:33.747219
 
 """
 
@@ -19,7 +19,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "7803439c8f77"
+revision: str = "1a5cec5b629b"
 down_revision: Union[str, None] = "0b6f073c2628"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -40,6 +40,7 @@ def upgrade() -> None:
     sa.Enum("computational_model", "em_reconstruction", name="circuitbuildcategory").create(
         op.get_bind()
     )
+    sa.Enum("circuit_extraction", "circuit_rewiring", name="derivationtype").create(op.get_bind())
     op.create_table(
         "circuit",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -103,15 +104,25 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_circuit_root_circuit_id"), "circuit", ["root_circuit_id"], unique=False
     )
+    op.add_column(
+        "derivation",
+        sa.Column(
+            "derivation_type",
+            postgresql.ENUM(
+                "circuit_extraction", "circuit_rewiring", name="derivationtype", create_type=False
+            ),
+            nullable=True,
+        ),
+    )
     op.drop_index(
         "ix_scientific_artifact_description_vector",
         table_name="scientific_artifact",
         postgresql_using="gin",
     )
     op.drop_index("ix_scientific_artifact_name", table_name="scientific_artifact")
-    op.drop_column("scientific_artifact", "description_vector")
-    op.drop_column("scientific_artifact", "description")
     op.drop_column("scientific_artifact", "name")
+    op.drop_column("scientific_artifact", "description")
+    op.drop_column("scientific_artifact", "description_vector")
     op.sync_enum_values(
         enum_schema="public",
         enum_name="entitytype",
@@ -240,15 +251,15 @@ def downgrade() -> None:
         enum_values_to_rename=[],
     )
     op.add_column(
-        "scientific_artifact", sa.Column("name", sa.VARCHAR(), autoincrement=False, nullable=False)
+        "scientific_artifact",
+        sa.Column("description_vector", postgresql.TSVECTOR(), autoincrement=False, nullable=True),
     )
     op.add_column(
         "scientific_artifact",
         sa.Column("description", sa.VARCHAR(), autoincrement=False, nullable=False),
     )
     op.add_column(
-        "scientific_artifact",
-        sa.Column("description_vector", postgresql.TSVECTOR(), autoincrement=False, nullable=True),
+        "scientific_artifact", sa.Column("name", sa.VARCHAR(), autoincrement=False, nullable=False)
     )
     op.create_index("ix_scientific_artifact_name", "scientific_artifact", ["name"], unique=False)
     op.create_index(
@@ -258,11 +269,13 @@ def downgrade() -> None:
         unique=False,
         postgresql_using="gin",
     )
+    op.drop_column("derivation", "derivation_type")
     op.drop_index(op.f("ix_circuit_root_circuit_id"), table_name="circuit")
     op.drop_index(op.f("ix_circuit_name"), table_name="circuit")
     op.drop_index("ix_circuit_description_vector", table_name="circuit", postgresql_using="gin")
     op.drop_index(op.f("ix_circuit_atlas_id"), table_name="circuit")
     op.drop_table("circuit")
+    sa.Enum("circuit_extraction", "circuit_rewiring", name="derivationtype").drop(op.get_bind())
     sa.Enum("computational_model", "em_reconstruction", name="circuitbuildcategory").drop(
         op.get_bind()
     )

@@ -84,13 +84,12 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
-
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
-        }
+        },
     }
     facet_keys = filter_keys = [
         "brain_region",

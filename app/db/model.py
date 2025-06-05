@@ -1106,7 +1106,10 @@ class Simulation(Entity):
         server_default="{}",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
 
 
 class SimulationExecution(Activity):

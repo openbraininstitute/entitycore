@@ -1,7 +1,7 @@
 from app.db import utils as test_module
-from app.db.model import MeasurementAnnotation, MeasurementKind, ReconstructionMorphology
+from app.db.model import MeasurementAnnotation, MeasurementKind, CellMorphology
 from app.schemas.measurement_annotation import MeasurementAnnotationCreate
-from app.schemas.morphology import ReconstructionMorphologyCreate
+from app.schemas.morphology import CellMorphologyCreate
 
 from tests.utils import PROJECT_ID
 
@@ -84,19 +84,19 @@ def test_construct_model_reconstruction_morphology(brain_region_id, person_id):
     }
 
     def _check_result(r):
-        assert isinstance(r, ReconstructionMorphology)
+        assert isinstance(r, CellMorphology)
         assert r.name == reconstruction_morphology["name"]
         assert r.location == reconstruction_morphology["location"]
 
     result = test_module.construct_model(
-        model_cls=ReconstructionMorphology, data=reconstruction_morphology
+        model_cls=CellMorphology, data=reconstruction_morphology
     )
     _check_result(result)
 
-    json_model = ReconstructionMorphologyCreate.model_validate(reconstruction_morphology)
+    json_model = CellMorphologyCreate.model_validate(reconstruction_morphology)
     result = test_module.load_db_model_from_pydantic(
         json_model,
-        db_model_class=ReconstructionMorphology,
+        db_model_class=CellMorphology,
         authorized_project_id=PROJECT_ID,
         created_by_id=person_id,
         updated_by_id=person_id,

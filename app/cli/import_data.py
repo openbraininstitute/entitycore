@@ -55,7 +55,7 @@ from app.db.model import (
     MTypeClassification,
     Organization,
     Person,
-    ReconstructionMorphology,
+    CellMorphology,
     SingleNeuronSimulation,
     Species,
 )
@@ -572,7 +572,7 @@ class ImportEModels(Import):
             )
 
             morphology = utils._find_by_legacy_id(
-                exemplar_morphology_id, ReconstructionMorphology, db
+                exemplar_morphology_id, CellMorphology, db
             )
 
             assert morphology
@@ -822,7 +822,7 @@ class ImportMorphologies(Import):
             curate.curate_morphology(data)
             legacy_id = data["@id"]
             legacy_self = data["_self"]
-            rm = utils._find_by_legacy_id(legacy_id, ReconstructionMorphology, db)
+            rm = utils._find_by_legacy_id(legacy_id, CellMorphology, db)
             if rm:
                 continue
 
@@ -833,7 +833,7 @@ class ImportMorphologies(Import):
             createdAt, updatedAt = utils.get_created_and_updated(data)
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
 
-            db_reconstruction_morphology = ReconstructionMorphology(
+            db_reconstruction_morphology = CellMorphology(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data["name"],
@@ -1041,7 +1041,7 @@ class ImportMEModel(Import):
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             morphology_id = utils.find_part_id(data, "NeuronMorphology")
-            morphology = utils._find_by_legacy_id(morphology_id, ReconstructionMorphology, db)
+            morphology = utils._find_by_legacy_id(morphology_id, CellMorphology, db)
 
             emodel_id = utils.find_part_id(data, "EModel")
             emodel = utils._find_by_legacy_id(emodel_id, EModel, db)
@@ -1321,7 +1321,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                 info["already_registered"] += 1
                 continue
 
-            rm = utils._find_by_legacy_id(morphology_legacy_id, ReconstructionMorphology, db)
+            rm = utils._find_by_legacy_id(morphology_legacy_id, CellMorphology, db)
             if not rm:
                 info["missing_morphology"] += 1
                 continue

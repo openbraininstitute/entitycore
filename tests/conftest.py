@@ -27,7 +27,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Organization,
-    ReconstructionMorphology,
+    CellMorphology,
     Role,
     Species,
     Strain,
@@ -582,7 +582,7 @@ def create_memodel_ids(
             add_contributions(db, agents, memodel_id)
 
             emodel = db.get(EModel, emodel_id)
-            morphology = db.get(ReconstructionMorphology, morphology_id)
+            morphology = db.get(CellMorphology, morphology_id)
 
             add_db(
                 db,

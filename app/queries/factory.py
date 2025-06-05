@@ -15,7 +15,7 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
+    CellMorphology,
     SingleNeuronSynaptome,
     Species,
     Strain,
@@ -53,7 +53,7 @@ def query_params_factory[I: Identifiable](
         assert value is not None  # noqa: S101
         return cast("T", value)
 
-    morphology_alias = _get_alias(ReconstructionMorphology)
+    morphology_alias = _get_alias(CellMorphology)
     emodel_alias = _get_alias(EModel)
     me_model_alias = _get_alias(MEModel)
     synaptome_alias = _get_alias(SingleNeuronSynaptome)

@@ -3,8 +3,8 @@ from fastapi import APIRouter
 import app.service.morphology
 
 router = APIRouter(
-    prefix="/reconstruction-morphology",
-    tags=["reconstruction-morphology"],
+    prefix="/cell-morphology",
+    tags=["cell-morphology"],
 )
 
 read_many = router.get("")(app.service.morphology.read_many)

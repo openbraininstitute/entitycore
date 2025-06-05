@@ -1,4 +1,4 @@
-from enum import auto
+from enum import Enum, auto
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict
@@ -8,6 +8,14 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 from app.utils.enum import StrEnum
+
+
+class MorphologyStructureType(str, Enum):
+    digital_reconstruction = auto()
+    modified = auto()
+    computationally_synthesized = auto()
+    placeholder = auto()
+    generic = auto()  # for base CellMorphology
 
 
 class PointLocationBase(BaseModel):

@@ -47,6 +47,7 @@ from app.db.types import (
     EntityType,
     MeasurementStatistic,
     MeasurementUnit,
+    MorphologyStructureType,
     PointLocation,
     PointLocationType,
     Sex,
@@ -524,7 +525,7 @@ class EModel(
     )
 
     exemplar_morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
     ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
@@ -554,7 +555,7 @@ class MEModel(
     )
 
     morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
@@ -587,7 +588,7 @@ class MeasurableEntity(Entity):
         )
 
 
-class ReconstructionMorphology(
+class CellMorphology(
     MTypesMixin,
     LicensedMixin,
     LocationMixin,
@@ -599,7 +600,11 @@ class ReconstructionMorphology(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     location: Mapped[PointLocation | None]
-
+    morphology_structure_type = mapped_column(
+        Enum(MorphologyStructureType, name="morphologystructuretype"),
+        nullable=False,
+        default=MorphologyStructureType.generic,
+    )
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

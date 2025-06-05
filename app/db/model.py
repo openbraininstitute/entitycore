@@ -40,6 +40,9 @@ from app.db.types import (
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
+    CircuitBuildCategory,
+    CircuitScale,
+    DerivationType,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
@@ -444,9 +447,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
-class ScientificArtifact(
-    Entity, SubjectMixin, NameDescriptionVectorMixin, LocationMixin, LicensedMixin
-):
+class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     """Represents a scientific artifact entity in the database.
 
     Attributes:
@@ -460,12 +461,15 @@ class ScientificArtifact(
     """
 
     __tablename__ = EntityType.scientific_artifact.value
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
     }
 
 
@@ -1002,6 +1006,7 @@ class Derivation(Base):
     generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
+    derivation_type: Mapped[DerivationType | None]
 
 
 class ScientificArtifactPublicationLink(Identifiable):
@@ -1046,3 +1051,74 @@ class ScientificArtifactPublicationLink(Identifiable):
     __table_args__ = (
         UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
     )
+
+
+class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
+    """Represents a neural circuit as a scientific artifact.
+
+       It can be a single neuron up to a whole brain model.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        root_circuit_id (uuid.UUID | None): Optional reference to the root circuit
+            (self-referential).
+        root_circuit (Circuit | None): Relationship to the root Circuit instance. A root
+            circuit does not derive from another circuit.
+        atlas_id (uuid.UUID | None): Optional reference to the associated BrainAtlas.
+        atlas (BrainAtlas | None): Relationship to the BrainAtlas instance.
+        build_category (CircuitBuildCategory): Category describing how the circuit was built.
+        scale (CircuitScale): Scale of the circuit (e.g., microcircuit, mesocircuit).
+        has_morphologies (bool): Indicates if the circuit includes morphologies.
+        has_point_neurons (bool): Indicates if the circuit includes point neurons.
+        has_electrical_cell_models (bool): Indicates if the circuit includes electrical cell models.
+        has_spines (bool): Indicates if the circuit includes spines.
+        number_neurons (int): Number of neurons in the circuit.
+        number_synapses (int): Number of synapses in the circuit.
+        number_connections (int | None): Number of connections in the circuit, if available.
+
+    Notes:
+        - Inherits additional attributes from ScientificArtifact (e.g., name, description,
+          brain_region).
+        - References to assets such as SONATA circuit folders, connectivity matrices,
+          figures, and statistics.
+        - Asset: folder containing SONATA circuit files.
+    """
+
+    __tablename__ = EntityType.circuit.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+
+    # Still missing:
+    # - connectivity_matrices: Folder containing multiple .h5 files in ConnectomeUtilities format
+    # - circuit_figures: Folder containing all pre-computed overview figures
+    # - circuit_statistics: Folder containing all pre-computed circuit statistics
+
+    root_circuit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("circuit.id"), index=True)
+    atlas_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
+
+    build_category: Mapped[CircuitBuildCategory]
+    scale: Mapped[CircuitScale]
+
+    has_morphologies: Mapped[bool]
+    has_point_neurons: Mapped[bool]
+    has_electrical_cell_models: Mapped[bool]
+    has_spines: Mapped[bool]
+
+    number_neurons: Mapped[int] = mapped_column(BigInteger)
+    number_synapses: Mapped[int] = mapped_column(BigInteger)
+    number_connections: Mapped[int | None] = mapped_column(BigInteger)
+
+    # To be added later:
+    # version: Mapped[str] = mapped_column(default="")
+
+    # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id")
+    # , index=True, nullable=False, default=None)
+    # building_workflow: Mapped[BuildingWorkflow] = relationship("BuildingWorkflow", uselist=False,i
+    #  foreign_keys=[building_workflow_id])
+
+    # flatmap_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flatmap.id"), index=True,i
+    #  nullable=True, default=None)
+    # flatmap: Mapped[FlatMap] = relationship("FlatMap", uselist=False, foreign_keys=[flatmap_id])
+
+    # calibration_data (multiple entities): ...
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

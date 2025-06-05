@@ -71,6 +71,7 @@ class EntityType(StrEnum):
     single_neuron_synaptome_simulation = auto()
     subject = auto()
     validation_result = auto()
+    circuit = auto()
 
 
 class AgentType(StrEnum):
@@ -78,6 +79,20 @@ class AgentType(StrEnum):
 
     person = auto()
     organization = auto()
+
+
+class DerivationType(StrEnum):
+    """Represents the type of derivation relationship between two entities.
+
+    Attributes:
+        circuit_extraction: Indicates that the entity was derived by extracting a set of nodes from
+         a circuit.
+        circuit_rewiring: Indicates that the entity was derived by rewiring the connectivity of
+          a circuit.
+    """
+
+    circuit_extraction = auto()
+    circuit_rewiring = auto()
 
 
 class AnnotationBodyType(StrEnum):
@@ -195,6 +210,7 @@ class AssetLabel(StrEnum):
     single_neuron_synaptome_config = auto()
     single_neuron_synaptome_simulation_io_result = auto()
     single_cell_simulation_data = auto()
+    sonata_circuit = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -212,4 +228,42 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.single_neuron_synaptome_simulation_io_result
     },
     EntityType.single_neuron_simulation: {AssetLabel.single_cell_simulation_data},
+    EntityType.circuit: {AssetLabel.sonata_circuit},
 }
+
+
+class CircuitBuildCategory(StrEnum):
+    """Information about how/from what source a circuit was built.
+
+    - computational_model: Any type of data-driven or statistical model
+    - em_reconstruction: Reconstruction from EM
+    (More categories may be added later, if needed).
+    """
+
+    computational_model = auto()
+    em_reconstruction = auto()
+
+
+class CircuitScale(StrEnum):
+    """Scale of the circuit.
+
+    - single: Single neuron + extrinsic connectivity
+    - pair: Two connected neurons + intrinsic connectivity + extrinsic connectivity
+    - small: Small microcircuit (3-20 neurons) + intrinsic connectivity + extrinsic connectivity;
+      usually containing specific connectivity motifs
+    - microcircuit: Any circuit larger than 20 neurons but not being a region, system, or
+      whole-brain circuit; may be atlas-based or not
+    - region: Atlas-based continuous volume of an entire brain region or a set of continuous
+      sub-regions
+    - system: Non-continuous circuit consisting of at least two microcircuits/regions that are
+      connected by inter-region connectivity
+    - whole_brain: Circuit representing an entire brain.
+    """
+
+    single = auto()
+    pair = auto()
+    small = auto()
+    microcircuit = auto()
+    region = auto()
+    system = auto()
+    whole_brain = auto()

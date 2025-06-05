@@ -1159,6 +1159,8 @@ class SimulationGeneration(Activity):
     __tablename__ = ActivityType.simulation_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
 
 class Derivation(Base):
     __tablename__ = "derivation"

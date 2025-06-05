@@ -42,6 +42,7 @@ from app.db.types import (
     AssetStatus,
     CircuitBuildCategory,
     CircuitScale,
+    DerivationType,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
@@ -55,7 +56,6 @@ from app.db.types import (
     SingleNeuronSimulationStatus,
     StructuralDomain,
     ValidationStatus,
-    DerivationType,
 )
 from app.schemas.publication import Author, PublicationType
 from app.utils.uuid import create_uuid

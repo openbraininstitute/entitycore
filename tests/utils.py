@@ -2,6 +2,7 @@ import functools
 import uuid
 from pathlib import Path
 from unittest.mock import ANY
+from uuid import UUID
 
 import sqlalchemy as sa
 from httpx import Headers
@@ -10,10 +11,16 @@ from starlette.testclient import TestClient
 from app.db.model import (
     BrainRegion,
     BrainRegionHierarchy,
+    ElectricalCellRecording,
+    ElectricalRecordingStimulus,
     MTypeClass,
     MTypeClassification,
+    Person,
+    ReconstructionMorphology,
 )
 from app.db.types import EntityType
+from app.routers.asset import EntityRoute
+from app.utils.uuid import create_uuid
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
@@ -40,6 +47,11 @@ PROJECT_HEADERS = {
 UNRELATED_PROJECT_HEADERS = {
     "virtual-lab-id": UNRELATED_VIRTUAL_LAB_ID,
     "project-id": UNRELATED_PROJECT_ID,
+}
+
+ROUTES = {
+    ReconstructionMorphology: "/reconstruction-morphology",
+    ElectricalCellRecording: "/electrical-cell-recording",
 }
 
 
@@ -78,7 +90,7 @@ def create_reconstruction_morphology_id(
     description="Test Morphology Description",
 ):
     response = client.post(
-        "/reconstruction-morphology",
+        ROUTES[ReconstructionMorphology],
         json={
             "name": name,
             "description": description,
@@ -124,8 +136,12 @@ def assert_request(client_method, *, expected_status_code=200, **kwargs):
     return response
 
 
-def create_hiearchy_name(db, name: str):
-    row = BrainRegionHierarchy(name=name)
+def create_hiearchy_name(
+    db, name: str, created_by_id: uuid.UUID, updated_by_id: uuid.UUID | None = None
+):
+    row = BrainRegionHierarchy(
+        name=name, created_by_id=created_by_id, updated_by_id=updated_by_id or created_by_id
+    )
     return add_db(db, row)
 
 
@@ -134,7 +150,9 @@ def create_brain_region(
     hierarchy_id,
     annotation_value: int,
     name: str,
+    created_by_id: uuid.UUID,
     parent_id: uuid.UUID | None = None,
+    updated_by_id: uuid.UUID | None = None,
 ):
     row = BrainRegion(
         annotation_value=annotation_value,
@@ -143,23 +161,81 @@ def create_brain_region(
         color_hex_triplet="FF0000",
         parent_structure_id=parent_id,
         hierarchy_id=hierarchy_id,
+        created_by_id=created_by_id,
+        updated_by_id=created_by_id or updated_by_id,
     )
     return add_db(db, row)
 
 
-def create_mtype(db, pref_label: str, alt_label=None, definition=None):
+def create_mtype(db, pref_label: str, created_by_id: uuid.UUID, alt_label=None, definition=None):
     return add_db(
         db,
         MTypeClass(
             pref_label=pref_label,
             alt_label=alt_label or pref_label,
             definition=definition or "",
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
         ),
     )
 
 
 def attach_mtype(db, entity_id, mtype_id):
     return add_db(db, MTypeClassification(entity_id=str(entity_id), mtype_class_id=str(mtype_id)))
+
+
+def create_electrical_recording_stimulus_id(db, recording_id, created_by_id):
+    return add_db(
+        db,
+        ElectricalRecordingStimulus(
+            name="protocol",
+            description="protocol-description",
+            dt=0.1,
+            injection_type="current_clamp",
+            shape="sinusoidal",
+            start_time=0.0,
+            end_time=1.0,
+            recording_id=recording_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+        ),
+    ).id
+
+
+def create_electrical_cell_recording_id(client, json_data):
+    result = assert_request(client.post, url=ROUTES[ElectricalCellRecording], json=json_data).json()
+    return uuid.UUID(result["id"])
+
+
+def create_electrical_cell_recording_db(db, client, json_data):
+    trace_id = create_electrical_cell_recording_id(client, json_data)
+    return db.get(ElectricalCellRecording, trace_id)
+
+
+def create_electrical_cell_recording_id_with_assets(db, client, tmp_path, json_data):
+    trace_id = create_electrical_cell_recording_id(client, json_data)
+
+    trace = db.get(ElectricalCellRecording, trace_id)
+
+    # add two protocols that refer to it
+    create_electrical_recording_stimulus_id(db, trace_id, created_by_id=trace.created_by_id)
+    create_electrical_recording_stimulus_id(db, trace_id, created_by_id=trace.created_by_id)
+
+    filepath = tmp_path / "trace.nwb"
+    filepath.write_bytes(b"trace")
+
+    # add an asset too
+    create_asset_file(
+        client=client,
+        entity_type="electrical_cell_recording",
+        entity_id=trace_id,
+        file_name="my-trace.nwb",
+        file_obj=filepath.read_bytes(),
+    )
+
+    return trace_id
 
 
 def check_missing(route, client):
@@ -290,9 +366,15 @@ def create_asset_file(client, entity_type, entity_id, file_name, file_obj):
 
 
 def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, create_model_function):
+    db_hierarchy = db.get(BrainRegionHierarchy, brain_region_hierarchy_id)
+
     brain_region_ids = [
         create_brain_region(
-            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+            db,
+            brain_region_hierarchy_id,
+            annotation_value=i,
+            name=f"region-{i}",
+            created_by_id=db_hierarchy.created_by_id,
         ).id
         for i in range(2)
     ]
@@ -323,6 +405,8 @@ def with_creation_fields(d):
 def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
     regions = []
 
+    db_hierarchy = db.get(BrainRegionHierarchy, hierarchy_id)
+
     def recurse(i):
         children = []
         item = i | {"children": children}
@@ -342,6 +426,8 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
             color_hex_triplet=region["color_hex_triplet"],
             parent_structure_id=ids[region["parent_structure_id"]],
             hierarchy_id=hierarchy_id,
+            created_by_id=db_hierarchy.created_by_id,
+            updated_by_id=db_hierarchy.created_by_id,
         )
         db_br = add_db(db, row)
         db.flush()
@@ -349,3 +435,59 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
 
     ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
     return ret
+
+
+def _entity_type_to_route(entity_type: EntityType) -> EntityRoute:
+    return EntityRoute[entity_type.name]
+
+
+def route(entity_type: EntityType) -> str:
+    return f"/{_entity_type_to_route(entity_type)}"
+
+
+def upload_entity_asset(
+    client,
+    entity_type: EntityType,
+    entity_id: UUID,
+    files: dict[str, tuple],
+    label: str | None = None,
+):
+    """Attach a file to an entity
+
+    files maps to: (filename, file (or bytes), content_type, headers)
+    """
+    data = None
+    if label:
+        data = {"label": label}
+    return client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)
+
+
+def create_person(
+    db,
+    *,
+    pref_label: str,
+    given_name: str | None = None,
+    family_name: str | None = None,
+    created_by_id: uuid.UUID | None = None,
+):
+    agent_id = create_uuid()
+
+    row = Person(
+        id=agent_id,
+        given_name=given_name,
+        family_name=family_name,
+        pref_label=pref_label,
+        created_by_id=created_by_id or agent_id,
+        updated_by_id=created_by_id or agent_id,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+def check_creation_fields(data: dict):
+    assert data["creation_date"] == ANY
+    assert data["update_date"] == ANY
+    assert data["created_by"]["id"] == ANY
+    assert data["updated_by"]["id"] == ANY

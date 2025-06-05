@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
+from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -11,18 +12,20 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Index,
+    Integer,
     LargeBinary,
     MetaData,
     String,
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     declared_attr,
+    foreign,
     mapped_column,
     relationship,
     validates,
@@ -38,6 +41,9 @@ from app.db.types import (
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
+    CircuitBuildCategory,
+    CircuitScale,
+    DerivationType,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
@@ -53,6 +59,7 @@ from app.db.types import (
     StructuralDomain,
     ValidationStatus,
 )
+from app.schemas.publication import Author, PublicationType
 from app.utils.uuid import create_uuid
 
 
@@ -92,6 +99,38 @@ class LegacyMixin:
 class Identifiable(TimestampMixin, Base):
     __abstract__ = True  # This class is abstract and not directly mapped to a table
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
+
+    @declared_attr
+    @classmethod
+    def created_by_id(cls) -> Mapped[uuid.UUID]:
+        return mapped_column(ForeignKey("agent.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def created_by(cls) -> Mapped["Agent"]:
+        return relationship(
+            "Agent",
+            # needed to enforce the correct direction of joins in Agent-derived tables
+            primaryjoin=lambda: cls.created_by_id == foreign(Agent.id),
+            uselist=False,
+            viewonly=True,
+        )
+
+    @declared_attr
+    @classmethod
+    def updated_by_id(cls) -> Mapped[uuid.UUID]:
+        return mapped_column(ForeignKey("agent.id"), index=True)
+
+    @declared_attr
+    @classmethod
+    def updated_by(cls) -> Mapped["Agent"]:
+        return relationship(
+            "Agent",
+            # needed to enforce the correct direction of joins in Agent-derived tables
+            primaryjoin=lambda: cls.updated_by_id == foreign(Agent.id),
+            uselist=False,
+            viewonly=True,
+        )
 
 
 class NameDescriptionVectorMixin(Base):
@@ -309,12 +348,6 @@ class AnnotationMixin:
     alt_label: Mapped[str | None]
 
 
-class ClassificationMixin:
-    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-
-
 class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
     __tablename__ = "mtype_class"
 
@@ -323,16 +356,18 @@ class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
     __tablename__ = "etype_class"
 
 
-class MTypeClassification(ClassificationMixin, Identifiable):
+class MTypeClassification(Identifiable):
     __tablename__ = "mtype_classification"
 
     mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
-class ETypeClassification(ClassificationMixin, Identifiable):
+class ETypeClassification(Identifiable):
     __tablename__ = "etype_classification"
 
     etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
 class MTypesMixin:
@@ -395,14 +430,6 @@ class Entity(LegacyMixin, Identifiable):
     type: Mapped[EntityType]
     annotations = relationship("Annotation", back_populates="entity")
 
-    # TODO: keep the _ ? put on agent ?
-    created_by = relationship("Agent", uselist=False, foreign_keys="Entity.created_by_id")
-    # TODO: move to mandatory
-    created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-    updated_by = relationship("Agent", uselist=False, foreign_keys="Entity.updated_by_id")
-    # TODO: move to mandatory
-    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent.id"), index=True)
-
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
@@ -442,6 +469,58 @@ class SubjectMixin:
         return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
+class Publication(Entity, NameDescriptionVectorMixin):
+    """Represents a scientific publication entity in the database.
+
+    Attributes:
+        id (uuid.UUID): Primary key, references the base entity ID.
+        DOI (str | None): Digital Object Identifier for the publication, if available.
+        title (str | None): Title of the publication.
+        authors (list[Author] | None): List of authors associated with the publication.
+        publication_year (int | None): Year the publication was released.
+        abstract (str | None): Abstract or summary of the publication.
+
+    """
+
+    __tablename__ = EntityType.publication.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
+    publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    abstract: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
+    """Represents a scientific artifact entity in the database.
+
+    Attributes:
+        __tablename__ (str): Name of the database table for scientific artifacts.
+        id (uuid.UUID): Primary key, references the base entity ID.
+        experiment_date (datetime | None): Date of the experiment associated with the artifact.
+        contact_id (uuid.UUID | None): Optional reference to a contact person (person.id).
+
+    Mapper Args:
+        polymorphic_identity (str): Used for SQLAlchemy polymorphic inheritance.
+    """
+
+    __tablename__ = EntityType.scientific_artifact.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
+    contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
+    }
+
+
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.analysis_software_source_code.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -467,7 +546,7 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
 class Contribution(Identifiable):
     __tablename__ = "contribution"
     agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
-    agent = relationship("Agent", uselist=False)
+    agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
     role = relationship("Role", uselist=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
@@ -530,12 +609,16 @@ class MEModel(
         "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
     )
 
-    holding_current: Mapped[float | None]
-    threshold_current: Mapped[float | None]
-
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
     emodel = relationship("EModel", foreign_keys=[emodel_id], uselist=False)
+
+    calibration_result = relationship(
+        "MEModelCalibrationResult",
+        uselist=False,
+        foreign_keys="MEModelCalibrationResult.calibrated_entity_id",
+        lazy="joined",
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -879,6 +962,25 @@ class ValidationResult(Entity):
     }
 
 
+class MEModelCalibrationResult(Entity):
+    __tablename__ = EntityType.memodel_calibration_result.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    holding_current: Mapped[float]
+    threshold_current: Mapped[float]
+    rin: Mapped[float | None]
+    calibrated_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("memodel.id"), index=True)
+    calibrated_entity: Mapped[Entity] = relationship(
+        "MEModel",
+        uselist=False,
+        foreign_keys=[calibrated_entity_id],
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
 class Asset(Identifiable):
     """Asset table."""
 
@@ -1052,5 +1154,125 @@ class SimulationGeneration(Activity):
 
     __tablename__ = ActivityType.simulation_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+class Derivation(Base):
+    __tablename__ = "derivation"
+    used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
+    generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
+    derivation_type: Mapped[DerivationType | None]
+
+
+class ScientificArtifactPublicationLink(Identifiable):
+    """Represents the association between a scientific artifact and a publication in the database.
+
+    This model links a scientific artifact to a publication, specifying the type of publication.
+    It enforces uniqueness on the combination of publication and scientific artifact, ensuring that
+    each artifact-publication pair is unique. The publication type determines if the artefact was
+    used by the publication, or if the publication is used to generate the artifact or if the
+    artefact is a result of the publication.
+
+    Attributes:
+        publication_id (UUID): Foreign key referencing the associated publication.
+        publication_type (PublicationType): Enum indicating the nature of the relationship.
+        scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
+        publication (Publication): Relationship to the Publication model.
+        scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
+
+    Table:
+        Unique constraint on (publication_id, scientific_artifact_id).
+    """
+
+    __tablename__ = "scientific_artifact_publication_link"
+    publication_id: Mapped[UUID] = mapped_column(ForeignKey("publication.id"), index=True)
+    publication_type: Mapped[PublicationType]
+    scientific_artifact_id: Mapped[UUID] = mapped_column(
+        ForeignKey("scientific_artifact.id"), index=True
+    )
+
+    # Relationships - assuming ScientificArtifact and Publication exist
+    publication: Mapped["Publication"] = relationship(
+        "Publication",
+        foreign_keys=[publication_id],
+        uselist=False,
+    )
+    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+        "ScientificArtifact",
+        foreign_keys=[scientific_artifact_id],
+        uselist=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
+    )
+
+
+class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
+    """Represents a neural circuit as a scientific artifact.
+
+       It can be a single neuron up to a whole brain model.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        root_circuit_id (uuid.UUID | None): Optional reference to the root circuit
+            (self-referential).
+        root_circuit (Circuit | None): Relationship to the root Circuit instance. A root
+            circuit does not derive from another circuit.
+        atlas_id (uuid.UUID | None): Optional reference to the associated BrainAtlas.
+        atlas (BrainAtlas | None): Relationship to the BrainAtlas instance.
+        build_category (CircuitBuildCategory): Category describing how the circuit was built.
+        scale (CircuitScale): Scale of the circuit (e.g., microcircuit, mesocircuit).
+        has_morphologies (bool): Indicates if the circuit includes morphologies.
+        has_point_neurons (bool): Indicates if the circuit includes point neurons.
+        has_electrical_cell_models (bool): Indicates if the circuit includes electrical cell models.
+        has_spines (bool): Indicates if the circuit includes spines.
+        number_neurons (int): Number of neurons in the circuit.
+        number_synapses (int): Number of synapses in the circuit.
+        number_connections (int | None): Number of connections in the circuit, if available.
+
+    Notes:
+        - Inherits additional attributes from ScientificArtifact (e.g., name, description,
+          brain_region).
+        - References to assets such as SONATA circuit folders, connectivity matrices,
+          figures, and statistics.
+        - Asset: folder containing SONATA circuit files.
+    """
+
+    __tablename__ = EntityType.circuit.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+
+    # Still missing:
+    # - connectivity_matrices: Folder containing multiple .h5 files in ConnectomeUtilities format
+    # - circuit_figures: Folder containing all pre-computed overview figures
+    # - circuit_statistics: Folder containing all pre-computed circuit statistics
+
+    root_circuit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("circuit.id"), index=True)
+    atlas_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
+
+    build_category: Mapped[CircuitBuildCategory]
+    scale: Mapped[CircuitScale]
+
+    has_morphologies: Mapped[bool]
+    has_point_neurons: Mapped[bool]
+    has_electrical_cell_models: Mapped[bool]
+    has_spines: Mapped[bool]
+
+    number_neurons: Mapped[int] = mapped_column(BigInteger)
+    number_synapses: Mapped[int] = mapped_column(BigInteger)
+    number_connections: Mapped[int | None] = mapped_column(BigInteger)
+
+    # To be added later:
+    # version: Mapped[str] = mapped_column(default="")
+
+    # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id")
+    # , index=True, nullable=False, default=None)
+    # building_workflow: Mapped[BuildingWorkflow] = relationship("BuildingWorkflow", uselist=False,i
+    #  foreign_keys=[building_workflow_id])
+
+    # flatmap_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flatmap.id"), index=True,i
+    #  nullable=True, default=None)
+    # flatmap: Mapped[FlatMap] = relationship("FlatMap", uselist=False, foreign_keys=[flatmap_id])
+
+    # calibration_data (multiple entities): ...
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

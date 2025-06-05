@@ -2,10 +2,12 @@ import itertools as it
 from unittest.mock import ANY
 
 from app.db.model import BrainAtlas, BrainAtlasRegion
+from app.db.types import EntityType
 
 from . import utils
 
 ROUTE = "/brain-atlas"
+FILE_EXAMPLE_PATH = utils.TEST_DATA_DIR / "example.json"
 
 
 HIERARCHY = {
@@ -44,8 +46,8 @@ HIERARCHY = {
 }
 
 
-def test_brain_atlas(db, client, species_id):
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy")
+def test_brain_atlas(db, client, species_id, person_id):
+    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy", created_by_id=person_id)
     regions = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
     brain_atlas0 = utils.add_db(
@@ -57,8 +59,17 @@ def test_brain_atlas(db, client, species_id):
             hierarchy_id=hierarchy_name.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         ),
     )
+    with FILE_EXAMPLE_PATH.open("rb") as f:
+        utils.upload_entity_asset(
+            client,
+            EntityType.brain_atlas,
+            brain_atlas0.id,
+            files={"file": ("a/b/c.txt", f, "text/plain")},
+        )
     brain_atlas1 = utils.add_db(
         db,
         BrainAtlas(
@@ -68,21 +79,37 @@ def test_brain_atlas(db, client, species_id):
             hierarchy_id=hierarchy_name.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         ),
     )
     expected = {
+        "assets": [
+            {
+                "content_type": "text/plain",
+                "full_path": ANY,
+                "id": ANY,
+                "is_directory": False,
+                "label": None,
+                "meta": {},
+                "path": "a/b/c.txt",
+                "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",
+                "size": 31,
+                "status": "created",
+            }
+        ],
         "creation_date": ANY,
         "hierarchy_id": str(hierarchy_name.id),
         "id": str(brain_atlas0.id),
         "name": "test brain atlas",
         "species": {
-            "creation_date": ANY,
             "id": species_id,
             "name": "Test Species",
             "taxonomy_id": "12345",
-            "update_date": ANY,
         },
         "update_date": ANY,
+        "created_by": ANY,
+        "updated_by": ANY,
     }
 
     response = client.get(ROUTE)
@@ -99,10 +126,7 @@ def test_brain_atlas(db, client, species_id):
     data = (("root", False, None), ("blue", False, None), ("red", True, 15), ("grey", True, 10))
     ids = {}
     for brain_atlas, (name, leaf, volume) in it.product(
-        (
-            brain_atlas0,
-            brain_atlas1,
-        ),
+        (brain_atlas0, brain_atlas1),
         data,
     ):
         row = BrainAtlasRegion(
@@ -112,15 +136,38 @@ def test_brain_atlas(db, client, species_id):
             brain_atlas_id=brain_atlas.id,
             authorized_project_id=utils.PROJECT_ID,
             authorized_public=True,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         )
         ids[brain_atlas.name, name] = utils.add_db(db, row)
+
+        with FILE_EXAMPLE_PATH.open("rb") as f:
+            utils.upload_entity_asset(
+                client,
+                EntityType.brain_atlas_region,
+                entity_id=ids[brain_atlas.name, name].id,
+                files={"file": ("a/b/c.txt", f, "text/plain")},
+            ).raise_for_status()
 
     response = client.get(
         f"{ROUTE}/{brain_atlas0.id}/regions", params={"order_by": "+creation_date"}
     )
     assert response.status_code == 200
+    expected_asset = {
+        "content_type": "text/plain",
+        "full_path": ANY,
+        "id": ANY,
+        "is_directory": False,
+        "label": None,
+        "meta": {},
+        "path": "a/b/c.txt",
+        "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",
+        "size": 31,
+        "status": "created",
+    }
     assert response.json()["data"] == [
         {
+            "assets": [expected_asset],
             "brain_atlas_id": str(brain_atlas0.id),
             "brain_region_id": str(regions["root"].id),
             "creation_date": ANY,
@@ -130,6 +177,7 @@ def test_brain_atlas(db, client, species_id):
             "volume": None,
         },
         {
+            "assets": [expected_asset],
             "brain_atlas_id": str(brain_atlas0.id),
             "brain_region_id": str(regions["blue"].id),
             "creation_date": ANY,
@@ -139,6 +187,7 @@ def test_brain_atlas(db, client, species_id):
             "volume": None,
         },
         {
+            "assets": [expected_asset],
             "brain_atlas_id": str(brain_atlas0.id),
             "brain_region_id": str(regions["red"].id),
             "creation_date": ANY,
@@ -148,6 +197,7 @@ def test_brain_atlas(db, client, species_id):
             "volume": 15.0,
         },
         {
+            "assets": [expected_asset],
             "brain_atlas_id": str(brain_atlas0.id),
             "brain_region_id": str(regions["grey"].id),
             "creation_date": ANY,
@@ -161,6 +211,7 @@ def test_brain_atlas(db, client, species_id):
     response = client.get(f"{ROUTE}/{brain_atlas0.id}/regions/{ids[brain_atlas0.name, 'root'].id}")
     assert response.status_code == 200
     assert response.json() == {
+        "assets": [expected_asset],
         "brain_atlas_id": str(brain_atlas0.id),
         "brain_region_id": str(regions["root"].id),
         "creation_date": ANY,

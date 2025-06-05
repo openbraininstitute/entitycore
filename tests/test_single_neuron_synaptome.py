@@ -3,6 +3,7 @@ import itertools as it
 import pytest
 
 from app.db.model import (
+    Agent,
     Contribution,
     MEModel,
     SingleNeuronSynaptome,
@@ -71,8 +72,26 @@ def model_id(db, create_id, agents):
     model_id = create_id()
 
     agent_1, agent_2, role = agents
-    add_db(db, Contribution(agent_id=agent_1.id, role_id=role.id, entity_id=model_id))
-    add_db(db, Contribution(agent_id=agent_2.id, role_id=role.id, entity_id=model_id))
+    add_db(
+        db,
+        Contribution(
+            agent_id=agent_1.id,
+            role_id=role.id,
+            entity_id=model_id,
+            created_by_id=agent_2.id,
+            updated_by_id=agent_2.id,
+        ),
+    )
+    add_db(
+        db,
+        Contribution(
+            agent_id=agent_2.id,
+            role_id=role.id,
+            entity_id=model_id,
+            created_by_id=agent_2.id,
+            updated_by_id=agent_2.id,
+        ),
+    )
 
     return str(model_id)
 
@@ -183,7 +202,7 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
     assert data[0]["id"] == public_morph["id"]
 
 
-def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id):
+def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, person_id):
     me_model_1 = add_db(
         db,
         MEModel(
@@ -194,8 +213,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
-            holding_current=0,
-            threshold_current=0,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         ),
     )
     me_model_2 = add_db(
@@ -208,8 +227,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             emodel_id=emodel_id,
             morphology_id=morphology_id,
             species_id=species_id,
-            holding_current=0,
-            threshold_current=0,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         ),
     )
 
@@ -224,6 +243,8 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
                 authorized_public=False,
                 brain_region_id=brain_region_id,
                 authorized_project_id=PROJECT_ID,
+                created_by_id=person_id,
+                updated_by_id=person_id,
             )
             add_db(db, row)
             ids.append(row.id)
@@ -244,10 +265,14 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
 
 
 @pytest.fixture
-def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, create_id):
+def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, create_id, person_id):
     brain_region_ids = [
         create_brain_region(
-            db, brain_region_hierarchy_id, annotation_value=i, name=f"region-{i}"
+            db,
+            brain_region_hierarchy_id,
+            annotation_value=i,
+            name=f"region-{i}",
+            created_by_id=person_id,
         ).id
         for i in range(2)
     ]
@@ -268,7 +293,7 @@ def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, cr
 def test_facets(db, client, faceted_ids):
     brain_region_ids, memodel_ids, syn_ids = faceted_ids
 
-    agent = db.get(MODEL, syn_ids[0]).created_by
+    agent = db.get(Agent, db.get(MODEL, syn_ids[0]).created_by_id)
 
     data = assert_request(
         client.get,
@@ -341,7 +366,7 @@ def test_facets(db, client, faceted_ids):
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id
+    db, client, brain_region_hierarchy_id, species_id, emodel_id, morphology_id, person_id
 ):
     def create_model_function(db, name, brain_region_id):
         me_model_id = str(
@@ -355,8 +380,8 @@ def test_brain_region_filter(
                     emodel_id=emodel_id,
                     morphology_id=morphology_id,
                     species_id=species_id,
-                    holding_current=0,
-                    threshold_current=0,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
                 ),
             ).id
         )
@@ -368,6 +393,8 @@ def test_brain_region_filter(
             seed=1,
             brain_region_id=brain_region_id,
             authorized_project_id=PROJECT_ID,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

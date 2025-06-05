@@ -1,5 +1,8 @@
 import uuid
 
+import sqlalchemy as sa
+from sqlalchemy.orm import joinedload, raiseload, selectinload
+
 import app.queries.common
 from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.dependencies.auth import UserContextDep
@@ -8,6 +11,17 @@ from app.dependencies.db import SessionDep
 from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
 from app.schemas.brain_atlas import BrainAtlasRead, BrainAtlasRegionRead
 from app.schemas.types import ListResponse
+
+
+def _load_brain_atlas(query: sa.Select):
+    return query.options(
+        joinedload(BrainAtlas.created_by),
+        joinedload(BrainAtlas.updated_by),
+        joinedload(BrainAtlas.species),
+        joinedload(BrainAtlas.strain),
+        selectinload(BrainAtlas.assets),
+        raiseload("*"),
+    )
 
 
 def read_many(
@@ -25,7 +39,7 @@ def read_many(
         facets=None,
         aliases=None,
         apply_filter_query_operations=None,
-        apply_data_query_operations=None,
+        apply_data_query_operations=_load_brain_atlas,
         pagination_request=pagination_request,
         response_schema_class=BrainAtlasRead,
         name_to_facet_query_params=None,
@@ -40,7 +54,7 @@ def read_one(user_context: UserContextDep, atlas_id: uuid.UUID, db: SessionDep) 
         db_model_class=BrainAtlas,
         authorized_project_id=user_context.project_id,
         response_schema_class=BrainAtlasRead,
-        apply_operations=None,
+        apply_operations=_load_brain_atlas,
     )
 
 
@@ -62,7 +76,7 @@ def read_many_region(
         apply_filter_query_operations=lambda q: q.filter(
             BrainAtlasRegion.brain_atlas_id == atlas_id
         ),
-        apply_data_query_operations=None,
+        apply_data_query_operations=lambda s: s.options(selectinload(BrainAtlasRegion.assets)),
         pagination_request=pagination_request,
         response_schema_class=BrainAtlasRegionRead,
         name_to_facet_query_params=None,
@@ -79,5 +93,7 @@ def read_one_region(
         db_model_class=BrainAtlasRegion,
         authorized_project_id=user_context.project_id,
         response_schema_class=BrainAtlasRegionRead,
-        apply_operations=lambda q: q.filter(BrainAtlasRegion.brain_atlas_id == atlas_id),
+        apply_operations=lambda select: select.filter(
+            BrainAtlasRegion.brain_atlas_id == atlas_id
+        ).options(selectinload(BrainAtlasRegion.assets)),
     )

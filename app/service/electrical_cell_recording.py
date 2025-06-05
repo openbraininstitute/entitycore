@@ -34,7 +34,6 @@ def _load(query: sa.Select):
     return query.options(
         joinedload(ElectricalCellRecording.license),
         joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
-        joinedload(ElectricalCellRecording.subject),
         joinedload(ElectricalCellRecording.brain_region),
         joinedload(ElectricalCellRecording.created_by),
         joinedload(ElectricalCellRecording.updated_by),
@@ -70,6 +69,7 @@ def create_one(
         user_context=user_context,
         db_model_class=ElectricalCellRecording,
         response_schema_class=ElectricalCellRecordingRead,
+        apply_operations=_load,
     )
 
 

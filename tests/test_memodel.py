@@ -1,5 +1,6 @@
 import operator as op
 import uuid
+from unittest.mock import ANY
 
 from fastapi.testclient import TestClient
 
@@ -57,8 +58,6 @@ def test_create_memodel(
             "name": "Test MEModel Name",
             "morphology_id": morphology_id,
             "emodel_id": emodel_id,
-            "holding_current": 0,
-            "threshold_current": 0,
         },
     )
     assert response.status_code == 200, f"Failed to create memodel: {response.text}"
@@ -167,8 +166,8 @@ def test_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             },
         ],
-        "created_by": [],
-        "updated_by": [],
+        "created_by": [{"id": ANY, "label": "test_person_1", "count": 16, "type": "person"}],
+        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 16, "type": "person"}],
     }
 
 
@@ -250,8 +249,8 @@ def test_filtered_facets(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             }
         ],
-        "created_by": [],
-        "updated_by": [],
+        "created_by": [{"id": ANY, "label": "test_person_1", "count": 4, "type": "person"}],
+        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 4, "type": "person"}],
     }
 
 
@@ -335,8 +334,8 @@ def test_facets_with_search(client: TestClient, faceted_memodels: MEModels):
                 "type": "emodel",
             },
         ],
-        "created_by": [],
-        "updated_by": [],
+        "created_by": [{"id": ANY, "label": "test_person_1", "count": 8, "type": "person"}],
+        "updated_by": [{"id": ANY, "label": "test_person_1", "count": 8, "type": "person"}],
     }
 
 
@@ -490,8 +489,6 @@ def test_authorization(
         "strain_id": strain_id,
         "emodel_id": emodel_id,
         "morphology_id": morphology_id,
-        "holding_current": 0,
-        "threshold_current": 0,
     }
 
     public_obj = client_user_1.post(
@@ -633,7 +630,7 @@ def test_authorization(
 
 
 def test_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, morphology_id, emodel_id
+    db, client, brain_region_hierarchy_id, species_id, morphology_id, emodel_id, person_id
 ):
     def create_model_function(_db, name, brain_region_id):
         return MEModel(
@@ -645,8 +642,8 @@ def test_brain_region_filter(
             morphology_id=morphology_id,
             emodel_id=emodel_id,
             authorized_project_id=PROJECT_ID,
-            holding_current=0,
-            threshold_current=0,
+            created_by_id=person_id,
+            updated_by_id=person_id,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

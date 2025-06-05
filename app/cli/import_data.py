@@ -7,7 +7,6 @@ import uuid
 from abc import ABC, abstractmethod
 from collections import Counter, defaultdict
 from contextlib import closing
-from operator import attrgetter
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +17,7 @@ from tqdm import tqdm
 
 from app.cli import curate, utils
 from app.cli.brain_region_data import BRAIN_ATLAS_REGION_VOLUMES
-from app.cli.curation import electrical_cell_recording
+from app.cli.curation import cell_composition, electrical_cell_recording
 from app.cli.types import ContentType
 from app.cli.utils import (
     AUTHORIZED_PUBLIC,
@@ -37,6 +36,7 @@ from app.db.model import (
     BrainRegionHierarchy,
     CellComposition,
     DataMaturityAnnotationBody,
+    Derivation,
     ElectricalCellRecording,
     EModel,
     Entity,
@@ -49,6 +49,7 @@ from app.db.model import (
     Measurement,
     MeasurementAnnotation,
     MEModel,
+    MEModelCalibrationResult,
     METypeDensity,
     MTypeClass,
     MTypeClassification,
@@ -70,10 +71,6 @@ from app.db.types import (
 from app.logger import L
 from app.schemas.base import ProjectContext
 
-from app.cli.curation import electrical_cell_recording, cell_composition
-from app.cli.types import ContentType
-
-
 BRAIN_ATLAS_NAME = "BlueBrain Atlas"
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
@@ -93,7 +90,7 @@ BRAIN_ATLAS_ID = "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-
 CELL_COMPOSITION_ID = "https://bbp.epfl.ch/neurosciencegraph/data/cellcompositions/54818e46-cf8c-4bd6-9b68-34dffbc8a68c"
 
 
-def get_or_create_annotation_body(annotation_body, db):
+def get_or_create_annotation_body(annotation_body, db, created_by_id, updated_by_id):
     annotation_body = curate.curate_annotation_body(annotation_body)
     annotation_types = {
         "EType": ETypeClass,
@@ -130,15 +127,20 @@ def get_or_create_annotation_body(annotation_body, db):
             msg = f"Missing etype in annotation body {annotation_body}"
             raise ValueError(msg)
 
-        ab = annotation_type(pref_label=annotation_body["label"])
+        ab = annotation_type(
+            pref_label=annotation_body["label"],
+            created_by_id=created_by_id,
+            updated_by_id=updated_by_id,
+        )
         db.add(ab)
         db.commit()
     return annotation_type, ab.id
 
 
-def create_annotation(annotation_, entity_id, db):
-    annotation_type, annotation_body_id = get_or_create_annotation_body(annotation_["hasBody"], db)
-
+def create_annotation(annotation_, entity_id, db, created_by_id, updated_by_id):
+    annotation_type, annotation_body_id = get_or_create_annotation_body(
+        annotation_["hasBody"], db, created_by_id, updated_by_id
+    )
     if not annotation_body_id:
         return None
 
@@ -171,16 +173,16 @@ def create_annotation(annotation_, entity_id, db):
         row = MTypeClassification(
             entity_id=entity_id,
             mtype_class_id=annotation_body_id,
-            created_by_id=agent_id,
-            updated_by_id=agent_id,
+            created_by_id=created_by_id,
+            updated_by_id=updated_by_id,
         )
 
     elif annotation_type is ETypeClass:
         row = ETypeClassification(
             entity_id=entity_id,
             etype_class_id=annotation_body_id,
-            created_by_id=agent_id,
-            updated_by_id=agent_id,
+            created_by_id=created_by_id,
+            updated_by_id=updated_by_id,
         )
 
     else:
@@ -188,37 +190,11 @@ def create_annotation(annotation_, entity_id, db):
             entity_id=entity_id,
             note=annotation_.get("note", None),
             annotation_body_id=annotation_body_id,
+            created_by_id=created_by_id,
+            updated_by_id=updated_by_id,
         )
 
     db.add(row)
-    db.commit()
-
-
-def import_licenses(data, db):
-    for license in data:
-        db_license = db.query(License).filter(License.name == license["@id"]).first()
-        if db_license:
-            continue
-
-        try:
-            createdAt, updatedAt = utils.get_created_and_updated(license)
-
-            db_license = License(
-                name=license["@id"],
-                label=license["label"],
-                description=license["description"],
-                legacy_id=[license["@id"]],
-                legacy_self=[license["_self"]],
-                creation_date=createdAt,
-                update_date=updatedAt,
-            )
-
-            db.add(db_license)
-        except Exception as e:
-            print(f"Error creating license: {e!r}")
-            print(license)
-            raise
-
     db.commit()
 
 
@@ -239,6 +215,7 @@ def _import_annotation_body(data, db_type_, db):
             continue
 
         createdAt, updatedAt = utils.get_created_and_updated(class_elem)
+        created_by_id, updated_by_id = utils.get_agent_mixin(class_elem, db)
 
         db_elem = db_type_(
             pref_label=class_elem["label"],
@@ -248,6 +225,8 @@ def _import_annotation_body(data, db_type_, db):
             legacy_self=[class_elem["_self"]],
             creation_date=createdAt,
             update_date=updatedAt,
+            created_by_id=created_by_id,
+            updated_by_id=updated_by_id,
         )
 
         db.add(db_elem)
@@ -370,6 +349,7 @@ class ImportAgent(Import):
                             db.commit()
                         else:
                             createdAt, updatedAt = utils.get_created_and_updated(data)
+                            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
                             db_agent = Person(
                                 legacy_id=[legacy_id],
                                 legacy_self=[legacy_self],
@@ -378,12 +358,15 @@ class ImportAgent(Import):
                                 pref_label=label,
                                 creation_date=createdAt,
                                 update_date=updatedAt,
+                                created_by_id=created_by_id,
+                                updated_by_id=updated_by_id,
                             )
                             db.add(db_agent)
                             db.commit()
                     except Exception as e:
                         print("Error importing person: ", data)
                         print(f"{e!r}")
+                        raise
             elif "Organization" in ensurelist(data["@type"]):
                 legacy_id = data["@id"]
                 legacy_self = data["_self"]
@@ -400,6 +383,7 @@ class ImportAgent(Import):
                             db.commit()
                         else:
                             createdAt, updatedAt = utils.get_created_and_updated(data)
+                            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
                             db_agent = Organization(
                                 legacy_id=[legacy_id],
                                 legacy_self=[legacy_self],
@@ -407,12 +391,93 @@ class ImportAgent(Import):
                                 alternative_name=data.get("alternativeName", ""),
                                 creation_date=createdAt,
                                 update_date=updatedAt,
+                                created_by_id=created_by_id,
+                                updated_by_id=updated_by_id,
                             )
                             db.add(db_agent)
                             db.commit()
                     except Exception as e:
                         print("Error importing organization: ", data)
                         print(f"{e!r}")
+
+
+class ImportLicense(Import):
+    name = "Licenses"
+    defaults = curate.default_licenses()
+
+    @staticmethod
+    def is_correct_type(data):
+        return utils.is_type(data, "License")
+
+    @staticmethod
+    def ingest(
+        db,
+        project_context,
+        data_list: list[dict],
+        all_data_by_id: dict[str, dict],
+        hierarchy_name: str,
+    ):
+        for data in tqdm(data_list):
+            if utils._find_by_legacy_id(data["@id"], License, db):
+                continue
+
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+
+            label = data["label"] if "label" in data else data["name"]
+
+            db_license = License(
+                name=data["@id"],
+                label=label,
+                description=data["description"],
+                legacy_id=[data["@id"]],
+                legacy_self=[data["_self"]],
+                creation_date=createdAt,
+                update_date=updatedAt,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+            )
+
+            db.add(db_license)
+
+        db.commit()
+
+
+class ImportMTypeAnnotation(Import):
+    name = "MTypeAnnotation"
+
+    @staticmethod
+    def is_correct_type(data):
+        return "nsg:MType" in data.get("subClassOf", {})
+
+    @staticmethod
+    def ingest(
+        db,
+        project_context,
+        data_list: list[dict],
+        all_data_by_id: dict[str, dict],
+        hierarchy_name: str,
+    ):
+        import_mtype_annotation_body(data_list, db)
+
+
+class ImportETypeAnnotation(Import):
+    name = "ETypeAnnotation"
+
+    @staticmethod
+    def is_correct_type(data):
+        return "nsg:EType" in data.get("subClassOf", {})
+
+    @staticmethod
+    def ingest(
+        db,
+        project_context,
+        data_list: list[dict],
+        all_data_by_id: dict[str, dict],
+        hierarchy_name: str,
+    ):
+        import_etype_annotation_body(data_list, db)
 
 
 class ImportAnalysisSoftwareSourceCode(Import):
@@ -544,10 +609,17 @@ class ImportEModels(Import):
             db.flush()
 
             utils.import_ion_channel_models(
-                configuration, db_emodel.id, all_data_by_id, project_context, hierarchy_name, db
+                configuration,
+                db_emodel.id,
+                all_data_by_id,
+                project_context,
+                hierarchy_name,
+                db,
             )
 
-            utils.import_contribution(data, db_emodel.id, db)
+            utils.import_contribution(
+                data, db_emodel.id, db, created_by_id=created_by_id, updated_by_id=updated_by_id
+            )
 
             # Import hoc file
             utils.import_distribution(
@@ -555,8 +627,83 @@ class ImportEModels(Import):
             )
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_emodel.id, db)
+                create_annotation(
+                    annotation,
+                    db_emodel.id,
+                    db,
+                    created_by_id=created_by_id,
+                    updated_by_id=updated_by_id,
+                )
 
+        db.commit()
+
+
+class ImportEModelDerivations(Import):
+    name = "EModelWorkflow"
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data["@type"])
+        return "EModelWorkflow" in types
+
+    @staticmethod
+    def ingest(
+        db,
+        project_context,
+        data_list: list[dict],
+        all_data_by_id: dict[str, dict],
+        hierarchy_name: str,
+    ):
+        """Import emodel derivations from EModelWorkflow."""
+        legacy_emodel_ids = set()
+        derivations = {}
+        for data in tqdm(data_list, desc="EModelWorkflow"):
+            legacy_emodel_id = utils.find_id_in_entity(data, "EModel", "generates")
+            legacy_etc_id = utils.find_id_in_entity(
+                data, "ExtractionTargetsConfiguration", "hasPart"
+            )
+            if not legacy_emodel_id:
+                L.warning("Not found EModel id in EModelWorkflow: {}", data["@id"])
+                continue
+            if not legacy_etc_id:
+                L.warning(
+                    "Not found ExtractionTargetsConfiguration id in EModelWorkflow: {}", data["@id"]
+                )
+                continue
+            if not (etc := all_data_by_id.get(legacy_etc_id)):
+                L.warning("Not found ExtractionTargetsConfiguration with id {}", legacy_etc_id)
+                continue
+            if not (legacy_trace_ids := list(utils.find_ids_in_entity(etc, "Trace", "uses"))):
+                L.warning(
+                    "Not found traces in ExtractionTargetsConfiguration with id {}", legacy_etc_id
+                )
+                continue
+            if legacy_emodel_id in legacy_emodel_ids:
+                L.warning("Duplicated and ignored traces for EModel id {}", legacy_emodel_id)
+                continue
+            legacy_emodel_ids.add(legacy_emodel_id)
+            if not (emodel := utils._find_by_legacy_id(legacy_emodel_id, EModel, db)):
+                L.warning("Not found EModel with legacy id {}", legacy_emodel_id)
+                continue
+            if emodel.id in derivations:
+                L.warning("Duplicated and ignored traces for EModel uuid {}", emodel.id)
+            derivations[emodel.id] = [
+                utils._find_by_legacy_id(legacy_trace_id, ElectricalCellRecording, db).id
+                for legacy_trace_id in legacy_trace_ids
+            ]
+
+        rows = [
+            Derivation(used_id=trace_id, generated_id=emodel_id)
+            for emodel_id, trace_ids in derivations.items()
+            for trace_id in trace_ids
+        ]
+        L.info(
+            "Imported derivations for {} EModels from {} records", len(derivations), len(data_list)
+        )
+        # delete everything from derivation table before adding the records
+        query = sa.delete(Derivation)
+        db.execute(query)
+        db.add_all(rows)
         db.commit()
 
 
@@ -601,6 +748,8 @@ class ImportBrainAtlas(Import):
                 sa.select(Species).filter(Species.name == "Mus musculus")
             ).scalar_one()
 
+            admin = utils.get_or_create_admin(db)
+
             brain_atlas = BrainAtlas(
                 name=BRAIN_ATLAS_NAME,
                 description="version v1.1.0 from NEXUS",
@@ -608,6 +757,8 @@ class ImportBrainAtlas(Import):
                 hierarchy_id=hierarchy.id,
                 authorized_project_id=project_context.project_id,
                 authorized_public=True,
+                created_by_id=admin.id,
+                updated_by_id=admin.id,
             )
             db.add(brain_atlas)
             db.commit()
@@ -637,6 +788,8 @@ class ImportBrainAtlas(Import):
                     volume = BRAIN_ATLAS_REGION_VOLUMES[annotation_id]
                     is_leaf_region = True
 
+                created_by_id, updated_by_id = utils.get_agent_mixin(mesh, db)
+
                 atlas_region = BrainAtlasRegion(
                     brain_atlas_id=brain_atlas.id,
                     brain_region_id=brain_region_id,
@@ -644,6 +797,8 @@ class ImportBrainAtlas(Import):
                     is_leaf_region=is_leaf_region,
                     authorized_project_id=project_context.project_id,
                     authorized_public=True,
+                    created_by_id=created_by_id,
+                    updated_by_id=updated_by_id,
                 )
                 db.add(atlas_region)
                 db.commit()
@@ -676,6 +831,7 @@ class ImportMorphologies(Import):
             license_id = utils.get_license_mixin(data, db)
             species_id, strain_id = utils.get_species_mixin(data, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
 
             db_reconstruction_morphology = ReconstructionMorphology(
                 legacy_id=[legacy_id],
@@ -691,16 +847,22 @@ class ImportMorphologies(Import):
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
             )
 
             db.add(db_reconstruction_morphology)
             db.commit()
             db.refresh(db_reconstruction_morphology)
 
-            utils.import_contribution(data, db_reconstruction_morphology.id, db)
+            utils.import_contribution(
+                data, db_reconstruction_morphology.id, db, created_by_id, updated_by_id
+            )
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_reconstruction_morphology.id, db)
+                create_annotation(
+                    annotation, db_reconstruction_morphology.id, db, created_by_id, updated_by_id
+                )
 
 
 class ImportExperimentalNeuronDensities(Import):
@@ -800,6 +962,7 @@ class ImportElectricalCellRecording(Import):
             license_id = utils.get_license_mixin(data, db)
             subject_id = utils.get_or_create_subject(data, project_context, db)
             createdAt, updatedAt = utils.get_created_and_updated(data)
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
 
             age = data.get("subject", {}).get("age", {}).get("value", None)
             comment = data.get("note", None)
@@ -829,16 +992,18 @@ class ImportElectricalCellRecording(Import):
                 update_date=updatedAt,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
             )
 
             db.add(db_item)
             db.commit()
             db.refresh(db_item)
 
-            utils.import_contribution(data, db_item.id, db)
+            utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db)
+                create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
 
             for stimulus in ensurelist(data.get("stimulus", [])):
                 stimulus_type = stimulus["stimulusType"]
@@ -846,7 +1011,9 @@ class ImportElectricalCellRecording(Import):
                     stimulus_type = all_data_by_id[stimulus_type["@id"]]
 
                 # create a stimulus for each stimulus in the data
-                utils.create_stimulus(stimulus_type, db_item.id, project_context, db)
+                utils.create_stimulus(
+                    stimulus_type, db_item.id, project_context, db, created_by_id, updated_by_id
+                )
 
 
 def has_content_type_in_distributions(content_type: ContentType, distributions: list) -> bool:
@@ -901,17 +1068,27 @@ class ImportMEModel(Import):
                 strain_id=morphology.strain_id,
                 creation_date=createdAt,
                 update_date=updatedAt,
-                holding_current=data.get("holding_current"),
-                threshold_current=data.get("threshold_current"),
             )
 
             db.add(db_item)
             db.flush()
-
-            utils.import_contribution(data, db_item.id, db)
+            db_calibration = MEModelCalibrationResult(
+                calibrated_entity_id=db_item.id,
+                holding_current=data.get("holding_current", 0),
+                threshold_current=data.get("threshold_current", 0),
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+                creation_date=createdAt,
+                update_date=updatedAt,
+            )
+            db.add(db_calibration)
+            db.flush()
+            utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db)
+                create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
 
         db.commit()
 
@@ -986,14 +1163,8 @@ class ImportMETypeDensity(Import):
 
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
-            try:
-                created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
-            except RuntimeError as e:
-                msg = f"Agent not found.: {e}"
-                L.warning(msg)
-                created_by_id = updated_by_id = None
-
             createdAt, updatedAt = utils.get_created_and_updated(data)
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
 
             species_id, strain_id = utils.get_species_mixin(data, db)
 
@@ -1015,10 +1186,10 @@ class ImportMETypeDensity(Import):
             db.add(db_item)
             db.flush()
 
-            utils.import_contribution(data, db_item.id, db)
+            utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db)
+                create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
 
         db.commit()
 
@@ -1083,10 +1254,10 @@ class ImportCellComposition(Import):
             db.add(db_item)
             db.flush()
 
-            utils.import_contribution(data, db_item.id, db)
+            utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db)
+                create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
 
 
 class ImportDistribution(Import):
@@ -1186,13 +1357,20 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
                     legacy_id=[legacy_id],
                     legacy_self=[legacy_self],
                     measurement_kinds=measurement_kinds,
+                    created_by_id=rm.created_by_id,
+                    updated_by_id=rm.updated_by_id,
                 )
             )
 
         for entity_id, entity_annotations in tqdm(annotations.items()):
             if len(entity_annotations) > 1:
                 info["duplicate_annotation"] += len(entity_annotations) - 1
-                entity_annotation = merge_measurements_annotations(entity_annotations, entity_id)
+                entity_annotation = merge_measurements_annotations(
+                    entity_annotations,
+                    entity_id,
+                    entity_annotations[0].created_by_id,
+                    entity_annotations[0].updated_by_id,
+                )
             else:
                 entity_annotation = entity_annotations[0]
             info["newly_registered"] += 1
@@ -1267,10 +1445,10 @@ def _import_experimental_densities(
         db_item = model_type(**kwargs)
         db.add(db_item)
         db.commit()
-        utils.import_contribution(data, db_item.id, db)
+        utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
         for annotation in ensurelist(data.get("annotation", [])):
-            create_annotation(annotation, db_item.id, db)
+            create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
 
         for measurement in ensurelist(data.get("series", [])):
             create_measurement(measurement, db_item.id, db)
@@ -1320,31 +1498,11 @@ def create_measurement(data, entity_id, db):
 
 
 def _do_import(db, input_dir, project_context, hierarchy_name):
-    print("Importing licenses")
-    import_licenses(curate.default_licenses(), db)
-    with open(os.path.join(input_dir, "bbp", "licenses", "provEntity.json")) as f:
-        data = json.load(f)
-        import_licenses(data, db)
-
-    with open(os.path.join(input_dir, "neurosciencegraph", "datamodels", "owlClass.json")) as f:
-        all_data = json.load(f)
-        mtype_annotations, etype_annotations = [], []
-
-        for data in all_data:
-            sub_class = data.get("subClassOf", {})
-            if "nsg:MType" in sub_class:
-                mtype_annotations.append(data)
-            elif "nsg:EType" in sub_class:
-                etype_annotations.append(data)
-
-        print("Importing mtype annotations")
-        import_mtype_annotation_body(mtype_annotations, db)
-
-        print("Importing etype annotations")
-        import_etype_annotation_body(etype_annotations, db)
-
     importers = [
         ImportAgent,
+        ImportLicense,
+        ImportMTypeAnnotation,
+        ImportETypeAnnotation,
         ImportMETypeDensity,
         ImportCellComposition,
         ImportAnalysisSoftwareSourceCode,
@@ -1359,6 +1517,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportBrainAtlas,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,
+        ImportEModelDerivations,
     ]
 
     for importer in importers:
@@ -1492,6 +1651,8 @@ def hierarchy(hierarchy_name, hierarchy_path):
         closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
         database_session_manager.session() as db,
     ):
+        admin = utils.get_or_create_admin(db)
+
         hier = (
             db.query(BrainRegionHierarchy)
             .filter(BrainRegionHierarchy.name == hierarchy_name)
@@ -1499,7 +1660,9 @@ def hierarchy(hierarchy_name, hierarchy_path):
         )
 
         if not hier:
-            hier = BrainRegionHierarchy(name=hierarchy_name)
+            hier = BrainRegionHierarchy(
+                name=hierarchy_name, created_by_id=admin.id, updated_by_id=admin.id
+            )
             db.add(hier)
             db.flush()
 
@@ -1524,6 +1687,8 @@ def hierarchy(hierarchy_name, hierarchy_path):
                 parent_structure_id=ids[region["parent_structure_id"]],
                 color_hex_triplet=region["color_hex_triplet"],
                 hierarchy_id=hier.id,
+                created_by_id=admin.id,
+                updated_by_id=admin.id,
             )
             db.add(db_br)
             db.flush()

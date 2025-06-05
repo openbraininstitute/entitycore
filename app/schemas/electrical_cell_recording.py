@@ -21,7 +21,7 @@ from app.schemas.base import (
     LicensedCreateMixin,
     LicensedReadMixin,
 )
-from app.schemas.subject import SubjectRead
+from app.schemas.subject import SubjectReadMixin
 
 
 class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin, EntityTypeMixin):
@@ -93,8 +93,8 @@ class ElectricalCellRecordingRead(
     IdentifiableMixin,
     EntityTypeMixin,
     CreatedByUpdatedByMixin,
+    SubjectReadMixin,
 ):
-    subject: SubjectRead
     brain_region: BrainRegionRead
     assets: list[AssetRead] | None
     stimuli: Annotated[

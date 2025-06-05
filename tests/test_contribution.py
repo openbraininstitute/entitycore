@@ -1,9 +1,11 @@
-from app.db.model import Contribution, Organization, Person, ReconstructionMorphology, Role
+from app.db.model import Contribution, Organization, ReconstructionMorphology, Role
 
 from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     add_db,
+    check_creation_fields,
+    create_person,
     create_reconstruction_morphology_id,
 )
 
@@ -47,6 +49,7 @@ def test_create_contribution(
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == reconstruction_morphology_id
+    check_creation_fields(data)
 
     contribution_id = data["id"]
 
@@ -62,6 +65,7 @@ def test_create_contribution(
     assert data["role"]["role_id"] == "important role id"
     assert data["entity"]["id"] == reconstruction_morphology_id
     assert data["id"] == contribution_id
+    check_creation_fields(data)
 
     response = client.post(
         ROUTE,
@@ -77,6 +81,7 @@ def test_create_contribution(
     assert data["agent"]["pref_label"] == "ACME"
     assert data["agent"]["alternative_name"] == "A Company Making Everything"
     assert data["agent"]["type"] == "organization"
+    check_creation_fields(data)
 
     response = client.get(ROUTE)
     assert response.status_code == 200
@@ -213,14 +218,44 @@ def test_contribution_facets(
     species_id,
     strain_id,
     brain_region_id,
+    person_id,
 ):
-    person = add_db(
-        db, Person(given_name="GivenName", family_name="FamilyName", pref_label="person_pref_label")
+    person = create_person(
+        db,
+        given_name="GivenName",
+        family_name="FamilyName",
+        pref_label="person_pref_label",
+        created_by_id=person_id,
     )
-    person_role = add_db(db, Role(name="PersonRoleName", role_id="role_id"))
 
-    org = add_db(db, Organization(pref_label="org_pref_label", alternative_name="org_alt_name"))
-    org_role = add_db(db, Role(name="OrgRoleName", role_id="role_id_org"))
+    person_role = add_db(
+        db,
+        Role(
+            name="PersonRoleName",
+            role_id="role_id",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+
+    org = add_db(
+        db,
+        Organization(
+            pref_label="org_pref_label",
+            alternative_name="org_alt_name",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    org_role = add_db(
+        db,
+        Role(
+            name="OrgRoleName",
+            role_id="role_id_org",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
 
     morphology_ids = []
     contribution_sizes = []  # len of contributions for each morphology
@@ -254,7 +289,11 @@ def test_contribution_facets(
             add_db(
                 db,
                 Contribution(
-                    agent_id=agent.id, role_id=agent_role.id, entity_id=reconstruction_morphology_id
+                    agent_id=agent.id,
+                    role_id=agent_role.id,
+                    entity_id=reconstruction_morphology_id,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
                 ),
             )
 

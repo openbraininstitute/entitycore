@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import (
@@ -18,8 +20,18 @@ class PersonCreate(PersonBase):
     legacy_id: str | None = None
 
 
-class PersonRead(PersonBase, CreationMixin, IdentifiableMixin):
+class NestedPersonRead(PersonBase, IdentifiableMixin):
     type: str
+    sub_id: uuid.UUID | None
+
+
+class CreatedByUpdatedByMixin(BaseModel):
+    created_by: NestedPersonRead
+    updated_by: NestedPersonRead
+
+
+class PersonRead(NestedPersonRead, CreationMixin, CreatedByUpdatedByMixin):
+    pass
 
 
 class OrganizationBase(BaseModel):
@@ -33,13 +45,14 @@ class OrganizationCreate(OrganizationBase):
     legacy_id: str | None = None
 
 
-class OrganizationRead(OrganizationBase, CreationMixin, IdentifiableMixin):
+class NestedOrganizationRead(OrganizationBase, IdentifiableMixin):
     type: str
 
 
-type AgentRead = PersonRead | OrganizationRead
+class OrganizationRead(
+    NestedOrganizationRead, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
+):
+    pass
 
 
-class CreatedByUpdatedByMixin(BaseModel):
-    created_by: PersonRead | None
-    updated_by: PersonRead | None
+type AgentRead = NestedPersonRead | NestedOrganizationRead

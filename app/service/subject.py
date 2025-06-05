@@ -1,5 +1,6 @@
 import uuid
 
+import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import Subject
@@ -13,6 +14,15 @@ from app.schemas.subject import SubjectCreate, SubjectRead
 from app.schemas.types import ListResponse
 
 
+def _load(query: sa.Select):
+    return query.options(
+        joinedload(Subject.species),
+        joinedload(Subject.created_by),
+        joinedload(Subject.updated_by),
+        raiseload("*"),
+    )
+
+
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,
@@ -24,9 +34,7 @@ def read_one(
         db_model_class=Subject,
         authorized_project_id=user_context.project_id,
         response_schema_class=SubjectRead,
-        apply_operations=lambda q: q.options(
-            joinedload(Subject.species),
-        ),
+        apply_operations=_load,
     )
 
 
@@ -41,6 +49,7 @@ def create_one(
         db_model_class=Subject,
         user_context=user_context,
         response_schema_class=SubjectRead,
+        apply_operations=_load,
     )
 
 
@@ -61,9 +70,6 @@ def read_many(
         filter_keys=filter_keys,
         aliases={},
     )
-    apply_data_options = lambda query: (
-        query.options(joinedload(Subject.species)).options(raiseload("*"))
-    )
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -73,7 +79,7 @@ def read_many(
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=None,
-        apply_data_query_operations=apply_data_options,
+        apply_data_query_operations=_load,
         aliases={},
         pagination_request=pagination_request,
         response_schema_class=SubjectRead,

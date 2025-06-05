@@ -16,8 +16,8 @@ from app.schemas.base import (
     LicensedCreateMixin,
     LicensedReadMixin,
 )
-from app.schemas.contribution import ContributionReadWithoutEntity
-from app.schemas.subject import SubjectRead
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.subject import SubjectReadMixin
 
 
 class MeasurementRead(BaseModel):
@@ -50,11 +50,11 @@ class ExperimentalDensityRead(
     AuthorizationMixin,
     EntityTypeMixin,
     CreatedByUpdatedByMixin,
+    ContributionReadWithoutEntityMixin,
+    SubjectReadMixin,
 ):
-    subject: SubjectRead
     measurements: list[MeasurementRead] | None
     assets: list[AssetRead] | None
-    contributions: list[ContributionReadWithoutEntity] | None
     brain_region: BrainRegionRead
 
 

@@ -66,6 +66,8 @@ class AssetRepository(BaseRepository):
                 sha256_digest=sha256_digest,
                 meta=asset.meta,
                 label=asset.label,
+                created_by_id=asset.created_by_id,
+                updated_by_id=asset.updated_by_id,
             )
             .returning(Asset)
         )

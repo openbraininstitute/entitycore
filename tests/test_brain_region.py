@@ -42,8 +42,8 @@ HIERARCHY = {
 }
 
 
-def test_brain_region_id(db, client):
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy")
+def test_brain_region_id(db, client, person_id):
+    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy", created_by_id=person_id)
     utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
     response = client.get(ROUTE)
@@ -109,11 +109,11 @@ def test_brain_region_id(db, client):
     assert data["acronym"] == "root"
 
 
-def test_family_queries(db, client, species_id, strain_id):
-    hierarchy_name0 = utils.create_hiearchy_name(db, "hier0")
+def test_family_queries(db, client, species_id, strain_id, person_id):
+    hierarchy_name0 = utils.create_hiearchy_name(db, "hier0", created_by_id=person_id)
     brain_regions0 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name0.id)
 
-    hierarchy_name1 = utils.create_hiearchy_name(db, "hier1")
+    hierarchy_name1 = utils.create_hiearchy_name(db, "hier1", created_by_id=person_id)
     brain_regions1 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name1.id)
 
     for acronym, row in it.chain(brain_regions0.items(), brain_regions1.items()):

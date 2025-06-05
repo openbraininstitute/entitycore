@@ -125,7 +125,8 @@ builtins-ignorelist = ["license"]
 ]
 "app/cli/utils.py" = [
     "B006",    # Do not use mutable data structures for argument defaults
-    "S101"
+    "S101",
+    "PLR0915",  # Too many statements
 ]
 "test_dump/**.py" = ["ALL"]
 "test_legacy/**.py" = ["ALL"]

@@ -136,4 +136,5 @@ def create_one(
         user_context=user_context,
         db_model_class=ExperimentalBoutonDensity,
         response_schema_class=ExperimentalBoutonDensityRead,
+        apply_operations=_load,
     )

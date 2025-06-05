@@ -27,7 +27,6 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Organization,
-    Person,
     ReconstructionMorphology,
     Role,
     Species,
@@ -55,6 +54,7 @@ from .utils import (
     ClientProxy,
     add_db,
     assert_request,
+    create_electrical_cell_recording_id_with_assets,
 )
 
 
@@ -235,22 +235,21 @@ def _db_cleanup(db):
 
 @pytest.fixture
 def person_id(db):
-    row = Person(
+    return utils.create_person(
+        db,
         given_name="jd",
         family_name="courcol",
         pref_label="jd courcol",
-    )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row.id
+    ).id
 
 
 @pytest.fixture
-def organization_id(db):
+def organization_id(db, person_id):
     row = Organization(
         pref_label="ACME",
         alternative_name="A Company Making Everything",
+        created_by_id=person_id,
+        updated_by_id=person_id,
     )
     db.add(row)
     db.commit()
@@ -259,10 +258,12 @@ def organization_id(db):
 
 
 @pytest.fixture
-def role_id(db):
+def role_id(db, person_id):
     row = Role(
         name="important role",
         role_id="important role id",
+        created_by_id=person_id,
+        updated_by_id=person_id,
     )
     db.add(row)
     db.commit()
@@ -271,8 +272,16 @@ def role_id(db):
 
 
 @pytest.fixture
-def species_id(client_admin):
-    response = client_admin.post("/species", json={"name": "Test Species", "taxonomy_id": "12345"})
+def species_id(client_admin, person_id):
+    response = client_admin.post(
+        "/species",
+        json={
+            "name": "Test Species",
+            "taxonomy_id": "12345",
+            "created_by_id": str(person_id),
+            "updated_by_id": str(person_id),
+        },
+    )
     assert response.status_code == 200, f"Failed to create species: {response.text}"
     data = response.json()
     assert data["name"] == "Test Species"
@@ -281,13 +290,15 @@ def species_id(client_admin):
 
 
 @pytest.fixture
-def strain_id(client_admin, species_id):
+def strain_id(client_admin, species_id, person_id):
     response = client_admin.post(
         "/strain",
         json={
             "name": "Test Strain",
             "taxonomy_id": "Taxonomy ID",
             "species_id": species_id,
+            "created_by_id": str(person_id),
+            "updated_by_id": str(person_id),
         },
     )
     assert response.status_code == 200, f"Failed to create strain: {response.text}"
@@ -298,7 +309,7 @@ def strain_id(client_admin, species_id):
 
 
 @pytest.fixture
-def subject_id(db, species_id):
+def subject_id(db, species_id, person_id):
     return str(
         add_db(
             db,
@@ -313,19 +324,23 @@ def subject_id(db, species_id):
                 weight=1.5,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
+                created_by_id=str(person_id),
+                updated_by_id=str(person_id),
             ),
         ).id
     )
 
 
 @pytest.fixture
-def license_id(client_admin):
+def license_id(client_admin, person_id):
     response = client_admin.post(
         "/license",
         json={
             "name": "Test License",
             "description": "a license description",
             "label": "test label",
+            "created_by_id": str(person_id),
+            "updated_by_id": str(person_id),
         },
     )
     assert response.status_code == 200, f"Failed to create license: {response.text}"
@@ -335,17 +350,21 @@ def license_id(client_admin):
 
 
 @pytest.fixture
-def brain_region_hierarchy_id(db):
-    return utils.create_hiearchy_name(db, "AIBS").id
+def brain_region_hierarchy_id(db, person_id):
+    return utils.create_hiearchy_name(db, "AIBS", created_by_id=person_id).id
 
 
 @pytest.fixture
-def brain_region_id(db, brain_region_hierarchy_id):
-    return str(utils.create_brain_region(db, brain_region_hierarchy_id, 64, "RedRegion").id)
+def brain_region_id(db, brain_region_hierarchy_id, person_id):
+    return str(
+        utils.create_brain_region(
+            db, brain_region_hierarchy_id, 64, "RedRegion", created_by_id=person_id
+        ).id
+    )
 
 
 @pytest.fixture
-def morphology_id(db, client, species_id, strain_id, brain_region_id):
+def morphology_id(db, client, species_id, strain_id, brain_region_id, person_id):
     model_id = utils.create_reconstruction_morphology_id(
         client,
         species_id=species_id,
@@ -353,13 +372,30 @@ def morphology_id(db, client, species_id, strain_id, brain_region_id):
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-    mtype = add_db(db, MTypeClass(pref_label="m1", alt_label="m1", definition="m1d"))
-    add_db(db, MTypeClassification(entity_id=model_id, mtype_class_id=mtype.id))
+    mtype = add_db(
+        db,
+        MTypeClass(
+            pref_label="m1",
+            alt_label="m1",
+            definition="m1d",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    add_db(
+        db,
+        MTypeClassification(
+            entity_id=model_id,
+            mtype_class_id=mtype.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
     return model_id
 
 
 @pytest.fixture
-def mtype_class_id(db):
+def mtype_class_id(db, person_id):
     return str(
         add_db(
             db,
@@ -367,13 +403,15 @@ def mtype_class_id(db):
                 pref_label="mtype-pref-label",
                 alt_label="mtype-alt-label",
                 definition="mtype-definition",
+                created_by_id=str(person_id),
+                updated_by_id=str(person_id),
             ),
         ).id
     )
 
 
 @pytest.fixture
-def validation_result_id(client, morphology_id):
+def validation_result_id(client, morphology_id, person_id):
     return assert_request(
         client.post,
         url="/validation-result",
@@ -382,6 +420,24 @@ def validation_result_id(client, morphology_id):
             "passed": True,
             "validated_entity_id": str(morphology_id),
             "authorized_public": False,
+            "created_by_id": str(person_id),
+            "updated_by_id": str(person_id),
+        },
+    ).json()["id"]
+
+
+@pytest.fixture
+def memodel_calibration_result_id(client, memodel_id):
+    return assert_request(
+        client.post,
+        url="/memodel-calibration-result",
+        json={
+            "name": "test_memodel_calibration_result",
+            "calibrated_entity_id": str(memodel_id),
+            "authorized_public": False,
+            "threshold_current": 0.8,
+            "holding_current": 0.2,
+            "rin": 100.0,  # Optional field, can be None
         },
     ).json()["id"]
 
@@ -390,28 +446,57 @@ CreateIds = Callable[[int], list[str]]
 
 
 @pytest.fixture
-def agents(db: Session):
+def agents(db: Session, person_id):
     organization_1 = add_db(
-        db, Organization(pref_label="test_organization_1", alternative_name="alt name 1")
-    )
-    person_1 = add_db(
         db,
-        Person(pref_label="test_person_1", given_name="given name 1", family_name="family name 1"),
+        Organization(
+            pref_label="test_organization_1",
+            alternative_name="alt name 1",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
     )
-    role = add_db(db, Role(role_id=1, name="test role"))
+    person_1 = utils.create_person(
+        db,
+        pref_label="test_person_1",
+        given_name="given name 1",
+        family_name="family name 1",
+        created_by_id=person_id,
+    )
+    role = add_db(
+        db, Role(role_id=1, name="test role", created_by_id=person_id, updated_by_id=person_id)
+    )
 
     return organization_1, person_1, role
 
 
 def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID):
     agent_1, agent_2, role = agents
-    add_db(db, Contribution(agent_id=agent_1.id, role_id=role.id, entity_id=entity_id))
-    add_db(db, Contribution(agent_id=agent_2.id, role_id=role.id, entity_id=entity_id))
+    add_db(
+        db,
+        Contribution(
+            agent_id=agent_1.id,
+            role_id=role.id,
+            entity_id=entity_id,
+            created_by_id=agent_2.id,
+            updated_by_id=agent_2.id,
+        ),
+    )
+    add_db(
+        db,
+        Contribution(
+            agent_id=agent_2.id,
+            role_id=role.id,
+            entity_id=entity_id,
+            created_by_id=agent_2.id,
+            updated_by_id=agent_2.id,
+        ),
+    )
 
 
 @pytest.fixture
 def create_emodel_ids(
-    client, db, morphology_id, brain_region_id, species_id, strain_id, agents
+    client, db, morphology_id, brain_region_id, species_id, strain_id, agents, person_id
 ) -> CreateIds:
     def _create_emodels(count: int):
         emodel_ids: list[str] = []
@@ -430,6 +515,8 @@ def create_emodel_ids(
                     "seed": -1,
                     "exemplar_morphology_id": str(morphology_id),
                     "authorized_public": False,
+                    "created_by_id": str(person_id),
+                    "updated_by_id": str(person_id),
                 },
             ).json()["id"]
 
@@ -439,10 +526,22 @@ def create_emodel_ids(
             etype = add_db(
                 db,
                 ETypeClass(
-                    pref_label=f"e1-{emodel_id}", alt_label=f"e1-{emodel_id}", definition="e1d"
+                    pref_label=f"e1-{emodel_id}",
+                    alt_label=f"e1-{emodel_id}",
+                    definition="e1d",
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
                 ),
             )
-            add_db(db, ETypeClassification(entity_id=emodel_id, etype_class_id=etype.id))
+            add_db(
+                db,
+                ETypeClassification(
+                    entity_id=emodel_id,
+                    etype_class_id=etype.id,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
+            )
 
             emodel_ids.append(str(emodel_id))
 
@@ -458,7 +557,7 @@ def emodel_id(create_emodel_ids: CreateIds) -> str:
 
 @pytest.fixture
 def create_memodel_ids(
-    db, morphology_id, brain_region_id, species_id, strain_id, emodel_id, agents
+    db, morphology_id, brain_region_id, species_id, strain_id, emodel_id, agents, person_id
 ) -> CreateIds:
     def _create_memodel_ids(count: int):
         memodel_ids: list[str] = []
@@ -475,8 +574,8 @@ def create_memodel_ids(
                     emodel_id=emodel_id,
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
-                    holding_current=0,
-                    threshold_current=0,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
                 ),
             ).id
 
@@ -487,10 +586,21 @@ def create_memodel_ids(
 
             add_db(
                 db,
-                MTypeClassification(entity_id=memodel_id, mtype_class_id=morphology.mtypes[0].id),
+                MTypeClassification(
+                    entity_id=memodel_id,
+                    mtype_class_id=morphology.mtypes[0].id,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
             )
             add_db(
-                db, ETypeClassification(entity_id=memodel_id, etype_class_id=emodel.etypes[0].id)
+                db,
+                ETypeClassification(
+                    entity_id=memodel_id,
+                    etype_class_id=emodel.etypes[0].id,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
             )
 
             memodel_ids.append(str(memodel_id))
@@ -523,22 +633,43 @@ class MEModels:
 
 
 @pytest.fixture
-def faceted_emodel_ids(db: Session, client):
+def faceted_emodel_ids(db: Session, client, person_id):
     species_ids = [
-        str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
+        str(
+            add_db(
+                db,
+                Species(
+                    name=f"TestSpecies{i}",
+                    taxonomy_id=f"{i}",
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
+            ).id
+        )
+        for i in range(2)
     ]
 
     strain_ids = [
         str(
             add_db(
-                db, Strain(name=f"TestStrain{i}", taxonomy_id=f"{i + 2}", species_id=species_ids[i])
+                db,
+                Strain(
+                    name=f"TestStrain{i}",
+                    taxonomy_id=f"{i + 2}",
+                    species_id=species_ids[i],
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
             ).id
         )
         for i in range(2)
     ]
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hier")
+    hierarchy_name = utils.create_hiearchy_name(db, "test_hier", created_by_id=person_id)
     brain_region_ids = [
-        utils.create_brain_region(db, hierarchy_name.id, i, f"region{i}").id for i in range(2)
+        utils.create_brain_region(
+            db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
+        ).id
+        for i in range(2)
     ]
 
     morphology_ids = [
@@ -572,6 +703,8 @@ def faceted_emodel_ids(db: Session, client):
                 "seed": -1,
                 "exemplar_morphology_id": str(morphology_id),
                 "authorized_public": False,
+                "created_by_id": str(person_id),
+                "updated_by_id": str(person_id),
             },
         ).json()["id"]
 
@@ -587,21 +720,43 @@ def faceted_emodel_ids(db: Session, client):
 
 @pytest.fixture
 def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent, Role]):
+    person_id = agents[1].id
     species_ids = [
-        str(add_db(db, Species(name=f"TestSpecies{i}", taxonomy_id=f"{i}")).id) for i in range(2)
+        str(
+            add_db(
+                db,
+                Species(
+                    name=f"TestSpecies{i}",
+                    taxonomy_id=f"{i}",
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
+            ).id
+        )
+        for i in range(2)
     ]
 
     strain_ids = [
         str(
             add_db(
-                db, Strain(name=f"TestStrain{i}", taxonomy_id=f"{i + 2}", species_id=species_ids[i])
+                db,
+                Strain(
+                    name=f"TestStrain{i}",
+                    taxonomy_id=f"{i + 2}",
+                    species_id=species_ids[i],
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
             ).id
         )
         for i in range(2)
     ]
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hier")
+    hierarchy_name = utils.create_hiearchy_name(db, "test_hier", created_by_id=person_id)
     brain_region_ids = [
-        utils.create_brain_region(db, hierarchy_name.id, i, f"region{i}").id for i in range(2)
+        utils.create_brain_region(
+            db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
+        ).id
+        for i in range(2)
     ]
 
     morphology_ids = [
@@ -629,6 +784,8 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
                     exemplar_morphology_id=morphology_ids[i],
                     authorized_public=False,
                     authorized_project_id=PROJECT_ID,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
                 ),
             ).id
         )
@@ -654,8 +811,8 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
                 emodel_id=emodel_id,
                 authorized_public=False,
                 authorized_project_id=PROJECT_ID,
-                holding_current=0,
-                threshold_current=0,
+                created_by_id=person_id,
+                updated_by_id=person_id,
             ),
         )
 
@@ -670,4 +827,27 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
         species_ids=species_ids,
         brain_region_ids=brain_region_ids,
         agent_ids=agent_ids,
+    )
+
+
+@pytest.fixture
+def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id):
+    return {
+        "name": "my-name",
+        "description": "my-description",
+        "subject_id": subject_id,
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+        "recording_location": ["soma[0]_0.5"],
+        "recording_type": "intracellular",
+        "recording_origin": "in_vivo",
+        "ljp": 11.5,
+        "authorized_public": False,
+    }
+
+
+@pytest.fixture
+def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
+    return create_electrical_cell_recording_id_with_assets(
+        db, client, tmp_path, electrical_cell_recording_json_data
     )

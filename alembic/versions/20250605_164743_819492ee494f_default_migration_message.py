@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: a6f5259d5604
+Revision ID: 819492ee494f
 Revises: 1a5cec5b629b
-Create Date: 2025-06-05 16:22:28.771906
+Create Date: 2025-06-05 16:47:43.093838
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "a6f5259d5604"
+revision: str = "819492ee494f"
 down_revision: Union[str, None] = "1a5cec5b629b"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -45,8 +45,6 @@ def upgrade() -> None:
         ),
         sa.Column("start_time", sa.DateTime(timezone=True), nullable=True),
         sa.Column("end_time", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("used_ids", sa.Uuid(), nullable=False),
-        sa.Column("generated_ids", sa.Uuid(), nullable=False),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("created_by_id", sa.Uuid(), nullable=False),
         sa.Column("updated_by_id", sa.Uuid(), nullable=False),
@@ -66,27 +64,49 @@ def upgrade() -> None:
             ["created_by_id"], ["agent.id"], name=op.f("fk_activity_created_by_id_agent")
         ),
         sa.ForeignKeyConstraint(
-            ["generated_ids"],
-            ["entity.id"],
-            name=op.f("fk_activity_generated_ids_entity"),
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
             ["updated_by_id"], ["agent.id"], name=op.f("fk_activity_updated_by_id_agent")
-        ),
-        sa.ForeignKeyConstraint(
-            ["used_ids"],
-            ["entity.id"],
-            name=op.f("fk_activity_used_ids_entity"),
-            ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_activity")),
     )
     op.create_index(op.f("ix_activity_created_by_id"), "activity", ["created_by_id"], unique=False)
     op.create_index(op.f("ix_activity_creation_date"), "activity", ["creation_date"], unique=False)
-    op.create_index(op.f("ix_activity_generated_ids"), "activity", ["generated_ids"], unique=False)
     op.create_index(op.f("ix_activity_updated_by_id"), "activity", ["updated_by_id"], unique=False)
-    op.create_index(op.f("ix_activity_used_ids"), "activity", ["used_ids"], unique=False)
+    op.create_table(
+        "entity_activity_generated",
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
+        sa.Column("activity_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["activity_id"],
+            ["activity.id"],
+            name=op.f("fk_entity_activity_generated_activity_id_activity"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["entity_id"], ["entity.id"], name=op.f("fk_entity_activity_generated_entity_id_entity")
+        ),
+        sa.PrimaryKeyConstraint(
+            "entity_id", "activity_id", name=op.f("pk_entity_activity_generated")
+        ),
+        sa.UniqueConstraint(
+            "entity_id", "activity_id", name="uq_entity_activity_generated_entity_id_activity_id"
+        ),
+    )
+    op.create_table(
+        "entity_activity_used",
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
+        sa.Column("activity_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["activity_id"],
+            ["activity.id"],
+            name=op.f("fk_entity_activity_used_activity_id_activity"),
+        ),
+        sa.ForeignKeyConstraint(
+            ["entity_id"], ["entity.id"], name=op.f("fk_entity_activity_used_entity_id_entity")
+        ),
+        sa.PrimaryKeyConstraint("entity_id", "activity_id", name=op.f("pk_entity_activity_used")),
+        sa.UniqueConstraint(
+            "entity_id", "activity_id", name="uq_entity_activity_used_entity_id_activity_id"
+        ),
+    )
     op.create_table(
         "simulation_campaign",
         sa.Column("id", sa.Uuid(), nullable=False),
@@ -107,6 +127,35 @@ def upgrade() -> None:
     )
     op.create_index(
         op.f("ix_simulation_campaign_name"), "simulation_campaign", ["name"], unique=False
+    )
+    op.create_table(
+        "simulation_execution",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column(
+            "status",
+            postgresql.ENUM(
+                "created",
+                "pending",
+                "running",
+                "done",
+                "error",
+                name="simulation_execution_status",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.ForeignKeyConstraint(
+            ["id"], ["activity.id"], name=op.f("fk_simulation_execution_id_activity")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_simulation_execution")),
+    )
+    op.create_table(
+        "simulation_generation",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["id"], ["activity.id"], name=op.f("fk_simulation_generation_id_activity")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_simulation_generation")),
     )
     op.create_table(
         "simulation_report",
@@ -142,35 +191,6 @@ def upgrade() -> None:
         "simulation",
         ["simulation_campaign_id"],
         unique=False,
-    )
-    op.create_table(
-        "simulation_execution",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "status",
-            postgresql.ENUM(
-                "created",
-                "pending",
-                "running",
-                "done",
-                "error",
-                name="simulation_execution_status",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
-        sa.ForeignKeyConstraint(
-            ["id"], ["activity.id"], name=op.f("fk_simulation_execution_id_activity")
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_simulation_execution")),
-    )
-    op.create_table(
-        "simulation_generation",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["id"], ["activity.id"], name=op.f("fk_simulation_generation_id_activity")
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_simulation_generation")),
     )
     op.sync_enum_values(
         enum_schema="public",
@@ -250,12 +270,12 @@ def downgrade() -> None:
         ],
         enum_values_to_rename=[],
     )
-    op.drop_table("simulation_generation")
-    op.drop_table("simulation_execution")
     op.drop_index(op.f("ix_simulation_simulation_campaign_id"), table_name="simulation")
     op.drop_index(op.f("ix_simulation_entity_id"), table_name="simulation")
     op.drop_table("simulation")
     op.drop_table("simulation_report")
+    op.drop_table("simulation_generation")
+    op.drop_table("simulation_execution")
     op.drop_index(op.f("ix_simulation_campaign_name"), table_name="simulation_campaign")
     op.drop_index(
         "ix_simulation_campaign_description_vector",
@@ -263,9 +283,9 @@ def downgrade() -> None:
         postgresql_using="gin",
     )
     op.drop_table("simulation_campaign")
-    op.drop_index(op.f("ix_activity_used_ids"), table_name="activity")
+    op.drop_table("entity_activity_used")
+    op.drop_table("entity_activity_generated")
     op.drop_index(op.f("ix_activity_updated_by_id"), table_name="activity")
-    op.drop_index(op.f("ix_activity_generated_ids"), table_name="activity")
     op.drop_index(op.f("ix_activity_creation_date"), table_name="activity")
     op.drop_index(op.f("ix_activity_created_by_id"), table_name="activity")
     op.drop_table("activity")

@@ -287,6 +287,28 @@ class Organization(Agent):
     }
 
 
+class EntityActivityUsed(Base):
+    __tablename__ = "entity_activity_used"
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    activity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    __table_args__ = (
+        UniqueConstraint(
+            "entity_id", "activity_id", name="uq_entity_activity_used_entity_id_activity_id"
+        ),
+    )
+
+
+class EntityActivityGenerated(Base):
+    __tablename__ = "entity_activity_generated"
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    activity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    __table_args__ = (
+        UniqueConstraint(
+            "entity_id", "activity_id", name="uq_entity_activity_generated_entity_id_activity_id"
+        ),
+    )
+
+
 class Activity(Identifiable):
     """Represents a base class for activities in the system.
 
@@ -305,26 +327,18 @@ class Activity(Identifiable):
     type: Mapped[ActivityType]
     start_time: Mapped[datetime | None]
     end_time: Mapped[datetime | None]
-    used_ids: Mapped[list[uuid.UUID]] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"),
-        index=True,
-        default=[],
-    )
     used: Mapped[list["Entity"]] = relationship(
         "Entity",
         secondary="entity_activity_used",
-        primaryjoin=used_ids == id,
+        secondaryjoin="Entity.id == entity_activity_used.c.entity_id",
+        primaryjoin="Activity.id == entity_activity_used.c.activity_id",
         viewonly=True,
-    )
-    generated_ids: Mapped[list[uuid.UUID]] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"),
-        index=True,
-        default=[],
     )
     generated: Mapped[list["Entity"]] = relationship(
         "Entity",
         secondary="entity_activity_generated",
-        primaryjoin=generated_ids == id,
+        secondaryjoin="Entity.id == entity_activity_generated.c.entity_id",
+        primaryjoin="Activity.id == entity_activity_generated.c.activity_id",
         viewonly=True,
     )
     __mapper_args__ = {  # noqa: RUF012
@@ -1064,7 +1078,12 @@ class SimulationCampaign(
 
     __tablename__ = EntityType.simulation_campaign.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    simulations = relationship("Simulation", back_populates="simulation_campaign")
+
+    simulations = relationship(
+        "Simulation",
+        back_populates="simulation_campaign",
+        foreign_keys="Simulation.simulation_campaign_id",
+    )
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

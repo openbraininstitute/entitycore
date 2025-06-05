@@ -91,6 +91,8 @@ class ActivityType(StrEnum):
 
     simulation_execution = auto()
     simulation_generation = auto()
+
+
 class DerivationType(StrEnum):
     """Represents the type of derivation relationship between two entities.
 

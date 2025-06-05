@@ -1077,7 +1077,8 @@ class Simulation(Entity):
     Attributes:
         id (uuid.UUID): Primary key for the simulation, referencing the entity ID.
         simulation_campaign_id (uuid.UUID): Foreign key referencing the simulation campaign ID.
-        simulation_campaign (SimulationCampaign): The simulation campaign this simulation belongs to.
+        simulation_campaign (SimulationCampaign): The simulation campaign this simulation
+          belongs to.
         entity_id (uuid.UUID): Foreign key referencing the entity ID.
         entity (Entity): The entity this simulation is associated with.
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
@@ -1154,6 +1155,8 @@ class SimulationGeneration(Activity):
 
     __tablename__ = ActivityType.simulation_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
+
 class Derivation(Base):
     __tablename__ = "derivation"
     used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)

@@ -163,7 +163,7 @@ def default_species():
         },
         {
             "@id": "NCBITaxon:6619",
-            "label": "Loligo pealeil",
+            "label": "Loligo pealeii",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },

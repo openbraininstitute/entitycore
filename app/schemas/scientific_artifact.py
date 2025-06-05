@@ -11,6 +11,9 @@ from app.schemas.base import (
     EntityTypeMixin,
     LicenseCreateMixin,
     LicenseReadMixin,
+    IdentifiableMixin,
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
 )
 from app.schemas.subject import SubjectCreateMixin, SubjectReadMixin
 
@@ -31,6 +34,8 @@ class ScientificArtifactRead(
     CreationMixin,
     LicenseReadMixin,
     EntityTypeMixin,
+    IdentifiableMixin,
+    AuthorizationMixin,
 ):
     pass
 
@@ -40,5 +45,6 @@ class ScientificArtifactCreate(
     SubjectCreateMixin,
     BrainRegionCreateMixin,
     LicenseCreateMixin,
+    AuthorizationOptionalPublicMixin,
 ):
     pass

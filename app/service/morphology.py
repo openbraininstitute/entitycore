@@ -126,8 +126,8 @@ def create_one(
   
     # Validate against specific schema based on morphology_type
     try:
-        morphology_structure_type = MorphologyStructureType(body.get("morphology_type"))
-        schema = schema_map[morphology_structure_type]
+        structure_type = MorphologyStructureType(body.get("morphology_type"))
+        schema = schema_map[structure_type]
         validated_body = schema(**body)
     except (KeyError, ValueError, ValidationError) as e:
         raise HTTPException(status_code=422, detail=f"Invalid morphology_type or schema: {e!s}")
@@ -157,7 +157,7 @@ def create_one(
         "contact_id",
         "legacy_id",
         #"mtypes",
-        "morphology_structure_type",
+        "structure_type",
     }
 
     # Prepare json_model_data
@@ -173,7 +173,7 @@ def create_one(
     json_model_data.setdefault("published_in", extra_data["published_in"])
     json_model_data.setdefault("validation_tags", extra_data["validation_tags"])
     json_model_data.setdefault("license_id", body.get("license_id"))
-    json_model_data.setdefault("morphology_structure_type", validated_body.morphology_type)
+    json_model_data.setdefault("structure_type", validated_body.morphology_type)
     json_model_data.setdefault("authorized_public", body.get("authorized_public", False))
     json_model_data.setdefault("species_id", body.get("species_id"))
     json_model_data.setdefault("brain_region_id", body.get("brain_region_id"))
@@ -298,7 +298,7 @@ def create_one(
         "published_in": extra_data["published_in"],
         "validation_tags": extra_data["validation_tags"],
         "mtypes": [],
-        "morphology_structure_type": row.morphology_type,
+        "structure_type": row.morphology_type,
         "reconstruction_method": extra_data["reconstruction_method"],
         "pipeline_state": extra_data["pipeline_state"],
         "is_related_to": extra_data["is_related_to"],

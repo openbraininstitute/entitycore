@@ -65,6 +65,11 @@ class EntityType(StrEnum):
     me_type_density = auto()
     publication = auto()
     reconstruction_morphology = auto()
+    simulation = auto()
+    simulation_campaign = auto()
+    simulation_campaign_generation = auto()
+    simulation_execution = auto()
+    simulation_report = auto()
     scientific_artifact = auto()
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()
@@ -79,6 +84,13 @@ class AgentType(StrEnum):
 
     person = auto()
     organization = auto()
+
+
+class ActivityType(StrEnum):
+    """Activity types."""
+
+    simulation_execution = auto()
+    simulation_generation = auto()
 
 
 class DerivationType(StrEnum):
@@ -110,6 +122,14 @@ class SingleNeuronSimulationStatus(StrEnum):
     started = auto()
     failure = auto()
     success = auto()
+
+
+class SimulationExecutionStatus(StrEnum):
+    created = auto()
+    pending = auto()
+    running = auto()
+    done = auto()
+    error = auto()
 
 
 class ValidationStatus(StrEnum):

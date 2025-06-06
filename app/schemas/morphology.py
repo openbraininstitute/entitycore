@@ -91,7 +91,7 @@ class CellMorphologyRead(
     strain: NestedStrainRead | None
     brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
-    morphology_structure_type: MorphologyStructureType
+    structure_type: MorphologyStructureType
 
 
 class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
@@ -123,7 +123,7 @@ class DigitalReconstruction(CellMorphologyRead):
 
 
 class DigitalReconstructionCreate(CellMorphologyCreate):
-    morphology_structure_type: Literal[MorphologyStructureType.digital_reconstruction]
+    structure_type: Literal[MorphologyStructureType.digital_reconstruction]
     reconstruction_method: ExperimentalMorphologyMethod
     pipeline_state: PipelineType
     is_related_to: list[uuid.UUID]
@@ -135,7 +135,7 @@ class ModifiedReconstruction(CellMorphologyRead):
 
 
 class ModifiedReconstructionCreate(CellMorphologyCreate):
-    morphology_structure_type: Literal[MorphologyStructureType.modified]
+    structure_type: Literal[MorphologyStructureType.modified]
     method: MethodsType
     is_related_to: list[uuid.UUID]
 
@@ -147,7 +147,7 @@ class ComputationallySynthesized(CellMorphologyRead):
 
 
 class ComputationallySynthesizedCreate(CellMorphologyCreate):
-    morphology_structure_type: Literal[MorphologyStructureType.computationally_synthesized]
+    structure_type: Literal[MorphologyStructureType.computationally_synthesized]
     method: str
     score_dict: ScoreDict
     provenance: ScoreDict
@@ -158,5 +158,5 @@ class Placeholder(CellMorphologyRead):
 
 
 class PlaceholderCreate(CellMorphologyCreate):
-    morphology_structure_type: Literal[MorphologyStructureType.placeholder]
+    structure_type: Literal[MorphologyStructureType.placeholder]
     is_related_to: list[uuid.UUID]

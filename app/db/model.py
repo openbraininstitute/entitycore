@@ -600,7 +600,7 @@ class CellMorphology(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     location: Mapped[PointLocation | None]
-    morphology_structure_type = mapped_column(
+    structure_type = mapped_column(
         Enum(MorphologyStructureType, name="morphologystructuretype"),
         nullable=False,
         default=MorphologyStructureType.generic,

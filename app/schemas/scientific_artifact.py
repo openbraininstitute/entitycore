@@ -15,9 +15,6 @@ from app.schemas.base import (
     IdentifiableMixin,
     LicenseCreateMixin,
     LicenseReadMixin,
-    IdentifiableMixin,
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
 )
 from app.schemas.subject import SubjectCreateMixin, SubjectReadMixin
 

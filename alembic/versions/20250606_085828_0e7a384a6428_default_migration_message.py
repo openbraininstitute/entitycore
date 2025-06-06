@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 819492ee494f
+Revision ID: 0e7a384a6428
 Revises: 1a5cec5b629b
-Create Date: 2025-06-05 16:47:43.093838
+Create Date: 2025-06-06 08:58:28.572563
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "819492ee494f"
+revision: str = "0e7a384a6428"
 down_revision: Union[str, None] = "1a5cec5b629b"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -72,40 +72,17 @@ def upgrade() -> None:
     op.create_index(op.f("ix_activity_creation_date"), "activity", ["creation_date"], unique=False)
     op.create_index(op.f("ix_activity_updated_by_id"), "activity", ["updated_by_id"], unique=False)
     op.create_table(
-        "entity_activity_generated",
+        "generation",
         sa.Column("entity_id", sa.Uuid(), nullable=False),
         sa.Column("activity_id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
-            ["activity_id"],
-            ["activity.id"],
-            name=op.f("fk_entity_activity_generated_activity_id_activity"),
+            ["activity_id"], ["activity.id"], name=op.f("fk_generation_activity_id_activity")
         ),
         sa.ForeignKeyConstraint(
-            ["entity_id"], ["entity.id"], name=op.f("fk_entity_activity_generated_entity_id_entity")
+            ["entity_id"], ["entity.id"], name=op.f("fk_generation_entity_id_entity")
         ),
-        sa.PrimaryKeyConstraint(
-            "entity_id", "activity_id", name=op.f("pk_entity_activity_generated")
-        ),
-        sa.UniqueConstraint(
-            "entity_id", "activity_id", name="uq_entity_activity_generated_entity_id_activity_id"
-        ),
-    )
-    op.create_table(
-        "entity_activity_used",
-        sa.Column("entity_id", sa.Uuid(), nullable=False),
-        sa.Column("activity_id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["activity_id"],
-            ["activity.id"],
-            name=op.f("fk_entity_activity_used_activity_id_activity"),
-        ),
-        sa.ForeignKeyConstraint(
-            ["entity_id"], ["entity.id"], name=op.f("fk_entity_activity_used_entity_id_entity")
-        ),
-        sa.PrimaryKeyConstraint("entity_id", "activity_id", name=op.f("pk_entity_activity_used")),
-        sa.UniqueConstraint(
-            "entity_id", "activity_id", name="uq_entity_activity_used_entity_id_activity_id"
-        ),
+        sa.PrimaryKeyConstraint("entity_id", "activity_id", name=op.f("pk_generation")),
+        sa.UniqueConstraint("entity_id", "activity_id", name="uq_generation_entity_id_activity_id"),
     )
     op.create_table(
         "simulation_campaign",
@@ -162,6 +139,19 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_simulation_report_id_entity")),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_simulation_report")),
+    )
+    op.create_table(
+        "usage",
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
+        sa.Column("activity_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["activity_id"], ["activity.id"], name=op.f("fk_usage_activity_id_activity")
+        ),
+        sa.ForeignKeyConstraint(
+            ["entity_id"], ["entity.id"], name=op.f("fk_usage_entity_id_entity")
+        ),
+        sa.PrimaryKeyConstraint("entity_id", "activity_id", name=op.f("pk_usage")),
+        sa.UniqueConstraint("entity_id", "activity_id", name="uq_usage_entity_id_activity_id"),
     )
     op.create_table(
         "simulation",
@@ -273,6 +263,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_simulation_simulation_campaign_id"), table_name="simulation")
     op.drop_index(op.f("ix_simulation_entity_id"), table_name="simulation")
     op.drop_table("simulation")
+    op.drop_table("usage")
     op.drop_table("simulation_report")
     op.drop_table("simulation_generation")
     op.drop_table("simulation_execution")
@@ -283,8 +274,7 @@ def downgrade() -> None:
         postgresql_using="gin",
     )
     op.drop_table("simulation_campaign")
-    op.drop_table("entity_activity_used")
-    op.drop_table("entity_activity_generated")
+    op.drop_table("generation")
     op.drop_index(op.f("ix_activity_updated_by_id"), table_name="activity")
     op.drop_index(op.f("ix_activity_creation_date"), table_name="activity")
     op.drop_index(op.f("ix_activity_created_by_id"), table_name="activity")

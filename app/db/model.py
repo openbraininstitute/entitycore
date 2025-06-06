@@ -287,25 +287,21 @@ class Organization(Agent):
     }
 
 
-class EntityActivityUsed(Base):
-    __tablename__ = "entity_activity_used"
+class Usage(Base):
+    __tablename__ = "usage"
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     activity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     __table_args__ = (
-        UniqueConstraint(
-            "entity_id", "activity_id", name="uq_entity_activity_used_entity_id_activity_id"
-        ),
+        UniqueConstraint("entity_id", "activity_id", name="uq_usage_entity_id_activity_id"),
     )
 
 
-class EntityActivityGenerated(Base):
-    __tablename__ = "entity_activity_generated"
+class Generation(Base):
+    __tablename__ = "generation"
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     activity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     __table_args__ = (
-        UniqueConstraint(
-            "entity_id", "activity_id", name="uq_entity_activity_generated_entity_id_activity_id"
-        ),
+        UniqueConstraint("entity_id", "activity_id", name="uq_generation_entity_id_activity_id"),
     )
 
 
@@ -329,16 +325,16 @@ class Activity(Identifiable):
     end_time: Mapped[datetime | None]
     used: Mapped[list["Entity"]] = relationship(
         "Entity",
-        secondary="entity_activity_used",
-        secondaryjoin="Entity.id == entity_activity_used.c.entity_id",
-        primaryjoin="Activity.id == entity_activity_used.c.activity_id",
+        secondary="usage",
+        secondaryjoin="Entity.id == usage.c.entity_id",
+        primaryjoin="Activity.id == usage.c.activity_id",
         viewonly=True,
     )
     generated: Mapped[list["Entity"]] = relationship(
         "Entity",
-        secondary="entity_activity_generated",
-        secondaryjoin="Entity.id == entity_activity_generated.c.entity_id",
-        primaryjoin="Activity.id == entity_activity_generated.c.activity_id",
+        secondary="generation",
+        secondaryjoin="Entity.id == generation.c.entity_id",
+        primaryjoin="Activity.id == generation.c.activity_id",
         viewonly=True,
     )
     __mapper_args__ = {  # noqa: RUF012

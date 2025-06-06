@@ -135,6 +135,53 @@ def curate_morphology(data):
     return data
 
 
+def default_species():
+    return [
+        {
+            "@id": "NCBITaxon:9606",
+            "label": "Homo sapiens",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "NCBITaxon:8355",
+            "label": "Xenopus laevis",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "NCBITaxon:10029",
+            "label": "Cricetulus griseus",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "NCBITaxon:9685",
+            "label": "Felis catus",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "NCBITaxon:6619",
+            "label": "Loligo pealeii",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "NCBITaxon:8400",
+            "label": "Aquarana catesbeiana",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+        {
+            "@id": "NA",
+            "label": "Hybrid human-mouse",
+            "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+        },
+    ]
+
+
 def default_agents():
     return [
         {

@@ -157,7 +157,7 @@ def default_species():
         },
         {
             "@id": "NCBITaxon:9685",
-            "label": "Felis Catus",
+            "label": "Felis catus",
             "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },

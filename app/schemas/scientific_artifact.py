@@ -5,15 +5,15 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
     BrainRegionCreateMixin,
     BrainRegionReadMixin,
     CreationMixin,
     EntityTypeMixin,
+    IdentifiableMixin,
     LicenseCreateMixin,
     LicenseReadMixin,
-    IdentifiableMixin,
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
 )
 from app.schemas.subject import SubjectCreateMixin, SubjectReadMixin
 

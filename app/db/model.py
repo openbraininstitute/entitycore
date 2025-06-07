@@ -329,6 +329,7 @@ class Activity(Identifiable):
         secondaryjoin="Entity.id == usage.c.entity_id",
         primaryjoin="Activity.id == usage.c.activity_id",
         viewonly=True,
+        uselist=True,
     )
     generated: Mapped[list["Entity"]] = relationship(
         "Entity",
@@ -336,6 +337,7 @@ class Activity(Identifiable):
         secondaryjoin="Entity.id == generation.c.entity_id",
         primaryjoin="Activity.id == generation.c.activity_id",
         viewonly=True,
+        uselist=True,
     )
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
@@ -1077,13 +1079,14 @@ class SimulationCampaign(
 
     simulations = relationship(
         "Simulation",
+        uselist=True,
         back_populates="simulation_campaign",
         foreign_keys="Simulation.simulation_campaign_id",
     )
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class Simulation(Entity):
+class Simulation(Entity, NameDescriptionVectorMixin):
     """Represents a simulation entity in the database.
 
     It represents the definition / configuration of a simulation. It has an asset which is

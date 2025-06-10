@@ -31,6 +31,8 @@ from app.db.model import (
     Organization,
     ReconstructionMorphology,
     Role,
+    Simulation,
+    SimulationCampaign,
     Species,
     Strain,
     Subject,
@@ -941,6 +943,52 @@ def circuit(db, circuit_json_data, person_id):
         db,
         Circuit(
             **circuit_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def simulation_campaign_json_data():
+    return {"name": "simulation-campaign", "description": "simulation-campaign-description"}
+
+
+@pytest.fixture
+def simulation_campaign(db, simulation_campaign_json_data, person_id):
+    return add_db(
+        db,
+        SimulationCampaign(
+            **simulation_campaign_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def simulation_json_data(simulation_campaign, circuit):
+    return {
+        "name": "simulation",
+        "description": "simulation-description",
+        "entity_id": str(circuit.id),
+        "simulation_campaign_id": str(simulation_campaign.id),
+        "scan_parameters": {"foo1": "bar1", "foo2": "bar2"},
+    }
+
+
+@pytest.fixture
+def simulation(db, simulation_json_data, person_id):
+    return add_db(
+        db,
+        Simulation(
+            **simulation_json_data
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,

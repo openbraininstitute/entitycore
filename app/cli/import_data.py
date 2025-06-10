@@ -293,7 +293,6 @@ def import_mtype_annotation_body(data, db):
             {
                 "label": "L2_PC",
                 "definition": "Layer 2 pyramidal cell.",
-                "@id": "",
                 "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/L2_PC",
                 "_self": "",
                 "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
@@ -302,7 +301,6 @@ def import_mtype_annotation_body(data, db):
             {
                 "label": "L3_PC",
                 "definition": "Layer 3 pyramidal cell.",
-                "@id": "",
                 "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/L3_PC",
                 "_self": "",
                 "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
@@ -311,7 +309,6 @@ def import_mtype_annotation_body(data, db):
             {
                 "label": "L4_PC",
                 "definition": "Layer 4 pyramidal cell.",
-                "@id": "",
                 "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/L4_PC",
                 "_self": "",
                 "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
@@ -320,7 +317,6 @@ def import_mtype_annotation_body(data, db):
             {
                 "label": "L5_PC",
                 "definition": "Layer 5 pyramidal cell.",
-                "@id": "",
                 "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/L5_PC",
                 "_self": "",
                 "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
@@ -329,7 +325,6 @@ def import_mtype_annotation_body(data, db):
             {
                 "label": "L6_PC",
                 "definition": "Layer 6 pyramidal cell.",
-                "@id": "",
                 "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/L6_PC",
                 "_self": "",
                 "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
@@ -338,7 +333,6 @@ def import_mtype_annotation_body(data, db):
             {
                 "label": "L56_PC",
                 "definition": "Layer 5/6 pyramidal cell.",
-                "@id": "",
                 "@id": "https://bbp.epfl.ch/ontologies/core/celltypes/L56_PC",
                 "_self": "",
                 "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),

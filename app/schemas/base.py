@@ -59,6 +59,14 @@ class LicenseRead(LicenseCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
+class LicenseReadMixin:
+    license: LicenseRead | None = None
+
+
+class LicenseCreateMixin:
+    license_id: uuid.UUID | None = None
+
+
 class BrainRegionRead(IdentifiableMixin, CreationMixin):
     model_config = ConfigDict(from_attributes=True)
 

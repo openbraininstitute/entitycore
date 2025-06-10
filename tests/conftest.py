@@ -19,6 +19,8 @@ from app.config import settings
 from app.db.model import (
     Agent,
     Base,
+    BrainAtlas,
+    Circuit,
     Contribution,
     EModel,
     ETypeClass,
@@ -361,6 +363,23 @@ def brain_region_id(db, brain_region_hierarchy_id, person_id):
             db, brain_region_hierarchy_id, 64, "RedRegion", created_by_id=person_id
         ).id
     )
+
+
+@pytest.fixture
+def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id):
+    return add_db(
+        db,
+        BrainAtlas(
+            name="test brain atlas",
+            description="test brain atlas description",
+            species_id=species_id,
+            hierarchy_id=brain_region_hierarchy_id,
+            authorized_project_id=PROJECT_ID,
+            authorized_public=False,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    ).id
 
 
 @pytest.fixture
@@ -850,4 +869,82 @@ def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id)
 def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
     return create_electrical_cell_recording_id_with_assets(
         db, client, tmp_path, electrical_cell_recording_json_data
+    )
+
+
+@pytest.fixture
+def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_id):
+    return {
+        "name": "root-circuit",
+        "description": "root-circuit-description",
+        "number_neurons": 10_000_000,
+        "number_synapses": 1_000_000_000,
+        "number_connections": 100_000_000,
+        "has_morphologies": True,
+        "has_point_neurons": True,
+        "has_spines": True,
+        "has_electrical_cell_models": True,
+        "scale": "whole_brain",
+        "root_circuit_id": None,
+        "atlas_id": str(brain_atlas_id),
+        "subject_id": str(subject_id),
+        "build_category": "em_reconstruction",
+        "authorized_project_id": PROJECT_ID,
+        "authorized_public": False,
+        "created_by_id": str(person_id),
+        "updated_by_id": str(person_id),
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+    }
+
+
+@pytest.fixture
+def root_circuit(db, root_circuit_json_data, person_id):
+    return add_db(
+        db,
+        Circuit(
+            **root_circuit_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def circuit_json_data(brain_atlas_id, root_circuit, subject_id, brain_region_id, license_id):
+    return {
+        "name": "my-circuit",
+        "description": "My Circuit",
+        "has_morphologies": True,
+        "has_point_neurons": False,
+        "has_electrical_cell_models": True,
+        "has_spines": False,
+        "number_neurons": 5,
+        "number_synapses": 100,
+        "number_connections": 10,
+        "scale": "microcircuit",
+        "build_category": "computational_model",
+        "atlas_id": str(brain_atlas_id),
+        "root_circuit_id": str(root_circuit.id),
+        "subject_id": str(subject_id),
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+    }
+
+
+@pytest.fixture
+def circuit(db, circuit_json_data, person_id):
+    return add_db(
+        db,
+        Circuit(
+            **circuit_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
     )

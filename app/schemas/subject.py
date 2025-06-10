@@ -90,3 +90,7 @@ class SubjectRead(
 
 class SubjectReadMixin:
     subject: NestedSubjectRead
+
+
+class SubjectCreateMixin:
+    subject_id: uuid.UUID

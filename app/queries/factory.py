@@ -16,6 +16,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
+    Simulation,
     SingleNeuronSynaptome,
     Species,
     Strain,
@@ -67,6 +68,7 @@ def query_params_factory[I: Identifiable](
     pre_region_alias = _get_alias(BrainRegion, "pre_region")
     post_region_alias = _get_alias(BrainRegion, "post_region")
     entity_alias = _get_alias(Entity)
+    simulation_alias = _get_alias(Simulation)
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -105,6 +107,7 @@ def query_params_factory[I: Identifiable](
         "post_mtype": {"id": post_mtype_alias.id, "label": post_mtype_alias.pref_label},
         "pre_region": {"id": pre_region_alias.id, "label": pre_region_alias.name},
         "post_region": {"id": post_region_alias.id, "label": post_region_alias.name},
+        "simulation": {"id": simulation_alias.id, "label": simulation_alias.name},
     }
     filter_joins = {
         "species": lambda q: q.join(Species, db_model_class.species_id == Species.id),
@@ -170,6 +173,9 @@ def query_params_factory[I: Identifiable](
         ),
         "post_region": lambda q: q.join(
             post_region_alias, db_model_class.post_region_id == post_region_alias.id
+        ),
+        "simulation": lambda q: q.outerjoin(
+            simulation_alias, db_model_class.id == simulation_alias.simulation_campaign_id
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

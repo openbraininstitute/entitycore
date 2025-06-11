@@ -954,7 +954,11 @@ def circuit(db, circuit_json_data, person_id):
 
 @pytest.fixture
 def simulation_campaign_json_data():
-    return {"name": "simulation-campaign", "description": "simulation-campaign-description"}
+    return {
+        "name": "simulation-campaign",
+        "description": "simulation-campaign-description",
+        "scan_parameters": {"foo1": "bar2"},
+    }
 
 
 @pytest.fixture

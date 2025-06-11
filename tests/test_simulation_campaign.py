@@ -45,6 +45,7 @@ def _assert_read_response(data, json_data):
     assert data["description"] == json_data["description"]
     assert data["type"] == EntityType.simulation_campaign
     assert "simulations" in data
+    assert data["scan_parameters"] == json_data["scan_parameters"]
 
     check_creation_fields(data)
 

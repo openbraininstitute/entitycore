@@ -47,7 +47,7 @@ lint:  ## Run linters
 	uv run -m pyright app
 
 build:  ## Build the Docker image
-	docker compose --progress=plain build app
+	docker compose --profile "*" --progress=plain build app
 
 import:  ## Run the import on a database, assumes mba_hierarchy.json and out are in the current dir
 	@$(call load_env,run-local)

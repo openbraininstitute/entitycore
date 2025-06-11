@@ -66,11 +66,11 @@ class _JSONEncoder(json.JSONEncoder):
 def read_hierarchy(
     *,
     db: SessionDep,
-    id_: str,
+    id_: uuid.UUID,
 ):
     query = sa.select(BrainRegion).join(BrainRegionHierarchy).filter(BrainRegionHierarchy.id == id_)
 
-    data = db.execute(query).scalars()
+    data = db.execute(query).scalars().fetchall()
 
     if not data:
         raise HTTPException(status_code=404, detail=f"No hierarchy named {id_}")

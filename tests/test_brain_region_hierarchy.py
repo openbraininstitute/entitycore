@@ -35,6 +35,18 @@ def test_missing(client):
     response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
 
+    response = client.get(f"{ROUTE}/{utils.MISSING_ID}/hierarchy")
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/{utils.MISSING_ID_COMPACT}/hierarchy")
+    assert response.status_code == 404
+
+    response = client.get(f"{ROUTE}/42424242/hierarchy")
+    assert response.status_code == 422
+
+    response = client.get(f"{ROUTE}/notanumber/hierarchy")
+    assert response.status_code == 422
+
 
 def test_hierarchy_tree(db, client, brain_region_hierarchy_id):
     utils.add_brain_region_hierarchy(db, test_brain_region.HIERARCHY, brain_region_hierarchy_id)

@@ -1083,6 +1083,11 @@ class SimulationCampaign(
         back_populates="simulation_campaign",
         foreign_keys="Simulation.simulation_campaign_id",
     )
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

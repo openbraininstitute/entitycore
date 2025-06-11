@@ -130,7 +130,7 @@ NestedStrainFilterDep = FilterDepends(with_prefix("strain", NestedStrainFilter))
 
 
 class SpeciesFilterMixin:
-    species_id__in: list[int] | None = None
+    species_id__in: list[uuid.UUID] | None = None
     species: Annotated[NestedSpeciesFilter | None, NestedSpeciesFilterDep] = None
     strain: Annotated[NestedStrainFilter | None, NestedStrainFilterDep] = None
 

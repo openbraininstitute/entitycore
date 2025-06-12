@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter, Response
 
 COMPOSITION_SUMMARY = (
-    (Path(__file__).parent.parent / "static/cellCompositionSummary_payload_prod.json").open().read()
+    (Path(__file__).parent.parent / "static/cellCompositionSummary_payload_prod_transformed.json").open().read()
 )
 
 

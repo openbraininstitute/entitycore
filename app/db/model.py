@@ -1077,6 +1077,8 @@ class SimulationCampaign(
     __tablename__ = EntityType.simulation_campaign.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+
     simulations = relationship(
         "Simulation",
         uselist=True,
@@ -1088,7 +1090,10 @@ class SimulationCampaign(
         nullable=False,
         server_default="{}",
     )
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }  # noqa: RUF012
 
 
 class Simulation(Entity, NameDescriptionVectorMixin):

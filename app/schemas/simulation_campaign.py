@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import JSON_DICT
@@ -18,6 +20,7 @@ class SimulationCampaignBase(BaseModel):
     name: str
     description: str
     scan_parameters: JSON_DICT
+    entity_id: uuid.UUID
 
 
 class SimulationCampaignCreate(SimulationCampaignBase, AuthorizationOptionalPublicMixin):

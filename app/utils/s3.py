@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 from typing import IO
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
@@ -101,18 +102,21 @@ def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:
     return True
 
 
-def generate_presigned_url(s3_client: S3Client, bucket_name: str, s3_key: str) -> str | None:
+def generate_presigned_url(
+    s3_client: S3Client, operation: str, bucket_name: str, s3_key: str
+) -> str | None:
     """Generate and return a presigned URL for an S3 object.
 
     Args:
         s3_client: S3 client instance.
+        operation: the `ClientMethod` wanted of the presigned url
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
     """
     url = None
     try:
         url = s3_client.generate_presigned_url(
-            "get_object",
+            operation,
             Params={"Bucket": bucket_name, "Key": s3_key},
             ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
         )
@@ -122,3 +126,37 @@ def generate_presigned_url(s3_client: S3Client, bucket_name: str, s3_key: str) -
     except Exception:  # noqa: BLE001
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
     return url
+
+
+def list_directory_with_details(
+    s3_client: S3Client,
+    bucket_name: str,
+    vlab_id: UUID,
+    proj_id: UUID,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    is_public: bool,
+):
+    paginator = s3_client.get_paginator("list_objects_v2")
+    prefix = build_s3_path(
+        vlab_id=vlab_id,
+        proj_id=proj_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        filename=asset_id,
+        is_public=is_public,
+    )
+
+    files = {}
+    for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+        if "Contents" not in page:
+            continue
+        for obj in page["Contents"]:
+            name = str(Path(obj["Key"]).relative_to(prefix))
+            files[name] = {
+                "name": name,
+                "size": obj["Size"],
+                "last_modified": obj["LastModified"],
+            }
+    return files

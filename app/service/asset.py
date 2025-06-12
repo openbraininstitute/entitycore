@@ -1,13 +1,20 @@
+import os
 import uuid
+from pathlib import Path
 
+from pydantic.networks import AnyUrl
+
+from app.config import settings
 from app.db.types import AssetLabel, AssetStatus, EntityType
+from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.queries.common import get_or_create_user_agent
 from app.repository.group import RepositoryGroup
-from app.schemas.asset import AssetCreate, AssetRead
+from app.schemas.asset import AssetCreate, AssetRead, FileList, DetailedFileList
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.service import entity as entity_service
-from app.utils.s3 import build_s3_path
+from app.utils.s3 import build_s3_path, generate_presigned_url, list_directory_with_details
+from app.utils.uuid import create_uuid
 
 
 def get_entity_assets(
@@ -129,3 +136,108 @@ def delete_entity_asset(
             asset_status=AssetStatus.DELETED,
         )
     return AssetRead.model_validate(asset)
+
+
+def entity_asset_upload_directory(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    s3_client: S3ClientDep,
+    meta: dict | None,
+    label: AssetLabel | None,
+    files: FileList,
+) -> tuple[dict[str, AnyUrl]]:
+    entity = entity_service.get_writable_entity(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+
+    full_path = build_s3_path(
+        vlab_id=user_context.virtual_lab_id,
+        proj_id=user_context.project_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        filename=str(create_uuid()),
+        is_public=entity.authorized_public,
+    )
+
+    db_agent = get_or_create_user_agent(repos.db, user_profile=user_context.profile)
+
+    with ensure_valid_schema(
+        "Asset schema is invalid", error_code=ApiErrorCode.ASSET_INVALID_SCHEMA
+    ):
+        asset_create = AssetCreate(
+            path="",
+            full_path=full_path,
+            is_directory=True,
+            content_type="application/vnd.directory",
+            size=-1,
+            sha256_digest=None,
+            meta=meta or {},
+            label=label,
+            entity_type=entity_type,
+            created_by_id=db_agent.id,
+            updated_by_id=db_agent.id,
+        )
+
+    with ensure_uniqueness(
+        f"Asset with path {asset_create.path!r} already exists",
+        error_code=ApiErrorCode.ASSET_DUPLICATED,
+    ):
+        asset_db = repos.asset.create_entity_asset(
+            entity_id=entity_id,
+            asset=asset_create,
+        )
+
+    urls = {}
+    for f in files.files:
+        sanitized_path = Path(os.path.normpath("/" / f)).relative_to("/")
+        full_path = build_s3_path(
+            vlab_id=user_context.virtual_lab_id,
+            proj_id=user_context.project_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            filename=str(asset_db.id) / sanitized_path,
+            is_public=entity.authorized_public,
+        )
+        url = generate_presigned_url(
+            s3_client=s3_client,
+            operation="put_object",
+            bucket_name=settings.S3_BUCKET_NAME,
+            s3_key=full_path,
+        )
+        urls[f] = AnyUrl(url)
+
+    return AssetRead.model_validate(asset_db), urls
+
+
+def list_directory(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    s3_client: S3ClientDep,
+) -> DetailedFileList:
+    entity = entity_service.get_readable_entity(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+
+    ret = list_directory_with_details(
+        s3_client,
+        bucket_name=settings.S3_BUCKET_NAME,
+        vlab_id=user_context.virtual_lab_id,
+        proj_id=user_context.project_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        asset_id=asset_id,
+        is_public=entity.authorized_public,
+    )
+
+    return DetailedFileList.model_validate({"files": ret})

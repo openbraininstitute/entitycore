@@ -320,6 +320,9 @@ class Activity(Identifiable):
     """
 
     __tablename__ = "activity"
+
+    authorized_project_id: Mapped[uuid.UUID]
+    authorized_public: Mapped[bool] = mapped_column(default=False)
     type: Mapped[ActivityType]
     start_time: Mapped[datetime | None]
     end_time: Mapped[datetime | None]
@@ -1090,10 +1093,10 @@ class SimulationCampaign(
         nullable=False,
         server_default="{}",
     )
-    __mapper_args__ = {
+    __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
-    }  # noqa: RUF012
+    }
 
 
 class Simulation(Entity, NameDescriptionVectorMixin):

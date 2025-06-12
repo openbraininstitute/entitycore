@@ -3,7 +3,11 @@ from datetime import datetime
 
 from pydantic import UUID4, BaseModel, ConfigDict
 
-from app.db.types import EntityType
+from app.db.types import ActivityType, EntityType
+
+
+class ActivityTypeMixin:
+    type: ActivityType | None = None
 
 
 class EntityTypeMixin(BaseModel):

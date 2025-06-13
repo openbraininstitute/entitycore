@@ -378,12 +378,18 @@ class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
 class MTypeClassification(Identifiable):
     __tablename__ = "mtype_classification"
 
+    authorized_project_id: Mapped[uuid.UUID]
+    authorized_public: Mapped[bool] = mapped_column(default=False)
+
     mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
 
 class ETypeClassification(Identifiable):
     __tablename__ = "etype_classification"
+
+    authorized_project_id: Mapped[uuid.UUID]
+    authorized_public: Mapped[bool] = mapped_column(default=False)
 
     etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)

@@ -56,10 +56,32 @@ def load_db_model_from_pydantic[I: Identifiable](
         "created_by_id": created_by_id,
         "updated_by_id": updated_by_id,
     }
-    if "authorized_project_id" in db_model_class.__mapper__.columns:
+    if has_project_id_in_columns(db_model_class):
         data["authorized_project_id"] = authorized_project_id
 
     if ignore_attributes:
         data = {k: v for k, v in data.items() if k not in ignore_attributes}
 
     return construct_model(db_model_class, data)
+
+
+def has_project_id_in_columns(db_model_class) -> bool:
+    """Return True if project id in table or parent tables."""
+    return "authorized_project_id" in db_model_class.__mapper__.columns
+
+
+def get_declaring_class[I: Identifiable](
+    db_model_class: type[I], column_name: str
+) -> type[I] | None:
+    """Return the class that has a table with project id or None."""
+    if not has_project_id_in_columns(db_model_class):
+        return None
+
+    declaring_table = db_model_class.__mapper__.columns[column_name].table
+
+    # Iterate all mappers registered with the Base registry
+    for mapper in db_model_class.registry.mappers:
+        if mapper.local_table is declaring_table:
+            return mapper.class_
+
+    return None

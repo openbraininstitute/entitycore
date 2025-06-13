@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
-from app.db.model import Base, Entity, Identifiable, MeasurableEntity
+from app.db.model import Base, Identifiable, MeasurableEntity
 from app.logger import L
 
 MEASURABLE_ENTITIES: dict[str, type[MeasurableEntity]] = {
@@ -55,6 +55,8 @@ def load_db_model_from_pydantic[I: Identifiable](
         "created_by_id": created_by_id,
         "updated_by_id": updated_by_id,
     }
-    if issubclass(db_model_class, Entity):
+
+    # Check if authorized_project_id in table or parent table columns
+    if "authorized_project_id" in db_model_class.__mapper__.columns:
         data["authorized_project_id"] = authorized_project_id
     return construct_model(db_model_class, data)

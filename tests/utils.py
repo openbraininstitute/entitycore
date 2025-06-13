@@ -180,8 +180,26 @@ def create_mtype(db, pref_label: str, created_by_id: uuid.UUID, alt_label=None, 
     )
 
 
-def attach_mtype(db, entity_id, mtype_id):
-    return add_db(db, MTypeClassification(entity_id=str(entity_id), mtype_class_id=str(mtype_id)))
+def create_mtype_classification(
+    db,
+    *,
+    entity_id: uuid.UUID,
+    mtype_class_id: uuid.UUID,
+    created_by_id: uuid.UUID,
+    authorized_public: bool = False,
+    authorized_project_id: uuid.UUID = PROJECT_ID,
+):
+    return add_db(
+        db,
+        MTypeClassification(
+            entity_id=entity_id,
+            mtype_class_id=mtype_class_id,
+            authorized_public=authorized_public,
+            authorized_project_id=authorized_project_id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+        ),
+    )
 
 
 def create_electrical_recording_stimulus_id(db, recording_id, created_by_id):

@@ -105,6 +105,8 @@ def test_emodel_etypes(
             etype_class_id=etype1.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
         ),
     )
     add_db(
@@ -114,6 +116,8 @@ def test_emodel_etypes(
             etype_class_id=etype2.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
         ),
     )
 

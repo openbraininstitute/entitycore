@@ -1,6 +1,7 @@
 from app.db.model import MTypeClass, MTypeClassification
 
 from .utils import (
+    PROJECT_ID,
     add_all_db,
     add_db,
     check_missing,
@@ -95,6 +96,8 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id, person
             mtype_class_id=mtype1.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
         ),
     )
     add_db(
@@ -104,6 +107,8 @@ def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id, person
             mtype_class_id=mtype2.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
         ),
     )
 

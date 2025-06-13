@@ -14,7 +14,7 @@ from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode
-from app.schemas.asset import AssetAndPresignedURLS, AssetRead, FileList, DetailedFileList
+from app.schemas.asset import AssetAndPresignedURLS, AssetRead, DetailedFileList, FileList
 from app.schemas.types import ListResponse, PaginationResponse
 from app.service import asset as asset_service
 from app.utils.files import calculate_sha256_digest, get_content_type

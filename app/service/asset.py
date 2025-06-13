@@ -10,7 +10,7 @@ from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.queries.common import get_or_create_user_agent
 from app.repository.group import RepositoryGroup
-from app.schemas.asset import AssetCreate, AssetRead, FileList, DetailedFileList
+from app.schemas.asset import AssetCreate, AssetRead, DetailedFileList, FileList
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.service import entity as entity_service
 from app.utils.s3 import build_s3_path, generate_presigned_url, list_directory_with_details
@@ -155,12 +155,14 @@ def entity_asset_upload_directory(
         entity_id=entity_id,
     )
 
+    # XXX: or do we want to use a user supplied name, and if so, how do we handle conflicts
+    unique_name = str(create_uuid())
     full_path = build_s3_path(
         vlab_id=user_context.virtual_lab_id,
         proj_id=user_context.project_id,
         entity_type=entity_type,
         entity_id=entity_id,
-        filename=str(create_uuid()),
+        filename=unique_name,
         is_public=entity.authorized_public,
     )
 
@@ -200,7 +202,7 @@ def entity_asset_upload_directory(
             proj_id=user_context.project_id,
             entity_type=entity_type,
             entity_id=entity_id,
-            filename=str(asset_db.id) / sanitized_path,
+            filename= Path(unique_name) / sanitized_path,
             is_public=entity.authorized_public,
         )
         url = generate_presigned_url(
@@ -222,22 +224,18 @@ def list_directory(
     asset_id: uuid.UUID,
     s3_client: S3ClientDep,
 ) -> DetailedFileList:
-    entity = entity_service.get_readable_entity(
+    asset = get_entity_asset(
         repos,
         user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
+        asset_id=asset_id,
     )
 
     ret = list_directory_with_details(
         s3_client,
         bucket_name=settings.S3_BUCKET_NAME,
-        vlab_id=user_context.virtual_lab_id,
-        proj_id=user_context.project_id,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        asset_id=asset_id,
-        is_public=entity.authorized_public,
+        prefix=asset.full_path,
     )
 
     return DetailedFileList.model_validate({"files": ret})

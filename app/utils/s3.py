@@ -131,23 +131,9 @@ def generate_presigned_url(
 def list_directory_with_details(
     s3_client: S3Client,
     bucket_name: str,
-    vlab_id: UUID,
-    proj_id: UUID,
-    entity_type: EntityType,
-    entity_id: uuid.UUID,
-    asset_id: uuid.UUID,
-    is_public: bool,
+    prefix: str,
 ):
     paginator = s3_client.get_paginator("list_objects_v2")
-    prefix = build_s3_path(
-        vlab_id=vlab_id,
-        proj_id=proj_id,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        filename=asset_id,
-        is_public=is_public,
-    )
-
     files = {}
     for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
         if "Contents" not in page:

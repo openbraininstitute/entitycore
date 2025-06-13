@@ -325,3 +325,7 @@ def test_download_directory_file(client, entity, asset_directory):
     assert response.status_code == 409, (
         f"Failed to send invalid response due to missing asset_path: {response.text}"
     )
+
+
+def test_upload_directory(client, entity):
+    pass

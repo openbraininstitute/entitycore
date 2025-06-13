@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.model import Agent, SimulationGeneration
+from app.db.model import Agent, Entity, SimulationGeneration
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -81,17 +81,21 @@ def read_many(
 ) -> ListResponse[SimulationGenerationRead]:
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
+    used_alias = aliased(Entity, flat=True)
+    generated_alias = aliased(Entity, flat=True)
 
     aliases: Aliases = {
         Agent: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
-        }
+        },
+        Entity: {
+            "used": used_alias,
+            "generated": generated_alias,
+        },
     }
-    facet_keys = filter_keys = [
-        "created_by",
-        "updated_by",
-    ]
+    facet_keys = []
+    filter_keys = ["created_by", "updated_by", "used", "generated"]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=SimulationGeneration,
         facet_keys=facet_keys,

@@ -9,7 +9,7 @@ from app.db.auth import (
     constrain_to_accessible_entities,
 )
 from app.db.model import Agent, Entity, Generation, Identifiable, Person, Usage
-from app.db.utils import load_db_model_from_pydantic
+from app.db.utils import get_declaring_class, load_db_model_from_pydantic
 from app.dependencies.common import (
     FacetQueryParams,
     InBrainRegionQuery,
@@ -55,8 +55,10 @@ def router_read_one[T: BaseModel, I: Identifiable](
         the model data as a Pydantic model.
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if issubclass(db_model_class, Entity):
-        query = constrain_to_accessible_entities(query, authorized_project_id)
+    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+        query = constrain_to_accessible_entities(
+            query, authorized_project_id, db_model_class=id_model_class
+        )
     if apply_operations:
         query = apply_operations(query)
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
@@ -103,10 +105,14 @@ def router_create_activity_one[T: BaseModel, I: Identifiable](
 
     if json_model.used_ids or json_model.generated_ids:
         for entity_id in json_model.used_ids:
-            db.add(Usage(entity_id=entity_id, activity_id=db_model_instance.id))
+            db.add(Usage(usage_entity_id=entity_id, usage_activity_id=db_model_instance.id))
 
         for entity_id in json_model.generated_ids:
-            db.add(Generation(entity_id=entity_id, activity_id=db_model_instance.id))
+            db.add(
+                Generation(
+                    generation_entity_id=entity_id, generation_activity_id=db_model_instance.id
+                )
+            )
 
         db.flush()
 
@@ -239,9 +245,11 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         the list of model data, pagination, and facets as a Pydantic model.
     """
     filter_query = sa.select(db_model_class)
-    if issubclass(db_model_class, Entity):
+    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
         filter_query = constrain_to_accessible_entities(
-            filter_query, project_id=authorized_project_id
+            filter_query,
+            project_id=authorized_project_id,
+            db_model_class=id_model_class,
         )
 
     if apply_filter_query_operations:

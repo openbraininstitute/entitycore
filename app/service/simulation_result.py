@@ -89,7 +89,6 @@ def read_many(
         }
     }
     facet_keys = filter_keys = [
-        "brain_region",
         "created_by",
         "updated_by",
         "contribution",

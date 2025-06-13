@@ -3,6 +3,8 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import TypeAdapter
 
+from app.db.types import ActivityType
+
 from .utils import PROJECT_ID, assert_request, check_creation_fields
 
 DateTimeAdapter = TypeAdapter(datetime)
@@ -46,6 +48,8 @@ def _assert_read_response(data, json_data):
     assert DateTimeAdapter.validate_python(data["end_time"]) == DateTimeAdapter.validate_python(
         json_data["end_time"]
     )
+    assert data["type"] == ActivityType.simulation_execution
+    assert data["status"] == json_data["status"]
 
 
 def test_create_one(client, json_data):

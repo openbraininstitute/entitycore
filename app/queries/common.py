@@ -8,7 +8,7 @@ from app.db.auth import (
     constrain_entity_query_to_project,
     constrain_to_accessible_entities,
 )
-from app.db.model import Agent, Entity, Identifiable, Person
+from app.db.model import Agent, Entity, Generation, Identifiable, Person, Usage
 from app.db.utils import load_db_model_from_pydantic
 from app.dependencies.common import (
     FacetQueryParams,
@@ -26,6 +26,7 @@ from app.errors import (
 from app.filters.base import Aliases, CustomFilter
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations
+from app.schemas.activity import ActivityCreate
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
 from app.schemas.types import ListResponse, PaginationResponse
 from app.utils.uuid import create_uuid
@@ -61,6 +62,61 @@ def router_read_one[T: BaseModel, I: Identifiable](
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         row = db.execute(query).unique().scalar_one()
     return response_schema_class.model_validate(row)
+
+
+def router_create_activity_one[T: BaseModel, I: Identifiable](
+    *,
+    db: Session,
+    db_model_class: type[I],
+    user_context: UserContext | UserContextWithProjectId,
+    json_model: ActivityCreate,
+    response_schema_class: type[T],
+    apply_operations: ApplyOperations | None = None,
+):
+    created_by_id = updated_by_id = project_id = None
+
+    db_agent = get_or_create_user_agent(db, user_context.profile)
+    created_by_id = updated_by_id = db_agent.id
+    project_id = user_context.project_id
+
+    # do not inlcude used_ids/generated_ids because they are relationships and need to be added in
+    # the respective Usage/Generation tables
+    db_model_instance = load_db_model_from_pydantic(
+        json_model,
+        db_model_class,
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id,
+        authorized_project_id=project_id,
+        ignore_attributes={"used_ids", "generated_ids"},
+    )
+
+    with (
+        ensure_foreign_keys_integrity("One or more foreign keys do not exist in the db"),
+        ensure_uniqueness(f"{db_model_class.__name__} already exists or breaks unique constraints"),
+        ensure_authorized_references(
+            f"One of the entities referenced by {db_model_class.__name__} "
+            f"is not public or not owned by the user"
+        ),
+    ):
+        db.add(db_model_instance)
+        db.flush()
+
+    if json_model.used_ids or json_model.generated_ids:
+        for entity_id in json_model.used_ids:
+            db.add(Usage(entity_id=entity_id, activity_id=db_model_instance.id))
+
+        for entity_id in json_model.generated_ids:
+            db.add(Generation(entity_id=entity_id, activity_id=db_model_instance.id))
+
+        db.flush()
+
+    if apply_operations:
+        q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
+        q = apply_operations(q)
+        db_model_instance = db.execute(q).unique().scalar_one()
+    else:
+        db.refresh(db_model_instance)
+    return response_schema_class.model_validate(db_model_instance)
 
 
 def router_create_one[T: BaseModel, I: Identifiable](
@@ -108,6 +164,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     ):
         db.add(db_model_instance)
         db.flush()
+
     if apply_operations:
         q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
         q = apply_operations(q)

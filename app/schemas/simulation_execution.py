@@ -1,9 +1,10 @@
+from app.db.types import SimulationExecutionStatus
 from app.schemas.activity import ActivityCreate, ActivityRead
 
 
 class SimulationExecutionCreate(ActivityCreate):
-    pass
+    status: SimulationExecutionStatus
 
 
 class SimulationExecutionRead(ActivityRead):
-    pass
+    status: SimulationExecutionStatus

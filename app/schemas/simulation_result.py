@@ -1,8 +1,5 @@
-import uuid
-
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import JSON_DICT
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -12,30 +9,27 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
-from app.schemas.simulation import NestedSimulationRead
 
 
-class SimulationCampaignBase(BaseModel):
+class SimulationResultBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
-    scan_parameters: JSON_DICT
-    entity_id: uuid.UUID
 
 
-class SimulationCampaignCreate(SimulationCampaignBase, AuthorizationOptionalPublicMixin):
+class SimulationResultCreate(SimulationResultBase, AuthorizationOptionalPublicMixin):
     pass
 
 
-class NestedSimulationCampaignRead(SimulationCampaignBase, EntityTypeMixin, IdentifiableMixin):
+class NestedSimulationResultRead(SimulationResultBase, EntityTypeMixin, IdentifiableMixin):
     pass
 
 
-class SimulationCampaignRead(
-    NestedSimulationCampaignRead,
+class SimulationResultRead(
+    NestedSimulationResultRead,
     AssetsMixin,
     CreatedByUpdatedByMixin,
     CreationMixin,
     AuthorizationMixin,
 ):
-    simulations: list[NestedSimulationRead]
+    pass

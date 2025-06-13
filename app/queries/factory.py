@@ -8,6 +8,7 @@ from app.db.model import (
     Entity,
     ETypeClass,
     ETypeClassification,
+    Generation,
     Identifiable,
     MeasurementAnnotation,
     MeasurementItem,
@@ -21,6 +22,7 @@ from app.db.model import (
     Species,
     Strain,
     Subject,
+    Usage,
 )
 from app.dependencies.common import FacetQueryParams
 from app.filters.base import Aliases
@@ -48,10 +50,8 @@ def query_params_factory[I: Identifiable](
         value = aliases.get(db_cls, db_cls)
         # if multiple aliases for a db_cls e.g, {Agent: {"agent": alias1, "created_by": "alias2"}
         if isinstance(value, dict):
-            assert name is not None  # noqa: S101
             # Fetch alias by name or assign db_cls if the alias is not passed as not needed
-            value = value.get(name, db_cls)
-        assert value is not None  # noqa: S101
+            value = db_cls if name is None else value.get(name, db_cls)
         return cast("T", value)
 
     morphology_alias = _get_alias(ReconstructionMorphology)
@@ -69,6 +69,8 @@ def query_params_factory[I: Identifiable](
     post_region_alias = _get_alias(BrainRegion, "post_region")
     entity_alias = _get_alias(Entity)
     simulation_alias = _get_alias(Simulation)
+    used_alias = _get_alias(Entity, "used")
+    generated_alias = _get_alias(Entity, "generated")
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -177,6 +179,12 @@ def query_params_factory[I: Identifiable](
         "simulation": lambda q: q.outerjoin(
             simulation_alias, db_model_class.id == simulation_alias.simulation_campaign_id
         ),
+        "used": lambda q: q.outerjoin(
+            Usage, db_model_class.id == Usage.usage_activity_id
+        ).outerjoin(used_alias, Usage.usage_entity_id == used_alias.id),
+        "generated": lambda q: q.outerjoin(
+            Generation, db_model_class.id == Generation.generation_activity_id
+        ).outerjoin(generated_alias, Generation.generation_entity_id == generated_alias.id),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}
     filter_joins = {k: filter_joins[k] for k in filter_keys}

@@ -1,12 +1,14 @@
 import uuid
 
 import sqlalchemy as sa
+from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.auth import (
     constrain_entity_query_to_project,
     constrain_to_accessible_entities,
+    select_unauthorized_entities,
 )
 from app.db.model import Agent, Entity, Generation, Identifiable, Person, Usage
 from app.db.utils import get_declaring_class, load_db_model_from_pydantic
@@ -103,7 +105,19 @@ def router_create_activity_one[T: BaseModel, I: Identifiable](
         db.add(db_model_instance)
         db.flush()
 
-    if json_model.used_ids or json_model.generated_ids:
+    if associated_ids := json_model.used_ids + json_model.generated_ids:
+        if (
+            unaccessible_entities := db.execute(
+                select_unauthorized_entities(associated_ids, user_context.project_id)
+            )
+            .scalars()
+            .all()
+        ):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Cannot access entities {', '.join(str(e) for e in unaccessible_entities)}",
+            )
+
         for entity_id in json_model.used_ids:
             db.add(Usage(usage_entity_id=entity_id, usage_activity_id=db_model_instance.id))
 

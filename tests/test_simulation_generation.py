@@ -8,10 +8,10 @@ from app.db.types import ActivityType
 from .utils import (
     PROJECT_ID,
     assert_request,
-    check_authorization,
     check_creation_fields,
     check_missing,
     check_pagination,
+    create_reconstruction_morphology_id,
 )
 
 DateTimeAdapter = TypeAdapter(datetime)
@@ -94,12 +94,82 @@ def test_create_one__empty_ids(client, json_data):
     _assert_read_response(data, json_data, empty_ids=True)
 
 
+def test_create_one__unauthorized_entities(
+    client_user_1,
+    client_user_2,
+    json_data,
+    species_id,
+    brain_region_id,
+):
+    """Do not allow associations with entities that are not authorized to the user."""
+
+    user1_morph_id = create_reconstruction_morphology_id(
+        client_user_1,
+        species_id=species_id,
+        strain_id=None,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    user2_morph_id = create_reconstruction_morphology_id(
+        client_user_2,
+        species_id=species_id,
+        strain_id=None,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    user2_public_morph_id = create_reconstruction_morphology_id(
+        client_user_2,
+        species_id=species_id,
+        strain_id=None,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
+    )
+
+    # user1 is forbidden to create Usage association with entity created by user2
+    unauthorized_used = json_data | {
+        "used_ids": [str(user2_morph_id)],
+        "generated_ids": [str(user1_morph_id)],
+    }
+    assert_request(client_user_1.post, url=ROUTE, json=unauthorized_used, expected_status_code=404)
+
+    # user1 is forbidden to create Generation association with entity created by user2
+    unauthorized_used = json_data | {
+        "used_ids": [str(user1_morph_id)],
+        "generated_ids": [str(user2_morph_id)],
+    }
+    assert_request(client_user_1.post, url=ROUTE, json=unauthorized_used, expected_status_code=404)
+
+    # user1 is forbidden to create both associations with entities created by user 2
+    unauthorized_used = json_data | {
+        "used_ids": [str(user2_morph_id)],
+        "generated_ids": [str(user2_morph_id)],
+    }
+    assert_request(client_user_1.post, url=ROUTE, json=unauthorized_used, expected_status_code=404)
+
+    # user 1 is allowed to create Usage with public entity created by user2
+    authorized_used = json_data | {
+        "used_ids": [str(user2_public_morph_id)],
+        "generated_ids": [str(user1_morph_id)],
+    }
+    assert_request(client_user_1.post, url=ROUTE, json=authorized_used, expected_status_code=200)
+
+    # user 1 is allowed to create Generation with public entity created by user2
+    authorized_used = json_data | {
+        "used_ids": [str(user1_morph_id)],
+        "generated_ids": [str(user2_public_morph_id)],
+    }
+    assert_request(client_user_1.post, url=ROUTE, json=authorized_used, expected_status_code=200)
+
+    # user 1 is allowed to create both with public entity created by user2
+    authorized_used = json_data | {
+        "used_ids": [str(user2_public_morph_id)],
+        "generated_ids": [str(user2_public_morph_id)],
+    }
+    assert_request(client_user_1.post, url=ROUTE, json=authorized_used, expected_status_code=200)
+
+
 def test_missing(client):
     check_missing(ROUTE, client)
-
-
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
 
 
 def test_pagination(client, create_id):

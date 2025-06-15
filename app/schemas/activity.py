@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
@@ -15,6 +15,7 @@ from app.schemas.entity import NestedEntityRead
 
 
 class ActivityBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     start_time: datetime | None = None
     end_time: datetime | None = None
 
@@ -33,5 +34,6 @@ class ActivityCreate(ActivityBase, AuthorizationOptionalPublicMixin):
     generated_ids: list[uuid.UUID] = []
 
 
-class ActivityUpdate(ActivityCreate):
-    pass
+class ActivityUpdate(ActivityBase, AuthorizationOptionalPublicMixin):
+    end_time: datetime | None = None
+    generated_ids: list[uuid.UUID] | None = None

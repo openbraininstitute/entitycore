@@ -1,4 +1,4 @@
-from app.schemas.activity import ActivityCreate, ActivityRead
+from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
 
 
 class SimulationGenerationCreate(ActivityCreate):
@@ -6,4 +6,8 @@ class SimulationGenerationCreate(ActivityCreate):
 
 
 class SimulationGenerationRead(ActivityRead):
+    pass
+
+
+class SimulationGenerationUpdate(ActivityUpdate):
     pass

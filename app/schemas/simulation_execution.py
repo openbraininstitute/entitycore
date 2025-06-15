@@ -1,5 +1,5 @@
 from app.db.types import SimulationExecutionStatus
-from app.schemas.activity import ActivityCreate, ActivityRead
+from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
 
 
 class SimulationExecutionCreate(ActivityCreate):
@@ -8,3 +8,7 @@ class SimulationExecutionCreate(ActivityCreate):
 
 class SimulationExecutionRead(ActivityRead):
     status: SimulationExecutionStatus
+
+
+class SimulationExecutionUpdate(ActivityUpdate):
+    status: SimulationExecutionStatus | None = None

@@ -9,7 +9,7 @@ from app.db.auth import (
     constrain_to_accessible_entities,
     select_unauthorized_entities,
 )
-from app.db.model import Agent, Generation, Identifiable, Person, Usage
+from app.db.model import Activity, Agent, Generation, Identifiable, Person, Usage
 from app.db.utils import get_declaring_class, load_db_model_from_pydantic
 from app.dependencies.common import (
     FacetQueryParams,
@@ -27,7 +27,7 @@ from app.errors import (
 from app.filters.base import Aliases, CustomFilter
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations
-from app.schemas.activity import ActivityCreate
+from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
 from app.schemas.types import ListResponse, PaginationResponse
 from app.utils.uuid import create_uuid
@@ -67,7 +67,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     return response_schema_class.model_validate(row)
 
 
-def router_create_activity_one[T: BaseModel, I: Identifiable](
+def router_create_activity_one[T: BaseModel, I: Activity](
     *,
     db: Session,
     db_model_class: type[I],
@@ -358,3 +358,62 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         # Use ORM delete in order to ensure that ondelete cascades are triggered in parents  when
         # subclasses are deleted as it is the case with Activity/SimulationGeneration.
         db.delete(obj)
+
+
+def router_update_activity_one[T: BaseModel, I: Activity](
+    *,
+    id_: uuid.UUID,
+    db: Session,
+    db_model_class: type[I],
+    user_context: UserContext | UserContextWithProjectId,
+    json_model: ActivityUpdate,
+    response_schema_class: type[T],
+    apply_operations: ApplyOperations | None = None,
+) -> T:
+    query = sa.select(db_model_class).where(db_model_class.id == id_)
+    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+        query = constrain_to_accessible_entities(
+            query, user_context.project_id, db_model_class=id_model_class
+        )
+    if apply_operations:
+        query = apply_operations(query)
+
+    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
+        obj = db.execute(query).unique().scalar_one()
+
+    update_data = json_model.model_dump(
+        exclude_unset=True,
+        exclude_none=True,
+        exclude_defaults=True,
+        exclude={"used_ids", "generated_ids"},
+    )
+
+    for key, value in update_data.items():
+        setattr(obj, key, value)
+
+    if generated_ids := json_model.generated_ids:
+        if obj.generated:
+            raise HTTPException(
+                status_code=404,
+                detail="It is forbidden to update generated_ids if they exist.",
+            )
+
+        if (
+            unaccessible_entities := db.execute(
+                select_unauthorized_entities(generated_ids, user_context.project_id)
+            )
+            .scalars()
+            .all()
+        ):
+            raise HTTPException(
+                status_code=404,
+                detail=f"Cannot access entities {', '.join(str(e) for e in unaccessible_entities)}",
+            )
+
+        for entity_id in generated_ids:
+            db.add(Generation(generation_entity_id=entity_id, generation_activity_id=obj.id))
+
+    db.flush()
+    db.refresh(obj)
+
+    return response_schema_class.model_validate(obj)

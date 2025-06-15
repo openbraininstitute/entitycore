@@ -19,11 +19,13 @@ from app.queries.common import (
     router_delete_one,
     router_read_many,
     router_read_one,
+    router_update_activity_one,
 )
 from app.queries.factory import query_params_factory
 from app.schemas.simulation_generation import (
     SimulationGenerationCreate,
     SimulationGenerationRead,
+    SimulationGenerationUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -141,3 +143,20 @@ def delete_one(
         authorized_project_id=None,  # already validated
     )
     return one
+
+
+def update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SimulationGenerationUpdate,
+    user_context: UserContextWithProjectIdDep,
+) -> SimulationGenerationRead:
+    return router_update_activity_one(
+        db=db,
+        id_=id_,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=SimulationGeneration,
+        response_schema_class=SimulationGenerationRead,
+        apply_operations=_load,
+    )

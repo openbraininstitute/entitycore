@@ -1,8 +1,10 @@
 from datetime import UTC, datetime
 
 import pytest
+import sqlalchemy as sa
 from pydantic import TypeAdapter
 
+from app.db.model import Generation, SimulationGeneration, Usage
 from app.db.types import ActivityType
 
 from .utils import (
@@ -17,6 +19,7 @@ from .utils import (
 DateTimeAdapter = TypeAdapter(datetime)
 
 ROUTE = "simulation-generation"
+MODEL = SimulationGeneration
 
 
 @pytest.fixture
@@ -222,3 +225,45 @@ def test_filtering(client, models, root_circuit):
         params={"used__id": str(root_circuit.id), "generated__id": str(root_circuit.id)},
     ).json()["data"]
     assert len(data) == 2
+
+
+def test_delete_one(db, client, models):
+    # sanity check
+    assert _count_associations(db, models[1]) == 2
+    assert _count_associations(db, models[3]) == 4
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{models[1]}").json()
+    assert data["id"] == str(models[1])
+    assert _is_deleted(db, data["id"])
+
+    assert _count_associations(db, models[1]) == 0
+    assert _count_associations(db, models[3]) == 4
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{models[3]}").json()
+    assert data["id"] == str(models[3])
+    assert _is_deleted(db, data["id"])
+
+    assert _count_associations(db, models[1]) == 0
+    assert _count_associations(db, models[3]) == 0
+
+    data = assert_request(client.get, url=f"{ROUTE}").json()["data"]
+    assert {d["id"] for d in data} == {str(models[0]), str(models[2]), str(models[4])}
+
+
+def _count_associations(db, activity_id):
+    n_usages = db.execute(
+        sa.select(sa.func.count(Usage.usage_activity_id)).where(
+            Usage.usage_activity_id == activity_id
+        )
+    ).scalar()
+    n_generations = db.execute(
+        sa.select(sa.func.count(Generation.generation_activity_id)).where(
+            Generation.generation_activity_id == activity_id
+        )
+    ).scalar()
+
+    return n_usages + n_generations
+
+
+def _is_deleted(db, model_id):
+    return db.get(MODEL, model_id) is None

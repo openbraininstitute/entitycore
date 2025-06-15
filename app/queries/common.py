@@ -6,11 +6,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.auth import (
-    constrain_entity_query_to_project,
     constrain_to_accessible_entities,
     select_unauthorized_entities,
 )
-from app.db.model import Agent, Entity, Generation, Identifiable, Person, Usage
+from app.db.model import Agent, Generation, Identifiable, Person, Usage
 from app.db.utils import get_declaring_class, load_db_model_from_pydantic
 from app.dependencies.common import (
     FacetQueryParams,
@@ -338,10 +337,13 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         db_model_class: database model class.
         authorized_project_id: project id for filtering the resources.
     """
-    query = sa.delete(db_model_class).where(db_model_class.id == id_)
-    if issubclass(db_model_class, Entity) and authorized_project_id:
-        query = constrain_entity_query_to_project(query, authorized_project_id)
-    query = query.returning(db_model_class.id)
+    query = sa.select(db_model_class).where(db_model_class.id == id_)
+    if authorized_project_id and (
+        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    ):
+        query = constrain_to_accessible_entities(
+            query, authorized_project_id, db_model_class=id_model_class
+        )
     with (
         ensure_result(error_message=f"{db_model_class.__name__} not found"),
         ensure_foreign_keys_integrity(
@@ -351,4 +353,8 @@ def router_delete_one[T: BaseModel, I: Identifiable](
             )
         ),
     ):
-        db.execute(query).one()
+        obj = db.execute(query).scalars().one()
+
+        # Use ORM delete in order to ensure that ondelete cascades are triggered in parents  when
+        # subclasses are deleted as it is the case with Activity/SimulationGeneration.
+        db.delete(obj)

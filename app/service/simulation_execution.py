@@ -16,6 +16,7 @@ from app.dependencies.db import SessionDep
 from app.filters.simulation_execution import SimulationExecutionFilterDep
 from app.queries.common import (
     router_create_activity_one,
+    router_delete_one,
     router_read_many,
     router_read_one,
 )
@@ -123,3 +124,25 @@ def read_many(
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
     )
+
+
+def delete_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SimulationExecutionRead:
+    one = router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=SimulationExecution,
+        authorized_project_id=user_context.project_id,
+        response_schema_class=SimulationExecutionRead,
+        apply_operations=_load,
+    )
+    router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=SimulationExecution,
+        authorized_project_id=None,  # already validated
+    )
+    return one

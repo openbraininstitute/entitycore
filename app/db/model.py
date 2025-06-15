@@ -289,19 +289,23 @@ class Organization(Agent):
 
 class Usage(Base):
     __tablename__ = "usage"
-    usage_entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    usage_entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
     usage_activity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("activity.id"), primary_key=True
+        ForeignKey("activity.id", ondelete="CASCADE"), primary_key=True
     )
 
 
 class Generation(Base):
     __tablename__ = "generation"
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id"), primary_key=True
+        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
     )
     generation_activity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("activity.id"), primary_key=True
+        ForeignKey("activity.id", ondelete="CASCADE"),
+        primary_key=True,
     )
 
 
@@ -331,16 +335,16 @@ class Activity(Identifiable):
         secondary="usage",
         secondaryjoin="Entity.id == usage.c.usage_entity_id",
         primaryjoin="Activity.id == usage.c.usage_activity_id",
-        viewonly=True,
         uselist=True,
+        passive_deletes=True,  # let ORM perform cascade deletes
     )
     generated: Mapped[list["Entity"]] = relationship(
         "Entity",
         secondary="generation",
         secondaryjoin="Entity.id == generation.c.generation_entity_id",
         primaryjoin="Activity.id == generation.c.generation_activity_id",
-        viewonly=True,
         uselist=True,
+        passive_deletes=True,  # let ORM perform cascade deletes
     )
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,

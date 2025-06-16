@@ -136,6 +136,7 @@ class SpeciesFilterMixin:
 
 
 class NestedEntityFilter(CustomFilter, IdFilterMixin):
+    type: str | None = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

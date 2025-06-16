@@ -33,6 +33,7 @@ from app.db.model import (
     Role,
     Simulation,
     SimulationCampaign,
+    SimulationResult,
     Species,
     Strain,
     Subject,
@@ -953,11 +954,12 @@ def circuit(db, circuit_json_data, person_id):
 
 
 @pytest.fixture
-def simulation_campaign_json_data():
+def simulation_campaign_json_data(circuit):
     return {
         "name": "simulation-campaign",
         "description": "simulation-campaign-description",
         "scan_parameters": {"foo1": "bar2"},
+        "entity_id": str(circuit.id),
     }
 
 
@@ -998,5 +1000,28 @@ def simulation(db, simulation_json_data, person_id):
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
             }
+        ),
+    )
+
+
+@pytest.fixture
+def simulation_result_json_data():
+    return {
+        "name": "simulation-result",
+        "description": "simulation-result-description",
+    }
+
+
+@pytest.fixture
+def simulation_result(db, simulation_result_json_data, person_id):
+    return add_db(
+        db,
+        SimulationResult(
+            **simulation_result_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            },
         ),
     )

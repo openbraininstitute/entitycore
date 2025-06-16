@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
-from app.db.model import Base, Entity, Identifiable, MeasurableEntity
+from app.db.model import Base, Identifiable, MeasurableEntity
 from app.logger import L
 
 MEASURABLE_ENTITIES: dict[str, type[MeasurableEntity]] = {
@@ -50,11 +50,38 @@ def load_db_model_from_pydantic[I: Identifiable](
     authorized_project_id: uuid.UUID | None,
     created_by_id: uuid.UUID,
     updated_by_id: uuid.UUID,
+    ignore_attributes: set[str] | None = None,
 ) -> I:
     data = json_model.model_dump(by_alias=True) | {
         "created_by_id": created_by_id,
         "updated_by_id": updated_by_id,
     }
-    if issubclass(db_model_class, Entity):
+    if has_project_id_in_columns(db_model_class):
         data["authorized_project_id"] = authorized_project_id
+
+    if ignore_attributes:
+        data = {k: v for k, v in data.items() if k not in ignore_attributes}
+
     return construct_model(db_model_class, data)
+
+
+def has_project_id_in_columns(db_model_class) -> bool:
+    """Return True if project id in table or parent tables."""
+    return "authorized_project_id" in db_model_class.__mapper__.columns
+
+
+def get_declaring_class[I: Identifiable](
+    db_model_class: type[I], column_name: str
+) -> type[I] | None:
+    """Return the class that has a table with project id or None."""
+    if not has_project_id_in_columns(db_model_class):
+        return None
+
+    declaring_table = db_model_class.__mapper__.columns[column_name].table
+
+    # Iterate all mappers registered with the Base registry
+    for mapper in db_model_class.registry.mappers:
+        if mapper.local_table is declaring_table:
+            return mapper.class_
+
+    return None

@@ -15,6 +15,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 from tqdm import tqdm
 
+from app.logger import L
 from app.cli import curate, utils
 from app.cli.brain_region_data import BRAIN_ATLAS_REGION_VOLUMES
 from app.cli.curation import cell_composition, electrical_cell_recording
@@ -68,7 +69,6 @@ from app.db.types import (
     MeasurementUnit,
     PointLocationBase,
 )
-from app.logger import L
 from app.schemas.base import ProjectContext
 
 BRAIN_ATLAS_NAME = "BlueBrain Atlas"
@@ -89,6 +89,8 @@ SQLA_ENGINE_ARGS = {
 BRAIN_ATLAS_ID = "https://bbp.epfl.ch/neurosciencegraph/data/4906ab85-694f-469d-962f-c0174e901885"
 CELL_COMPOSITION_ID = "https://bbp.epfl.ch/neurosciencegraph/data/cellcompositions/54818e46-cf8c-4bd6-9b68-34dffbc8a68c"
 
+l_distributions = []
+
 
 def get_or_create_annotation_body(annotation_body, db, created_by_id, updated_by_id):
     annotation_body = curate.curate_annotation_body(annotation_body)
@@ -108,7 +110,7 @@ def get_or_create_annotation_body(annotation_body, db, created_by_id, updated_by
         return annotation_type, None
 
     if annotation_type is MTypeClass:
-        annotation_body = curate.curate_mtype(annotation_body)
+        annotation_body = curate.curate_annotation_body(annotation_body)
         if "@id" in annotation_body and annotation_body["@id"] == "nsg:Neuron":
             # Too generic type, nothing to do
             return annotation_type, None
@@ -344,6 +346,18 @@ def import_mtype_annotation_body(data, db):
 
 
 def import_etype_annotation_body(data, db):
+    data.extend(
+        [
+            {
+                "label": "bAC_IN",
+                "definition": "single-burst-accommodating thalamocortical interneuron e-type",
+                "@id": "bmo:bAC_IN",
+                "_self": "",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            }
+        ]
+    )
     _import_annotation_body(data, ETypeClass, db)
 
 
@@ -373,13 +387,16 @@ class ImportAgent(Import):
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
         for data in tqdm(data_list):
-            if "Person" in ensurelist(data["@type"]):
+            if "Person" in ensurelist(data.get("@type", [])):
                 legacy_id = data["@id"]
                 legacy_self = data["_self"]
                 db_agent = utils._find_by_legacy_id(legacy_id, Person, db)
                 if not db_agent:
                     try:
-                        data = curate.curate_person(data)
+                        data, ignore = curate.curate_person(data)
+                        if ignore:
+                            L.warning(f"Ignoring Person {legacy_id} {legacy_self}")
+                            continue
                         given_name = data["givenName"]
                         family_name = data["familyName"]
                         label = f"{given_name} {family_name}"
@@ -415,7 +432,7 @@ class ImportAgent(Import):
                         print("Error importing person: ", data)
                         print(f"{e!r}")
                         raise
-            elif "Organization" in ensurelist(data["@type"]):
+            elif "Organization" in ensurelist(data.get("@type", [])):
                 legacy_id = data["@id"]
                 legacy_self = data["_self"]
                 db_agent = utils._find_by_legacy_id(legacy_id, Organization, db)
@@ -495,6 +512,7 @@ class ImportLicense(Import):
         hierarchy_name: str,
     ):
         for data in tqdm(data_list):
+            curate.curate_license(data)
             if utils._find_by_legacy_id(data["@id"], License, db):
                 continue
 
@@ -562,7 +580,7 @@ class ImportAnalysisSoftwareSourceCode(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return "AnalysisSoftwareSourceCode" in ensurelist(data["@type"])
+        return "AnalysisSoftwareSourceCode" in ensurelist(data.get("@type", []))
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
@@ -607,7 +625,7 @@ class ImportEModels(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "EModel" in types
 
     @staticmethod
@@ -702,7 +720,6 @@ class ImportEModels(Import):
             utils.import_distribution(
                 emodel_script, db_emodel.id, EntityType.emodel, db, project_context
             )
-
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(
                     annotation,
@@ -720,7 +737,7 @@ class ImportEModelDerivations(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "EModelWorkflow" in types
 
     @staticmethod
@@ -841,7 +858,11 @@ class ImportBrainAtlas(Import):
             db.commit()
 
             utils.import_distribution(
-                annotations[0], brain_atlas.id, EntityType.brain_atlas, db, project_context
+                annotations[0],
+                brain_atlas.id,
+                EntityType.brain_atlas,
+                db,
+                project_context,
             )
 
         for mesh in tqdm(meshes):
@@ -890,7 +911,7 @@ class ImportMorphologies(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return bool({"NeuronMorphology", "ReconstructedNeuronMorphology"} & set(types))
 
     @staticmethod
@@ -947,7 +968,7 @@ class ImportExperimentalNeuronDensities(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "ExperimentalNeuronDensity" in types
 
     @staticmethod
@@ -967,7 +988,7 @@ class ImportExperimentalBoutonDensity(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "ExperimentalBoutonDensity" in types
 
     @staticmethod
@@ -987,7 +1008,7 @@ class ImportExperimentalSynapsesPerConnection(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "ExperimentalSynapsesPerConnection" in types
 
     @staticmethod
@@ -996,7 +1017,7 @@ class ImportExperimentalSynapsesPerConnection(Import):
             db,
             project_context,
             ExperimentalSynapsesPerConnection,
-            curate.default_curate,
+            curate.curate_synapses_per_connections,
             hierarchy_name=hierarchy_name,
             data_list=data_list,
         )
@@ -1007,7 +1028,7 @@ class ImportElectricalCellRecording(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return (
             "SingleCellExperimentalTrace" in types
             or "Trace" in types
@@ -1044,9 +1065,9 @@ class ImportElectricalCellRecording(Import):
             age = data.get("subject", {}).get("age", {}).get("value", None)
             comment = data.get("note", None)
 
-            if "ExperimentalTrace" in data["@type"]:
+            if "ExperimentalTrace" in data.get("@type", []):
                 recording_origin = ElectricalRecordingOrigin.in_vitro
-            elif "SimulationTrace" in data["@type"]:
+            elif "SimulationTrace" in data.get("@type", []):
                 recording_origin = ElectricalRecordingOrigin.in_silico
             else:
                 recording_origin = ElectricalRecordingOrigin.unknown
@@ -1103,7 +1124,7 @@ class ImportMEModel(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "MEModel" in types or "https://neuroshapes.org/MEModel" in types
 
     @staticmethod
@@ -1114,15 +1135,24 @@ class ImportMEModel(Import):
             rm = utils._find_by_legacy_id(legacy_id, MEModel, db)
             if rm:
                 continue
-
+            hierarchy_name = curate.curate_hierarchy_name(hierarchy_name)
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
             morphology_id = utils.find_part_id(data, "NeuronMorphology")
             morphology = utils._find_by_legacy_id(morphology_id, ReconstructionMorphology, db)
 
             emodel_id = utils.find_part_id(data, "EModel")
+            if (
+                emodel_id
+                == "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/396071d5-9c99-4103-9a25-90c500d969c9"
+            ):
+                L.info(
+                    "Skipping memodel {} , because emodel with id: {} is deprecated".format(
+                        legacy_id, emodel_id
+                    )
+                )
+                continue
             emodel = utils._find_by_legacy_id(emodel_id, EModel, db)
-
             assert morphology
             assert emodel
 
@@ -1175,7 +1205,7 @@ class ImportSingleNeuronSimulation(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "SingleNeuronSimulation" in types
 
     @staticmethod
@@ -1192,13 +1222,33 @@ class ImportSingleNeuronSimulation(Import):
             created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
             me_model_lid = data.get("used", {}).get("@id", None)
             me_model = utils._find_by_legacy_id(me_model_lid, MEModel, db)
+            if (
+                me_model_lid
+                == "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/1b89d6a2-3d6e-4530-a4af-6752412987ea"
+            ):
+                L.info(
+                    "Skipping SingleNeuronSimulation {} because it uses deprecated MEModel {}".format(
+                        legacy_id, me_model_lid
+                    )
+                )
+                continue
+            if not me_model:
+                # many MEModel deprecated because of https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/396071d5-9c99-4103-9a25-90c500d969c9
+                L.info(
+                    "SingleNeuronSimulation {} uses MEModel {}, but it is not found in the database.".format(
+                        legacy_id, me_model_lid
+                    )
+                )
+                continue
 
             rm = SingleNeuronSimulation(
                 legacy_id=[legacy_id],
                 legacy_self=[legacy_self],
                 name=data.get("name", None),
                 description=data.get("description", None),
-                seed=data.get("seed", None),
+                # seed became mandatory
+                seed=data.get("seed", 0),
+                status=data.get("status", "unknown"),
                 injection_location=data.get("injectionLocation")
                 or data.get("injection_location"),  # TODO: Get from config file if not existent?
                 recording_location=data.get("recordingLocation") or data.get("recording_location"),
@@ -1218,7 +1268,7 @@ class ImportMETypeDensity(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "METypeDensity" in types or "NeuronDensity" in types
 
     @staticmethod
@@ -1276,7 +1326,10 @@ class ImportCellComposition(Import):
 
     @staticmethod
     def is_correct_type(data):
-        return "CellComposition" in ensurelist(data["@type"]) and data["@id"] == CELL_COMPOSITION_ID
+        return (
+            "CellComposition" in ensurelist(data.get("@type", []))
+            and data.get("@id", "") == CELL_COMPOSITION_ID
+        )
 
     @staticmethod
     def ingest(
@@ -1362,7 +1415,7 @@ class ImportDistribution(Import):
             if root := utils._find_by_legacy_id(legacy_id, Entity, db):
                 utils.import_distribution(data, root.id, root.type, db, project_context)
             else:
-                dt = data["@type"]
+                dt = data.get("@type", [])
                 types = tuple(sorted(dt)) if isinstance(dt, list) else (dt,)
                 ignored[types] += 1
 
@@ -1375,7 +1428,7 @@ class ImportNeuronMorphologyFeatureAnnotation(Import):
 
     @staticmethod
     def is_correct_type(data):
-        types = ensurelist(data["@type"])
+        types = ensurelist(data.get("@type", []))
         return "NeuronMorphologyFeatureAnnotation" in types
 
     @staticmethod

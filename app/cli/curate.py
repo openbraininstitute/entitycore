@@ -1,4 +1,5 @@
 import datetime
+import re
 
 from app.cli.brain_region_data import BRAIN_REGION_REPLACEMENTS
 from app.logger import L
@@ -27,15 +28,61 @@ def curate_role(role):
     return role
 
 
+def curate_mtype(annotation_body):
+    if annotation_body.get("@id", "") == "nsg:InhibitoryNeuron":
+        annotation_body["label"] = "Inhibitory neuron"
+    if (
+        annotation_body.get("@id", "")
+        == "https://scicrunch.org/scicrunch/interlex/view/ilx_0109553?searchTerm=pyramidal%20neuron"
+    ):
+        annotation_body["@id"] = "nsg:PyramidalNeuron"
+        annotation_body["label"] = "Pyramidal Neuron"
+    if annotation_body.get("label", "") == "L4CHC":
+        annotation_body["label"] = "L4_ChC"
+    if annotation_body.get("label", "") == "L2_SBC":
+        annotation_body["label"] = "L23_SBC"
+    if annotation_body.get("label", "") in {
+        "L6UPC",
+        "L6NGC",
+        "L4TPC",
+        "L23BTC",
+        "L4DBC",
+        "L2SBC",
+        "L5DBC",
+        "L4BTC",
+        "L6IPC",
+        "L6BTC",
+        "L5BP",
+        "L23SBC",
+        "L4BP",
+        "L6HPC",
+        "L2IPC",
+        "L23NGC",
+        "L23BP",
+        "L5TPC",
+        "L2TPC",
+        "L6BPC",
+        "L3TPC",
+        "L4UPC",
+        "L23MC",
+        "L5NBC",
+    }:
+        label = annotation_body["label"]
+        # Insert "_" after the last number in label
+        annotation_body["label"] = re.sub(r"(\d+)(?!.*\d)", r"\1_", label)
+    return annotation_body
+
+
 def curate_annotation_body(annotation_body):
     if "Mtype" in annotation_body["@type"]:
         annotation_body["@type"] = ["MType", "AnnotationBody"]
-    if annotation_body.get("@id", "") == "nsg:InhibitoryNeuron":
-        annotation_body["label"] = "Inhibitory neuron"
+    if "MType" in annotation_body["@type"]:
+        return curate_mtype(annotation_body)
     return annotation_body
 
 
 def curate_person(person):
+    ignore = False
     if name := person.get("name", ""):
         if name == "Weina Ji":
             person["givenName"] = "Weina"
@@ -46,8 +93,10 @@ def curate_person(person):
         elif name == "None brain-modeling-ontology-ci-cd":
             person["givenName"] = "bbp-dke-bluebrainatlas-sa"
             person["familyName"] = "bbp-dke-bluebrainatlas-sa"
+        elif name in {"Jane Doe", "Daniel Fernandez Test"}:
+            ignore = True
 
-    return person
+    return person, ignore
 
 
 def curate_contribution(contribution):
@@ -69,7 +118,13 @@ def default_curate(obj):
 def curate_synapses_per_connections(data):
     if not data.get("description", None):
         data["description"] = "unspecified"
-
+    if (
+        data.get("synapticPathway")
+        and data.get("synapticPathway").get("preSynaptic")
+        and len(data.get("synapticPathway")["preSynaptic"]) > 1
+        and data.get("synapticPathway")["preSynaptic"][1].get("label") == "Schaffer axon collateral"
+    ):
+        data["synapticPathway"]["preSynaptic"][1]["label"] = "Schaffer collateral associated cell"
     return data
 
 
@@ -84,6 +139,13 @@ def curate_brain_region(data):
     data["@id"] = str(data["@id"])
     if data["@id"] == "mba:977" and data["label"] == "root":
         data["@id"] = "mba:997"
+    if (
+        data["@id"]
+        == "http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion/Isocortex_L1"
+    ):
+        data["@id"] = "http://api.brain-map.org/api/v2/data/Structure/315"
+    if data["@id"] == "http://bbp.epfl.ch/neurosciencegraph/ontologies/core/brainregion/CA_SP":
+        data["@id"] = "http://api.brain-map.org/api/v2/data/Structure/375"
 
     data["@id"] = data["@id"].replace("mba:", "")
     data["@id"] = data["@id"].replace("http://api.brain-map.org/api/v2/data/Structure/", "")
@@ -94,14 +156,6 @@ def curate_brain_region(data):
     if data["label"] in BRAIN_REGION_REPLACEMENTS:
         data["@id"] = BRAIN_REGION_REPLACEMENTS[data["label"]]
 
-    return data
-
-
-def curate_mtype(data):
-    if data["label"] == "Inhibitory":
-        data["label"] = "Inhibitory neuron"
-    elif data["label"] == "Excitatory":
-        data["label"] = "Excitatory neuron"
     return data
 
 
@@ -463,6 +517,18 @@ def default_licenses():
     ]
 
 
+def curate_license(data):
+    if data.get("@id") == "https://creativecommons.org/licenses/by/4.0":
+        data["@id"] = "https://creativecommons.org/licenses/by/4.0/"
+    return data
+
+
+def curate_hierarchy_name(hierarchy_name):
+    if hierarchy_name == "Isocortex, layer 1":
+        return "Isocortex"
+    return hierarchy_name
+
+
 def curate_distribution(distribution, project_context):
     if isinstance(distribution, list):
         return [curate_distribution(c, project_context) for c in distribution]
@@ -472,6 +538,10 @@ def curate_distribution(distribution, project_context):
     assert distribution["digest"]["algorithm"] == "SHA-256"
     assert distribution["digest"]["value"] is not None
     if "atLocation" in distribution:
+        if "@type" not in distribution["atLocation"]:
+            L.error(f"Distribution {distribution} has no atLocation @type")
+
+            distribution["atLocation"]["@type"] = "Location"
         assert distribution["atLocation"]["@type"] == "Location"
     else:
         msg = f"Distribution had not atLocation: {distribution}"

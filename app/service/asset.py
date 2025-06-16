@@ -1,13 +1,15 @@
 import os
 import uuid
+from http import HTTPStatus
 from pathlib import Path
+from typing import cast
 
 from pydantic.networks import AnyUrl
 
 from app.config import settings
 from app.db.types import AssetLabel, AssetStatus, EntityType
 from app.dependencies.s3 import S3ClientDep
-from app.errors import ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
+from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.queries.common import get_or_create_user_agent
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import AssetCreate, AssetRead, DetailedFileList, FileList
@@ -140,14 +142,29 @@ def delete_entity_asset(
 
 def entity_asset_upload_directory(
     repos: RepositoryGroup,
-    user_context: UserContext,
+    user_context: UserContextWithProjectId,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     s3_client: S3ClientDep,
-    meta: dict | None,
-    label: AssetLabel | None,
     files: FileList,
-) -> tuple[dict[str, AnyUrl]]:
+) -> tuple[AssetRead, dict[Path, AnyUrl]]:
+    if not files.files:
+        raise ApiError(
+            message="`files` is empty",
+            error_code=ApiErrorCode.ASSET_MISSING_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    # sanitized_paths
+    files.files = [Path(os.path.normpath("/" / f)).relative_to("/") for f in files.files]
+
+    if len(set(files.files)) != len(files.files):
+        raise ApiError(
+            message="Duplicate file paths",
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
     entity = entity_service.get_writable_entity(
         repos,
         user_context=user_context,
@@ -155,8 +172,9 @@ def entity_asset_upload_directory(
         entity_id=entity_id,
     )
 
-    # XXX: or do we want to use a user supplied name, and if so, how do we handle conflicts
+    # or do we want to use a user supplied name, and if so, how do we handle conflicts
     unique_name = str(create_uuid())
+
     full_path = build_s3_path(
         vlab_id=user_context.virtual_lab_id,
         proj_id=user_context.project_id,
@@ -178,8 +196,8 @@ def entity_asset_upload_directory(
             content_type="application/vnd.directory",
             size=-1,
             sha256_digest=None,
-            meta=meta or {},
-            label=label,
+            meta=files.meta or {},
+            label=files.label,
             entity_type=entity_type,
             created_by_id=db_agent.id,
             updated_by_id=db_agent.id,
@@ -194,15 +212,14 @@ def entity_asset_upload_directory(
             asset=asset_create,
         )
 
-    urls = {}
+    urls: dict[Path, AnyUrl] = {}
     for f in files.files:
-        sanitized_path = Path(os.path.normpath("/" / f)).relative_to("/")
         full_path = build_s3_path(
             vlab_id=user_context.virtual_lab_id,
             proj_id=user_context.project_id,
             entity_type=entity_type,
             entity_id=entity_id,
-            filename= Path(unique_name) / sanitized_path,
+            filename=Path(unique_name) / f,
             is_public=entity.authorized_public,
         )
         url = generate_presigned_url(
@@ -211,6 +228,13 @@ def entity_asset_upload_directory(
             bucket_name=settings.S3_BUCKET_NAME,
             s3_key=full_path,
         )
+        if url is None:
+            raise ApiError(
+                message=f"Could not create presigned url for {f}",
+                error_code=ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
+
         urls[f] = AnyUrl(url)
 
     return AssetRead.model_validate(asset_db), urls
@@ -218,7 +242,7 @@ def entity_asset_upload_directory(
 
 def list_directory(
     repos: RepositoryGroup,
-    user_context: UserContext,
+    user_context: UserContextWithProjectId,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -226,11 +250,17 @@ def list_directory(
 ) -> DetailedFileList:
     asset = get_entity_asset(
         repos,
-        user_context=user_context,
+        user_context=cast("UserContext", user_context),
         entity_type=entity_type,
         entity_id=entity_id,
         asset_id=asset_id,
     )
+    if not asset.is_directory:
+        raise ApiError(
+            message="Asset is not a directory, cannot be listed",
+            error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
 
     ret = list_directory_with_details(
         s3_client,

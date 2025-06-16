@@ -1,6 +1,7 @@
-from unittest.mock import ANY
+from unittest.mock import ANY, patch
 
 import pytest
+from moto import mock_aws
 
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, EntityType
@@ -327,5 +328,122 @@ def test_download_directory_file(client, entity, asset_directory):
     )
 
 
-def test_upload_directory(client, entity):
-    pass
+def test_upload_entity_asset_directory(client, entity):
+    entity_type = route(entity.type)
+
+    files_to_upload = [
+        "morphology/cell1.swc",
+        "morphology/cell2.swc",
+        "metadata/info.json",
+        "images/preview.png",
+    ]
+
+    with mock_aws():
+        response = client.post(
+            f"{entity_type}/{entity.id}/assets/directory/upload",
+            json={"files": files_to_upload, "meta": None, "label": "swc"},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "asset" in data
+    assert "files" in data
+
+    asset_data = data["asset"]
+    assert asset_data["is_directory"] is True
+    assert asset_data["status"] == "created"
+    assert asset_data["label"] == "swc"
+    assert asset_data["meta"] == {}
+
+    urls = data["files"]
+    assert len(urls) == len(files_to_upload)
+
+    for file_path in files_to_upload:
+        assert file_path in urls
+        url = urls[file_path]
+        assert "AWSAccessKeyId" in url
+        assert "Signature" in url
+        assert "Expires" in url
+        assert url.startswith("https://")
+
+    response = client.post(
+        f"{entity_type}/{MISSING_ID}/assets/directory/upload",
+        json={"files": files_to_upload, "meta": None, "label": "swc"},
+    )
+    assert response.status_code == 404
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+    # Try to upload empty directory
+    response = client.post(
+        f"{entity_type}/{entity.id}/assets/directory/upload",
+        json={"files": [], "meta": None, "label": "swc"},
+    )
+    assert response.status_code == 422
+
+    duplicate_path = ["../../../etc/passwd", "valid/path/../../../etc/passwd"]
+    response = client.post(
+        f"{entity_type}/{entity.id}/assets/directory/upload",
+        json={"files": duplicate_path, "meta": None, "label": "swc"},
+    )
+    assert response.status_code == 422
+
+    invalid_files = [
+        "/absolute/path/file.txt",
+        "../../../etc/passwd",
+        "valid/path/../../../etc/groups",
+    ]
+    response = client.post(
+        f"{entity_type}/{entity.id}/assets/directory/upload",
+        json={"files": invalid_files, "meta": None, "label": "swc"},
+    )
+    assert list(response.json()["files"]) == [
+        "absolute/path/file.txt",
+        "etc/passwd",
+        "etc/groups",
+    ]
+
+
+def test_list_entity_asset_directory(client, entity, asset_directory, asset):
+    entity_type = route(entity.type)
+
+    with patch("app.service.asset.list_directory_with_details") as mock_list_directory:
+        fake_files = {
+            "morphology/cell1.swc": {
+                "name": "morphology/cell1.swc",
+                "size": 12345,
+                "last_modified": "2024-01-15T10:30:00Z",
+            },
+            "morphology/cell2.swc": {
+                "name": "morphology/cell2.swc",
+                "size": 23456,
+                "last_modified": "2024-01-15T10:35:00Z",
+            },
+            "metadata/info.json": {
+                "name": "metadata/info.json",
+                "size": 1024,
+                "last_modified": "2024-01-15T10:40:00Z",
+            },
+        }
+        mock_list_directory.return_value = fake_files
+
+        response = client.get(f"{entity_type}/{entity.id}/assets/{asset_directory.id}/list")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "files" in data
+    assert data["files"] == fake_files
+
+    # non-directory asset
+    response = client.get(f"{entity_type}/{entity.id}/assets/{asset.id}/list")
+    assert response.status_code == 422
+
+    # non-existent entity
+    response = client.get(f"{entity_type}/{MISSING_ID}/assets/{asset_directory.id}/list")
+    assert response.status_code == 404
+
+    # non-existent asset
+    response = client.get(f"{entity_type}/{entity.id}/assets/{MISSING_ID}/list")
+    assert response.status_code == 404

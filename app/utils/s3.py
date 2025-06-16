@@ -1,3 +1,4 @@
+import os
 import uuid
 from pathlib import Path
 from typing import IO
@@ -19,7 +20,7 @@ def build_s3_path(
     proj_id: UUID,
     entity_type: EntityType,
     entity_id: uuid.UUID,
-    filename: str,
+    filename: str | os.PathLike,
     is_public: bool,
 ) -> str:
     """Return the key used to store the file on S3."""
@@ -132,13 +133,14 @@ def list_directory_with_details(
     s3_client: S3Client,
     bucket_name: str,
     prefix: str,
-):
+) -> dict:
     paginator = s3_client.get_paginator("list_objects_v2")
     files = {}
     for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
         if "Contents" not in page:
             continue
         for obj in page["Contents"]:
+            assert "Key" in obj and "Size" in obj and "LastModified" in obj  # noqa: PT018, S101
             name = str(Path(obj["Key"]).relative_to(prefix))
             files[name] = {
                 "name": name,

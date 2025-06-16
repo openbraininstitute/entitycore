@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     ROOT_PATH: str = ""
     CORS_ORIGINS: list[str] = ["*"]
 
-    LOG_LEVEL: str = "DEBUG"
+    LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
         "<level>{level: <8}</level> | "
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     LOG_DIAGNOSE: bool = False
     LOG_ENQUEUE: bool = False
     LOG_CATCH: bool = True
-    LOG_STANDARD_LOGGER: dict[str, str] = {"root": "DEBUG"}  # XXX nochecking
+    LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO"}
 
     KEYCLOAK_URL: str = "https://example.openbluebrain.com/auth/realms/SBO"
     AUTH_CACHE_MAXSIZE: int = 128  # items

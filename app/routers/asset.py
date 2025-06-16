@@ -212,8 +212,6 @@ def entity_asset_directory_upload(
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     files: FileList,
-    # meta: Annotated[dict | None, Form()] = None,
-    # label: Annotated[AssetLabel | None, Form()] = None,
 ) -> AssetAndPresignedURLS:
     """Given a list of full paths, return a dictionary of presigned URLS for uploading."""
     model, urls = asset_service.entity_asset_upload_directory(
@@ -222,8 +220,6 @@ def entity_asset_directory_upload(
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         s3_client=s3_client,
-        meta={},  # XXX
-        label="swc",  # XXX
         files=files,
     )
     return AssetAndPresignedURLS.model_validate({"asset": model.dict(), "files": urls})

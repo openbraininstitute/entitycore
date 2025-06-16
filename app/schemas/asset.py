@@ -71,6 +71,8 @@ class AssetsMixin(BaseModel):
 
 class FileList(BaseModel):
     files: list[Path]
+    meta: dict | None
+    label: AssetLabel | None
 
 
 class DetailedFile(BaseModel):

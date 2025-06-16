@@ -13,6 +13,7 @@ from app.db.model import (
     BrainRegionHierarchy,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
+    ETypeClass,
     MTypeClass,
     MTypeClassification,
     Person,
@@ -196,6 +197,19 @@ def create_mtype_classification(
             mtype_class_id=mtype_class_id,
             authorized_public=authorized_public,
             authorized_project_id=authorized_project_id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+        ),
+    )
+
+
+def create_etype(db, pref_label: str, created_by_id: uuid.UUID, alt_label=None, definition=None):
+    return add_db(
+        db,
+        ETypeClass(
+            pref_label=pref_label,
+            alt_label=alt_label or pref_label,
+            definition=definition or "",
             created_by_id=created_by_id,
             updated_by_id=created_by_id,
         ),

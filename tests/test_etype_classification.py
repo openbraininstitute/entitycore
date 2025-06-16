@@ -3,20 +3,20 @@ import pytest
 from .utils import (
     assert_request,
     check_creation_fields,
-    create_mtype,
+    create_etype,
     create_reconstruction_morphology_id,
 )
 
-ROUTE = "mtype-classification"
+ROUTE = "etype-classification"
 
 
 @pytest.fixture
-def custom_mtype(db, person_id):
-    return create_mtype(
+def custom_etype(db, person_id):
+    return create_etype(
         db,
-        pref_label="my-custom-mtype",
-        alt_label="my-custom-mtype",
-        definition="My custom mtype",
+        pref_label="my-custom-etype",
+        alt_label="my-custom-etype",
+        definition="My custom etype",
         created_by_id=person_id,
     )
 
@@ -33,34 +33,35 @@ def unauthorized_morph_id(species_id, client_user_2, brain_region_id):
 
 
 @pytest.fixture
-def json_data(morphology_id, custom_mtype):
+def json_data(emodel_id, custom_etype):
     return {
-        "entity_id": str(morphology_id),
-        "mtype_class_id": str(custom_mtype.id),
+        "entity_id": str(emodel_id),
+        "etype_class_id": str(custom_etype.id),
         "authorized_public": True,
     }
 
 
-def test_create_one(client, json_data, morphology_id):
+def test_create_one(client, json_data, emodel_id):
     data = assert_request(
         client.post,
         url=ROUTE,
         json=json_data,
     ).json()
     assert data["entity_id"] == json_data["entity_id"]
-    assert data["mtype_class_id"] == json_data["mtype_class_id"]
+    assert data["etype_class_id"] == json_data["etype_class_id"]
     check_creation_fields(data)
 
     # check that mtype classification worked and morph now has a custom mtype
     data = assert_request(
         client.get,
-        url=f"/reconstruction-morphology/{morphology_id}",
-    ).json()["mtypes"]
+        url=f"/emodel/{emodel_id}",
+    ).json()["etypes"]
 
-    assert json_data["mtype_class_id"] in {m["id"] for m in data}
+    assert json_data["etype_class_id"] in {m["id"] for m in data}
 
 
 def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, json_data):
+    # Doesn't matter it isn't an emodel because the check is done first
     json_data |= {"entity_id": str(unauthorized_morph_id)}
 
     data = assert_request(
@@ -69,19 +70,8 @@ def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, j
     assert data["detail"] == f"Cannot access entity {unauthorized_morph_id}"
 
 
-@pytest.fixture
-def public_morphology_id(client_user_1, species_id, brain_region_id, strain_id):
-    return create_reconstruction_morphology_id(
-        client_user_1,
-        species_id=species_id,
-        brain_region_id=brain_region_id,
-        strain_id=strain_id,
-        authorized_public=True,
-    )
-
-
-def test_do_not_allow_private_classification(client, db, person_id, public_morphology_id):
-    mtype = create_mtype(
+def test_do_not_allow_private_classification(client, db, person_id, emodel_id):
+    etype = create_etype(
         db,
         pref_label="c1",
         alt_label="c1",
@@ -92,8 +82,8 @@ def test_do_not_allow_private_classification(client, db, person_id, public_morph
         client.post,
         url=ROUTE,
         json={
-            "entity_id": str(public_morphology_id),
-            "mtype_class_id": str(mtype.id),
+            "entity_id": str(emodel_id),
+            "etype_class_id": str(etype.id),
             "authorized_public": False,
         },
         expected_status_code=404,

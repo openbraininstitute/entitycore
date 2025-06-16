@@ -137,7 +137,7 @@ def get_or_create_annotation_body(annotation_body, db, created_by_id, updated_by
     return annotation_type, ab.id
 
 
-def create_annotation(annotation_, entity_id, db, created_by_id, updated_by_id):
+def create_annotation(annotation_, entity_id, db, created_by_id, updated_by_id, project_context):
     annotation_type, annotation_body_id = get_or_create_annotation_body(
         annotation_["hasBody"], db, created_by_id, updated_by_id
     )
@@ -175,6 +175,8 @@ def create_annotation(annotation_, entity_id, db, created_by_id, updated_by_id):
             mtype_class_id=annotation_body_id,
             created_by_id=created_by_id,
             updated_by_id=updated_by_id,
+            authorized_public=AUTHORIZED_PUBLIC,
+            authorized_project_id=project_context.project_id,
         )
 
     elif annotation_type is ETypeClass:
@@ -183,6 +185,8 @@ def create_annotation(annotation_, entity_id, db, created_by_id, updated_by_id):
             etype_class_id=annotation_body_id,
             created_by_id=created_by_id,
             updated_by_id=updated_by_id,
+            authorized_public=AUTHORIZED_PUBLIC,
+            authorized_project_id=project_context.project_id,
         )
 
     else:
@@ -710,6 +714,7 @@ class ImportEModels(Import):
                     db,
                     created_by_id=created_by_id,
                     updated_by_id=updated_by_id,
+                    project_context=project_context,
                 )
 
         db.commit()
@@ -938,7 +943,12 @@ class ImportMorphologies(Import):
 
             for annotation in ensurelist(data.get("annotation", [])):
                 create_annotation(
-                    annotation, db_reconstruction_morphology.id, db, created_by_id, updated_by_id
+                    annotation,
+                    db_reconstruction_morphology.id,
+                    db,
+                    created_by_id,
+                    updated_by_id,
+                    project_context,
                 )
 
 
@@ -1080,7 +1090,9 @@ class ImportElectricalCellRecording(Import):
             utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
+                create_annotation(
+                    annotation, db_item.id, db, created_by_id, updated_by_id, project_context
+                )
 
             for stimulus in ensurelist(data.get("stimulus", [])):
                 stimulus_type = stimulus["stimulusType"]
@@ -1165,7 +1177,9 @@ class ImportMEModel(Import):
             utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
+                create_annotation(
+                    annotation, db_item.id, db, created_by_id, updated_by_id, project_context
+                )
 
         db.commit()
 
@@ -1266,7 +1280,9 @@ class ImportMETypeDensity(Import):
             utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
+                create_annotation(
+                    annotation, db_item.id, db, created_by_id, updated_by_id, project_context
+                )
 
         db.commit()
 
@@ -1334,7 +1350,9 @@ class ImportCellComposition(Import):
             utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
             for annotation in ensurelist(data.get("annotation", [])):
-                create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
+                create_annotation(
+                    annotation, db_item.id, db, created_by_id, updated_by_id, project_context
+                )
 
 
 class ImportDistribution(Import):
@@ -1529,7 +1547,9 @@ def _import_experimental_densities(
         utils.import_contribution(data, db_item.id, db, created_by_id, updated_by_id)
 
         for annotation in ensurelist(data.get("annotation", [])):
-            create_annotation(annotation, db_item.id, db, created_by_id, updated_by_id)
+            create_annotation(
+                annotation, db_item.id, db, created_by_id, updated_by_id, project_context
+            )
 
         for measurement in ensurelist(data.get("series", [])):
             create_measurement(measurement, db_item.id, db)

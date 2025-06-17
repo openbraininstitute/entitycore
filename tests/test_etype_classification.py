@@ -65,7 +65,7 @@ def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, j
     json_data |= {"entity_id": str(unauthorized_morph_id)}
 
     data = assert_request(
-        client_user_1.post, url=ROUTE, json=json_data, expected_status_code=404
+        client_user_1.post, url=ROUTE, json=json_data, expected_status_code=403
     ).json()
     assert data["detail"] == f"Cannot access entity {unauthorized_morph_id}"
 

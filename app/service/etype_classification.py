@@ -36,7 +36,7 @@ def create_one(
     )
     if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
-        raise HTTPException(status_code=404, detail=f"Cannot access entity {json_model.entity_id}")
+        raise HTTPException(status_code=403, detail=f"Cannot access entity {json_model.entity_id}")
 
     if not json_model.authorized_public:
         L.warning("Attempting to create a private classification, which is not supported.")

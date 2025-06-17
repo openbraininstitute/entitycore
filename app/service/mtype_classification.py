@@ -41,7 +41,7 @@ def create_one(
     if not json_model.authorized_public:
         L.warning("Attempting to create a private classification, which is not supported.")
         raise HTTPException(
-            status_code=404,
+            status_code=400,
             detail="Private classifications are not supported. Use authorized_public=True",
         )
 

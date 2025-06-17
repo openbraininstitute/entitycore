@@ -96,6 +96,6 @@ def test_do_not_allow_private_classification(client, db, person_id, public_morph
             "mtype_class_id": str(mtype.id),
             "authorized_public": False,
         },
-        expected_status_code=404,
+        expected_status_code=400,
     ).json()
     assert data["detail"] == "Private classifications are not supported. Use authorized_public=True"

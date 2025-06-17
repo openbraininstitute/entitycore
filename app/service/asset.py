@@ -172,7 +172,8 @@ def entity_asset_upload_directory(
         entity_id=entity_id,
     )
 
-    # or do we want to use a user supplied name, and if so, how do we handle conflicts
+    # use a unique name, so that the unique constraint operation on `full_path`
+    # doesn't prevent multipled directories from being uploaded
     unique_name = str(create_uuid())
 
     full_path = build_s3_path(

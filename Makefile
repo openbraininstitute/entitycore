@@ -55,8 +55,8 @@ import:  ## Run the import on a database, assumes mba_hierarchy.json and out are
 	@test -n "$(VIRTUAL_LAB_ID_IMPORT)" || (echo "Please set the variable VIRTUAL_LAB_ID_IMPORT"; exit 1)
 	docker compose up --wait db
 	uv run -m alembic upgrade head
-	uv run -m app.cli.import_data --seed 0 hierarchy $(HIERARCHY_NAME) mba_hierarchy.json
-	uv run -m app.cli.import_data --seed 1 run ./out --virtual-lab-id $(VIRTUAL_LAB_ID_IMPORT) --project-id $(PROJECT_ID_IMPORT) --hierarchy-name $(HIERARCHY_NAME)
+	uv run -m app.cli.import_data --seed 1 hierarchy $(HIERARCHY_NAME) mba_hierarchy.json
+	uv run -m app.cli.import_data --seed 2 run ./out --virtual-lab-id $(VIRTUAL_LAB_ID_IMPORT) --project-id $(PROJECT_ID_IMPORT) --hierarchy-name $(HIERARCHY_NAME)
 
 curate-files:  ## Create curated files and save them into the curated directory
 	@$(call load_env,run-local)

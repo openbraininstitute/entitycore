@@ -411,6 +411,8 @@ def morphology_id(db, client, species_id, strain_id, brain_region_id, person_id)
             mtype_class_id=mtype.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
         ),
     )
     return model_id
@@ -562,6 +564,8 @@ def create_emodel_ids(
                     etype_class_id=etype.id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
                 ),
             )
 
@@ -613,6 +617,8 @@ def create_memodel_ids(
                     mtype_class_id=morphology.mtypes[0].id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
                 ),
             )
             add_db(
@@ -622,6 +628,8 @@ def create_memodel_ids(
                     etype_class_id=emodel.etypes[0].id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
                 ),
             )
 

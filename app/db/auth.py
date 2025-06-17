@@ -4,16 +4,16 @@ from typing import Any
 
 from pydantic import UUID4
 from sqlalchemy import Delete, Select, and_, false, not_, or_, select, true
-from sqlalchemy.orm import DeclarativeBase, Query
+from sqlalchemy.orm import Query
 
 from app.db.model import Entity
 
 
-def constrain_to_accessible_entities[T: DeclarativeBase](
-    query: Select[tuple[T]],
+def constrain_to_accessible_entities[Q: Query | Select](
+    query: Q,
     project_id: UUID4 | None,
     db_model_class: Any = Entity,
-):
+) -> Q:
     """Ensure a query is filtered to rows that are viewable by the user."""
     query = query.where(
         or_(

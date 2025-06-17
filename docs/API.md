@@ -104,6 +104,75 @@ EX: "facets" for reconstructed-neuron-morphology:
     .....
 ```
 
+# Assets:
+
+Assets can be attached to entities.
+Assets can either be a single file, or a directory of files.
+
+The following API exists for both single files and directories:
+
+## Get Entity Assets
+
+```
+GET    /{entity_type}/{entity_id}/assets
+```
+
+## Get Entity Asset Metadata
+
+```
+GET    /{entity_type}/{entity_id}/assets/{asset_id}
+```
+
+## Delete Entity Asset
+
+```
+DELETE /{entity_type}/{entity_id}/assets/{asset_id}
+```
+
+The following API exists for single file asset:
+
+## Upload Entity Asset
+```
+POST   /{entity_type}/{entity_id}/assets
+```
+
+## Download Entity Asset
+
+```
+GET    /{entity_type}/{entity_id}/assets/{asset_id}/download
+```
+
+The following API exists for directory asset:
+
+## Upload Directory
+
+First, `POST` a json payload with the following keys:
+```
+{
+    "files": [
+        "foo.txt",
+        "a/b/c.txt",
+        "bar/foo.txt"
+    ],
+    "label": null,
+    "meta": null
+}
+
+```
+
+to:
+```
+POST   /{entity_route}/{entity_id}/assets/directory/upload
+```
+
+This will return JSON with a `files` key: this includes a mapping of the desired files to be uploaded, and time-limited URLs to `PUT` the files.
+
+## List Contents of Directory
+
+```
+GET    /{entity_route}/{entity_id}/assets/{asset_id}/list
+```
+
 # Special Cases:
 
 ## brain-regions/

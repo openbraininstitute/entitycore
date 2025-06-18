@@ -68,7 +68,7 @@ def test_brain_atlas(db, client, species_id, person_id):
             client,
             EntityType.brain_atlas,
             brain_atlas0.id,
-            files={"file": ("a/b/c.txt", f, "text/plain")},
+            files={"file": ("c.txt", f, "text/plain")},
         )
     brain_atlas1 = utils.add_db(
         db,
@@ -92,7 +92,7 @@ def test_brain_atlas(db, client, species_id, person_id):
                 "is_directory": False,
                 "label": None,
                 "meta": {},
-                "path": "a/b/c.txt",
+                "path": "c.txt",
                 "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",
                 "size": 31,
                 "status": "created",
@@ -146,7 +146,7 @@ def test_brain_atlas(db, client, species_id, person_id):
                 client,
                 EntityType.brain_atlas_region,
                 entity_id=ids[brain_atlas.name, name].id,
-                files={"file": ("a/b/c.txt", f, "text/plain")},
+                files={"file": ("c.txt", f, "text/plain")},
             ).raise_for_status()
 
     response = client.get(
@@ -160,7 +160,7 @@ def test_brain_atlas(db, client, species_id, person_id):
         "is_directory": False,
         "label": None,
         "meta": {},
-        "path": "a/b/c.txt",
+        "path": "c.txt",
         "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",
         "size": 31,
         "status": "created",

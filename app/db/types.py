@@ -69,7 +69,7 @@ class EntityType(StrEnum):
     simulation_campaign = auto()
     simulation_campaign_generation = auto()
     simulation_execution = auto()
-    simulation_report = auto()
+    simulation_result = auto()
     scientific_artifact = auto()
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()

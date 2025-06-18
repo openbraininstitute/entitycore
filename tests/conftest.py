@@ -33,6 +33,7 @@ from app.db.model import (
     Role,
     Simulation,
     SimulationCampaign,
+    SimulationResult,
     Species,
     Strain,
     Subject,
@@ -410,6 +411,8 @@ def morphology_id(db, client, species_id, strain_id, brain_region_id, person_id)
             mtype_class_id=mtype.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
         ),
     )
     return model_id
@@ -561,6 +564,8 @@ def create_emodel_ids(
                     etype_class_id=etype.id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
                 ),
             )
 
@@ -612,6 +617,8 @@ def create_memodel_ids(
                     mtype_class_id=morphology.mtypes[0].id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
                 ),
             )
             add_db(
@@ -621,6 +628,8 @@ def create_memodel_ids(
                     etype_class_id=emodel.etypes[0].id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
                 ),
             )
 
@@ -953,11 +962,12 @@ def circuit(db, circuit_json_data, person_id):
 
 
 @pytest.fixture
-def simulation_campaign_json_data():
+def simulation_campaign_json_data(circuit):
     return {
         "name": "simulation-campaign",
         "description": "simulation-campaign-description",
         "scan_parameters": {"foo1": "bar2"},
+        "entity_id": str(circuit.id),
     }
 
 
@@ -998,5 +1008,28 @@ def simulation(db, simulation_json_data, person_id):
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
             }
+        ),
+    )
+
+
+@pytest.fixture
+def simulation_result_json_data():
+    return {
+        "name": "simulation-result",
+        "description": "simulation-result-description",
+    }
+
+
+@pytest.fixture
+def simulation_result(db, simulation_result_json_data, person_id):
+    return add_db(
+        db,
+        SimulationResult(
+            **simulation_result_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            },
         ),
     )

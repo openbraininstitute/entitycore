@@ -30,9 +30,7 @@ def build_s3_path(
 
 
 def validate_filename(filename: str) -> bool:
-    forbidden = {".", "..", ""}
-    items = filename.split("/")
-    return len(items) > 0 and all(item not in forbidden for item in items)
+    return "/" not in filename
 
 
 def validate_filesize(filesize: int) -> bool:

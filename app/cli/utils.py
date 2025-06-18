@@ -175,6 +175,7 @@ def get_brain_region(data, hierarchy_name, db):
 
 
 def get_license_id(license, db, _cache={}):
+    license = curate.curate_license(license)
     id_ = license["@id"]
     if id_ in _cache:
         return _cache[id_]
@@ -753,8 +754,16 @@ def curate_age(data):
     unit = data.get("unitCode", None)
     period = data.get("period", None)
     value = data.get("value", None)
-
-    value = timedelta(**{unit: value}) if value is not None else None
+    # Eleftherios: see below
+    if unit == "years":
+        unit = "days"
+        value = value * 365 if value is not None else None
+    try:
+        value = timedelta(**{unit: value}) if value is not None else None
+    except TypeError as e:
+        msg = f"Invalid unit '{unit}' in Age: {data}. Error: {e}"
+        L.warning(msg)
+        raise ValueError(msg) from e
     min_value = timedelta(**{unit: min_value}) if min_value is not None else None
     max_value = timedelta(**{unit: max_value}) if max_value is not None else None
 

@@ -1,6 +1,9 @@
+import datetime
 import uuid
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic.networks import AnyUrl
 
 from app.db.types import ALLOWED_ASSET_LABELS_PER_ENTITY, AssetLabel, AssetStatus, EntityType
 
@@ -64,3 +67,25 @@ class AssetCreate(AssetBase):
 
 class AssetsMixin(BaseModel):
     assets: list[AssetRead]
+
+
+class DirectoryUpload(BaseModel):
+    directory_name: Path
+    files: list[Path]
+    meta: dict | None
+    label: AssetLabel | None
+
+
+class DetailedFile(BaseModel):
+    name: str
+    size: int
+    last_modified: datetime.datetime
+
+
+class DetailedFileList(BaseModel):
+    files: dict[Path, DetailedFile]
+
+
+class AssetAndPresignedURLS(BaseModel):
+    asset: AssetRead
+    files: dict[Path, AnyUrl]

@@ -1,4 +1,6 @@
+import os
 import uuid
+from pathlib import Path
 from typing import IO
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
@@ -18,7 +20,7 @@ def build_s3_path(
     proj_id: UUID,
     entity_type: EntityType,
     entity_id: uuid.UUID,
-    filename: str,
+    filename: str | os.PathLike,
     is_public: bool,
 ) -> str:
     """Return the key used to store the file on S3."""
@@ -29,6 +31,10 @@ def build_s3_path(
 
 def validate_filename(filename: str) -> bool:
     return "/" not in filename
+
+
+def sanitize_directory_traversal(filename: str | Path) -> Path:
+    return Path(os.path.normpath("/" / Path(filename))).relative_to("/")
 
 
 def validate_filesize(filesize: int) -> bool:
@@ -99,18 +105,21 @@ def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:
     return True
 
 
-def generate_presigned_url(s3_client: S3Client, bucket_name: str, s3_key: str) -> str | None:
+def generate_presigned_url(
+    s3_client: S3Client, operation: str, bucket_name: str, s3_key: str
+) -> str | None:
     """Generate and return a presigned URL for an S3 object.
 
     Args:
         s3_client: S3 client instance.
+        operation: the `ClientMethod` wanted of the presigned url
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
     """
     url = None
     try:
         url = s3_client.generate_presigned_url(
-            "get_object",
+            operation,
             Params={"Bucket": bucket_name, "Key": s3_key},
             ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
         )
@@ -120,3 +129,24 @@ def generate_presigned_url(s3_client: S3Client, bucket_name: str, s3_key: str) -
     except Exception:  # noqa: BLE001
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
     return url
+
+
+def list_directory_with_details(
+    s3_client: S3Client,
+    bucket_name: str,
+    prefix: str,
+) -> dict:
+    paginator = s3_client.get_paginator("list_objects_v2")
+    files = {}
+    for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+        if "Contents" not in page:
+            continue
+        for obj in page["Contents"]:
+            assert "Key" in obj and "Size" in obj and "LastModified" in obj  # noqa: PT018, S101
+            name = str(Path(obj["Key"]).relative_to(prefix))
+            files[name] = {
+                "name": name,
+                "size": obj["Size"],
+                "last_modified": obj["LastModified"],
+            }
+    return files

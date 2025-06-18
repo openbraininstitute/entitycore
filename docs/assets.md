@@ -66,6 +66,8 @@ POST   /{entity_type}/{entity_id}/assets  # Upload Entity Asset
 GET    /{entity_type}/{entity_id}/assets/{asset_id}  # Get Entity Asset
 DELETE /{entity_type}/{entity_id}/assets/{asset_id}  # Delete Entity Asset
 GET    /{entity_type}/{entity_id}/assets/{asset_id}/download  # Download Entity Asset
+POST   /{entity_route}/{entity_id}/assets/directory/upload # Upload Directory
+GET    /{entity_route}/{entity_id}/assets/{asset_id}/list  # List Contents of Directory
 POST   /{entity_type}/{entity_id}/assets/upload/initiate  # Initiate Entity Asset Upload
 POST   /{entity_type}/{entity_id}/assets/upload/complete  # Complete Entity Asset Upload
 ```

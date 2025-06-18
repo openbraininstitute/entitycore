@@ -46,6 +46,7 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_NOT_A_DIRECTORY = auto()
     ASSET_INVALID_SCHEMA = auto()
     ION_NAME_NOT_FOUND = auto()
+    S3_CANNOT_CREATE_PRESIGNED_URL = auto()
 
 
 @dataclasses.dataclass(kw_only=True)

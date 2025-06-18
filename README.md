@@ -68,6 +68,11 @@ https://openbraininstitute.sharepoint.com/:u:/s/OpenBrainInstitute/EZATMPEZvN5Cj
 $ tar xzf out.tar.gz
 ```
 
+- optionally, donwload the cell composition from:
+```
+https://staging.openbraininstitute.org/api/entitycore/cell-composition
+```
+
 - Import data into the specified database:
 
 ```

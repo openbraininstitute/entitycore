@@ -157,15 +157,14 @@ def entity_asset_upload_directory(
             error_code=ApiErrorCode.ASSET_MISSING_PATH,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
+    paths = [sanitize_directory_traversal(f) for f in files.files]
 
-    if len(set(files.files)) != len(files.files):
+    if len(set(paths)) != len(paths):
         raise ApiError(
             message="Duplicate file paths",
             error_code=ApiErrorCode.ASSET_INVALID_PATH,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
-
-    paths = [sanitize_directory_traversal(f) for f in files.files]
 
     entity = entity_service.get_writable_entity(
         repos,

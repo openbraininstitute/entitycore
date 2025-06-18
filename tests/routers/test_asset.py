@@ -412,6 +412,8 @@ def test_upload_entity_asset_directory(client, entity):
             json={"files": duplicate_path, "meta": None, "label": None, "directory_name": "test3"},
         )
     assert response.status_code == 422
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
 
     invalid_files = [
         "/absolute/path/file.txt",

@@ -59,6 +59,7 @@ from app.db.model import (
     ReconstructionMorphology,
     SingleNeuronSimulation,
     SingleNeuronSynaptome,
+    SingleNeuronSynaptomeSimulation,
     Species,
 )
 from app.db.session import configure_database_session_manager
@@ -1331,10 +1332,73 @@ class ImportSingleNeuronSimulation(Import):
                 # seed became mandatory
                 seed=data.get("seed", 0),
                 status=data.get("status", "unknown"),
-                injection_location=data.get("injectionLocation")
-                or data.get("injection_location"),  # TODO: Get from config file if not existent?
-                recording_location=data.get("recordingLocation") or data.get("recording_location"),
+                injection_location=ensurelist(
+                    data.get("injectionLocation") or data.get("injection_location")
+                ),  # TODO: Get from config file if not existent?
+                recording_location=ensurelist(
+                    data.get("recordingLocation") or data.get("recording_location")
+                ),
                 me_model_id=me_model.id,
+                brain_region_id=brain_region_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+            )
+            db.add(rm)
+        db.commit()
+
+
+class ImportSingleNeuronSynaptomeSimulation(Import):
+    name = "SingleNeuronSynaptomeSimulation"
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data.get("@type", []))
+        return "SynaptomeSimulation" in types
+
+    @staticmethod
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
+        for data in tqdm(data_list):
+            legacy_id = data["@id"]
+            legacy_self = data["_self"]
+            rm = utils._find_by_legacy_id(legacy_id, SingleNeuronSynaptomeSimulation, db)
+            if rm:
+                continue
+
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
+
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            synaptome_lid = data.get("used", {}).get("@id", None)
+            synaptome = utils._find_by_legacy_id(synaptome_lid, SingleNeuronSynaptome, db)
+            if not synaptome:
+                L.info(
+                    "SingleNeuronSynaptomeSimulation {} uses MEModel {}, but it is not found in the database.".format(
+                        legacy_id, synaptome_lid
+                    )
+                )
+                continue
+            status = data.get("status", "unknown")
+            if status == "partial_success":
+                L.warning(
+                    "SingleNeuronSynaptomeSimulation {} has status 'partial_success' -> test data ignored".format(
+                        legacy_id
+                    )
+                )
+                continue
+
+            rm = SingleNeuronSynaptomeSimulation(
+                legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
+                name=data.get("name", None),
+                description=data.get("description", None),
+                seed=data.get("seed", 0),
+                status=data.get("status", "unknown"),
+                injection_location=ensurelist(data.get("injectionLocation")),
+                recording_location=ensurelist(
+                    data.get("recordingLocation") or data.get("recording_location")
+                ),
+                synaptome_id=synaptome.id,
                 brain_region_id=brain_region_id,
                 created_by_id=created_by_id,
                 updated_by_id=updated_by_id,
@@ -1744,6 +1808,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportSynaptome,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
+        ImportSingleNeuronSynaptomeSimulation,
         ImportBrainAtlas,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,

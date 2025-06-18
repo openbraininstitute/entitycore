@@ -83,15 +83,6 @@ DEFAULT_BRAIN_ATLAS_ID = uuid.UUID("55de9d7b-9796-41f9-b719-213c3305ffd7")
 DEFAULT_REGION_ID_FOR_ROOT = uuid.UUID("eb1167b3-67a9-4378-bc65-c1e582e2e662")
 
 
-# keep uuid used by core-web-app constant
-DEFAULT_HIERARCHY_ID = uuid.UUID("e3e70682-c209-4cac-a29f-6fbed82c07cd")
-DEFAULT_REGION_ID_FOR_BASIC_CELL_GROUPS_AND_REGIONS = uuid.UUID(
-    "4642cddb-4fbe-4aae-bbf7-0946d6ada066"
-)
-DEFAULT_BRAIN_ATLAS_ID = uuid.UUID("55de9d7b-9796-41f9-b719-213c3305ffd7")
-DEFAULT_REGION_ID_FOR_ROOT = uuid.UUID("eb1167b3-67a9-4378-bc65-c1e582e2e662")
-
-
 BRAIN_ATLAS_NAME = "BlueBrain Atlas"
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)

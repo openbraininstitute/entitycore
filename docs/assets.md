@@ -102,6 +102,7 @@ How to organize the files on S3?
   - `project/{proj_id}/{entity_type}/{entity_id}/{relative_file_path}`
     - allows to organize multiple files under the same common parent directory, so that the structure is exposed correctly when mounting S3.
     - the files can be uploaded only after the entity has been created, because the entity_id is needed.
+    - we use the basename of the uploaded file or directory under entity_id. Each uploaded item must therefore have a unique name within the entity namespace.
   - `project/{proj_id}/{asset_id}/{relative_file_path}`
     - the files don't share a common parent directory, so they cannot be accessed using subdfolders when mounting S3.
     - the files can be uploaded even before the entity has been created

@@ -72,9 +72,11 @@ from app.db.types import (
 from app.schemas.base import ProjectContext
 
 
-# keep uuid used by core-web-app constant 
+# keep uuid used by core-web-app constant
 DEFAULT_HIERARCHY_ID = uuid.UUID("e3e70682-c209-4cac-a29f-6fbed82c07cd")
-DEFAULT_REGION_ID_FOR_BASIC_CELL_GROUPS_AND_REGIONS = uuid.UUID("4642cddb-4fbe-4aae-bbf7-0946d6ada066")
+DEFAULT_REGION_ID_FOR_BASIC_CELL_GROUPS_AND_REGIONS = uuid.UUID(
+    "4642cddb-4fbe-4aae-bbf7-0946d6ada066"
+)
 DEFAULT_BRAIN_ATLAS_ID = uuid.UUID("55de9d7b-9796-41f9-b719-213c3305ffd7")
 DEFAULT_REGION_ID_FOR_ROOT = uuid.UUID("eb1167b3-67a9-4378-bc65-c1e582e2e662")
 
@@ -1438,7 +1440,10 @@ class ImportDistribution(Import):
         ignored: dict[tuple[dict], int] = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
-            if data.get('description', "") =="background simulation created by bluenaas api" or data.get('isDraft', False) == True:
+            if (
+                data.get("description", "") == "background simulation created by bluenaas api"
+                or data.get("isDraft", False) == True
+            ):
                 L.warning("ignoring distribution: {}".format(data))
                 continue
             if root := utils._find_by_legacy_id(legacy_id, Entity, db):
@@ -1827,8 +1832,10 @@ def hierarchy(hierarchy_name, hierarchy_path):
 
         if not hier:
             hier = BrainRegionHierarchy(
-                name=hierarchy_name, created_by_id=admin.id, updated_by_id=admin.id,
-                id=DEFAULT_HIERARCHY_ID
+                name=hierarchy_name,
+                created_by_id=admin.id,
+                updated_by_id=admin.id,
+                id=DEFAULT_HIERARCHY_ID,
             )
             db.add(hier)
             db.flush()

@@ -33,6 +33,10 @@ def validate_filename(filename: str) -> bool:
     return "/" not in filename
 
 
+def sanitize_directory_traversal(filename: str | Path) -> Path:
+    return Path(os.path.normpath("/" / Path(filename))).relative_to("/")
+
+
 def validate_filesize(filesize: int) -> bool:
     return filesize <= settings.API_ASSET_POST_MAX_SIZE
 

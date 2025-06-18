@@ -1,4 +1,3 @@
-import os
 import uuid
 from http import HTTPStatus
 from pathlib import Path
@@ -12,11 +11,15 @@ from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.queries.common import get_or_create_user_agent
 from app.repository.group import RepositoryGroup
-from app.schemas.asset import AssetCreate, AssetRead, DetailedFileList, FileList
+from app.schemas.asset import AssetCreate, AssetRead, DetailedFileList, DirectoryUpload
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.service import entity as entity_service
-from app.utils.s3 import build_s3_path, generate_presigned_url, list_directory_with_details
-from app.utils.uuid import create_uuid
+from app.utils.s3 import (
+    build_s3_path,
+    generate_presigned_url,
+    list_directory_with_details,
+    sanitize_directory_traversal,
+)
 
 
 def get_entity_assets(
@@ -146,7 +149,7 @@ def entity_asset_upload_directory(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     s3_client: S3ClientDep,
-    files: FileList,
+    files: DirectoryUpload,
 ) -> tuple[AssetRead, dict[Path, AnyUrl]]:
     if not files.files:
         raise ApiError(
@@ -155,15 +158,14 @@ def entity_asset_upload_directory(
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
 
-    # sanitized_paths
-    files.files = [Path(os.path.normpath("/" / f)).relative_to("/") for f in files.files]
-
     if len(set(files.files)) != len(files.files):
         raise ApiError(
             message="Duplicate file paths",
             error_code=ApiErrorCode.ASSET_INVALID_PATH,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
+
+    paths = [sanitize_directory_traversal(f) for f in files.files]
 
     entity = entity_service.get_writable_entity(
         repos,
@@ -172,16 +174,12 @@ def entity_asset_upload_directory(
         entity_id=entity_id,
     )
 
-    # use a unique name, so that the unique constraint operation on `full_path`
-    # doesn't prevent multipled directories from being uploaded
-    unique_name = str(create_uuid())
-
     full_path = build_s3_path(
         vlab_id=user_context.virtual_lab_id,
         proj_id=user_context.project_id,
         entity_type=entity_type,
         entity_id=entity_id,
-        filename=unique_name,
+        filename=files.directory_name,
         is_public=entity.authorized_public,
     )
 
@@ -191,7 +189,7 @@ def entity_asset_upload_directory(
         "Asset schema is invalid", error_code=ApiErrorCode.ASSET_INVALID_SCHEMA
     ):
         asset_create = AssetCreate(
-            path="",
+            path=str(files.directory_name),
             full_path=full_path,
             is_directory=True,
             content_type="application/vnd.directory",
@@ -214,13 +212,13 @@ def entity_asset_upload_directory(
         )
 
     urls: dict[Path, AnyUrl] = {}
-    for f in files.files:
+    for f in paths:
         full_path = build_s3_path(
             vlab_id=user_context.virtual_lab_id,
             proj_id=user_context.project_id,
             entity_type=entity_type,
             entity_id=entity_id,
-            filename=Path(unique_name) / f,
+            filename=files.directory_name / f,
             is_public=entity.authorized_public,
         )
         url = generate_presigned_url(

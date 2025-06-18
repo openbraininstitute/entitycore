@@ -14,7 +14,7 @@ from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode
-from app.schemas.asset import AssetAndPresignedURLS, AssetRead, DetailedFileList, FileList
+from app.schemas.asset import AssetAndPresignedURLS, AssetRead, DetailedFileList, DirectoryUpload
 from app.schemas.types import ListResponse, PaginationResponse
 from app.service import asset as asset_service
 from app.utils.files import calculate_sha256_digest, get_content_type
@@ -22,6 +22,7 @@ from app.utils.routers import EntityRoute, entity_route_to_type
 from app.utils.s3 import (
     delete_from_s3,
     generate_presigned_url,
+    sanitize_directory_traversal,
     upload_to_s3,
     validate_filename,
     validate_filesize,
@@ -149,14 +150,7 @@ def download_entity_asset(
                 error_code=ApiErrorCode.ASSET_MISSING_PATH,
                 http_status_code=HTTPStatus.CONFLICT,
             )
-        if not validate_filename(asset_path):
-            msg = f"Invalid file name {asset_path!r}"
-            raise ApiError(
-                message=msg,
-                error_code=ApiErrorCode.ASSET_INVALID_PATH,
-                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-            )
-        full_path = str(Path(asset.full_path, asset_path))
+        full_path = str(Path(asset.full_path, sanitize_directory_traversal(asset_path)))
     else:
         if asset_path:
             msg = "asset_path is only applicable when asset is a directory"
@@ -211,9 +205,16 @@ def entity_asset_directory_upload(
     s3_client: S3ClientDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
-    files: FileList,
+    files: DirectoryUpload,
 ) -> AssetAndPresignedURLS:
     """Given a list of full paths, return a dictionary of presigned URLS for uploading."""
+    if not files.directory_name or not validate_filename(str(files.directory_name)):
+        msg = f"Invalid directory_name {files.directory_name!r}"
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     model, urls = asset_service.entity_asset_upload_directory(
         repos=repos,
         user_context=user_context,

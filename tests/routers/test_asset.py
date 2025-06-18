@@ -352,10 +352,10 @@ def test_upload_entity_asset_directory(client, entity):
     with mock_aws():
         response = client.post(
             f"{entity_type}/{entity.id}/assets/directory/upload",
-            json={"files": files_to_upload, "meta": None, "label": "swc"},
+            json={"files": files_to_upload, "meta": None, "label": None, "directory_name": "test0"},
         )
 
-    assert response.status_code == 200
+    assert response.status_code == 200, f"Asset creation failed: {response.text}"
     data = response.json()
 
     assert "asset" in data
@@ -364,7 +364,7 @@ def test_upload_entity_asset_directory(client, entity):
     asset_data = data["asset"]
     assert asset_data["is_directory"] is True
     assert asset_data["status"] == "created"
-    assert asset_data["label"] == "swc"
+    assert asset_data["label"] is None
     assert asset_data["meta"] == {}
 
     urls = data["files"]
@@ -378,26 +378,39 @@ def test_upload_entity_asset_directory(client, entity):
         assert "Expires" in url
         assert url.startswith("https://")
 
-    response = client.post(
-        f"{entity_type}/{MISSING_ID}/assets/directory/upload",
-        json={"files": files_to_upload, "meta": None, "label": "swc"},
-    )
+    # duplicate `directory_name`
+    with mock_aws():
+        response = client.post(
+            f"{entity_type}/{entity.id}/assets/directory/upload",
+            json={"files": files_to_upload, "meta": None, "label": None, "directory_name": "test0"},
+        )
+    assert response.status_code == 409
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_DUPLICATED
+
+    with mock_aws():
+        response = client.post(
+            f"{entity_type}/{MISSING_ID}/assets/directory/upload",
+            json={"files": files_to_upload, "meta": None, "label": None, "directory_name": "test1"},
+        )
     assert response.status_code == 404
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # Try to upload empty directory
-    response = client.post(
-        f"{entity_type}/{entity.id}/assets/directory/upload",
-        json={"files": [], "meta": None, "label": "swc"},
-    )
-    assert response.status_code == 422
+    with mock_aws():
+        response = client.post(
+            f"{entity_type}/{entity.id}/assets/directory/upload",
+            json={"files": [], "meta": None, "label": None, "directory_name": "test2"},
+        )
+        assert response.status_code == 422
 
     duplicate_path = ["../../../etc/passwd", "valid/path/../../../etc/passwd"]
-    response = client.post(
-        f"{entity_type}/{entity.id}/assets/directory/upload",
-        json={"files": duplicate_path, "meta": None, "label": "swc"},
-    )
+    with mock_aws():
+        response = client.post(
+            f"{entity_type}/{entity.id}/assets/directory/upload",
+            json={"files": duplicate_path, "meta": None, "label": None, "directory_name": "test3"},
+        )
     assert response.status_code == 422
 
     invalid_files = [
@@ -405,10 +418,12 @@ def test_upload_entity_asset_directory(client, entity):
         "../../../etc/passwd",
         "valid/path/../../../etc/groups",
     ]
-    response = client.post(
-        f"{entity_type}/{entity.id}/assets/directory/upload",
-        json={"files": invalid_files, "meta": None, "label": "swc"},
-    )
+    with mock_aws():
+        response = client.post(
+            f"{entity_type}/{entity.id}/assets/directory/upload",
+            json={"files": invalid_files, "meta": None, "label": None, "directory_name": "test4"},
+        )
+    assert response.status_code == 200
     assert list(response.json()["files"]) == [
         "absolute/path/file.txt",
         "etc/passwd",

@@ -149,6 +149,7 @@ The following API exists for directory asset:
 First, `POST` a json payload with the following keys:
 ```
 {
+    "name": "name-of-directory",
     "files": [
         "foo.txt",
         "a/b/c.txt",

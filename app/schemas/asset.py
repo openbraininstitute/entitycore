@@ -69,7 +69,8 @@ class AssetsMixin(BaseModel):
     assets: list[AssetRead]
 
 
-class FileList(BaseModel):
+class DirectoryUpload(BaseModel):
+    directory_name: Path
     files: list[Path]
     meta: dict | None
     label: AssetLabel | None

@@ -18,6 +18,7 @@ ln -s ../entitycore-data/mba_hierarchy.json
 ln -s ../entitycore-data/files.txt
 ln -s ../entitycore-data/download
 ln -s ../entitycore-data/out
+ln -s ../entitycore-data/cell_composition.json
 ```
 - ensure that all the files and directories linked with the previous commands actually exist.
 - every time, import the nexus data, curate and organize files, and dump the db:

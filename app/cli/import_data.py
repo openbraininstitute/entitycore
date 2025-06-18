@@ -58,6 +58,7 @@ from app.db.model import (
     Person,
     ReconstructionMorphology,
     SingleNeuronSimulation,
+    SingleNeuronSynaptome,
     Species,
 )
 from app.db.session import configure_database_session_manager
@@ -70,6 +71,16 @@ from app.db.types import (
     PointLocationBase,
 )
 from app.schemas.base import ProjectContext
+
+
+# keep uuid used by core-web-app constant
+DEFAULT_HIERARCHY_ID = uuid.UUID("e3e70682-c209-4cac-a29f-6fbed82c07cd")
+DEFAULT_REGION_ID_FOR_BASIC_CELL_GROUPS_AND_REGIONS = uuid.UUID(
+    "4642cddb-4fbe-4aae-bbf7-0946d6ada066"
+)
+DEFAULT_BRAIN_ATLAS_ID = uuid.UUID("55de9d7b-9796-41f9-b719-213c3305ffd7")
+DEFAULT_REGION_ID_FOR_ROOT = uuid.UUID("eb1167b3-67a9-4378-bc65-c1e582e2e662")
+
 
 BRAIN_ATLAS_NAME = "BlueBrain Atlas"
 
@@ -1214,6 +1225,63 @@ class ImportMEModel(Import):
         db.commit()
 
 
+class ImportSynaptome(Import):
+    name = "Synaptome"
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data.get("@type", []))
+        return (
+            "SingleNeuronSynaptome" in types
+            or "https://neuroshapes.org/SingleNeuronSynaptome" in types
+        )
+
+    @staticmethod
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
+        for data in tqdm(data_list):
+            legacy_id = data["@id"]
+            legacy_self = data["_self"]
+            rm = utils._find_by_legacy_id(legacy_id, MEModel, db)
+            if rm:
+                continue
+
+            hierarchy_name = curate.curate_hierarchy_name(hierarchy_name)
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
+            memodel_id = data.get("memodel")
+            assert memodel_id
+            memodel = utils._find_by_legacy_id(memodel_id, MEModel, db)
+            if not memodel:
+                L.warning(
+                    "Skipping synaptome {} , because memodel with id: {} is not found".format(
+                        legacy_id, memodel_id
+                    )
+                )
+                continue
+
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+            db_item = SingleNeuronSynaptome(
+                legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
+                name=data.get("name", None),
+                description=data.get("description", None),
+                brain_region_id=brain_region_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+                me_model_id=memodel.id,
+                seed=int(data.get("seed", 0)),
+                creation_date=createdAt,
+                update_date=updatedAt,
+            )
+
+            db.add(db_item)
+            db.flush()
+
+        db.commit()
+
+
 class ImportSingleNeuronSimulation(Import):
     name = "SingleNeuronSimulation"
 
@@ -1430,6 +1498,12 @@ class ImportDistribution(Import):
         ignored: dict[tuple[dict], int] = Counter()
         for data in tqdm(data_list):
             legacy_id = data["@id"]
+            if (
+                data.get("description", "") == "background simulation created by bluenaas api"
+                or data.get("isDraft", False) == True
+            ):
+                L.warning("ignoring distribution: {}".format(data))
+                continue
             if root := utils._find_by_legacy_id(legacy_id, Entity, db):
                 utils.import_distribution(data, root.id, root.type, db, project_context)
             else:
@@ -1667,6 +1741,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         ImportMEModel,
+        ImportSynaptome,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
         ImportBrainAtlas,
@@ -1816,7 +1891,10 @@ def hierarchy(hierarchy_name, hierarchy_path):
 
         if not hier:
             hier = BrainRegionHierarchy(
-                name=hierarchy_name, created_by_id=admin.id, updated_by_id=admin.id
+                name=hierarchy_name,
+                created_by_id=admin.id,
+                updated_by_id=admin.id,
+                id=DEFAULT_HIERARCHY_ID,
             )
             db.add(hier)
             db.flush()
@@ -1834,8 +1912,14 @@ def hierarchy(hierarchy_name, hierarchy_path):
         for region in tqdm(reversed(regions), total=len(regions)):
             if region["id"] in ids:
                 continue
-
+            if region["id"] == 997:
+                brain_region_id = DEFAULT_REGION_ID_FOR_ROOT
+            elif region["id"] == 8:
+                brain_region_id = DEFAULT_REGION_ID_FOR_BASIC_CELL_GROUPS_AND_REGIONS
+            else:
+                brain_region_id = uuid.uuid4()
             db_br = BrainRegion(
+                id=brain_region_id,
                 annotation_value=region["id"],
                 name=region["name"],
                 acronym=region["acronym"],

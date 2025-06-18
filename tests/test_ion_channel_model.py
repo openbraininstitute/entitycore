@@ -61,7 +61,7 @@ def test_read_one(client: TestClient, species_id: str, strain_id: str, brain_reg
             client,
             EntityType.ion_channel_model,
             uuid.UUID(icm_id),
-            files={"file": ("a/b/c.txt", f, "text/plain")},
+            files={"file": ("c.txt", f, "text/plain")},
         )
 
     response = client.get(f"{ROUTE}/{icm_id}")

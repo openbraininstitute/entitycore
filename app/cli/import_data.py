@@ -58,6 +58,7 @@ from app.db.model import (
     Person,
     ReconstructionMorphology,
     SingleNeuronSimulation,
+    SingleNeuronSynaptome,
     Species,
 )
 from app.db.session import configure_database_session_manager
@@ -1224,6 +1225,63 @@ class ImportMEModel(Import):
         db.commit()
 
 
+class ImportSynaptome(Import):
+    name = "Synaptome"
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data.get("@type", []))
+        return (
+            "SingleNeuronSynaptome" in types
+            or "https://neuroshapes.org/SingleNeuronSynaptome" in types
+        )
+
+    @staticmethod
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
+        for data in tqdm(data_list):
+            legacy_id = data["@id"]
+            legacy_self = data["_self"]
+            rm = utils._find_by_legacy_id(legacy_id, MEModel, db)
+            if rm:
+                continue
+
+            hierarchy_name = curate.curate_hierarchy_name(hierarchy_name)
+            brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
+            memodel_id = data.get("memodel")
+            assert memodel_id
+            memodel = utils._find_by_legacy_id(memodel_id, MEModel, db)
+            if not memodel:
+                L.warning(
+                    "Skipping synaptome {} , because memodel with id: {} is not found".format(
+                        legacy_id, memodel_id
+                    )
+                )
+                continue
+
+            created_by_id, updated_by_id = utils.get_agent_mixin(data, db)
+            createdAt, updatedAt = utils.get_created_and_updated(data)
+            db_item = SingleNeuronSynaptome(
+                legacy_id=[legacy_id],
+                legacy_self=[legacy_self],
+                name=data.get("name", None),
+                description=data.get("description", None),
+                brain_region_id=brain_region_id,
+                created_by_id=created_by_id,
+                updated_by_id=updated_by_id,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+                me_model_id=memodel.id,
+                seed=int(data.get("seed", 0)),
+                creation_date=createdAt,
+                update_date=updatedAt,
+            )
+
+            db.add(db_item)
+            db.flush()
+
+        db.commit()
+
+
 class ImportSingleNeuronSimulation(Import):
     name = "SingleNeuronSimulation"
 
@@ -1683,6 +1741,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         ImportMEModel,
+        ImportSynaptome,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
         ImportBrainAtlas,

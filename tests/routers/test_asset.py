@@ -25,6 +25,7 @@ DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 FILE_EXAMPLE_DIGEST = "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91"
 FILE_EXAMPLE_SIZE = 31
+FILE_UPLOAD_NAME = "a.txt"
 
 
 def _get_expected_full_path(entity, path):
@@ -51,11 +52,13 @@ def entity(client, species_id, strain_id, brain_region_id) -> Entity:
     return Entity(id=entity_id, type=entity_type)
 
 
-def _upload_entity_asset(client, entity_type, entity_id, label=None):
+def _upload_entity_asset(
+    client, entity_type, entity_id, label=None, file_upload_name=FILE_UPLOAD_NAME
+):
     with FILE_EXAMPLE_PATH.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
-            "file": ("a/b/c.txt", f, "text/plain")
+            "file": (file_upload_name, f, "text/plain")
         }
         return upload_entity_asset(
             client=client, entity_type=entity_type, entity_id=entity_id, files=files, label=label
@@ -97,10 +100,10 @@ def test_upload_entity_asset(client, entity):
     assert response.status_code == 201, f"Failed to create asset: {response.text}"
     data = response.json()
 
-    expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
+    expected_full_path = _get_expected_full_path(entity, path=FILE_UPLOAD_NAME)
     assert data == {
         "id": ANY,
-        "path": "a/b/c.txt",
+        "path": FILE_UPLOAD_NAME,
         "full_path": expected_full_path,
         "is_directory": False,
         "content_type": "text/plain",
@@ -130,6 +133,14 @@ def test_upload_entity_asset(client, entity):
     assert response.status_code == 404, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+    # try to upload a file w/ a full path
+    response = _upload_entity_asset(
+        client, entity_type=entity.type, entity_id=entity.id, file_upload_name="a/b/c.txt"
+    )
+    assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
 
 
 def test_upload_entity_asset__label(monkeypatch, client, entity):
@@ -173,10 +184,10 @@ def test_get_entity_asset(client, entity, asset):
 
     assert response.status_code == 200, f"Failed to get asset: {response.text}"
     data = response.json()
-    expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
+    expected_full_path = _get_expected_full_path(entity, path=FILE_UPLOAD_NAME)
     assert data == {
         "id": str(asset.id),
-        "path": "a/b/c.txt",
+        "path": FILE_UPLOAD_NAME,
         "full_path": expected_full_path,
         "is_directory": False,
         "content_type": "text/plain",
@@ -205,11 +216,11 @@ def test_get_entity_assets(client, entity, asset):
 
     assert response.status_code == 200, f"Failed to get asset: {response.text}"
     data = response.json()["data"]
-    expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
+    expected_full_path = _get_expected_full_path(entity, path=FILE_UPLOAD_NAME)
     assert data == [
         {
             "id": str(asset.id),
-            "path": "a/b/c.txt",
+            "path": FILE_UPLOAD_NAME,
             "full_path": expected_full_path,
             "is_directory": False,
             "content_type": "text/plain",
@@ -235,7 +246,7 @@ def test_download_entity_asset(client, entity, asset):
     )
 
     assert response.status_code == 307, f"Failed to download asset: {response.text}"
-    expected_full_path = _get_expected_full_path(entity, path="a/b/c.txt")
+    expected_full_path = _get_expected_full_path(entity, path=FILE_UPLOAD_NAME)
     expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
     assert response.next_request.url.path.endswith(expected_full_path)
     assert expected_params.issubset(response.next_request.url.params)
@@ -305,7 +316,7 @@ def test_upload_delete_upload_entity_asset(client, entity):
     assert len(data) == 1
 
     assert data[0]["id"] == str(asset1.id)
-    assert data[0]["path"] == "a/b/c.txt"
+    assert data[0]["path"] == FILE_UPLOAD_NAME
     assert data[0]["status"] == "created"
 
 

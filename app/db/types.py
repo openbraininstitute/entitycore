@@ -231,6 +231,9 @@ class AssetLabel(StrEnum):
     single_neuron_synaptome_simulation_io_result = auto()
     single_cell_simulation_data = auto()
     sonata_circuit = auto()
+    nwb = auto()
+    neuron_hoc = auto()
+    emodel_parametrization_optimization_output = auto()
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -249,6 +252,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
     },
     EntityType.single_neuron_simulation: {AssetLabel.single_cell_simulation_data},
     EntityType.circuit: {AssetLabel.sonata_circuit},
+    EntityType.electrical_cell_recording: {
+        AssetLabel.nwb,
+    },
+    EntityType.emodel: {
+        AssetLabel.neuron_hoc,
+        AssetLabel.emodel_parametrization_optimization_output,
+    },
 }
 
 

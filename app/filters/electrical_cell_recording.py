@@ -7,13 +7,19 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
+    ETypeClassFilterMixin,
     NameFilterMixin,
     SubjectFilterMixin,
 )
 
 
 class ElectricalCellRecordingFilter(
-    CustomFilter, BrainRegionFilterMixin, SubjectFilterMixin, EntityFilterMixin, NameFilterMixin
+    CustomFilter,
+    BrainRegionFilterMixin,
+    SubjectFilterMixin,
+    EntityFilterMixin,
+    NameFilterMixin,
+    ETypeClassFilterMixin,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

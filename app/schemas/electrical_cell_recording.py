@@ -21,6 +21,7 @@ from app.schemas.base import (
     LicensedCreateMixin,
     LicensedReadMixin,
 )
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.subject import SubjectReadMixin
 
 
@@ -94,6 +95,7 @@ class ElectricalCellRecordingRead(
     EntityTypeMixin,
     CreatedByUpdatedByMixin,
     SubjectReadMixin,
+    ContributionReadWithoutEntityMixin,
 ):
     brain_region: BrainRegionRead
     assets: list[AssetRead] | None

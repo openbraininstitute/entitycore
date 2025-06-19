@@ -2,9 +2,8 @@ import json
 from pathlib import Path
 
 from app.cli.curation.utils import get_output_asset_file_path, get_size_digest
-from app.cli.types import ContentType
 from app.db.model import Asset, BrainRegion, ETypeClass, MTypeClass
-from app.db.types import AssetLabel
+from app.db.types import AssetLabel, ContentType
 
 MIN_NUM_ASSETS = 2
 

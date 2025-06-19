@@ -19,7 +19,7 @@ from app.logger import L
 from app.cli import curate, utils
 from app.cli.brain_region_data import BRAIN_ATLAS_REGION_VOLUMES
 from app.cli.curation import cell_composition, electrical_cell_recording
-from app.cli.types import ContentType
+from app.db.types import ContentType
 from app.cli.utils import (
     AUTHORIZED_PUBLIC,
     build_measurement_item,

@@ -311,3 +311,4 @@ class ContentType(StrEnum):
     h5 = "application/x-hdf5"
     text = "text/plain"
     directory = "application/vnd.directory"
+    mod = "application/mod"

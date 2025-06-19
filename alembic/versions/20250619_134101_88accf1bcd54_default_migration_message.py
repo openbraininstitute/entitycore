@@ -1,8 +1,8 @@
 """Default migration message
 
-Revision ID: 8ad021e2e94b
+Revision ID: 88accf1bcd54
 Revises: 78a062bf2eb5
-Create Date: 2025-06-19 13:38:09.568167
+Create Date: 2025-06-19 13:41:01.244364
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "8ad021e2e94b"
+revision: str = "88accf1bcd54"
 down_revision: Union[str, None] = "78a062bf2eb5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -36,6 +36,7 @@ def upgrade() -> None:
         "application/x-hdf5",
         "text/plain",
         "application/vnd.directory",
+        "application/mod",
         name="contenttype",
     ).create(op.get_bind())
     op.alter_column(
@@ -54,6 +55,7 @@ def upgrade() -> None:
             "application/x-hdf5",
             "text/plain",
             "application/vnd.directory",
+            "application/mod",
             name="contenttype",
         ),
         existing_nullable=False,
@@ -120,6 +122,7 @@ def downgrade() -> None:
             "application/x-hdf5",
             "text/plain",
             "application/vnd.directory",
+            "application/mod",
             name="contenttype",
         ),
         type_=sa.VARCHAR(),
@@ -137,6 +140,7 @@ def downgrade() -> None:
         "application/x-hdf5",
         "text/plain",
         "application/vnd.directory",
+        "application/mod",
         name="contenttype",
     ).drop(op.get_bind())
     # ### end Alembic commands ###

@@ -43,6 +43,7 @@ from app.db.types import (
     AssetStatus,
     CircuitBuildCategory,
     CircuitScale,
+    ContentType,
     DerivationType,
     ElectricalRecordingOrigin,
     ElectricalRecordingStimulusShape,
@@ -1014,7 +1015,9 @@ class Asset(Identifiable):
     path: Mapped[str]  # relative path
     full_path: Mapped[str]  # full path on S3
     is_directory: Mapped[bool]
-    content_type: Mapped[str]
+    content_type: Mapped[ContentType] = mapped_column(
+        sa.Enum(ContentType, values_callable=lambda x: [i.value for i in x])
+    )
     size: Mapped[BIGINT]
     sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32))
     meta: Mapped[JSON_DICT]  # not used yet. can be useful?

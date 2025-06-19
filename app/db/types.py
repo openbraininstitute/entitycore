@@ -297,3 +297,11 @@ class CircuitScale(StrEnum):
     region = auto()
     system = auto()
     whole_brain = auto()
+
+
+class ContentType(StrEnum):
+    nwb = "application/nwb"
+    h5 = "application/x-hdf"
+    rab = "application/rab"
+    smr = "application/smr"
+    json = "application/json"

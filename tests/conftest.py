@@ -1013,10 +1013,11 @@ def simulation(db, simulation_json_data, person_id):
 
 
 @pytest.fixture
-def simulation_result_json_data():
+def simulation_result_json_data(simulation):
     return {
         "name": "simulation-result",
         "description": "simulation-result-description",
+        "simulation_id": str(simulation.id),
     }
 
 

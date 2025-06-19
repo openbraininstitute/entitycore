@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
@@ -15,6 +17,7 @@ class SimulationResultBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
+    simulation_id: uuid.UUID
 
 
 class SimulationResultCreate(SimulationResultBase, AuthorizationOptionalPublicMixin):

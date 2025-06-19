@@ -1184,6 +1184,9 @@ class SimulationResult(Entity, NameDescriptionVectorMixin):
 
     __tablename__ = EntityType.simulation_result.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    simulation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("simulation.id"), index=True)
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

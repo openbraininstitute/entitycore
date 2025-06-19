@@ -271,6 +271,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.sonata_simulation_config,
         AssetLabel.simulation_generation_config,
         AssetLabel.custom_node_sets,
+        AssetLabel.replay_spikes,
     },
     EntityType.simulation_campaign: {
         AssetLabel.campaign_generation_config,
@@ -278,7 +279,6 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
     },
     EntityType.simulation_result: {
         AssetLabel.voltage_report,
-        AssetLabel.replay_spikes,
         AssetLabel.spike_report,
     },
 }

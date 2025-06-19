@@ -300,8 +300,14 @@ class CircuitScale(StrEnum):
 
 
 class ContentType(StrEnum):
-    nwb = "application/nwb"
-    h5 = "application/x-hdf"
-    rab = "application/rab"
-    smr = "application/smr"
     json = "application/json"
+    swc = "application/swc"
+    nrrd = "application/nrrd"
+    obj = "application/obj"
+    hoc = "application/hoc"
+    asc = "application/asc"
+    abf = "application/abf"
+    nwb = "application/nwb"
+    h5 = "application/x-hdf5"
+    text = "text/plain"
+    directory = "application/vnd.directory"

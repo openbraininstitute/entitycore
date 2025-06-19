@@ -82,7 +82,7 @@ def asset_directory(db, entity, person_id) -> AssetRead:
         full_path=s3_path,
         status="created",
         is_directory=True,
-        content_type="directory/image",
+        content_type="application/vnd.directory",
         size=0,
         sha256_digest=None,
         meta={},

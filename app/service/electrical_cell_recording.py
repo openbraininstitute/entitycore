@@ -6,6 +6,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
+    Contribution,
     ElectricalCellRecording,
     Subject,
 )
@@ -39,6 +40,8 @@ def _load(query: sa.Select):
         joinedload(ElectricalCellRecording.updated_by),
         selectinload(ElectricalCellRecording.assets),
         selectinload(ElectricalCellRecording.stimuli),
+        selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.agent),
+        selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.role),
         raiseload("*"),
     )
 
@@ -97,6 +100,7 @@ def read_many(
         "created_by",
         "updated_by",
         "contribution",
+        "etype",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=ElectricalCellRecording,

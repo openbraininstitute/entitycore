@@ -231,9 +231,20 @@ class AssetLabel(StrEnum):
     single_neuron_synaptome_simulation_io_result = auto()
     single_cell_simulation_data = auto()
     sonata_circuit = auto()
+<<<<<<< HEAD
     nwb = auto()
     neuron_hoc = auto()
     emodel_parametrization_optimization_output = auto()
+=======
+    sonata_simulation_config = auto()
+    simulation_generation_config = auto()
+    custom_node_sets = auto()
+    campaign_generation_config = auto()
+    campaign_summary = auto()
+    replay_spikes = auto()
+    voltage_report = auto()
+    spike_report = auto()
+>>>>>>> 36bc20f (Constrain simulation entities asset labels)
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -258,6 +269,19 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
     EntityType.emodel: {
         AssetLabel.neuron_hoc,
         AssetLabel.emodel_parametrization_optimization_output,
+    EntityType.simulation: {
+        AssetLabel.sonata_simulation_config,
+        AssetLabel.simulation_generation_config,
+        AssetLabel.custom_node_sets,
+    },
+    EntityType.simulation_campaign: {
+        AssetLabel.campaign_generation_config,
+        AssetLabel.campaign_summary,
+    },
+    EntityType.simulation_result: {
+        AssetLabel.voltage_report,
+        AssetLabel.replay_spikes,
+        AssetLabel.spike_report,
     },
 }
 

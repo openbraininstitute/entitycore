@@ -61,6 +61,7 @@ from app.db.model import (
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
     Species,
+    ValidationResult,
 )
 from app.db.session import configure_database_session_manager
 from app.db.types import (
@@ -1226,6 +1227,40 @@ class ImportMEModel(Import):
         db.commit()
 
 
+class ImportValidationResult(Import):
+    name = "ValidationResult"
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data.get("@type", []))
+        return "ValidationResult" in types
+
+    @staticmethod
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
+        for data in tqdm(data_list):
+            legacy_id = data["@id"]
+            # this is "fake" data w/o self
+            legacy_self = data["@id"]
+            rm = utils._find_by_legacy_id(legacy_id, ValidationResult, db)
+            if rm:
+                continue
+
+            entity_id = data['entity_id'] 
+            entity = utils._find_by_legacy_id(entity_id, Entity, db)
+            
+            db_validation_report = ValidationResult(
+                validated_entity_id=entity.id,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+                created_by_id=entity.updated_by_id,
+                updated_by_id=entity.updated_by_id,
+                name=data.get("distribution").get("name"),
+                passed=True
+            )
+            db.add(db_validation_report)
+            db.flush()
+
+        db.commit()
 class ImportSynaptome(Import):
     name = "Synaptome"
 
@@ -1805,6 +1840,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         ImportMEModel,
+        ImportValidationResult,
         ImportSynaptome,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,

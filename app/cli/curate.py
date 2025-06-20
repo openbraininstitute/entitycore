@@ -528,10 +528,19 @@ def curate_hierarchy_name(hierarchy_name):
         return "Isocortex"
     return hierarchy_name
 
-
+def curate_content_type(content_type):
+    if content_type == "application/h5":
+        return "application/x-hdf5"
+    if content_type == "application/x-neuron-hoc":
+        return "application/hoc"
+    if content_type == "application/neuron-mod":
+        return "application/mod"
+    return content_type
+    
 def curate_distribution(distribution, project_context):
     if isinstance(distribution, list):
         return [curate_distribution(c, project_context) for c in distribution]
+    distribution["encodingFormat"] = curate_content_type(distribution["encodingFormat"])
     assert distribution["@type"] == "DataDownload"
     assert distribution["contentSize"]["unitCode"] == "bytes"
     assert distribution["contentSize"]["value"] > 0

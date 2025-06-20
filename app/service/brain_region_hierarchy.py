@@ -63,11 +63,17 @@ class _JSONEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, o)
 
 
+HIERARCHY_CACHE = {}
+
+
 def read_hierarchy(
     *,
     db: SessionDep,
     id_: uuid.UUID,
 ):
+    if id_ in HIERARCHY_CACHE:
+        return HIERARCHY_CACHE[id_]
+
     query = sa.select(BrainRegion).join(BrainRegionHierarchy).filter(BrainRegionHierarchy.id == id_)
 
     data = db.execute(query).scalars().fetchall()
@@ -97,4 +103,5 @@ def read_hierarchy(
     tree = build_tree(None)[0]
     js = json.dumps(tree, cls=_JSONEncoder)
     response = Response(content=js, media_type="application/json")
+    HIERARCHY_CACHE[id_] = response
     return response

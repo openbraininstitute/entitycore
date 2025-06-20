@@ -528,7 +528,6 @@ def curate_hierarchy_name(hierarchy_name):
         return "Isocortex"
     return hierarchy_name
 
-
 def curate_content_type(content_type):
     if content_type == "application/h5":
         return "application/x-hdf5"

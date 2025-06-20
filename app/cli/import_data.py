@@ -1245,9 +1245,9 @@ class ImportValidationResult(Import):
             if rm:
                 continue
 
-            entity_id = data['entity_id'] 
+            entity_id = data["entity_id"]
             entity = utils._find_by_legacy_id(entity_id, Entity, db)
-            
+
             db_validation_report = ValidationResult(
                 validated_entity_id=entity.id,
                 authorized_project_id=project_context.project_id,
@@ -1255,12 +1255,14 @@ class ImportValidationResult(Import):
                 created_by_id=entity.updated_by_id,
                 updated_by_id=entity.updated_by_id,
                 name=data.get("distribution").get("name"),
-                passed=True
+                passed=True,
             )
             db.add(db_validation_report)
             db.flush()
 
         db.commit()
+
+
 class ImportSynaptome(Import):
     name = "Synaptome"
 
@@ -2067,6 +2069,9 @@ def organize_files(digest_path):
             digest = row.sha256_digest.hex()
             ignored.pop(digest, None)
             if not dst.exists():
+                if digest not in src_paths:
+                    L.error("missing digest {}".format(digest))
+                    continue
                 src = Path(src_paths[digest]).resolve()
                 assert src.exists(), f"src path doens't exist: {src}"
                 dst = Path(row.full_path)
@@ -2110,7 +2115,6 @@ def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
             if not (assets_per_entity := assets_per_entity_type.get(entity_type)):
                 continue
 
-            print(f"Curating: {entity_type}")
             for entity_id, assets in tqdm(assets_per_entity.items()):
                 try:
                     new_src_paths |= curator(

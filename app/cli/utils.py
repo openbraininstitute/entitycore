@@ -369,6 +369,13 @@ def get_or_create_distribution(
             )
         return
 
+    content_type = distribution.get("encodingFormat", "")
+    if content_type in {
+        "application/dat",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }:
+        L.warning(f"ignoring distribution: {distribution} unknown content-type")
+        return
     full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,

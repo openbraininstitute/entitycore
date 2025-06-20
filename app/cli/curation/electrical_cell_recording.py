@@ -5,8 +5,8 @@ import h5py
 
 from app.cli.curation.utils import get_output_asset_file_path, get_size_digest
 from app.cli.mappings import STIMULUS_INFO, ECode
-from app.cli.types import ContentType
 from app.db.model import Asset
+from app.db.types import ContentType
 from app.logger import L
 
 # get old to new ecode mapping. Do not include curated values in keys
@@ -49,22 +49,21 @@ def curate_assets(
         Dictionary with digests as keys and curated file paths as values.
     """
     # one asset per content type
-    assets: dict[ContentType, Asset] = {k: v[0] for k, v in assets.items()}
-
+    assets_dict: dict[ContentType, Asset] = {k: v[0] for k, v in assets.items()}
     # Multiple assets: keep the nwb one if any.
-    if len(assets) > 1:
-        if asset := assets.get(ContentType.nwb, None):
+    if len(assets_dict) > 1:
+        if asset := assets_dict.get(ContentType.nwb, None):
             msg = (
-                f"Multiple assets {sorted(assets.keys())} for ElectricalCellRecording. "
+                f"Multiple assets {sorted(assets_dict.keys())} for ElectricalCellRecording. "
                 f"{ContentType.nwb} was kept."
             )
             L.warning(msg)
         else:
-            msg = f"Unsupported files: {sorted(assets)}"
+            msg = f"Unsupported files: {sorted(assets_dict)}"
             L.warning(msg)
             return {}
     else:
-        asset = assets[next(iter(assets))]
+        asset = assets_dict[next(iter(assets_dict))]
 
     new_src_paths = {}
     match asset.content_type:
@@ -76,7 +75,7 @@ def curate_assets(
             return {}
 
     if not is_dry_run:
-        for asset in filter(lambda a: a.content_type != ContentType.nwb, assets.values()):
+        for asset in filter(lambda a: a.content_type != ContentType.nwb, assets_dict.values()):
             db.delete(asset)
 
     return new_src_paths

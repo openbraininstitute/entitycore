@@ -74,6 +74,11 @@ fetch-missing-distributions:
 	docker compose up --wait db
 	uv run -m app.cli.import_data fetch-missing-distributions files.txt  missing_distributions ./out
 
+assign-project:
+	@$(call load_env,run-local)
+	docker compose up --wait db
+	uv run -m app.cli.import_data assign-project project_ids.txt
+
 publish: build  ## Publish the Docker image to DockerHub
 	docker compose push app
 

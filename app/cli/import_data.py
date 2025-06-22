@@ -73,6 +73,8 @@ from app.db.types import (
     PointLocationBase,
 )
 from app.schemas.base import ProjectContext
+from app.db import model
+from sqlalchemy.orm import joinedload
 
 
 # keep uuid used by core-web-app constant
@@ -2150,6 +2152,80 @@ def fetch_missing_distributions(digest_path, out_dir, input_dir):
             new_distributions += 1
             downloaded_digest.add(sha256_digest)
     L.info("%d distributions copied" % new_distributions)
+
+
+@cli.command()
+@click.argument("project_ids", type=REQUIRED_PATH)
+def assign_project(project_ids):
+    with Path(project_ids).open("r") as f:
+        project_ids = dict(line.strip().split(",") for line in f)
+    # L.info(project_ids)
+
+    # def has_authorized_project(cls):
+    #     return hasattr(cls, "authorized_project_id") or hasattr(cls, "authorized_project")
+
+    # classes_with_authorized_project = [
+    #    (name, cls) for name, cls in vars(model).items()
+    #     if isinstance(cls, type) and has_authorized_project(cls)
+    # ]
+    # # Filter out subclasses: keep only classes that are not subclasses of another in the list
+    # # Remove subclasses: keep only classes that are not subclasses of another in the list
+    # filtered_classes = []
+    # for name, cls in classes_with_authorized_project:
+    #     # Check if cls is a subclass of any other class in the list (excluding itself)
+    #     is_subclass = False
+    #     for other_name, other_cls in classes_with_authorized_project:
+    #         if (
+    #             other_name != name
+    #             and issubclass(cls, other_cls)
+    #         ):
+    #             is_subclass = True
+    #             break
+    #     if not is_subclass:
+    #         filtered_classes.append(name)
+    # L.info("Classes with authorized_project (excluding subclasses): {}", filtered_classes)
+    # ['Activity', 'MTypeClassification', 'ETypeClassification', 'Entity']
+
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        rows = db.query(Entity).all()
+        for row in tqdm(rows):
+            matching_project = None
+            for project_id in project_ids.keys():
+                row_legacy_id = row.legacy_id
+                if row_legacy_id is None:
+                    continue
+                for row_legacy_id_elem in row_legacy_id:
+                    if project_id in row_legacy_id_elem:
+                        matching_project = project_id
+                        break
+                if matching_project:
+                    row.authorized_public = False
+                    row.authorized_project_id = uuid.UUID(matching_project)
+                    db.flush()
+                    break
+        db.commit()
+        # MTypeClassification and ETypeClassification are public so nothing to do
+        # No activity imported so far
+
+        entities_with_asset = (
+            db.query(Entity)
+            .options(joinedload(Entity.assets))
+            .join(Asset, Asset.entity_id == Entity.id)
+            .filter(Entity.authorized_public == False)
+            .distinct()
+            .all()
+        )
+        for entity in entities_with_asset:
+            entity_project_id = str(entity.authorized_project_id)
+            for asset in entity.assets:
+                virtual_lab_id = project_ids[entity_project_id]
+                document_name = "/".join(asset.full_path.split("/")[3:])
+                print(asset.full_path)
+                asset.full_path = f"private/{virtual_lab_id}/{entity_project_id}/{document_name}"
+        db.commit()
 
 
 @cli.command()

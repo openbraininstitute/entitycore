@@ -2081,6 +2081,75 @@ def organize_files(digest_path):
         L.info("Ignored files: {}", len(ignored))
 
 
+@cli.command
+@click.argument("digest-path", type=REQUIRED_PATH)
+@click.argument("out-dir", type=Path)
+@click.argument("input-dir", type=REQUIRED_PATH_DIR)
+def fetch_missing_distributions(digest_path, out_dir, input_dir):
+    assert out_dir.exists()
+
+    with Path(digest_path).open("r", encoding="utf-8") as f:
+        src_paths = dict(line.strip().split(" ", maxsplit=1) for line in f)
+
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        all_digests = utils.get_all_assets_digest(db)
+
+    all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
+    all_distributions = []
+    for file_path in all_files:
+        with open(file_path) as f:
+            try:
+                data = json.load(f)
+            except Exception as e:
+                L.warning(f"Failed to load {file_path}: {e}")
+                continue
+            for d in data:
+                distributions = d.get("distribution")
+                if distributions:
+                    if isinstance(distributions, list):
+                        for distribution in distributions:
+                            all_distributions.append(distribution)
+                    else:
+                        all_distributions.append(distributions)
+    token = utils.refresh_token()
+    new_distributions = 0
+    downloaded_digest = set()
+    for distribution in tqdm(all_distributions):
+        if not isinstance(distribution, dict):
+            L.warning("ignoring distribution {}".format(distribution))
+            continue
+        sha256_digest = distribution.get("digest", {}).get("value", "")
+        if not sha256_digest:
+            L.warning("no digest for {}".format(distribution))
+            continue
+        # ignore already downloaded ones
+        if sha256_digest in downloaded_digest:
+            continue
+
+        # ignore if not present in database
+        if sha256_digest not in all_digests:
+            continue
+
+        # ignore if already in existing digests
+        if sha256_digest in src_paths:
+            continue
+
+        content_url = distribution.get("contentUrl")
+        assert content_url
+        target_file = os.path.join(out_dir, sha256_digest)
+        L.info("missing content for distribution {}".format(distribution))
+        copied, token = utils.http_copy(token, content_url, target_file)
+        if not copied:
+            L.warning("failed to copy {}".format(distribution))
+        else:
+            new_distributions += 1
+            downloaded_digest.add(sha256_digest)
+    L.info("{} distributions copied".format(new_distributions))
+
+
 @cli.command()
 @click.argument("input_digest_path", type=REQUIRED_PATH)
 @click.argument("output_digest_path")

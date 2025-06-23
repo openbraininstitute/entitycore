@@ -1249,8 +1249,8 @@ class ImportValidationResult(Import):
             entity = utils._find_by_legacy_id(entity_id, Entity, db)
 
             db_validation_report = ValidationResult(
-                legacy_self = [legacy_self],
-                legacy_id = [legacy_id],
+                legacy_self=[legacy_self],
+                legacy_id=[legacy_id],
                 validated_entity_id=entity.id,
                 authorized_project_id=project_context.project_id,
                 authorized_public=AUTHORIZED_PUBLIC,

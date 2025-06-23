@@ -2119,11 +2119,11 @@ def fetch_missing_distributions(digest_path, out_dir, input_dir):
     downloaded_digest = set()
     for distribution in tqdm(all_distributions):
         if not isinstance(distribution, dict):
-            L.warning("ignoring distribution {}".format(distribution))
+            L.warning("ignoring distribution %s" % distribution)
             continue
         sha256_digest = distribution.get("digest", {}).get("value", "")
         if not sha256_digest:
-            L.warning("no digest for {}".format(distribution))
+            L.warning("no digest for %s" % distribution)
             continue
         # ignore already downloaded ones
         if sha256_digest in downloaded_digest:
@@ -2140,14 +2140,14 @@ def fetch_missing_distributions(digest_path, out_dir, input_dir):
         content_url = distribution.get("contentUrl")
         assert content_url
         target_file = os.path.join(out_dir, sha256_digest)
-        L.info("missing content for distribution {}".format(distribution))
+        L.info("missing content for distribution %s" % distribution)
         copied, token = utils.http_copy(token, content_url, target_file)
         if not copied:
-            L.warning("failed to copy {}".format(distribution))
+            L.warning("failed to copy %s" % distribution)
         else:
             new_distributions += 1
             downloaded_digest.add(sha256_digest)
-    L.info("{} distributions copied".format(new_distributions))
+    L.info("%d distributions copied" % new_distributions)
 
 
 @cli.command()

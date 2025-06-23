@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Literal
 
 import deepdiff
-import requests
 import sqlalchemy as sa
 from sqlalchemy import any_
 from sqlalchemy.orm import Session

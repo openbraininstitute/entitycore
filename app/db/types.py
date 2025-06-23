@@ -334,3 +334,6 @@ class ContentType(StrEnum):
     text = "text/plain"
     directory = "application/vnd.directory"
     mod = "application/mod"
+    pdf = "application/pdf"
+    png = "image/png"
+    jpg = "image/jpeg"

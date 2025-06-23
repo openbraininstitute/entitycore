@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import deepdiff
+import httpx
 import sqlalchemy as sa
 from sqlalchemy import any_
 from sqlalchemy.orm import Session
@@ -919,18 +920,18 @@ def refresh_token():
     header = {
         "Content-Type": "application/x-www-form-urlencoded",
     }
-    response = requests.post(keycloak_url, data=data, headers=header, timeout=30)
+    response = httpx.post(keycloak_url, data=data, headers=header, timeout=30)
     response.raise_for_status()
     access_token = response.json()["access_token"]
     return access_token
 
 
 def http_copy(token, content_url, target_file):
-    req = requests.get(content_url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+    req = httpx.get(content_url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
 
     if req.status_code == 401:  # noqa: PLR2004
         token = refresh_token()
-        req = requests.get(content_url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+        req = httpx.get(content_url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
     if req.status_code != 200:  # noqa: PLR2004
         L.error(f"error {req.status_code} for {content_url}")
         return False, token

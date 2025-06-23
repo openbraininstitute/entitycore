@@ -1,15 +1,21 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload
 
-import app.queries.common
-from app.db.model import Person
+from app.db.model import Agent, Person
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.filters.person import PersonFilterDep
+from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.agent import PersonCreate, PersonRead
-from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.types import ListResponse
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -20,30 +26,54 @@ def _load(query: sa.Select):
     )
 
 
-def read_many(db: SessionDep, pagination_request: PaginationQuery) -> ListResponse[PersonRead]:
-    query = _load(sa.select(Person))
+def read_many(
+    *,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    person_filter: PersonFilterDep,
+) -> ListResponse[PersonRead]:
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
 
-    data = db.execute(
-        query.offset(pagination_request.offset).limit(pagination_request.page_size)
-    ).scalars()
+    aliases: Aliases = {
+        Agent: {
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
+        }
+    }
 
-    total_items = db.execute(query.with_only_columns(sa.func.count(Person.id))).scalar_one()
+    filter_keys = [
+        "created_by",
+        "updated_by",
+    ]
 
-    response = ListResponse[PersonRead](
-        data=[PersonRead.model_validate(d) for d in data],
-        pagination=PaginationResponse(
-            page=pagination_request.page,
-            page_size=pagination_request.page_size,
-            total_items=total_items,
-        ),
-        facets=None,
+    _, filter_joins = query_params_factory(
+        db_model_class=Person,
+        filter_keys=filter_keys,
+        facet_keys=[],
+        aliases=aliases,
     )
 
-    return response
+    return router_read_many(
+        db=db,
+        db_model_class=Person,
+        authorized_project_id=None,
+        with_search=None,
+        with_in_brain_region=None,
+        facets=None,
+        aliases=aliases,
+        apply_filter_query_operations=None,
+        apply_data_query_operations=_load,
+        pagination_request=pagination_request,
+        response_schema_class=PersonRead,
+        name_to_facet_query_params=None,
+        filter_model=person_filter,
+        filter_joins=filter_joins,
+    )
 
 
 def read_one(id_: uuid.UUID, db: SessionDep) -> PersonRead:
-    return app.queries.common.router_read_one(
+    return router_read_one(
         id_=id_,
         db=db,
         db_model_class=Person,
@@ -54,7 +84,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> PersonRead:
 
 
 def create_one(person: PersonCreate, db: SessionDep, user_context: AdminContextDep) -> PersonRead:
-    return app.queries.common.router_create_one(
+    return router_create_one(
         db=db,
         db_model_class=Person,
         json_model=person,

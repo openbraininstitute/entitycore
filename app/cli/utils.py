@@ -1,9 +1,12 @@
 import datetime
+import os
 import uuid
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Literal
 
 import deepdiff
+import httpx
 import sqlalchemy as sa
 from sqlalchemy import any_
 from sqlalchemy.orm import Session
@@ -369,6 +372,13 @@ def get_or_create_distribution(
             )
         return
 
+    content_type = distribution.get("encodingFormat", "")
+    if content_type in {
+        "application/dat",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }:
+        L.warning(f"ignoring distribution: {distribution} unknown content-type")
+        return
     full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,
@@ -887,3 +897,49 @@ def get_or_create_admin(db, _cache={}):
     _cache["admin"] = admin
 
     return admin
+
+
+def refresh_token():
+    """Get an authentication token using client secrets."""
+    client_id = os.environ.get("CLIENT_ID")
+    client_secret = os.environ.get("CLIENT_SECRET")
+    if not client_id or not client_secret:
+        msg = "CLIENT_ID and CLIENT_SECRET must be set in the environment"
+        raise ValueError(msg)
+
+    keycloak_url = (
+        "https://www.openbraininstitute.org/auth/realms/SBO/protocol/openid-connect/token"
+    )
+
+    data = {
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "grant_type": "client_credentials",
+        "scope": "openid",
+    }
+    header = {
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    response = httpx.post(keycloak_url, data=data, headers=header, timeout=30)
+    response.raise_for_status()
+    access_token = response.json()["access_token"]
+    return access_token
+
+
+def http_copy(token, content_url, target_file):
+    req = httpx.get(content_url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+
+    if req.status_code == 401:  # noqa: PLR2004
+        token = refresh_token()
+        req = httpx.get(content_url, headers={"Authorization": f"Bearer {token}"}, timeout=30)
+    if req.status_code != 200:  # noqa: PLR2004
+        L.error(f"error {req.status_code} for {content_url}")
+        return False, token
+    Path(target_file).write_bytes(req.content)
+    return True, token
+
+
+def get_all_assets_digest(db):
+    # Query all values for the 'digest' column in the Asset table
+    query = sa.select(Asset.sha256_digest)
+    return {row[0].hex() for row in db.execute(query).all()}

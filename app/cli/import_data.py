@@ -61,6 +61,7 @@ from app.db.model import (
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
     Species,
+    ValidationResult,
 )
 from app.db.session import configure_database_session_manager
 from app.db.types import (
@@ -1226,6 +1227,44 @@ class ImportMEModel(Import):
         db.commit()
 
 
+class ImportValidationResult(Import):
+    name = "ValidationResult"
+
+    @staticmethod
+    def is_correct_type(data):
+        types = ensurelist(data.get("@type", []))
+        return "ValidationResult" in types
+
+    @staticmethod
+    def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name: str):
+        for data in tqdm(data_list):
+            legacy_id = data["@id"]
+            # this is "fake" data w/o self
+            legacy_self = data["@id"]
+            rm = utils._find_by_legacy_id(legacy_id, ValidationResult, db)
+            if rm:
+                continue
+
+            entity_id = data["entity_id"]
+            entity = utils._find_by_legacy_id(entity_id, Entity, db)
+
+            db_validation_report = ValidationResult(
+                legacy_self=[legacy_self],
+                legacy_id=[legacy_id],
+                validated_entity_id=entity.id,
+                authorized_project_id=project_context.project_id,
+                authorized_public=AUTHORIZED_PUBLIC,
+                created_by_id=entity.updated_by_id,
+                updated_by_id=entity.updated_by_id,
+                name=data.get("distribution").get("name"),
+                passed=True,
+            )
+            db.add(db_validation_report)
+            db.flush()
+
+        db.commit()
+
+
 class ImportSynaptome(Import):
     name = "Synaptome"
 
@@ -1805,6 +1844,7 @@ def _do_import(db, input_dir, project_context, hierarchy_name):
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         ImportMEModel,
+        ImportValidationResult,
         ImportSynaptome,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
@@ -2031,6 +2071,9 @@ def organize_files(digest_path):
             digest = row.sha256_digest.hex()
             ignored.pop(digest, None)
             if not dst.exists():
+                if digest not in src_paths:
+                    L.error("missing digest {}".format(digest))
+                    continue
                 src = Path(src_paths[digest]).resolve()
                 assert src.exists(), f"src path doens't exist: {src}"
                 dst = Path(row.full_path)
@@ -2038,6 +2081,75 @@ def organize_files(digest_path):
                 dst.symlink_to(src)
     if ignored:
         L.info("Ignored files: {}", len(ignored))
+
+
+@cli.command
+@click.argument("digest-path", type=REQUIRED_PATH)
+@click.argument("out-dir", type=Path)
+@click.argument("input-dir", type=REQUIRED_PATH_DIR)
+def fetch_missing_distributions(digest_path, out_dir, input_dir):
+    assert out_dir.exists()
+
+    with Path(digest_path).open("r", encoding="utf-8") as f:
+        src_paths = dict(line.strip().split(" ", maxsplit=1) for line in f)
+
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        all_digests = utils.get_all_assets_digest(db)
+
+    all_files = sorted(glob.glob(os.path.join(input_dir, "*", "*", "*.json")))
+    all_distributions = []
+    for file_path in all_files:
+        with open(file_path) as f:
+            try:
+                data = json.load(f)
+            except Exception as e:
+                L.warning(f"Failed to load {file_path}: {e}")
+                continue
+            for d in data:
+                distributions = d.get("distribution")
+                if distributions:
+                    if isinstance(distributions, list):
+                        for distribution in distributions:
+                            all_distributions.append(distribution)
+                    else:
+                        all_distributions.append(distributions)
+    token = utils.refresh_token()
+    new_distributions = 0
+    downloaded_digest = set()
+    for distribution in tqdm(all_distributions):
+        if not isinstance(distribution, dict):
+            L.warning("ignoring distribution %s" % distribution)
+            continue
+        sha256_digest = distribution.get("digest", {}).get("value", "")
+        if not sha256_digest:
+            L.warning("no digest for %s" % distribution)
+            continue
+        # ignore already downloaded ones
+        if sha256_digest in downloaded_digest:
+            continue
+
+        # ignore if not present in database
+        if sha256_digest not in all_digests:
+            continue
+
+        # ignore if already in existing digests
+        if sha256_digest in src_paths:
+            continue
+
+        content_url = distribution.get("contentUrl")
+        assert content_url
+        target_file = os.path.join(out_dir, sha256_digest)
+        L.info("missing content for distribution %s" % distribution)
+        copied, token = utils.http_copy(token, content_url, target_file)
+        if not copied:
+            L.warning("failed to copy %s" % distribution)
+        else:
+            new_distributions += 1
+            downloaded_digest.add(sha256_digest)
+    L.info("%d distributions copied" % new_distributions)
 
 
 @cli.command()
@@ -2074,7 +2186,6 @@ def curate_files(input_digest_path, output_digest_path, out_dir, dry_run):
             if not (assets_per_entity := assets_per_entity_type.get(entity_type)):
                 continue
 
-            print(f"Curating: {entity_type}")
             for entity_id, assets in tqdm(assets_per_entity.items()):
                 try:
                     new_src_paths |= curator(

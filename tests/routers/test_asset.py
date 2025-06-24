@@ -320,6 +320,14 @@ def test_upload_delete_upload_entity_asset(client, entity):
     assert data[0]["path"] == FILE_UPLOAD_NAME
     assert data[0]["status"] == "created"
 
+    # test that the assets joined in the entity metadata also not include the deleted
+    response = client.get(f"{route(entity.type)}/{entity.id}")
+    data = response.json()["assets"]
+    assert len(data) == 1
+    assert data[0]["id"] == str(asset1.id)
+    assert data[0]["path"] == FILE_UPLOAD_NAME
+    assert data[0]["status"] == "created"
+
 
 def test_download_directory_file(client, entity, asset_directory):
     response = client.get(

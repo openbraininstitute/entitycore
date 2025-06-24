@@ -2159,33 +2159,8 @@ def fetch_missing_distributions(digest_path, out_dir, input_dir):
 def assign_project(project_ids):
     with Path(project_ids).open("r") as f:
         project_ids = dict(line.strip().split(",") for line in f)
-    # L.info(project_ids)
 
-    # def has_authorized_project(cls):
-    #     return hasattr(cls, "authorized_project_id") or hasattr(cls, "authorized_project")
-
-    # classes_with_authorized_project = [
-    #    (name, cls) for name, cls in vars(model).items()
-    #     if isinstance(cls, type) and has_authorized_project(cls)
-    # ]
-    # # Filter out subclasses: keep only classes that are not subclasses of another in the list
-    # # Remove subclasses: keep only classes that are not subclasses of another in the list
-    # filtered_classes = []
-    # for name, cls in classes_with_authorized_project:
-    #     # Check if cls is a subclass of any other class in the list (excluding itself)
-    #     is_subclass = False
-    #     for other_name, other_cls in classes_with_authorized_project:
-    #         if (
-    #             other_name != name
-    #             and issubclass(cls, other_cls)
-    #         ):
-    #             is_subclass = True
-    #             break
-    #     if not is_subclass:
-    #         filtered_classes.append(name)
-    # L.info("Classes with authorized_project (excluding subclasses): {}", filtered_classes)
-    # ['Activity', 'MTypeClassification', 'ETypeClassification', 'Entity']
-
+    matching_projects = set()
     with (
         closing(configure_database_session_manager()) as database_session_manager,
         database_session_manager.session() as db,
@@ -2200,6 +2175,7 @@ def assign_project(project_ids):
                 for row_legacy_id_elem in row_legacy_id:
                     if project_id in row_legacy_id_elem:
                         matching_project = project_id
+                        matching_projects.add(matching_project)
                         break
                 if matching_project:
                     row.authorized_public = False
@@ -2223,9 +2199,13 @@ def assign_project(project_ids):
             for asset in entity.assets:
                 virtual_lab_id = project_ids[entity_project_id]
                 document_name = "/".join(asset.full_path.split("/")[3:])
-                print(asset.full_path)
                 asset.full_path = f"private/{virtual_lab_id}/{entity_project_id}/{document_name}"
         db.commit()
+
+    L.info(
+        "%d projects assigned / %d existing projects"
+        % (len(matching_projects), len(project_ids.keys()))
+    )
 
 
 @cli.command()

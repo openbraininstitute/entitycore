@@ -462,7 +462,10 @@ class Entity(LegacyMixin, Identifiable):
     contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
     assets: Mapped[list["Asset"]] = relationship(
         "Asset",
-        foreign_keys="Asset.entity_id",
+        primaryjoin=lambda: sa.and_(
+            id == foreign(Asset.entity_id),
+            Asset.status != AssetStatus.DELETED,
+        ),
         uselist=True,
         viewonly=True,
     )

@@ -19,6 +19,7 @@ ln -s ../entitycore-data/files.txt
 ln -s ../entitycore-data/download
 ln -s ../entitycore-data/out
 ln -s ../entitycore-data/cell_composition.json
+ln -s ../entitycore-data/project_ids.txt
 ```
 - ensure that all the files and directories linked with the previous commands actually exist.
 - every time, import the nexus data, curate and organize files, and dump the db:
@@ -30,6 +31,7 @@ ln -s ../entitycore-data/cell_composition.json
 - rm -Rf public
 - rm -Rf curated
 - make curate-files
+- make assign-project
 - make organize-files
 - make dump
 ```

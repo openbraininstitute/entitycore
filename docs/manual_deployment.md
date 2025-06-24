@@ -112,3 +112,11 @@ pg_restore --clean --if-exists --exit-on-error --no-owner --dbname $PGDATABASE $
 
 psql -c "ANALYZE;"
 ```
+
+### missing distributions
+
+If distributions are referenced in the database but not present in the exported data, one can fetch the files using the following command:
+
+``` make fetch-missing-distributions ```
+
+This takes as an input the files.txt containing the exported digests, the "out" directory with the exported metadata, and put everything in a directory called "missing_distributions" (to be created beforehand)

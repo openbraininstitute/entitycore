@@ -6,7 +6,7 @@ from typing import cast
 from pydantic.networks import AnyUrl
 
 from app.config import settings
-from app.db.types import AssetLabel, AssetStatus, EntityType
+from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType
 from app.dependencies.s3 import S3ClientDep
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.queries.common import get_or_create_user_agent
@@ -68,7 +68,7 @@ def create_entity_asset(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     filename: str,
-    content_type: str,
+    content_type: ContentType,
     size: int,
     sha256_digest: str | None,
     meta: dict | None,
@@ -191,7 +191,7 @@ def entity_asset_upload_directory(
             path=str(files.directory_name),
             full_path=full_path,
             is_directory=True,
-            content_type="application/vnd.directory",
+            content_type=ContentType.directory,
             size=-1,
             sha256_digest=None,
             meta=files.meta or {},

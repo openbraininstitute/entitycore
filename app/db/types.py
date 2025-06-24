@@ -337,3 +337,4 @@ class ContentType(StrEnum):
     pdf = "application/pdf"
     png = "image/png"
     jpg = "image/jpeg"
+    stream = "application/octet-stream"

@@ -3,10 +3,11 @@ import mimetypes
 
 from fastapi import UploadFile
 
+from app.db.types import ContentType
 from app.logger import L
 
 
-def get_content_type(file: UploadFile) -> str:
+def get_content_type(file: UploadFile) -> ContentType:
     """Return the file content-type.
 
     In case of discrepancy with the original content-type, the discrepancy is just logged.
@@ -27,7 +28,8 @@ def get_content_type(file: UploadFile) -> str:
             original_content_type,
             guessed_content_type,
         )
-    return original_content_type or guessed_content_type or "application/octet-stream"
+    str_content_type = original_content_type or guessed_content_type or "application/octet-stream"
+    return ContentType(str_content_type)
 
 
 def calculate_sha256_digest(file: UploadFile) -> str:

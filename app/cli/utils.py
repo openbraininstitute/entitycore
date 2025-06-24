@@ -35,11 +35,14 @@ from app.db.model import (
     MTypeClass,
     Person,
     Role,
+    SingleNeuronSimulation,
+    SingleNeuronSynaptome,
+    SingleNeuronSynaptomeSimulation,
     Species,
     Strain,
     Subject,
 )
-from app.db.types import AssetStatus, EntityType, Sex
+from app.db.types import ALLOWED_ASSET_LABELS_PER_ENTITY, AssetStatus, EntityType, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.schemas.ion_channel_model import NeuronBlock
@@ -397,6 +400,14 @@ def get_or_create_distribution(
             "Conflicting distribution for ids {}, {}: {}", row.entity_id, entity_id, full_path
         )
         return
+    label = None
+    if entity_type in {
+        "single_neuron_simulation",
+        "single_neuron_synaptome",
+        "single_neuron_synaptome_simulation",
+    }:
+        label = next(iter(ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType[entity_type]]))
+
     asset = Asset(
         status=AssetStatus.CREATED,
         path=distribution["name"],
@@ -409,6 +420,7 @@ def get_or_create_distribution(
         entity_id=entity_id,
         created_by_id=created_by_id,
         updated_by_id=updated_by_id,
+        label=label,
     )
     db.add(asset)
     db.commit()

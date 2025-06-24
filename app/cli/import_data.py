@@ -807,7 +807,7 @@ class ImportEModelDerivations(Import):
             ]
 
         rows = [
-            Derivation(used_id=trace_id, generated_id=emodel_id)
+            Derivation(generated_id=trace_id, used_id=emodel_id)
             for emodel_id, trace_ids in derivations.items()
             for trace_id in trace_ids
         ]

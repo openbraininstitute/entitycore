@@ -143,6 +143,18 @@ def test_upload_entity_asset(client, entity):
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
 
+    with FILE_EXAMPLE_PATH.open("rb") as f:
+        files = {
+            # (filename, file (or bytes), content_type, headers)
+            "file": ("foo.obj", f)
+        }
+        response = upload_entity_asset(
+            client=client, entity_type=entity.type, entity_id=entity.id, files=files
+        )
+    assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
+
 
 def test_upload_entity_asset__label(monkeypatch, client, entity):
     response = _upload_entity_asset(

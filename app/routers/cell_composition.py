@@ -8,3 +8,4 @@ router = APIRouter(
 )
 
 read_one = router.get("/{id_}")(app.service.cell_composition.read_one)
+read_many = router.get("")(app.service.cell_composition.read_many)

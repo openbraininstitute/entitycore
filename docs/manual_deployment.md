@@ -133,3 +133,6 @@ it is generated with the following command against the virtual-lab-manager-db po
 
 ```\COPY (SELECT id, virtual_lab_id FROM project) TO 'project_id.csv' WITH CSV;```
 
+here is the link to the latest version: https://openbraininstitute.sharepoint.com/:t:/s/OpenBrainInstitute-database/ETbga2sGF2JKiUR3XQbALcgBTB4HpnwtH4AyWHnhZn21-Q?e=pFRUAQ
+
+

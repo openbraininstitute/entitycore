@@ -78,7 +78,7 @@ from app.schemas.base import ProjectContext
 # keep uuid used by core-web-app constant
 DEFAULT_HIERARCHY_ID = uuid.UUID("e3e70682-c209-4cac-a29f-6fbed82c07cd")
 DEFAULT_REGION_ID_FOR_BASIC_CELL_GROUPS_AND_REGIONS = uuid.UUID(
-    "4642cddb-4fbe-4aae-bbf7-0946d6ada066"
+    "fd9953d2-32a4-4a98-859b-64de31d0af99"
 )
 DEFAULT_BRAIN_ATLAS_ID = uuid.UUID("55de9d7b-9796-41f9-b719-213c3305ffd7")
 DEFAULT_REGION_ID_FOR_ROOT = uuid.UUID("eb1167b3-67a9-4378-bc65-c1e582e2e662")
@@ -87,6 +87,7 @@ DEFAULT_REGION_ID_FOR_ROOT = uuid.UUID("eb1167b3-67a9-4378-bc65-c1e582e2e662")
 BRAIN_ATLAS_NAME = "BlueBrain Atlas"
 
 REQUIRED_PATH = click.Path(exists=True, readable=True, dir_okay=False, resolve_path=True)
+OPTIONAL_PATH = click.Path(exists=False, readable=True, dir_okay=False, resolve_path=True)
 REQUIRED_PATH_DIR = click.Path(
     exists=True, readable=True, file_okay=False, dir_okay=True, resolve_path=True
 )
@@ -1962,7 +1963,12 @@ def run(input_dir, virtual_lab_id, project_id, hierarchy_name):
 @cli.command()
 @click.argument("hierarchy_name", type=str)
 @click.argument("hierarchy_path", type=REQUIRED_PATH)
-def hierarchy(hierarchy_name, hierarchy_path):
+@click.option(
+    "--cell-composition-file",
+    type=OPTIONAL_PATH,
+    help="a composition json file to preserve brain region ids",
+)
+def hierarchy(hierarchy_name, hierarchy_path, cell_composition_file=None):
     """Load a hierarchy.json."""
 
     with open(hierarchy_path) as fd:
@@ -1981,6 +1987,13 @@ def hierarchy(hierarchy_name, hierarchy_path):
         regions.append(item)
 
     recurse(hierarchy)
+    brain_region_mapping = {}
+    if cell_composition_file:
+        with open(cell_composition_file) as fd:
+            cell_composition = json.load(fd)
+            brain_region_mapping = {
+                v["name"]: uuid.UUID(k) for k, v in cell_composition["hasPart"].items()
+            }
 
     with (
         closing(configure_database_session_manager(**SQLA_ENGINE_ARGS)) as database_session_manager,
@@ -2022,7 +2035,8 @@ def hierarchy(hierarchy_name, hierarchy_path):
             elif region["id"] == 8:
                 brain_region_id = DEFAULT_REGION_ID_FOR_BASIC_CELL_GROUPS_AND_REGIONS
             else:
-                brain_region_id = uuid.uuid4()
+                brain_region_id = brain_region_mapping.get(region["name"], uuid.uuid4())
+
             db_br = BrainRegion(
                 id=brain_region_id,
                 annotation_value=region["id"],

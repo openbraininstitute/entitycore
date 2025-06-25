@@ -166,7 +166,8 @@ def curate_etype(data):
         )
     elif data["label"] == "TH_cNAD_noscltb":
         data["definition"] = (
-            "Thalamus continuous non-adapting non-oscillatory low-threshold bursting electrical type"
+            "Thalamus continuous non-adapting "
+            "non-oscillatory low-threshold bursting electrical type"
         )
     elif data["label"] == "TH_dAD_ltb":
         data["definition"] = "Thalamus delayed adapting low-threshold bursting electrical type"
@@ -589,7 +590,10 @@ def default_agents():
                 "@id": "https://bbp.epfl.ch/neurosciencegraph/data/2e7807d9-4077-4b08-bceb-5a17c822afab",
                 "_self": "",
                 "@type": "Organization",
-                "name": "Department of Molecular and Cellular Biology, Center for Brain Science, Harvard University",
+                "name": (
+                    "Department of Molecular and Cellular Biology, "
+                    "Center for Brain Science, Harvard University"
+                ),
                 "alternativeName": "H01 Release",
                 "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
                 "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
@@ -598,7 +602,10 @@ def default_agents():
                 "@id": "https://bbp.epfl.ch/neurosciencegraph/data/e82547c6-a02c-4735-a620-2702f191de56",
                 "_self": "",
                 "@type": "Organization",
-                "name": "Department of Molecular and Cellular Biology, Center for Brain Science, Harvard University",
+                "name": (
+                    "Department of Molecular and Cellular Biology, "
+                    "Center for Brain Science, Harvard University"
+                ),
                 "alternativeName": "H01 Release",
                 "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
                 "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),

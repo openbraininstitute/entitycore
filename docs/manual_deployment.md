@@ -122,3 +122,12 @@ If distributions are referenced in the database but not present in the exported 
 ``` make fetch-missing-distributions ```
 
 This takes as an input the files.txt containing the exported digests, the "out" directory with the exported metadata, and put everything in a directory called "missing_distributions" (to be created beforehand)
+
+### project_ids.txt
+
+contains the list of projectid,virtuallabid in prod. For instance
+```50be7f9f-c94d-4e8d-8dc1-aa5690f0cb05,7133f98a-1192-46bc-9358-f59aac00b99b```
+
+it is generated with the following command against the virtual-lab-manager-db postgres database:
+```\COPY (SELECT id, virtual_lab_id FROM project) TO 'project_id.csv' WITH CSV;```
+

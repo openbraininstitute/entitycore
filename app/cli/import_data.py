@@ -74,7 +74,7 @@ from app.db.types import (
 )
 from app.schemas.base import ProjectContext
 from app.db import model
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager
 
 
 # keep uuid used by core-web-app constant
@@ -2188,7 +2188,7 @@ def assign_project(project_ids):
 
         entities_with_asset = (
             db.query(Entity)
-            .options(joinedload(Entity.assets))
+            .options(contains_eager(Entity.assets))
             .join(Asset, Asset.entity_id == Entity.id)
             .filter(Entity.authorized_public == False)
             .distinct()
@@ -2203,8 +2203,9 @@ def assign_project(project_ids):
         db.commit()
 
     L.info(
-        "%d projects assigned / %d existing projects"
-        % (len(matching_projects), len(project_ids.keys()))
+        "{} projects assigned / {} existing projects",
+        len(matching_projects),
+        len(project_ids.keys()),
     )
 
 

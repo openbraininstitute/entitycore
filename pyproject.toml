@@ -118,6 +118,7 @@ builtins-ignorelist = ["license"]
 "app/cli/import_data.py" = ["ALL"]
 "app/cli/curate.py" = [
     "S101",    # Use of `assert` detected
+    "E501",    # Line too long
 ]
 "app/cli/curation/*" = [
     "B006",    # Do not use mutable data structures for argument defaults

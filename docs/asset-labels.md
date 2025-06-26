@@ -1,5 +1,11 @@
 | Type                                  | Value                                             | Content-Type       | Suffix          | Description                                                                  |
 | ----------------------------------    | ------------------------------------------------- | ------------       | ------          | ---------------------------------------------------------------------------  |
+| brain_atlas                                          | brain_atlas_annotation                                              | application/nrrd | .nrrd | Brain atlas annotation nrrd volume. |
+|                                                             |                                                                                     |                             |                 
+         |                                                            |
+| brain_atlas                                         | brain_atlas_region_mesh                                          | application/obj  | .obj | Brain atlas region mesh geometry object. |
+|                                                             |                                                                                     |                            |
+       |                                                                       |
 | cell\_composition                     | cell\_composition\_summary                        |                    |                 |                                                                              |
 | cell\_composition                     | cell\_composition\_volumes                        |                    |                 |                                                                              |
 | circuit                               | sonata\_circuit                                   | N/A                | N/A (directory) | SONATA circuit, but have a circuit\_config.json in the root of the directory |

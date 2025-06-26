@@ -259,12 +259,13 @@ def create_electrical_cell_recording_id_with_assets(db, client, tmp_path, json_d
     filepath.write_bytes(b"trace")
 
     # add an asset too
-    create_asset_file(
+    upload_entity_asset(
         client=client,
-        entity_type="electrical_cell_recording",
         entity_id=trace_id,
-        file_name="my-trace.nwb",
-        file_obj=filepath.read_bytes(),
+        entity_type=EntityType.electrical_cell_recording,
+        files={"file": ("my-trace.nwb", filepath.read_bytes(), "application/nwb")},
+        label="nwb",
+
     )
 
     return trace_id
@@ -383,20 +384,6 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     assert data[0]["id"] == public_morph["id"]
 
 
-def create_asset_file(client, entity_type, entity_id, file_name, file_obj):
-    route = EntityType[entity_type].replace("_", "-")
-    files = {
-        # (filename, file (or bytes), content_type, headers)
-        "file": (str(file_name), file_obj, "text/plain")
-    }
-    assert_request(
-        client.post,
-        url=f"{route}/{entity_id}/assets",
-        files=files,
-        expected_status_code=201,
-    )
-
-
 def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, create_model_function):
     db_hierarchy = db.get(BrainRegionHierarchy, brain_region_hierarchy_id)
 
@@ -489,9 +476,12 @@ def upload_entity_asset(
     files maps to: (filename, file (or bytes), content_type, headers)
     """
     data = None
+    assert label
     if label:
         data = {"label": label}
-    return client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)
+
+    response = client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)
+    return response
 
 
 def create_person(

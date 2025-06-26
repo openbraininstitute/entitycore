@@ -1,4 +1,5 @@
 from enum import StrEnum, auto
+from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict
@@ -219,13 +220,28 @@ class StructuralDomain(StrEnum):
     neuron_morphology = auto()
 
 
+class ContentType(StrEnum):
+    json = "application/json"
+    swc = "application/swc"
+    nrrd = "application/nrrd"
+    obj = "application/obj"
+    hoc = "application/hoc"
+    asc = "application/asc"
+    abf = "application/abf"
+    nwb = "application/nwb"
+    h5 = "application/x-hdf5"
+    text = "text/plain"
+    directory = "application/vnd.directory"
+    mod = "application/mod"
+    pdf = "application/pdf"
+    png = "image/png"
+    jpg = "image/jpeg"
+
+
 class AssetLabel(StrEnum):
     neurolucida = auto()
-    """Morphology in Neurolucida ASCII file"""
     swc = auto()
-    """Morphology in SWC format"""
     hdf5 = auto()
-    """Morphology in hdf5 format"""
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()
@@ -243,44 +259,78 @@ class AssetLabel(StrEnum):
     replay_spikes = auto()
     voltage_report = auto()
     spike_report = auto()
+    neuron_mechanism = auto()
+    brain_atlas_annotation = auto()
+    brain_region_mesh = auto()
+
+
+def _suffix(suffix: str):
+    return lambda asset: Path(asset.path).suffix.lower() == suffix
+
+
+def _contenttype(contenttype: ContentType):
+    return lambda asset: asset.content_type == contenttype
+
+
+def _and(*functions):
+    return lambda asset: all(f(asset) for f in functions)
+
+
+def _require_directory(asset):
+    return asset.is_directory
 
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
     EntityType.reconstruction_morphology: {
-        AssetLabel.neurolucida,
-        AssetLabel.swc,
-        AssetLabel.hdf5,
+        AssetLabel.neurolucida: _and(_suffix(".asc"), _contenttype(ContentType.asc)),
+        AssetLabel.swc: _and(_suffix(".swc"), _contenttype(ContentType.swc)),
+        AssetLabel.hdf5: _and(_suffix(".h5"), _contenttype(ContentType.h5)),
     },
     EntityType.cell_composition: {
-        AssetLabel.cell_composition_summary,
-        AssetLabel.cell_composition_volumes,
+        AssetLabel.cell_composition_summary: None,
+        AssetLabel.cell_composition_volumes: None,
     },
-    EntityType.single_neuron_synaptome: {AssetLabel.single_neuron_synaptome_config},
+    EntityType.single_neuron_synaptome: {
+        AssetLabel.single_neuron_synaptome_config: None,
+    },
     EntityType.single_neuron_synaptome_simulation: {
-        AssetLabel.single_neuron_synaptome_simulation_io_result
+        AssetLabel.single_neuron_synaptome_simulation_io_result: None,
     },
-    EntityType.single_neuron_simulation: {AssetLabel.single_cell_simulation_data},
-    EntityType.circuit: {AssetLabel.sonata_circuit},
+    EntityType.single_neuron_simulation: {
+        AssetLabel.single_cell_simulation_data: None,
+    },
+    EntityType.circuit: {
+        AssetLabel.sonata_circuit: _require_directory,
+    },
     EntityType.electrical_cell_recording: {
-        AssetLabel.nwb,
+        AssetLabel.nwb: None,
     },
     EntityType.emodel: {
-        AssetLabel.neuron_hoc,
-        AssetLabel.emodel_parametrization_optimization_output,
+        AssetLabel.neuron_hoc: None,
+        AssetLabel.emodel_parametrization_optimization_output: None,
     },
     EntityType.simulation: {
-        AssetLabel.sonata_simulation_config,
-        AssetLabel.simulation_generation_config,
-        AssetLabel.custom_node_sets,
-        AssetLabel.replay_spikes,
+        AssetLabel.sonata_simulation_config: None,
+        AssetLabel.simulation_generation_config: None,
+        AssetLabel.custom_node_sets: None,
+        AssetLabel.replay_spikes: None,
     },
     EntityType.simulation_campaign: {
-        AssetLabel.campaign_generation_config,
-        AssetLabel.campaign_summary,
+        AssetLabel.campaign_generation_config: None,
+        AssetLabel.campaign_summary: None,
     },
     EntityType.simulation_result: {
-        AssetLabel.voltage_report,
-        AssetLabel.spike_report,
+        AssetLabel.voltage_report: None,
+        AssetLabel.spike_report: None,
+    },
+    EntityType.ion_channel_model: {
+        AssetLabel.neuron_mechanism: None,
+    },
+    EntityType.brain_atlas: {
+        AssetLabel.brain_atlas_annotation: None,
+    },
+    EntityType.brain_atlas_region: {
+        AssetLabel.brain_region_mesh: None,
     },
 }
 
@@ -320,21 +370,3 @@ class CircuitScale(StrEnum):
     region = auto()
     system = auto()
     whole_brain = auto()
-
-
-class ContentType(StrEnum):
-    json = "application/json"
-    swc = "application/swc"
-    nrrd = "application/nrrd"
-    obj = "application/obj"
-    hoc = "application/hoc"
-    asc = "application/asc"
-    abf = "application/abf"
-    nwb = "application/nwb"
-    h5 = "application/x-hdf5"
-    text = "text/plain"
-    directory = "application/vnd.directory"
-    mod = "application/mod"
-    pdf = "application/pdf"
-    png = "image/png"
-    jpg = "image/jpeg"

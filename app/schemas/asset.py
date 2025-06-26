@@ -65,6 +65,13 @@ class AssetCreate(AssetBase):
             )
             raise ValueError(msg)
 
+        if ((validation := allowed_asset_labels[self.label]) is not None) and not validation(self):
+            msg = (
+                f"Asset label '{self.label}' did not validate; "
+                "are the extension or content type correct?"
+            )
+            raise ValueError(msg)
+
         return self
 
 

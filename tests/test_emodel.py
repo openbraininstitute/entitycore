@@ -49,6 +49,7 @@ def test_get_emodel(client: TestClient, emodel_id: str):
             EntityType.emodel,
             uuid.UUID(emodel_id),
             files={"file": ("c.txt", f, "text/plain")},
+            label="emodel_parametrization_optimization_output"
         )
 
     response = client.get(f"{ROUTE}/{emodel_id}")

@@ -7,6 +7,7 @@
 | circuit                               | sonata\_circuit                                   | N/A                | N/A (directory) | SONATA circuit, but have a circuit\_config.json in the root of the directory |
 | electrical\_cell\_recording           | nwb                                               | application/nwb    | .nwb            | Electrophysiological timeseries data                                         |
 | emodel                                | emodel\_optimization\_output                      | application/json   | .json           |                                                                              |
+| emodel                                | emodel\_script                                    | application/json   | .json           |                                                                              |
 | emodel                                | neuron\_hoc                                       | application/hoc    | .hoc            | Electrical model NEURON template                                             |
 | ion_channel_model                     | neuron\_mechanisms                                | application/mod    | .mod            | Ionic mechanisms file                                                        |
 | me_type_density                       | voxel_densities                                   | application/nrrd   | .nrrd           | Morpho-electric cell voxel densities                                         |

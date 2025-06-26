@@ -28,7 +28,7 @@ def get_content_type(file: UploadFile) -> ContentType:
             original_content_type,
             guessed_content_type,
         )
-    str_content_type = original_content_type or guessed_content_type or "application/octet-stream"
+    str_content_type = original_content_type or guessed_content_type
     return ContentType(str_content_type)
 
 

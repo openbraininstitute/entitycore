@@ -9,7 +9,7 @@ from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from starlette.responses import RedirectResponse
 
 from app.config import settings
-from app.db.types import AssetLabel
+from app.db.types import AssetLabel, ContentType
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import S3ClientDep
@@ -101,7 +101,21 @@ def upload_entity_asset(
             error_code=ApiErrorCode.ASSET_INVALID_PATH,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
-    content_type = get_content_type(file)
+
+    try:
+        content_type = get_content_type(file)
+    except ValueError as e:
+        msg = (
+            f"Invalid content type for file {file.filename}. "
+            f"Supported content types: {sorted(c.value for c in ContentType)}.\n"
+            f"Exception: {e}"
+        )
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        ) from None
+
     sha256_digest = calculate_sha256_digest(file)
     asset_read = asset_service.create_entity_asset(
         repos=repos,

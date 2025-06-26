@@ -20,3 +20,5 @@
 | single\_neuron\_simulation            | single\_neuron\_simulation\_data                    | application/json                   |.json                 | single neuron simulation configuration and timeseries output |
 | single\_neuron\_synaptome             | single\_neuron\_synaptome\_config                 | application/json | .json | single neuron synaptome configuration |
 | single\_neuron\_synaptome\_simulation | single\_neuron\_synaptome\_simulation\_data | application/json                   |.json                 | single neuron synaptome simulation configuration and timeseries output |
+| validation\_result | validation\_result\_figure | application/pdf                   |.pdf                 | Validation result figure |
+| validation\_result | validation\_result\_details | text/plain                   |.txt                 | Log and details about the validation execution |

@@ -52,9 +52,6 @@ class AssetCreate(AssetBase):
     @model_validator(mode="after")
     def ensure_entity_type_label_consistency(self):
         """Asset label must be within the allowed labels for the entity_type."""
-        if not self.label:
-            return self
-
         allowed_asset_labels = ALLOWED_ASSET_LABELS_PER_ENTITY.get(self.entity_type, None)
 
         if allowed_asset_labels is None:

@@ -1,4 +1,4 @@
-from enum import auto
+from enum import StrEnum, auto
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict
@@ -6,8 +6,6 @@ from sqlalchemy import ARRAY, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
-
-from app.utils.enum import StrEnum
 
 
 class PointLocationBase(BaseModel):
@@ -223,8 +221,11 @@ class StructuralDomain(StrEnum):
 
 class AssetLabel(StrEnum):
     neurolucida = auto()
+    """Morphology in Neurolucida ASCII file"""
     swc = auto()
+    """Morphology in SWC format"""
     hdf5 = auto()
+    """Morphology in hdf5 format"""
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()

@@ -1,5 +1,4 @@
 from enum import StrEnum, auto
-from pathlib import Path
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict
@@ -239,18 +238,20 @@ class ContentType(StrEnum):
 
 
 class AssetLabel(StrEnum):
+    """See docs/asset-labels.md."""
+
     neurolucida = auto()
     swc = auto()
     hdf5 = auto()
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()
-    single_neuron_synaptome_simulation_io_result = auto()
+    single_neuron_synaptome_simulation_data = auto()
     single_cell_simulation_data = auto()
     sonata_circuit = auto()
     nwb = auto()
     neuron_hoc = auto()
-    emodel_parametrization_optimization_output = auto()
+    emodel_optimization_output = auto()
     sonata_simulation_config = auto()
     simulation_generation_config = auto()
     custom_node_sets = auto()
@@ -259,78 +260,151 @@ class AssetLabel(StrEnum):
     replay_spikes = auto()
     voltage_report = auto()
     spike_report = auto()
-    neuron_mechanism = auto()
+    neuron_mechanisms = auto()
     brain_atlas_annotation = auto()
     brain_region_mesh = auto()
+    voxel_densities = auto()
+    validation_result_figure = auto()
+    validation_result_details = auto()
+    simulation_designer_image = auto()
+    voltage_report_nwb = auto()
 
 
-def _suffix(suffix: str):
-    return lambda asset: Path(asset.path).suffix.lower() == suffix
+class LabelRequirements(BaseModel):
+    content_type: ContentType | None
+    is_directory: bool
 
 
-def _contenttype(contenttype: ContentType):
-    return lambda asset: asset.content_type == contenttype
-
-
-def _and(*functions):
-    return lambda asset: all(f(asset) for f in functions)
-
-
-def _require_directory(asset):
-    return asset.is_directory
-
+CONTENT_TYPE_TO_SUFFIX = {
+    ContentType.json: (".json",),
+    ContentType.swc: (".swc",),
+    ContentType.nrrd: (".nrrd",),
+    ContentType.obj: (".obj",),
+    ContentType.hoc: (".hoc",),
+    ContentType.asc: (".asc",),
+    ContentType.abf: (".adf",),
+    ContentType.nwb: (".nwb",),
+    ContentType.h5: (".h5",),
+    ContentType.text: (".txt",),
+    ContentType.directory: (),
+    ContentType.mod: (".mod",),
+    ContentType.pdf: (".pdf",),
+    ContentType.png: (".png",),
+    ContentType.jpg: (
+        ".jpg",
+        ".jpeg",
+    ),
+}
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
-    EntityType.reconstruction_morphology: {
-        AssetLabel.neurolucida: _and(_suffix(".asc"), _contenttype(ContentType.asc)),
-        AssetLabel.swc: _and(_suffix(".swc"), _contenttype(ContentType.swc)),
-        AssetLabel.hdf5: _and(_suffix(".h5"), _contenttype(ContentType.h5)),
-    },
-    EntityType.cell_composition: {
-        AssetLabel.cell_composition_summary: None,
-        AssetLabel.cell_composition_volumes: None,
-    },
-    EntityType.single_neuron_synaptome: {
-        AssetLabel.single_neuron_synaptome_config: None,
-    },
-    EntityType.single_neuron_synaptome_simulation: {
-        AssetLabel.single_neuron_synaptome_simulation_io_result: None,
-    },
-    EntityType.single_neuron_simulation: {
-        AssetLabel.single_cell_simulation_data: None,
-    },
-    EntityType.circuit: {
-        AssetLabel.sonata_circuit: _require_directory,
-    },
-    EntityType.electrical_cell_recording: {
-        AssetLabel.nwb: None,
-    },
-    EntityType.emodel: {
-        AssetLabel.neuron_hoc: None,
-        AssetLabel.emodel_parametrization_optimization_output: None,
-    },
-    EntityType.simulation: {
-        AssetLabel.sonata_simulation_config: None,
-        AssetLabel.simulation_generation_config: None,
-        AssetLabel.custom_node_sets: None,
-        AssetLabel.replay_spikes: None,
-    },
-    EntityType.simulation_campaign: {
-        AssetLabel.campaign_generation_config: None,
-        AssetLabel.campaign_summary: None,
-    },
-    EntityType.simulation_result: {
-        AssetLabel.voltage_report: None,
-        AssetLabel.spike_report: None,
-    },
-    EntityType.ion_channel_model: {
-        AssetLabel.neuron_mechanism: None,
-    },
     EntityType.brain_atlas: {
-        AssetLabel.brain_atlas_annotation: None,
+        AssetLabel.brain_atlas_annotation: [
+            LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
+        ],
     },
     EntityType.brain_atlas_region: {
-        AssetLabel.brain_region_mesh: None,
+        AssetLabel.brain_region_mesh: [
+            LabelRequirements(content_type=ContentType.obj, is_directory=False)
+        ],
+    },
+    EntityType.cell_composition: {
+        AssetLabel.cell_composition_summary: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+        AssetLabel.cell_composition_volumes: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+    },
+    EntityType.circuit: {
+        AssetLabel.sonata_circuit: [LabelRequirements(content_type=None, is_directory=True)],
+        AssetLabel.simulation_designer_image: [
+            LabelRequirements(content_type=ContentType.png, is_directory=False)
+        ],
+    },
+    EntityType.electrical_cell_recording: {
+        AssetLabel.nwb: [LabelRequirements(content_type=ContentType.nwb, is_directory=False)]
+    },
+    EntityType.emodel: {
+        AssetLabel.neuron_hoc: [
+            LabelRequirements(content_type=ContentType.hoc, is_directory=False)
+        ],
+        AssetLabel.emodel_optimization_output: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+    },
+    EntityType.ion_channel_model: {
+        AssetLabel.neuron_mechanisms: [
+            LabelRequirements(content_type=ContentType.mod, is_directory=False)
+        ],
+    },
+    EntityType.me_type_density: {
+        AssetLabel.voxel_densities: [
+            LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
+        ],
+    },
+    EntityType.reconstruction_morphology: {
+        AssetLabel.neurolucida: [
+            LabelRequirements(content_type=ContentType.asc, is_directory=False)
+        ],
+        AssetLabel.swc: [LabelRequirements(content_type=ContentType.swc, is_directory=False)],
+        AssetLabel.hdf5: [LabelRequirements(content_type=ContentType.h5, is_directory=False)],
+    },
+    EntityType.simulation: {
+        AssetLabel.custom_node_sets: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+        AssetLabel.replay_spikes: [
+            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+        ],
+        AssetLabel.simulation_generation_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+        AssetLabel.sonata_simulation_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+    },
+    EntityType.simulation_campaign: {
+        AssetLabel.campaign_generation_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+        AssetLabel.campaign_summary: [
+            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+        ],
+    },
+    EntityType.simulation_result: {
+        AssetLabel.voltage_report: [
+            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+        ],
+        AssetLabel.voltage_report_nwb: [
+            LabelRequirements(content_type=ContentType.nwb, is_directory=False)
+        ],
+        AssetLabel.spike_report: [
+            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+        ],
+    },
+    EntityType.single_neuron_synaptome: {
+        AssetLabel.single_neuron_synaptome_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ]
+    },
+    EntityType.single_neuron_synaptome_simulation: {
+        AssetLabel.single_neuron_synaptome_simulation_data: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ]
+    },
+    EntityType.single_neuron_simulation: {
+        AssetLabel.single_cell_simulation_data: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ]
+    },
+    EntityType.validation_result: {
+        AssetLabel.validation_result_figure: [
+            LabelRequirements(content_type=ContentType.pdf, is_directory=False),
+            LabelRequirements(content_type=ContentType.png, is_directory=False),
+        ],
+        AssetLabel.validation_result_details: [
+            LabelRequirements(content_type=ContentType.text, is_directory=False)
+        ],
     },
 }
 

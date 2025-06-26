@@ -265,7 +265,6 @@ def create_electrical_cell_recording_id_with_assets(db, client, tmp_path, json_d
         entity_type=EntityType.electrical_cell_recording,
         files={"file": ("my-trace.nwb", filepath.read_bytes(), "application/nwb")},
         label="nwb",
-
     )
 
     return trace_id

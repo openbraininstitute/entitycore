@@ -65,10 +65,14 @@ def _upload_entity_asset(client, entity_type, entity_id, label, file_upload_name
 
 @pytest.fixture
 def asset(client, entity) -> AssetRead:
-    response = _upload_entity_asset(client, entity_type=entity.type, entity_id=entity.id,
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
         label="neurolucida",
-        file_upload_name="morph.asc", content_type="application/asc"
-                                    )
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+    )
     assert response.status_code == 201, f"Failed to create asset: {response.text}"
     data = response.json()
     return AssetRead.model_validate(data)
@@ -89,7 +93,7 @@ def asset_directory(db, root_circuit, person_id) -> AssetRead:
         entity_id=root_circuit.id,
         created_by_id=person_id,
         updated_by_id=person_id,
-        label="sonata_circuit"
+        label="sonata_circuit",
     )
     add_db(db, asset)
     return asset
@@ -179,7 +183,11 @@ def test_upload_entity_asset(client, entity):
             "file": ("foo.obj", f)
         }
         response = upload_entity_asset(
-            client=client, entity_type=entity.type, entity_id=entity.id, files=files, label="neurolucida",
+            client=client,
+            entity_type=entity.type,
+            entity_id=entity.id,
+            files=files,
+            label="neurolucida",
         )
     assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
@@ -188,15 +196,24 @@ def test_upload_entity_asset(client, entity):
 
 def test_upload_entity_asset__label(monkeypatch, client, entity):
     response = _upload_entity_asset(
-        client, entity_type=entity.type, entity_id=entity.id, label="foo", file_upload_name="morph.asc", content_type="application/asc"
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="foo",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
     )
     assert response.status_code == 422, "Assel label was not rejected as not present in AssetLabel."
 
     monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", {})
 
     response = _upload_entity_asset(
-        client, entity_type=entity.type, entity_id=entity.id, label=AssetLabel.hdf5,
-        file_upload_name="morph.asc", content_type="application/asc"
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label=AssetLabel.hdf5,
+        file_upload_name="morph.asc",
+        content_type="application/asc",
     )
     assert response.status_code == 422
     assert response.json() == {
@@ -210,8 +227,12 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
     monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", required)
 
     response = _upload_entity_asset(
-        client, entity_type=entity.type, entity_id=entity.id, label="hdf5",
-        file_upload_name="morph.asc", content_type="application/asc"
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="hdf5",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
     )
     assert response.status_code == 422
     assert response.json() == {
@@ -339,7 +360,14 @@ def test_delete_entity_asset(client, entity, asset):
 
 
 def test_upload_delete_upload_entity_asset(client, entity):
-    response = _upload_entity_asset(client, entity_type=entity.type, entity_id=entity.id, label="neurolucida", file_upload_name="morph.asc", content_type="application/asc")
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="neurolucida",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+    )
     assert response.status_code == 201, f"Failed to create asset: {response.text}"
     data = response.json()
     asset0 = AssetRead.model_validate(data)
@@ -348,7 +376,14 @@ def test_upload_delete_upload_entity_asset(client, entity):
     assert response.status_code == 200, f"Failed to delete asset: {response.text}"
 
     # upload the asset with the same path
-    response = _upload_entity_asset(client, entity_type=entity.type, entity_id=entity.id, label="neurolucida", file_upload_name="morph.asc", content_type="application/asc")
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="neurolucida",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+    )
     assert response.status_code == 201, f"Failed to create asset: {response.text}"
     data = response.json()
     asset1 = AssetRead.model_validate(data)
@@ -406,7 +441,12 @@ def test_upload_entity_asset_directory(client, root_circuit):
     with mock_aws():
         response = client.post(
             f"{entity_type}/{entity_id}/assets/directory/upload",
-            json={"files": files_to_upload, "meta": None, "label": label, "directory_name": "test0"},
+            json={
+                "files": files_to_upload,
+                "meta": None,
+                "label": label,
+                "directory_name": "test0",
+            },
         )
 
     assert response.status_code == 200, f"Asset creation failed: {response.text}"
@@ -436,7 +476,12 @@ def test_upload_entity_asset_directory(client, root_circuit):
     with mock_aws():
         response = client.post(
             f"{entity_type}/{entity_id}/assets/directory/upload",
-            json={"files": files_to_upload, "meta": None, "label": label, "directory_name": "test0"},
+            json={
+                "files": files_to_upload,
+                "meta": None,
+                "label": label,
+                "directory_name": "test0",
+            },
         )
     assert response.status_code == 409
     error = ErrorResponse.model_validate(response.json())
@@ -445,7 +490,12 @@ def test_upload_entity_asset_directory(client, root_circuit):
     with mock_aws():
         response = client.post(
             f"{entity_type}/{MISSING_ID}/assets/directory/upload",
-            json={"files": files_to_upload, "meta": None, "label": label, "directory_name": "test1"},
+            json={
+                "files": files_to_upload,
+                "meta": None,
+                "label": label,
+                "directory_name": "test1",
+            },
         )
     assert response.status_code == 404
     error = ErrorResponse.model_validate(response.json())
@@ -487,7 +537,7 @@ def test_upload_entity_asset_directory(client, root_circuit):
     ]
 
 
-def test_list_entity_asset_directory(client, root_circuit, asset_directory, entity, asset):
+def test_list_entity_asset_directory(client, root_circuit, asset_directory):
     entity_id = root_circuit.id
     entity_type = route(root_circuit.type)
 

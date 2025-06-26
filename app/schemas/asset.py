@@ -7,6 +7,7 @@ from pydantic.networks import AnyUrl
 
 from app.db.types import (
     ALLOWED_ASSET_LABELS_PER_ENTITY,
+    CONTENT_TYPE_TO_SUFFIX,
     AssetLabel,
     AssetStatus,
     ContentType,
@@ -25,7 +26,7 @@ class AssetBase(BaseModel):
     size: int
     sha256_digest: str | None
     meta: dict
-    label: AssetLabel | None = None
+    label: AssetLabel
 
     @field_validator("sha256_digest", mode="before")
     @classmethod
@@ -40,6 +41,41 @@ class AssetRead(AssetBase):
 
     id: uuid.UUID
     status: AssetStatus
+
+
+def _raise_on_label_requirement(asset, label_reqs):
+    content_type_success = [
+        label_req.content_type == asset.content_type
+        for label_req in label_reqs
+        if label_req.content_type and not label_req.is_directory
+    ]
+    if content_type_success and not any(content_type_success):
+        allowed_content_types = {
+            label_req.content_type for label_req in label_reqs if label_req.content_type
+        }
+        msg = f"{asset.label} implies the should be on one of the following content-types: {allowed_content_types}"
+        raise ValueError(msg)
+
+    directory_errors = []
+    suffix_errors = []
+    for req in label_reqs:
+        if req.is_directory != asset.is_directory:
+            directory_errors.append(
+                "The label requirement for directory does not match `is_directory`"
+            )
+
+        suffix = Path(asset.path).suffix.lower()
+        if (
+            req.content_type
+            and req.content_type == asset.content_type
+            and not any(s == suffix for s in CONTENT_TYPE_TO_SUFFIX[req.content_type])
+        ):
+            suffix_errors.append(f"Suffix for content-type {CONTENT_TYPE_TO_SUFFIX[req.content_type]} does not match {suffix}")
+
+    if directory_errors:
+        raise ValueError("\n".join(suffix_errors))
+    if suffix_errors:
+        raise ValueError("\n".join(suffix_errors))
 
 
 class AssetCreate(AssetBase):
@@ -65,12 +101,7 @@ class AssetCreate(AssetBase):
             )
             raise ValueError(msg)
 
-        if ((validation := allowed_asset_labels[self.label]) is not None) and not validation(self):
-            msg = (
-                f"Asset label '{self.label}' did not validate; "
-                "are the extension or content type correct?"
-            )
-            raise ValueError(msg)
+        _raise_on_label_requirement(self, allowed_asset_labels[self.label])
 
         return self
 
@@ -83,7 +114,7 @@ class DirectoryUpload(BaseModel):
     directory_name: Path
     files: list[Path]
     meta: dict | None
-    label: AssetLabel | None
+    label: AssetLabel
 
 
 class DetailedFile(BaseModel):

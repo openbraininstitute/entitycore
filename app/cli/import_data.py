@@ -73,6 +73,8 @@ from app.db.types import (
     PointLocationBase,
 )
 from app.schemas.base import ProjectContext
+from app.db import model
+from sqlalchemy.orm import contains_eager
 
 
 # keep uuid used by core-web-app constant
@@ -2150,6 +2152,61 @@ def fetch_missing_distributions(digest_path, out_dir, input_dir):
             new_distributions += 1
             downloaded_digest.add(sha256_digest)
     L.info("%d distributions copied" % new_distributions)
+
+
+@cli.command()
+@click.argument("project_ids", type=REQUIRED_PATH)
+def assign_project(project_ids):
+    with Path(project_ids).open("r") as f:
+        project_ids = dict(line.strip().split(",") for line in f)
+
+    matching_projects = set()
+    with (
+        closing(configure_database_session_manager()) as database_session_manager,
+        database_session_manager.session() as db,
+    ):
+        rows = db.query(Entity).all()
+        for row in tqdm(rows):
+            matching_project = None
+            for project_id in project_ids.keys():
+                row_legacy_id = row.legacy_id
+                if row_legacy_id is None:
+                    continue
+                for row_legacy_id_elem in row_legacy_id:
+                    if project_id in row_legacy_id_elem:
+                        matching_project = project_id
+                        matching_projects.add(matching_project)
+                        break
+                if matching_project:
+                    row.authorized_public = False
+                    row.authorized_project_id = uuid.UUID(matching_project)
+                    db.flush()
+                    break
+        db.commit()
+        # MTypeClassification and ETypeClassification are public so nothing to do
+        # No activity imported so far
+
+        entities_with_asset = (
+            db.query(Entity)
+            .options(contains_eager(Entity.assets))
+            .join(Asset, Asset.entity_id == Entity.id)
+            .filter(Entity.authorized_public == False)
+            .distinct()
+            .all()
+        )
+        for entity in entities_with_asset:
+            entity_project_id = str(entity.authorized_project_id)
+            for asset in entity.assets:
+                virtual_lab_id = project_ids[entity_project_id]
+                document_name = "/".join(asset.full_path.split("/")[3:])
+                asset.full_path = f"private/{virtual_lab_id}/{entity_project_id}/{document_name}"
+        db.commit()
+
+    L.info(
+        "{} projects assigned / {} existing projects",
+        len(matching_projects),
+        len(project_ids.keys()),
+    )
 
 
 @cli.command()

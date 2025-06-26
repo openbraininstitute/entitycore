@@ -3,7 +3,7 @@
 | cell\_composition                     | cell\_composition\_summary                        |                    |                 |                                                                              |
 | cell\_composition                     | cell\_composition\_volumes                        |                    |                 |                                                                              |
 | circuit                               | sonata\_circuit                                   | N/A                | N/A (directory) | SONATA circuit, but have a circuit\_config.json in the root of the directory |
-| electrical\_cell\_recording           | nwb                                               |                    |                 |                                                                              |
+| electrical\_cell\_recording           | nwb                                               | application/nwb            | .nwb                | Electrophysiological timeseries data                                                                             |
 | emodel                                | emodel\_parametrization\_optimization\_output     |                    |                 |                                                                              |
 | emodel                                | neuron\_hoc                                       |                    |                 |                                                                              |
 | reconstruction\_morphology            | hdf5                                              | application/x-hdf5 | .h5             | Morphology in HDF5 format                                                    |
@@ -17,6 +17,6 @@
 | simulation\_campaign                  | campaign\_summary                                 |                    |                 |                                                                              |
 | simulation\_result                    | spike\_report                                     |                    |                 |                                                                              |
 | simulation\_result                    | voltage\_report                                   |                    |                 |                                                                              |
-| single\_neuron\_simulation            | single\_cell\_simulation\_data                    |                    |                 |                                                                              |
-| single\_neuron\_synaptome             | single\_neuron\_synaptome\_config                 |                    |                 |                                                                              |
-| single\_neuron\_synaptome\_simulation | single\_neuron\_synaptome\_simulation\_io\_result |                    |                 |                                                                              |
+| single\_neuron\_simulation            | single\_neuron\_simulation\_data                    | application/json                   |.json                 | single neuron simulation configuration and timeseries output |
+| single\_neuron\_synaptome             | single\_neuron\_synaptome\_config                 | application/json | .json | single neuron synaptome configuration |
+| single\_neuron\_synaptome\_simulation | single\_neuron\_synaptome\_simulation\_data | application/json                   |.json                 | single neuron synaptome simulation configuration and timeseries output |

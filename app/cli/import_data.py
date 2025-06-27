@@ -9,7 +9,6 @@ from collections import Counter, defaultdict
 from contextlib import closing
 from pathlib import Path
 from typing import Any
-from collections import Counter
 import click
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
@@ -2202,7 +2201,6 @@ def assign_project(project_ids):
         database_session_manager.session() as db,
     ):
         rows = db.query(Entity).all()
-        non_public_data = "https://openbluebrain.com"
         for row in tqdm(rows):
             matching_project = None
             row_legacy_id = row.legacy_id
@@ -2233,7 +2231,6 @@ def assign_project(project_ids):
             .distinct()
             .all()
         )
-        asset_to_delete = set()
 
         for entity in entities_with_asset:
             entity_project_id = str(entity.authorized_project_id)

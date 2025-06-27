@@ -1857,24 +1857,24 @@ def _do_import(db, input_dir, project_context, hierarchy_name, project_ids):
         ImportLicense,
         ImportMTypeAnnotation,
         ImportETypeAnnotation,
-        # ImportMETypeDensity,
+        ImportMETypeDensity,
         ImportCellComposition,
         ImportAnalysisSoftwareSourceCode,
         ImportMorphologies,
         ImportEModels,
-        # ImportExperimentalNeuronDensities,
-        # ImportExperimentalBoutonDensity,
-        # ImportExperimentalSynapsesPerConnection,
+        ImportExperimentalNeuronDensities,
+        ImportExperimentalBoutonDensity,
+        ImportExperimentalSynapsesPerConnection,
         ImportMEModel,
-        # ImportValidationResult,
-        # ImportSynaptome,
-        # ImportElectricalCellRecording,
-        # ImportSingleNeuronSimulation,
-        # ImportSingleNeuronSynaptomeSimulation,
-        # ImportBrainAtlas,
-        # ImportDistribution,
-        # ImportNeuronMorphologyFeatureAnnotation,
-        # ImportEModelDerivations,
+        ImportValidationResult,
+        ImportSynaptome,
+        ImportElectricalCellRecording,
+        ImportSingleNeuronSimulation,
+        ImportSingleNeuronSynaptomeSimulation,
+        ImportBrainAtlas,
+        ImportDistribution,
+        ImportNeuronMorphologyFeatureAnnotation,
+        ImportEModelDerivations,
     ]
 
     for importer in importers:
@@ -2213,7 +2213,7 @@ def assign_project(project_ids):
                         break
                 if matching_project:
                     row.authorized_public = False
-                    matching_project = "462ace35-28b4-45e3-8db0-9a7a18093e83"
+                    # matching_project = "462ace35-28b4-45e3-8db0-9a7a18093e83"
                     row.authorized_project_id = uuid.UUID(matching_project)
                     db.flush()
                     break
@@ -2246,9 +2246,9 @@ def assign_project(project_ids):
                 if entity.id in to_delete:
                     asset_to_delete.add(asset.id)
                     continue
-                # virtual_lab_id = project_ids[entity_project_id]
-                virtual_lab_id = "ff888f05-f314-4702-8a92-b86f754270bb"
-                entity_project_id = "462ace35-28b4-45e3-8db0-9a7a18093e83"
+                virtual_lab_id = project_ids[entity_project_id]
+                # virtual_lab_id = "ff888f05-f314-4702-8a92-b86f754270bb"
+                # entity_project_id = "462ace35-28b4-45e3-8db0-9a7a18093e83"
                 document_name = "/".join(asset.full_path.split("/")[3:])
                 asset.full_path = f"private/{virtual_lab_id}/{entity_project_id}/{document_name}"
         db.commit()

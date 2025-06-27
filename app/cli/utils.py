@@ -947,9 +947,9 @@ def get_all_assets_digest(db):
 
 def is_ignored(legacy_id, project_ids):
     non_public_data = "https://openbluebrain.com"
+    assert(isinstance(legacy_id, str))
     for project_id in project_ids:
-        for legacy_id_elem in legacy_id:
-            if project_id in legacy_id_elem:
-                return False
+        if project_id in legacy_id:
+            return False
 
-    return any(non_public_data in legacy_id_elem for legacy_id_elem in legacy_id)
+    return non_public_data in legacy_id

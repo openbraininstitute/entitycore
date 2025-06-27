@@ -240,9 +240,7 @@ class ContentType(StrEnum):
 class AssetLabel(StrEnum):
     """See docs/asset-labels.md."""
 
-    neurolucida = auto()
-    swc = auto()
-    hdf5 = auto()
+    morphology = auto()
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()
@@ -267,7 +265,6 @@ class AssetLabel(StrEnum):
     validation_result_figure = auto()
     validation_result_details = auto()
     simulation_designer_image = auto()
-    voltage_report_nwb = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -316,20 +313,24 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         ],
     },
     EntityType.circuit: {
-        AssetLabel.sonata_circuit: [LabelRequirements(content_type=None, is_directory=True)],
+        AssetLabel.sonata_circuit: [
+            LabelRequirements(content_type=None, is_directory=True),
+        ],
         AssetLabel.simulation_designer_image: [
             LabelRequirements(content_type=ContentType.png, is_directory=False)
         ],
     },
     EntityType.electrical_cell_recording: {
-        AssetLabel.nwb: [LabelRequirements(content_type=ContentType.nwb, is_directory=False)]
+        AssetLabel.nwb: [
+            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
+        ]
     },
     EntityType.emodel: {
-        AssetLabel.neuron_hoc: [
-            LabelRequirements(content_type=ContentType.hoc, is_directory=False)
-        ],
         AssetLabel.emodel_optimization_output: [
             LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+        AssetLabel.neuron_hoc: [
+            LabelRequirements(content_type=ContentType.hoc, is_directory=False)
         ],
     },
     EntityType.ion_channel_model: {
@@ -343,11 +344,11 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         ],
     },
     EntityType.reconstruction_morphology: {
-        AssetLabel.neurolucida: [
-            LabelRequirements(content_type=ContentType.asc, is_directory=False)
+        AssetLabel.morphology: [
+            LabelRequirements(content_type=ContentType.asc, is_directory=False),
+            LabelRequirements(content_type=ContentType.swc, is_directory=False),
+            LabelRequirements(content_type=ContentType.h5, is_directory=False),
         ],
-        AssetLabel.swc: [LabelRequirements(content_type=ContentType.swc, is_directory=False)],
-        AssetLabel.hdf5: [LabelRequirements(content_type=ContentType.h5, is_directory=False)],
     },
     EntityType.simulation: {
         AssetLabel.custom_node_sets: [
@@ -368,18 +369,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
             LabelRequirements(content_type=ContentType.json, is_directory=False)
         ],
         AssetLabel.campaign_summary: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
         ],
     },
     EntityType.simulation_result: {
-        AssetLabel.voltage_report: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False)
-        ],
-        AssetLabel.voltage_report_nwb: [
-            LabelRequirements(content_type=ContentType.nwb, is_directory=False)
-        ],
         AssetLabel.spike_report: [
             LabelRequirements(content_type=ContentType.h5, is_directory=False)
+        ],
+        AssetLabel.voltage_report: [
+            LabelRequirements(content_type=ContentType.h5, is_directory=False),
+            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
         ],
     },
     EntityType.single_neuron_synaptome: {

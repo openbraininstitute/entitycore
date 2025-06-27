@@ -943,3 +943,13 @@ def get_all_assets_digest(db):
     # Query all values for the 'digest' column in the Asset table
     query = sa.select(Asset.sha256_digest)
     return {row[0].hex() for row in db.execute(query).all()}
+
+
+def is_ignored(legacy_id, project_ids):
+    non_public_data = "https://openbluebrain.com"
+    assert isinstance(legacy_id, str)
+    for project_id in project_ids:
+        if project_id in legacy_id:
+            return False
+
+    return non_public_data in legacy_id

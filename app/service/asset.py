@@ -72,7 +72,7 @@ def create_entity_asset(
     size: int,
     sha256_digest: str | None,
     meta: dict | None,
-    label: AssetLabel | None,
+    label: AssetLabel,
 ) -> AssetRead:
     """Create an asset for an entity."""
     entity = entity_service.get_writable_entity(

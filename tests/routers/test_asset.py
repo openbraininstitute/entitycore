@@ -69,7 +69,7 @@ def asset(client, entity) -> AssetRead:
         client,
         entity_type=entity.type,
         entity_id=entity.id,
-        label="neurolucida",
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )
@@ -104,7 +104,7 @@ def test_upload_entity_asset(client, entity):
         client,
         entity_type=entity.type,
         entity_id=entity.id,
-        label="neurolucida",
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )
@@ -122,7 +122,7 @@ def test_upload_entity_asset(client, entity):
         "sha256_digest": FILE_EXAMPLE_DIGEST,
         "meta": {},
         "status": "created",
-        "label": "neurolucida",
+        "label": "morphology",
     }
 
     # try to upload again the same file with the same path
@@ -130,7 +130,7 @@ def test_upload_entity_asset(client, entity):
         client,
         entity_type=entity.type,
         entity_id=entity.id,
-        label="neurolucida",
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )
@@ -143,7 +143,7 @@ def test_upload_entity_asset(client, entity):
         client,
         entity_type=entity.type,
         entity_id=MISSING_ID,
-        label="neurolucida",
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )
@@ -156,7 +156,7 @@ def test_upload_entity_asset(client, entity):
         client,
         entity_type=EntityType[DIFFERENT_ENTITY_TYPE],
         entity_id=entity.id,
-        label="neurolucida",
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )
@@ -170,7 +170,7 @@ def test_upload_entity_asset(client, entity):
         entity_type=entity.type,
         entity_id=entity.id,
         file_upload_name="a/b/c.asc",
-        label="neurolucida",
+        label="morphology",
         content_type="application/asc",
     )
     assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
@@ -187,7 +187,7 @@ def test_upload_entity_asset(client, entity):
             entity_type=entity.type,
             entity_id=entity.id,
             files=files,
-            label="neurolucida",
+            label="morphology",
         )
     assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
@@ -211,7 +211,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
         client,
         entity_type=entity.type,
         entity_id=entity.id,
-        label=AssetLabel.hdf5,
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )
@@ -222,7 +222,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
         "details": [f"Value error, There are no allowed asset labels defined for '{entity.type}'"],
     }
 
-    required = {EntityType.reconstruction_morphology: {AssetLabel.swc}}
+    required = {EntityType.reconstruction_morphology: {AssetLabel.cell_composition_summary: None}}
 
     monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", required)
 
@@ -230,7 +230,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
         client,
         entity_type=entity.type,
         entity_id=entity.id,
-        label="hdf5",
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )
@@ -239,8 +239,9 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
         "error_code": "ASSET_INVALID_SCHEMA",
         "message": "Asset schema is invalid",
         "details": [
-            f"Value error, Asset label '{AssetLabel.hdf5}' is not allowed for "
-            f"entity type '{entity.type}'. Allowed asset labels: ['{AssetLabel.swc}']"
+            f"Value error, Asset label '{AssetLabel.morphology}' is not allowed for "
+            f"entity type '{entity.type}'. "
+            f"Allowed asset labels: ['{AssetLabel.cell_composition_summary}']"
         ],
     }
 
@@ -261,7 +262,7 @@ def test_get_entity_asset(client, entity, asset):
         "sha256_digest": FILE_EXAMPLE_DIGEST,
         "meta": {},
         "status": "created",
-        "label": "neurolucida",
+        "label": "morphology",
     }
 
     # try to get an asset with non-existent entity id
@@ -294,7 +295,7 @@ def test_get_entity_assets(client, entity, asset):
             "sha256_digest": FILE_EXAMPLE_DIGEST,
             "meta": {},
             "status": "created",
-            "label": "neurolucida",
+            "label": "morphology",
         }
     ]
 
@@ -364,7 +365,7 @@ def test_upload_delete_upload_entity_asset(client, entity):
         client,
         entity_type=entity.type,
         entity_id=entity.id,
-        label="neurolucida",
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )
@@ -380,7 +381,7 @@ def test_upload_delete_upload_entity_asset(client, entity):
         client,
         entity_type=entity.type,
         entity_id=entity.id,
-        label="neurolucida",
+        label="morphology",
         file_upload_name="morph.asc",
         content_type="application/asc",
     )

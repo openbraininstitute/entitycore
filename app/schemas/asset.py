@@ -50,10 +50,10 @@ def _raise_on_label_requirement(asset, label_reqs):
         if label_req.content_type and not label_req.is_directory
     ]
     if content_type_success and not any(content_type_success):
-        allowed_content_types = {
-            label_req.content_type for label_req in label_reqs if label_req.content_type
-        }
-        msg = f"{asset.label} implies the should be on one of the following content-types: {allowed_content_types}"
+        allowed_content_types = sorted(
+            label_req.content_type.value for label_req in label_reqs if label_req.content_type
+        )
+        msg = f"{asset.label} implies one of the following content-types: {allowed_content_types}"
         raise ValueError(msg)
 
     directory_errors = []
@@ -68,14 +68,18 @@ def _raise_on_label_requirement(asset, label_reqs):
         if (
             req.content_type
             and req.content_type == asset.content_type
-            and not any(s == suffix for s in CONTENT_TYPE_TO_SUFFIX[req.content_type])
+            and suffix not in CONTENT_TYPE_TO_SUFFIX[req.content_type]
         ):
-            suffix_errors.append(f"Suffix for content-type {CONTENT_TYPE_TO_SUFFIX[req.content_type]} does not match {suffix}")
+            suffix_errors.append(
+                f"Suffix for content-type {CONTENT_TYPE_TO_SUFFIX[req.content_type]} "
+                f"does not match {suffix}"
+            )
 
     if directory_errors:
-        raise ValueError("\n".join(suffix_errors))
+        raise ValueError(directory_errors[0])
+
     if suffix_errors:
-        raise ValueError("\n".join(suffix_errors))
+        raise ValueError(suffix_errors[0])
 
 
 class AssetCreate(AssetBase):

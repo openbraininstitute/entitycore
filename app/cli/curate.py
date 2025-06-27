@@ -166,7 +166,8 @@ def curate_etype(data):
         )
     elif data["label"] == "TH_cNAD_noscltb":
         data["definition"] = (
-            "Thalamus continuous non-adapting non-oscillatory low-threshold bursting electrical type"  # noqa: E501
+            "Thalamus continuous non-adapting "
+            "non-oscillatory low-threshold bursting electrical type"
         )
     elif data["label"] == "TH_dAD_ltb":
         data["definition"] = "Thalamus delayed adapting low-threshold bursting electrical type"
@@ -590,7 +591,7 @@ def default_species():
 
 
 def default_agents():
-    return [
+    k8s_agents = [
         {
             "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/ikilic",
             "_self": "",
@@ -855,6 +856,247 @@ def default_agents():
             "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
         },
     ]
+
+    # change prefix to account for users specified above
+    prod_agents = (
+        [
+            agent
+            | {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/"
+                + agent["@id"].split("/")[-1]
+            }
+            for agent in k8s_agents
+        ]
+        + [
+            agent
+            | {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/"
+                + agent["@id"].split("/")[-1]
+            }
+            for agent in k8s_agents
+        ]
+        + [
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/serviceaccounts/users/service-account-brain-modeling-ontology-ci-cd",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "service-brain-modeling-ontology-ci-cd",
+                "familyName": "service-brain-modeling-ontology-ci-cd",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/service-account-obp-singlecell-uploader-sa",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "service-account-obp-singlecell-uploader-sa",
+                "familyName": "service-account-obp-singlecell-uploader-sa",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/zisis",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Eleftherios",
+                "familyName": "Zisis",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/ajaquier",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Aurelien",
+                "familyName": "Jaquier",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/bbp/users/mandge",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Darshan",
+                "familyName": "Mandge",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/service-account-obp-virtuallab-sa",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "service-account-obp-virtuallab-sa",
+                "familyName": "service-account-obp-virtuallab-sa",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/serviceaccounts/users/service-account-nexus-sa",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "service-account-nexus-sa",
+                "familyName": "service-account-nexus-sa",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/2e7807d9-4077-4b08-bceb-5a17c822afab",
+                "_self": "",
+                "@type": "Organization",
+                "name": (
+                    "Department of Molecular and Cellular Biology, "
+                    "Center for Brain Science, Harvard University"
+                ),
+                "alternativeName": "H01 Release",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/e82547c6-a02c-4735-a620-2702f191de56",
+                "_self": "",
+                "@type": "Organization",
+                "name": (
+                    "Department of Molecular and Cellular Biology, "
+                    "Center for Brain Science, Harvard University"
+                ),
+                "alternativeName": "H01 Release",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/bilalesi",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Bilal",
+                "familyName": "Meddah",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/keremkurban",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Kerem",
+                "familyName": "Kurban",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/nexus/v1/realms/bbp/users/service-account-obp-singlecell-uploader-sa",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "service-account-obp-singlecell-uploader-sa",
+                "familyName": "service-account-obp-singlecell-uploader-sa",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/wonderpg",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Nicolas",
+                "familyName": "Frank",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://openbluebrain.com/api/nexus/v1/realms/SBO/users/bober78",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Boris",
+                "familyName": "Bergsma",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/b7b7afc3-9d56-4088-b9bb-bcfe05ccbdc4",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Jane",
+                "familyName": "Doe",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/c4065448-1be5-4c65-a785-f25edeb00d7d",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Jane",
+                "familyName": "Doe",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/f8f6724d-33ac-466c-8751-dab47336552f",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Jane",
+                "familyName": "Doe",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/0bdb28a0-0016-4103-bacc-21ea8fbadf65",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Jane",
+                "familyName": "Doe",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/5a1e6722-59b3-4436-aec2-d3b7d9b1e53d",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Daniel",
+                "familyName": "Fernandez",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/8bce8faa-f6d5-4d4c-a0fe-f1d20c114fb9",
+                "_self": "",
+                "@type": "Organization",
+                "name": "NeuroMorpho.Org (RRID:SCR_002145)",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/8bce8faa-f6d5-4d4c-a0fe-f1d20c114fb9",
+                "_self": "",
+                "@type": "Organization",
+                "name": "NeuroMorpho.Org (RRID:SCR_002145)",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/neurosciencegraph/data/3166755f-c095-44ab-9252-b68d27e9dcd9",
+                "_self": "",
+                "@type": "Organization",
+                "name": "Yale School of Medicine",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "hhttps://bbp.epfl.ch/neurosciencegraph/data/3166755f-c095-44ab-9252-b68d27e9dcd9",
+                "_self": "",
+                "@type": "Organization",
+                "name": "Yale School of Medicine",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+            {
+                "@id": "https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/7c47aa15-9fc6-42ec-9871-d233c9c29028",
+                "_self": "",
+                "@type": "Person",
+                "givenName": "Chandrashekarj",
+                "familyName": "Jayaram",
+                "_createdAt": datetime.datetime.now(datetime.UTC).isoformat(),
+                "_updatedAt": datetime.datetime.now(datetime.UTC).isoformat(),
+            },
+        ]
+    )
+    return k8s_agents + prod_agents
 
 
 def default_licenses():

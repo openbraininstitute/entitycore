@@ -136,6 +136,11 @@ def list_directory_with_details(
     bucket_name: str,
     prefix: str,
 ) -> dict:
+    # with `prefix="foo/asdf" argument will match all `foo/asdf/` and `foo/asdf_asdf/,
+    # insure we have a ending / to prevent being promiscuous
+    if not prefix.endswith("/"):
+        prefix += "/"
+
     paginator = s3_client.get_paginator("list_objects_v2")
     files = {}
     for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):

@@ -5,7 +5,13 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic.networks import AnyUrl
 
-from app.db.types import ALLOWED_ASSET_LABELS_PER_ENTITY, AssetLabel, AssetStatus, EntityType
+from app.db.types import (
+    ALLOWED_ASSET_LABELS_PER_ENTITY,
+    AssetLabel,
+    AssetStatus,
+    ContentType,
+    EntityType,
+)
 
 
 class AssetBase(BaseModel):
@@ -15,7 +21,7 @@ class AssetBase(BaseModel):
     path: str
     full_path: str
     is_directory: bool
-    content_type: str
+    content_type: ContentType
     size: int
     sha256_digest: str | None
     meta: dict

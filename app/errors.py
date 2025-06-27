@@ -45,6 +45,7 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_INVALID_PATH = auto()
     ASSET_NOT_A_DIRECTORY = auto()
     ASSET_INVALID_SCHEMA = auto()
+    ASSET_INVALID_CONTENT_TYPE = auto()
     ION_NAME_NOT_FOUND = auto()
     S3_CANNOT_CREATE_PRESIGNED_URL = auto()
 

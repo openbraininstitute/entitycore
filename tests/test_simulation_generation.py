@@ -205,7 +205,7 @@ def models(morphology_id, root_circuit, simulation_result, create_id):
     ]
 
 
-def test_filtering(client, models, root_circuit):
+def test_filtering(client, models, root_circuit, simulation_result):
     data = assert_request(client.get, url=ROUTE).json()["data"]
     assert len(data) == len(models)
 
@@ -225,6 +225,18 @@ def test_filtering(client, models, root_circuit):
         params={"used__id": str(root_circuit.id), "generated__id": str(root_circuit.id)},
     ).json()["data"]
     assert len(data) == 2
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"used__id__in": f"{root_circuit.id},{simulation_result.id}"}
+    ).json()["data"]
+    assert len(data) == 5
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"generated__id__in": f"{root_circuit.id},{simulation_result.id}"},
+    ).json()["data"]
+    assert len(data) == 4
 
 
 def test_delete_one(db, client, models):

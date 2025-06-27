@@ -22,6 +22,7 @@
 | simulation_campaign                   | campaign_summary                                  | application/json   | .json           | Summary of generated campaign listing all created simulation configs             |
 | simulation_result                     | spike_report                                      | application/x-hdf5 | .h5             | Simulation spikes report                                                         |
 | simulation_result                     | voltage_report                                    | application/x-hdf5 | .h5             | Simulation voltage report                                                        |
+| simulation_result                     | voltage_report                                    | application/nwb    | .nwb            | Simulation voltage report in NWB format                                          |
 | single_neuron_simulation              | single_neuron_simulation_data                     | application/json   | .json           | single neuron simulation configuration and timeseries output                     |
 | single_neuron_synaptome               | single_neuron_synaptome_config                    | application/json   | .json           | single neuron synaptome configuration                                            |
 | single_neuron_synaptome_simulation    | single_neuron_synaptome_simulation_data           | application/json   | .json           | single neuron synaptome simulation configuration and timeseries output           |

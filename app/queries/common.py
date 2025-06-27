@@ -311,6 +311,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         if facets and name_to_facet_query_params
         else None
     )
+
     return ListResponse[response_schema_class](
         data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(

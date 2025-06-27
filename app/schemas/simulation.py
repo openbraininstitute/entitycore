@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import JSON_DICT, SingleNeuronSimulationStatus
+from app.schemas.activity import NestedActivityRead
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -47,6 +48,7 @@ class SingleNeuronSimulationRead(
     CreatedByUpdatedByMixin,
 ):
     me_model: NestedMEModel
+    generated_by: list[NestedActivityRead]
 
 
 class SingleNeuronSynaptomeSimulationCreate(
@@ -68,6 +70,7 @@ class SingleNeuronSynaptomeSimulationRead(
     CreatedByUpdatedByMixin,
 ):
     synaptome: NestedSynaptome
+    generated_by: list[NestedActivityRead]
 
 
 class SimulationBase(BaseModel):
@@ -83,8 +86,15 @@ class SimulationCreate(SimulationBase, AuthorizationOptionalPublicMixin):
     pass
 
 
+class UsageRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    usage_activity_id: uuid.UUID
+    usage_entity_id: uuid.UUID
+
+
 class NestedSimulationRead(SimulationBase, EntityTypeMixin, IdentifiableMixin):
-    pass
+    generated_by: list[NestedActivityRead]
 
 
 class SimulationRead(

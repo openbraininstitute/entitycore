@@ -7,8 +7,8 @@ class SimulationExecutionCreate(ActivityCreate):
 
 
 class SimulationExecutionRead(ActivityRead):
-    status: SimulationExecutionStatus
+    pass
 
 
 class SimulationExecutionUpdate(ActivityUpdate):
-    status: SimulationExecutionStatus | None = None
+    pass

@@ -3,6 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.db.types import SimulationExecutionStatus
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     ActivityTypeMixin,
@@ -21,7 +22,7 @@ class ActivityBase(BaseModel):
 
 
 class NestedActivityRead(ActivityBase, ActivityTypeMixin, IdentifiableMixin):
-    pass
+    status: SimulationExecutionStatus | None = None
 
 
 class ActivityRead(NestedActivityRead, CreatedByUpdatedByMixin, CreationMixin, AuthorizationMixin):

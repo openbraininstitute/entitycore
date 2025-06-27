@@ -1174,7 +1174,7 @@ class ImportMEModel(Import):
             if rm:
                 continue
             if utils.is_ignored(legacy_id, project_ids):
-                L.warning("ignored data {data}")
+                L.warning("ignored data {}", data)
                 continue
             hierarchy_name = curate.curate_hierarchy_name(hierarchy_name)
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
@@ -1302,7 +1302,7 @@ class ImportSynaptome(Import):
                 continue
 
             if utils.is_ignored(legacy_id, project_ids):
-                L.warning("ignored data {data}")
+                L.warning("ignored data {}", data)
                 continue
             hierarchy_name = curate.curate_hierarchy_name(hierarchy_name)
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
@@ -1359,7 +1359,7 @@ class ImportSingleNeuronSimulation(Import):
                 continue
 
             if utils.is_ignored(legacy_id, project_ids):
-                L.warning("ignored data {data}")
+                L.warning("ignored data {}", data)
                 continue
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
@@ -1428,7 +1428,7 @@ class ImportSingleNeuronSynaptomeSimulation(Import):
                 continue
 
             if utils.is_ignored(legacy_id, project_ids):
-                L.warning("ignored data {data}")
+                L.warning("ignored data {}", data)
                 continue
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 

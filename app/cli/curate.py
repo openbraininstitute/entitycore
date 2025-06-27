@@ -1,6 +1,7 @@
 import datetime
 import re
 
+from app.cli import utils
 from app.cli.brain_region_data import BRAIN_REGION_REPLACEMENTS
 from app.logger import L
 
@@ -531,10 +532,7 @@ def curate_morphology(data):
             },
         }
     if data.get("name", "") in HUMAN_DATA_FIX:
-        annotations = data["annotation"]
-        if not isinstance(annotations, list):
-            annotations = [annotations]
-            data["annotations"] = annotations
+        annotations = utils.ensurelist(data["annotation"])
         for annotation in annotations:
             if "MTypeAnnotation" in annotation["@type"]:
                 annotation["hasBody"]["label"] = HUMAN_DATA_FIX[data["name"]]

@@ -538,6 +538,7 @@ def curate_morphology(data):
         for annotation in annotations:
             if "MTypeAnnotation" in annotation["@type"]:
                 annotation["hasBody"]["label"] = HUMAN_DATA_FIX[data["name"]]
+                # making sure annotation resolution is not going to match on the @id
                 annotation["hasBody"]["@id"] = "INVALID"
 
     return data

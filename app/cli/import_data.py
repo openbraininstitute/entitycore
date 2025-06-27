@@ -2197,14 +2197,11 @@ def assign_project(project_ids):
         project_ids = dict(line.strip().split(",") for line in f)
 
     matching_projects = set()
-    to_delete = set()
-    type_to_delete = list()
     with (
         closing(configure_database_session_manager()) as database_session_manager,
         database_session_manager.session() as db,
     ):
         rows = db.query(Entity).all()
-        # legacy_mmb_url = 'https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model'
         non_public_data = "https://openbluebrain.com"
         for row in tqdm(rows):
             matching_project = None
@@ -2220,18 +2217,9 @@ def assign_project(project_ids):
                         break
                 if matching_project:
                     row.authorized_public = False
-                    # matching_project = "462ace35-28b4-45e3-8db0-9a7a18093e83"
                     row.authorized_project_id = uuid.UUID(matching_project)
                     db.flush()
                     break
-            if not matching_project:
-                for row_legacy_id_elem in row_legacy_id:
-                    if non_public_data in row_legacy_id_elem:
-                        to_delete.add(row.id)
-                        type_to_delete.append(row.type)
-                        break
-        c = Counter(type_to_delete)
-        L.info("number of entities to delete (w/o vlab) {}", c)
 
         db.commit()
         # MTypeClassification and ETypeClassification are public so nothing to do
@@ -2250,12 +2238,7 @@ def assign_project(project_ids):
         for entity in entities_with_asset:
             entity_project_id = str(entity.authorized_project_id)
             for asset in entity.assets:
-                if entity.id in to_delete:
-                    asset_to_delete.add(asset.id)
-                    continue
                 virtual_lab_id = project_ids[entity_project_id]
-                # virtual_lab_id = "ff888f05-f314-4702-8a92-b86f754270bb"
-                # entity_project_id = "462ace35-28b4-45e3-8db0-9a7a18093e83"
                 document_name = "/".join(asset.full_path.split("/")[3:])
                 asset.full_path = f"private/{virtual_lab_id}/{entity_project_id}/{document_name}"
         db.commit()

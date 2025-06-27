@@ -468,6 +468,15 @@ class Entity(LegacyMixin, Identifiable):
             Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
         ),
     )
+    generated_by: Mapped[list["Activity"]] = relationship(
+        "Activity",
+        secondary="usage",
+        primaryjoin="Entity.id == usage.c.usage_entity_id",
+        secondaryjoin="Activity.id == usage.c.usage_activity_id",
+        uselist=True,
+        viewonly=True,
+        lazy="selectin",
+    )
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,

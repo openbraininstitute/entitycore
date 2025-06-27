@@ -5,6 +5,7 @@
 | cell\_composition                     | cell\_composition\_summary                        | application/json   | .json           | Region/mtype/etype densities summary                                             |
 | cell\_composition                     | cell\_composition\_volumes                        | application/json   | .json           | mtype/etype voxel densities composition                                          |
 | circuit                               | sonata\_circuit                                   | N/A                | N/A (directory) | SONATA circuit, but have a circuit\_config.json in the root of the directory     |
+| circuit                               | simulation\_designer\_image                       | image/png          | .png            | Circuit image used by simulation designer GUI                                    |
 | electrical\_cell\_recording           | nwb                                               | application/nwb    | .nwb            | Electrophysiological timeseries data                                             |
 | emodel                                | emodel\_optimization\_output                      | application/json   | .json           | Electrical model optimized parameters, and electrical feature: values and scores |
 | emodel                                | neuron\_hoc                                       | application/hoc    | .hoc            | Electrical model NEURON template                                                 |

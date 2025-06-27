@@ -39,7 +39,7 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import AssetStatus, EntityType, Sex
+from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, Sex
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.schemas.ion_channel_model import NeuronBlock
@@ -379,12 +379,15 @@ def get_or_create_distribution(
     }:
         L.warning(f"ignoring distribution: {distribution} unknown content-type")
         return
+
+    name = distribution["name"]
+
     full_path = build_s3_path(
         vlab_id=project_context.virtual_lab_id,
         proj_id=project_context.project_id,
         entity_type=EntityType[entity_type],
         entity_id=entity_id,
-        filename=distribution["name"],
+        filename=name,
         is_public=AUTHORIZED_PUBLIC,
     )
     query: sa.Select = sa.Select(Asset).where(Asset.full_path == full_path)
@@ -397,9 +400,14 @@ def get_or_create_distribution(
             "Conflicting distribution for ids {}, {}: {}", row.entity_id, entity_id, full_path
         )
         return
+
+    if not (label := create_asset_label(entity_type, name, content_type)):
+        return
+
     asset = Asset(
         status=AssetStatus.CREATED,
-        path=distribution["name"],
+        path=name,
+        label=label,
         full_path=full_path,
         is_directory=False,
         content_type=distribution["encodingFormat"],
@@ -412,6 +420,82 @@ def get_or_create_distribution(
     )
     db.add(asset)
     db.commit()
+
+
+def create_asset_label(entity_type, name, content_type) -> AssetLabel | None:
+    """Return asset label or None if the asset should be skipped."""
+    content_type_to_label = {
+        EntityType.brain_atlas: {
+            ContentType.nrrd: AssetLabel.brain_atlas_annotation,
+        },
+        EntityType.brain_atlas_region: {
+            ContentType.obj: AssetLabel.brain_region_mesh,
+        },
+        EntityType.cell_composition: {
+            ContentType.json: [
+                (lambda name: "summary" in name, AssetLabel.cell_composition_summary),
+                (lambda name: "summary" not in name, AssetLabel.cell_composition_volumes),
+            ]
+        },
+        EntityType.electrical_cell_recording: {
+            ContentType.nwb: AssetLabel.nwb,
+            ContentType.abf: None,
+            ContentType.h5: AssetLabel.nwb,
+        },
+        EntityType.emodel: {
+            ContentType.hoc: AssetLabel.neuron_hoc,
+            ContentType.json: [
+                (lambda name: "EMS__emodel" in name, None),
+                (lambda name: "EM__emodel" in name, AssetLabel.emodel_optimization_output),
+            ],
+        },
+        EntityType.ion_channel_model: {
+            ContentType.mod: AssetLabel.neuron_mechanisms,
+        },
+        EntityType.me_type_density: {
+            ContentType.nrrd: AssetLabel.voxel_densities,
+        },
+        EntityType.reconstruction_morphology: {
+            ContentType.swc: AssetLabel.morphology,
+            ContentType.h5: AssetLabel.morphology,
+            ContentType.asc: AssetLabel.morphology,
+            ContentType.obj: None,
+        },
+        EntityType.single_neuron_synaptome: {
+            ContentType.json: AssetLabel.single_neuron_synaptome_config,
+        },
+        EntityType.single_neuron_synaptome_simulation: {
+            ContentType.json: AssetLabel.single_neuron_synaptome_simulation_data,
+        },
+        EntityType.single_neuron_simulation: {
+            ContentType.json: AssetLabel.single_cell_simulation_data
+        },
+        EntityType.validation_result: {
+            ContentType.pdf: AssetLabel.validation_result_figure,
+            ContentType.png: AssetLabel.validation_result_figure,
+            ContentType.text: AssetLabel.validation_result_details,
+        },
+    }
+
+    try:
+        label_or_matchers = content_type_to_label[entity_type][content_type]
+    except Exception as e:
+        msg = f"Could not find label for ({entity_type}, {content_type}, {name})"
+        raise ValueError(msg) from e
+
+    # we do not want this to be included in the distributions
+    if label_or_matchers is None:
+        return None
+
+    if isinstance(label_or_matchers, AssetLabel):
+        return label_or_matchers
+
+    for matcher, label in label_or_matchers:
+        if matcher(name):
+            return label
+
+    msg = f"Could not find label for ({entity_type}, {content_type}, {name})"
+    raise ValueError(msg)
 
 
 def find_id_in_entity(entity: dict | None, type_: str, entity_list_key: str):

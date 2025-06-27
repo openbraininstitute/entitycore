@@ -212,49 +212,69 @@ HUMAN_DATA_FIX = {
     "5541328846": "Inhibitory neuron",
     "42542320769": "Pyramidal neuron",
     "2062684707": "Pyramidal neuron",
-    "1 Human Temp A20 ID AB1 porta11 sec1 capa3 cel 6-soma z corr 1,7-annotated_OK cell body": "L3_PC",
-    "11 Human Temp A20 ID AB1 porta11 sec1 capa3 cel 8-soma z corr 1,7-annotated_OK no err": "L3_PC",
-    "12 Human Temp A20 ID AB1 porta11 sec1 capa3 cel 10-soma z corr 1,7-annotated_OK no err": "L3_PC",
-    "13 Human temp a20 idab1 porta19 sec1 cel11-soma z corr 1,7-annotated_OK cell body_thick ending_disjoint branch": "L3_PC",
-    "14\xa0 human temp a20 idab2 bl 14 bd3 n18 cel14-soma-corr1,7z-annotated_OK disjoint branch": "L3_PC",
+    "1 Human Temp A20 ID AB1 porta11 sec1 capa3 cel 6-soma z corr 1,7-annotated_OK "
+    "cell body": "L3_PC",
+    "11 Human Temp A20 ID AB1 porta11 sec1 capa3 cel 8-soma z corr "
+    "1,7-annotated_OK no err": "L3_PC",
+    "12 Human Temp A20 ID AB1 porta11 sec1 capa3 cel 10-soma z corr 1,7-annotated_OK "
+    "no err": "L3_PC",
+    "13 Human temp a20 idab1 porta19 sec1 cel11-soma z corr 1,7-annotated_OK cell "
+    "body_thick ending_disjoint branch": "L3_PC",
+    "14\xa0 human temp a20 idab2 bl 14 bd3 n18 cel14-soma-corr1,7z-annotated_OK "
+    "disjoint branch": "L3_PC",
     "15 Human temp idif10 porta1 sec1 cel15-soma z corr 1-annotated_OK cell body": "L3_PC",
     "16 Human temp idif10 porta2 sec1 cel4-soma z corr 1-annotated_OK no err": "L3_PC",
     "17 Human temp idif10 porta2 sec1 cel18-soma z corr 1-annotated_OK cell body": "L3_PC",
     "18 human temp idif12 porta2 sec1 cel8-soma-corr1,7z-annotated_OK cell body": "L3_PC",
-    "19 Human temp idm16 porta1 sec1 cel2-somaz corr 1,7-annotated_OK cel body_false nodes_corr api ini": "L3_PC",
-    "20 Human temp a20 idab1 porta19 sec1 cel26-soma z corr 1,7-annotated_OK thick ending_trifur false branch": "L3_PC",
+    "19 Human temp idm16 porta1 sec1 cel2-somaz corr 1,7-annotated_OK cel body_false "
+    "nodes_corr api ini": "L3_PC",
+    "20 Human temp a20 idab1 porta19 sec1 cel26-soma z corr 1,7-annotated_OK thick "
+    "ending_trifur false branch": "L3_PC",
     "21 human temp a20 idab1 porta11 sec1 cel7 soma-corr1,7z-annotated_OK false node": "L3_PC",
-    "22 human temp a20 idab1 porta19 sec1 cel10 soma-corr1,7z-annotated_OK cell body_false nodes": "L3_PC",
+    "22 human temp a20 idab1 porta19 sec1 cel10 soma-corr1,7z-annotated_OK "
+    "cell body_false nodes": "L3_PC",
     "23 human temp a20 idab1 porta19 sec1 cel12 soma-corr1,7z-annotated_OK no err": "L3_PC",
     "24 human temp a20 idab1 porta19 sec1 cel17 soma-corr1,7z-annotated_OK false nodes": "L3_PC",
     "25 human temp a20 idab1 porta19 sec1 cel18 soma-corr1,7z-annotated_OK no err": "L3_PC",
-    "26 human temp a20 idab1 porta19 sec1 cel20 soma-corr1,7z-annotated_OK cell body_thick ending_false node": "L3_PC",
+    "26 human temp a20 idab1 porta19 sec1 cel20 soma-corr1,7z-annotated_OK "
+    "cell body_thick ending_false node": "L3_PC",
     "27 human temp a20 idab1 porta19 sec1 cel21 soma-corr1,7z-annotated_OK no err": "L3_PC",
     "28 human temp a20 idab1 porta19 sec1 cel22 soma-corr1,7z-annotated_OK corr ax ini": "L3_PC",
     "29 human temp a20 idab1 porta19 sec1 cel24 soma-corr1,7z-annotated_OK false node": "L3_PC",
-    "3 Human temp a20 idab2 bl14 bd3 n18 cel17-soma z corr 1,7-annotated_OK false nodes_false trifur": "L3_PC",
-    "30 human temp a20 idab1 porta19 sec1 cel26 soma-corr1,7z-annotated_OK thick ending_false node": "L3_PC",
+    "3 Human temp a20 idab2 bl14 bd3 n18 cel17-soma z corr 1,7-annotated_OK "
+    "false nodes_false trifur": "L3_PC",
+    "30 human temp a20 idab1 porta19 sec1 cel26 soma-corr1,7z-annotated_OK "
+    "thick ending_false node": "L3_PC",
     "31 human temp a20 idab1 porta19 sec1 cel27 soma-corr1,7z-annotated_OK cell body": "L3_PC",
-    "32 human temp a20 idab2 bl14 bd3 n15 cel2 soma-corr1,7z-annotated_OK cell body_false node": "L3_PC",
+    "32 human temp a20 idab2 bl14 bd3 n15 cel2 soma-corr1,7z-annotated_OK "
+    "cell body_false node": "L3_PC",
     "33 human temp a20 idab2 bl14 bd3 n15 cel8 soma-corr1,7z-annotated_OK thick endings": "L3_PC",
     "34 human temp a20 idab2 bl14 bd3 n18 cel12 soma-corr1,7z-annotated_OK no err": "L3_PC",
-    "35 human temp a20 idab2 bl14 bd3 n18 cel13 soma-corr1,7z-annotated_OK cell body_thick ending_false node_2 false branch": "L3_PC",
-    "36 human temp a20 idab2 bl14 bd3 n18 cel15 soma-corr1,7z-annotated_OK cell body_false node": "L3_PC",
-    "37 human temp a20 idab2 bl14 bd3 n18 cel16 soma-corr1,7z-annotated_OK cell body_err ini basal_ false node": "L3_PC",
+    "35 human temp a20 idab2 bl14 bd3 n18 cel13 soma-corr1,7z-annotated_OK cell body_thick "
+    "ending_false node_2 false branch": "L3_PC",
+    "36 human temp a20 idab2 bl14 bd3 n18 cel15 soma-corr1,7z-annotated_OK "
+    "cell body_false node": "L3_PC",
+    "37 human temp a20 idab2 bl14 bd3 n18 cel16 soma-corr1,7z-annotated_OK cell body_err "
+    "ini basal_ false node": "L3_PC",
     "38 human temp a20 idab2 bl14 bd3 n18 cel21 soma-corr1,7z-annotated_OK cell body": "L3_PC",
     "39 human temp a20 idab2 bl14 bd3 n18 sec1 cel4 soma-corr1,7z-annotated_OK no err": "L3_PC",
     "40 human temp a20 idab2 bl14 bd3 n18 sec1 cel11 soma-corr1,7z-annotated_OK no err": "L3_PC",
-    "41 human temp a20 idab2 bl14 bd3 n18 sec1 cel18 soma-corr1,7z-annotated_OK thick ending": "L3_PC",
-    "42 human temp a20 idab2 bl14 bd3 n18 sec1 cel19 soma-corr1,7z-annotated_OK cell body_false node": "L3_PC",
+    "41 human temp a20 idab2 bl14 bd3 n18 sec1 cel18 soma-corr1,7z-annotated_OK "
+    "thick ending": "L3_PC",
+    "42 human temp a20 idab2 bl14 bd3 n18 sec1 cel19 soma-corr1,7z-annotated_OK "
+    "cell body_false node": "L3_PC",
     "43 human temp a20 idab2 bl14 bd3 n18 sec1 cel20 soma-corr1,7z-annotated_OK no err": "L3_PC",
     "44 human temp idif6 porta1 sec1 cel3 soma-corr1,7z-annotated_OK cell body_false node": "L3_PC",
     "45 human temp idif6 porta1 sec1 cel4 soma-corr1,7z-annotated_OK thick ending": "L3_PC",
     "46 human temp idif6 porta1 sec1 cel5 soma-corr1,7z-annotated_OK false nodes": "L3_PC",
     "47 human temp idif6 porta1 sec1 cel7 soma-corr1,7z-annotated_OK no err_corr ini ax": "L3_PC",
-    "48 human temp idif6 porta1 sec1 cel14 soma-corr1,7z-annotated_OK cell body_thick ending_false node": "L3_PC",
+    "48 human temp idif6 porta1 sec1 cel14 soma-corr1,7z-annotated_OK cell body_thick "
+    "ending_false node": "L3_PC",
     "49 human temp idif6 porta1 sec1 cel15 soma-corr1,7z-annotated_OK corr basal ini": "L3_PC",
-    "50 human temp idif6 porta2 sec1 cel4 soma-corr1,7z-annotated 2 nodes, 1 trifur, fat end-annotated OK": "L3_PC",
-    "51 human temp idif6 porta2 sec1 cel6 soma-corr1,7z-annotated 3 nodes, 2 narr st, end L": "L3_PC",
+    "50 human temp idif6 porta2 sec1 cel4 soma-corr1,7z-annotated 2 nodes, 1 trifur, "
+    "fat end-annotated OK": "L3_PC",
+    "51 human temp idif6 porta2 sec1 cel6 soma-corr1,7z-annotated 3 nodes, "
+    "2 narr st, end L": "L3_PC",
     "52 human temp idif6 porta2 sec1 cel7 soma-corr1,7z-annotated ok": "L3_PC",
     "53 human temp idif6 porta2 sec1 cel8 soma-corr1,7z-annotated fat end": "L3_PC",
     "54 human temp idif6 porta2 sec1 cel10 soma-corr1,7z-annotated 1 node, err points": "L3_PC",
@@ -263,10 +283,12 @@ HUMAN_DATA_FIX = {
     "58 human temp idif10 porta1 sec1 cel5 soma-corr1z-annotated narr st": "L3_PC",
     "59 human temp a20 idab1 porta19 sec1 cel25 soma-corr1,7z-annotated narr st": "L3_PC",
     "6 Human temp idm 16 porta1 sec1 cel10-soma z corr 1,7-annotated_OK false node": "L3_PC",
-    "61 human temp idif10 porta1 sec1 cel10 soma-corr1z-annotated 1node, 2 fat end, 2 nar st": "L3_PC",
+    "61 human temp idif10 porta1 sec1 cel10 soma-corr1z-annotated 1node, 2 fat end, "
+    "2 nar st": "L3_PC",
     "62 human temp idif10 porta1 sec1 cel12 soma-corr1z-annotated 1 node": "L3_PC",
     "63 human temp idif10 porta1 sec1 cel18 soma-corr1z-annotated narr st, end G": "L3_PC",
-    "64 human temp idif10 porta1 sec1 cel24 soma-corr1z-annotated narr st, fat end, 1 trif": "L3_PC",
+    "64 human temp idif10 porta1 sec1 cel24 soma-corr1z-annotated narr st, "
+    "fat end, 1 trif": "L3_PC",
     "65 human temp idif10 porta1 sec1 cel26 soma-corr1z-annotated narr st, 1 node": "L3_PC",
     "66 human temp idif10 porta2 sec1 cel6 soma-corr1z-annotated narr st, 1 node": "L3_PC",
     "67 human temp idif10 porta2 sec1 cel7 soma-corr1z-annotated narr st, 1 node": "L3_PC",
@@ -276,8 +298,10 @@ HUMAN_DATA_FIX = {
     "72 human temp idif10 porta2 sec1 cel14 soma-corr1z-annotated narr st": "L3_PC",
     "74 human temp idif12 porta1 sec1 cel11 soma-corr1,7z-annotated 1 node": "L3_PC",
     "75 human temp idif12 porta1 sec1 cel19 soma-corr1,7z-annotated fat end": "L3_PC",
-    "76 human temp idif12 porta2 sec1 cel16 soma-corr1,7z-annotated 2 narr st, fat end, 2 false branch, end G": "L3_PC",
-    "77 human temp idif12 porta2 sec1 cel17 soma-corr1,7z-annotated 4 narr st, corr 1 branch": "L3_PC",
+    "76 human temp idif12 porta2 sec1 cel16 soma-corr1,7z-annotated 2 narr st, fat end, "
+    "2 false branch, end G": "L3_PC",
+    "77 human temp idif12 porta2 sec1 cel17 soma-corr1,7z-annotated 4 narr st, corr 1 "
+    "branch": "L3_PC",
     "78 human temp idif12 porta2 sec1 cel22 soma-corr1,7z-annotated 3 narr st, 1 node": "L3_PC",
     "8 human temp idif6 porta 2 capa3 cel15-soma-corr1,7z-annotated_OK cell body": "L3_PC",
     "80 human temp idm16 porta1 sec1 cel3 soma-corr1,7z-annotated 1 narr st": "L3_PC",
@@ -286,7 +310,8 @@ HUMAN_DATA_FIX = {
     "83 human temp idm16 porta1 sec1 cel12 soma-corr1,7z-annotated ok": "L3_PC",
     "84 human temp idm16 porta1 sec1 cel13 soma-corr1,7z-annotated false node": "L3_PC",
     "86 human temp idm16 porta1 sec1 cel15 soma-corr1,7z-annotated ok": "L3_PC",
-    "87 human temp idm16 porta3 sec1 cel 25 soma-corr1,7z-annotated narr st, 2 false nodes, 1 false branch": "L3_PC",
+    "87 human temp idm16 porta3 sec1 cel 25 soma-corr1,7z-annotated narr st, 2 false nodes, 1 "
+    "false branch": "L3_PC",
     "88 human temp idm16 porta3 sec1 cel7 soma-corr1,7z-annotated false node": "L3_PC",
     "89 human temp idm16 porta3 sec1 cel8 soma-corr1,7z-annotated ending G": "L3_PC",
     "90 human temp idm16 porta3 sec1 cel8bis soma-corr1,7z-annotated narr st, fat end": "L3_PC",
@@ -494,23 +519,6 @@ HUMAN_DATA_FIX = {
     "H22.29.214.11.71.05": "L23_PC",
     "H22.29.219.11.72.01": "L4_PC",
 }
-#  "annotation": [
-#             {
-#                 "@type": [
-#                     "Annotation",
-#                     "MTypeAnnotation"
-#                 ],
-#                 "hasBody": {
-#                     "@id": "https://scicrunch.org/scicrunch/interlex/view/ilx_0109553?searchTerm=pyramidal%20neuron",
-#                     "@type": [
-#                         "MType",
-#                         "AnnotationBody"
-#                     ],
-#                     "label": "Pyramidal neuron",
-#                     "prefLabel": "Pyramidal neuron"
-#                 },
-#                 "name": "M-type Annotation"
-#             },
 
 
 def curate_morphology(data):
@@ -525,12 +533,11 @@ def curate_morphology(data):
         annotations = data["annotation"]
         if not isinstance(annotations, list):
             annotations = [annotations]
-            data["annotations"]=annotations
+            data["annotations"] = annotations
         for annotation in annotations:
             if "MTypeAnnotation" in annotation["@type"]:
                 annotation["hasBody"]["label"] = HUMAN_DATA_FIX[data["name"]]
-                annotation['hasBody']['@id']='INVALID'
-                # annotation["hasBody"]["prefLabel"] = HUMAN_DATA_FIX[data["name"]]
+                annotation["hasBody"]["@id"] = "INVALID"
 
     return data
 

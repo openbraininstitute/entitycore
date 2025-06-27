@@ -391,7 +391,14 @@ class Import(ABC):
 
     @staticmethod
     @abstractmethod
-    def ingest(db, project_context, data_list, all_data_by_id: dict[str, Any], hierarchy_name: str, project_ids):
+    def ingest(
+        db,
+        project_context,
+        data_list,
+        all_data_by_id: dict[str, Any],
+        hierarchy_name: str,
+        project_ids,
+    ):
         """data that is passes `is_correct_type` will be fed to this to ingest into `db`"""
 
 
@@ -529,7 +536,7 @@ class ImportLicense(Import):
         data_list: list[dict],
         all_data_by_id: dict[str, dict],
         hierarchy_name: str,
-        project_ids
+        project_ids,
     ):
         for data in tqdm(data_list):
             curate.curate_license(data)
@@ -573,7 +580,7 @@ class ImportMTypeAnnotation(Import):
         data_list: list[dict],
         all_data_by_id: dict[str, dict],
         hierarchy_name: str,
-        project_ids
+        project_ids,
     ):
         import_mtype_annotation_body(data_list, db)
 
@@ -592,7 +599,7 @@ class ImportETypeAnnotation(Import):
         data_list: list[dict],
         all_data_by_id: dict[str, dict],
         hierarchy_name: str,
-        project_ids
+        project_ids,
     ):
         import_etype_annotation_body(data_list, db)
 
@@ -657,7 +664,7 @@ class ImportEModels(Import):
         data_list: list[dict],
         all_data_by_id: dict[str, dict],
         hierarchy_name: str,
-        project_ids
+        project_ids,
     ):
         for data in tqdm(data_list):
             legacy_id = data["@id"]
@@ -771,7 +778,7 @@ class ImportEModelDerivations(Import):
         data_list: list[dict],
         all_data_by_id: dict[str, dict],
         hierarchy_name: str,
-        project_ids
+        project_ids,
     ):
         """Import emodel derivations from EModelWorkflow."""
         legacy_emodel_ids = set()
@@ -1168,7 +1175,7 @@ class ImportMEModel(Import):
             if rm:
                 continue
             if utils.is_ignored(legacy_id, project_ids):
-                L.warning('ignored data {data}')
+                L.warning("ignored data {data}")
                 continue
             hierarchy_name = curate.curate_hierarchy_name(hierarchy_name)
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
@@ -1296,7 +1303,7 @@ class ImportSynaptome(Import):
                 continue
 
             if utils.is_ignored(legacy_id, project_ids):
-                L.warning('ignored data {data}')
+                L.warning("ignored data {data}")
                 continue
             hierarchy_name = curate.curate_hierarchy_name(hierarchy_name)
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
@@ -1353,7 +1360,7 @@ class ImportSingleNeuronSimulation(Import):
                 continue
 
             if utils.is_ignored(legacy_id, project_ids):
-                L.warning('ignored data {data}')
+                L.warning("ignored data {data}")
                 continue
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
@@ -1422,7 +1429,7 @@ class ImportSingleNeuronSynaptomeSimulation(Import):
                 continue
 
             if utils.is_ignored(legacy_id, project_ids):
-                L.warning('ignored data {data}')
+                L.warning("ignored data {data}")
                 continue
             brain_region_id = utils.get_brain_region(data, hierarchy_name, db)
 
@@ -1482,7 +1489,7 @@ class ImportMETypeDensity(Import):
         data_list: list[dict],
         all_data_by_id: dict,
         hierarchy_name: str,
-        project_ids
+        project_ids,
     ):
         for data in tqdm(data_list):
             if not ("atlasRelease" in data and data["atlasRelease"]["@id"] == BRAIN_ATLAS_ID):
@@ -1545,7 +1552,7 @@ class ImportCellComposition(Import):
         data_list: list[dict],
         all_data_by_id: dict,
         hierarchy_name: str,
-        project_ids
+        project_ids,
     ):
         for data in tqdm(data_list):
             legacy_id, legacy_self = data["@id"], data["_self"]
@@ -1618,7 +1625,7 @@ class ImportDistribution(Import):
         data_list: list[dict],
         all_data_by_id: dict,
         hierarchy_name: str,
-        project_ids
+        project_ids,
     ):
         ignored: dict[tuple[dict], int] = Counter()
         for data in tqdm(data_list):
@@ -2252,7 +2259,6 @@ def assign_project(project_ids):
                 document_name = "/".join(asset.full_path.split("/")[3:])
                 asset.full_path = f"private/{virtual_lab_id}/{entity_project_id}/{document_name}"
         db.commit()
-
 
     L.info(
         "{} projects assigned / {} existing projects",

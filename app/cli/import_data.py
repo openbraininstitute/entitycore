@@ -933,7 +933,7 @@ class ImportBrainAtlas(Import):
                 db.commit()
 
             utils.import_distribution(
-                mesh, atlas_region.id, EntityType.brain_atlas, db, project_context
+                mesh, atlas_region.id, EntityType.brain_atlas_region, db, project_context
             )
 
 
@@ -1872,11 +1872,11 @@ def _do_import(db, input_dir, project_context, hierarchy_name, project_ids):
         ImportExperimentalBoutonDensity,
         ImportExperimentalSynapsesPerConnection,
         ImportMEModel,
-        ImportValidationResult,
         ImportSynaptome,
         ImportElectricalCellRecording,
         ImportSingleNeuronSimulation,
         ImportSingleNeuronSynaptomeSimulation,
+        ImportValidationResult,
         ImportBrainAtlas,
         ImportDistribution,
         ImportNeuronMorphologyFeatureAnnotation,

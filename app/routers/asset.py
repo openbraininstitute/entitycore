@@ -80,8 +80,8 @@ def upload_entity_asset(
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     file: UploadFile,
+    label: Annotated[AssetLabel, Form()],
     meta: Annotated[dict | None, Form()] = None,
-    label: Annotated[AssetLabel | None, Form()] = None,
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 

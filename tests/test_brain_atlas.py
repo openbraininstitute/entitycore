@@ -68,7 +68,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             client,
             EntityType.brain_atlas,
             brain_atlas0.id,
-            files={"file": ("c.txt", f, "text/plain")},
+            files={"file": ("annotation.nrrd", f, "application/nrrd")},
+            label="brain_atlas_annotation",
         )
     brain_atlas1 = utils.add_db(
         db,
@@ -86,13 +87,13 @@ def test_brain_atlas(db, client, species_id, person_id):
     expected = {
         "assets": [
             {
-                "content_type": "text/plain",
+                "content_type": "application/nrrd",
                 "full_path": ANY,
                 "id": ANY,
                 "is_directory": False,
-                "label": None,
+                "label": "brain_atlas_annotation",
                 "meta": {},
-                "path": "c.txt",
+                "path": "annotation.nrrd",
                 "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",
                 "size": 31,
                 "status": "created",
@@ -146,7 +147,8 @@ def test_brain_atlas(db, client, species_id, person_id):
                 client,
                 EntityType.brain_atlas_region,
                 entity_id=ids[brain_atlas.name, name].id,
-                files={"file": ("c.txt", f, "text/plain")},
+                files={"file": ("mesh.obj", f, "application/obj")},
+                label="brain_region_mesh",
             ).raise_for_status()
 
     response = client.get(
@@ -154,13 +156,13 @@ def test_brain_atlas(db, client, species_id, person_id):
     )
     assert response.status_code == 200
     expected_asset = {
-        "content_type": "text/plain",
+        "content_type": "application/obj",
         "full_path": ANY,
         "id": ANY,
         "is_directory": False,
-        "label": None,
+        "label": "brain_region_mesh",
         "meta": {},
-        "path": "c.txt",
+        "path": "mesh.obj",
         "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",
         "size": 31,
         "status": "created",

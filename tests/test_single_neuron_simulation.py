@@ -54,7 +54,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
             EntityType.single_neuron_simulation,
             data["id"],
             label=AssetLabel.single_cell_simulation_data,
-            files={"file": ("c.txt", f, "text/plain")},
+            files={"file": ("c.json", f, "application/json")},
         )
     assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"

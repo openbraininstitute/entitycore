@@ -970,7 +970,7 @@ def get_or_create_admin(db, _cache={}):
 
     admin = Person(
         id=admin_id,
-        pref_label="Admin",
+        pref_label="OBI",
         created_by_id=admin_id,
         updated_by_id=admin_id,
     )

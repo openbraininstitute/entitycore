@@ -554,9 +554,7 @@ class MEModel(
         ForeignKey(f"{EntityType.reconstruction_morphology}.id")
     )
 
-    morphology = relationship(
-        "CellMorphology", foreign_keys=[morphology_id], uselist=False
-    )
+    morphology = relationship("CellMorphology", foreign_keys=[morphology_id], uselist=False)
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 

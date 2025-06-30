@@ -88,9 +88,7 @@ def test_construct_model_reconstruction_morphology(brain_region_id, person_id):
         assert r.name == reconstruction_morphology["name"]
         assert r.location == reconstruction_morphology["location"]
 
-    result = test_module.construct_model(
-        model_cls=CellMorphology, data=reconstruction_morphology
-    )
+    result = test_module.construct_model(model_cls=CellMorphology, data=reconstruction_morphology)
     _check_result(result)
 
     json_model = CellMorphologyCreate.model_validate(reconstruction_morphology)

@@ -36,7 +36,7 @@ def _load(query: sa.Select):
         joinedload(SimulationCampaign.updated_by),
         selectinload(SimulationCampaign.assets),
         selectinload(SimulationCampaign.contributions),
-        selectinload(SimulationCampaign.simulations).selectinload(Simulation.generated_by),
+        selectinload(SimulationCampaign.simulations).selectinload(Simulation.used_by),
         raiseload("*"),
     )
 

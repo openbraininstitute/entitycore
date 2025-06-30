@@ -468,7 +468,8 @@ class Entity(LegacyMixin, Identifiable):
             Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
         ),
     )
-    generated_by: Mapped[list["Activity"]] = relationship(
+
+    used_by: Mapped[list["Activity"]] = relationship(
         "Activity",
         secondary="usage",
         primaryjoin="Entity.id == usage.c.usage_entity_id",

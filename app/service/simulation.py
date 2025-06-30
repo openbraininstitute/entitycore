@@ -35,7 +35,7 @@ def _load(query: sa.Select):
         joinedload(Simulation.updated_by),
         selectinload(Simulation.assets),
         selectinload(Simulation.contributions),
-        selectinload(Simulation.generated_by),
+        selectinload(Simulation.used_by),
         raiseload("*"),
     )
 

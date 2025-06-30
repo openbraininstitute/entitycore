@@ -48,7 +48,7 @@ class SingleNeuronSimulationRead(
     CreatedByUpdatedByMixin,
 ):
     me_model: NestedMEModel
-    generated_by: list[NestedActivityRead]
+    used_by: list[NestedActivityRead]
 
 
 class SingleNeuronSynaptomeSimulationCreate(
@@ -70,7 +70,7 @@ class SingleNeuronSynaptomeSimulationRead(
     CreatedByUpdatedByMixin,
 ):
     synaptome: NestedSynaptome
-    generated_by: list[NestedActivityRead]
+    used_by: list[NestedActivityRead]
 
 
 class SimulationBase(BaseModel):
@@ -94,7 +94,7 @@ class UsageRead(BaseModel):
 
 
 class NestedSimulationRead(SimulationBase, EntityTypeMixin, IdentifiableMixin):
-    generated_by: list[NestedActivityRead]
+    used_by: list[NestedActivityRead]
 
 
 class SimulationRead(

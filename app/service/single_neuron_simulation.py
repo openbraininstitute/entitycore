@@ -27,7 +27,7 @@ def _load(query: sa.Select):
         joinedload(SingleNeuronSimulation.created_by),
         joinedload(SingleNeuronSimulation.updated_by),
         selectinload(SingleNeuronSimulation.assets),
-        selectinload(SingleNeuronSimulation.generated_by),
+        selectinload(SingleNeuronSimulation.used_by),
         raiseload("*"),
     )
 

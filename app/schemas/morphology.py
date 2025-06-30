@@ -24,7 +24,7 @@ from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 class ExperimentalMorphologyMethod(BaseModel):
     """Experimental morphology method for capturing cell morphology data.
-        
+
     Parameters:
     -----------
     protocol_design: str
@@ -44,6 +44,7 @@ class ExperimentalMorphologyMethod(BaseModel):
     has_been_corrected_for_shrinkage: bool, optional
         Whether data has been corrected for shrinkage
     """
+
     protocol_design: str
     staining_method: str
     slicing_thickness: float

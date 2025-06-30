@@ -48,6 +48,7 @@ from app.utils.uuid import create_uuid
 
 AUTHORIZED_PUBLIC = True
 ADMIN = None
+ADMIN_NAME = "OBI"
 
 
 def ensurelist(x):
@@ -962,7 +963,7 @@ def get_or_create_admin(db, _cache={}):
         return _cache["admin"]
 
     # Admin already in db but not in global yet
-    if admin := db.query(Person).filter(Person.pref_label == "Admin").first():
+    if admin := db.query(Person).filter(Person.pref_label == ADMIN_NAME).first():
         _cache["admin"] = admin
         return admin
 
@@ -970,7 +971,7 @@ def get_or_create_admin(db, _cache={}):
 
     admin = Person(
         id=admin_id,
-        pref_label="Admin",
+        pref_label=ADMIN_NAME,
         created_by_id=admin_id,
         updated_by_id=admin_id,
     )

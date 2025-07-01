@@ -1,7 +1,6 @@
-import uuid
 from unittest.mock import ANY
 
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT
+from tests.utils import ADMIN_SUB_ID, MISSING_ID, MISSING_ID_COMPACT
 
 ROUTE = "/person"
 
@@ -41,7 +40,7 @@ def test_create_person(client, client_admin):
     assert created_from_data["sub_id"] is None
 
     assert created_from_token["pref_label"] == "Admin User"
-    assert created_from_token["sub_id"] == str(uuid.UUID(int=1))
+    assert created_from_token["sub_id"] == str(ADMIN_SUB_ID)
 
     # If register again only the data agent added and the token agent is reused
     response = client_admin.post(

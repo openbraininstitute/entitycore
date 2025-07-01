@@ -44,6 +44,7 @@ from app.schemas.auth import UserContext, UserProfile
 
 from . import utils
 from .utils import (
+    ADMIN_SUB_ID,
     AUTH_HEADER_ADMIN,
     AUTH_HEADER_USER_1,
     AUTH_HEADER_USER_2,
@@ -55,6 +56,8 @@ from .utils import (
     UNRELATED_PROJECT_HEADERS,
     UNRELATED_PROJECT_ID,
     UNRELATED_VIRTUAL_LAB_ID,
+    USER_SUB_ID_1,
+    USER_SUB_ID_2,
     VIRTUAL_LAB_ID,
     ClientProxy,
     add_db,
@@ -90,7 +93,7 @@ def user_context_admin():
     """Admin authenticated user."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(int=1),
+            subject=UUID(ADMIN_SUB_ID),
             name="Admin User",
         ),
         expiration=None,
@@ -103,11 +106,11 @@ def user_context_admin():
 
 @pytest.fixture
 def user_context_user_1():
-    """Admin authenticated user."""
+    """Regular authenticated user with project-id."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(int=1),
-            name="Admin User",
+            subject=UUID(USER_SUB_ID_1),
+            name="Regular User With Project Id",
         ),
         expiration=None,
         is_authorized=True,
@@ -122,8 +125,8 @@ def user_context_user_2():
     """Regular authenticated user with different project-id."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(int=2),
-            name="Regular User With Project Id",
+            subject=UUID(USER_SUB_ID_2),
+            name="Regular User With Different Project Id",
         ),
         expiration=None,
         is_authorized=True,
@@ -245,6 +248,7 @@ def person_id(db):
         given_name="jd",
         family_name="courcol",
         pref_label="jd courcol",
+        sub_id=USER_SUB_ID_1,
     ).id
 
 
@@ -539,8 +543,6 @@ def create_emodel_ids(
                     "seed": -1,
                     "exemplar_morphology_id": str(morphology_id),
                     "authorized_public": False,
-                    "created_by_id": str(person_id),
-                    "updated_by_id": str(person_id),
                 },
             ).json()["id"]
 

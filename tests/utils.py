@@ -25,6 +25,10 @@ from app.utils.uuid import create_uuid
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
+ADMIN_SUB_ID = "00000000-0000-0000-0000-000000000000"
+USER_SUB_ID_1 = "00000000-0000-0000-0000-000000000001"
+USER_SUB_ID_2 = "00000000-0000-0000-0000-000000000002"
+
 TOKEN_ADMIN = "I'm admin"  # noqa: S105
 TOKEN_USER_1 = "I'm user 1"  # noqa: S105
 TOKEN_USER_2 = "I'm user 2"  # noqa: S105
@@ -489,6 +493,7 @@ def create_person(
     pref_label: str,
     given_name: str | None = None,
     family_name: str | None = None,
+    sub_id: str | None = None,
     created_by_id: uuid.UUID | None = None,
 ):
     agent_id = create_uuid()
@@ -498,6 +503,7 @@ def create_person(
         given_name=given_name,
         family_name=family_name,
         pref_label=pref_label,
+        sub_id=sub_id,
         created_by_id=created_by_id or agent_id,
         updated_by_id=created_by_id or agent_id,
     )

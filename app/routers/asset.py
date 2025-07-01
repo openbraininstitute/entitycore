@@ -237,7 +237,7 @@ def entity_asset_directory_upload(
         s3_client=s3_client,
         files=files,
     )
-    return AssetAndPresignedURLS.model_validate({"asset": model.dict(), "files": urls})
+    return AssetAndPresignedURLS.model_validate({"asset": model.model_dump(), "files": urls})
 
 
 @router.get("/{entity_route}/{entity_id}/assets/{asset_id}/list")

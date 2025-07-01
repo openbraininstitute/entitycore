@@ -177,12 +177,32 @@ class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin
         ordering_model_fields = ["name"]  # noqa: RUF012
 
 
+class NestedSubjectFilter(NameFilterMixin, IdFilterMixin, CustomFilter):
+    species_id__in: list[uuid.UUID] | None = None
+
+    species: Annotated[
+        NestedSpeciesFilter | None,
+        FilterDepends(with_prefix("subject__species", NestedSpeciesFilter)),
+    ] = None
+
+    strain: Annotated[
+        NestedStrainFilter | None,
+        FilterDepends(with_prefix("subject__strain", NestedStrainFilter)),
+    ] = None
+
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = Subject
+        ordering_model_fields = ["name"]  # noqa: RUF012
+
+
 SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
-NestedSubjectFilterDep = FilterDepends(with_prefix("subject", SubjectFilter))
+NestedSubjectFilterDep = FilterDepends(with_prefix("subject", NestedSubjectFilter))
 
 
 class SubjectFilterMixin:
-    subject: Annotated[SubjectFilter | None, NestedSubjectFilterDep] = None
+    subject: Annotated[NestedSubjectFilter | None, NestedSubjectFilterDep] = None
 
 
 class BrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):

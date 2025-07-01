@@ -1,11 +1,14 @@
+from datetime import timedelta
 from unittest.mock import ANY
 
 import pytest
 
+from app.db.model import ElectricalCellRecording, Species, Subject
 from app.db.types import EntityType
 
 from .utils import (
     PROJECT_ID,
+    add_all_db,
     assert_request,
     check_authorization,
     check_brain_region_filter,
@@ -174,3 +177,68 @@ def test_brain_region_filter(
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
+
+
+def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
+    species = add_all_db(
+        db,
+        [
+            Species(
+                name=f"species-{i}",
+                taxonomy_id=f"taxonomy-{i}",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            )
+            for i in range(3)
+        ],
+    )
+    subjects = add_all_db(
+        db,
+        [
+            Subject(
+                name=f"my-subject-{i}",
+                description="my-description",
+                species_id=sp.id,
+                strain_id=None,
+                age_value=timedelta(days=14),
+                age_period="postnatal",
+                sex="female",
+                weight=1.5,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            )
+            for i, sp in enumerate(species + species)
+        ],
+    )
+
+    models = add_all_db(
+        db,
+        [
+            ElectricalCellRecording(
+                **electrical_cell_recording_json_data
+                | {
+                    "subject_id": str(subject.id),
+                    "name": f"e-{i}",
+                    "created_by_id": str(person_id),
+                    "updated_by_id": str(person_id),
+                    "authorized_project_id": PROJECT_ID,
+                }
+            )
+            for i, subject in enumerate(subjects)
+        ],
+    )
+
+    data = assert_request(client.get, url=ROUTE).json()["data"]
+    assert len(data) == len(models)
+
+    data = assert_request(
+        client.get, url=ROUTE, params=f"subject__species__id={species[1].id}"
+    ).json()["data"]
+    assert len(data) == 2
+
+    data = assert_request(client.get, url=ROUTE, params="subject__species__name=species-2").json()[
+        "data"
+    ]
+    assert len(data) == 2

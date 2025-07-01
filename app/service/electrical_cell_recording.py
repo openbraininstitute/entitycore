@@ -88,20 +88,29 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
+    subject_alias = aliased(Subject, flat=True)
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
+        Subject: subject_alias,
     }
-    facet_keys = filter_keys = [
+    facet_keys = [
         "brain_region",
         "created_by",
         "updated_by",
         "contribution",
         "etype",
     ]
+    filter_keys = [
+        *facet_keys,
+        "subject",
+        "subject.species",
+        "subject.strain",
+    ]
+
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=ElectricalCellRecording,
         facet_keys=facet_keys,

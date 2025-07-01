@@ -8,6 +8,7 @@ from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
     ETypeClassFilterMixin,
+    MTypeClassFilterMixin,
     NameFilterMixin,
     SubjectFilterMixin,
 )
@@ -20,6 +21,7 @@ class ElectricalCellRecordingFilter(
     EntityFilterMixin,
     NameFilterMixin,
     ETypeClassFilterMixin,
+    MTypeClassFilterMixin,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

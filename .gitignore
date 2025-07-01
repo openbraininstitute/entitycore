@@ -13,6 +13,7 @@ tmp
 .DS_Store
 export.tar
 files.txt
+project_ids.txt
 out.tar
 out.tar.gz
 mba_hierarchy.json

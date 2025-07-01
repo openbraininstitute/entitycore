@@ -42,6 +42,7 @@ def _load(query: sa.Select):
         selectinload(ElectricalCellRecording.stimuli),
         selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.agent),
         selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.role),
+        joinedload(ElectricalCellRecording.etypes),
         raiseload("*"),
     )
 

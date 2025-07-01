@@ -14,6 +14,7 @@ from app.db.model import (
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
     ETypeClass,
+    ETypeClassification,
     MTypeClass,
     MTypeClassification,
     Person,
@@ -220,6 +221,28 @@ def create_etype(db, pref_label: str, created_by_id: uuid.UUID, alt_label=None, 
     )
 
 
+def create_etype_classification(
+    db,
+    *,
+    entity_id: uuid.UUID,
+    etype_class_id: uuid.UUID,
+    created_by_id: uuid.UUID,
+    authorized_public: bool = False,
+    authorized_project_id: uuid.UUID = PROJECT_ID,
+):
+    return add_db(
+        db,
+        ETypeClassification(
+            entity_id=entity_id,
+            etype_class_id=etype_class_id,
+            authorized_public=authorized_public,
+            authorized_project_id=authorized_project_id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+        ),
+    )
+
+
 def create_electrical_recording_stimulus_id(db, recording_id, created_by_id):
     return add_db(
         db,
@@ -269,6 +292,23 @@ def create_electrical_cell_recording_id_with_assets(db, client, tmp_path, json_d
         entity_type=EntityType.electrical_cell_recording,
         files={"file": ("my-trace.nwb", filepath.read_bytes(), "application/nwb")},
         label="nwb",
+    )
+
+    # add an etype
+    etype = create_etype(
+        db,
+        pref_label="etype-pref-label",
+        alt_label="etype-alt-label",
+        definition="etype-definition",
+        created_by_id=trace.created_by_id,
+    )
+    create_etype_classification(
+        db,
+        entity_id=trace_id,
+        etype_class_id=etype.id,
+        created_by_id=trace.created_by_id,
+        authorized_public=False,
+        authorized_project_id=PROJECT_ID,
     )
 
     return trace_id

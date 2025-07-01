@@ -35,6 +35,7 @@ def test_create_one(
     assert data["authorized_project_id"] == str(PROJECT_ID)
     assert data["type"] == EntityType.electrical_cell_recording
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["etypes"] == []
 
 
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
@@ -54,6 +55,16 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with
     assert len(data["assets"]) == 1
     assert data["type"] == EntityType.electrical_cell_recording
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["etypes"] == [
+        {
+            "id": ANY,
+            "pref_label": "etype-pref-label",
+            "alt_label": "etype-alt-label",
+            "definition": "etype-definition",
+            "creation_date": ANY,
+            "update_date": ANY,
+        },
+    ]
 
 
 def test_missing(client):
@@ -134,6 +145,7 @@ def test_facets(client, faceted_ids):
         {"id": str(brain_region_ids[0]), "label": "region-0", "count": 1, "type": "brain_region"},
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]
+    assert facets["etype"] == []
 
     data = assert_request(
         client.get,

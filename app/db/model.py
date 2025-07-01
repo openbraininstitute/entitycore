@@ -795,6 +795,7 @@ class ElectricalCellRecording(
     NameDescriptionVectorMixin,
     LocationMixin,
     SubjectMixin,
+    ETypesMixin,
     LicensedMixin,
     Entity,
 ):

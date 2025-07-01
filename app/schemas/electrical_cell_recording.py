@@ -10,6 +10,7 @@ from app.db.types import (
     ElectricalRecordingType,
 )
 from app.schemas.agent import CreatedByUpdatedByMixin
+from app.schemas.annotation import ETypeClassRead
 from app.schemas.asset import AssetRead
 from app.schemas.base import (
     AuthorizationMixin,
@@ -106,3 +107,4 @@ class ElectricalCellRecordingRead(
             description="List of stimuli applied to the cell with their respective time steps",
         ),
     ] = None
+    etypes: list[ETypeClassRead] | None

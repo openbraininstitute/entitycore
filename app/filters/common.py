@@ -174,7 +174,7 @@ class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin
 
     class Constants(CustomFilter.Constants):
         model = Subject
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["-creation_date"]  # noqa: RUF012
 
 
 class NestedSubjectFilter(NameFilterMixin, IdFilterMixin, CustomFilter):

@@ -141,7 +141,7 @@ class NestedEntityFilter(CustomFilter, IdFilterMixin):
 
     class Constants(CustomFilter.Constants):
         model = Entity
-        ordering_model_fields = ["-creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # noqa: RUF012
 
 
 NestedEntityFilterDep = FilterDepends(with_prefix("entity", NestedEntityFilter))
@@ -157,7 +157,7 @@ class ContributionFilter(CustomFilter, CreationFilterMixin, CreatorFilterMixin):
 
     class Constants(CustomFilter.Constants):
         model = Contribution
-        ordering_model_fields = ["-creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # noqa: RUF012
 
 
 ContributionFilterDep = Annotated[ContributionFilter, FilterDepends(ContributionFilter)]
@@ -174,15 +174,35 @@ class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin
 
     class Constants(CustomFilter.Constants):
         model = Subject
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+
+
+class NestedSubjectFilter(NameFilterMixin, IdFilterMixin, CustomFilter):
+    species_id__in: list[uuid.UUID] | None = None
+
+    species: Annotated[
+        NestedSpeciesFilter | None,
+        FilterDepends(with_prefix("subject__species", NestedSpeciesFilter)),
+    ] = None
+
+    strain: Annotated[
+        NestedStrainFilter | None,
+        FilterDepends(with_prefix("subject__strain", NestedStrainFilter)),
+    ] = None
+
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+
+    class Constants(CustomFilter.Constants):
+        model = Subject
+        ordering_model_fields = ["creation_date"]  # noqa: RUF012
 
 
 SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
-NestedSubjectFilterDep = FilterDepends(with_prefix("subject", SubjectFilter))
+NestedSubjectFilterDep = FilterDepends(with_prefix("subject", NestedSubjectFilter))
 
 
 class SubjectFilterMixin:
-    subject: Annotated[SubjectFilter | None, NestedSubjectFilterDep] = None
+    subject: Annotated[NestedSubjectFilter | None, NestedSubjectFilterDep] = None
 
 
 class BrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):

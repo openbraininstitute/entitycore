@@ -42,7 +42,6 @@ def _load(query: sa.Select):
         selectinload(ElectricalCellRecording.stimuli),
         selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.agent),
         selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.role),
-        joinedload(ElectricalCellRecording.mtypes),
         joinedload(ElectricalCellRecording.etypes),
         raiseload("*"),
     )
@@ -103,7 +102,6 @@ def read_many(
         "updated_by",
         "contribution",
         "etype",
-        "mtype",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=ElectricalCellRecording,

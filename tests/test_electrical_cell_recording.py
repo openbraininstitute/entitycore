@@ -36,7 +36,6 @@ def test_create_one(
     assert data["type"] == EntityType.electrical_cell_recording
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["etypes"] == []
-    assert data["mtypes"] == []
 
 
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
@@ -66,7 +65,6 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with
             "update_date": ANY,
         },
     ]
-    assert data["mtypes"] == []  # empty because no mtypes are created in the fixture
 
 
 def test_missing(client):
@@ -148,7 +146,6 @@ def test_facets(client, faceted_ids):
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]
     assert facets["etype"] == []
-    assert facets["mtype"] == []
 
     data = assert_request(
         client.get,

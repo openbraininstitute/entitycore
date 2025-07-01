@@ -7,6 +7,7 @@ nexus_use_case_dump/**
 **/.coverage
 coverage.xml
 .idea
+.vscode
 *.egg-info
 tmp
 .DS_Store

@@ -141,7 +141,7 @@ class NestedEntityFilter(CustomFilter, IdFilterMixin):
 
     class Constants(CustomFilter.Constants):
         model = Entity
-        ordering_model_fields = ["-creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # noqa: RUF012
 
 
 NestedEntityFilterDep = FilterDepends(with_prefix("entity", NestedEntityFilter))
@@ -157,7 +157,7 @@ class ContributionFilter(CustomFilter, CreationFilterMixin, CreatorFilterMixin):
 
     class Constants(CustomFilter.Constants):
         model = Contribution
-        ordering_model_fields = ["-creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # noqa: RUF012
 
 
 ContributionFilterDep = Annotated[ContributionFilter, FilterDepends(ContributionFilter)]
@@ -174,7 +174,7 @@ class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin
 
     class Constants(CustomFilter.Constants):
         model = Subject
-        ordering_model_fields = ["-creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # noqa: RUF012
 
 
 class NestedSubjectFilter(NameFilterMixin, IdFilterMixin, CustomFilter):
@@ -194,7 +194,7 @@ class NestedSubjectFilter(NameFilterMixin, IdFilterMixin, CustomFilter):
 
     class Constants(CustomFilter.Constants):
         model = Subject
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]  # noqa: RUF012
 
 
 SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]

@@ -149,6 +149,9 @@ def test_facets(client, faceted_ids):
         {"id": str(brain_region_ids[1]), "label": "region-1", "count": 1, "type": "brain_region"},
     ]
     assert facets["etype"] == []
+    assert facets["species"] == [
+        {"id": ANY, "label": "Test Species", "count": 2, "type": "subject.species"}
+    ]
 
     data = assert_request(
         client.get,

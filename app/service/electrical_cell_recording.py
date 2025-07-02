@@ -35,6 +35,7 @@ def _load(query: sa.Select):
     return query.options(
         joinedload(ElectricalCellRecording.license),
         joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
+        joinedload(ElectricalCellRecording.subject).joinedload(Subject.strain),
         joinedload(ElectricalCellRecording.brain_region),
         joinedload(ElectricalCellRecording.created_by),
         joinedload(ElectricalCellRecording.updated_by),
@@ -104,9 +105,15 @@ def read_many(
         "updated_by",
         "contribution",
         "etype",
+        "subject.species",
+        "subject.strain",
     ]
     filter_keys = [
-        *facet_keys,
+        "brain_region",
+        "created_by",
+        "updated_by",
+        "contribution",
+        "etype",
         "subject",
         "subject.species",
         "subject.strain",

@@ -945,6 +945,7 @@ def circuit_json_data(brain_atlas_id, root_circuit, subject_id, brain_region_id,
         "subject_id": str(subject_id),
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
+        "authorized_public": False,
     }
 
 

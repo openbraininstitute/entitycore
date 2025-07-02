@@ -68,6 +68,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["authorized_public"] is False
 
     response = assert_request(client.get, url=f"{ROUTE}/{data['id']}")
     data = response.json()
@@ -85,6 +86,26 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert "assets" in data
     assert data["assets"][0]["label"] == AssetLabel.single_cell_simulation_data
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["authorized_public"] is False
+
+
+def test_single_neuron_simulation__public(client, brain_region_id, memodel_id):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json={
+            "name": "foo",
+            "description": "my-description",
+            "injection_location": ["soma[0]"],
+            "recording_location": ["soma[0]_0.5"],
+            "me_model_id": memodel_id,
+            "status": "success",
+            "seed": 1,
+            "authorized_public": True,
+            "brain_region_id": str(brain_region_id),
+        },
+    ).json()
+    assert data["authorized_public"] is True
 
 
 @pytest.mark.parametrize(

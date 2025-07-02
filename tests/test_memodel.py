@@ -2,6 +2,7 @@ import operator as op
 import uuid
 from unittest.mock import ANY
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db.model import MEModel
@@ -40,43 +41,48 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_create_memodel(
-    client: TestClient,
-    species_id: str,
-    strain_id: str,
-    brain_region_id: int,
-    morphology_id: str,
-    emodel_id: str,
-):
-    response = client.post(
-        ROUTE,
-        json={
-            "brain_region_id": str(brain_region_id),
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": "Test MEModel Description",
-            "name": "Test MEModel Name",
-            "morphology_id": morphology_id,
-            "emodel_id": emodel_id,
-        },
-    )
-    assert response.status_code == 200, f"Failed to create memodel: {response.text}"
-    data = response.json()
-    assert data["brain_region"]["id"] == str(brain_region_id), (
-        f"Failed to get id for memodel: {data}"
-    )
-    assert data["species"]["id"] == species_id, f"Failed to get species_id for memodel: {data}"
-    assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for memodel: {data}"
+@pytest.fixture
+def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
+    return {
+        "brain_region_id": str(brain_region_id),
+        "species_id": species_id,
+        "strain_id": strain_id,
+        "description": "Test MEModel Description",
+        "name": "Test MEModel Name",
+        "morphology_id": morphology_id,
+        "emodel_id": emodel_id,
+        "authorized_public": False,
+    }
+
+
+def _assert_read_response(data, json_data):
+    assert data["brain_region"]["id"] == json_data["brain_region_id"]
+    assert data["species"]["id"] == json_data["species_id"]
+    assert data["strain"]["id"] == json_data["strain_id"]
     assert "assets" in data["emodel"]
     assert "assets" in data["morphology"]
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["authorized_public"] is json_data["authorized_public"]
+
+
+def test_create_memodel(
+    client: TestClient,
+    json_data,
+):
+    response = client.post(ROUTE, json=json_data)
+    assert response.status_code == 200, f"Failed to create memodel: {response.text}"
+    data = response.json()
+    _assert_read_response(data, json_data)
 
     response = client.get(f"{ROUTE}/{data['id']}")
     assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
     data = response.json()
-    assert "assets" in data["emodel"]
-    assert "assets" in data["morphology"]
-    assert data["created_by"]["id"] == data["updated_by"]["id"]
+    _assert_read_response(data, json_data)
+
+    response = client.get(ROUTE)
+    assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
+    data = response.json()["data"][0]
+    _assert_read_response(data, json_data)
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):

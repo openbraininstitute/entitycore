@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
     CreationMixin,
     IdentifiableMixin,
 )
@@ -19,10 +21,16 @@ class MEModelCalibrationResultBase(BaseModel):
 
 
 class MEModelCalibrationResultRead(
-    MEModelCalibrationResultBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin
+    MEModelCalibrationResultBase,
+    CreationMixin,
+    IdentifiableMixin,
+    CreatedByUpdatedByMixin,
+    AuthorizationMixin,
 ):
     """Read model for MEModel calibration results, including entity metadata."""
 
 
-class MEModelCalibrationResultCreate(MEModelCalibrationResultBase):
+class MEModelCalibrationResultCreate(
+    MEModelCalibrationResultBase, AuthorizationOptionalPublicMixin
+):
     """Create model for MEModel calibration results."""

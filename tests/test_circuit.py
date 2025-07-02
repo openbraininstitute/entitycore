@@ -44,6 +44,7 @@ def _assert_read_response(data, json_data):
     assert data["has_spines"] == json_data["has_spines"]
     assert data["build_category"] == json_data["build_category"]
     assert data["scale"] == json_data["scale"]
+    assert data["authorized_public"] is json_data["authorized_public"]
 
     check_creation_fields(data)
 

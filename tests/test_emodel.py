@@ -35,6 +35,7 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     assert data["species"]["id"] == species_id, f"Failed to get species_id for emodel: {data}"
     assert data["strain"]["id"] == strain_id, f"Failed to get strain_id for emodel: {data}"
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["authorized_public"] is False
 
     response = client.get(ROUTE)
     assert response.status_code == 200, f"Failed to get emodels: {response.text}"

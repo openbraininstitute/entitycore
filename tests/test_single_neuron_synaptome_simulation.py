@@ -131,6 +131,16 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["authorized_public"] is False
+
+
+def test_create_one__public(client, json_data):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"authorized_public": True},
+    ).json()
+    assert data["authorized_public"] is True
 
 
 def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
@@ -148,6 +158,7 @@ def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["authorized_public"] is False
 
 
 @pytest.mark.parametrize(

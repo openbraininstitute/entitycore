@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
     CreationMixin,
     IdentifiableMixin,
 )
@@ -16,10 +18,14 @@ class ValidationResultBase(BaseModel):
 
 
 class ValidationResultRead(
-    ValidationResultBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin
+    ValidationResultBase,
+    CreationMixin,
+    IdentifiableMixin,
+    CreatedByUpdatedByMixin,
+    AuthorizationMixin,
 ):
     pass
 
 
-class ValidationResultCreate(ValidationResultBase):
+class ValidationResultCreate(ValidationResultBase, AuthorizationOptionalPublicMixin):
     pass

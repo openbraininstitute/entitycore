@@ -46,12 +46,31 @@ def test_read_one(client: TestClient, validation_result_id, json_data):
 def test_create_one(client: TestClient, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+    assert data["authorized_public"] is False
 
     data = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
     _assert_read_response(data, json_data)
+    assert data["authorized_public"] is False
 
     data = assert_request(client.get, url=ROUTE).json()["data"][0]
     _assert_read_response(data, json_data)
+    assert data["authorized_public"] is False
+
+
+def test_create_one__public(client, json_data):
+    data = assert_request(
+        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
+    ).json()
+    _assert_read_response(data, json_data)
+    assert data["authorized_public"] is True
+
+    data = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
+    _assert_read_response(data, json_data)
+    assert data["authorized_public"] is True
+
+    data = assert_request(client.get, url=ROUTE).json()["data"][0]
+    _assert_read_response(data, json_data)
+    assert data["authorized_public"] is True
 
 
 def test_missing(client):

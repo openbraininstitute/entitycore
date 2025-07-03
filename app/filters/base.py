@@ -18,6 +18,12 @@ class CustomFilter[T: DeclarativeBase](Filter):
     class Constants(Filter.Constants):
         ordering_model_fields: list[str]
 
+    @field_validator("*", mode="before")
+    @classmethod
+    def split_str(cls, value, field):  # noqa: ARG003 # pyright: ignore reportIncompatibleMethodOverride
+        """Prevent splitting field logic from parent class."""
+        return value
+
     @field_validator("order_by", check_fields=False)
     @classmethod
     def restrict_sortable_fields(cls, value: list[str]):

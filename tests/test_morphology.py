@@ -582,7 +582,7 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
 
     # filtering by multiple IDs
     selected_ids = [morphology_ids[1], morphology_ids[3]]
-    response = client.get(ROUTE, params={"id__in": ",".join(selected_ids)})
+    response = client.get(ROUTE, params={"id__in": selected_ids})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 2
@@ -590,7 +590,7 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
     assert set(returned_ids) == set(selected_ids)
 
     # filtering by all IDs
-    response = client.get(ROUTE, params={"id__in": ",".join(morphology_ids)})
+    response = client.get(ROUTE, params={"id__in": morphology_ids})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 5
@@ -606,7 +606,7 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
     # combining id__in with other filters
     response = client.get(
         ROUTE,
-        params={"id__in": ",".join(morphology_ids), "name__ilike": "%Filter Test Morphology 2%"},
+        params={"id__in": morphology_ids, "name__ilike": "%Filter Test Morphology 2%"},
     )
     assert response.status_code == 200
     data = response.json()["data"]

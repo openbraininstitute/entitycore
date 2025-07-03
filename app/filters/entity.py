@@ -1,9 +1,8 @@
 from typing import Annotated
 
-from fastapi_filter import FilterDepends
-
 from app.db.model import Entity
 from app.db.types import EntityType
+from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 
 

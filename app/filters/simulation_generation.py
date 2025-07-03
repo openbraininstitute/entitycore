@@ -1,8 +1,7 @@
 from typing import Annotated
 
-from fastapi_filter import FilterDepends
-
 from app.db.model import SimulationGeneration
+from app.dependencies.filter import FilterDepends
 from app.filters.activity import ActivityFilterMixin
 from app.filters.base import CustomFilter
 

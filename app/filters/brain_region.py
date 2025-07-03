@@ -2,9 +2,9 @@ import uuid
 from typing import Annotated
 
 import sqlalchemy as sa
-from fastapi_filter import FilterDepends
 
 from app.db.model import BrainRegion, BrainRegionHierarchy
+from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import NameFilterMixin
 

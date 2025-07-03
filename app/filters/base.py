@@ -3,7 +3,7 @@ from typing import cast
 
 from fastapi_filter.contrib.sqlalchemy import Filter
 from fastapi_filter.contrib.sqlalchemy.filter import _orm_operator_transformer  # noqa: PLC2701
-from pydantic import ValidationInfo, field_validator
+from pydantic import field_validator
 from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
@@ -20,21 +20,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
     @field_validator("*", mode="before")
     @classmethod
-    def split_str(cls, value, field: ValidationInfo):
-        if (
-            field.field_name is not None
-            and (
-                field.field_name == cls.Constants.ordering_field_name
-                or field.field_name.endswith("__in")
-                or field.field_name.endswith("__not_in")
-            )
-            and isinstance(value, str)
-        ):
-            if not value:
-                # Empty string should return [] not ['']
-                return []
-
-            return list(value.split("|"))
+    def split_str(cls, value, field):  # noqa: ARG003 # pyright: ignore reportIncompatibleMethodOverride
+        """Prevent splitting field logic from parent class."""
         return value
 
     @field_validator("order_by", check_fields=False)

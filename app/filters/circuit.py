@@ -2,9 +2,8 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi_filter import FilterDepends
-
 from app.db.model import Circuit
+from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,

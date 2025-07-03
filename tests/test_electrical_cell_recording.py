@@ -211,7 +211,7 @@ def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
         db,
         [
             Subject(
-                name=f"my-subject-{i}",
+                name=f"subject-{i}",
                 description="my-description",
                 species_id=sp.id,
                 strain_id=None,
@@ -244,7 +244,6 @@ def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
             for i, subject in enumerate(subjects)
         ],
     )
-
     data = assert_request(client.get, url=ROUTE).json()["data"]
     assert len(data) == len(models)
 
@@ -257,3 +256,15 @@ def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
         "data"
     ]
     assert len(data) == 2
+
+    data = assert_request(client.get, url=ROUTE, params="subject__species__name=species-2").json()[
+        "data"
+    ]
+    assert len(data) == 2
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"name__in": ["e-1", "e-2"]},
+    ).json()["data"]
+    assert [d["name"] for d in data] == ["e-1", "e-2"]

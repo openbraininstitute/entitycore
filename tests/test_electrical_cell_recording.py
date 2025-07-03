@@ -267,4 +267,4 @@ def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
         url=ROUTE,
         params={"name__in": ["e-1", "e-2"]},
     ).json()["data"]
-    assert [d["name"] for d in data] == ["e-1", "e-2"]
+    assert {d["name"] for d in data} == {"e-1", "e-2"}

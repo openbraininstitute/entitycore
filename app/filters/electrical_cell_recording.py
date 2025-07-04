@@ -20,11 +20,18 @@ class ElectricalCellRecordingFilter(
     NameFilterMixin,
     ETypeClassFilterMixin,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = ElectricalCellRecording
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [
+            "creation_date",
+            "update_date",
+            "name",
+            "subject__species__name",
+            "brain_region__acronym",
+            "brain_region__name",
+        ]
 
 
 ElectricalCellRecordingFilterDep = Annotated[

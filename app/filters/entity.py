@@ -9,11 +9,11 @@ from app.filters.base import CustomFilter
 class BasicEntityFilter(CustomFilter):
     type: EntityType | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = Entity
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]
 
 
 BasicEntityFilterDep = Annotated[BasicEntityFilter, FilterDepends(BasicEntityFilter)]

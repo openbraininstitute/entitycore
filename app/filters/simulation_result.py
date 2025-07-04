@@ -15,11 +15,11 @@ from app.filters.common import (
 
 
 class NestedSimulationResultFilter(CustomFilter, IdFilterMixin, NameFilterMixin):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = SimulationResult
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]
 
 
 class SimulationResultFilter(

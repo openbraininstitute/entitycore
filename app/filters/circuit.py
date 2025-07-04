@@ -45,11 +45,11 @@ class CircuitFilter(ScientificArtifactFilter, NameFilterMixin):
     scale: str | None = None
     scale__in: list[str] | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = Circuit
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]
 
 
 CircuitFilterDep = Annotated[CircuitFilter, FilterDepends(CircuitFilter)]

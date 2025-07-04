@@ -7,13 +7,13 @@ from app.filters.base import CustomFilter
 
 
 class SimulationExecutionFilter(CustomFilter, ActivityFilterMixin):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     status: str | None = None
 
     class Constants(CustomFilter.Constants):
         model = SimulationExecution
-        ordering_model_fields = ["creation_date", "update_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date"]
 
 
 SimulationExecutionFilterDep = Annotated[

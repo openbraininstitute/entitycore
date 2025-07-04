@@ -15,11 +15,11 @@ class ValidationResultFilter(
     passed: bool | None = None
     validated_entity_id: uuid.UUID | None = None
 
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]
 
     class Constants(CustomFilter.Constants):
         model = ValidationResult
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]
 
 
 ValidationResultFilterDep = Annotated[ValidationResultFilter, FilterDepends(ValidationResultFilter)]

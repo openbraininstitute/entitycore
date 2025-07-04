@@ -169,7 +169,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
     def separate_ordering_direction_value(self) -> list[tuple[Filter.Direction, str]]:
         return [
             (
-                Filter.Direction.asc if field_name.startswith("-") else Filter.Direction.desc,
+                Filter.Direction.desc if field_name.startswith("-") else Filter.Direction.asc,
                 field_name.replace("-", "").replace("+", ""),
             )
             for field_name in self.ordering_values

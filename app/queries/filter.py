@@ -41,7 +41,9 @@ def filter_from_db[I: Identifiable](
         raise RuntimeError(msg)
     for name, func in filter_joins.items():
         nested_filter = filter_model.get_nested_filter(name)
-        if (nested_filter and not forced_joins) or (not nested_filter and name in forced_joins):
+        if (nested_filter and name not in forced_joins) or (
+            not nested_filter and name in forced_joins
+        ):
             L.debug("Applying join filter for {!r}", name)
             query = func(query)
     return query

@@ -35,11 +35,11 @@ class MTypeClassFilter(CustomFilter):
     pref_label: str | None = None
     pref_label__in: list[str] | None = None
 
-    order_by: list[str] = ["pref_label"]  # noqa: RUF012
+    order_by: list[str] = ["pref_label"]
 
     class Constants(CustomFilter.Constants):
         model = MTypeClass
-        ordering_model_fields = ["pref_label"]  # noqa: RUF012
+        ordering_model_fields = ["pref_label"]
 
 
 class ETypeClassFilter(CustomFilter):
@@ -47,11 +47,11 @@ class ETypeClassFilter(CustomFilter):
     pref_label: str | None = None
     pref_label__in: list[str] | None = None
 
-    order_by: list[str] = ["pref_label"]  # noqa: RUF012
+    order_by: list[str] = ["pref_label"]
 
     class Constants(CustomFilter.Constants):
         model = ETypeClass
-        ordering_model_fields = ["pref_label"]  # noqa: RUF012
+        ordering_model_fields = ["pref_label"]
 
 
 class AgentFilter(CustomFilter):
@@ -59,11 +59,11 @@ class AgentFilter(CustomFilter):
     pref_label: str | None = None
     pref_label__in: list[str] | None = None
 
-    order_by: list[str] = ["pref_label"]  # noqa: RUF012
+    order_by: list[str] = ["pref_label"]
 
     class Constants(CustomFilter.Constants):
         model = Agent
-        ordering_model_fields = ["pref_label"]  # noqa: RUF012
+        ordering_model_fields = ["pref_label"]
 
 
 class CreationFilterMixin:
@@ -97,11 +97,11 @@ class NestedSpeciesFilter(NameFilterMixin, CustomFilter):
 
     id: uuid.UUID | None = None
 
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]
 
     class Constants(CustomFilter.Constants):
         model = Species
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]
 
 
 class SpeciesFilter(NestedSpeciesFilter, CreationFilterMixin, CreatorFilterMixin):
@@ -115,11 +115,11 @@ NestedSpeciesFilterDep = FilterDepends(with_prefix("species", NestedSpeciesFilte
 class NestedStrainFilter(NameFilterMixin, CustomFilter):
     id: uuid.UUID | None = None
 
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]
 
     class Constants(CustomFilter.Constants):
         model = Strain
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]
 
 
 class StrainFilter(NestedStrainFilter, CreationFilterMixin, CreatorFilterMixin):
@@ -138,11 +138,11 @@ class SpeciesFilterMixin:
 
 class NestedEntityFilter(CustomFilter, IdFilterMixin):
     type: str | None = None
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = Entity
-        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]
 
 
 NestedEntityFilterDep = FilterDepends(with_prefix("entity", NestedEntityFilter))
@@ -154,11 +154,11 @@ class ContributionFilter(CustomFilter, CreationFilterMixin, CreatorFilterMixin):
     agent: Annotated[AgentFilter | None, NestedAgentFilterDep] = None
     entity: Annotated[NestedEntityFilter | None, NestedEntityFilterDep] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = Contribution
-        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]
 
 
 ContributionFilterDep = Annotated[ContributionFilter, FilterDepends(ContributionFilter)]
@@ -171,11 +171,11 @@ class ContributionFilterMixin:
 class SubjectFilter(ContributionFilterMixin, SpeciesFilterMixin, NameFilterMixin, CustomFilter):
     id: uuid.UUID | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = Subject
-        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]
 
 
 class NestedSubjectFilter(NameFilterMixin, IdFilterMixin, CustomFilter):
@@ -191,11 +191,11 @@ class NestedSubjectFilter(NameFilterMixin, IdFilterMixin, CustomFilter):
         FilterDepends(with_prefix("subject__strain", NestedStrainFilter)),
     ] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = Subject
-        ordering_model_fields = ["creation_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date"]
 
 
 SubjectFilterDep = Annotated[SubjectFilter, FilterDepends(SubjectFilter)]
@@ -209,11 +209,11 @@ class SubjectFilterMixin:
 class BrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     acronym: str | None = None
     acronym__in: list[str] | None = None
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]
 
     class Constants(CustomFilter.Constants):
         model = BrainRegion
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]
 
 
 BrainRegionFilterDep = Annotated[BrainRegionFilter, FilterDepends(BrainRegionFilter)]

@@ -31,11 +31,11 @@ class MEModelFilter(
     morphology: Annotated[MorphologyFilter | None, NestedMorphologyFilterDep] = None
     emodel: Annotated[EModelFilter | None, NestedEModelFilterDep] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = MEModel
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]
 
 
 # Dependencies

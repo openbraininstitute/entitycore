@@ -7,11 +7,11 @@ from app.filters.base import CustomFilter
 
 
 class SimulationGenerationFilter(CustomFilter, ActivityFilterMixin):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = SimulationGeneration
-        ordering_model_fields = ["creation_date", "update_date"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date"]
 
 
 SimulationGenerationFilterDep = Annotated[

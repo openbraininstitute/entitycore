@@ -43,7 +43,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
         return value
 
     @field_validator("*", mode="before", check_fields=False)
-    def validate_order_by(cls, value, field):
+    @classmethod
+    def validate_order_by(cls, value, field):  # pyright: ignore reportIncompatibleMethodOverride
         return value
         if field.field_name != cls.Constants.ordering_field_name:
             return value
@@ -58,7 +59,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
             field_name = field_name_with_direction.replace("-", "").replace("+", "")
 
             if not (hasattr(cls.Constants.model, field_name) and "__" not in field_name):
-                raise ValueError(f"{field_name} is not a valid ordering field.")
+                msg = f"{field_name} is not a valid ordering field."
+                raise ValueError(msg)
 
             field_name_usages[field_name].append(field_name_with_direction)
             if len(field_name_usages[field_name]) > 1:
@@ -72,10 +74,11 @@ class CustomFilter[T: DeclarativeBase](Filter):
                     for field_name_with_direction in field_name_usages[field_name]
                 ]
             )
-            raise ValueError(
+            msg = (
                 f"Field names can appear at most once for {cls.Constants.ordering_field_name}. "
                 f"The following was ambiguous: {ambiguous_field_names}."
             )
+            raise ValueError(msg)
 
         return value
 
@@ -135,7 +138,6 @@ class CustomFilter[T: DeclarativeBase](Filter):
                         model_field = getattr(self.Constants.model, field_name)
 
                     query = query.filter(getattr(model_field, operator)(value))
-
         return query
 
     def sort(self, query: Select[tuple[T]], aliases):  # type:ignore[override]
@@ -146,17 +148,13 @@ class CustomFilter[T: DeclarativeBase](Filter):
             model = self.Constants.model
 
             if "__" in field_name:
-                submodel_name, *parts, field_name = field_name.split("__")
+                submodel_name, *parts, field_name = field_name.split("__")  # noqa: PLW2901
 
                 rel = getattr(model, submodel_name)
                 model = rel.property.mapper.class_
 
-                model = aliases.get(model, model)
-                assert not isinstance(model, dict)
-
                 if model in aliases:
                     model = aliases[model]
-                    assert not isinstance(model, dict)
 
                 for part in parts:
                     rel = getattr(model, part)
@@ -168,7 +166,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
         return cast("Select[tuple[T]]", query)
 
-    def separate_ordering_direction_value(self) -> tuple[Filter.Direction, str]:
+    def separate_ordering_direction_value(self) -> list[tuple[Filter.Direction, str]]:
         return [
             (
                 Filter.Direction.asc if field_name.startswith("-") else Filter.Direction.desc,
@@ -198,3 +196,11 @@ class CustomFilter[T: DeclarativeBase](Filter):
         if isinstance(attr, CustomFilter) and attr.has_filtering_fields():
             return attr
         return None
+
+    def get_nested_ordering_fields(self) -> set:
+        """Return nested ordering fields replacing __ with ."""
+        return {
+            ".".join(field_name.split("__")[:-1])
+            for _, field_name in self.separate_ordering_direction_value()
+            if "__" in field_name
+        }

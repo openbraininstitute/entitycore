@@ -62,11 +62,11 @@ class BrainRegionFilter(NameFilterMixin, CustomFilter):
     annotation_value: int | None = None
     hierarchy_id: uuid.UUID | None = None
 
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]
 
     class Constants(CustomFilter.Constants):
         model = BrainRegion
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]
 
 
 BrainRegionFilterDep = Annotated[BrainRegionFilter, FilterDepends(BrainRegionFilter)]

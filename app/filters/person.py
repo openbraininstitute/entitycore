@@ -14,11 +14,11 @@ class PersonFilter(AgentFilter, CreatorFilterMixin):
     sub_id: uuid.UUID | None = None
     sub_id__in: list[uuid.UUID] | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(AgentFilter.Constants):
         model = Person
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [
             "creation_date",
             "update_date",
             "pref_label",

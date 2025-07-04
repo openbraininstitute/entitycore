@@ -255,7 +255,7 @@ class Agent(LegacyMixin, Identifiable):
     __tablename__ = "agent"
     type: Mapped[AgentType]
     pref_label: Mapped[str] = mapped_column(index=True)
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -269,7 +269,7 @@ class Person(Agent):
     family_name: Mapped[str | None]
     sub_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
@@ -282,7 +282,7 @@ class Organization(Agent):
     # what is the difference between name and label here ?
     alternative_name: Mapped[str]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
@@ -347,7 +347,7 @@ class Activity(Identifiable):
         uselist=True,
         passive_deletes=True,  # let ORM perform cascade deletes
     )
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -356,7 +356,7 @@ class Activity(Identifiable):
 class AnnotationBody(LegacyMixin, Identifiable):
     __tablename__ = "annotation_body"
     type: Mapped[AnnotationBodyType]
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -434,7 +434,7 @@ class DataMaturityAnnotationBody(AnnotationBody):
     __tablename__ = AnnotationBodyType.datamaturity_annotation_body.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("annotation_body.id"), primary_key=True)
     pref_label: Mapped[str] = mapped_column(unique=True, index=True)
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
 
@@ -469,7 +469,7 @@ class Entity(LegacyMixin, Identifiable):
         ),
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -485,7 +485,7 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     sex: Mapped[Sex | None]
     weight: Mapped[float | None]  # in grams
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SubjectMixin:
@@ -518,7 +518,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
     }
 
@@ -543,7 +543,7 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
     contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -568,7 +568,7 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
     runtimePlatform: Mapped[str] = mapped_column(default="")
     version: Mapped[str] = mapped_column(default="")
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class Contribution(Identifiable):
@@ -615,7 +615,7 @@ class EModel(
         order_by="IonChannelModel.creation_date",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class MEModel(
@@ -648,7 +648,7 @@ class MEModel(
         lazy="joined",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class MeasurableEntity(Entity):
@@ -680,7 +680,7 @@ class ReconstructionMorphology(
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     location: Mapped[PointLocation | None]
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class MeasurementAnnotation(LegacyMixin, Identifiable):
@@ -788,7 +788,7 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
         index=True,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class ElectricalCellRecording(
@@ -812,7 +812,7 @@ class ElectricalCellRecording(
         foreign_keys="ElectricalRecordingStimulus.recording_id",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -823,7 +823,7 @@ class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
         ForeignKey(f"{EntityType.memodel}.id"), index=True
     )
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -838,7 +838,7 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
         ForeignKey(f"{EntityType.memodel}.id"), index=True
     )
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -852,7 +852,7 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True
     )
     synaptome = relationship("SingleNeuronSynaptome", uselist=False, foreign_keys=[synaptome_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class Measurement(Base):
@@ -888,7 +888,7 @@ class ExperimentalNeuronDensity(
 ):
     __tablename__ = EntityType.experimental_neuron_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class ExperimentalBoutonDensity(
@@ -904,7 +904,7 @@ class ExperimentalBoutonDensity(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class ExperimentalSynapsesPerConnection(
@@ -931,7 +931,7 @@ class ExperimentalSynapsesPerConnection(
     post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
     post_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[post_region_id])
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class Ion(Identifiable):
@@ -957,7 +957,7 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class IonChannelModelToEModel(Base):
@@ -985,7 +985,7 @@ class ValidationResult(Entity):
         foreign_keys=[validated_entity_id],
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1004,7 +1004,7 @@ class MEModelCalibrationResult(Entity):
         foreign_keys=[calibrated_entity_id],
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1043,7 +1043,7 @@ class METypeDensity(
 ):
     __tablename__ = EntityType.me_type_density
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
@@ -1055,7 +1055,7 @@ class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
         ForeignKey("brain_region_hierarchy.id"), index=True
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class BrainAtlasRegion(Entity, LocationMixin):
@@ -1070,13 +1070,13 @@ class BrainAtlasRegion(Entity, LocationMixin):
 
     brain_atlas_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.cell_composition
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SimulationCampaign(
@@ -1109,7 +1109,7 @@ class SimulationCampaign(
         nullable=False,
         server_default="{}",
     )
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1153,7 +1153,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         server_default="{}",
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1176,7 +1176,7 @@ class SimulationExecution(Activity):
         default=SimulationExecutionStatus.created,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SimulationResult(Entity, NameDescriptionVectorMixin):
@@ -1193,7 +1193,7 @@ class SimulationResult(Entity, NameDescriptionVectorMixin):
 
     simulation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("simulation.id"), index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class SimulationGeneration(Activity):
@@ -1209,7 +1209,7 @@ class SimulationGeneration(Activity):
     __tablename__ = ActivityType.simulation_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}
 
 
 class Derivation(Base):
@@ -1333,4 +1333,4 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
 
     # calibration_data (multiple entities): ...
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}

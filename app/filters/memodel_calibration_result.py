@@ -14,11 +14,11 @@ class MEModelCalibrationResultFilter(
     passed: bool | None = None
     calibrated_entity_id: uuid.UUID | None = None
 
-    order_by: list[str] = ["calibrated_entity_id"]  # noqa: RUF012
+    order_by: list[str] = ["calibrated_entity_id"]
 
     class Constants(CustomFilter.Constants):
         model = MEModelCalibrationResult
-        ordering_model_fields = ["calibrated_entity_id"]  # noqa: RUF012
+        ordering_model_fields = ["calibrated_entity_id"]
 
 
 MEModelCalibrationResultFilterDep = Annotated[

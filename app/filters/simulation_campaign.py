@@ -10,11 +10,11 @@ from app.filters.simulation import NestedSimulationFilter, NestedSimulationFilte
 class SimulationCampaignFilter(CustomFilter, EntityFilterMixin, NameFilterMixin):
     simulation: Annotated[NestedSimulationFilter | None, NestedSimulationFilterDep] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = SimulationCampaign
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]
 
 
 SimulationCampaignFilterDep = Annotated[

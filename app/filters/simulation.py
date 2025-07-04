@@ -19,11 +19,11 @@ class NestedSimulationFilter(CustomFilter, IdFilterMixin, NameFilterMixin):
     entity_id: uuid.UUID | None = None
     entity_id__in: list[uuid.UUID] | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = Simulation
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]
 
 
 class SimulationFilter(

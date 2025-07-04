@@ -304,7 +304,7 @@ def test_filtering(client, models):
 
 
 def test_sorting(client, models):
-    species, _, recordings = models
+    _, _, recordings = models
 
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
@@ -396,9 +396,7 @@ def test_sorting(client, models):
     assert [d["brain_region"]["name"] for d in data] == [f"region-{i}" for i in [0, 1, 2, 3, 4, 5]]
 
 
-def test_sorting_and_filtering(client, models):
-    species, _, recordings = models
-
+def test_sorting_and_filtering(client, models):  # noqa: ARG001
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 

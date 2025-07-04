@@ -7,11 +7,11 @@ from app.filters.common import IdFilterMixin, NameFilterMixin
 
 
 class BrainRegionHierarchyFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]
 
     class Constants(CustomFilter.Constants):
         model = BrainRegionHierarchy
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]
 
 
 BrainRegionHierarchyFilterDep = Annotated[

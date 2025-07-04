@@ -269,15 +269,10 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         filter_query = apply_filter_query_operations(filter_query)
 
     if filter_joins:
-        forced_joins = []
-
-        for _, o in filter_model.separate_ordering_direction_value():
-            if "__" in o:
-                forced_joins.append(".".join(o.split("__")[:-1]))
-
-        filter_query = filter_from_db(filter_query, filter_model, filter_joins, forced_joins)
+        filter_query = filter_from_db(filter_query, filter_model, filter_joins)
 
     filter_query = filter_model.filter(filter_query, aliases=aliases)
+
     if with_search and (description_vector := getattr(db_model_class, "description_vector", None)):
         filter_query = with_search(filter_query, description_vector)
 

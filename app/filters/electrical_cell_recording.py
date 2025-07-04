@@ -20,7 +20,7 @@ class ElectricalCellRecordingFilter(
     NameFilterMixin,
     ETypeClassFilterMixin,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]
 
     class Constants(CustomFilter.Constants):
         model = ElectricalCellRecording

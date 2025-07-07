@@ -20,8 +20,20 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
     @field_validator("*", mode="before")
     @classmethod
-    def split_str(cls, value, field):  # noqa: ARG003 # pyright: ignore reportIncompatibleMethodOverride
+    def split_str(cls, value, field):  # pyright: ignore reportIncompatibleMethodOverride
         """Prevent splitting field logic from parent class."""
+        # backwards compatibility by splitting only comma separated single list elements that do not
+        # have space directly after the comma. e.g "a,b,c" will be split but not 'a, b, c'.
+        if field.field_name is not None and (
+            field.field_name == cls.Constants.ordering_field_name
+            or field.field_name.endswith("__in")
+            or field.field_name.endswith("__not_in")
+        ):
+            return (
+                value[0].split(",")
+                if value and len(value) == 1 and isinstance(value[0], str) and ", " not in value[0]
+                else value
+            )
         return value
 
     @field_validator("order_by", check_fields=False)

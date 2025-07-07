@@ -268,3 +268,11 @@ def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
         params={"name__in": ["e-1", "e-2"]},
     ).json()["data"]
     assert {d["name"] for d in data} == {"e-1", "e-2"}
+
+    # backwards compat
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"name__in": "e-1,e-2"},
+    ).json()["data"]
+    assert {d["name"] for d in data} == {"e-1", "e-2"}

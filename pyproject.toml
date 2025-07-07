@@ -168,7 +168,7 @@ addopts = [
     "-ra",
     "--cov=app",
     "--durations=10",
-    "--durations-min=1.0",
+    "--durations-min=0.1",
 ]
 # asyncio_mode = "auto"
 testpaths = [

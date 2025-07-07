@@ -3,6 +3,7 @@ from typing import Annotated
 
 import sqlalchemy as sa
 from fastapi_filter import FilterDepends
+from sqlalchemy.orm import aliased
 
 from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.filters.base import CustomFilter
@@ -26,7 +27,7 @@ def _get_family_query(
         .cte(recursive=True)
     )
 
-    br_alias = sa.orm.aliased(BrainRegion)
+    br_alias = aliased(BrainRegion)
 
     direction_join = br_alias.parent_structure_id == cte.c.id
     if with_ascendants:

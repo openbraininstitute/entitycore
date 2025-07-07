@@ -8,6 +8,7 @@ from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
 from app.db.model import Identifiable
+from app.logger import L
 
 Aliases = dict[type[Identifiable], type[Identifiable] | dict[str, type[Identifiable]]]
 
@@ -24,16 +25,25 @@ class CustomFilter[T: DeclarativeBase](Filter):
         """Prevent splitting field logic from parent class."""
         # backwards compatibility by splitting only comma separated single list elements that do not
         # have space directly after the comma. e.g "a,b,c" will be split but not 'a, b, c'.
-        if field.field_name is not None and (
-            field.field_name == cls.Constants.ordering_field_name
-            or field.field_name.endswith("__in")
-            or field.field_name.endswith("__not_in")
-        ):
-            return (
-                value[0].split(",")
-                if value and len(value) == 1 and isinstance(value[0], str) and ", " not in value[0]
-                else value
+        if (
+            field.field_name is not None  # noqa: PLR0916
+            and (
+                field.field_name == cls.Constants.ordering_field_name
+                or field.field_name.endswith("__in")
+                or field.field_name.endswith("__not_in")
             )
+            and value
+            and len(value) == 1
+            and isinstance(value[0], str)
+            and "," in value[0]
+            and ", " not in value[0]
+        ):
+            msg = (
+                "Deprecated comma separated single-string IN query used instead of native list. "
+                f"Filter: field.config['title'] Field name: {field.field_name} Value: {value}"
+            )
+            L.warning(msg)
+            return value[0].split(",")
         return value
 
     @field_validator("order_by", check_fields=False)

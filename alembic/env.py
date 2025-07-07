@@ -3,12 +3,12 @@ from collections.abc import Iterable
 from logging.config import fileConfig
 
 import alembic_postgresql_enum  # noqa: F401
+from alembic.environment import MigrationContext
+from alembic.operations import MigrationScript
 from alembic_utils.replaceable_entity import register_entities
 from sqlalchemy import engine_from_config, pool, text
 
 from alembic import context
-from alembic.environment import MigrationContext
-from alembic.operations import MigrationScript
 from app.config import settings
 from app.db import triggers
 from app.db.model import Base

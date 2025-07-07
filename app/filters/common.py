@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
-from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter import with_prefix
 
 from app.db.model import (
     Agent,
@@ -15,12 +15,17 @@ from app.db.model import (
     Strain,
     Subject,
 )
+from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 
 
 class IdFilterMixin:
     id: uuid.UUID | None = None
-    id__in: list[uuid.UUID] | None = None
+
+    # id__in needs to be a str for backwards compatibility when instead of a native list a comma
+    # separated string is provided, e.g. 'id1,id2' . With list[UUID] backwards compatibility would
+    # fail because of validation of the field which would be expected to be a UUID.
+    id__in: list[str] | None = None
 
 
 class NameFilterMixin:

@@ -226,6 +226,7 @@ def test_filtering(client, models, root_circuit, simulation_result):
     ).json()["data"]
     assert len(data) == 2
 
+    # backwards compat
     data = assert_request(
         client.get, url=ROUTE, params={"used__id__in": f"{root_circuit.id},{simulation_result.id}"}
     ).json()["data"]
@@ -234,7 +235,22 @@ def test_filtering(client, models, root_circuit, simulation_result):
     data = assert_request(
         client.get,
         url=ROUTE,
+        params={"used__id__in": [str(root_circuit.id), str(simulation_result.id)]},
+    ).json()["data"]
+    assert len(data) == 5
+
+    # backwards compat
+    data = assert_request(
+        client.get,
+        url=ROUTE,
         params={"generated__id__in": f"{root_circuit.id},{simulation_result.id}"},
+    ).json()["data"]
+    assert len(data) == 4
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"generated__id__in": [str(root_circuit.id), str(simulation_result.id)]},
     ).json()["data"]
     assert len(data) == 4
 

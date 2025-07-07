@@ -181,7 +181,7 @@ def test_filtering(client, root_circuit, models):
         url=ROUTE,
         params={
             "root_circuit_id": str(root_circuit.id),
-            "scale__in": "single,whole_brain",
+            "scale__in": ["single", "whole_brain"],
         },
     ).json()["data"]
     assert len(data) == 4

@@ -45,7 +45,15 @@ def test_retrieve(db, client, person_id):
     assert data[0] == with_creation_fields(items[5])
 
     # test filter (in)
+
+    # backwards compat
     response = client.get(ROUTE, params={"pref_label__in": "pref_label_5,pref_label_6"})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 2
+    assert data == [with_creation_fields(items[5]), with_creation_fields(items[6])]
+
+    response = client.get(ROUTE, params={"pref_label__in": ["pref_label_5", "pref_label_6"]})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 2

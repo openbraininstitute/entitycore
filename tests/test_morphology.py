@@ -582,6 +582,8 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
 
     # filtering by multiple IDs
     selected_ids = [morphology_ids[1], morphology_ids[3]]
+
+    # backwards compat
     response = client.get(ROUTE, params={"id__in": ",".join(selected_ids)})
     assert response.status_code == 200
     data = response.json()["data"]
@@ -589,8 +591,24 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
     returned_ids = [item["id"] for item in data]
     assert set(returned_ids) == set(selected_ids)
 
+    response = client.get(ROUTE, params={"id__in": selected_ids})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 2
+    returned_ids = [item["id"] for item in data]
+    assert set(returned_ids) == set(selected_ids)
+
     # filtering by all IDs
+
+    # backwards compat
     response = client.get(ROUTE, params={"id__in": ",".join(morphology_ids)})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 5
+    returned_ids = [item["id"] for item in data]
+    assert set(returned_ids) == set(morphology_ids)
+
+    response = client.get(ROUTE, params={"id__in": morphology_ids})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 5
@@ -604,9 +622,20 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
     assert len(data) == 0
 
     # combining id__in with other filters
+
+    # backwards compat
     response = client.get(
         ROUTE,
         params={"id__in": ",".join(morphology_ids), "name__ilike": "%Filter Test Morphology 2%"},
+    )
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == morphology_ids[2]
+
+    response = client.get(
+        ROUTE,
+        params={"id__in": morphology_ids, "name__ilike": "%Filter Test Morphology 2%"},
     )
     assert response.status_code == 200
     data = response.json()["data"]

@@ -1,11 +1,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter import with_prefix
 
 from app.db.model import MeasurementAnnotation, MeasurementItem, MeasurementKind
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
+from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import CreationFilterMixin
 

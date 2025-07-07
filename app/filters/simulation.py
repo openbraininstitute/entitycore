@@ -1,9 +1,10 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import FilterDepends, with_prefix
+from fastapi_filter import with_prefix
 
 from app.db.model import Simulation
+from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     ContributionFilterMixin,

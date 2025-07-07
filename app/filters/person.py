@@ -1,9 +1,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi_filter import FilterDepends
-
 from app.db.model import Person
+from app.dependencies.filter import FilterDepends
 from app.filters.common import AgentFilter, CreatorFilterMixin
 
 

@@ -8,24 +8,24 @@ from app.db.model import (
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    BrainRegionFilter,
     BrainRegionFilterMixin,
     EntityFilterMixin,
     ETypeClassFilterMixin,
-    MTypeClassFilter,
     MTypeClassFilterMixin,
     NameFilterMixin,
-    SubjectFilterMixin,
+    NestedBrainRegionFilter,
+    NestedMTypeClassFilter,
     with_prefix,
 )
+from app.filters.subject import SubjectFilterMixin
 
 
 class DensityFilterBase(
-    CustomFilter,
     EntityFilterMixin,
     BrainRegionFilterMixin,
     SubjectFilterMixin,
     NameFilterMixin,
+    CustomFilter,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
@@ -63,16 +63,20 @@ class ExperimentalSynapsesPerConnectionFilter(
     DensityFilterBase,
 ):
     pre_mtype: Annotated[
-        MTypeClassFilter | None, FilterDepends(with_prefix("pre_mtype", MTypeClassFilter))
+        NestedMTypeClassFilter | None,
+        FilterDepends(with_prefix("pre_mtype", NestedMTypeClassFilter)),
     ] = None
     post_mtype: Annotated[
-        MTypeClassFilter | None, FilterDepends(with_prefix("post_mtype", MTypeClassFilter))
+        NestedMTypeClassFilter | None,
+        FilterDepends(with_prefix("post_mtype", NestedMTypeClassFilter)),
     ] = None
     pre_region: Annotated[
-        BrainRegionFilter | None, FilterDepends(with_prefix("pre_region", BrainRegionFilter))
+        NestedBrainRegionFilter | None,
+        FilterDepends(with_prefix("pre_region", NestedBrainRegionFilter)),
     ] = None
     post_region: Annotated[
-        BrainRegionFilter | None, FilterDepends(with_prefix("post_region", BrainRegionFilter))
+        NestedBrainRegionFilter | None,
+        FilterDepends(with_prefix("post_region", NestedBrainRegionFilter)),
     ] = None
 
     class Constants(CustomFilter.Constants):

@@ -8,8 +8,8 @@ from app.filters.common import (
     EntityFilterMixin,
     ETypeClassFilterMixin,
     NameFilterMixin,
-    SubjectFilterMixin,
 )
+from app.filters.subject import SubjectFilterMixin
 
 
 class ElectricalCellRecordingFilter(

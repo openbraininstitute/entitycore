@@ -6,26 +6,23 @@ from app.db.model import SimulationResult
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    ContributionFilterMixin,
-    CreationFilterMixin,
-    CreatorFilterMixin,
+    EntityFilterMixin,
     IdFilterMixin,
     NameFilterMixin,
 )
 
 
-class NestedSimulationResultFilter(CustomFilter, IdFilterMixin, NameFilterMixin):
+class NestedSimulationResultFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
+    class Constants(CustomFilter.Constants):
+        model = SimulationResult
+
+
+class SimulationResultFilter(EntityFilterMixin, NameFilterMixin, CustomFilter):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):
         model = SimulationResult
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
-
-
-class SimulationResultFilter(
-    NestedSimulationResultFilter, CreationFilterMixin, CreatorFilterMixin, ContributionFilterMixin
-):
-    pass
 
 
 SimulationResultFilterDep = Annotated[SimulationResultFilter, FilterDepends(SimulationResultFilter)]

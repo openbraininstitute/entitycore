@@ -9,7 +9,7 @@ from app.filters.common import (
     EntityFilterMixin,
     NameFilterMixin,
 )
-from app.filters.memodel import MEModelFilter, NestedMEModelFilterDep
+from app.filters.memodel import NestedMEModelFilter, NestedMEModelFilterDep
 
 
 class SingleNeuronSimulationFilter(
@@ -20,7 +20,7 @@ class SingleNeuronSimulationFilter(
 ):
     status: SingleNeuronSimulationStatus | None = None
 
-    me_model: Annotated[MEModelFilter | None, NestedMEModelFilterDep] = None
+    me_model: Annotated[NestedMEModelFilter | None, NestedMEModelFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

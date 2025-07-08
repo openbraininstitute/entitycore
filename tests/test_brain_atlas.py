@@ -210,6 +210,13 @@ def test_brain_atlas(db, client, species_id, person_id):
         },
     ]
 
+    # call with default order_by
+    response = client.get(
+        f"{ROUTE}/{brain_atlas0.id}/regions",
+    )
+    assert response.status_code == 200
+    assert len(response.json()["data"]) == 4
+
     response = client.get(f"{ROUTE}/{brain_atlas0.id}/regions/{ids[brain_atlas0.name, 'root'].id}")
     assert response.status_code == 200
     assert response.json() == {

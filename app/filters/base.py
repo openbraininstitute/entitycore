@@ -1,3 +1,4 @@
+from collections import defaultdict
 from operator import attrgetter
 from typing import cast
 
@@ -51,7 +52,6 @@ class CustomFilter[T: DeclarativeBase](Filter):
     def restrict_sortable_fields(cls, value: list[str]):
         """Restrict sorting to specific fields."""
         allowed_field_names = getattr(cls.Constants, "ordering_model_fields", None)
-
         if not allowed_field_names:
             msg = "You cannot sort by any field"
             raise ValueError(msg)
@@ -61,6 +61,46 @@ class CustomFilter[T: DeclarativeBase](Filter):
             if field_name not in allowed_field_names:
                 msg = f"You may only sort by: {', '.join(allowed_field_names)}"
                 raise ValueError(msg)
+
+        return value
+
+    @field_validator("*", mode="before", check_fields=False)
+    @classmethod
+    def validate_order_by(cls, value, field):  # pyright: ignore reportIncompatibleMethodOverride
+        return value
+        if field.field_name != cls.Constants.ordering_field_name:
+            return value
+
+        if not value:
+            return None
+
+        field_name_usages = defaultdict(list)
+        duplicated_field_names = set()
+
+        for field_name_with_direction in value:
+            field_name = field_name_with_direction.replace("-", "").replace("+", "")
+
+            if not (hasattr(cls.Constants.model, field_name) and "__" not in field_name):
+                msg = f"{field_name} is not a valid ordering field."
+                raise ValueError(msg)
+
+            field_name_usages[field_name].append(field_name_with_direction)
+            if len(field_name_usages[field_name]) > 1:
+                duplicated_field_names.add(field_name)
+
+        if duplicated_field_names:
+            ambiguous_field_names = ", ".join(
+                [
+                    field_name_with_direction
+                    for field_name in sorted(duplicated_field_names)
+                    for field_name_with_direction in field_name_usages[field_name]
+                ]
+            )
+            msg = (
+                f"Field names can appear at most once for {cls.Constants.ordering_field_name}. "
+                f"The following was ambiguous: {ambiguous_field_names}."
+            )
+            raise ValueError(msg)
 
         return value
 
@@ -120,11 +160,42 @@ class CustomFilter[T: DeclarativeBase](Filter):
                         model_field = getattr(self.Constants.model, field_name)
 
                     query = query.filter(getattr(model_field, operator)(value))
-
         return query
 
-    def sort(self, query: Select[tuple[T]]):  # type:ignore[override]
-        return cast("Select[tuple[T]]", super().sort(query))
+    def sort(self, query: Select[tuple[T]], aliases):  # type:ignore[override]
+        if not self.ordering_values:
+            return query
+
+        for direction, field_name in self.separate_ordering_direction_value():
+            model = self.Constants.model
+
+            if "__" in field_name:
+                submodel_name, *parts, field_name = field_name.split("__")  # noqa: PLW2901
+
+                rel = getattr(model, submodel_name)
+                model = rel.property.mapper.class_
+
+                if model in aliases:
+                    model = aliases[model]
+
+                for part in parts:
+                    rel = getattr(model, part)
+                    model = rel.property.mapper.class_
+
+            order_by_field = getattr(model, field_name)
+
+            query = query.order_by(getattr(order_by_field, direction)())
+
+        return cast("Select[tuple[T]]", query)
+
+    def separate_ordering_direction_value(self) -> list[tuple[Filter.Direction, str]]:
+        return [
+            (
+                Filter.Direction.desc if field_name.startswith("-") else Filter.Direction.asc,
+                field_name.replace("-", "").replace("+", ""),
+            )
+            for field_name in self.ordering_values
+        ]
 
     def has_filtering_fields(self) -> bool:
         """Return True if any filtering field is not None, considering also nested filters."""
@@ -147,3 +218,12 @@ class CustomFilter[T: DeclarativeBase](Filter):
         if isinstance(attr, CustomFilter) and attr.has_filtering_fields():
             return attr
         return None
+
+    @property
+    def nested_ordering_fields(self):
+        """Return nested ordering fields."""
+        return [
+            field_name
+            for _, field_name in self.separate_ordering_direction_value()
+            if "__" in field_name
+        ]

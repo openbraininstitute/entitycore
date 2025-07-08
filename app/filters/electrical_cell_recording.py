@@ -24,7 +24,14 @@ class ElectricalCellRecordingFilter(
 
     class Constants(CustomFilter.Constants):
         model = ElectricalCellRecording
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "subject__species__name",
+            "brain_region__acronym",
+            "brain_region__name",
+        ]
 
 
 ElectricalCellRecordingFilterDep = Annotated[

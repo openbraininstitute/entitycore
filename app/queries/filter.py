@@ -18,6 +18,15 @@ def _to_parts(s: str) -> list[str]:
     return [".".join(parts[: i + 1]) for i in range(len(parts))]
 
 
+def _underscores_to_dots(names: list[str]) -> list[str]:
+    """Convert double underscore string into dot-separated strings without field name.
+
+    Examples:
+        subject__species__name -> subject.species
+    """
+    return [".".join(name.split("__")[:-1]) for name in names]
+
+
 def filter_from_db[I: Identifiable](
     query: sa.Select,
     filter_model: CustomFilter[I],
@@ -39,9 +48,16 @@ def filter_from_db[I: Identifiable](
     if diff := forced_joins.difference(filter_joins):
         msg = f"Not allowed in forced_joins: {diff}"
         raise RuntimeError(msg)
+
+    ordering_joins = set(
+        chain.from_iterable(
+            _to_parts(s) for s in _underscores_to_dots(filter_model.nested_ordering_fields)
+        )
+    )
+
     for name, func in filter_joins.items():
-        nested_filter = filter_model.get_nested_filter(name)
-        if (nested_filter and not forced_joins) or (not nested_filter and name in forced_joins):
+        to_be_applied = filter_model.get_nested_filter(name) or name in ordering_joins
+        if (to_be_applied and not forced_joins) or (not to_be_applied and name in forced_joins):
             L.debug("Applying join filter for {!r}", name)
             query = func(query)
     return query

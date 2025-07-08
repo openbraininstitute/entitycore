@@ -15,7 +15,7 @@ class BrainAtlasFilter(IdFilterMixin, NameFilterMixin, SpeciesFilterMixin, Custo
 
 
 class BrainAtlasRegionFilter(IdFilterMixin, CustomFilter):
-    order_by: list[str] = ["id", "creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):
         model = BrainAtlasRegion

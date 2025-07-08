@@ -10,8 +10,8 @@ from app.filters.common import (
     NameFilterMixin,
 )
 from app.filters.single_neuron_synaptome import (
+    NestedSingleNeuronSynaptomeFilter,
     NestedSingleNeuronSynaptomeFilterDep,
-    SingleNeuronSynaptomeFilter,
 )
 
 
@@ -24,7 +24,7 @@ class SingleNeuronSynaptomeSimulationFilter(
     status: SingleNeuronSimulationStatus | None = None
 
     synaptome: Annotated[
-        SingleNeuronSynaptomeFilter | None, NestedSingleNeuronSynaptomeFilterDep
+        NestedSingleNeuronSynaptomeFilter | None, NestedSingleNeuronSynaptomeFilterDep
     ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

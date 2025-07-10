@@ -8,24 +8,52 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
+    IdFilterMixin,
     NameFilterMixin,
+    NestedBrainRegionFilter,
 )
-from app.filters.memodel import MEModelFilter, NestedMEModelFilterDep
+from app.filters.memodel import NestedMEModelFilter, NestedMEModelFilterDep
+
+
+class NestedSingleNeuronSynaptomeFilter(
+    IdFilterMixin,
+    NameFilterMixin,
+    CustomFilter,
+):
+    brain_region: Annotated[
+        NestedBrainRegionFilter | None,
+        FilterDepends(with_prefix("synaptome__brain_region", NestedBrainRegionFilter)),
+    ] = None
+
+    me_model: Annotated[
+        NestedMEModelFilter | None,
+        FilterDepends(with_prefix("synaptome__me_model", NestedMEModelFilter)),
+    ] = None
+
+    class Constants(CustomFilter.Constants):
+        model = SingleNeuronSynaptome
 
 
 class SingleNeuronSynaptomeFilter(
-    CustomFilter,
-    BrainRegionFilterMixin,
     EntityFilterMixin,
     NameFilterMixin,
+    BrainRegionFilterMixin,
+    CustomFilter,
 ):
-    me_model: Annotated[MEModelFilter | None, NestedMEModelFilterDep] = None
+    me_model: Annotated[NestedMEModelFilter | None, NestedMEModelFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):
         model = SingleNeuronSynaptome
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "brain_region__name",
+            "brain_region__acronym",
+            "created_by__pref_label",
+        ]
 
 
 # Dependencies
@@ -34,5 +62,5 @@ SingleNeuronSynaptomeFilterDep = Annotated[
 ]
 # Nested dependencies
 NestedSingleNeuronSynaptomeFilterDep = FilterDepends(
-    with_prefix("synaptome", SingleNeuronSynaptomeFilter)
+    with_prefix("synaptome", NestedSingleNeuronSynaptomeFilter)
 )

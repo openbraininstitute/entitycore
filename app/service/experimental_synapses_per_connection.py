@@ -67,6 +67,7 @@ def read_many(
     subject_alias = aliased(Subject, flat=True)
     pre_mtype_alias = aliased(MTypeClass, flat=True)
     post_mtype_alias = aliased(MTypeClass, flat=True)
+    brain_region_alias = aliased(BrainRegion, flat=True)
     pre_region_alias = aliased(BrainRegion, flat=True)
     post_region_alias = aliased(BrainRegion, flat=True)
     agent_alias = aliased(Agent, flat=True)
@@ -75,6 +76,7 @@ def read_many(
     aliases = {
         Subject: subject_alias,
         BrainRegion: {
+            "brain_region": brain_region_alias,
             "pre_region": pre_region_alias,
             "post_region": post_region_alias,
         },

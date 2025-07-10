@@ -85,7 +85,14 @@ class MEModelFilter(
 
     class Constants(CustomFilter.Constants):
         model = MEModel
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "brain_region__name",
+            "brain_region__acronym",
+            "created_by__pref_label",
+            "name",
+        ]
 
 
 # Dependencies

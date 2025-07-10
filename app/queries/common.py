@@ -282,7 +282,6 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     data_query = (
         filter_model.sort(filter_query, aliases=aliases)
         .with_only_columns(db_model_class)
-        .distinct()
         .offset(pagination_request.offset)
         .limit(pagination_request.page_size)
     )

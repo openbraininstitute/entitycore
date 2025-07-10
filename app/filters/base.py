@@ -176,7 +176,11 @@ class CustomFilter[T: DeclarativeBase](Filter):
                 model = rel.property.mapper.class_
 
                 if model in aliases:
-                    model = aliases[model]
+                    model_or_fields_dict = aliases[model]
+                    if isinstance(model_or_fields_dict, dict):
+                        model = model_or_fields_dict.get(submodel_name, model)
+                    else:
+                        model = model_or_fields_dict
 
                 for part in parts:
                     rel = getattr(model, part)

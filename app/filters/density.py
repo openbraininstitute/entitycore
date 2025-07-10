@@ -37,7 +37,15 @@ class ExperimentalNeuronDensityFilter(
 ):
     class Constants(CustomFilter.Constants):
         model = ExperimentalNeuronDensity
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "brain_region__name",
+            "brain_region__acronym",
+            "subject__species__name",
+            "subject__age_value",
+        ]
 
 
 ExperimentalNeuronDensityFilterDep = Annotated[
@@ -51,7 +59,15 @@ class ExperimentalBoutonDensityFilter(
 ):
     class Constants(CustomFilter.Constants):
         model = ExperimentalBoutonDensity
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "brain_region__name",
+            "brain_region__acronym",
+            "subject__species__name",
+            "subject__age_value",
+        ]
 
 
 ExperimentalBoutonDensityFilterDep = Annotated[
@@ -81,7 +97,16 @@ class ExperimentalSynapsesPerConnectionFilter(
 
     class Constants(CustomFilter.Constants):
         model = ExperimentalSynapsesPerConnection
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "creation_date",
+            "update_date",
+            "name",
+            "subject__species__name",
+            "subject__age_value",
+            "brain_region__name",
+            "brain_region__acronym",
+        ]
 
 
 ExperimentalSynapsesPerConnectionFilterDep = Annotated[

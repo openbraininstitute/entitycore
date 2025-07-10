@@ -4,6 +4,7 @@ import pytest
 
 from app.db.model import ExperimentalSynapsesPerConnection
 from app.db.types import EntityType
+from app.filters.density import ExperimentalSynapsesPerConnectionFilter
 
 from .utils import (
     assert_request,
@@ -272,3 +273,32 @@ def test_facets(client, models):
     assert facets["post_region"][0]["count"] == counts["post-r2"]
     assert facets["post_region"][1]["label"] == "post-r3"
     assert facets["post_region"][1]["count"] == counts["post-r3"]
+
+
+def test_sorting_and_filtering(client, models):
+    n_models = len(models)
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    for ordering_field in ExperimentalSynapsesPerConnectionFilter.Constants.ordering_model_fields:
+        data = req({"name__in": ["s1", "s0"], "order_by": f"+{ordering_field}"})
+        assert len(data) == 2
+
+        data = req({"brain_region__name": "region-1", "order_by": ordering_field})
+        assert all(d["brain_region"]["name"] == "region-1" for d in data)
+
+        data = req({"brain_region__name": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+        data = req({"brain_region__acronym": "acronym-1", "order_by": ordering_field})
+        assert all(d["brain_region"]["acronym"] == "acronym-1" for d in data)
+
+        data = req({"brain_region__acronym": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+        data = req({"subject__species__name__in": ["Test Species"], "order_by": ordering_field})
+        assert len(data) == n_models
+
+        data = req({"post_mtype__pref_label": "post-m2", "order_by": ordering_field})
+        assert [d["post_mtype"]["pref_label"] for d in data] == ["post-m2"] * len(data)

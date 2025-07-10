@@ -539,7 +539,7 @@ def create_emodel_ids(
                     "species_id": str(species_id),
                     "strain_id": str(strain_id),
                     "iteration": "test iteration",
-                    "score": -1,
+                    "score": 10 * i,
                     "seed": -1,
                     "exemplar_morphology_id": str(morphology_id),
                     "authorized_public": False,
@@ -719,19 +719,19 @@ def faceted_emodel_ids(db: Session, client, person_id):
     ]
 
     emodel_ids = []
-    for species_id, brain_region_id, morphology_id in it.product(
-        species_ids, brain_region_ids, morphology_ids
+    for i, (species_id, brain_region_id, morphology_id) in enumerate(
+        it.product(species_ids, brain_region_ids, morphology_ids)
     ):
         emodel_id = assert_request(
             client.post,
             url="/emodel",
             json={
-                "name": "",
+                "name": f"e-{i}",
                 "brain_region_id": str(brain_region_id),
                 "description": f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
                 "species_id": str(species_id),
                 "iteration": "test iteration",
-                "score": -1,
+                "score": 10 * i,
                 "seed": -1,
                 "exemplar_morphology_id": str(morphology_id),
                 "authorized_public": False,
@@ -828,13 +828,13 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
 
     memodels = []
 
-    for species_id, brain_region_id, morphology_id, emodel_id in it.product(
-        species_ids, brain_region_ids, morphology_ids, emodel_ids
+    for i, (species_id, brain_region_id, morphology_id, emodel_id) in enumerate(
+        it.product(species_ids, brain_region_ids, morphology_ids, emodel_ids)
     ):
         memodel = add_db(
             db,
             MEModel(
-                name="",
+                name=f"m-{i}",
                 description="foo" if species_id == species_ids[0] else "bar",
                 brain_region_id=brain_region_id,
                 species_id=species_id,

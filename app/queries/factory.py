@@ -65,6 +65,7 @@ def query_params_factory[I: Identifiable](
     updated_by_alias = _get_alias(Agent, "updated_by")
     pre_mtype_alias = _get_alias(MTypeClass, "pre_mtype")
     post_mtype_alias = _get_alias(MTypeClass, "post_mtype")
+    brain_region_alias = _get_alias(BrainRegion, "brain_region")
     pre_region_alias = _get_alias(BrainRegion, "pre_region")
     post_region_alias = _get_alias(BrainRegion, "post_region")
     entity_alias = _get_alias(Entity)
@@ -89,7 +90,7 @@ def query_params_factory[I: Identifiable](
             "label": contribution_alias.pref_label,
             "type": contribution_alias.type,
         },
-        "brain_region": {"id": BrainRegion.id, "label": BrainRegion.name},
+        "brain_region": {"id": brain_region_alias.id, "label": brain_region_alias.name},
         "morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
         "exemplar_morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
         "emodel": {"id": emodel_alias.id, "label": emodel_alias.name},
@@ -129,7 +130,7 @@ def query_params_factory[I: Identifiable](
             synaptome_alias, db_model_class.synaptome_id == synaptome_alias.id
         ),
         "brain_region": lambda q: q.join(
-            BrainRegion, db_model_class.brain_region_id == BrainRegion.id
+            brain_region_alias, db_model_class.brain_region_id == brain_region_alias.id
         ),
         "agent": lambda q: q.join(Agent, db_model_class.agent_id == Agent.id),
         "contribution": lambda q: q.outerjoin(

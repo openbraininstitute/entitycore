@@ -6,7 +6,12 @@ from fastapi.testclient import TestClient
 from app.db.types import EntityType
 
 from .conftest import CreateIds, EModelIds
-from .utils import TEST_DATA_DIR, create_reconstruction_morphology_id, upload_entity_asset
+from .utils import (
+    TEST_DATA_DIR,
+    assert_request,
+    create_reconstruction_morphology_id,
+    upload_entity_asset,
+)
 
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/emodel"
@@ -373,3 +378,24 @@ def test_pagination(client, create_emodel_ids):
     assert len(items) == total_items
     data_ids = [int(i["name"]) for i in items]
     assert list(reversed(data_ids)) == list(range(total_items))
+
+
+def test_filtering_ordering(client, faceted_emodel_ids):
+    n_models = len(faceted_emodel_ids.emodel_ids)
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req(
+        {
+            "exemplar_morphology__name": "test exemplar morphology 1",
+            "order_by": "exemplar_morphology__name",
+        }
+    )
+    assert [d["exemplar_morphology"]["name"] for d in data] == ["test exemplar morphology 1"] * (
+        n_models // 2
+    )
+
+    data = req({"name__in": ["e-2", "e-3"], "order_by": "-score"})
+    assert [d["name"] for d in data] == ["e-3", "e-2"]
+    assert [d["score"] for d in data] == [30.0, 20.0]

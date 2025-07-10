@@ -1,11 +1,17 @@
+from datetime import timedelta
+from time import sleep
+
 import pytest
 
-from app.db.model import ExperimentalBoutonDensity
+from app.db.model import BrainRegion, Contribution, ExperimentalBoutonDensity, Species, Subject
 from app.db.types import EntityType
+from app.filters.density import ExperimentalBoutonDensityFilter
 from app.schemas.density import ExperimentalBoutonDensityCreate
 
 from .utils import (
     PROJECT_ID,
+    add_all_db,
+    add_db,
     assert_request,
     check_authorization,
     check_brain_region_filter,
@@ -96,3 +102,286 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, 
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
+
+
+@pytest.fixture
+def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
+    organization, person, role = agents
+
+    species = add_all_db(
+        db,
+        [
+            Species(
+                name=f"species-{i}",
+                taxonomy_id=f"taxonomy-{i}",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            )
+            for i in range(3)
+        ],
+    )
+    subjects = add_all_db(
+        db,
+        [
+            Subject(
+                name=f"subject-{i}",
+                description="my-description",
+                species_id=sp.id,
+                strain_id=None,
+                age_value=timedelta(days=14),
+                age_period="postnatal",
+                sex="female",
+                weight=1.5,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            )
+            for i, sp in enumerate(species + species)
+        ],
+    )
+
+    brain_regions = add_all_db(
+        db,
+        [
+            BrainRegion(
+                annotation_value=i,
+                acronym=f"acronym-{i}",
+                name=f"region-{i}",
+                color_hex_triplet="FF0000",
+                parent_structure_id=None,
+                hierarchy_id=brain_region_hierarchy_id,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            )
+            for i in range(len(subjects))
+        ],
+    )
+
+    densities = []
+    density_ids = [0, 1, 1, 1, 2, 2]
+    for i, subject in enumerate(subjects):
+        density = add_db(
+            db,
+            ExperimentalBoutonDensity(
+                **json_data
+                | {
+                    "subject_id": subject.id,
+                    "name": f"d-{density_ids[i]}",
+                    "created_by_id": person_id,
+                    "updated_by_id": person_id,
+                    "authorized_project_id": PROJECT_ID,
+                    "brain_region_id": brain_regions[i].id,
+                }
+            ),
+        )
+
+        # add contribution
+        add_db(
+            db,
+            Contribution(
+                entity_id=density.id,
+                role_id=role.id,
+                agent_id=(person.id, organization.id)[i % 2],
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+        )
+
+        densities.append(density)
+
+        # to vary the creation date
+        sleep(0.01)
+
+    return species, subjects, densities
+
+
+def test_filtering(client, models):
+    species, _, densities = models
+
+    data = assert_request(client.get, url=ROUTE).json()["data"]
+    assert len(data) == len(densities)
+
+    data = assert_request(
+        client.get, url=ROUTE, params=f"subject__species__id={species[1].id}"
+    ).json()["data"]
+    assert len(data) == 2
+
+    data = assert_request(client.get, url=ROUTE, params="subject__species__name=species-2").json()[
+        "data"
+    ]
+    assert len(data) == 2
+
+    data = assert_request(client.get, url=ROUTE, params="subject__species__name=species-2").json()[
+        "data"
+    ]
+    assert len(data) == 2
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"name__in": ["d-1", "d-2"]},
+    ).json()["data"]
+    assert {d["name"] for d in data} == {"d-1", "d-2"}
+
+    # backwards compat
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"name__in": "d-1,d-2"},
+    ).json()["data"]
+    assert {d["name"] for d in data} == {"d-1", "d-2"}
+
+    data = assert_request(
+        client.get, url=ROUTE, params="contribution__pref_label=test_person_1"
+    ).json()["data"]
+    assert [d["contributions"][0]["agent"]["pref_label"] for d in data] == ["test_person_1"] * 3
+
+    data = assert_request(
+        client.get, url=ROUTE, params="contribution__pref_label=test_organization_1"
+    ).json()["data"]
+    assert [d["contributions"][0]["agent"]["pref_label"] for d in data] == [
+        "test_organization_1"
+    ] * 3
+
+
+def test_sorting(client, models):
+    models = models[-1]
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    # default: ascending by date
+    data = req("order_by=creation_date")
+    assert len(data) == len(models)
+    assert [d["id"] for d in data] == [str(m.id) for m in models]
+
+    # equivalent to above
+    data = req({"order_by": ["creation_date"]})
+    assert len(data) == len(models)
+    assert [d["id"] for d in data] == [str(m.id) for m in models]
+
+    # ascending by date
+    data = req("order_by=+creation_date")
+    assert len(data) == len(models)
+    assert [d["id"] for d in data] == [str(m.id) for m in models]
+
+    # equivalent to above
+    data = req({"order_by": "+creation_date"})
+    assert len(data) == len(models)
+    assert [d["id"] for d in data] == [str(m.id) for m in models]
+
+    # descending by date
+    data = req("order_by=-creation_date")
+    assert len(data) == len(models)
+    assert [d["id"] for d in data] == [str(m.id) for m in models][::-1]
+
+    # equivalent to above
+    data = req({"order_by": ["-creation_date"]})
+    assert len(data) == len(models)
+    assert [d["id"] for d in data] == [str(m.id) for m in models][::-1]
+
+    # ascending by name
+    data = req("order_by=+name")
+    assert len(data) == len(models)
+    assert [d["name"] for d in data] == [f"d-{i}" for i in (0, 1, 1, 1, 2, 2)]
+
+    # descending by name
+    data = req("order_by=-name")
+    assert len(data) == len(models)
+    assert [d["name"] for d in data] == [f"d-{i}" for i in (2, 2, 1, 1, 1, 0)]
+
+    # ascending by species name
+    data = req("order_by=+subject__species__name")
+    assert [d["subject"]["species"]["name"] for d in data] == [
+        f"species-{i}" for i in (0, 0, 1, 1, 2, 2)
+    ]
+
+    # descending by species name
+    data = req("order_by=-subject__species__name")
+    assert [d["subject"]["species"]["name"] for d in data] == [
+        f"species-{i}" for i in (2, 2, 1, 1, 0, 0)
+    ]
+
+    # ascending by brain region acronym
+    data = req("order_by=+brain_region__acronym")
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        f"acronym-{i}" for i in (0, 1, 2, 3, 4, 5)
+    ]
+
+    # descending by brain region acronym
+    data = req("order_by=-brain_region__acronym")
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        f"acronym-{i}" for i in (5, 4, 3, 2, 1, 0)
+    ]
+
+    # brain region acronym should sort name ties in desc order
+    data = req({"order_by": ["+name", "-brain_region__acronym"]})
+    assert [d["name"] for d in data] == [f"d-{i}" for i in [0, 1, 1, 1, 2, 2]]
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        f"acronym-{i}" for i in [0, 3, 2, 1, 5, 4]
+    ]
+
+    # brain region acronym should sort name ties in asc order
+    data = req({"order_by": ["+name", "+brain_region__acronym"]})
+    assert [d["name"] for d in data] == [f"d-{i}" for i in [0, 1, 1, 1, 2, 2]]
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        f"acronym-{i}" for i in [0, 1, 2, 3, 4, 5]
+    ]
+
+    # sort using two cols of the same model
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"order_by": ["+brain_region__name", "+brain_region__acronym"]},
+    ).json()["data"]
+    assert [d["brain_region"]["name"] for d in data] == [f"region-{i}" for i in [0, 1, 2, 3, 4, 5]]
+
+
+def test_sorting_and_filtering(client, models):  # noqa: ARG001
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    for ordering_field in ExperimentalBoutonDensityFilter.Constants.ordering_model_fields:
+        data = req({"name__in": ["d-1", "d-0"], "order_by": f"+{ordering_field}"})
+        assert len(data) == 4
+
+        data = req({"brain_region__name": "region-1", "order_by": ordering_field})
+        assert all(d["brain_region"]["name"] == "region-1" for d in data)
+
+        data = req({"brain_region__name": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+        data = req({"brain_region__acronym": "acronym-1", "order_by": ordering_field})
+        assert all(d["brain_region"]["acronym"] == "acronym-1" for d in data)
+
+        data = req({"brain_region__acronym": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+        data = req(
+            {"subject__species__name__in": ["species-1", "species-2"], "order_by": ordering_field}
+        )
+        assert len(data) == 4
+
+    data = req({"name": "d-1", "order_by": "-brain_region__acronym"})
+    assert [d["name"] for d in data] == ["d-1", "d-1", "d-1"]
+    assert [d["brain_region"]["acronym"] for d in data] == ["acronym-3", "acronym-2", "acronym-1"]
+
+    data = req(
+        {
+            "subject__species__name__in": ["species-1", "species-2"],
+            "order_by": "-brain_region__acronym",
+        }
+    )
+    assert [d["subject"]["species"]["name"] for d in data] == [
+        "species-2",
+        "species-1",
+        "species-2",
+        "species-1",
+    ]
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        "acronym-5",
+        "acronym-4",
+        "acronym-2",
+        "acronym-1",
+    ]

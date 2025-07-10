@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Annotated
 
 from fastapi_filter import with_prefix
@@ -18,6 +19,8 @@ from app.filters.common import (
 
 
 class NestedSubjectFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
+    age_value: timedelta | None = None
+
     species: Annotated[
         NestedSpeciesFilter | None,
         FilterDepends(with_prefix("subject__species", NestedSpeciesFilter)),
@@ -39,6 +42,8 @@ class SubjectFilter(
     CreatorFilterMixin,
     CustomFilter,
 ):
+    age_value: timedelta | None = None
+
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

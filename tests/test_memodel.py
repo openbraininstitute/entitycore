@@ -6,11 +6,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.db.model import MEModel
+from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
 
 from .conftest import CreateIds, MEModels
 from .utils import (
     PROJECT_ID,
+    assert_request,
     check_brain_region_filter,
     create_reconstruction_morphology_id,
 )
@@ -653,3 +655,39 @@ def test_brain_region_filter(
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
+
+
+def test_sorting_filtering(client, faceted_memodels):
+    n_models = len(faceted_memodels.memodels)
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    for ordering_field in MEModelFilter.Constants.ordering_model_fields:
+        data = req({"name__in": ["m-2", "m-3"], "order_by": f"+{ordering_field}"})
+        assert len(data) == 2
+
+        data = req({"name__in": ["m-2", "m-3"], "order_by": f"-{ordering_field}"})
+        assert len(data) == 2
+
+        data = req({"created_by__pref_label": "test_person_1", "order_by": ordering_field})
+        assert len(data) == n_models
+
+        data = req({"created_by__pref_label": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+        data = req({"brain_region__name": "region0", "order_by": ordering_field})
+        assert all(d["brain_region"]["name"] == "region0" for d in data)
+
+        data = req({"brain_region__name": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+        data = req({"brain_region__acronym": "acronym1", "order_by": ordering_field})
+        assert all(d["brain_region"]["acronym"] == "acronym1" for d in data)
+
+        data = req({"brain_region__acronym": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+    data = req({"brain_region__name": "region0", "order_by": "-name"})
+    assert all(d["brain_region"]["name"] == "region0" for d in data)
+    assert [d["name"] for d in data] == ["m-9", "m-8", "m-3", "m-2", "m-11", "m-10", "m-1", "m-0"]

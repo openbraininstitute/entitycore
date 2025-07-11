@@ -8,3 +8,4 @@ router = APIRouter(
 )
 
 create_one = router.post("")(app.service.etype_classification.create_one)
+delete_one = router.delete("/{id_}")(app.service.etype_classification.delete_one)

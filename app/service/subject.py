@@ -4,11 +4,16 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import Subject
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.filters.subject import SubjectFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_delete_one,
+    router_read_many,
+    router_read_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.subject import SubjectCreate, SubjectRead
 from app.schemas.types import ListResponse
@@ -86,3 +91,25 @@ def read_many(
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
     )
+
+
+def delete_one(
+    _: AdminContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SubjectRead:
+    one = router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=Subject,
+        authorized_project_id=None,
+        response_schema_class=SubjectRead,
+        apply_operations=_load,
+    )
+    router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=Subject,
+        authorized_project_id=None,
+    )
+    return one

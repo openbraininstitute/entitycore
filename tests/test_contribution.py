@@ -4,6 +4,7 @@ from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     add_db,
+    assert_request,
     check_creation_fields,
     create_person,
     create_reconstruction_morphology_id,
@@ -105,6 +106,49 @@ def test_create_contribution(
         {"id": str(organization_id), "label": "ACME", "type": "organization", "count": 1},
         {"id": str(person_id), "label": "jd courcol", "type": "person", "count": 1},
     ]
+
+
+def test_delete_one(
+    client, client_admin, role_id, person_id, brain_region_id, strain_id, species_id
+):
+    morphology_id = create_reconstruction_morphology_id(
+        client,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    contribution = assert_request(
+        client.post,
+        url=ROUTE,
+        json={
+            "agent_id": str(person_id),
+            "role_id": str(role_id),
+            "entity_id": str(morphology_id),
+        },
+    ).json()
+
+    model_id = contribution["id"]
+
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE_MORPH}/{morphology_id}",
+    ).json()
+    assert len(data["contributions"]) == 1
+    assert data["contributions"][0]["id"] == str(contribution["id"])
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE_MORPH}/{morphology_id}",
+    ).json()
+    assert len(data["contributions"]) == 0
 
 
 def test_missing(client):

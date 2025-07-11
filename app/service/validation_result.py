@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 from app.db.model import Subject, ValidationResult
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
@@ -13,7 +13,12 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.validation_result import ValidationResultFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_delete_one,
+    router_read_many,
+    router_read_one,
+)
 from app.schemas.types import ListResponse
 from app.schemas.validation import ValidationResultCreate, ValidationResultRead
 
@@ -84,3 +89,25 @@ def read_many(
         authorized_project_id=user_context.project_id,
         filter_joins=None,
     )
+
+
+def delete_one(
+    _: AdminContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> ValidationResultRead:
+    one = router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=ValidationResult,
+        authorized_project_id=None,
+        response_schema_class=ValidationResultRead,
+        apply_operations=None,
+    )
+    router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=ValidationResult,
+        authorized_project_id=None,
+    )
+    return one

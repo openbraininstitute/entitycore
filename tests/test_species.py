@@ -1,5 +1,7 @@
+from app.db.model import Species
+
 from .utils import check_creation_fields
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT
+from tests.utils import MISSING_ID, MISSING_ID_COMPACT, assert_request, count_db_class
 
 ROUTE = "/species"
 
@@ -39,6 +41,21 @@ def test_create_species(client, client_admin):
     assert len(data) == 1
     assert data == [items[1]]
     check_creation_fields(data[0])
+
+
+def test_delete_one(db, client, client_admin, species_id):
+    model_id = species_id
+
+    assert count_db_class(db, Species) == 1
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, Species) == 0
 
 
 def test_missing(client):

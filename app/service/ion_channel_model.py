@@ -6,7 +6,7 @@ from fastapi import Depends
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import Contribution, Ion, IonChannelModel, Subject
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
@@ -16,7 +16,12 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_delete_one,
+    router_read_many,
+    router_read_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_model import (
     IonChannelModelCreate,
@@ -143,3 +148,25 @@ def create_one(
         db_model_class=IonChannelModel,
         response_schema_class=IonChannelModelRead,
     )
+
+
+def delete_one(
+    _: AdminContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> IonChannelModelRead:
+    one = router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelModel,
+        authorized_project_id=None,
+        response_schema_class=IonChannelModelRead,
+        apply_operations=_load,
+    )
+    router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelModel,
+        authorized_project_id=None,
+    )
+    return one

@@ -1,8 +1,11 @@
 import pytest
 
+from app.db.model import EModel, ETypeClass, ETypeClassification
+
 from .utils import (
     assert_request,
     check_creation_fields,
+    count_db_class,
     create_etype,
     create_reconstruction_morphology_id,
 )
@@ -58,6 +61,31 @@ def test_create_one(client, json_data, emodel_id):
     ).json()["etypes"]
 
     assert json_data["etype_class_id"] in {m["id"] for m in data}
+
+
+def test_delete_one(db, client, client_admin, json_data):
+    classification = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data,
+    ).json()
+
+    assert count_db_class(db, EModel) == 1
+    assert count_db_class(db, ETypeClassification) == 2
+    assert count_db_class(db, ETypeClass) == 2
+
+    data = assert_request(
+        client.delete, url=f"{ROUTE}/{classification['id']}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{classification['id']}").json()
+    assert data["id"] == str(classification["id"])
+
+    assert count_db_class(db, EModel) == 1
+    assert count_db_class(db, ETypeClassification) == 1
+    assert count_db_class(db, ETypeClass) == 2
 
 
 def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, json_data):

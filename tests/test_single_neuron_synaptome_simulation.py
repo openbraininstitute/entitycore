@@ -15,6 +15,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    count_db_class,
     create_brain_region,
 )
 
@@ -161,6 +162,23 @@ def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["authorized_public"] is False
+
+
+def test_delete_one(db, client, client_admin, simulation_id):
+    model_id = simulation_id
+
+    assert count_db_class(db, SingleNeuronSynaptomeSimulation) == 1
+    assert count_db_class(db, SingleNeuronSynaptome) == 1
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, SingleNeuronSynaptomeSimulation) == 0
+    assert count_db_class(db, SingleNeuronSynaptome) == 1
 
 
 @pytest.mark.parametrize(

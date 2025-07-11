@@ -19,6 +19,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    count_db_class,
     create_brain_region,
 )
 from tests.conftest import CreateIds
@@ -119,6 +120,23 @@ def test_read_many(client, model_id, json_data):
     assert len(items) == 1
     assert items[0]["id"] == model_id
     _assert_read_response(items[0], json_data)
+
+
+def test_delete_one(db, client, client_admin, model_id):
+    assert count_db_class(db, SingleNeuronSynaptome) == 1
+    assert count_db_class(db, MEModel) == 1
+    assert count_db_class(db, Contribution) == 6
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, SingleNeuronSynaptome) == 0
+    assert count_db_class(db, MEModel) == 1
+    assert count_db_class(db, Contribution) == 4
 
 
 @pytest.mark.parametrize(

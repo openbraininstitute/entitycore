@@ -10,7 +10,7 @@ from starlette.responses import RedirectResponse
 
 from app.config import settings, storages
 from app.db.types import AssetLabel, ContentType, StorageType
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.errors import ApiError, ApiErrorCode
@@ -284,6 +284,36 @@ def delete_entity_asset(
         s3_client = storage_client_factory(storage)
         if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=asset.full_path):
             raise HTTPException(status_code=500, detail="Failed to delete object")
+    return AssetRead.model_validate(asset)
+
+
+@router.delete("/admin/{entity_route}/{entity_id}/assets/{asset_id}")
+def admin_delete_entity_asset(
+    repos: RepoGroupDep,
+    user_context: AdminContextDep,  # noqa: ARG001
+    storage_client_factory: StorageClientFactoryDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> AssetRead:
+    """Delete an assets associated with a specific entity.
+
+    The asset record is not deleted from the database, but its status is changed.
+    The file is actually deleted from S3, unless it's stored in open data storage.
+    """
+    asset = asset_service.remove_entity_asset(
+        repos,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+    storage = storages[asset.storage_type]
+    # delete the file from S3 only if not using an open data storage
+    if not storage.is_open:
+        s3_client = storage_client_factory(storage)
+        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=asset.full_path):
+            raise HTTPException(status_code=500, detail="Failed to delete object")
+
     return AssetRead.model_validate(asset)
 
 

@@ -155,6 +155,22 @@ def delete_entity_asset(
     return AssetRead.model_validate(asset)
 
 
+def remove_entity_asset(
+    repos: RepositoryGroup,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> AssetRead:
+    """Remove completely an entity asset."""
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset = repos.asset.delete_entity_asset(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            asset_id=asset_id,
+        )
+    return AssetRead.model_validate(asset)
+
+
 def entity_asset_upload_directory(
     repos: RepositoryGroup,
     user_context: UserContextWithProjectId,

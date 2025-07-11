@@ -1,4 +1,12 @@
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT, check_creation_fields
+from app.db.model import Strain
+
+from tests.utils import (
+    MISSING_ID,
+    MISSING_ID_COMPACT,
+    assert_request,
+    check_creation_fields,
+    count_db_class,
+)
 
 ROUTE = "/strain"
 
@@ -75,6 +83,21 @@ def test_create_strain(client, client_admin, species_id, person_id):
         "error_code": "INVALID_REQUEST",
         "message": "Validation error",
     }
+
+
+def test_delete_one(db, client, client_admin, strain_id):
+    model_id = strain_id
+
+    assert count_db_class(db, Strain) == 1
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, Strain) == 0
 
 
 def test_missing(client):

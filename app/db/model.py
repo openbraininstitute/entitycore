@@ -306,7 +306,7 @@ class Consortium(Agent):
 class Usage(Base):
     __tablename__ = "usage"
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"),
+        ForeignKey("entity.id"),
         primary_key=True,
     )
     usage_activity_id: Mapped[uuid.UUID] = mapped_column(
@@ -317,7 +317,7 @@ class Usage(Base):
 class Generation(Base):
     __tablename__ = "generation"
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("entity.id"), primary_key=True
     )
     generation_activity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("activity.id", ondelete="CASCADE"),
@@ -397,8 +397,12 @@ class MTypeClassification(Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    mtype_class_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("mtype_class.id", ondelete="CASCADE"), index=True
+    )
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
 
     __table_args__ = (UniqueConstraint("entity_id", "mtype_class_id", name="uq_mtype_per_entity"),)
 
@@ -409,8 +413,12 @@ class ETypeClassification(Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    etype_class_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("etype_class.id", ondelete="CASCADE"), index=True
+    )
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
 
     __table_args__ = (UniqueConstraint("entity_id", "etype_class_id", name="uq_etype_per_entity"),)
 
@@ -427,8 +435,8 @@ class MTypesMixin:
             primaryjoin=f"{cls.__name__}.id == MTypeClassification.entity_id",
             secondary="mtype_classification",
             uselist=True,
-            viewonly=True,
             order_by="MTypeClass.pref_label",
+            passive_deletes=True,
         )
 
 
@@ -444,8 +452,8 @@ class ETypesMixin:
             primaryjoin=f"{cls.__name__}.id == ETypeClassification.entity_id",
             secondary="etype_classification",
             uselist=True,
-            viewonly=True,
             order_by="ETypeClass.pref_label",
+            passive_deletes=True,
         )
 
 
@@ -462,7 +470,9 @@ class Annotation(LegacyMixin, Identifiable):
     __tablename__ = "annotation"
     note: Mapped[str | None]
     entity = relationship("Entity", back_populates="annotations")
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
     annotation_body_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("annotation_body.id"), index=True
     )
@@ -478,14 +488,16 @@ class Entity(LegacyMixin, Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+    contributions: Mapped[list["Contribution"]] = relationship(
+        "Contribution", uselist=True, passive_deletes=True, back_populates="entity"
+    )
     assets: Mapped[list["Asset"]] = relationship(
         "Asset",
         uselist=True,
-        viewonly=True,
         primaryjoin=lambda: sa.and_(
             Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
         ),
+        passive_deletes=True,
     )
 
     __mapper_args__ = {  # noqa: RUF012
@@ -605,12 +617,18 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
 
 class Contribution(Identifiable):
     __tablename__ = "contribution"
-    agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
+    agent_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("agent.id", ondelete="CASCADE"), index=True
+    )
     agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
-    role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("role.id", ondelete="CASCADE"), index=True
+    )
     role = relationship("Role", uselist=False)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    entity = relationship("Entity", uselist=False)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
+    entity = relationship("Entity", uselist=False, back_populates="contributions")
 
     __table_args__ = (
         UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
@@ -816,7 +834,7 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     end_time: Mapped[float | None]
 
     recording_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("electrical_cell_recording.id"),
+        ForeignKey("electrical_cell_recording.id", ondelete="CASCADE"),
         index=True,
     )
 
@@ -841,6 +859,7 @@ class ElectricalCellRecording(
     stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(
         uselist=True,
         foreign_keys="ElectricalRecordingStimulus.recording_id",
+        passive_deletes=True,
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1276,7 +1295,9 @@ class Calibration(Activity):
 class Derivation(Base):
     __tablename__ = "derivation"
     used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    generated_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+    )
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
     derivation_type: Mapped[DerivationType | None]

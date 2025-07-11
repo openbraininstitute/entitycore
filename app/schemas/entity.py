@@ -1,6 +1,8 @@
+"""Entity schemas."""
+
 import uuid
 
-from pydantic import UUID4, BaseModel, ConfigDict
+from pydantic import UUID4, BaseModel, ConfigDict, RootModel
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 
@@ -14,4 +16,8 @@ class NestedEntityRead(BaseModel):
 
 
 class EntityRead(NestedEntityRead, CreatedByUpdatedByMixin):
+    pass
+
+
+class EntityCountRead(RootModel[dict[str, int]]):
     pass

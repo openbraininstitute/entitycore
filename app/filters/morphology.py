@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi_filter import with_prefix
 
-from app.db.model import ReconstructionMorphology
+from app.db.model import CellMorphology
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
@@ -27,7 +27,7 @@ class MorphologyFilter(
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):
-        model = ReconstructionMorphology
+        model = CellMorphology
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
 
 

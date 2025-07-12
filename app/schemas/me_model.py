@@ -16,7 +16,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.emodel import EModelRead
 from app.schemas.memodel_calibration_result import MEModelCalibrationResultRead
-from app.schemas.morphology import ReconstructionMorphologyRead
+from app.schemas.morphology import CellMorphologyRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 
@@ -55,6 +55,6 @@ class MEModelRead(
     brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
-    morphology: ReconstructionMorphologyRead
+    morphology: CellMorphologyRead
     emodel: EModelRead
     calibration_result: MEModelCalibrationResultRead | None

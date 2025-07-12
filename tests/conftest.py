@@ -20,6 +20,7 @@ from app.db.model import (
     Agent,
     Base,
     BrainAtlas,
+    CellMorphology,
     Circuit,
     Contribution,
     EModel,
@@ -614,7 +615,7 @@ def create_memodel_ids(
             add_contributions(db, agents, memodel_id)
 
             emodel = db.get(EModel, emodel_id)
-            morphology = db.get(ReconstructionMorphology, morphology_id)
+            morphology = db.get(CellMorphology, morphology_id)
 
             add_db(
                 db,

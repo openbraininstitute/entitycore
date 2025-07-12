@@ -347,7 +347,7 @@ The volume is in um^3.
 By only storing the volume for leaf nodes, it composes with the different views by climbing the tree, and summing all the children along the way.
 
 # Authorization:
-Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.
+Current model is to have `Entity`s (ex: `EModel`, `CellMorphology`, etc) be either public, or private to a project.
 As such, results returned will be gated by this, based on the logged in user.
 The frontend will have to supply the current user's Bearer token, as well as the current lab and project:
 

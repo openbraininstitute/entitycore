@@ -1,4 +1,4 @@
-from app.db.model import Contribution, Organization, ReconstructionMorphology, Role
+from app.db.model import CellMorphology, Contribution, Organization, Role
 
 from .utils import (
     MISSING_ID,
@@ -300,7 +300,7 @@ def test_contribution_facets(
     assert len(morphology_ids) == 12
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
-    agent = db.get(ReconstructionMorphology, morphology_ids[0]).created_by
+    agent = db.get(CellMorphology, morphology_ids[0]).created_by
     """
     response = client.get(ROUTE_MORPH, params={"with_facets": True, "page_size": 10})
     assert response.status_code == 200

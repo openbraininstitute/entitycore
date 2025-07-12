@@ -3,6 +3,7 @@ from typing import Any, cast
 from app.db.model import (
     Agent,
     BrainRegion,
+    CellMorphology,
     Circuit,
     Contribution,
     EModel,
@@ -17,7 +18,6 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
     Simulation,
     SingleNeuronSynaptome,
     Species,
@@ -55,7 +55,7 @@ def query_params_factory[I: Identifiable](
             value = db_cls if name is None else value.get(name, db_cls)
         return cast("T", value)
 
-    morphology_alias = _get_alias(ReconstructionMorphology)
+    morphology_alias = _get_alias(CellMorphology)
     emodel_alias = _get_alias(EModel)
     me_model_alias = _get_alias(MEModel)
     synaptome_alias = _get_alias(SingleNeuronSynaptome)

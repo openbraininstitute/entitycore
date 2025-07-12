@@ -8,6 +8,45 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 
+class RepairPipelineType(StrEnum):
+    raw = auto()
+    curated = auto()
+    unraveled = auto()
+    repaired = auto()
+
+
+class MethodsType(StrEnum):
+    cloned = auto()
+    mix_and_match = auto()
+    mousified = auto()
+    ratified = auto()
+
+
+class MorphologyGenerationType(StrEnum):
+    digital = auto()  # digital reconstruction
+    modified = auto()  # modifed from digital
+    computational = auto()  # computationally synthesized
+    placeholder = auto()  # could be a morphology or compartment
+
+
+class SlicingDirectionType(StrEnum):
+    coronal = auto()
+    sagittal = auto()
+    horizontal = auto()
+    custom = auto()
+
+
+class StainingType(StrEnum):
+    golgi = auto()
+    nissl = auto()
+    luxol_fast_blue = auto()
+    fluorescent_nissl = auto()
+    fluorescent_dyes = auto()
+    fluorescent_orotein_expression = auto()
+    immunohistochemistry = auto()
+    other = auto()
+
+
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
-from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -19,7 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -52,13 +51,18 @@ from app.db.types import (
     EntityType,
     MeasurementStatistic,
     MeasurementUnit,
+    MethodsType,
+    MorphologyGenerationType,
     PointLocation,
     PointLocationType,
     PublicationType,
+    RepairPipelineType,
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
+    SlicingDirectionType,
     StorageType,
+    StainingType,
     StructuralDomain,
     ValidationStatus,
 )
@@ -622,7 +626,7 @@ class EModel(
     )
 
     exemplar_morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
     ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
@@ -651,9 +655,7 @@ class MEModel(
         ForeignKey(f"{EntityType.reconstruction_morphology}.id")
     )
 
-    morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
-    )
+    morphology = relationship("CellMorphology", foreign_keys=[morphology_id], uselist=False)
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
@@ -685,18 +687,98 @@ class MeasurableEntity(Entity):
         )
 
 
-class ReconstructionMorphology(
-    MTypesMixin,
-    LicensedMixin,
-    LocationMixin,
-    SpeciesMixin,
-    NameDescriptionVectorMixin,
-    MeasurableEntity,
+class MeasurableEntityMixin:
+    """Abstract class for measurable entities."""
+
+    __abstract__ = True
+
+    @declared_attr
+    @classmethod
+    def measurement_annotation(cls):
+        return relationship(
+            "MeasurementAnnotation",
+            foreign_keys="MeasurementAnnotation.entity_id",
+            uselist=False,
+            viewonly=True,
+        )
+
+
+class MorphologyProtocol(Identifiable):  # Inherit from Identifiable for primary key and timestamps
+    __tablename__ = "morphology_protocol"
+    protocol_document: Mapped[str | None]
+    protocol_design: Mapped[str]
+    type: Mapped[str]  # Discriminator column for polymorphism
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
+    }
+
+
+class ExperimentalMorphologyProtocol(MorphologyProtocol):
+    __tablename__ = (
+        MorphologyGenerationType.digital.value
+    )  # because digital reconstructions use real experiments
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
+    staining_type: Mapped[StainingType | None]
+    slicing_thickness: Mapped[float]
+    slicing_direction: Mapped[SlicingDirectionType | None]
+    magnification: Mapped[float | None]
+    tissue_shrinkage: Mapped[float | None]
+    corrected_for_shrinkage: Mapped[bool | None]
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_on": "type",
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class ComputationallySynthesizedMorphologyProtocol(MorphologyProtocol):
+    __tablename__ = MorphologyGenerationType.computational.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
+    method_description: Mapped[str]
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_on": "type",
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class ModifiedMorphologyProtocol(MorphologyProtocol):
+    __tablename__ = MorphologyGenerationType.modified.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
+    method_description: Mapped[MethodsType]
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_on": "type",
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class CellMorphology(
+    ScientificArtifact, MTypesMixin, NameDescriptionVectorMixin, MeasurableEntityMixin
 ):
     __tablename__ = EntityType.reconstruction_morphology.value
 
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+
     location: Mapped[PointLocation | None]
+
+    # New foreign key for the morphology method
+    morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("morphology_protocol.id"), nullable=True, index=True
+    )
+    # Relationship to the polymorphic MorphologyProtocol
+    morphology_protocol: Mapped["MorphologyProtocol"] = relationship(
+        "MorphologyProtocol",
+        foreign_keys=[morphology_protocol_id],
+        uselist=False,
+    )
+
+    # structured jsonb , pydantic typedict
+    # Attributes from DigitalReconstruction
+    repair_pipeline_state: Mapped[RepairPipelineType | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

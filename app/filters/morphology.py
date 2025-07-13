@@ -87,7 +87,13 @@ class MorphologyFilter(
 
     class Constants(CustomFilter.Constants):
         model = ReconstructionMorphology
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "brain_region__name",
+            "brain_region__acronym",
+        ]
 
 
 # Dependencies

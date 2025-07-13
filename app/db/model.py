@@ -382,8 +382,12 @@ class MTypeClassification(Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    mtype_class_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("mtype_class.id", ondelete="CASCADE"), index=True
+    )
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
 
 
 class ETypeClassification(Identifiable):
@@ -392,8 +396,12 @@ class ETypeClassification(Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    etype_class_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("etype_class.id", ondelete="CASCADE"), index=True
+    )
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
 
 
 class MTypesMixin:
@@ -408,8 +416,8 @@ class MTypesMixin:
             primaryjoin=f"{cls.__name__}.id == MTypeClassification.entity_id",
             secondary="mtype_classification",
             uselist=True,
-            viewonly=True,
             order_by="MTypeClass.pref_label",
+            passive_deletes=True,
         )
 
 
@@ -425,8 +433,8 @@ class ETypesMixin:
             primaryjoin=f"{cls.__name__}.id == ETypeClassification.entity_id",
             secondary="etype_classification",
             uselist=True,
-            viewonly=True,
             order_by="ETypeClass.pref_label",
+            passive_deletes=True,
         )
 
 
@@ -459,14 +467,16 @@ class Entity(LegacyMixin, Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+    contributions: Mapped[list["Contribution"]] = relationship(
+        "Contribution", uselist=True, passive_deletes=True, back_populates="entity"
+    )
     assets: Mapped[list["Asset"]] = relationship(
         "Asset",
         uselist=True,
-        viewonly=True,
         primaryjoin=lambda: sa.and_(
             Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
         ),
+        passive_deletes=True,
     )
 
     __mapper_args__ = {  # noqa: RUF012
@@ -573,12 +583,18 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
 
 class Contribution(Identifiable):
     __tablename__ = "contribution"
-    agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
+    agent_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("agent.id", ondelete="CASCADE"), index=True
+    )
     agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
-    role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
+    role_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("role.id", ondelete="CASCADE"), index=True
+    )
     role = relationship("Role", uselist=False)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    entity = relationship("Entity", uselist=False)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
+    entity = relationship("Entity", uselist=False, back_populates="contributions")
 
     __table_args__ = (
         UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
@@ -784,7 +800,7 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     end_time: Mapped[float | None]
 
     recording_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("electrical_cell_recording.id"),
+        ForeignKey("electrical_cell_recording.id", ondelete="CASCADE"),
         index=True,
     )
 
@@ -810,6 +826,7 @@ class ElectricalCellRecording(
     stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(
         uselist=True,
         foreign_keys="ElectricalRecordingStimulus.recording_id",
+        passive_deletes=True,
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1025,7 +1042,9 @@ class Asset(Identifiable):
     sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32))
     meta: Mapped[JSON_DICT]  # not used yet. can be useful?
     label: Mapped[AssetLabel]
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
 
     # partial unique index
     __table_args__ = (

@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Query
 
-from app.db.types import EntityType
+from app.db.utils import EntityTypeWithBrainRegion
 from app.dependencies.auth import UserContextDep
 from app.dependencies.common import InBrainRegionDep
 from app.dependencies.db import SessionDep
@@ -21,7 +21,9 @@ router = APIRouter(
 def count_entities_by_type(
     user_context: UserContextDep,
     db: SessionDep,
-    types: Annotated[list[EntityType], Query(min_length=1, description="Entity types with count")],
+    types: Annotated[
+        list[EntityTypeWithBrainRegion], Query(min_length=1, description="Entity types with count")
+    ],
     in_brain_region: InBrainRegionDep,
 ) -> EntityCountRead:
     """Count entities by their types.

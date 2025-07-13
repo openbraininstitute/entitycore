@@ -1,4 +1,4 @@
-from app.db.model import IonChannelModel, Subject
+from app.db.model import IonChannelModel
 
 from .utils import (
     PROJECT_ID,
@@ -20,6 +20,9 @@ def test_count_entities_validation_errors(client):
     assert response.status_code == 422
 
     response = client.get(f"{ROUTE}/counts", params={"types": "invalid_entity_type"})
+    assert response.status_code == 422
+
+    response = client.get(f"{ROUTE}/counts", params={"types": "publication"})
     assert response.status_code == 422
 
 
@@ -200,49 +203,3 @@ def test_count_entities_authorization(
     )
     data = response.json()
     assert data["reconstruction_morphology"] == 1
-
-
-def test_count_entities_mixed_types_with_and_without_brain_regions(
-    db,
-    client,
-    brain_region_id,
-    species_id,
-    person_id,
-    morphology_id,  # noqa: ARG001
-):
-    """Test counting entities where some types have brain regions and others don't."""
-    create_reconstruction_morphology_id(
-        client,
-        species_id=species_id,
-        strain_id=None,
-        brain_region_id=brain_region_id,
-        authorized_public=False,
-        name="test_morph",
-    )
-
-    add_db(
-        db,
-        Subject(
-            name="test_subject",
-            description="test description",
-            species_id=species_id,
-            strain_id=None,
-            age_value=None,
-            age_period=None,
-            sex=None,
-            weight=None,
-            authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
-    )
-
-    response = assert_request(
-        client.get,
-        url=f"{ROUTE}/counts",
-        params={"types": ["reconstruction_morphology", "subject"]},
-    )
-    data = response.json()
-
-    assert data["reconstruction_morphology"] == 2
-    assert data["subject"] == 1

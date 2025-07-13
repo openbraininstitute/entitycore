@@ -5,7 +5,8 @@ from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
-from app.db.model import Base, Identifiable, MeasurableEntity
+from app.db.model import Base, Entity, Identifiable, LocationMixin, MeasurableEntity
+from app.db.types import EntityType
 from app.logger import L
 
 MEASURABLE_ENTITIES: dict[str, type[MeasurableEntity]] = {
@@ -14,6 +15,24 @@ MEASURABLE_ENTITIES: dict[str, type[MeasurableEntity]] = {
     if issubclass(mapper.class_, MeasurableEntity) and mapper.class_.__tablename__
 }
 MeasurableEntityType = StrEnum("MeasurableEntity", list(MEASURABLE_ENTITIES))
+
+ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
+    EntityType[mapper.class_.__tablename__]: mapper.class_
+    for mapper in Base.registry.mappers
+    if hasattr(EntityType, mapper.class_.__tablename__)
+}
+
+
+entity_type_with_brain_region_enum_members = {
+    member.name: member.value
+    for member, cls in ENTITY_TYPE_TO_CLASS.items()
+    if issubclass(cls, LocationMixin)
+}
+
+EntityTypeWithBrainRegion = StrEnum(
+    "EntityTypeWithBrainRegion",
+    entity_type_with_brain_region_enum_members,
+)
 
 
 def construct_model[T: DeclarativeBase](model_cls: type[T], data: dict) -> T:

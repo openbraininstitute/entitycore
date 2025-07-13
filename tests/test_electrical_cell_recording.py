@@ -4,7 +4,15 @@ from unittest.mock import ANY
 
 import pytest
 
-from app.db.model import BrainRegion, ElectricalCellRecording, Species, Subject
+from app.db.model import (
+    Asset,
+    BrainRegion,
+    ElectricalCellRecording,
+    ElectricalRecordingStimulus,
+    ETypeClassification,
+    Species,
+    Subject,
+)
 from app.db.types import EntityType
 
 from .utils import (
@@ -15,6 +23,7 @@ from .utils import (
     check_authorization,
     check_brain_region_filter,
     check_missing,
+    count_db_class,
     create_brain_region,
     create_electrical_cell_recording_db,
     create_electrical_cell_recording_id,
@@ -70,6 +79,27 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with
             "update_date": ANY,
         },
     ]
+
+
+def test_delete_one(db, client, client_admin, trace_id_with_assets):
+    assert count_db_class(db, ElectricalCellRecording) == 1
+    assert count_db_class(db, ElectricalRecordingStimulus) == 2
+    assert count_db_class(db, Asset) == 1
+    assert count_db_class(db, ETypeClassification) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ROUTE}/{trace_id_with_assets}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{trace_id_with_assets}").json()
+    assert data["id"] == str(trace_id_with_assets)
+
+    assert count_db_class(db, ElectricalCellRecording) == 0
+    assert count_db_class(db, ElectricalRecordingStimulus) == 0
+    assert count_db_class(db, Asset) == 0
+    assert count_db_class(db, ETypeClassification) == 0
 
 
 def test_missing(client):

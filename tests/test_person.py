@@ -1,6 +1,8 @@
 from unittest.mock import ANY
 
-from tests.utils import ADMIN_SUB_ID, MISSING_ID, MISSING_ID_COMPACT
+from app.db.model import Agent, Person
+
+from tests.utils import ADMIN_SUB_ID, MISSING_ID, MISSING_ID_COMPACT, assert_request, count_db_class
 
 ROUTE = "/person"
 
@@ -55,6 +57,31 @@ def test_create_person(client, client_admin):
 
     assert len(data) == 3
     assert sum(1 for d in data if d["sub_id"] is not None) == 1
+
+
+def test_delete_one(db, client, client_admin):
+    response = client_admin.post(
+        ROUTE,
+        json={"given_name": "jd", "family_name": "courcol", "pref_label": "jd courcol"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    model_id = data["id"]
+
+    # 1 created_by/updated_by 1 Person
+    assert count_db_class(db, Person) == 2
+    assert count_db_class(db, Agent) == 2
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, Person) == 1
+    assert count_db_class(db, Agent) == 1
 
 
 def _classify_agents(data):

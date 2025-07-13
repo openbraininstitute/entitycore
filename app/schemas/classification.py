@@ -7,6 +7,7 @@ from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
     CreationMixin,
+    IdentifiableMixin,
 )
 
 
@@ -20,7 +21,11 @@ class MTypeClassificationCreate(ClassificationBase, AuthorizationOptionalPublicM
 
 
 class MTypeClassificationRead(
-    ClassificationBase, CreatedByUpdatedByMixin, CreationMixin, AuthorizationMixin
+    ClassificationBase,
+    CreatedByUpdatedByMixin,
+    CreationMixin,
+    IdentifiableMixin,
+    AuthorizationMixin,
 ):
     mtype_class_id: uuid.UUID
 
@@ -30,6 +35,10 @@ class ETypeClassificationCreate(ClassificationBase, AuthorizationOptionalPublicM
 
 
 class ETypeClassificationRead(
-    ClassificationBase, CreatedByUpdatedByMixin, CreationMixin, AuthorizationMixin
+    ClassificationBase,
+    CreatedByUpdatedByMixin,
+    CreationMixin,
+    IdentifiableMixin,
+    AuthorizationMixin,
 ):
     etype_class_id: uuid.UUID

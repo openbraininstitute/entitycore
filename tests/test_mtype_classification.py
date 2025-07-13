@@ -1,8 +1,11 @@
 import pytest
 
+from app.db.model import MTypeClass, MTypeClassification, ReconstructionMorphology
+
 from .utils import (
     assert_request,
     check_creation_fields,
+    count_db_class,
     create_mtype,
     create_reconstruction_morphology_id,
 )
@@ -58,6 +61,31 @@ def test_create_one(client, json_data, morphology_id):
     ).json()["mtypes"]
 
     assert json_data["mtype_class_id"] in {m["id"] for m in data}
+
+
+def test_delete_one(db, client, client_admin, json_data):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data,
+    ).json()
+
+    model_id = data["id"]
+
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, MTypeClass) == 2
+    assert count_db_class(db, MTypeClassification) == 2
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, MTypeClass) == 2
+    assert count_db_class(db, MTypeClassification) == 1
 
 
 def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, json_data):

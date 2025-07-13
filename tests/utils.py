@@ -558,3 +558,7 @@ def check_creation_fields(data: dict):
     assert data["update_date"] == ANY
     assert data["created_by"]["id"] == ANY
     assert data["updated_by"]["id"] == ANY
+
+
+def count_db_class(db, db_class):
+    return db.execute(sa.select(sa.func.count(db_class.id))).scalar()

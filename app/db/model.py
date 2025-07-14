@@ -63,7 +63,7 @@ from app.db.types import (
 )
 from app.schemas.publication import Author, PublicationType
 from app.utils.uuid import create_uuid
-from app.schemas.types import PipelineType
+from app.db.types import PipelineType
 
 
 class Base(DeclarativeBase):

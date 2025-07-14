@@ -2,7 +2,7 @@ import uuid
 
 from enum import Enum, auto
 from pydantic import BaseModel, ConfigDict
-
+from typing import Literal
 from app.db.types import PointLocationBase
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import MTypeClassRead
@@ -20,7 +20,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
-from app.db.types import PipelineType
+from app.db.types import PipelineType, MorphologyType
 
 
 class Protocol(BaseModel):

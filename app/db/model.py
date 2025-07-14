@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
-from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import (

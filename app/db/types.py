@@ -1,4 +1,4 @@
-from enum import StrEnum, auto, Enum
+from enum import StrEnum, auto
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict

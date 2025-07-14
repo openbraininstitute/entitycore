@@ -262,7 +262,7 @@ def test_sorting(client, models):
     assert [d["id"] for d in data] == [str(m.id) for m in models]
 
     # ascending by date
-    data = req("order_by=+creation_date")
+    data = req("order_by=creation_date")
     assert len(data) == len(models)
     assert [d["id"] for d in data] == [str(m.id) for m in models]
 
@@ -282,7 +282,7 @@ def test_sorting(client, models):
     assert [d["id"] for d in data] == [str(m.id) for m in models][::-1]
 
     # ascending by name
-    data = req("order_by=+name")
+    data = req("order_by=name")
     assert len(data) == len(models)
     assert [d["name"] for d in data] == [f"d-{i}" for i in (0, 1, 1, 1, 2, 2)]
 
@@ -292,7 +292,7 @@ def test_sorting(client, models):
     assert [d["name"] for d in data] == [f"d-{i}" for i in (2, 2, 1, 1, 1, 0)]
 
     # ascending by species name
-    data = req("order_by=+subject__species__name")
+    data = req("order_by=subject__species__name")
     assert [d["subject"]["species"]["name"] for d in data] == [
         f"species-{i}" for i in (0, 0, 1, 1, 2, 2)
     ]
@@ -304,7 +304,7 @@ def test_sorting(client, models):
     ]
 
     # ascending by brain region acronym
-    data = req("order_by=+brain_region__acronym")
+    data = req("order_by=brain_region__acronym")
     assert [d["brain_region"]["acronym"] for d in data] == [
         f"acronym-{i}" for i in (0, 1, 2, 3, 4, 5)
     ]

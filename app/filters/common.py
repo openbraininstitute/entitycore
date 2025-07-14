@@ -43,11 +43,10 @@ class NestedMTypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
         model = MTypeClass
 
 
-class MTypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
+class MTypeClassFilter(NestedMTypeClassFilter):
     order_by: list[str] = ["pref_label"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
-        model = MTypeClass
+    class Constants(NestedMTypeClassFilter.Constants):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
 
 
@@ -56,11 +55,10 @@ class NestedETypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
         model = ETypeClass
 
 
-class ETypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
+class ETypeClassFilter(NestedETypeClassFilter):
     order_by: list[str] = ["pref_label"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
-        model = ETypeClass
+    class Constants(NestedETypeClassFilter.Constants):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
 
 
@@ -69,11 +67,10 @@ class NestedAgentFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
         model = Agent
 
 
-class AgentFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
+class AgentFilter(NestedAgentFilter):
     order_by: list[str] = ["pref_label"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
-        model = Agent
+    class Constants(NestedAgentFilter.Constants):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
 
 
@@ -110,15 +107,12 @@ class NestedSpeciesFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
         model = Species
 
 
-class SpeciesFilter(
-    IdFilterMixin, NameFilterMixin, CreationFilterMixin, CreatorFilterMixin, CustomFilter
-):
+class SpeciesFilter(CreationFilterMixin, CreatorFilterMixin, NestedSpeciesFilter):
     """Full species filter."""
 
     order_by: list[str] = ["name"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
-        model = Species
+    class Constants(NestedSpeciesFilter.Constants):
         ordering_model_fields = ["name"]  # noqa: RUF012
 
 
@@ -131,15 +125,12 @@ class NestedStrainFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
         model = Strain
 
 
-class StrainFilter(
-    IdFilterMixin, NameFilterMixin, CreationFilterMixin, CreatorFilterMixin, CustomFilter
-):
+class StrainFilter(CreationFilterMixin, CreatorFilterMixin, NestedStrainFilter):
     """Full strain filter."""
 
     order_by: list[str] = ["name"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
-        model = Strain
+    class Constants(NestedStrainFilter.Constants):
         ordering_model_fields = ["name"]  # noqa: RUF012
 
 
@@ -202,13 +193,10 @@ class NestedBrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
         model = BrainRegion
 
 
-class BrainRegionFilter(
-    IdFilterMixin, NameFilterMixin, CreationFilterMixin, CreatorFilterMixin, CustomFilter
-):
+class BrainRegionFilter(CreationFilterMixin, CreatorFilterMixin, NestedBrainRegionFilter):
     order_by: list[str] = ["name"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
-        model = BrainRegion
+    class Constants(NestedBrainRegionFilter.Constants):
         ordering_model_fields = ["name"]  # noqa: RUF012
 
 

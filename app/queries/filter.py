@@ -3,7 +3,7 @@ from itertools import chain
 import sqlalchemy as sa
 
 from app.db.model import Identifiable
-from app.filters.base import CustomFilter
+from app.filters.base import NESTED_SEPARATOR, CustomFilter
 from app.logger import L
 from app.queries.types import ApplyOperations
 
@@ -24,7 +24,7 @@ def _underscores_to_dots(names: list[str]) -> list[str]:
     Examples:
         subject__species__name -> subject.species
     """
-    return [".".join(name.split("__")[:-1]) for name in names]
+    return [".".join(name.split(NESTED_SEPARATOR)[:-1]) for name in names]
 
 
 def filter_from_db[I: Identifiable](

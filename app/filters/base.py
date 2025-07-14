@@ -14,6 +14,9 @@ from app.logger import L
 Aliases = dict[type[Identifiable], type[Identifiable] | dict[str, type[Identifiable]]]
 
 
+NESTED_SEPARATOR = "__"
+
+
 class CustomFilter[T: DeclarativeBase](Filter):
     """Custom common filter."""
 
@@ -57,7 +60,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
             raise ValueError(msg)
 
         for name in value:
-            field_name = name.replace("+", "").replace("-", "")
+            field_name = name.lstrip("+-")
             if field_name not in allowed_field_names:
                 msg = f"You may only sort by: {', '.join(allowed_field_names)}"
                 raise ValueError(msg)
@@ -67,7 +70,6 @@ class CustomFilter[T: DeclarativeBase](Filter):
     @field_validator("*", mode="before", check_fields=False)
     @classmethod
     def validate_order_by(cls, value, field):  # pyright: ignore reportIncompatibleMethodOverride
-        return value
         if field.field_name != cls.Constants.ordering_field_name:
             return value
 
@@ -78,9 +80,9 @@ class CustomFilter[T: DeclarativeBase](Filter):
         duplicated_field_names = set()
 
         for field_name_with_direction in value:
-            field_name = field_name_with_direction.replace("-", "").replace("+", "")
+            field_name = field_name_with_direction.lstrip("+-")
 
-            if not (hasattr(cls.Constants.model, field_name) and "__" not in field_name):
+            if field_name.startswith(" "):
                 msg = f"{field_name} is not a valid ordering field."
                 raise ValueError(msg)
 
@@ -138,7 +140,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
             else:
                 if "__" in field_name:
                     # PLW2901 `for` loop variable `field_name` overwritten by assignment target
-                    field_name, operator = field_name.split("__")  # noqa: PLW2901
+                    field_name, operator = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
                     operator, value = _orm_operator_transformer[operator](value)  # noqa: PLW2901
                 else:
                     operator = "__eq__"
@@ -163,14 +165,26 @@ class CustomFilter[T: DeclarativeBase](Filter):
         return query
 
     def sort(self, query: Select[tuple[T]], aliases):  # type:ignore[override]
+        """Sort query taking into account nested fields and aliases.
+
+        Sorting in nested field is applied by spliting the nested field name from A__B__name to
+        [A, B, name] and sorting with the respective nested model alias name.
+
+        Aliases are required here because the ORDER BY section must refer to the correct aliased
+        model that is also used in the filtering part of the query.
+
+        Ordering value examples:
+            - creation_date
+            - subject__species__name
+        """
         if not self.ordering_values:
             return query
 
-        for direction, field_name in self.separate_ordering_direction_value():
+        for direction, field_name in self._separate_ordering_direction_value():
             model = self.Constants.model
 
-            if "__" in field_name:
-                submodel_name, *parts, field_name = field_name.split("__")  # noqa: PLW2901
+            if NESTED_SEPARATOR in field_name:
+                submodel_name, *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
 
                 rel = getattr(model, submodel_name)
                 model = rel.property.mapper.class_
@@ -192,11 +206,12 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
         return cast("Select[tuple[T]]", query)
 
-    def separate_ordering_direction_value(self) -> list[tuple[Filter.Direction, str]]:
+    def _separate_ordering_direction_value(self) -> list[tuple[Filter.Direction, str]]:
+        """Return list of (direction, field_name) ordering fields."""
         return [
             (
                 Filter.Direction.desc if field_name.startswith("-") else Filter.Direction.asc,
-                field_name.replace("-", "").replace("+", ""),
+                field_name.lstrip("+-"),
             )
             for field_name in self.ordering_values
         ]
@@ -228,6 +243,6 @@ class CustomFilter[T: DeclarativeBase](Filter):
         """Return nested ordering fields."""
         return [
             field_name
-            for _, field_name in self.separate_ordering_direction_value()
-            if "__" in field_name
+            for _, field_name in self._separate_ordering_direction_value()
+            if NESTED_SEPARATOR in field_name
         ]

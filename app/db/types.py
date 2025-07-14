@@ -16,6 +16,7 @@ class PipelineType(StrEnum):
     Unraveled = auto()
     Repaired = auto()
 
+
 class MorphologyType(StrEnum):
     DIGITAL = auto()
     MODIFIED = auto()
@@ -23,12 +24,13 @@ class MorphologyType(StrEnum):
     PLACEHOLDER = auto()
     GENERIC = auto()
 
+
 class MorphologyStructureType(str, Enum):
     digital_reconstruction = auto()
     modified = auto()
     computationally_synthesized = auto()
     placeholder = auto()
-    generic = auto()  # for base CellMorphology
+    generic = auto()
 
 
 class PointLocationBase(BaseModel):

@@ -675,7 +675,8 @@ class CellMorphologyMetadata(Base):
     )
     method_description: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     pipeline_state: Mapped[PipelineType | None] = mapped_column(
-        Enum(PipelineType, name="PipelineType"), nullable=True  # Changed to "PipelineType"
+        Enum(PipelineType, name="PipelineType"),
+        nullable=True,  # Changed to "PipelineType"
     )
     is_related_to: Mapped[list[uuid.UUID] | None] = mapped_column(
         ARRAY(UUID(as_uuid=True)), nullable=True

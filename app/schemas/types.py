@@ -3,7 +3,8 @@ from typing import Annotated
 
 import sqlalchemy as sa
 from pydantic import BaseModel, ConfigDict, Field, computed_field
-from sqlalchemy.orm import DeclarativeBase    
+from sqlalchemy.orm import DeclarativeBase
+
 
 class PaginationRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)

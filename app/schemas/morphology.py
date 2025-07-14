@@ -121,6 +121,7 @@ class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
 class ScoreDict(BaseModel):
     x: dict[str, float]
 
+
 class MethodsType(Enum):
     Cloned = auto()
     Mix_and_match = auto()

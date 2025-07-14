@@ -22,18 +22,21 @@ from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 from app.schemas.types import PipelineType
 
+
 class Protocol(BaseModel):
-    """Generic Experimental method     
+    """Generic Experimental method
     Parameters:
     -----------
     protocol_document: str, optional
         URL link to protocol document or publication
     """
+
     protocol_document: str | None = None
-    
+
+
 class ExperimentalMorphologyMethod(Protocol):
     """Experimental morphology method for capturing cell morphology data.
-        
+
     Parameters:
     -----------
     protocol_design: str
@@ -51,6 +54,7 @@ class ExperimentalMorphologyMethod(Protocol):
     has_been_corrected_for_shrinkage: bool, optional
         Whether data has been corrected for shrinkage
     """
+
     protocol_design: str
     staining_method: str
     slicing_thickness: float
@@ -63,12 +67,15 @@ class ExperimentalMorphologyMethod(Protocol):
     class Config:
         from_attributes = True
 
+
 class ComputationallySynthesizedMorphologyMethod(Protocol):
     method: str
-    
-class ModifiedMorphologyMethod(Protocol):    
+
+
+class ModifiedMorphologyMethod(Protocol):
     method: MethodsType
-    
+
+
 class CellMorphologyBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
@@ -76,6 +83,7 @@ class CellMorphologyBase(BaseModel):
     location: PointLocationBase | None
     legacy_id: list[str] | None
     morphology_type: MorphologyType = MorphologyType.GENERIC
+
 
 class CellMorphologyCreate(
     CellMorphologyBase,
@@ -87,6 +95,7 @@ class CellMorphologyCreate(
     brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
     morphology_type: MorphologyType = MorphologyType.GENERIC
+
 
 class CellMorphologyRead(
     CellMorphologyBase,
@@ -108,7 +117,7 @@ class CellMorphologyRead(
 class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
     measurement_annotation: MeasurementAnnotationRead | None
 
-    
+
 class ScoreDict(BaseModel):
     x: dict[str, float]
 
@@ -147,7 +156,7 @@ class ModifiedReconstruction(CellMorphologyRead):
 
 class ModifiedReconstructionCreate(CellMorphologyCreate):
     morphology_type: Literal[MorphologyType.MODIFIED]
-    method_description: ModifiedMorphologyMethod    
+    method_description: ModifiedMorphologyMethod
     is_related_to: list[uuid.UUID]
 
 

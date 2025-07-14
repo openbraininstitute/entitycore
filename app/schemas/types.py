@@ -1,9 +1,17 @@
 import uuid
 from typing import Annotated
+from enum import Enum, auto
 
 import sqlalchemy as sa
 from pydantic import BaseModel, ConfigDict, Field, computed_field
 from sqlalchemy.orm import DeclarativeBase
+
+
+class PipelineType(str, Enum):
+    Raw = "Raw"
+    Curated = "Curated"
+    Unraveled = "Unraveled"
+    Repaired = "Repaired"
 
 
 class PaginationRequest(BaseModel):

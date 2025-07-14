@@ -695,9 +695,7 @@ class ImportEModels(Import):
                 configuration, "NeuronMorphology", "uses"
             )
 
-            morphology = utils._find_by_legacy_id(
-                exemplar_morphology_id, CellMorphology, db
-            )
+            morphology = utils._find_by_legacy_id(exemplar_morphology_id, CellMorphology, db)
 
             assert morphology
 

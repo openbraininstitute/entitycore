@@ -17,7 +17,7 @@ class MorphologyStructureType(str, Enum):
     placeholder = auto()
     generic = auto()  # for base CellMorphology
 
-    
+
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

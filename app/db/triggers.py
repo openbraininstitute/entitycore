@@ -99,12 +99,8 @@ entities = [
 ]
 
 entities += [
-    unauthorized_private_reference_function(
-        EModel, "exemplar_morphology_id", CellMorphology
-    ),
-    unauthorized_private_reference_trigger(
-        EModel, "exemplar_morphology_id", CellMorphology
-    ),
+    unauthorized_private_reference_function(EModel, "exemplar_morphology_id", CellMorphology),
+    unauthorized_private_reference_trigger(EModel, "exemplar_morphology_id", CellMorphology),
     unauthorized_private_reference_function(MEModel, "morphology_id", CellMorphology),
     unauthorized_private_reference_trigger(MEModel, "morphology_id", CellMorphology),
     unauthorized_private_reference_function(MEModel, "emodel_id", EModel),

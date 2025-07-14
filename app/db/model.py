@@ -635,9 +635,7 @@ class MEModel(
         ForeignKey(f"{EntityType.reconstruction_morphology}.id")
     )
 
-    morphology = relationship(
-        "CellMorphology", foreign_keys=[morphology_id], uselist=False
-    )
+    morphology = relationship("CellMorphology", foreign_keys=[morphology_id], uselist=False)
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
@@ -668,17 +666,25 @@ class MeasurableEntity(Entity):
             viewonly=True,
         )
 
+
 class CellMorphologyMetadata(Base):
     __tablename__ = "cell_morphology_metadata"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
-    cell_morphology_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("cell_morphology.id"), index=True, unique=True)
+    cell_morphology_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("cell_morphology.id"), index=True, unique=True
+    )
     method_description: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    pipeline_state: Mapped[PipelineType | None] = mapped_column(Enum(PipelineType, name="pipeline_type"), nullable=True)
-    is_related_to: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(UUID(as_uuid=True)), nullable=True)
+    pipeline_state: Mapped[PipelineType | None] = mapped_column(
+        Enum(PipelineType, name="pipeline_type"), nullable=True
+    )
+    is_related_to: Mapped[list[uuid.UUID] | None] = mapped_column(
+        ARRAY(UUID(as_uuid=True)), nullable=True
+    )
     score_dict: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     provenance: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     cell_morphology = relationship("CellMorphology", back_populates="extended_data")
-    
+
+
 class CellMorphology(
     MTypesMixin,
     LicensedMixin,
@@ -696,8 +702,11 @@ class CellMorphology(
         nullable=False,
         default=MorphologyStructureType.generic,
     )
-    extended_data = relationship("CellMorphologyMetadata", uselist=False, back_populates="cell_morphology")
+    extended_data = relationship(
+        "CellMorphologyMetadata", uselist=False, back_populates="cell_morphology"
+    )
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
 
 class MeasurementAnnotation(LegacyMixin, Identifiable):
     __tablename__ = "measurement_annotation"

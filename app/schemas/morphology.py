@@ -25,7 +25,7 @@ from app.db.types import PipelineType, MorphologyStructureType
 
 class Protocol(BaseModel):
     """Generic Experimental method.
-    
+
     Parameters:
     -----------
     protocol_document: str, optional

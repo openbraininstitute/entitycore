@@ -24,6 +24,7 @@ class MorphologyStructureType(StrEnum):
     PLACEHOLDER = auto()
     GENERIC = auto()
 
+
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

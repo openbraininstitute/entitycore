@@ -63,7 +63,8 @@ from app.db.types import (
 )
 from app.schemas.publication import Author, PublicationType
 from app.utils.uuid import create_uuid
-#from app.schemas.morphology import PipelineType
+from app.schemas.types import PipelineType
+
 
 class Base(DeclarativeBase):
     type_annotation_map: ClassVar[dict] = {
@@ -672,7 +673,7 @@ class CellMorphologyMetadata(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     cell_morphology_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("cell_morphology.id"), index=True, unique=True)
     method_description: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-#    pipeline_state: Mapped[PipelineType | None] = mapped_column(Enum(PipelineType, name="pipeline_type"), nullable=True)
+    pipeline_state: Mapped[PipelineType | None] = mapped_column(Enum(PipelineType, name="pipeline_type"), nullable=True)
     is_related_to: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(UUID(as_uuid=True)), nullable=True)
     score_dict: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     provenance: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

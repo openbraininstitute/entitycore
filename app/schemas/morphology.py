@@ -20,7 +20,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
-
+from app.schemas.types import PipelineType
 
 class Protocol(BaseModel):
     """Generic Experimental method     

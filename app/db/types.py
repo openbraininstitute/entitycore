@@ -10,6 +10,19 @@ from sqlalchemy.types import VARCHAR, TypeDecorator
 from app.utils.enum import StrEnum
 
 
+class PipelineType(StrEnum):
+    Raw = auto()
+    Curated = auto()
+    Unraveled = auto()
+    Repaired = auto()
+
+class MorphologyType(StrEnum):
+    DIGITAL = auto()
+    MODIFIED = auto()
+    COMPUTATIONAL = auto()
+    PLACEHOLDER = auto()
+    GENERIC = auto()
+
 class MorphologyStructureType(str, Enum):
     digital_reconstruction = auto()
     modified = auto()

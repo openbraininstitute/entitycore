@@ -20,7 +20,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
-from app.schemas.types import PipelineType
+from app.db.types import PipelineType
 
 
 class Protocol(BaseModel):
@@ -120,14 +120,6 @@ class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
 
 class ScoreDict(BaseModel):
     x: dict[str, float]
-
-
-class PipelineType(str, Enum):
-    Raw = "Raw"
-    Curated = "Curated"
-    Unraveled = "Unraveled"
-    Repaired = "Repaired"
-
 
 class MethodsType(Enum):
     Cloned = auto()

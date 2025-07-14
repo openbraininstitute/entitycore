@@ -10,7 +10,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import NameFilterMixin
 
 
-def _get_family_query(
+def get_family_query(
     *, hierarchy_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
 ) -> sa.CTE:
     """Create query for BrainRegions that returns ids.
@@ -48,7 +48,7 @@ def _get_family_query(
 def filter_by_hierarchy_and_region(
     *, query, model, hierarchy_id: uuid.UUID, brain_region_id: uuid.UUID, with_ascendants=False
 ):
-    brain_region_query = _get_family_query(
+    brain_region_query = get_family_query(
         hierarchy_id=hierarchy_id,
         brain_region_id=brain_region_id,
         with_ascendants=with_ascendants,

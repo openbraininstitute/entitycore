@@ -20,11 +20,12 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
-from app.db.types import PipelineType, MorphologyType
+from app.db.types import PipelineType, MorphologyStructureType
 
 
 class Protocol(BaseModel):
-    """Generic Experimental method
+    """Generic Experimental method.
+    
     Parameters:
     -----------
     protocol_document: str, optional
@@ -82,7 +83,7 @@ class CellMorphologyBase(BaseModel):
     description: str
     location: PointLocationBase | None
     legacy_id: list[str] | None
-    morphology_type: MorphologyType = MorphologyType.GENERIC
+    morphology_structure_type: MorphologyStructureType = MorphologyStructureType.GENERIC
 
 
 class CellMorphologyCreate(
@@ -94,7 +95,7 @@ class CellMorphologyCreate(
     strain_id: uuid.UUID | None = None
     brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
-    morphology_type: MorphologyType = MorphologyType.GENERIC
+    morphology_structure_type: MorphologyStructureType = MorphologyStructureType.GENERIC
 
 
 class CellMorphologyRead(
@@ -136,7 +137,7 @@ class DigitalReconstruction(CellMorphologyRead):
 
 
 class DigitalReconstructionCreate(CellMorphologyCreate):
-    morphology_type: Literal[MorphologyType.DIGITAL]
+    morphology_structure_type: Literal[MorphologyStructureType.DIGITAL]
     reconstruction_method: ExperimentalMorphologyMethod
     pipeline_state: PipelineType
     is_related_to: list[uuid.UUID]
@@ -148,7 +149,7 @@ class ModifiedReconstruction(CellMorphologyRead):
 
 
 class ModifiedReconstructionCreate(CellMorphologyCreate):
-    morphology_type: Literal[MorphologyType.MODIFIED]
+    morphology_structure_type: Literal[MorphologyStructureType.MODIFIED]
     method_description: ModifiedMorphologyMethod
     is_related_to: list[uuid.UUID]
 
@@ -160,7 +161,7 @@ class ComputationallySynthesized(CellMorphologyRead):
 
 
 class ComputationallySynthesizedCreate(CellMorphologyCreate):
-    morphology_type: Literal[MorphologyType.COMPUTATIONAL]
+    morphology_structure_type: Literal[MorphologyStructureType.COMPUTATIONAL]
     method: str
     score_dict: ScoreDict
     provenance: ScoreDict
@@ -171,5 +172,5 @@ class Placeholder(CellMorphologyRead):
 
 
 class PlaceholderCreate(CellMorphologyCreate):
-    morphology_type: Literal[MorphologyType.PLACEHOLDER]
+    morphology_structure_type: Literal[MorphologyStructureType.PLACEHOLDER]
     is_related_to: list[uuid.UUID]

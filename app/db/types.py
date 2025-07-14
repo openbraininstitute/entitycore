@@ -17,21 +17,12 @@ class PipelineType(StrEnum):
     Repaired = auto()
 
 
-class MorphologyType(StrEnum):
+class MorphologyStructureType(StrEnum):
     DIGITAL = auto()
     MODIFIED = auto()
     COMPUTATIONAL = auto()
     PLACEHOLDER = auto()
     GENERIC = auto()
-
-
-class MorphologyStructureType(str, Enum):
-    digital_reconstruction = auto()
-    modified = auto()
-    computationally_synthesized = auto()
-    placeholder = auto()
-    generic = auto()
-
 
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)

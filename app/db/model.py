@@ -53,6 +53,7 @@ from app.db.types import (
     MeasurementStatistic,
     MeasurementUnit,
     MorphologyStructureType,
+    PipelineType,
     PointLocation,
     PointLocationType,
     Sex,
@@ -63,7 +64,6 @@ from app.db.types import (
 )
 from app.schemas.publication import Author, PublicationType
 from app.utils.uuid import create_uuid
-from app.db.types import PipelineType
 
 
 class Base(DeclarativeBase):
@@ -701,7 +701,7 @@ class CellMorphology(
     structure_type = mapped_column(
         Enum(MorphologyStructureType, name="morphologystructuretype"),
         nullable=False,
-        default=MorphologyStructureType.generic,
+        default=MorphologyStructureType.GENERIC,
     )
     extended_data = relationship(
         "CellMorphologyMetadata", uselist=False, back_populates="cell_morphology"

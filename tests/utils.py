@@ -18,7 +18,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Person,
-    ReconstructionMorphology,
+    CellMorphology,
 )
 from app.db.types import EntityType
 from app.routers.asset import EntityRoute
@@ -56,7 +56,7 @@ UNRELATED_PROJECT_HEADERS = {
 }
 
 ROUTES = {
-    ReconstructionMorphology: "/reconstruction-morphology",
+    CellMorphology: "/reconstruction-morphology",
     ElectricalCellRecording: "/electrical-cell-recording",
 }
 
@@ -96,7 +96,7 @@ def create_reconstruction_morphology_id(
     description="Test Morphology Description",
 ):
     response = client.post(
-        ROUTES[ReconstructionMorphology],
+        ROUTES[CellMorphology],
         json={
             "name": name,
             "description": description,

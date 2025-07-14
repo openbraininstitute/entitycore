@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
-from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy import (
@@ -19,7 +18,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR, UUID, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -52,6 +51,8 @@ from app.db.types import (
     EntityType,
     MeasurementStatistic,
     MeasurementUnit,
+    MorphologyStructureType,
+    PipelineType,
     PointLocation,
     PointLocationType,
     Sex,
@@ -604,7 +605,7 @@ class EModel(
     )
 
     exemplar_morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
     ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
@@ -633,9 +634,7 @@ class MEModel(
         ForeignKey(f"{EntityType.reconstruction_morphology}.id")
     )
 
-    morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
-    )
+    morphology = relationship("CellMorphology", foreign_keys=[morphology_id], uselist=False)
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
@@ -667,7 +666,26 @@ class MeasurableEntity(Entity):
         )
 
 
-class ReconstructionMorphology(
+class CellMorphologyMetadata(Base):
+    __tablename__ = "cell_morphology_metadata"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
+    cell_morphology_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("cell_morphology.id"), index=True, unique=True
+    )
+    method_description: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    pipeline_state: Mapped[PipelineType | None] = mapped_column(
+        Enum(PipelineType, name="PipelineType"),
+        nullable=True,  # Changed to "PipelineType"
+    )
+    is_related_to: Mapped[list[uuid.UUID] | None] = mapped_column(
+        ARRAY(UUID(as_uuid=True)), nullable=True
+    )
+    score_dict: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    provenance: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    cell_morphology = relationship("CellMorphology", back_populates="extended_data")
+
+
+class CellMorphology(
     MTypesMixin,
     LicensedMixin,
     LocationMixin,
@@ -679,7 +697,14 @@ class ReconstructionMorphology(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     location: Mapped[PointLocation | None]
-
+    structure_type = mapped_column(
+        Enum(MorphologyStructureType, name="morphologystructuretype"),
+        nullable=False,
+        default=MorphologyStructureType.GENERIC,
+    )
+    extended_data = relationship(
+        "CellMorphologyMetadata", uselist=False, back_populates="cell_morphology"
+    )
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

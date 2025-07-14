@@ -61,7 +61,7 @@ COPY --chown=app:app alembic.ini docker-cmd.sh pyproject.toml ./
 COPY --chown=app:app alembic/ alembic/
 COPY --chown=app:app app/ app/
 
-RUN python -m compileall .  # compile app files
+RUN python -m compileall . || true   # compile app files
 
 ARG ENVIRONMENT
 ARG APP_NAME

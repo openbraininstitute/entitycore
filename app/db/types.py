@@ -7,6 +7,23 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
+from app.utils.enum import StrEnum
+
+
+class PipelineType(StrEnum):
+    Raw = auto()
+    Curated = auto()
+    Unraveled = auto()
+    Repaired = auto()
+
+
+class MorphologyStructureType(StrEnum):
+    DIGITAL = auto()
+    MODIFIED = auto()
+    COMPUTATIONAL = auto()
+    PLACEHOLDER = auto()
+    GENERIC = auto()
+
 
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)

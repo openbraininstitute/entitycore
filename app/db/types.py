@@ -235,6 +235,7 @@ class ContentType(StrEnum):
     pdf = "application/pdf"
     png = "image/png"
     jpg = "image/jpeg"
+    gltf_binary = "model/gltf-binary"
 
 
 class AssetLabel(StrEnum):
@@ -291,6 +292,7 @@ CONTENT_TYPE_TO_SUFFIX = {
         ".jpg",
         ".jpeg",
     ),
+    ContentType.gltf_binary: (".glb",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -301,7 +303,8 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
     },
     EntityType.brain_atlas_region: {
         AssetLabel.brain_region_mesh: [
-            LabelRequirements(content_type=ContentType.obj, is_directory=False)
+            LabelRequirements(content_type=ContentType.obj, is_directory=False),
+            LabelRequirements(content_type=ContentType.gltf_binary, is_directory=False),
         ],
     },
     EntityType.cell_composition: {

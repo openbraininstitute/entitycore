@@ -70,6 +70,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
     @field_validator("*", mode="before", check_fields=False)
     @classmethod
     def validate_order_by(cls, value, field):  # pyright: ignore reportIncompatibleMethodOverride
+        """Override parent method to allow fields with __."""
         if field.field_name != cls.Constants.ordering_field_name:
             return value
 
@@ -82,6 +83,12 @@ class CustomFilter[T: DeclarativeBase](Filter):
         for field_name_with_direction in value:
             field_name = field_name_with_direction.lstrip("+-")
 
+            # different than parent: fields with __ are skipped
+            if NESTED_SEPARATOR not in field_name and not hasattr(cls.Constants.model, field_name):
+                msg = f"{field_name} is not a valid ordering field."
+                raise ValueError(msg)
+
+            # different than parent: a check for prepending space in field name is added
             if field_name.startswith(" "):
                 msg = (
                     f"Prepending space found in {field_name}. Please make sure that '+' is encoded "

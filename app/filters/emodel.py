@@ -74,8 +74,8 @@ class EModelFilter(
             "creation_date",
             "update_date",
             "name",
-            "brain__region__name",
-            "brain__region__acronym",
+            "brain_region__name",
+            "brain_region__acronym",
             "score",
             "exemplar_morphology__name",
         ]

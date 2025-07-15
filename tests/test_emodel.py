@@ -399,3 +399,15 @@ def test_filtering_ordering(client, faceted_emodel_ids):
     data = req({"name__in": ["e-2", "e-3"], "order_by": "-score"})
     assert [d["name"] for d in data] == ["e-3", "e-2"]
     assert [d["score"] for d in data] == [30.0, 20.0]
+
+    data = req({"order_by": "brain_region__acronym"})
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        "acronym0",
+        "acronym0",
+        "acronym0",
+        "acronym0",
+        "acronym1",
+        "acronym1",
+        "acronym1",
+        "acronym1",
+    ]

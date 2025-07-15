@@ -5,7 +5,6 @@ from unittest.mock import ANY
 import pytest
 from fastapi.testclient import TestClient
 
-from app.filters.memodel import MEModelFilter
 from app.db.model import (
     Contribution,
     EModel,
@@ -16,6 +15,7 @@ from app.db.model import (
     MTypeClassification,
     ReconstructionMorphology,
 )
+from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
 
 from .conftest import CreateIds, MEModels

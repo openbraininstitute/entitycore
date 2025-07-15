@@ -1,8 +1,8 @@
-"""Default migration message
+"""ondelete_cascades
 
-Revision ID: 3f69fead7c93
-Revises: 67ec4a8bef27
-Create Date: 2025-07-13 21:23:51.882902
+Revision ID: b26912f54fb6
+Revises: c41a40d022fb
+Create Date: 2025-07-15 13:28:10.964046
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "3f69fead7c93"
-down_revision: Union[str, None] = "67ec4a8bef27"
+revision: str = "b26912f54fb6"
+down_revision: Union[str, None] = "c41a40d022fb"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -37,14 +37,6 @@ def upgrade() -> None:
     op.drop_constraint(op.f("fk_contribution_entity_id_entity"), "contribution", type_="foreignkey")
     op.drop_constraint(op.f("fk_contribution_role_id_role"), "contribution", type_="foreignkey")
     op.create_foreign_key(
-        op.f("fk_contribution_agent_id_agent"),
-        "contribution",
-        "agent",
-        ["agent_id"],
-        ["id"],
-        ondelete="CASCADE",
-    )
-    op.create_foreign_key(
         op.f("fk_contribution_entity_id_entity"),
         "contribution",
         "entity",
@@ -57,6 +49,14 @@ def upgrade() -> None:
         "contribution",
         "role",
         ["role_id"],
+        ["id"],
+        ondelete="CASCADE",
+    )
+    op.create_foreign_key(
+        op.f("fk_contribution_agent_id_agent"),
+        "contribution",
+        "agent",
+        ["agent_id"],
         ["id"],
         ondelete="CASCADE",
     )
@@ -74,12 +74,12 @@ def upgrade() -> None:
         ondelete="CASCADE",
     )
     op.drop_constraint(
-        op.f("fk_etype_classification_entity_id_entity"), "etype_classification", type_="foreignkey"
-    )
-    op.drop_constraint(
         op.f("fk_etype_classification_etype_class_id_etype_class"),
         "etype_classification",
         type_="foreignkey",
+    )
+    op.drop_constraint(
+        op.f("fk_etype_classification_entity_id_entity"), "etype_classification", type_="foreignkey"
     )
     op.create_foreign_key(
         op.f("fk_etype_classification_entity_id_entity"),
@@ -157,17 +157,17 @@ def downgrade() -> None:
         op.f("fk_etype_classification_entity_id_entity"), "etype_classification", type_="foreignkey"
     )
     op.create_foreign_key(
-        op.f("fk_etype_classification_etype_class_id_etype_class"),
-        "etype_classification",
-        "etype_class",
-        ["etype_class_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
         op.f("fk_etype_classification_entity_id_entity"),
         "etype_classification",
         "entity",
         ["entity_id"],
+        ["id"],
+    )
+    op.create_foreign_key(
+        op.f("fk_etype_classification_etype_class_id_etype_class"),
+        "etype_classification",
+        "etype_class",
+        ["etype_class_id"],
         ["id"],
     )
     op.drop_constraint(
@@ -182,9 +182,9 @@ def downgrade() -> None:
         ["recording_id"],
         ["id"],
     )
+    op.drop_constraint(op.f("fk_contribution_agent_id_agent"), "contribution", type_="foreignkey")
     op.drop_constraint(op.f("fk_contribution_role_id_role"), "contribution", type_="foreignkey")
     op.drop_constraint(op.f("fk_contribution_entity_id_entity"), "contribution", type_="foreignkey")
-    op.drop_constraint(op.f("fk_contribution_agent_id_agent"), "contribution", type_="foreignkey")
     op.create_foreign_key(
         op.f("fk_contribution_role_id_role"), "contribution", "role", ["role_id"], ["id"]
     )

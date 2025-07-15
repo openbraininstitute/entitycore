@@ -3,7 +3,15 @@ from time import sleep
 
 import pytest
 
-from app.db.model import BrainRegion, Contribution, ExperimentalNeuronDensity, MTypeClass, MTypeClassification, Species, Subject
+from app.db.model import (
+    BrainRegion,
+    Contribution,
+    ExperimentalNeuronDensity,
+    MTypeClass,
+    MTypeClassification,
+    Species,
+    Subject,
+)
 from app.db.types import EntityType
 from app.filters.density import ExperimentalNeuronDensityFilter
 

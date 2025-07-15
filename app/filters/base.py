@@ -83,7 +83,10 @@ class CustomFilter[T: DeclarativeBase](Filter):
             field_name = field_name_with_direction.lstrip("+-")
 
             if field_name.startswith(" "):
-                msg = f"{field_name} is not a valid ordering field."
+                msg = (
+                    f"Prepending space found in {field_name}. Please make sure that '+' is encoded "
+                    "properly and is not converted into space."
+                )
                 raise ValueError(msg)
 
             field_name_usages[field_name].append(field_name_with_direction)
@@ -164,7 +167,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
                     query = query.filter(getattr(model_field, operator)(value))
         return query
 
-    def sort(self, query: Select[tuple[T]], aliases):  # type:ignore[override]
+    def sort(self, query: Select[tuple[T]], aliases: Aliases | None = None) -> Select[tuple[T]]:  # type:ignore[override]
         """Sort query taking into account nested fields and aliases.
 
         Sorting in nested field is applied by spliting the nested field name from A__B__name to
@@ -177,6 +180,9 @@ class CustomFilter[T: DeclarativeBase](Filter):
             - creation_date
             - subject__species__name
         """
+        if aliases is None:
+            aliases = {}
+
         if not self.ordering_values:
             return query
 
@@ -239,7 +245,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
         return None
 
     @property
-    def nested_ordering_fields(self):
+    def nested_ordering_fields(self) -> list[str]:
         """Return nested ordering fields."""
         return [
             field_name

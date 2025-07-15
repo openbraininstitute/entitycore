@@ -77,3 +77,25 @@ def create_one(
         response_schema_class=StrainRead,
         apply_operations=_load,
     )
+
+
+def delete_one(
+    _: AdminContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> StrainRead:
+    one = app.queries.common.router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=Strain,
+        authorized_project_id=None,
+        response_schema_class=StrainRead,
+        apply_operations=_load,
+    )
+    app.queries.common.router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=Strain,
+        authorized_project_id=None,
+    )
+    return one

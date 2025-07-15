@@ -10,3 +10,4 @@ router = APIRouter(
 read_many = router.get("")(app.service.ion_channel_model.read_many)
 read_one = router.get("/{id_}")(app.service.ion_channel_model.read_one)
 create_one = router.post("")(app.service.ion_channel_model.create_one)
+delete_one = router.delete("/{id_}")(app.service.ion_channel_model.delete_one)

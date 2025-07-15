@@ -8,24 +8,24 @@ from app.db.model import (
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    BrainRegionFilter,
     BrainRegionFilterMixin,
     EntityFilterMixin,
     ETypeClassFilterMixin,
-    MTypeClassFilter,
     MTypeClassFilterMixin,
     NameFilterMixin,
-    SubjectFilterMixin,
+    NestedBrainRegionFilter,
+    NestedMTypeClassFilter,
     with_prefix,
 )
+from app.filters.subject import SubjectFilterMixin
 
 
 class DensityFilterBase(
-    CustomFilter,
     EntityFilterMixin,
     BrainRegionFilterMixin,
     SubjectFilterMixin,
     NameFilterMixin,
+    CustomFilter,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
@@ -37,7 +37,15 @@ class ExperimentalNeuronDensityFilter(
 ):
     class Constants(CustomFilter.Constants):
         model = ExperimentalNeuronDensity
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "brain_region__name",
+            "brain_region__acronym",
+            "subject__species__name",
+            "subject__age_value",
+        ]
 
 
 ExperimentalNeuronDensityFilterDep = Annotated[
@@ -51,7 +59,15 @@ class ExperimentalBoutonDensityFilter(
 ):
     class Constants(CustomFilter.Constants):
         model = ExperimentalBoutonDensity
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "brain_region__name",
+            "brain_region__acronym",
+            "subject__species__name",
+            "subject__age_value",
+        ]
 
 
 ExperimentalBoutonDensityFilterDep = Annotated[
@@ -63,21 +79,34 @@ class ExperimentalSynapsesPerConnectionFilter(
     DensityFilterBase,
 ):
     pre_mtype: Annotated[
-        MTypeClassFilter | None, FilterDepends(with_prefix("pre_mtype", MTypeClassFilter))
+        NestedMTypeClassFilter | None,
+        FilterDepends(with_prefix("pre_mtype", NestedMTypeClassFilter)),
     ] = None
     post_mtype: Annotated[
-        MTypeClassFilter | None, FilterDepends(with_prefix("post_mtype", MTypeClassFilter))
+        NestedMTypeClassFilter | None,
+        FilterDepends(with_prefix("post_mtype", NestedMTypeClassFilter)),
     ] = None
     pre_region: Annotated[
-        BrainRegionFilter | None, FilterDepends(with_prefix("pre_region", BrainRegionFilter))
+        NestedBrainRegionFilter | None,
+        FilterDepends(with_prefix("pre_region", NestedBrainRegionFilter)),
     ] = None
     post_region: Annotated[
-        BrainRegionFilter | None, FilterDepends(with_prefix("post_region", BrainRegionFilter))
+        NestedBrainRegionFilter | None,
+        FilterDepends(with_prefix("post_region", NestedBrainRegionFilter)),
     ] = None
 
     class Constants(CustomFilter.Constants):
         model = ExperimentalSynapsesPerConnection
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "creation_date",
+            "update_date",
+            "name",
+            "subject__species__name",
+            "subject__age_value",
+            "brain_region__name",
+            "brain_region__acronym",
+        ]
 
 
 ExperimentalSynapsesPerConnectionFilterDep = Annotated[

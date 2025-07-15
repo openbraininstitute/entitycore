@@ -9,8 +9,8 @@ from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
     NameFilterMixin,
-    SubjectFilterMixin,
 )
+from app.filters.subject import SubjectFilterMixin
 
 
 class ScientificArtifactFilter(

@@ -7,7 +7,7 @@ from app.db.model import Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
-from app.filters.common import SubjectFilterDep
+from app.filters.subject import SubjectFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
 from app.schemas.subject import SubjectCreate, SubjectRead

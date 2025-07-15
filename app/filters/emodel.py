@@ -9,37 +9,79 @@ from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
     ETypeClassFilterMixin,
+    IdFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
+    NestedBrainRegionFilter,
+    NestedETypeClassFilter,
+    NestedMTypeClassFilter,
     SpeciesFilterMixin,
 )
-from app.filters.morphology import MorphologyFilter, NestedExemplarMorphologyFilterDep
+from app.filters.morphology import NestedMorphologyFilter
+
+
+class NestedEModelFilter(
+    IdFilterMixin,
+    NameFilterMixin,
+    CustomFilter,
+):
+    score__lte: float | None = None
+    score__gte: float | None = None
+
+    brain_region: Annotated[
+        NestedBrainRegionFilter | None,
+        FilterDepends(with_prefix("emodel__brain_region", NestedBrainRegionFilter)),
+    ] = None
+    mtype: Annotated[
+        NestedMTypeClassFilter,
+        FilterDepends(with_prefix("emodel__mtype", NestedMTypeClassFilter)),
+    ]
+    etype: Annotated[
+        NestedETypeClassFilter,
+        FilterDepends(with_prefix("emodel__etype", NestedETypeClassFilter)),
+    ]
+    exemplar_morphology: Annotated[
+        NestedMorphologyFilter | None,
+        FilterDepends(with_prefix("emodel__exemplar_morphology", NestedMorphologyFilter)),
+    ] = None
+
+    class Constants(CustomFilter.Constants):
+        model = EModel
 
 
 class EModelFilter(
-    CustomFilter,
     BrainRegionFilterMixin,
     EntityFilterMixin,
     MTypeClassFilterMixin,
     ETypeClassFilterMixin,
     SpeciesFilterMixin,
     NameFilterMixin,
+    CustomFilter,
 ):
     score__lte: float | None = None
     score__gte: float | None = None
 
-    exemplar_morphology: Annotated[MorphologyFilter | None, NestedExemplarMorphologyFilterDep] = (
-        None
-    )
+    exemplar_morphology: Annotated[
+        NestedMorphologyFilter | None,
+        FilterDepends(with_prefix("exemplar_morphology", NestedMorphologyFilter)),
+    ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):
         model = EModel
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "brain_region__name",
+            "brain_region__acronym",
+            "score",
+            "exemplar_morphology__name",
+        ]
 
 
 # Dependencies
 EModelFilterDep = Annotated[EModelFilter, FilterDepends(EModelFilter)]
 # Nested dependencies
-NestedEModelFilterDep = FilterDepends(with_prefix("emodel", EModelFilter))
+NestedEModelFilterDep = FilterDepends(with_prefix("emodel", NestedEModelFilter))

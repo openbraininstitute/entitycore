@@ -1,14 +1,16 @@
 from datetime import timedelta
+from time import sleep
 from unittest.mock import ANY
 
 import pytest
 
-from app.db.model import ElectricalCellRecording, Species, Subject
+from app.db.model import BrainRegion, ElectricalCellRecording, Species, Subject
 from app.db.types import EntityType
 
 from .utils import (
     PROJECT_ID,
     add_all_db,
+    add_db,
     assert_request,
     check_authorization,
     check_brain_region_filter,
@@ -194,7 +196,8 @@ def test_brain_region_filter(
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
 
 
-def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
+@pytest.fixture
+def models(db, electrical_cell_recording_json_data, person_id, brain_region_hierarchy_id):
     species = add_all_db(
         db,
         [
@@ -228,24 +231,54 @@ def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
         ],
     )
 
-    models = add_all_db(
+    brain_regions = add_all_db(
         db,
         [
+            BrainRegion(
+                annotation_value=i,
+                acronym=f"acronym-{i}",
+                name=f"region-{i}",
+                color_hex_triplet="FF0000",
+                parent_structure_id=None,
+                hierarchy_id=brain_region_hierarchy_id,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            )
+            for i in range(len(subjects))
+        ],
+    )
+
+    recordings = []
+    recordings_ids = [0, 1, 1, 1, 2, 2]
+    for i, subject in enumerate(subjects):
+        rec = add_db(
+            db,
             ElectricalCellRecording(
                 **electrical_cell_recording_json_data
                 | {
                     "subject_id": str(subject.id),
-                    "name": f"e-{i}",
+                    "name": f"e-{recordings_ids[i]}",
                     "created_by_id": str(person_id),
                     "updated_by_id": str(person_id),
                     "authorized_project_id": PROJECT_ID,
+                    "brain_region_id": brain_regions[i].id,
                 }
-            )
-            for i, subject in enumerate(subjects)
-        ],
-    )
+            ),
+        )
+
+        recordings.append(rec)
+
+        # to vary the creation date
+        sleep(0.01)
+
+    return species, subjects, recordings
+
+
+def test_filtering(client, models):
+    species, _, recordings = models
+
     data = assert_request(client.get, url=ROUTE).json()["data"]
-    assert len(data) == len(models)
+    assert len(data) == len(recordings)
 
     data = assert_request(
         client.get, url=ROUTE, params=f"subject__species__id={species[1].id}"
@@ -276,3 +309,124 @@ def test_filtering(db, client, electrical_cell_recording_json_data, person_id):
         params={"name__in": "e-1,e-2"},
     ).json()["data"]
     assert {d["name"] for d in data} == {"e-1", "e-2"}
+
+
+def test_sorting(client, models):
+    _, _, recordings = models
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    # default: ascending by date
+    data = req("order_by=creation_date")
+    assert len(data) == len(recordings)
+    assert [d["id"] for d in data] == [str(m.id) for m in recordings]
+
+    # equivalent to above
+    data = req({"order_by": ["creation_date"]})
+    assert len(data) == len(recordings)
+    assert [d["id"] for d in data] == [str(m.id) for m in recordings]
+
+    # ascending by date
+    data = req("order_by=creation_date")
+    assert len(data) == len(recordings)
+    assert [d["id"] for d in data] == [str(m.id) for m in recordings]
+
+    # equivalent to above
+    data = req({"order_by": "+creation_date"})
+    assert len(data) == len(recordings)
+    assert [d["id"] for d in data] == [str(m.id) for m in recordings]
+
+    # descending by date
+    data = req("order_by=-creation_date")
+    assert len(data) == len(recordings)
+    assert [d["id"] for d in data] == [str(m.id) for m in recordings][::-1]
+
+    # equivalent to above
+    data = req({"order_by": ["-creation_date"]})
+    assert len(data) == len(recordings)
+    assert [d["id"] for d in data] == [str(m.id) for m in recordings][::-1]
+
+    # ascending by name
+    data = req("order_by=name")
+    assert len(data) == len(recordings)
+    assert [d["name"] for d in data] == [f"e-{i}" for i in (0, 1, 1, 1, 2, 2)]
+
+    # descending by name
+    data = req("order_by=-name")
+    assert len(data) == len(recordings)
+    assert [d["name"] for d in data] == [f"e-{i}" for i in (2, 2, 1, 1, 1, 0)]
+
+    # ascending by species name
+    data = req("order_by=subject__species__name")
+    assert [d["subject"]["species"]["name"] for d in data] == [
+        f"species-{i}" for i in (0, 0, 1, 1, 2, 2)
+    ]
+
+    # descending by species name
+    data = req("order_by=-subject__species__name")
+    assert [d["subject"]["species"]["name"] for d in data] == [
+        f"species-{i}" for i in (2, 2, 1, 1, 0, 0)
+    ]
+
+    # ascending by brain region acronym
+    data = req("order_by=brain_region__acronym")
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        f"acronym-{i}" for i in (0, 1, 2, 3, 4, 5)
+    ]
+
+    # descending by brain region acronym
+    data = req("order_by=-brain_region__acronym")
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        f"acronym-{i}" for i in (5, 4, 3, 2, 1, 0)
+    ]
+
+    # brain region acronym should sort name ties in desc order
+    data = req({"order_by": ["+name", "-brain_region__acronym"]})
+    assert [d["name"] for d in data] == [f"e-{i}" for i in [0, 1, 1, 1, 2, 2]]
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        f"acronym-{i}" for i in [0, 3, 2, 1, 5, 4]
+    ]
+
+    # brain region acronym should sort name ties in asc order
+    data = req({"order_by": ["+name", "+brain_region__acronym"]})
+    assert [d["name"] for d in data] == [f"e-{i}" for i in [0, 1, 1, 1, 2, 2]]
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        f"acronym-{i}" for i in [0, 1, 2, 3, 4, 5]
+    ]
+
+    # sort using two cols of the same model
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"order_by": ["+brain_region__name", "+brain_region__acronym"]},
+    ).json()["data"]
+    assert [d["brain_region"]["name"] for d in data] == [f"region-{i}" for i in [0, 1, 2, 3, 4, 5]]
+
+
+def test_sorting_and_filtering(client, models):  # noqa: ARG001
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req({"name": "e-1", "order_by": "-brain_region__acronym"})
+    assert [d["name"] for d in data] == ["e-1", "e-1", "e-1"]
+    assert [d["brain_region"]["acronym"] for d in data] == ["acronym-3", "acronym-2", "acronym-1"]
+
+    data = req(
+        {
+            "subject__species__name__in": ["species-1", "species-2"],
+            "order_by": "-brain_region__acronym",
+        }
+    )
+    assert [d["subject"]["species"]["name"] for d in data] == [
+        "species-2",
+        "species-1",
+        "species-2",
+        "species-1",
+    ]
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        "acronym-5",
+        "acronym-4",
+        "acronym-2",
+        "acronym-1",
+    ]

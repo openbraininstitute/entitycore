@@ -9,6 +9,7 @@ from app.db.model import (
     SingleNeuronSynaptome,
 )
 from app.db.types import EntityType
+from app.filters.single_neuron_synaptome import SingleNeuronSynaptomeFilter
 
 from .utils import (
     MISSING_ID,
@@ -236,7 +237,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
         ids = []
         for i, me_model in zip(range(count), it.cycle((me_model_1, me_model_2))):
             row = SingleNeuronSynaptome(
-                name=f"sim-{i}",
+                name=f"synaptome-{i}",
                 description="my-description",
                 me_model_id=me_model.id,
                 seed=1,
@@ -398,3 +399,35 @@ def test_brain_region_filter(
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
+
+
+def test_sorting_filtering(client, faceted_ids):
+    n_models = len(faceted_ids[-1])
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    for ordering_field in SingleNeuronSynaptomeFilter.Constants.ordering_model_fields:
+        data = req({"name__in": ["synaptome-2", "synaptome-3"], "order_by": f"+{ordering_field}"})
+        assert len(data) == 2
+
+        data = req({"name__in": ["synaptome-2", "synaptome-3"], "order_by": f"-{ordering_field}"})
+        assert len(data) == 2
+
+        data = req({"created_by__pref_label": "jd courcol", "order_by": ordering_field})
+        assert len(data) == n_models
+
+        data = req({"created_by__pref_label": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+        data = req({"brain_region__name": "region-1", "order_by": ordering_field})
+        assert all(d["brain_region"]["name"] == "region-1" for d in data)
+
+        data = req({"brain_region__name": "", "order_by": ordering_field})
+        assert len(data) == 0
+
+        data = req({"brain_region__acronym": "acronym1", "order_by": ordering_field})
+        assert all(d["brain_region"]["acronym"] == "acronym1" for d in data)
+
+        data = req({"brain_region__acronym": "", "order_by": ordering_field})
+        assert len(data) == 0

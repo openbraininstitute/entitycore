@@ -7,23 +7,30 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
-from app.utils.enum import StrEnum
-
 
 class PipelineType(StrEnum):
-    Raw = auto()
-    Curated = auto()
-    Unraveled = auto()
-    Repaired = auto()
+    raw = auto()
+    curated = auto()
+    unraveled = auto()
+    repaired = auto()
 
+class MethodsType(StrEnum):
+    cloned = auto()
+    mix_and_match = auto()
+    mousified = auto()
+    ratified = auto()    
 
-class MorphologyStructureType(StrEnum):
-    DIGITAL = auto()
-    MODIFIED = auto()
-    COMPUTATIONAL = auto()
-    PLACEHOLDER = auto()
-    GENERIC = auto()
-
+class MorphologyGenerationType(StrEnum):
+    digital = auto() #digital reconstruction
+    modified = auto() #modifed from digital
+    computational = auto() #computationally synthesized
+    placeholder = auto() #could be a morphology or compartment
+ 
+class SlicingDirectionType(StrEnum):
+    coronal = auto()
+    sagittal = auto()
+    horizontal = auto()
+    custom = auto()
 
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)

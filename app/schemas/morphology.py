@@ -20,7 +20,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
-from app.db.types import PipelineType, MorphologyStructureType
+from app.db.types import PipelineType, MorphologyGenerationType, SlicingDirectionType, MethodsType
 
 
 class Protocol(BaseModel):
@@ -46,7 +46,7 @@ class ExperimentalMorphologyMethod(Protocol):
         Method used for staining
     slicing_thickness: float
         Thickness of the slice in microns
-    slicing_direction: str, optional
+    slicing_direction: SlicingDirectionType, optional
         Direction of slicing
     magnification: float, optional
         Magnification level used
@@ -60,7 +60,7 @@ class ExperimentalMorphologyMethod(Protocol):
     staining_method: str
     slicing_thickness: float
 
-    slicing_direction: str | None = None
+    slicing_direction: SlicingDirectionType | None = None
     magnification: float | None = None
     tissue_shrinkage: float | None = None
     has_been_corrected_for_shrinkage: bool | None = None
@@ -83,7 +83,7 @@ class CellMorphologyBase(BaseModel):
     description: str
     location: PointLocationBase | None
     legacy_id: list[str] | None
-    morphology_structure_type: MorphologyStructureType = MorphologyStructureType.GENERIC
+    morphology_generation_type: MorphologyGenrationType = MorphologyGenerationType.generic
 
 
 class CellMorphologyCreate(
@@ -95,7 +95,7 @@ class CellMorphologyCreate(
     strain_id: uuid.UUID | None = None
     brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
-    morphology_structure_type: MorphologyStructureType = MorphologyStructureType.GENERIC
+    morphology_genration_type: MorphologyGenerationType = MorphologyGenerationType.generic
 
 
 class CellMorphologyRead(
@@ -123,13 +123,6 @@ class ScoreDict(BaseModel):
     x: dict[str, float]
 
 
-class MethodsType(Enum):
-    Cloned = auto()
-    Mix_and_match = auto()
-    Mousified = auto()
-    Ratified = auto()
-
-
 class DigitalReconstruction(CellMorphologyRead):
     reconstruction_method: ExperimentalMorphologyMethod
     pipeline_state: PipelineType
@@ -137,7 +130,7 @@ class DigitalReconstruction(CellMorphologyRead):
 
 
 class DigitalReconstructionCreate(CellMorphologyCreate):
-    morphology_structure_type: Literal[MorphologyStructureType.DIGITAL]
+    morphology_generation_type: Literal[MorphologyGenerationType.digital]
     reconstruction_method: ExperimentalMorphologyMethod
     pipeline_state: PipelineType
     is_related_to: list[uuid.UUID]
@@ -149,7 +142,7 @@ class ModifiedReconstruction(CellMorphologyRead):
 
 
 class ModifiedReconstructionCreate(CellMorphologyCreate):
-    morphology_structure_type: Literal[MorphologyStructureType.MODIFIED]
+    morphology_generation_type: Literal[MorphologyGenerationType.modified]
     method_description: ModifiedMorphologyMethod
     is_related_to: list[uuid.UUID]
 
@@ -161,7 +154,7 @@ class ComputationallySynthesized(CellMorphologyRead):
 
 
 class ComputationallySynthesizedCreate(CellMorphologyCreate):
-    morphology_structure_type: Literal[MorphologyStructureType.COMPUTATIONAL]
+    morphology_generation_type: Literal[MorphologyGenerationType.computational]
     method: str
     score_dict: ScoreDict
     provenance: ScoreDict
@@ -172,5 +165,5 @@ class Placeholder(CellMorphologyRead):
 
 
 class PlaceholderCreate(CellMorphologyCreate):
-    morphology_structure_type: Literal[MorphologyStructureType.PLACEHOLDER]
+    morphology_generation_type: Literal[MorphologyGenerationType.placeholder]
     is_related_to: list[uuid.UUID]

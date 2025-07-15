@@ -51,7 +51,7 @@ from app.db.types import (
     EntityType,
     MeasurementStatistic,
     MeasurementUnit,
-    MorphologyStructureType,
+    MorphologyGenerationType,
     PipelineType,
     PointLocation,
     PointLocationType,
@@ -665,6 +665,21 @@ class MeasurableEntity(Entity):
             viewonly=True,
         )
 
+class MeasurableEntityMixin():
+    """Abstract class for measurable entities."""
+
+    __abstract__ = True
+
+    @declared_attr
+    @classmethod
+    def measurement_annotation(cls):
+        return relationship(
+            "MeasurementAnnotation",
+            foreign_keys="MeasurementAnnotation.entity_id",
+            uselist=False,
+            viewonly=True,
+        )
+    
 
 class CellMorphologyMetadata(Base):
     __tablename__ = "cell_morphology_metadata"
@@ -685,22 +700,19 @@ class CellMorphologyMetadata(Base):
     cell_morphology = relationship("CellMorphology", back_populates="extended_data")
 
 
-class CellMorphology(
-    MTypesMixin,
-    LicensedMixin,
-    LocationMixin,
-    SpeciesMixin,
-    NameDescriptionVectorMixin,
-    MeasurableEntity,
-):
+class CellMorphology(ScientificArtifact,
+                     MTypesMixin,
+                     NameDescriptionVectorMixin,
+                     MeasurableEntityMixin):
     __tablename__ = EntityType.reconstruction_morphology.value
 
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    
     location: Mapped[PointLocation | None]
-    structure_type = mapped_column(
-        Enum(MorphologyStructureType, name="morphologystructuretype"),
+    generation_type = mapped_column(
+        Enum(MorphologyGenerationType, name="morphologygenerationtype"),
         nullable=False,
-        default=MorphologyStructureType.GENERIC,
+        default=MorphologyGenerationType.placeholder,
     )
     extended_data = relationship(
         "CellMorphologyMetadata", uselist=False, back_populates="cell_morphology"

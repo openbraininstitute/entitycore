@@ -23,25 +23,25 @@ from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 from app.db.types import PipelineType, MorphologyGenerationType, SlicingDirectionType, MethodsType
 
 
-class Protocol(BaseModel):
-    """Generic Experimental method.
+class ProtocolMixin(BaseModel):
+        """Generic Experimental method.
 
     Parameters:
     -----------
     protocol_document: str, optional
         URL link to protocol document or publication
+    protocol_design: str
+        From a controlled vocabulary (e.g., EM, CellPatch, Fluorophore, Imp)
     """
-
     protocol_document: str | None = None
+    protocol_design: str
 
-
-class ExperimentalMorphologyMethod(Protocol):
-    """Experimental morphology method for capturing cell morphology data.
+class ExperimentalMorphologyMethodRead(ProtocolMixin):
+     """Experimental morphology method for capturing cell morphology data.
 
     Parameters:
     -----------
-    protocol_design: str
-        From a controlled vocabulary (e.g., EM, CellPatch, Fluorophore, Imp)
+ 
     staining_method: str
         Method used for staining
     slicing_thickness: float
@@ -55,26 +55,32 @@ class ExperimentalMorphologyMethod(Protocol):
     has_been_corrected_for_shrinkage: bool, optional
         Whether data has been corrected for shrinkage
     """
-
-    protocol_design: str
+    id: uuid.UUID
     staining_method: str
     slicing_thickness: float
-
     slicing_direction: SlicingDirectionType | None = None
     magnification: float | None = None
     tissue_shrinkage: float | None = None
     has_been_corrected_for_shrinkage: bool | None = None
 
-    class Config:
-        from_attributes = True
-
-
-class ComputationallySynthesizedMorphologyMethod(Protocol):
+class ComputationallySynthesizedMorphologyMethodRead(ProtocolMixin):
+    id: uuid.UUID
     method: str
 
-
-class ModifiedMorphologyMethod(Protocol):
+class ModifiedMorphologyMethodRead(ProtocolMixin):
+    id: uuid.UUID
     method: MethodsType
+
+class MorphologyMethodRead(BaseModel):
+    # This acts as a union type for reading different methods
+    # Pydantic's discriminated unions would be ideal here if using Pydantic V2+
+    # For V1, you might need to handle this with a custom root validator
+    # or by having specific read schemas for each CellMorphology type.
+    # For simplicity, we'll assume a "smart" client that knows how to parse based on 'type'.
+    id: uuid.UUID
+    type: Literal["experimental", "computationally_synthesized", "modified"]
+    protocol_document: str | None = None
+    protocol_design: str
 
 
 class CellMorphologyBase(BaseModel):
@@ -83,7 +89,7 @@ class CellMorphologyBase(BaseModel):
     description: str
     location: PointLocationBase | None
     legacy_id: list[str] | None
-    morphology_generation_type: MorphologyGenrationType = MorphologyGenerationType.generic
+    morphology_generation_type: MorphologyGenerationType = MorphologyGenerationType.placeholder
 
 
 class CellMorphologyCreate(
@@ -95,8 +101,20 @@ class CellMorphologyCreate(
     strain_id: uuid.UUID | None = None
     brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
-    morphology_genration_type: MorphologyGenerationType = MorphologyGenerationType.generic
+    morphology_genration_type: MorphologyGenerationType = MorphologyGenerationType.placeholder
 
+
+class CellMorphologyCreate(
+    CellMorphologyBase,
+    LicensedCreateMixin,
+    AuthorizationOptionalPublicMixin,
+):
+    species_id: uuid.UUID
+    strain_id: uuid.UUID | None = None
+    brain_region_id: uuid.UUID
+    legacy_id: list[str] | None = None
+    morphology_generation_type: MorphologyGenerationType = MorphologyGenerationType.placeholder
+    morphology_method_id: uuid.UUID | None = None # This would be set after the method is created
 
 class CellMorphologyRead(
     CellMorphologyBase,
@@ -113,14 +131,10 @@ class CellMorphologyRead(
     strain: NestedStrainRead | None
     brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
-
+    morphology_method: MorphologyMethodRead | None # Now references the polymorphic method
 
 class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
     measurement_annotation: MeasurementAnnotationRead | None
-
-
-class ScoreDict(BaseModel):
-    x: dict[str, float]
 
 
 class DigitalReconstruction(CellMorphologyRead):
@@ -149,15 +163,13 @@ class ModifiedReconstructionCreate(CellMorphologyCreate):
 
 class ComputationallySynthesized(CellMorphologyRead):
     method_description: ComputationallySynthesizedMorphologyMethod
-    score_dict: ScoreDict
-    provenance: ScoreDict
+    provenance: str
 
 
 class ComputationallySynthesizedCreate(CellMorphologyCreate):
     morphology_generation_type: Literal[MorphologyGenerationType.computational]
     method: str
-    score_dict: ScoreDict
-    provenance: ScoreDict
+    provenance: str
 
 
 class Placeholder(CellMorphologyRead):

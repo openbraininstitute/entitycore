@@ -430,7 +430,7 @@ def create_asset_label(entity_type, name, content_type) -> AssetLabel | None:
             ContentType.nrrd: AssetLabel.brain_atlas_annotation,
         },
         EntityType.brain_atlas_region: {
-            ContentType.obj: AssetLabel.brain_region_mesh,
+            ContentType.obj: AssetLabel.brain_atlas_region_mesh,
         },
         EntityType.cell_composition: {
             ContentType.json: [
@@ -469,7 +469,7 @@ def create_asset_label(entity_type, name, content_type) -> AssetLabel | None:
             ContentType.json: AssetLabel.single_neuron_synaptome_simulation_data,
         },
         EntityType.single_neuron_simulation: {
-            ContentType.json: AssetLabel.single_cell_simulation_data
+            ContentType.json: AssetLabel.single_neuron_simulation_data
         },
         EntityType.validation_result: {
             ContentType.pdf: AssetLabel.validation_result_figure,

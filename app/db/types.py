@@ -246,7 +246,7 @@ class AssetLabel(StrEnum):
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()
     single_neuron_synaptome_simulation_data = auto()
-    single_cell_simulation_data = auto()
+    single_neuron_simulation_data = auto()
     sonata_circuit = auto()
     nwb = auto()
     neuron_hoc = auto()
@@ -261,7 +261,7 @@ class AssetLabel(StrEnum):
     spike_report = auto()
     neuron_mechanisms = auto()
     brain_atlas_annotation = auto()
-    brain_region_mesh = auto()
+    brain_atlas_region_mesh = auto()
     voxel_densities = auto()
     validation_result_figure = auto()
     validation_result_details = auto()
@@ -302,7 +302,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         ],
     },
     EntityType.brain_atlas_region: {
-        AssetLabel.brain_region_mesh: [
+        AssetLabel.brain_atlas_region_mesh: [
             LabelRequirements(content_type=ContentType.obj, is_directory=False),
             LabelRequirements(content_type=ContentType.gltf_binary, is_directory=False),
         ],
@@ -395,7 +395,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         ]
     },
     EntityType.single_neuron_simulation: {
-        AssetLabel.single_cell_simulation_data: [
+        AssetLabel.single_neuron_simulation_data: [
             LabelRequirements(content_type=ContentType.json, is_directory=False)
         ]
     },

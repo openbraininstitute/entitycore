@@ -54,7 +54,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
             client,
             EntityType.single_neuron_simulation,
             data["id"],
-            label=AssetLabel.single_cell_simulation_data,
+            label=AssetLabel.single_neuron_simulation_data,
             files={"file": ("c.json", f, "application/json")},
         )
     assert data["brain_region"]["id"] == str(brain_region_id), (
@@ -85,7 +85,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
     assert "assets" in data
-    assert data["assets"][0]["label"] == AssetLabel.single_cell_simulation_data
+    assert data["assets"][0]["label"] == AssetLabel.single_neuron_simulation_data
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["authorized_public"] is False
 

@@ -148,7 +148,7 @@ def test_brain_atlas(db, client, species_id, person_id):
                 EntityType.brain_atlas_region,
                 entity_id=ids[brain_atlas.name, name].id,
                 files={"file": ("mesh.obj", f, "application/obj")},
-                label="brain_region_mesh",
+                label="brain_atlas_region_mesh",
             ).raise_for_status()
 
     response = client.get(
@@ -160,7 +160,7 @@ def test_brain_atlas(db, client, species_id, person_id):
         "full_path": ANY,
         "id": ANY,
         "is_directory": False,
-        "label": "brain_region_mesh",
+        "label": "brain_atlas_region_mesh",
         "meta": {},
         "path": "mesh.obj",
         "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",

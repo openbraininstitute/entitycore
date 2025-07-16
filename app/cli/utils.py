@@ -430,7 +430,7 @@ def create_asset_label(entity_type, name, content_type) -> AssetLabel | None:
             ContentType.nrrd: AssetLabel.brain_atlas_annotation,
         },
         EntityType.brain_atlas_region: {
-            ContentType.obj: AssetLabel.brain_region_mesh,
+            ContentType.obj: AssetLabel.brain_atlas_region_mesh,
         },
         EntityType.cell_composition: {
             ContentType.json: [

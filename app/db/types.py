@@ -261,7 +261,7 @@ class AssetLabel(StrEnum):
     spike_report = auto()
     neuron_mechanisms = auto()
     brain_atlas_annotation = auto()
-    brain_region_mesh = auto()
+    brain_atlas_region_mesh = auto()
     voxel_densities = auto()
     validation_result_figure = auto()
     validation_result_details = auto()
@@ -302,7 +302,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         ],
     },
     EntityType.brain_atlas_region: {
-        AssetLabel.brain_region_mesh: [
+        AssetLabel.brain_atlas_region_mesh: [
             LabelRequirements(content_type=ContentType.obj, is_directory=False),
             LabelRequirements(content_type=ContentType.gltf_binary, is_directory=False),
         ],

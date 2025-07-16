@@ -1,8 +1,8 @@
 """Update asset label types
 
-Revision ID: a32ba9751eee
+Revision ID: afdb7e24034c
 Revises: c41a40d022fb
-Create Date: 2025-07-16 09:58:45.127991
+Create Date: 2025-07-16 10:18:40.114734
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "a32ba9751eee"
+revision: str = "afdb7e24034c"
 down_revision: Union[str, None] = "c41a40d022fb"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -48,7 +48,7 @@ def upgrade() -> None:
             "spike_report",
             "neuron_mechanisms",
             "brain_atlas_annotation",
-            "brain_region_mesh",
+            "brain_atlas_region_mesh",
             "voxel_densities",
             "validation_result_figure",
             "validation_result_details",
@@ -59,6 +59,7 @@ def upgrade() -> None:
         ],
         enum_values_to_rename=[
             ("single_cell_simulation_data", "single_neuron_simulation_data"),
+            ("brain_region_mesh", "brain_atlas_region_mesh"),
         ],
     )
     # ### end Alembic commands ###
@@ -101,6 +102,7 @@ def downgrade() -> None:
         ],
         enum_values_to_rename=[
             ("single_neuron_simulation_data", "single_cell_simulation_data"),
+            ("brain_atlas_region_mesh", "brain_region_mesh"),
         ],
     )
     # ### end Alembic commands ###

@@ -20,20 +20,6 @@ router = APIRouter(
 )
 
 
-@router.get("/{id_}")
-def read_one(
-    id_: UUID,
-    db: SessionDep,
-    user_context: UserContextDep,
-):
-    return get_readable_entity(
-        db=db,
-        db_model_class=Entity,
-        entity_id=id_,
-        project_id=user_context.project_id,
-    )
-
-
 @router.get("/counts")
 def count_entities_by_type(
     user_context: UserContextDep,
@@ -52,4 +38,18 @@ def count_entities_by_type(
         db=db,
         entity_types=types,
         in_brain_region=in_brain_region,
+    )
+
+
+@router.get("/{id_}")
+def read_one(
+    id_: UUID,
+    db: SessionDep,
+    user_context: UserContextDep,
+):
+    return get_readable_entity(
+        db=db,
+        db_model_class=Entity,
+        entity_id=id_,
+        project_id=user_context.project_id,
     )

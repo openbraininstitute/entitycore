@@ -682,7 +682,7 @@ class MeasurableEntityMixin():
             viewonly=True,
         )
     
-class MorphologyMethod(Identifiable): # Inherit from Identifiable for primary key and timestamps
+class MorphologyProtocol(Identifiable): # Inherit from Identifiable for primary key and timestamps
     __tablename__ = "morphology_method"
     protocol_document: Mapped[str | None]
     protocol_design: Mapped[str]
@@ -693,7 +693,7 @@ class MorphologyMethod(Identifiable): # Inherit from Identifiable for primary ke
         "polymorphic_on": "type",
     }
 
-class ExperimentalMorphologyMethod(MorphologyMethod):
+class ExperimentalMorphologyMethod(MorphologyProtocol):
     __tablename__ = "experimental_morphology_method"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_method.id"), primary_key=True)
     staining_method: Mapped[str]
@@ -707,7 +707,7 @@ class ExperimentalMorphologyMethod(MorphologyMethod):
         "polymorphic_identity": "experimental", # A string identifier for this type
     }
 
-class ComputationallySynthesizedMorphologyMethod(MorphologyMethod):
+class ComputationallySynthesizedMorphologyMethod(MorphologyProtocol):
     __tablename__ = "computationally_synthesized_morphology_method"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_method.id"), primary_key=True)
     method: Mapped[str] # This 'method' might need further typing based on your vocabulary
@@ -716,7 +716,7 @@ class ComputationallySynthesizedMorphologyMethod(MorphologyMethod):
         "polymorphic_identity": "computationally_synthesized",
     }
 
-class ModifiedMorphologyMethod(MorphologyMethod):
+class ModifiedMorphologyMethod(MorphologyProtocol):
     __tablename__ = "modified_morphology_method"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_method.id"), primary_key=True)
     method: Mapped[MethodsType] # Assuming MethodsType is an Enum or similar
@@ -747,9 +747,9 @@ class CellMorphology(ScientificArtifact,
     morphology_method_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("morphology_method.id"), nullable=True, index=True
     )
-    # Relationship to the polymorphic MorphologyMethod
-    morphology_method: Mapped["MorphologyMethod"] = relationship(
-        "MorphologyMethod",
+    # Relationship to the polymorphic MorphologyProtocol
+    morphology_method: Mapped["MorphologyProtocol"] = relationship(
+        "MorphologyProtocol",
         foreign_keys=[morphology_method_id],
         uselist=False,
     )

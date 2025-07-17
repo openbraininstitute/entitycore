@@ -3,7 +3,8 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends
+from app.dependencies.auth import verify_token
 
 from app.db.model import Entity
 from app.db.utils import EntityTypeWithBrainRegion
@@ -27,12 +28,13 @@ router = APIRouter(
     tags=["entity"],
 )
 
+from app.logger import L
+
 
 @router.get("/{id_}", response_model=EntityRead)
-def read_one(
-    id_: UUID,
-    db: SessionDep,
-):
+def read_one(id_: UUID, db: SessionDep):
+    L.info("\n\n\n here called")
+
     with ensure_result(f"Entity {id_} not found or forbidden"):
         query = sa.select(Entity).where(Entity.id == id_)
         row = db.execute(query).unique().scalar_one()

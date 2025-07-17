@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.errors import AuthErrorReason
 from app.logger import L
+import regex as re
 
 
 class CacheKey(BaseModel):
@@ -104,6 +105,16 @@ class UserInfoResponse(UserInfoBase):
                         f"/proj/{virtual_lab_id}/{project_id}/member",
                     ]
                 )
+
+    def find_virtual_lab_id(self, project_id: UUID | None) -> UUID | None:
+        """Return the virtual_lab_id if authorized for the specified project_id."""
+        pattern = rf"/proj/([0-9a-fA-F-]+)/{re.escape(str(project_id))}/(admin|member)"
+
+        for s in self.groups:
+            match = re.search(pattern, s)
+            if match:
+                return UUID(match.group(1))
+        return None
 
 
 class UserProfile(BaseModel):

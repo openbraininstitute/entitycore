@@ -1,6 +1,7 @@
 """Web api."""
 
 from fastapi import APIRouter, Depends
+from app.logger import L
 
 from app.dependencies.auth import user_verified
 from app.routers import (
@@ -49,6 +50,9 @@ from app.routers import (
 
 router = APIRouter()
 router.include_router(root.router)
+
+L.error('\n\n router, here here')
+
 router.include_router(generic_entity.router)
 
 authenticated_routers = [

@@ -87,6 +87,7 @@ def _check_user_info(
     project_context: OptionalProjectContext,
     token: HTTPAuthorizationCredentials,
     http_client: httpx.Client,
+    find_vlab_id: bool = False,
 ) -> UserContext:
     """Retrieve the user info from KeyCloak and check the correctness of ProjectContext.
 
@@ -127,17 +128,28 @@ def _check_user_info(
         )
 
     user_info_response = deserialize_response(response, model_class=UserInfoResponse)
-    is_authorized = user_info_response.is_authorized_for(
-        virtual_lab_id=project_context.virtual_lab_id,
-        project_id=project_context.project_id,
-    )
+
+    is_authorized = False
+    vlab_id: UUID | None = None
+
+    if not find_vlab_id:
+        is_authorized = user_info_response.is_authorized_for(
+            virtual_lab_id=project_context.virtual_lab_id,
+            project_id=project_context.project_id,
+        )
+
+    else:
+        vlab_id = user_info_response.find_virtual_lab_id(project_context.project_id)
+        is_authorized = bool(vlab_id)
+
     is_service_admin = user_info_response.is_service_admin(settings.APP_NAME)
+
     user_context = UserContext(
         profile=UserProfile.from_user_info(user_info_response),
         expiration=decoded.exp if decoded else None,
-        is_authorized=is_authorized,
+        is_authorized=bool(is_authorized),
         is_service_admin=is_service_admin,
-        virtual_lab_id=project_context.virtual_lab_id,
+        virtual_lab_id=project_context.virtual_lab_id or vlab_id,
         project_id=project_context.project_id,
         auth_error_reason=AuthErrorReason.NOT_AUTHORIZED_PROJECT if not is_authorized else None,
     )
@@ -161,6 +173,8 @@ def user_verified(
     project_context: Annotated[OptionalProjectContext, Header()],
     token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
     request: Request,
+    *,
+    find_vlab_id: bool = False,
 ) -> UserContext:
     """Ensure that the user is authenticated and authorized.
 
@@ -200,6 +214,7 @@ def user_verified(
         project_context=project_context,
         token=token,
         http_client=request.state.http_client,
+        find_vlab_id=find_vlab_id,
     )
 
     if not user_context.is_authorized:

@@ -44,10 +44,13 @@ from app.routers import (
     strain,
     subject,
     validation_result,
+    generic_entity,
 )
 
 router = APIRouter()
 router.include_router(root.router)
+router.include_router(generic_entity.router)
+
 authenticated_routers = [
     asset.router,
     brain_atlas.router,

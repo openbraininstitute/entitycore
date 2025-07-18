@@ -531,6 +531,7 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
         id (uuid.UUID): Primary key, references the base entity ID.
         experiment_date (datetime | None): Date of the experiment associated with the artifact.
         contact_email (str | None): Optional string of a contact person's e-mail address.
+        published_in (str | None): Optional string with a short version of the source publication(s) of this artifact.
 
     Mapper Args:
         polymorphic_identity (str): Used for SQLAlchemy polymorphic inheritance.
@@ -542,6 +543,7 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
 
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
     contact_email: Mapped[str | None] = mapped_column(String)
+    published_in: Mapped[str | None] = mapped_column(String)
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,

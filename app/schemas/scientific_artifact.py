@@ -24,6 +24,7 @@ class ScientificArtifactBase(BaseModel):
 
     experiment_date: datetime | None = None
     contact_email: str | None = None
+    published_in: str | None = None
     atlas_id: uuid.UUID | None = None
 
 

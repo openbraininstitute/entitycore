@@ -78,10 +78,16 @@ class EntityType(StrEnum):
 
 
 class AgentType(StrEnum):
-    """Agent types."""
+    """Agent types.
+
+    - person: Individual person
+    - organization: Individual organization or institution
+    - consortium: Group of individual persons (or organizations) formally joined together
+    """
 
     person = auto()
     organization = auto()
+    consortium = auto()
 
 
 class ActivityType(StrEnum):

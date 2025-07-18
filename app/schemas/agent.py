@@ -55,4 +55,25 @@ class OrganizationRead(
     pass
 
 
-type AgentRead = NestedPersonRead | NestedOrganizationRead
+class ConsortiumBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    pref_label: str
+    alternative_name: str | None = None
+
+
+class ConsortiumCreate(ConsortiumBase):
+    legacy_id: str | None = None
+
+
+class NestedConsortiumRead(ConsortiumBase, IdentifiableMixin):
+    type: str
+
+
+class ConsortiumRead(
+    NestedConsortiumRead, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
+):
+    pass
+
+
+type AgentRead = NestedPersonRead | NestedOrganizationRead | NestedConsortiumRead

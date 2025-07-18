@@ -153,12 +153,29 @@ def user_context_no_project():
 
 
 @pytest.fixture
+def unauthorized_user_context():
+    "Authenticated user unauthorized"
+    return UserContext(
+        profile=UserProfile(
+            subject=UUID(int=3),
+            name="Regular User unauthorized",
+        ),
+        expiration=None,
+        is_authorized=False,
+        is_service_admin=False,
+        virtual_lab_id=None,
+        project_id=None,
+    )
+
+
+@pytest.fixture
 def _override_check_user_info(
     monkeypatch,
     user_context_admin,
     user_context_user_1,
     user_context_user_2,
     user_context_no_project,
+    unauthorized_user_context,
 ):
     # map (token, project-id) to the expected user_context
     mapping = {
@@ -166,9 +183,10 @@ def _override_check_user_info(
         (TOKEN_USER_1, None): user_context_no_project,
         (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
+        (TOKEN_USER_1, UUID(UNRELATED_PROJECT_ID)): unauthorized_user_context,
     }
 
-    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+    def mock_check_user_info(*, project_context, token, http_client, find_vlab_id):  # noqa: ARG001
         return mapping[token.credentials, project_context.project_id]
 
     monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)

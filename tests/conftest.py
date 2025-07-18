@@ -875,6 +875,7 @@ def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id)
         "recording_origin": "in_vivo",
         "ljp": 11.5,
         "authorized_public": False,
+        "holding_current": 1.0,
     }
 
 

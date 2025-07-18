@@ -3,7 +3,15 @@ from time import sleep
 
 import pytest
 
-from app.db.model import BrainRegion, Contribution, ExperimentalBoutonDensity, Species, Subject
+from app.db.model import (
+    BrainRegion,
+    Contribution,
+    ExperimentalBoutonDensity,
+    MTypeClass,
+    MTypeClassification,
+    Species,
+    Subject,
+)
 from app.db.types import EntityType
 from app.filters.density import ExperimentalBoutonDensityFilter
 from app.schemas.density import ExperimentalBoutonDensityCreate
@@ -188,6 +196,28 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
             ),
         )
 
+        mtype = add_db(
+            db,
+            MTypeClass(
+                pref_label=f"m{i}",
+                alt_label=f"m{i}",
+                definition="d",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+        )
+        add_db(
+            db,
+            MTypeClassification(
+                entity_id=density.id,
+                mtype_class_id=mtype.id,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        )
+
         densities.append(density)
 
         # to vary the creation date
@@ -337,6 +367,13 @@ def test_sorting(client, models):
     ).json()["data"]
     assert [d["brain_region"]["name"] for d in data] == [f"region-{i}" for i in [0, 1, 2, 3, 4, 5]]
 
+    # one-to-many with one element
+    data = req({"order_by": "mtype__pref_label"})
+    assert [d["mtypes"][0]["pref_label"] for d in data] == [f"m{i}" for i in range(6)]
+
+    data = req({"order_by": "-mtype__pref_label"})
+    assert [d["mtypes"][0]["pref_label"] for d in data] == [f"m{i}" for i in range(6)][::-1]
+
 
 def test_sorting_and_filtering(client, models):  # noqa: ARG001
     def req(query):
@@ -362,6 +399,9 @@ def test_sorting_and_filtering(client, models):  # noqa: ARG001
             {"subject__species__name__in": ["species-1", "species-2"], "order_by": ordering_field}
         )
         assert len(data) == 4
+
+        data = req({"mtype__pref_label__in": ["m1", "m2"], "order_by": ordering_field})
+        assert len(data) == 2
 
     data = req({"name": "d-1", "order_by": "-brain_region__acronym"})
     assert [d["name"] for d in data] == ["d-1", "d-1", "d-1"]

@@ -1,24 +1,11 @@
 import uuid
-from datetime import datetime
 from typing import Annotated
 
 from app.db.model import Circuit
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import (
-    BrainRegionFilterMixin,
-    EntityFilterMixin,
-    NameFilterMixin,
-)
-from app.filters.subject import SubjectFilterMixin
-
-
-class ScientificArtifactFilter(
-    CustomFilter, SubjectFilterMixin, BrainRegionFilterMixin, EntityFilterMixin
-):
-    experiment_date__lte: datetime | None = None
-    experiment_date__gte: datetime | None = None
-    contact_id: uuid.UUID | None = None
+from app.filters.common import NameFilterMixin
+from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
 class CircuitFilter(ScientificArtifactFilter, NameFilterMixin):

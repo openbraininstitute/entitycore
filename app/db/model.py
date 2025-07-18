@@ -385,9 +385,7 @@ class MTypeClassification(Identifiable):
     mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
-    __table_args__ = (
-        UniqueConstraint("entity_id", "mtype_class_id", name="uq_mtype_per_entity"),
-    )
+    __table_args__ = (UniqueConstraint("entity_id", "mtype_class_id", name="uq_mtype_per_entity"),)
 
 
 class ETypeClassification(Identifiable):
@@ -398,6 +396,8 @@ class ETypeClassification(Identifiable):
 
     etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+
+    __table_args__ = (UniqueConstraint("entity_id", "etype_class_id", name="uq_etype_per_entity"),)
 
 
 class MTypesMixin:

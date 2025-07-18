@@ -1,8 +1,8 @@
+import re
 from typing import Self
 from uuid import UUID
 
 import jwt
-import regex as re
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, ConfigDict
 

@@ -69,6 +69,6 @@ def read_one(
         if user_context and user_context.is_authorized:
             entity = EntityRead.model_validate(row)
             entity.virtual_lab_id = user_context.virtual_lab_id
-            return Entity
+            return entity
 
     return None

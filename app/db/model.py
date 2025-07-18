@@ -807,7 +807,7 @@ class ElectricalCellRecording(
     recording_origin: Mapped[ElectricalRecordingOrigin]
     recording_location: Mapped[STRING_LIST]
     ljp: Mapped[float] = mapped_column(default=0.0)
-    temperature: Mapped[float | None] = mapped_column(default=None)
+    temperature: Mapped[float | None]
     holding_current: Mapped[float] = mapped_column(default=0.0, server_default="0.0")
     comment: Mapped[str] = mapped_column(default="")
 

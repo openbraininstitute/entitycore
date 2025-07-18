@@ -169,12 +169,42 @@ def _check_user_info(
     return user_context
 
 
+def check_user_info(
+    project_context: OptionalProjectContext,
+    token: HTTPAuthorizationCredentials,
+    request: Request,
+    *,
+    find_vlab_id=False,
+):
+    user_context = _check_user_info(
+        project_context=project_context,
+        token=token,
+        http_client=request.state.http_client,
+        find_vlab_id=find_vlab_id,
+    )
+
+    if not user_context.is_authorized:
+        match user_context.auth_error_reason:
+            case AuthErrorReason.NOT_AUTHORIZED_USER | AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+                raise ApiError(
+                    message=user_context.auth_error_reason,
+                    error_code=ApiErrorCode.NOT_AUTHORIZED,
+                    http_status_code=403,
+                )
+            case _:
+                raise ApiError(
+                    message=user_context.auth_error_reason or AuthErrorReason.UNKNOWN,
+                    error_code=ApiErrorCode.NOT_AUTHENTICATED,
+                    http_status_code=401,
+                )
+
+    return user_context
+
+
 def user_verified(
     project_context: Annotated[OptionalProjectContext, Header()],
     token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
     request: Request,
-    *,
-    find_vlab_id: bool = False,
 ) -> UserContext:
     """Ensure that the user is authenticated and authorized.
 
@@ -210,29 +240,7 @@ def user_verified(
             http_status_code=401,
         )
 
-    user_context = _check_user_info(
-        project_context=project_context,
-        token=token,
-        http_client=request.state.http_client,
-        find_vlab_id=find_vlab_id,
-    )
-
-    if not user_context.is_authorized:
-        match user_context.auth_error_reason:
-            case AuthErrorReason.NOT_AUTHORIZED_USER | AuthErrorReason.NOT_AUTHORIZED_PROJECT:
-                raise ApiError(
-                    message=user_context.auth_error_reason,
-                    error_code=ApiErrorCode.NOT_AUTHORIZED,
-                    http_status_code=403,
-                )
-            case _:
-                raise ApiError(
-                    message=user_context.auth_error_reason or AuthErrorReason.UNKNOWN,
-                    error_code=ApiErrorCode.NOT_AUTHENTICATED,
-                    http_status_code=401,
-                )
-
-    return user_context
+    return check_user_info(project_context, token, request)
 
 
 def user_with_project_id(user_context: "UserContextDep") -> UserContextWithProjectId:

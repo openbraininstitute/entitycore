@@ -2,12 +2,12 @@ from typing import Self
 from uuid import UUID
 
 import jwt
+import regex as re
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, ConfigDict
 
 from app.errors import AuthErrorReason
 from app.logger import L
-import regex as re
 
 
 class CacheKey(BaseModel):

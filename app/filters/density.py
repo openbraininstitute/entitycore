@@ -45,6 +45,8 @@ class ExperimentalNeuronDensityFilter(
             "brain_region__acronym",
             "subject__species__name",
             "subject__age_value",
+            "mtype__pref_label",
+            "etype__pref_label",
         ]
 
 
@@ -67,6 +69,7 @@ class ExperimentalBoutonDensityFilter(
             "brain_region__acronym",
             "subject__species__name",
             "subject__age_value",
+            "mtype__pref_label",
         ]
 
 

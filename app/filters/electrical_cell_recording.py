@@ -31,6 +31,7 @@ class ElectricalCellRecordingFilter(
             "subject__species__name",
             "brain_region__acronym",
             "brain_region__name",
+            "etype__pref_label",
         ]
 
 

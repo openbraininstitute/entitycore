@@ -1,6 +1,13 @@
 import itertools as it
 
-from app.db.model import Agent, ReconstructionMorphology, Species, Strain
+from app.db.model import (
+    Agent,
+    MTypeClass,
+    MTypeClassification,
+    ReconstructionMorphology,
+    Species,
+    Strain,
+)
 from app.db.types import EntityType
 
 from .utils import (
@@ -568,6 +575,27 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
             name=f"Filter Test Morphology {i}",
             description=f"Filter Test Description {i}",
         )
+        mtype = add_db(
+            db,
+            MTypeClass(
+                pref_label=f"m{i}",
+                alt_label=f"m{i}",
+                definition="d",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+        )
+        add_db(
+            db,
+            MTypeClassification(
+                entity_id=morphology_id,
+                mtype_class_id=mtype.id,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        )
         morphology_ids.append(morphology_id)
 
     # filtering by a single ID
@@ -641,6 +669,20 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
     data = response.json()["data"]
     assert len(data) == 1
     assert data[0]["id"] == morphology_ids[2]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"mtype__pref_label__in": ["m1", "m2"], "order_by": "mtype__pref_label"},
+    ).json()["data"]
+    assert [d["mtypes"][0]["pref_label"] for d in data] == ["m1", "m2"]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"mtype__pref_label__in": ["m1", "m2"], "order_by": "-mtype__pref_label"},
+    ).json()["data"]
+    assert [d["mtypes"][0]["pref_label"] for d in data] == ["m2", "m1"]
 
 
 def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id, person_id):

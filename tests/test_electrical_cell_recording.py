@@ -4,7 +4,14 @@ from unittest.mock import ANY
 
 import pytest
 
-from app.db.model import BrainRegion, ElectricalCellRecording, Species, Subject
+from app.db.model import (
+    BrainRegion,
+    ElectricalCellRecording,
+    ETypeClass,
+    ETypeClassification,
+    Species,
+    Subject,
+)
 from app.db.types import EntityType
 
 from .utils import (
@@ -265,6 +272,27 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
                 }
             ),
         )
+        etype = add_db(
+            db,
+            ETypeClass(
+                pref_label=f"e{i}",
+                alt_label=f"e{i}",
+                definition="d",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+        )
+        add_db(
+            db,
+            ETypeClassification(
+                entity_id=rec.id,
+                etype_class_id=etype.id,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+            ),
+        )
 
         recordings.append(rec)
 
@@ -403,6 +431,13 @@ def test_sorting(client, models):
     ).json()["data"]
     assert [d["brain_region"]["name"] for d in data] == [f"region-{i}" for i in [0, 1, 2, 3, 4, 5]]
 
+    # one-to-many with one element
+    data = req({"order_by": "etype__pref_label"})
+    assert [d["etypes"][0]["pref_label"] for d in data] == [f"e{i}" for i in range(6)]
+
+    data = req({"order_by": "-etype__pref_label"})
+    assert [d["etypes"][0]["pref_label"] for d in data] == [f"e{i}" for i in range(6)][::-1]
+
 
 def test_sorting_and_filtering(client, models):  # noqa: ARG001
     def req(query):
@@ -416,6 +451,25 @@ def test_sorting_and_filtering(client, models):  # noqa: ARG001
         {
             "subject__species__name__in": ["species-1", "species-2"],
             "order_by": "-brain_region__acronym",
+        }
+    )
+    assert [d["subject"]["species"]["name"] for d in data] == [
+        "species-2",
+        "species-1",
+        "species-2",
+        "species-1",
+    ]
+    assert [d["brain_region"]["acronym"] for d in data] == [
+        "acronym-5",
+        "acronym-4",
+        "acronym-2",
+        "acronym-1",
+    ]
+
+    data = req(
+        {
+            "subject__species__name__in": ["species-1", "species-2"],
+            "order_by": "-etype__pref_label",
         }
     )
     assert [d["subject"]["species"]["name"] for d in data] == [

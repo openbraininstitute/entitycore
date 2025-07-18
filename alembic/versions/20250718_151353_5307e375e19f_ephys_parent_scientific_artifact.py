@@ -69,10 +69,6 @@ def upgrade() -> None:
         )
 
     op.add_column("electrical_cell_recording", sa.Column("temperature", sa.Float(), nullable=True))
-    op.add_column(
-        "electrical_cell_recording",
-        sa.Column("holding_current", sa.Float(), server_default="0.0", nullable=False),
-    )
     op.drop_index(
         op.f("ix_electrical_cell_recording_brain_region_id"), table_name="electrical_cell_recording"
     )
@@ -205,6 +201,5 @@ def downgrade() -> None:
         ["brain_region_id"],
         unique=False,
     )
-    op.drop_column("electrical_cell_recording", "holding_current")
     op.drop_column("electrical_cell_recording", "temperature")
     # ### end Alembic commands ###

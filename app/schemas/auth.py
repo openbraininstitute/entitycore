@@ -106,9 +106,9 @@ class UserInfoResponse(UserInfoBase):
                     ]
                 )
 
-    def find_virtual_lab_id(self, project_id: UUID | None) -> UUID | None:
+    def find_virtual_lab_id(self, project_id: UUID) -> UUID | None:
         """Return the virtual_lab_id if authorized for the specified project_id."""
-        pattern = rf"/proj/([0-9a-fA-F-]+)/{re.escape(str(project_id))}/(admin|member)"
+        pattern = rf"/proj/([0-9a-fA-F-]+)/{project_id}/(admin|member)"
 
         for s in self.groups:
             match = re.search(pattern, s)

@@ -130,7 +130,6 @@ def _check_user_info(
     user_info_response = deserialize_response(response, model_class=UserInfoResponse)
 
     is_authorized = False
-    vlab_id: UUID | None = None
 
     if not find_vlab_id:
         is_authorized = user_info_response.is_authorized_for(
@@ -138,18 +137,19 @@ def _check_user_info(
             project_id=project_context.project_id,
         )
 
-    else:
+    elif project_context.project_id:
         vlab_id = user_info_response.find_virtual_lab_id(project_context.project_id)
         is_authorized = bool(vlab_id)
+        project_context.virtual_lab_id = vlab_id
 
     is_service_admin = user_info_response.is_service_admin(settings.APP_NAME)
 
     user_context = UserContext(
         profile=UserProfile.from_user_info(user_info_response),
         expiration=decoded.exp if decoded else None,
-        is_authorized=bool(is_authorized),
+        is_authorized=is_authorized,
         is_service_admin=is_service_admin,
-        virtual_lab_id=project_context.virtual_lab_id or vlab_id,
+        virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
         auth_error_reason=AuthErrorReason.NOT_AUTHORIZED_PROJECT if not is_authorized else None,
     )

@@ -52,6 +52,7 @@ from app.db.types import (
     EntityType,
     MeasurementStatistic,
     MeasurementUnit,
+    Month,
     PointLocation,
     PointLocationType,
     Sex,
@@ -506,6 +507,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
         title (str | None): Title of the publication.
         authors (list[Author] | None): List of authors associated with the publication.
         publication_year (int | None): Year the publication was released.
+        publication_month (Month | None): Month the publication was released.
         abstract (str | None): Abstract or summary of the publication.
 
     """
@@ -516,6 +518,7 @@ class Publication(Entity, NameDescriptionVectorMixin):
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
     publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    publication_month: Mapped[Month | None]
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
     __mapper_args__ = {  # noqa: RUF012

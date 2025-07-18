@@ -48,7 +48,6 @@ def test_create_one(
     assert data["type"] == EntityType.electrical_cell_recording
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["etypes"] == []
-    assert data["holding_current"] == 1.0
 
 
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
@@ -78,7 +77,6 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with
             "update_date": ANY,
         },
     ]
-    assert data["holding_current"] == 1.0
 
 
 def test_missing(client):

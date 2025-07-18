@@ -72,13 +72,6 @@ class ElectricalCellRecordingBase(BaseModel):
             description="Temperature at which the recording was performed, in degrees Celsius.",
         ),
     ] = None
-    holding_current: Annotated[
-        float,
-        Field(
-            title="Holding Current",
-            description="Holding current applied during the recording, in nA.",
-        ),
-    ] = 0.0
     comment: Annotated[
         str | None,
         Field(

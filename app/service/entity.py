@@ -1,6 +1,9 @@
 import uuid
 
 import sqlalchemy as sa
+from fastapi import Request
+from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
 
 import app.queries.entity
 from app.db.auth import constrain_to_accessible_entities
@@ -10,20 +13,16 @@ from app.db.utils import (
     ENTITY_TYPE_TO_CLASS,
     EntityTypeWithBrainRegion,
 )
-
+from app.dependencies.auth import check_user_info
 from app.dependencies.common import InBrainRegionDep
-from sqlalchemy.orm import Session
-from app.filters.brain_region import get_family_query
-from app.repository.group import RepositoryGroup
-from app.schemas.auth import UserContext, UserContextWithProjectId
-from app.schemas.entity import EntityCountRead, EntityRead
-from fastapi.security import HTTPAuthorizationCredentials
-from fastapi import Request
 from app.errors import (
     ensure_result,
 )
-from app.dependencies.auth import check_user_info
+from app.filters.brain_region import get_family_query
+from app.repository.group import RepositoryGroup
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.base import OptionalProjectContext
+from app.schemas.entity import EntityCountRead, EntityRead
 
 
 def get_readable_entity(

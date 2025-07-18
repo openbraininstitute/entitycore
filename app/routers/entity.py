@@ -3,19 +3,13 @@
 from typing import Annotated
 from uuid import UUID
 
-import sqlalchemy as sa
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.db.model import Entity
 from app.db.utils import EntityTypeWithBrainRegion
-from app.dependencies.auth import AuthHeader, UserContextDep, check_user_info
+from app.dependencies.auth import AuthHeader, UserContextDep
 from app.dependencies.common import InBrainRegionDep
 from app.dependencies.db import SessionDep
-from app.errors import (
-    ensure_result,
-)
-from app.schemas.base import OptionalProjectContext
 from app.schemas.entity import EntityCountRead, EntityRead
 from app.service import entity as entity_service
 

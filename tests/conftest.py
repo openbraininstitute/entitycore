@@ -464,6 +464,7 @@ def memodel_calibration_result_id(client, memodel_id):
             "calibrated_entity_id": str(memodel_id),
             "authorized_public": False,
             "threshold_current": 0.8,
+            "holding_current": 0.2,
             "rin": 100.0,  # Optional field, can be None
         },
     ).json()["id"]
@@ -874,7 +875,6 @@ def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id)
         "recording_origin": "in_vivo",
         "ljp": 11.5,
         "authorized_public": False,
-        "holding_current": 1.0,
     }
 
 

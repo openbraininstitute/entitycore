@@ -1,8 +1,8 @@
-"""Default migration message
+"""unique_classifications_constraint
 
-Revision ID: 298e556d2d68
+Revision ID: 54eb4d0782bf
 Revises: afdb7e24034c
-Create Date: 2025-07-18 09:40:20.321457
+Create Date: 2025-07-18 11:36:05.981474
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "298e556d2d68"
+revision: str = "54eb4d0782bf"
 down_revision: Union[str, None] = "afdb7e24034c"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

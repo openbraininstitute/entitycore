@@ -53,22 +53,4 @@ def read_one(
     token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
     request: Request,
 ):
-    with ensure_result(f"Entity {id_} not found or forbidden"):
-        query = sa.select(Entity).where(Entity.id == id_)
-        row = db.execute(query).unique().scalar_one()
-        if row.authorized_public:
-            return row
-
-        user_context = token and check_user_info(
-            OptionalProjectContext(project_id=row.authorized_project_id),
-            token,
-            request,
-            find_vlab_id=True,
-        )
-
-        if user_context and user_context.is_authorized:
-            entity = EntityRead.model_validate(row)
-            entity.virtual_lab_id = user_context.virtual_lab_id
-            return entity
-
-    return None
+    return entity_service.read_one(id_, db, token, request)

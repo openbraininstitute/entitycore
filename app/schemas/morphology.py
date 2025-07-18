@@ -20,7 +20,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
-from app.db.types import PipelineType, MorphologyGenerationType, SlicingDirectionType, MethodsType
+from app.db.types import PipelineType, MorphologyGenerationType, SlicingDirectionType, StainingType, MethodsType
 
 
 class ProtocolMixin(BaseModel):
@@ -56,7 +56,7 @@ class ExperimentalMorphologyMethodRead(ProtocolMixin):
         Whether data has been corrected for shrinkage
     """
     id: uuid.UUID
-    staining_method: str
+    staining_method: StainingType | None = None
     slicing_thickness: float
     slicing_direction: SlicingDirectionType | None = None
     magnification: float | None = None

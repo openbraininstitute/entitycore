@@ -60,6 +60,7 @@ from app.db.types import (
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
     SlicingDirectionType,
+    StainingType,
     StructuralDomain,
     ValidationStatus,
 )
@@ -696,7 +697,7 @@ class MorphologyProtocol(Identifiable): # Inherit from Identifiable for primary 
 class ExperimentalMorphologyMethod(MorphologyProtocol):
     __tablename__ = "experimental_morphology_method"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_method.id"), primary_key=True)
-    staining_method: Mapped[str]
+    staining_method: Mapped[StainingType| None] 
     slicing_thickness: Mapped[float]
     slicing_direction: Mapped[SlicingDirectionType | None]
     magnification: Mapped[float | None]

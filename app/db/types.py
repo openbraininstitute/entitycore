@@ -32,6 +32,16 @@ class SlicingDirectionType(StrEnum):
     horizontal = auto()
     custom = auto()
 
+class StainingType(StrEnum):
+    golgi = auto()
+    nissl = auto()
+    luxol_fast_blue = auto()
+    fluorescent_nissl = auto()
+    fluorescent_dyes = auto()
+    fluorescent_orotein_expression = auto()
+    immunohistochemistry = auto()
+    other = auto()
+    
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

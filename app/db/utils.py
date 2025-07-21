@@ -63,18 +63,20 @@ def construct_model[T: DeclarativeBase](model_cls: type[T], data: dict) -> T:
     return model_cls(**model_kwargs)
 
 
-def load_db_model_from_pydantic[I: Identifiable](
+def load_db_model_from_pydantic[I: DeclarativeBase](
     json_model: BaseModel,
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
-    created_by_id: uuid.UUID,
-    updated_by_id: uuid.UUID,
+    created_by_id: uuid.UUID | None,
+    updated_by_id: uuid.UUID | None,
     ignore_attributes: set[str] | None = None,
 ) -> I:
-    data = json_model.model_dump(by_alias=True) | {
-        "created_by_id": created_by_id,
-        "updated_by_id": updated_by_id,
-    }
+    data = json_model.model_dump(by_alias=True)
+
+    if created_by_id or updated_by_id:
+        data["created_by_id"] = created_by_id
+        data["updated_by_id"] = updated_by_id
+
     if has_project_id_in_columns(db_model_class):
         data["authorized_project_id"] = authorized_project_id
 

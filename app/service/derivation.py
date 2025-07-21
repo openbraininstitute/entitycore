@@ -2,16 +2,27 @@
 
 import uuid
 
+import sqlalchemy as sa
+from fastapi import HTTPException
 from sqlalchemy import and_
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, joinedload, raiseload
 
+from app.db.auth import constrain_entity_query_to_project
 from app.db.model import Derivation, Entity
-from app.dependencies.auth import UserContextDep
+from app.db.utils import load_db_model_from_pydantic
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.errors import (
+    ensure_authorized_references,
+    ensure_foreign_keys_integrity,
+    ensure_uniqueness,
+)
 from app.filters.entity import BasicEntityFilterDep
+from app.logger import L
 from app.queries.common import router_read_many
 from app.schemas.base import BasicEntityRead
+from app.schemas.derivation import DerivationCreate, DerivationRead
 from app.schemas.types import ListResponse
 from app.utils.routers import EntityRoute, entity_route_to_type
 
@@ -52,3 +63,65 @@ def read_many(
         filter_model=entity_filter,
         filter_joins=filter_joins,
     )
+
+
+def _load(query: sa.Select):
+    return query.options(
+        joinedload(Derivation.used),
+        joinedload(Derivation.generated),
+        raiseload("*"),
+    )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: DerivationCreate,
+    user_context: UserContextWithProjectIdDep,
+) -> DerivationRead:
+    stmt = constrain_entity_query_to_project(
+        sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.used_id),
+        user_context.project_id,
+    )
+    if db.execute(stmt).scalar_one() == 0:
+        L.warning("Attempting to create a derivation for an entity inaccessible to user")
+        raise HTTPException(status_code=404, detail=f"Cannot access entity {json_model.used_id}")
+    stmt = constrain_entity_query_to_project(
+        sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.generated_id),
+        user_context.project_id,
+    )
+    if db.execute(stmt).scalar_one() == 0:
+        L.warning("Attempting to create a derivation for an entity inaccessible to user")
+        raise HTTPException(
+            status_code=404, detail=f"Cannot access entity {json_model.generated_id}"
+        )
+
+    db_model_class = Derivation
+    db_model_instance = load_db_model_from_pydantic(
+        json_model=json_model,
+        db_model_class=db_model_class,
+        authorized_project_id=None,
+        created_by_id=None,
+        updated_by_id=None,
+    )
+
+    with (
+        ensure_foreign_keys_integrity("One or more foreign keys do not exist in the db"),
+        ensure_uniqueness(f"{db_model_class.__name__} already exists or breaks unique constraints"),
+        ensure_authorized_references(
+            f"One of the entities referenced by {db_model_class.__name__} "
+            f"is not public or not owned by the user"
+        ),
+    ):
+        db.add(db_model_instance)
+        db.flush()
+
+    q = sa.select(db_model_class).where(
+        and_(
+            db_model_class.used_id == json_model.used_id,
+            db_model_class.generated_id == json_model.generated_id,
+        )
+    )
+    q = q.options(joinedload(Derivation.used), joinedload(Derivation.generated))
+    db_model_instance = db.execute(q).unique().scalar_one()
+
+    return DerivationRead.model_validate(db_model_instance)

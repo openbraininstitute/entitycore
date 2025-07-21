@@ -251,6 +251,10 @@ class AssetLabel(StrEnum):
     single_neuron_synaptome_simulation_data = auto()
     single_neuron_simulation_data = auto()
     sonata_circuit = auto()
+    compressed_sonata_circuit = auto()
+    circuit_figures = auto()
+    circuit_analysis_data = auto()
+    circuit_connectivity_matrices = auto()
     nwb = auto()
     neuron_hoc = auto()
     emodel_optimization_output = auto()
@@ -269,6 +273,10 @@ class AssetLabel(StrEnum):
     validation_result_figure = auto()
     validation_result_details = auto()
     simulation_designer_image = auto()
+    circuit_explore_main_image = auto()
+    circuit_explore_node_stats_image = auto()
+    circuit_explore_network_stats_top_image = auto()
+    circuit_explore_network_stats_bottom_image = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -329,8 +337,33 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.sonata_circuit: [
             LabelRequirements(content_type=None, is_directory=True),
         ],
+        AssetLabel.compressed_sonata_circuit: [
+            LabelRequirements(content_type=ContentType.gzip, is_directory=False),
+            LabelRequirements(content_type=ContentType.xz, is_directory=False),
+        ],
+        AssetLabel.circuit_figures: [
+            LabelRequirements(content_type=None, is_directory=True),
+        ],
+        AssetLabel.circuit_analysis_data: [
+            LabelRequirements(content_type=None, is_directory=True),
+        ],
+        AssetLabel.circuit_connectivity_matrices: [
+            LabelRequirements(content_type=None, is_directory=True),
+        ],
         AssetLabel.simulation_designer_image: [
             LabelRequirements(content_type=ContentType.png, is_directory=False)
+        ],
+        AssetLabel.circuit_explore_main_image: [
+            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+        ],
+        AssetLabel.circuit_explore_node_stats_image: [
+            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+        ],
+        AssetLabel.circuit_explore_network_stats_top_image: [
+            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+        ],
+        AssetLabel.circuit_explore_network_stats_bottom_image: [
+            LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
     },
     EntityType.electrical_cell_recording: {

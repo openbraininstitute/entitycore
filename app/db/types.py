@@ -242,7 +242,7 @@ class ContentType(StrEnum):
     png = "image/png"
     jpg = "image/jpeg"
     gltf_binary = "model/gltf-binary"
-    gz = "application/gzip"
+    gzip = "application/gzip"
     xz = "application/x-xz"
     webp = "image/webp"
 
@@ -310,7 +310,11 @@ CONTENT_TYPE_TO_SUFFIX = {
         ".jpeg",
     ),
     ContentType.gltf_binary: (".glb",),
-    ContentType.gz: (".gz",),
+    ContentType.gzip: (
+        ".gz",
+        ".gzip",
+        ".tgz",
+    ),
     ContentType.xz: (".xz",),
     ContentType.webp: (".webp",),
 }
@@ -340,7 +344,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
             LabelRequirements(content_type=None, is_directory=True),
         ],
         AssetLabel.compressed_sonata_circuit: [
-            LabelRequirements(content_type=ContentType.gz, is_directory=False),
+            LabelRequirements(content_type=ContentType.gzip, is_directory=False),
             LabelRequirements(content_type=ContentType.xz, is_directory=False),
         ],
         AssetLabel.circuit_figures: [

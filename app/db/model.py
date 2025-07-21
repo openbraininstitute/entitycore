@@ -288,6 +288,19 @@ class Organization(Agent):
     }
 
 
+class Consortium(Agent):
+    __tablename__ = AgentType.consortium.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
+    # what is the difference between name and label here ?
+    alternative_name: Mapped[str]
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_load": "selectin",
+    }
+
+
 class Usage(Base):
     __tablename__ = "usage"
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(

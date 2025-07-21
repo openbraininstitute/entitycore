@@ -236,6 +236,9 @@ class ContentType(StrEnum):
     png = "image/png"
     jpg = "image/jpeg"
     gltf_binary = "model/gltf-binary"
+    gzip = "application/gzip"
+    xz = "application/x-xz"
+    webp = "image/webp"
 
 
 class AssetLabel(StrEnum):

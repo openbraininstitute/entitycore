@@ -446,3 +446,20 @@ class CircuitScale(StrEnum):
     region = auto()
     system = auto()
     whole_brain = auto()
+
+
+class Month(StrEnum):
+    """Month labels."""
+
+    jan = "Jan"
+    feb = "Feb"
+    mar = "Mar"
+    apr = "Apr"
+    may = "May"
+    jun = "Jun"
+    jul = "Jul"
+    aug = "Aug"
+    sep = "Sep"
+    oct = "Oct"
+    nov = "Nov"
+    dec = "Dec"

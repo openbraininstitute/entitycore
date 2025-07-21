@@ -296,6 +296,13 @@ CONTENT_TYPE_TO_SUFFIX = {
         ".jpeg",
     ),
     ContentType.gltf_binary: (".glb",),
+    ContentType.gzip: (
+        ".gz",
+        ".gzip",
+        ".tgz",
+    ),
+    ContentType.xz: (".xz",),
+    ContentType.webp: (".webp",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {

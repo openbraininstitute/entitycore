@@ -23,7 +23,8 @@ class ScientificArtifactBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     experiment_date: datetime | None = None
-    contact_id: uuid.UUID | None = None
+    contact_email: str | None = None
+    published_in: str | None = None
     atlas_id: uuid.UUID | None = None
 
 

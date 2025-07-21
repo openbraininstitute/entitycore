@@ -547,7 +547,7 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
         id (uuid.UUID): Primary key, references the base entity ID.
         experiment_date (datetime | None): Date of the experiment associated with the artifact.
         contact_email (str | None): Optional string of a contact person's e-mail address.
-        published_in (str | None): Optional string with a short version of the source publication(s) of this artifact.
+        published_in (str | None): Optional string with short version of the source publication(s).
 
     Mapper Args:
         polymorphic_identity (str): Used for SQLAlchemy polymorphic inheritance.

@@ -949,10 +949,10 @@ class Ion(Identifiable):
         return value.lower() if value else value
 
 
-class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     __tablename__ = EntityType.ion_channel_model.value
 
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
@@ -960,6 +960,9 @@ class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
     is_stochastic: Mapped[bool] = mapped_column(default=False)
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
+    channelpedia_link: Mapped[str | None] = mapped_column(
+        String, nullable=True, default=None
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

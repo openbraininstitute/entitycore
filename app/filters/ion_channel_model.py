@@ -3,15 +3,11 @@ from typing import Annotated
 from app.db.model import IonChannelModel
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import (
-    BrainRegionFilterMixin,
-    CreationFilterMixin,
-    SpeciesFilterMixin,
-)
+from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
 class IonChannelModelFilter(
-    CustomFilter, CreationFilterMixin, BrainRegionFilterMixin, SpeciesFilterMixin
+    ScientificArtifactFilter
 ):
     nmodl_suffix: str | None = None
 

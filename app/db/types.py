@@ -273,10 +273,10 @@ class AssetLabel(StrEnum):
     validation_result_figure = auto()
     validation_result_details = auto()
     simulation_designer_image = auto()
-    circuit_explore_main_image = auto()
-    circuit_explore_node_stats_image = auto()
-    circuit_explore_network_stats_top_image = auto()
-    circuit_explore_network_stats_bottom_image = auto()
+    circuit_visualization = auto()
+    node_stats = auto()
+    network_stats_A = auto()
+    network_stats_B = auto()
 
 
 class LabelRequirements(BaseModel):

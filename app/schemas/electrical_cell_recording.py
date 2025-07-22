@@ -1,4 +1,3 @@
-import uuid
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -9,21 +8,17 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
 )
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead
-from app.schemas.asset import AssetRead
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    BrainRegionRead,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
-    LicensedCreateMixin,
-    LicensedReadMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.subject import SubjectReadMixin
+from app.schemas.scientific_artifact import (
+    ScientificArtifactCreate,
+    ScientificArtifactRead,
+)
 
 
 class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin, EntityTypeMixin):
@@ -70,6 +65,13 @@ class ElectricalCellRecordingBase(BaseModel):
             description=f"Recording origin. One of: {sorted(ElectricalRecordingOrigin)}",
         ),
     ]
+    temperature: Annotated[
+        float | None,
+        Field(
+            title="Temperature",
+            description="Temperature at which the recording was performed, in degrees Celsius.",
+        ),
+    ] = None
     comment: Annotated[
         str | None,
         Field(
@@ -80,26 +82,15 @@ class ElectricalCellRecordingBase(BaseModel):
     legacy_id: list[str] | None = None
 
 
-class ElectricalCellRecordingCreate(
-    ElectricalCellRecordingBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
-):
-    subject_id: uuid.UUID
-    brain_region_id: uuid.UUID | None = None
+class ElectricalCellRecordingCreate(ElectricalCellRecordingBase, ScientificArtifactCreate):
+    pass
 
 
 class ElectricalCellRecordingRead(
     ElectricalCellRecordingBase,
-    CreationMixin,
-    LicensedReadMixin,
-    AuthorizationMixin,
-    IdentifiableMixin,
-    EntityTypeMixin,
-    CreatedByUpdatedByMixin,
-    SubjectReadMixin,
+    ScientificArtifactRead,
     ContributionReadWithoutEntityMixin,
 ):
-    brain_region: BrainRegionRead
-    assets: list[AssetRead] | None
     stimuli: Annotated[
         list[ElectricalRecordingStimulusRead] | None,
         Field(

@@ -796,19 +796,18 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
 
 
 class ElectricalCellRecording(
+    ScientificArtifact,
     NameDescriptionVectorMixin,
-    LocationMixin,
-    SubjectMixin,
     ETypesMixin,
-    LicensedMixin,
-    Entity,
 ):
     __tablename__ = EntityType.electrical_cell_recording.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]
     recording_origin: Mapped[ElectricalRecordingOrigin]
     recording_location: Mapped[STRING_LIST]
     ljp: Mapped[float] = mapped_column(default=0.0)
+    temperature: Mapped[float | None]
     comment: Mapped[str] = mapped_column(default="")
 
     stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(

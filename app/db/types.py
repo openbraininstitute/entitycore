@@ -353,16 +353,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.simulation_designer_image: [
             LabelRequirements(content_type=ContentType.png, is_directory=False)
         ],
-        AssetLabel.circuit_explore_main_image: [
+        AssetLabel.circuit_visualization: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
-        AssetLabel.circuit_explore_node_stats_image: [
+        AssetLabel.node_stats: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
-        AssetLabel.circuit_explore_network_stats_top_image: [
+        AssetLabel.network_stats_A: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
-        AssetLabel.circuit_explore_network_stats_bottom_image: [
+        AssetLabel.network_stats_B: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
     },

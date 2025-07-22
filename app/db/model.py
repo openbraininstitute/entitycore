@@ -1315,7 +1315,7 @@ class ScientificArtifactExternalDatabaseURLLink(Identifiable):
         from an external database.
 
     It enforces uniqueness on the combination of external database URL and scientific artifact,
-    ensuring that each artifact-publication pair is unique.
+    ensuring that each artifact-database URL pair is unique.
 
     Attributes:
         external_database_url_id (UUID): Foreign key referencing
@@ -1337,8 +1337,8 @@ class ScientificArtifactExternalDatabaseURLLink(Identifiable):
         ForeignKey("scientific_artifact.id"), index=True
     )
 
-    # Relationships - assuming ScientificArtifact and Publication exist
-    publication: Mapped["Publication"] = relationship(
+    # Relationships - assuming ScientificArtifact and ExternalDatabseURL exist
+    external_database_url: Mapped["ExternalDatabaseURL"] = relationship(
         "ExternalDatabaseURL",
         foreign_keys=[external_database_url_id],
         uselist=False,

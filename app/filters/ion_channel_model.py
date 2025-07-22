@@ -6,9 +6,7 @@ from app.filters.base import CustomFilter
 from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
-class IonChannelModelFilter(
-    ScientificArtifactFilter
-):
+class IonChannelModelFilter(ScientificArtifactFilter):
     nmodl_suffix: str | None = None
 
     is_ljp_corrected: bool | None = None

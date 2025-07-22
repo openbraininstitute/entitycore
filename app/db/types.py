@@ -8,7 +8,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 
-class PipelineType(StrEnum):
+class RepairPipelineType(StrEnum):
     raw = auto()
     curated = auto()
     unraveled = auto()

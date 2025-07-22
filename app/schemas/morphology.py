@@ -20,7 +20,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
-from app.db.types import PipelineType, MorphologyGenerationType, SlicingDirectionType, StainingType, MethodsType
+from app.db.types import RepairPipelineType, MorphologyGenerationType, SlicingDirectionType, StainingType, MethodsType
 
 
 class ProtocolMixin(BaseModel):
@@ -36,7 +36,7 @@ class ProtocolMixin(BaseModel):
     protocol_document: str | None = None
     protocol_design: str
 
-class ExperimentalMorphologyMethodRead(ProtocolMixin):
+class ExperimentalMorphologyProtocolRead(ProtocolMixin):
      """Experimental morphology method for capturing cell morphology data.
 
     Parameters:
@@ -63,15 +63,15 @@ class ExperimentalMorphologyMethodRead(ProtocolMixin):
     tissue_shrinkage: float | None = None
     has_been_corrected_for_shrinkage: bool | None = None
 
-class ComputationallySynthesizedMorphologyMethodRead(ProtocolMixin):
+class ComputationallySynthesizedMorphologyProtocolRead(ProtocolMixin):
     id: uuid.UUID
     method: str
 
-class ModifiedMorphologyMethodRead(ProtocolMixin):
+class ModifiedMorphologyProtocolRead(ProtocolMixin):
     id: uuid.UUID
     method: MethodsType
 
-class MorphologyMethodRead(BaseModel):
+class MorphologyProtocolRead(BaseModel):
     # This acts as a union type for reading different methods
     # Pydantic's discriminated unions would be ideal here if using Pydantic V2+
     # For V1, you might need to handle this with a custom root validator
@@ -114,7 +114,7 @@ class CellMorphologyCreate(
     brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
     morphology_generation_type: MorphologyGenerationType = MorphologyGenerationType.placeholder
-    morphology_method_id: uuid.UUID | None = None # This would be set after the method is created
+    morphology_protocol_id: uuid.UUID | None = None # This would be set after the method is created
 
 class CellMorphologyRead(
     CellMorphologyBase,
@@ -131,7 +131,7 @@ class CellMorphologyRead(
     strain: NestedStrainRead | None
     brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
-    morphology_method: MorphologyMethodRead | None # Now references the polymorphic method
+    morphology_protocol: MorphologyProtocolRead | None # Now references the polymorphic method
 
 class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
     measurement_annotation: MeasurementAnnotationRead | None
@@ -139,26 +139,23 @@ class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
 
 class DigitalReconstruction(CellMorphologyRead):
     reconstruction_method: ExperimentalMorphologyMethod
-    pipeline_state: PipelineType
-    is_related_to: list[uuid.UUID]
+    repair_pipeline_state: RepairPipelineType
 
 
 class DigitalReconstructionCreate(CellMorphologyCreate):
     morphology_generation_type: Literal[MorphologyGenerationType.digital]
     reconstruction_method: ExperimentalMorphologyMethod
-    pipeline_state: PipelineType
-    is_related_to: list[uuid.UUID]
+    repair_pipeline_state: RepairPipelineType
+
 
 
 class ModifiedReconstruction(CellMorphologyRead):
     method_description: ModifiedMorphologyMethod
-    is_related_to: list[uuid.UUID]
 
 
 class ModifiedReconstructionCreate(CellMorphologyCreate):
     morphology_generation_type: Literal[MorphologyGenerationType.modified]
     method_description: ModifiedMorphologyMethod
-    is_related_to: list[uuid.UUID]
 
 
 class ComputationallySynthesized(CellMorphologyRead):
@@ -173,9 +170,9 @@ class ComputationallySynthesizedCreate(CellMorphologyCreate):
 
 
 class Placeholder(CellMorphologyRead):
-    is_related_to: list[uuid.UUID]
+    pass
 
 
 class PlaceholderCreate(CellMorphologyCreate):
     morphology_generation_type: Literal[MorphologyGenerationType.placeholder]
-    is_related_to: list[uuid.UUID]
+

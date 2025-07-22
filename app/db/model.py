@@ -53,7 +53,7 @@ from app.db.types import (
     MeasurementUnit,
     MethodsType,
     MorphologyGenerationType,
-    PipelineType,
+    RepairPipelineType,
     PointLocation,
     PointLocationType,
     Sex,
@@ -684,7 +684,7 @@ class MeasurableEntityMixin():
         )
     
 class MorphologyProtocol(Identifiable): # Inherit from Identifiable for primary key and timestamps
-    __tablename__ = "morphology_method"
+    __tablename__ = "morphology_protocol"
     protocol_document: Mapped[str | None]
     protocol_design: Mapped[str]
     type: Mapped[str]  # Discriminator column for polymorphism
@@ -695,8 +695,8 @@ class MorphologyProtocol(Identifiable): # Inherit from Identifiable for primary 
     }
 
 class ExperimentalMorphologyMethod(MorphologyProtocol):
-    __tablename__ = "experimental_morphology_method"
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_method.id"), primary_key=True)
+    __tablename__ = "experimental_morphology_protocol"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     staining_method: Mapped[StainingType| None] 
     slicing_thickness: Mapped[float]
     slicing_direction: Mapped[SlicingDirectionType | None]
@@ -709,8 +709,8 @@ class ExperimentalMorphologyMethod(MorphologyProtocol):
     }
 
 class ComputationallySynthesizedMorphologyMethod(MorphologyProtocol):
-    __tablename__ = "computationally_synthesized_morphology_method"
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_method.id"), primary_key=True)
+    __tablename__ = "computationally_synthesized_morphology_protocol"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     method: Mapped[str] # This 'method' might need further typing based on your vocabulary
 
     __mapper_args__ = {
@@ -718,8 +718,8 @@ class ComputationallySynthesizedMorphologyMethod(MorphologyProtocol):
     }
 
 class ModifiedMorphologyMethod(MorphologyProtocol):
-    __tablename__ = "modified_morphology_method"
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_method.id"), primary_key=True)
+    __tablename__ = "modified_morphology_protocol"
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     method: Mapped[MethodsType] # Assuming MethodsType is an Enum or similar
 
     __mapper_args__ = {
@@ -745,31 +745,27 @@ class CellMorphology(ScientificArtifact,
 
 
     # New foreign key for the morphology method
-    morphology_method_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("morphology_method.id"), nullable=True, index=True
+    morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("morphology_protocol.id"), nullable=True, index=True
     )
     # Relationship to the polymorphic MorphologyProtocol
-    morphology_method: Mapped["MorphologyProtocol"] = relationship(
+    morphology_protocol: Mapped["MorphologyProtocol"] = relationship(
         "MorphologyProtocol",
-        foreign_keys=[morphology_method_id],
+        foreign_keys=[morphology_protocol_id],
         uselist=False,
     )
 
     #structured jsonb , pydantic typedict
     # Attributes from DigitalReconstruction
-    pipeline_state: Mapped[PipelineType | None] = mapped_column(
-        Enum(PipelineType, name="pipelinetype"), 
+    repair_pipeline_state: Mapped[RepairPipelineType | None] = mapped_column(
+        Enum(RepairPipelineType, name="RepairPipelineType"), 
         nullable=True,
     )
  
     # Attributes from ComputationallySynthesized
 
     provenance: Mapped[str]
-#cab it be structured, maybe renamed/?
-    # Attribute from Placeholder and DigitalReconstruction
-    is_related_to: Mapped[list[uuid.UUID] | None] = mapped_column(
-        ARRAY(UUID(as_uuid=True)), nullable=True
-    ) # try to reuse derived_by (as k Eleftherios) used_by, join with derivato\ion
+    #can it be structured, maybe renamed/?
 
     __mapper_args__ = {
         "polymorphic_identity": __tablename__,

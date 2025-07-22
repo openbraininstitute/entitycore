@@ -42,7 +42,6 @@ class IonChannelModelBase(BaseModel):
     temperature_celsius: int
     is_stochastic: bool = False
     neuron_block: NeuronBlock
-    channelpedia_link: str | None = None
 
 
 class IonChannelModelCreate(IonChannelModelBase, ScientificArtifactCreate):

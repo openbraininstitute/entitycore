@@ -527,6 +527,47 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
+class ExternalDatabase(Entity, NameDescriptionVectorMixin):
+    """Represents an external database entity.
+
+    Attributes:
+        id (uuid.UUID): Primary key, references the base entity ID.
+        label (str): Unique label for the database, e.g. "Channelpedia".
+        URL (str): URL of the database home page, e.g. "https://channelpedia.epfl.ch/".
+
+    """
+
+    __tablename__ = EntityType.external_database.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    label: Mapped[str] = mapped_column(unique=True, index=True)
+    URL: Mapped[str] = mapped_column(String, index=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+    }
+
+
+class ExternalDatabaseURL(Entity, NameDescriptionVectorMixin):
+    """Represents a web page on an external database.
+
+    Attributes:
+        id (uuid.UUID): Primary key, references the base entity ID.
+        URL (str): URL of the database webpage, e.g. "https://channelpedia.epfl.ch/wikipages/189".
+
+    """
+
+    __tablename__ = EntityType.external_database_url.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    external_database_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("external_database.id"), index=True, nullable=False
+    )
+    URL: Mapped[str] = mapped_column(String, index=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+    }
+
+
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     """Represents a scientific artifact entity in the database.
 
@@ -960,7 +1001,6 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     is_stochastic: Mapped[bool] = mapped_column(default=False)
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
-    channelpedia_link: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1267,6 +1307,52 @@ class ScientificArtifactPublicationLink(Identifiable):
 
     __table_args__ = (
         UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
+    )
+
+
+class ScientificArtifactExternalDatabaseURLLink(Identifiable):
+    """Represents the association between a scientific artifact and a URL
+        from an external database.
+
+    It enforces uniqueness on the combination of external database URL and scientific artifact,
+    ensuring that each artifact-publication pair is unique.
+
+    Attributes:
+        external_database_url_id (UUID): Foreign key referencing
+            the associated external database URL.
+        scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
+        external_database_url (ExternalDatabaseURL): Relationship to the
+            external database URL model.
+        scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
+
+    Table:
+        Unique constraint on (external_database_url_id, scientific_artifact_id).
+    """
+
+    __tablename__ = "scientific_artifact_external_database_url_link"
+    external_database_url_id: Mapped[UUID] = mapped_column(
+        ForeignKey("external_database_url.id"), index=True
+    )
+    scientific_artifact_id: Mapped[UUID] = mapped_column(
+        ForeignKey("scientific_artifact.id"), index=True
+    )
+
+    # Relationships - assuming ScientificArtifact and Publication exist
+    publication: Mapped["Publication"] = relationship(
+        "ExternalDatabaseURL",
+        foreign_keys=[external_database_url_id],
+        uselist=False,
+    )
+    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+        "ScientificArtifact",
+        foreign_keys=[scientific_artifact_id],
+        uselist=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "external_database_url_id", "scientific_artifact_id", name="uq_publishedin_ids"
+        ),
     )
 
 

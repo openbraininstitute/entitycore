@@ -56,6 +56,8 @@ class EntityType(StrEnum):
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
+    external_database = auto()
+    external_database_url = auto()
     ion_channel_model = auto()
     memodel = auto()
     mesh = auto()

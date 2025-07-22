@@ -28,8 +28,7 @@ from app.schemas.types import ListResponse, Select
 
 def _load(q: Select[IonChannelModel]):
     return (
-        q.options(joinedload(IonChannelModel.species, innerjoin=True))
-        .options(joinedload(IonChannelModel.strain))
+        q.options(joinedload(IonChannelModel.subject, innerjoin=True))
         .options(joinedload(IonChannelModel.brain_region))
         .options(raiseload("*"))
     )
@@ -79,8 +78,7 @@ def read_one(
 ) -> IonChannelModelExpanded:
     def _load(q: Select[IonChannelModel]):
         return (
-            q.options(joinedload(IonChannelModel.species, innerjoin=True))
-            .options(joinedload(IonChannelModel.strain))
+            q.options(joinedload(IonChannelModel.subject, innerjoin=True))
             .options(joinedload(IonChannelModel.brain_region))
             .options(joinedload(IonChannelModel.created_by))
             .options(joinedload(IonChannelModel.updated_by))

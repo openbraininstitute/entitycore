@@ -41,10 +41,10 @@ if TYPE_CHECKING:
 
 def _load(query: sa.Select):
     return query.options(
-        joinedload(ScientificArtifactPublicationLink.scientific_artifact),
-        joinedload(ScientificArtifactPublicationLink.publication),
-        joinedload(ScientificArtifactPublicationLink.created_by),
-        joinedload(ScientificArtifactPublicationLink.updated_by),
+        joinedload(ScientificArtifactPublicationLink.scientific_artifact, innerjoin=True),
+        joinedload(ScientificArtifactPublicationLink.publication, innerjoin=True),
+        joinedload(ScientificArtifactPublicationLink.created_by, innerjoin=True),
+        joinedload(ScientificArtifactPublicationLink.updated_by, innerjoin=True),
         raiseload("*"),
     )
 

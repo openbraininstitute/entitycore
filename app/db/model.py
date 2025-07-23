@@ -694,33 +694,34 @@ class MorphologyProtocol(Identifiable): # Inherit from Identifiable for primary 
         "polymorphic_on": "type",
     }
 
-class ExperimentalMorphologyMethod(MorphologyProtocol):
+class ExperimentalMorphologyProtocol(MorphologyProtocol):
     __tablename__ = "experimental_morphology_protocol"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
-    staining_method: Mapped[StainingType| None] 
+    staining_type: Mapped[StainingType| None] 
     slicing_thickness: Mapped[float]
     slicing_direction: Mapped[SlicingDirectionType | None]
     magnification: Mapped[float | None]
     tissue_shrinkage: Mapped[float | None]
-    has_been_corrected_for_shrinkage: Mapped[bool | None]
+    corrected_for_shrinkage: Mapped[bool | None]
 
     __mapper_args__ = {
         "polymorphic_identity": "experimental", # A string identifier for this type
     }
 
-class ComputationallySynthesizedMorphologyMethod(MorphologyProtocol):
+
+class ComputationallySynthesizedMorphologyProtocol(MorphologyProtocol):
     __tablename__ = "computationally_synthesized_morphology_protocol"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
-    method: Mapped[str] # This 'method' might need further typing based on your vocabulary
+    method_description: Mapped[str] 
 
     __mapper_args__ = {
         "polymorphic_identity": "computationally_synthesized",
     }
 
-class ModifiedMorphologyMethod(MorphologyProtocol):
+class ModifiedMorphologyProtocol(MorphologyProtocol):
     __tablename__ = "modified_morphology_protocol"
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
-    method: Mapped[MethodsType] # Assuming MethodsType is an Enum or similar
+    method_description: Mapped[MethodsType] 
 
     __mapper_args__ = {
         "polymorphic_identity": "modified",

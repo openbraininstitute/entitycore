@@ -42,7 +42,7 @@ class ExperimentalMorphologyProtocolRead(ProtocolMixin):
     Parameters:
     -----------
  
-    staining_method: str
+    staining_type: strenum
         Method used for staining
     slicing_thickness: float
         Thickness of the slice in microns
@@ -56,12 +56,12 @@ class ExperimentalMorphologyProtocolRead(ProtocolMixin):
         Whether data has been corrected for shrinkage
     """
     id: uuid.UUID
-    staining_method: StainingType | None = None
+    staining_type: StainingType | None = None
     slicing_thickness: float
     slicing_direction: SlicingDirectionType | None = None
     magnification: float | None = None
     tissue_shrinkage: float | None = None
-    has_been_corrected_for_shrinkage: bool | None = None
+    corrected_for_shrinkage: bool | None = None
 
 class ComputationallySynthesizedMorphologyProtocolRead(ProtocolMixin):
     id: uuid.UUID
@@ -138,34 +138,34 @@ class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
 
 
 class DigitalReconstruction(CellMorphologyRead):
-    reconstruction_method: ExperimentalMorphologyMethod
+    reconstruction_method: ExperimentalMorphologyProtocol
     repair_pipeline_state: RepairPipelineType
 
 
 class DigitalReconstructionCreate(CellMorphologyCreate):
     morphology_generation_type: Literal[MorphologyGenerationType.digital]
-    reconstruction_method: ExperimentalMorphologyMethod
+    reconstruction_method: ExperimentalMorphologyProtocol
     repair_pipeline_state: RepairPipelineType
 
 
 
 class ModifiedReconstruction(CellMorphologyRead):
-    method_description: ModifiedMorphologyMethod
+    method_description: ModifiedMorphologyProtocol
 
 
 class ModifiedReconstructionCreate(CellMorphologyCreate):
     morphology_generation_type: Literal[MorphologyGenerationType.modified]
-    method_description: ModifiedMorphologyMethod
+    method_description: ModifiedMorphologyProtocol
 
 
 class ComputationallySynthesized(CellMorphologyRead):
-    method_description: ComputationallySynthesizedMorphologyMethod
+    method_description: ComputationallySynthesizedMorphologyProtocol
     provenance: str
 
 
 class ComputationallySynthesizedCreate(CellMorphologyCreate):
     morphology_generation_type: Literal[MorphologyGenerationType.computational]
-    method: str
+    method_description: ComputationallySynthesizedMorphologyProtocol
     provenance: str
 
 

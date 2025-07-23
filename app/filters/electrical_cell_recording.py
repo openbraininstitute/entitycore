@@ -4,19 +4,14 @@ from app.db.model import ElectricalCellRecording
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    BrainRegionFilterMixin,
-    EntityFilterMixin,
     ETypeClassFilterMixin,
     NameFilterMixin,
 )
-from app.filters.subject import SubjectFilterMixin
+from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
 class ElectricalCellRecordingFilter(
-    CustomFilter,
-    BrainRegionFilterMixin,
-    SubjectFilterMixin,
-    EntityFilterMixin,
+    ScientificArtifactFilter,
     NameFilterMixin,
     ETypeClassFilterMixin,
 ):
@@ -31,6 +26,7 @@ class ElectricalCellRecordingFilter(
             "subject__species__name",
             "brain_region__acronym",
             "brain_region__name",
+            "etype__pref_label",
         ]
 
 

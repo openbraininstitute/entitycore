@@ -93,6 +93,7 @@ class MorphologyFilter(
             "name",
             "brain_region__name",
             "brain_region__acronym",
+            "mtype__pref_label",
         ]
 
 

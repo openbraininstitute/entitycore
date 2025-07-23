@@ -411,3 +411,9 @@ def test_filtering_ordering(client, faceted_emodel_ids):
         "acronym1",
         "acronym1",
     ]
+
+    data = req({"name__in": ["e-1", "e-2"], "order_by": "mtype__pref_label"})
+    assert len(data) == 2
+
+    data = req({"name__in": ["e-1", "e-2"], "order_by": "etype__pref_label"})
+    assert len(data) == 2

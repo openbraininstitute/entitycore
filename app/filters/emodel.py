@@ -78,6 +78,8 @@ class EModelFilter(
             "brain_region__acronym",
             "score",
             "exemplar_morphology__name",
+            "mtype__pref_label",
+            "etype__pref_label",
         ]
 
 

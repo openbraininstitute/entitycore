@@ -197,21 +197,19 @@ class CustomFilter[T: DeclarativeBase](Filter):
             model = self.Constants.model
 
             if NESTED_SEPARATOR in field_name:
-                submodel_name, *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
+                filter_name, *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
 
-                rel = getattr(model, submodel_name)
-                model = rel.property.mapper.class_
+                model = getattr(self, filter_name).Constants.model
 
                 if model in aliases:
                     model_or_fields_dict = aliases[model]
                     if isinstance(model_or_fields_dict, dict):
-                        model = model_or_fields_dict.get(submodel_name, model)
+                        model = model_or_fields_dict.get(filter_name, model)
                     else:
                         model = model_or_fields_dict
 
                 for part in parts:
-                    rel = getattr(model, part)
-                    model = rel.property.mapper.class_
+                    model = getattr(model, part).property.mapper.class_
 
             order_by_field = getattr(model, field_name)
 

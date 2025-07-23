@@ -50,6 +50,7 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
     EntityType,
+    IonChannel,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -831,6 +832,11 @@ class ElectricalCellRecording(
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class IonChannelRecording(ElectricalCellRecording):
+    ion_channel: Mapped[IonChannel]
+    cell_line: Mapped[str]
 
 
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):

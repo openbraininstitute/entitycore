@@ -16,8 +16,7 @@ class ConsortiumFilter(AgentFilter, CreatorFilterMixin):
             "creation_date",
             "update_date",
             "pref_label",
-            "given_name",
-            "family_name",
+            "alternative_name",
         ]
 
 

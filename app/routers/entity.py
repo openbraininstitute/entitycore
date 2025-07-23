@@ -40,11 +40,11 @@ def count_entities_by_type(
     )
 
 
-@router.get("/{id_}", response_model=EntityRead)
+@router.get("/{id_}")
 def read_one(
     id_: UUID,
     db: SessionDep,
     token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
     request: Request,
-):
+) -> EntityRead | None:
     return entity_service.read_one(id_, db, token, request)

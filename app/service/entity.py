@@ -131,7 +131,15 @@ def read_one(
     with ensure_result(f"Entity {id_} not found or forbidden"):
         query = sa.select(Entity).where(Entity.id == id_)
         row = db.execute(query).unique().scalar_one()
-        if row.authorized_public:
+        if row.authorized_public or (
+            token
+            and check_user_info(
+                OptionalProjectContext(project_id=row.authorized_project_id),
+                token,
+                request,
+                find_vlab_id=True,
+            )
+        ):
             return row
 
         user_context = token and check_user_info(

@@ -18,10 +18,10 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.electrical_cell_recording import IonChannelRecordingFilterDep
+from app.filters.ion_channel_recording import IonChannelRecordingFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
-from app.schemas.electrical_cell_recording import (
+from app.schemas.ion_channel_recording import (
     IonChannelRecordingCreate,
     IonChannelRecordingRead,
 )

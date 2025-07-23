@@ -39,7 +39,7 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, Sex
+from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, Sex, StorageType
 from app.logger import L
 from app.schemas.base import ProjectContext
 from app.schemas.ion_channel_model import NeuronBlock
@@ -418,6 +418,7 @@ def get_or_create_distribution(
         entity_id=entity_id,
         created_by_id=created_by_id,
         updated_by_id=updated_by_id,
+        storage_type=StorageType.aws_s3_internal,
     )
     db.add(asset)
     db.commit()

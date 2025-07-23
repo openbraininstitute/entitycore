@@ -43,6 +43,13 @@ JSON_DICT = Annotated[dict[str, Any], mapped_column(JSONB)]
 STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 
 
+class StorageType(StrEnum):
+    """Storage type."""
+
+    aws_s3_internal = auto()
+    aws_s3_open = auto()
+
+
 class EntityType(StrEnum):
     """Entity types."""
 

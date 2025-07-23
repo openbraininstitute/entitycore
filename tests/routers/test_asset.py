@@ -4,7 +4,7 @@ import pytest
 from moto import mock_aws
 
 from app.db.model import Asset, Entity
-from app.db.types import AssetLabel, AssetStatus, EntityType
+from app.db.types import AssetLabel, AssetStatus, EntityType, StorageType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
@@ -79,7 +79,7 @@ def asset(client, entity) -> AssetRead:
 
 
 @pytest.fixture
-def asset_directory(db, root_circuit, person_id) -> AssetRead:
+def asset_directory(db, root_circuit, person_id) -> Asset:
     s3_path = _get_expected_full_path(entity=root_circuit, path="my-directory")
     asset = Asset(
         path="my-directory",
@@ -94,6 +94,7 @@ def asset_directory(db, root_circuit, person_id) -> AssetRead:
         created_by_id=person_id,
         updated_by_id=person_id,
         label="sonata_circuit",
+        storage_type=StorageType.aws_s3_internal,
     )
     add_db(db, asset)
     return asset
@@ -123,6 +124,7 @@ def test_upload_entity_asset(client, entity):
         "meta": {},
         "status": "created",
         "label": "morphology",
+        "storage_type": StorageType.aws_s3_internal,
     }
 
     # try to upload again the same file with the same path
@@ -263,6 +265,7 @@ def test_get_entity_asset(client, entity, asset):
         "meta": {},
         "status": "created",
         "label": "morphology",
+        "storage_type": StorageType.aws_s3_internal,
     }
 
     # try to get an asset with non-existent entity id
@@ -296,6 +299,7 @@ def test_get_entity_assets(client, entity, asset):
             "meta": {},
             "status": "created",
             "label": "morphology",
+            "storage_type": StorageType.aws_s3_internal,
         }
     ]
 

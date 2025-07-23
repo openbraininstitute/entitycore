@@ -2,7 +2,7 @@ import itertools as it
 from unittest.mock import ANY
 
 from app.db.model import BrainAtlas, BrainAtlasRegion
-from app.db.types import EntityType
+from app.db.types import EntityType, StorageType
 
 from . import utils
 
@@ -97,6 +97,7 @@ def test_brain_atlas(db, client, species_id, person_id):
                 "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",
                 "size": 31,
                 "status": "created",
+                "storage_type": StorageType.aws_s3_internal,
             }
         ],
         "creation_date": ANY,
@@ -166,6 +167,7 @@ def test_brain_atlas(db, client, species_id, person_id):
         "sha256_digest": "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91",
         "size": 31,
         "status": "created",
+        "storage_type": StorageType.aws_s3_internal,
     }
     assert response.json()["data"] == [
         {

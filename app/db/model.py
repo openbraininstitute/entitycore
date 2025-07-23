@@ -57,6 +57,7 @@ from app.db.types import (
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
+    StorageType,
     StructuralDomain,
     ValidationStatus,
 )
@@ -1044,12 +1045,20 @@ class Asset(Identifiable):
     meta: Mapped[JSON_DICT]  # not used yet. can be useful?
     label: Mapped[AssetLabel]
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    storage_type: Mapped[StorageType]
 
     # partial unique index
     __table_args__ = (
         Index(
             "ix_asset_full_path",
             "full_path",
+            unique=True,
+            postgresql_where=(status != AssetStatus.DELETED.name),
+        ),
+        Index(
+            "uq_asset_entity_id_path",
+            "path",
+            "entity_id",
             unique=True,
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),

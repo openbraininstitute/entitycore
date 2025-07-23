@@ -15,7 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.application import app
-from app.config import settings
+from app.config import storages
 from app.db.model import (
     Agent,
     Base,
@@ -39,6 +39,7 @@ from app.db.model import (
     Subject,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
+from app.db.types import StorageType
 from app.dependencies import auth
 from app.schemas.auth import UserContext, UserProfile
 
@@ -73,7 +74,6 @@ def _setup_env_variables():
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # noqa: S105
     os.environ["AWS_SECURITY_TOKEN"] = "testing"  # noqa: S105
     os.environ["AWS_SESSION_TOKEN"] = "testing"  # noqa: S105
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
 
 @pytest.fixture(scope="session")
@@ -85,7 +85,8 @@ def s3():
 
 @pytest.fixture(scope="session")
 def _create_buckets(s3):
-    s3.create_bucket(Bucket=settings.S3_BUCKET_NAME)
+    s3.create_bucket(Bucket=storages[StorageType.aws_s3_internal].bucket)
+    s3.create_bucket(Bucket=storages[StorageType.aws_s3_open].bucket)
 
 
 @pytest.fixture

@@ -63,4 +63,4 @@ def test_create_one(client, client_user_2, root_circuit, circuit):
         },
         expected_status_code=404,
     ).json()
-    assert "Cannot access entity" in data["detail"]
+    assert data["error_code"] == "ENTITY_NOT_FOUND"

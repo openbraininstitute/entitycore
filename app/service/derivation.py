@@ -3,11 +3,9 @@
 import uuid
 
 import sqlalchemy as sa
-from fastapi import HTTPException
 from sqlalchemy import and_
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.auth import constrain_entity_query_to_project
 from app.db.model import Derivation, Entity
 from app.db.utils import load_db_model_from_pydantic
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -19,8 +17,8 @@ from app.errors import (
     ensure_uniqueness,
 )
 from app.filters.entity import BasicEntityFilterDep
-from app.logger import L
 from app.queries.common import router_read_many
+from app.queries.entity import get_writable_entity
 from app.schemas.base import BasicEntityRead
 from app.schemas.derivation import DerivationCreate, DerivationRead
 from app.schemas.types import ListResponse
@@ -78,23 +76,18 @@ def create_one(
     json_model: DerivationCreate,
     user_context: UserContextWithProjectIdDep,
 ) -> DerivationRead:
-    stmt = constrain_entity_query_to_project(
-        sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.used_id),
+    used_entity = get_writable_entity(
+        db,
+        Entity,
+        json_model.used_id,
         user_context.project_id,
     )
-    if db.execute(stmt).scalar_one() == 0:
-        L.warning("Attempting to create a derivation for an entity inaccessible to user")
-        raise HTTPException(status_code=404, detail=f"Cannot access entity {json_model.used_id}")
-    stmt = constrain_entity_query_to_project(
-        sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.generated_id),
+    generated_entity = get_writable_entity(
+        db,
+        Entity,
+        json_model.generated_id,
         user_context.project_id,
     )
-    if db.execute(stmt).scalar_one() == 0:
-        L.warning("Attempting to create a derivation for an entity inaccessible to user")
-        raise HTTPException(
-            status_code=404, detail=f"Cannot access entity {json_model.generated_id}"
-        )
-
     db_model_class = Derivation
     db_model_instance = load_db_model_from_pydantic(
         json_model=json_model,
@@ -117,8 +110,8 @@ def create_one(
 
     q = sa.select(db_model_class).where(
         and_(
-            db_model_class.used_id == json_model.used_id,
-            db_model_class.generated_id == json_model.generated_id,
+            db_model_class.used_id == used_entity.id,
+            db_model_class.generated_id == generated_entity.id,
         )
     )
     q = q.options(joinedload(Derivation.used), joinedload(Derivation.generated))

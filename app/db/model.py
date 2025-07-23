@@ -546,8 +546,8 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
-    contact_email: Mapped[str | None] = mapped_column(String)
-    published_in: Mapped[str | None] = mapped_column(String)
+    contact_email: Mapped[str | None]
+    published_in: Mapped[str | None]
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,

@@ -63,14 +63,6 @@ def read_many(
     )
 
 
-def _load(query: sa.Select):
-    return query.options(
-        joinedload(Derivation.used),
-        joinedload(Derivation.generated),
-        raiseload("*"),
-    )
-
-
 def create_one(
     db: SessionDep,
     json_model: DerivationCreate,
@@ -114,7 +106,7 @@ def create_one(
             db_model_class.generated_id == generated_entity.id,
         )
     )
-    q = q.options(joinedload(Derivation.used), joinedload(Derivation.generated))
+    q = q.options(joinedload(Derivation.used), joinedload(Derivation.generated), raiseload("*"))
     db_model_instance = db.execute(q).unique().scalar_one()
 
     return DerivationRead.model_validate(db_model_instance)

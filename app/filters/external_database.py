@@ -22,9 +22,7 @@ class ExternalDatabaseFilter(
         ordering_model_fields = ["label"]  # noqa: RUF012
 
 
-ExternalDatabaseFilterDep = Annotated[
-    ExternalDatabaseFilter, FilterDepends(ExternalDatabaseFilter)
-]
+ExternalDatabaseFilterDep = Annotated[ExternalDatabaseFilter, FilterDepends(ExternalDatabaseFilter)]
 
 
 class ExternalDatabaseURLFilter(

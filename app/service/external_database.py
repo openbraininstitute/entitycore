@@ -44,7 +44,7 @@ def read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
-    json_model:ExternalDatabaseCreate,
+    json_model: ExternalDatabaseCreate,
     db: SessionDep,
 ) -> ExternalDatabaseRead:
     return router_create_one(

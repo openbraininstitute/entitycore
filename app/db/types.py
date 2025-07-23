@@ -80,10 +80,16 @@ class EntityType(StrEnum):
 
 
 class AgentType(StrEnum):
-    """Agent types."""
+    """Agent types.
+
+    - person: Individual person
+    - organization: Individual organization or institution
+    - consortium: Group of individual persons (or organizations) formally joined together
+    """
 
     person = auto()
     organization = auto()
+    consortium = auto()
 
 
 class ActivityType(StrEnum):
@@ -238,6 +244,8 @@ class ContentType(StrEnum):
     png = "image/png"
     jpg = "image/jpeg"
     gltf_binary = "model/gltf-binary"
+    gzip = "application/gzip"
+    webp = "image/webp"
 
 
 class AssetLabel(StrEnum):
@@ -250,6 +258,10 @@ class AssetLabel(StrEnum):
     single_neuron_synaptome_simulation_data = auto()
     single_neuron_simulation_data = auto()
     sonata_circuit = auto()
+    compressed_sonata_circuit = auto()
+    circuit_figures = auto()
+    circuit_analysis_data = auto()
+    circuit_connectivity_matrices = auto()
     nwb = auto()
     neuron_hoc = auto()
     emodel_optimization_output = auto()
@@ -268,6 +280,10 @@ class AssetLabel(StrEnum):
     validation_result_figure = auto()
     validation_result_details = auto()
     simulation_designer_image = auto()
+    circuit_visualization = auto()
+    node_stats = auto()
+    network_stats_A = auto()
+    network_stats_B = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -295,6 +311,12 @@ CONTENT_TYPE_TO_SUFFIX = {
         ".jpeg",
     ),
     ContentType.gltf_binary: (".glb",),
+    ContentType.gzip: (
+        ".gz",
+        ".gzip",
+        ".tgz",
+    ),
+    ContentType.webp: (".webp",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY = {
@@ -321,8 +343,32 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.sonata_circuit: [
             LabelRequirements(content_type=None, is_directory=True),
         ],
+        AssetLabel.compressed_sonata_circuit: [
+            LabelRequirements(content_type=ContentType.gzip, is_directory=False),
+        ],
+        AssetLabel.circuit_figures: [
+            LabelRequirements(content_type=None, is_directory=True),
+        ],
+        AssetLabel.circuit_analysis_data: [
+            LabelRequirements(content_type=None, is_directory=True),
+        ],
+        AssetLabel.circuit_connectivity_matrices: [
+            LabelRequirements(content_type=None, is_directory=True),
+        ],
         AssetLabel.simulation_designer_image: [
             LabelRequirements(content_type=ContentType.png, is_directory=False)
+        ],
+        AssetLabel.circuit_visualization: [
+            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+        ],
+        AssetLabel.node_stats: [
+            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+        ],
+        AssetLabel.network_stats_A: [
+            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+        ],
+        AssetLabel.network_stats_B: [
+            LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
     },
     EntityType.electrical_cell_recording: {

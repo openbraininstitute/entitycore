@@ -288,6 +288,19 @@ class Organization(Agent):
     }
 
 
+class Consortium(Agent):
+    __tablename__ = AgentType.consortium.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
+    # what is the difference between name and label here ?
+    alternative_name: Mapped[str]
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_load": "selectin",
+    }
+
+
 class Usage(Base):
     __tablename__ = "usage"
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
@@ -575,7 +588,8 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
         __tablename__ (str): Name of the database table for scientific artifacts.
         id (uuid.UUID): Primary key, references the base entity ID.
         experiment_date (datetime | None): Date of the experiment associated with the artifact.
-        contact_id (uuid.UUID | None): Optional reference to a contact person (person.id).
+        contact_email (str | None): Optional string of a contact person's e-mail address.
+        published_in (str | None): Optional string with short version of the source publication(s).
 
     Mapper Args:
         polymorphic_identity (str): Used for SQLAlchemy polymorphic inheritance.
@@ -586,7 +600,8 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
-    contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("person.id"), nullable=True)
+    contact_email: Mapped[str | None]
+    published_in: Mapped[str | None]
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
@@ -837,19 +852,18 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
 
 
 class ElectricalCellRecording(
+    ScientificArtifact,
     NameDescriptionVectorMixin,
-    LocationMixin,
-    SubjectMixin,
     ETypesMixin,
-    LicensedMixin,
-    Entity,
 ):
     __tablename__ = EntityType.electrical_cell_recording.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]
     recording_origin: Mapped[ElectricalRecordingOrigin]
     recording_location: Mapped[STRING_LIST]
     ljp: Mapped[float] = mapped_column(default=0.0)
+    temperature: Mapped[float | None]
     comment: Mapped[str] = mapped_column(default="")
 
     stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(

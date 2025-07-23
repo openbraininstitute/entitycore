@@ -1,6 +1,11 @@
 from app.db.model import Derivation
 
-from tests.utils import add_all_db, assert_response, create_electrical_cell_recording_id
+from tests.utils import (
+    add_all_db,
+    assert_request,
+    assert_response,
+    create_electrical_cell_recording_id,
+)
 
 
 def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recording_json_data):
@@ -30,3 +35,32 @@ def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recordi
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 0
+
+
+def test_create_one(client, client_user_2, root_circuit, circuit):
+    data = assert_request(
+        client.post,
+        url="/derivation",
+        json={
+            "used_id": str(root_circuit.id),
+            "generated_id": str(circuit.id),
+            "derivation_type": "circuit_extraction",
+        },
+    ).json()
+    assert data == {
+        "used": {"type": "circuit", "id": str(root_circuit.id)},
+        "generated": {"type": "circuit", "id": str(circuit.id)},
+        "derivation_type": "circuit_extraction",
+    }
+
+    data = assert_request(
+        client_user_2.post,
+        url="/derivation",
+        json={
+            "used_id": str(root_circuit.id),
+            "generated_id": str(circuit.id),
+            "derivation_type": "circuit_extraction",
+        },
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"

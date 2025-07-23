@@ -835,8 +835,12 @@ class ElectricalCellRecording(
 
 
 class IonChannelRecording(ElectricalCellRecording):
+    __tablename__ = EntityType.ion_channel_recording.value
+
     ion_channel: Mapped[IonChannel]
     cell_line: Mapped[str]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):

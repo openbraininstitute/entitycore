@@ -6,7 +6,6 @@ from fastapi import HTTPException
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import (
-    constrain_entity_query_to_project,
     constrain_to_accessible_entities,
 )
 from app.db.model import (
@@ -28,6 +27,7 @@ from app.filters.scientific_artifact_publication_link import (
 )
 from app.logger import L
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
 from app.schemas.scientific_artifact_publication_link import (
     ScientificArtifactPublicationLinkCreate,
@@ -85,27 +85,11 @@ def create_one(
     json_model: ScientificArtifactPublicationLinkCreate,
     user_context: UserContextWithProjectIdDep,
 ) -> ScientificArtifactPublicationLinkRead:
-    stmt = constrain_entity_query_to_project(
-        sa.select(sa.func.count(Publication.id)).where(Publication.id == json_model.publication_id),
-        user_context.project_id,
+    # ensure linked entities are accessible to user's project id
+    get_writable_entity(db, Publication, json_model.publication_id, user_context.project_id)
+    get_writable_entity(
+        db, ScientificArtifact, json_model.scientific_artifact_id, user_context.project_id
     )
-    if db.execute(stmt).scalar_one() == 0:
-        L.warning("Attempting to create a link for a pulbication inaccessible to user")
-        raise HTTPException(
-            status_code=404, detail=f"Cannot access publication {json_model.publication_id}"
-        )
-    stmt = constrain_entity_query_to_project(
-        sa.select(sa.func.count(ScientificArtifact.id)).where(
-            ScientificArtifact.id == json_model.scientific_artifact_id
-        ),
-        user_context.project_id,
-    )
-    if db.execute(stmt).scalar_one() == 0:
-        L.warning("Attempting to create a link for a scientific artifact inaccessible to user")
-        raise HTTPException(
-            status_code=404,
-            detail=f"Cannot access scientific artifact {json_model.scientific_artifact_id}",
-        )
     return router_create_one(
         db=db,
         json_model=json_model,

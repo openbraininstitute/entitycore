@@ -18,7 +18,7 @@ class IonChannelRecordingFilter(
     class Constants(CustomFilter.Constants):
         model = IonChannelRecording
         ordering_model_fields = [  # noqa: RUF012
-            "ion_channel"
+            "ion_channel",
             "creation_date",
             "update_date",
             "name",

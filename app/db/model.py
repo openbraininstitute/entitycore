@@ -1311,8 +1311,7 @@ class ScientificArtifactPublicationLink(Identifiable):
 
 
 class ScientificArtifactExternalDatabaseURLLink(Identifiable):
-    """Represents the association between a scientific artifact and a URL
-        from an external database.
+    """Represents the association between a scientific artifact and an external database URL.
 
     It enforces uniqueness on the combination of external database URL and scientific artifact,
     ensuring that each artifact-database URL pair is unique.

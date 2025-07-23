@@ -1,4 +1,5 @@
 from app.db.model import IonChannelModel
+from app.schemas.morphology import ReconstructionMorphologyRead
 
 from .utils import (
     PROJECT_ID,
@@ -56,7 +57,7 @@ def test_get_entity_no_auth(
     assert res.status_code == 401
 
 
-def test_public__unrelated_project_accessible(
+def test_public_unrelated_project_accessible(
     client, client_user_2, brain_region_id, species_id, strain_id, license_id
 ):
     morph = assert_request(
@@ -76,8 +77,13 @@ def test_public__unrelated_project_accessible(
     ).json()
 
     data = assert_request(client.get, url=f"{ROUTE}/{morph['id']}").json()
-
     assert data["type"] == "reconstruction_morphology"
+
+    morph_detail = assert_request(
+        client.get, url=f"/reconstruction-morphology/{morph['id']}"
+    ).json()
+
+    assert ReconstructionMorphologyRead.model_validate(morph_detail)
 
 
 def test_count_entities_validation_errors(client):

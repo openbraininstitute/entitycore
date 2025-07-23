@@ -3,8 +3,8 @@ from typing import Annotated
 from pydantic import Field
 
 from app.db.types import IonChannel
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schema.contribution import ElectricalCellRecordingBase, ElectricalRecordingStimulusRead
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.scientific_artifact import (
     ScientificArtifactCreate,
     ScientificArtifactRead,

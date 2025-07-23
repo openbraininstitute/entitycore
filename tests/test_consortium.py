@@ -3,7 +3,7 @@ from tests.utils import MISSING_ID, MISSING_ID_COMPACT
 ROUTE = "/consortium"
 
 
-def test_create_organization(client, client_admin):
+def test_create(client, client_admin):
     label = "test consortium label"
     alternative_name = "test consortium alternative name"
     response = client_admin.post(

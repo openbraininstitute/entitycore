@@ -695,7 +695,8 @@ class MorphologyProtocol(Identifiable): # Inherit from Identifiable for primary 
     }
 
 class ExperimentalMorphologyProtocol(MorphologyProtocol):
-    __tablename__ = "experimental_morphology_protocol"
+    __tablename__ = MorphologyGenerationType.experimental.value
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     staining_type: Mapped[StainingType| None] 
     slicing_thickness: Mapped[float]
@@ -705,28 +706,29 @@ class ExperimentalMorphologyProtocol(MorphologyProtocol):
     corrected_for_shrinkage: Mapped[bool | None]
 
     __mapper_args__ = {
-        "polymorphic_identity": "experimental", # A string identifier for this type
+         "polymorphic_on": "type",
+         "polymorphic_identity": __tablename__,
     }
 
-
 class ComputationallySynthesizedMorphologyProtocol(MorphologyProtocol):
-    __tablename__ = "computationally_synthesized_morphology_protocol"
+    __tablename__ =  MorphologyGenerationType.computational.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     method_description: Mapped[str] 
 
     __mapper_args__ = {
-        "polymorphic_identity": "computationally_synthesized",
+         "polymorphic_on": "type",
+         "polymorphic_identity": __tablename__,
     }
 
 class ModifiedMorphologyProtocol(MorphologyProtocol):
-    __tablename__ = "modified_morphology_protocol"
+    __tablename__ = MorphologyGenerationType.modified.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     method_description: Mapped[MethodsType] 
 
     __mapper_args__ = {
-        "polymorphic_identity": "modified",
+         "polymorphic_on": "type",
+         "polymorphic_identity": __tablename__,
     }
-
 
 class CellMorphology(ScientificArtifact,
                      MTypesMixin,

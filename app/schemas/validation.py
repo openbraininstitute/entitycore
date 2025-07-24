@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import BaseModel
 
+from app.db.types import ValidationType
+from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     AuthorizationMixin,
@@ -9,6 +11,18 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
+
+
+class ValidationCreate(ActivityCreate):
+    validation_type: ValidationType
+
+
+class ValidationRead(ActivityRead):
+    validation_type: ValidationType
+
+
+class ValidationUpdate(ActivityUpdate):
+    validation_type: ValidationType | None = None
 
 
 class ValidationResultBase(BaseModel):

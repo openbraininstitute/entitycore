@@ -377,6 +377,42 @@ def test_register_entity_asset_with_invalid_full_path(client, entity, full_path)
         "error_code": "INVALID_REQUEST",
         "message": "Validation error",
     }
+    assert response.json()["details"][0]["msg"] == (
+        "Value error, Invalid full path: cannot be empty, start or end with '/', "
+        "and the path components cannot be empty, '.' or '..'"
+    )
+
+
+@pytest.mark.parametrize(
+    ("storage_type", "err_msg"),
+    [
+        (
+            StorageType.aws_s3_internal,
+            "Value error, Only open data storage is supported for registration",
+        ),
+        ("invalid_storage_type", "Input should be 'aws_s3_internal' or 'aws_s3_open'"),
+    ],
+)
+def test_register_entity_asset_with_invalid_storage_type(client, entity, storage_type, err_msg):
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/register",
+        json={
+            "path": "my-test.swc",
+            "full_path": "path/to/test.swc",
+            "is_directory": False,
+            "content_type": "application/swc",
+            "label": "morphology",
+            "storage_type": storage_type,
+        },
+        expected_status_code=422,
+    )
+    assert response.json() == {
+        "details": ANY,
+        "error_code": "INVALID_REQUEST",
+        "message": "Validation error",
+    }
+    assert response.json()["details"][0]["msg"] == err_msg
 
 
 def test_get_entity_asset(client, entity, asset):

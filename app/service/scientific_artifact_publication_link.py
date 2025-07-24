@@ -1,4 +1,5 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, contains_eager, joinedload, raiseload
@@ -20,7 +21,6 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.base import Aliases
 from app.filters.scientific_artifact_publication_link import (
     ScientificArtifactPublicationLinkFilterDep,
 )
@@ -34,6 +34,9 @@ from app.schemas.scientific_artifact_publication_link import (
 from app.schemas.types import ListResponse
 from app.utils.entity import ensure_readable
 
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
+
 
 def _load(query: sa.Select):
     return query.options(
@@ -45,7 +48,7 @@ def _load(query: sa.Select):
     )
 
 
-def _load_with_eager(query: sa.Select, aliases: Aliases):
+def _load_with_eager(query: sa.Select, aliases):
     return query.options(
         contains_eager(
             ScientificArtifactPublicationLink.scientific_artifact.of_type(
@@ -175,6 +178,8 @@ def read_many(
         publication_class=publication_alias,
     )
 
+    load_with_aliases = lambda q: _load_with_eager(q, aliases)
+
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -184,7 +189,7 @@ def read_many(
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=filter_query,
-        apply_data_query_operations=lambda q: _load_with_eager(q, aliases),
+        apply_data_query_operations=load_with_aliases,
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ScientificArtifactPublicationLinkRead,

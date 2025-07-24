@@ -2,8 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from fastapi import HTTPException
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import aliased, contains_eager, joinedload, raiseload
 
 from app.db.auth import (
     constrain_to_accessible_entities,
@@ -25,7 +24,6 @@ from app.dependencies.db import SessionDep
 from app.filters.scientific_artifact_publication_link import (
     ScientificArtifactPublicationLinkFilterDep,
 )
-from app.logger import L
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
@@ -34,6 +32,8 @@ from app.schemas.scientific_artifact_publication_link import (
     ScientificArtifactPublicationLinkRead,
 )
 from app.schemas.types import ListResponse
+from app.utils.entity import ensure_readable
+
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
@@ -41,11 +41,25 @@ if TYPE_CHECKING:
 
 def _load(query: sa.Select):
     return query.options(
-        joinedload(ScientificArtifactPublicationLink.scientific_artifact, innerjoin=True),
-        joinedload(ScientificArtifactPublicationLink.publication, innerjoin=True),
+        joinedload(ScientificArtifactPublicationLink.scientific_artifact),
+        joinedload(ScientificArtifactPublicationLink.publication),
         joinedload(ScientificArtifactPublicationLink.created_by, innerjoin=True),
         joinedload(ScientificArtifactPublicationLink.updated_by, innerjoin=True),
         raiseload("*"),
+    )
+
+
+def _constrain_to_accessible_artifact_publication(
+    query, project_id, artifact_class, publication_class
+):
+    return constrain_to_accessible_entities(
+        constrain_to_accessible_entities(
+            query,
+            project_id,
+            db_model_class=artifact_class,
+        ),
+        project_id,
+        db_model_class=publication_class,
     )
 
 
@@ -62,21 +76,8 @@ def read_one(
         response_schema_class=ScientificArtifactPublicationLinkRead,
         apply_operations=_load,
     )
-    if not (
-        entity.scientific_artifact.authorized_public
-        or entity.scientific_artifact.authorized_project_id == user_context.project_id
-    ):
-        L.warning("Attempting to fetch a link with scientific artifact inaccessible to user")
-        raise HTTPException(
-            status_code=404, detail=f"Cannot access scientific_artifact in link {id_}"
-        )
-    if not (
-        entity.publication.authorized_public
-        or entity.publication.authorized_project_id == user_context.project_id
-    ):
-        L.warning("Attempting to fetch a link with a publication inaccessible to user")
-        raise HTTPException(status_code=404, detail=f"Cannot access publication in link {id_}")
-
+    ensure_readable(entity.scientific_artifact, user_context.project_id)
+    ensure_readable(entity.publication, user_context.project_id)
     return entity
 
 
@@ -137,23 +138,27 @@ def read_many(
         aliases=aliases,
     )
 
-    filter_query = lambda q: _load(
-        constrain_to_accessible_entities(
-            constrain_to_accessible_entities(
-                q.join(
-                    scientific_artifact_alias,
-                    ScientificArtifactPublicationLink.scientific_artifact_id
-                    == scientific_artifact_alias.id,
-                ).join(
-                    publication_alias,
-                    ScientificArtifactPublicationLink.publication_id == publication_alias.id,
-                ),
-                user_context.project_id,
-                db_model_class=scientific_artifact_alias,
-            ),
-            user_context.project_id,
-            db_model_class=publication_alias,
+    filter_query = lambda q: _constrain_to_accessible_artifact_publication(
+        q.join(
+            scientific_artifact_alias,
+            ScientificArtifactPublicationLink.scientific_artifact_id
+            == scientific_artifact_alias.id,
         )
+        .join(
+            publication_alias,
+            ScientificArtifactPublicationLink.publication_id == publication_alias.id,
+        )
+        .join(
+            created_by_alias,
+            ScientificArtifactPublicationLink.created_by_id == created_by_alias.id,
+        )
+        .join(
+            updated_by_alias,
+            ScientificArtifactPublicationLink.updated_by_id == updated_by_alias.id,
+        ),
+        project_id=user_context.project_id,
+        artifact_class=scientific_artifact_alias,
+        publication_class=publication_alias,
     )
 
     return router_read_many(

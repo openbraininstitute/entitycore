@@ -16,9 +16,7 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
-    Publication,
     ReconstructionMorphology,
-    ScientificArtifact,
     Simulation,
     SingleNeuronSynaptome,
     Species,
@@ -74,8 +72,6 @@ def query_params_factory[I: Identifiable](
     simulation_alias = _get_alias(Simulation)
     used_alias = _get_alias(Entity, "used")
     generated_alias = _get_alias(Entity, "generated")
-    scientific_artifact_alias = _get_alias(ScientificArtifact)
-    publication_alias = _get_alias(Publication)
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -190,13 +186,6 @@ def query_params_factory[I: Identifiable](
         "generated": lambda q: q.outerjoin(
             Generation, db_model_class.id == Generation.generation_activity_id
         ).outerjoin(generated_alias, Generation.generation_entity_id == generated_alias.id),
-        "scientific_artifact": lambda q: q.join(
-            scientific_artifact_alias,
-            db_model_class.scientific_artifact_id == scientific_artifact_alias.id,
-        ),
-        "publication": lambda q: q.join(
-            publication_alias, db_model_class.publication_id == publication_alias.id
-        ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}
     filter_joins = {k: filter_joins[k] for k in filter_keys}

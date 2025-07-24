@@ -126,8 +126,8 @@ def read_many(
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
-    scientific_artifact_alias = aliased(ScientificArtifact, flat=True)
-    publication_alias = aliased(Publication, flat=True)
+    scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
+    publication_alias = aliased(Publication, flat=True, name="publication")
     aliases: Aliases = {
         Agent: {
             "created_by": created_by_alias,
@@ -143,8 +143,6 @@ def read_many(
     filter_keys = [
         "created_by",
         "updated_by",
-        "scientific_artifact",
-        "publication",
     ]
 
     name_to_facet_query_params, filter_joins = query_params_factory(

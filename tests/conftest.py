@@ -86,7 +86,7 @@ def s3():
 @pytest.fixture(scope="session")
 def _create_buckets(s3):
     s3.create_bucket(Bucket=storages[StorageType.aws_s3_internal].bucket)
-    s3.create_bucket(Bucket=storages[StorageType.aws_s3_open].bucket)
+    s3.create_bucket(Bucket=storages[StorageType.aws_s3_open].bucket, ACL="public-read")
 
 
 @pytest.fixture

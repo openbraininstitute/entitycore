@@ -1,8 +1,10 @@
+import io
 from unittest.mock import ANY, patch
 
 import pytest
 from moto import mock_aws
 
+from app.config import storages
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, EntityType, StorageType
 from app.errors import ApiErrorCode
@@ -10,6 +12,7 @@ from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
 from app.utils.s3 import build_s3_path
 
+from tests.conftest import assert_request
 from tests.utils import (
     MISSING_ID,
     PROJECT_ID,
@@ -245,6 +248,134 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
             f"entity type '{entity.type}'. "
             f"Allowed asset labels: ['{AssetLabel.cell_composition_summary}']"
         ],
+    }
+
+
+@pytest.fixture
+def s3_file(s3):
+    storage_type = StorageType.aws_s3_open
+    bucket = storages[storage_type].bucket
+    key = "path/to/test.swc"
+    file_obj = io.BytesIO(b"test")
+    s3.upload_fileobj(file_obj, Bucket=bucket, Key=key)
+    yield
+    s3.delete_object(Bucket=bucket, Key=key)
+
+
+@pytest.mark.usefixtures("s3_file")
+def test_register_entity_asset_as_file(client, entity):
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/register",
+        json={
+            "path": "my-test-file.swc",
+            "full_path": "path/to/test.swc",
+            "is_directory": False,
+            "content_type": "application/swc",
+            "label": "morphology",
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=201,
+    )
+    assert response.json() == {
+        "id": ANY,
+        "path": "my-test-file.swc",
+        "full_path": "path/to/test.swc",
+        "is_directory": False,
+        "content_type": "application/swc",
+        "label": "morphology",
+        "meta": {},
+        "sha256_digest": None,
+        "size": -1,
+        "status": "created",
+        "storage_type": "aws_s3_open",
+    }
+
+
+@pytest.mark.usefixtures("s3_file")
+def test_register_entity_asset_as_directory(client, circuit):
+    response = assert_request(
+        client.post,
+        url=f"{route(circuit.type)}/{circuit.id}/assets/register",
+        json={
+            "path": "my-test-dir",
+            "full_path": "path/to",
+            "is_directory": True,
+            "content_type": "application/vnd.directory",
+            "label": "sonata_circuit",
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=201,
+    )
+    assert response.json() == {
+        "id": ANY,
+        "path": "my-test-dir",
+        "full_path": "path/to",
+        "is_directory": True,
+        "content_type": "application/vnd.directory",
+        "label": "sonata_circuit",
+        "meta": {},
+        "sha256_digest": None,
+        "size": -1,
+        "status": "created",
+        "storage_type": "aws_s3_open",
+    }
+
+
+def test_register_entity_asset_not_found(client, entity):
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/register",
+        json={
+            "path": "my-test.swc",
+            "full_path": "path/to/test.swc",
+            "is_directory": False,
+            "content_type": "application/swc",
+            "label": "morphology",
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=409,
+    )
+    assert response.json() == {
+        "details": {
+            "bucket": "openbluebrain",
+            "region": "us-west-2",
+            "s3_key": "path/to/test.swc",
+        },
+        "error_code": "ASSET_NOT_FOUND",
+        "message": "Object does not exist in S3",
+    }
+
+
+@pytest.mark.parametrize(
+    "full_path",
+    [
+        "/path/to/test.swc",
+        "path/to/test.swc/",
+        "/path/to/test.swc/",
+        "/path/to//test.swc",
+        "/path/to/./test.swc",
+        "/path/to/../test.swc",
+    ],
+)
+def test_register_entity_asset_with_invalid_full_path(client, entity, full_path):
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/register",
+        json={
+            "path": "my-test.swc",
+            "full_path": full_path,
+            "is_directory": False,
+            "content_type": "application/swc",
+            "label": "morphology",
+            "storage_type": "aws_s3_open",
+        },
+        expected_status_code=422,
+    )
+    assert response.json() == {
+        "details": ANY,
+        "error_code": "INVALID_REQUEST",
+        "message": "Validation error",
     }
 
 

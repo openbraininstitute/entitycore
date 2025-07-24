@@ -4,17 +4,23 @@ from pathlib import Path
 from typing import cast
 
 from pydantic.networks import AnyUrl
+from types_boto3_s3 import S3Client
 
-from app.config import settings
-from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType
-from app.dependencies.s3 import S3ClientDep
+from app.config import StorageUnion, storages
+from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, StorageType
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.queries.common import get_or_create_user_agent
 from app.repository.group import RepositoryGroup
-from app.schemas.asset import AssetCreate, AssetRead, DetailedFileList, DirectoryUpload
+from app.schemas.asset import (
+    AssetCreate,
+    AssetRead,
+    DetailedFileList,
+    DirectoryUpload,
+)
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.service import entity as entity_service
 from app.utils.s3 import (
+    StorageClientFactory,
     build_s3_path,
     generate_presigned_url,
     list_directory_with_details,
@@ -62,8 +68,9 @@ def get_entity_asset(
     return AssetRead.model_validate(asset)
 
 
-def create_entity_asset(
+def create_entity_asset(  # noqa: PLR0913
     repos: RepositoryGroup,
+    *,
     user_context: UserContextWithProjectId,
     entity_type: EntityType,
     entity_id: uuid.UUID,
@@ -73,6 +80,9 @@ def create_entity_asset(
     sha256_digest: str | None,
     meta: dict | None,
     label: AssetLabel,
+    is_directory: bool,
+    storage_type: StorageType,
+    full_path: str | None = None,
 ) -> AssetRead:
     """Create an asset for an entity."""
     entity = entity_service.get_writable_entity(
@@ -81,7 +91,7 @@ def create_entity_asset(
         entity_type=entity_type,
         entity_id=entity_id,
     )
-    full_path = build_s3_path(
+    full_path = full_path or build_s3_path(
         vlab_id=user_context.virtual_lab_id,
         proj_id=user_context.project_id,
         entity_type=entity_type,
@@ -98,18 +108,20 @@ def create_entity_asset(
         asset_create = AssetCreate(
             path=filename,
             full_path=full_path,
-            is_directory=False,
+            is_directory=is_directory,
             content_type=content_type,
             size=size,
             sha256_digest=sha256_digest,
             meta=meta or {},
             label=label,
             entity_type=entity_type,
+            storage_type=storage_type,
             created_by_id=db_agent.id,
             updated_by_id=db_agent.id,
         )
     with ensure_uniqueness(
-        f"Asset with path {asset_create.path!r} already exists",
+        f"Asset with path {asset_create.path!r} and "
+        f"full_path {asset_create.full_path!r} already exists",
         error_code=ApiErrorCode.ASSET_DUPLICATED,
     ):
         asset_db = repos.asset.create_entity_asset(
@@ -148,7 +160,8 @@ def entity_asset_upload_directory(
     user_context: UserContextWithProjectId,
     entity_type: EntityType,
     entity_id: uuid.UUID,
-    s3_client: S3ClientDep,
+    s3_client: S3Client,
+    storage: StorageUnion,
     files: DirectoryUpload,
 ) -> tuple[AssetRead, dict[Path, AnyUrl]]:
     if not files.files:
@@ -197,12 +210,14 @@ def entity_asset_upload_directory(
             meta=files.meta or {},
             label=files.label,
             entity_type=entity_type,
+            storage_type=storage.type,
             created_by_id=db_agent.id,
             updated_by_id=db_agent.id,
         )
 
     with ensure_uniqueness(
-        f"Asset with path {asset_create.path!r} already exists",
+        f"Asset with path {asset_create.path!r} and "
+        f"full_path {asset_create.full_path!r} already exists",
         error_code=ApiErrorCode.ASSET_DUPLICATED,
     ):
         asset_db = repos.asset.create_entity_asset(
@@ -223,7 +238,7 @@ def entity_asset_upload_directory(
         url = generate_presigned_url(
             s3_client=s3_client,
             operation="put_object",
-            bucket_name=settings.S3_BUCKET_NAME,
+            bucket_name=storage.bucket,
             s3_key=full_path,
         )
         if url is None:
@@ -244,7 +259,7 @@ def list_directory(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
-    s3_client: S3ClientDep,
+    storage_client_factory: StorageClientFactory,
 ) -> DetailedFileList:
     asset = get_entity_asset(
         repos,
@@ -259,10 +274,12 @@ def list_directory(
             error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
+    storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
 
     ret = list_directory_with_details(
         s3_client,
-        bucket_name=settings.S3_BUCKET_NAME,
+        bucket_name=storage.bucket,
         prefix=asset.full_path,
     )
 

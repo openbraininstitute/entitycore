@@ -1,10 +1,12 @@
 import datetime
 import uuid
 from pathlib import Path
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, field_validator, model_validator
 from pydantic.networks import AnyUrl
 
+from app.config import storages
 from app.db.types import (
     ALLOWED_ASSET_LABELS_PER_ENTITY,
     CONTENT_TYPE_TO_SUFFIX,
@@ -12,21 +14,48 @@ from app.db.types import (
     AssetStatus,
     ContentType,
     EntityType,
+    StorageType,
 )
+
+
+def validate_path(s: str) -> str:
+    if s in {"", ".", ".."} or "/" in s:
+        msg = "Invalid path: cannot be empty, '.', '..', or contain '/'"
+        raise ValueError(msg)
+    return s
+
+
+def validate_full_path(s: str) -> str:
+    forbidden = {"", ".", ".."}
+    items = s.split("/")
+    # even directories are not allowed to start or end with '/'
+    if not items or any(item in forbidden for item in items):
+        msg = (
+            "Invalid full path: cannot be empty, start or end with '/', "
+            "and the path components cannot be empty, '.' or '..'"
+        )
+        raise ValueError(msg)
+    return s
 
 
 class AssetBase(BaseModel):
     """Asset model with common attributes."""
 
     model_config = ConfigDict(from_attributes=True)
-    path: str
-    full_path: str
+    path: Annotated[str, AfterValidator(validate_path)]
+    full_path: Annotated[str, AfterValidator(validate_full_path)]
     is_directory: bool
     content_type: ContentType
+    meta: dict = {}
+    label: AssetLabel
+    storage_type: StorageType
+
+
+class SizeAndDigestMixin(BaseModel):
+    """Mixin with size and digest."""
+
     size: int
     sha256_digest: str | None
-    meta: dict
-    label: AssetLabel
 
     @field_validator("sha256_digest", mode="before")
     @classmethod
@@ -36,7 +65,7 @@ class AssetBase(BaseModel):
         return value  # fallback (str or None)
 
 
-class AssetRead(AssetBase):
+class AssetRead(AssetBase, SizeAndDigestMixin):
     """Asset model for responses."""
 
     id: uuid.UUID
@@ -82,7 +111,7 @@ def _raise_on_label_requirement(asset, label_reqs):
         raise ValueError(suffix_errors[0])
 
 
-class AssetCreate(AssetBase):
+class AssetCreate(AssetBase, SizeAndDigestMixin):
     """Asset model for creation."""
 
     entity_type: EntityType
@@ -108,6 +137,18 @@ class AssetCreate(AssetBase):
         _raise_on_label_requirement(self, allowed_asset_labels[self.label])
 
         return self
+
+
+class AssetRegister(AssetBase):
+    """Asset model for registration of assets already in cloud."""
+
+    @field_validator("storage_type", mode="after")
+    @classmethod
+    def validate_storage_type_is_open(cls, v: StorageType) -> StorageType:
+        if not storages[v].is_open:
+            msg = "Only open data storage is supported for registration"
+            raise ValueError(msg)
+        return v
 
 
 class AssetsMixin(BaseModel):

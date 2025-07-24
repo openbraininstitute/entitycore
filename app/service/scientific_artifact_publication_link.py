@@ -1,5 +1,4 @@
 import uuid
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, contains_eager, joinedload, raiseload
@@ -21,6 +20,7 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
+from app.filters.base import Aliases
 from app.filters.scientific_artifact_publication_link import (
     ScientificArtifactPublicationLinkFilterDep,
 )
@@ -35,16 +35,30 @@ from app.schemas.types import ListResponse
 from app.utils.entity import ensure_readable
 
 
-if TYPE_CHECKING:
-    from app.filters.base import Aliases
-
-
 def _load(query: sa.Select):
     return query.options(
-        joinedload(ScientificArtifactPublicationLink.scientific_artifact),
-        joinedload(ScientificArtifactPublicationLink.publication),
+        joinedload(ScientificArtifactPublicationLink.scientific_artifact, innerjoin=True),
+        joinedload(ScientificArtifactPublicationLink.publication, innerjoin=True),
         joinedload(ScientificArtifactPublicationLink.created_by, innerjoin=True),
         joinedload(ScientificArtifactPublicationLink.updated_by, innerjoin=True),
+        raiseload("*"),
+    )
+
+
+def _load_with_eager(query: sa.Select, aliases: Aliases):
+    return query.options(
+        contains_eager(
+            ScientificArtifactPublicationLink.scientific_artifact.of_type(
+                aliases[ScientificArtifact]
+            )
+        ),
+        contains_eager(ScientificArtifactPublicationLink.publication.of_type(aliases[Publication])),
+        contains_eager(
+            ScientificArtifactPublicationLink.created_by.of_type(aliases[Agent]["created_by"])
+        ),
+        contains_eager(
+            ScientificArtifactPublicationLink.updated_by.of_type(aliases[Agent]["updated_by"])
+        ),
         raiseload("*"),
     )
 
@@ -112,13 +126,15 @@ def read_many(
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
-    scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
-    publication_alias = aliased(Publication, flat=True, name="publication")
+    scientific_artifact_alias = aliased(ScientificArtifact, flat=True)
+    publication_alias = aliased(Publication, flat=True)
     aliases: Aliases = {
         Agent: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
+        ScientificArtifact: scientific_artifact_alias,
+        Publication: publication_alias,
     }
     facet_keys = [
         "created_by",
@@ -170,7 +186,7 @@ def read_many(
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=filter_query,
-        apply_data_query_operations=_load,
+        apply_data_query_operations=lambda q: _load_with_eager(q, aliases),
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ScientificArtifactPublicationLinkRead,

@@ -50,9 +50,12 @@ def test_read_one(client, model_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
+
+def test_read_many(client, model_id, json_data):
     data = assert_request(client.get, url=ROUTE).json()
     assert len(data["data"]) == 1
     _assert_read_response(data["data"][0], json_data)
+    assert data["data"][0]["id"] == str(model_id)
 
 
 def test_missing(client):

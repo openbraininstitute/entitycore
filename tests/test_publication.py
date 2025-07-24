@@ -15,25 +15,8 @@ ROUTE = "/publication"
 
 
 @pytest.fixture
-def json_data():
-    return {
-        "name": "my-publication",
-        "description": "my-publication",
-        "DOI": "my-doi",
-        "title": "my-title",
-        "authors": [
-            {
-                "given_name": "John",
-                "family_name": "Smith",
-            },
-            {
-                "given_name": "Joanne",
-                "family_name": "Smith",
-            },
-        ],
-        "publication_year": 2024,
-        "abstract": "my-abstract",
-    }
+def json_data(publication_json_data):
+    return publication_json_data
 
 
 def _assert_read_response(data, json_data):
@@ -57,8 +40,8 @@ def create_id(client, json_data):
 
 
 @pytest.fixture
-def model_id(create_id):
-    return create_id()
+def model_id(publication):
+    return publication.id
 
 
 def test_create_one(client, json_data):

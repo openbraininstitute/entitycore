@@ -29,6 +29,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Organization,
+    Publication,
     ReconstructionMorphology,
     Role,
     Simulation,
@@ -1036,5 +1037,42 @@ def simulation_result(db, simulation_result_json_data, person_id):
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
             },
+        ),
+    )
+
+
+@pytest.fixture
+def publication_json_data():
+    return {
+        "name": "my-publication",
+        "description": "my-publication",
+        "DOI": "my-doi",
+        "title": "my-title",
+        "authors": [
+            {
+                "given_name": "John",
+                "family_name": "Smith",
+            },
+            {
+                "given_name": "Joanne",
+                "family_name": "Smith",
+            },
+        ],
+        "publication_year": 2024,
+        "abstract": "my-abstract",
+    }
+
+
+@pytest.fixture
+def publication(db, publication_json_data, person_id):
+    return add_db(
+        db,
+        Publication(
+            **publication_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
         ),
     )

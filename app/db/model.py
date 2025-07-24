@@ -54,6 +54,7 @@ from app.db.types import (
     MeasurementUnit,
     PointLocation,
     PointLocationType,
+    PublicationType,
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
@@ -61,7 +62,7 @@ from app.db.types import (
     StructuralDomain,
     ValidationStatus,
 )
-from app.schemas.publication import Author, PublicationType
+from app.schemas.publication import Author
 from app.utils.uuid import create_uuid
 
 

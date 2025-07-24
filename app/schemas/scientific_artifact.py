@@ -28,16 +28,22 @@ class ScientificArtifactBase(BaseModel):
     atlas_id: uuid.UUID | None = None
 
 
-class ScientificArtifactRead(
+class NestedScientificArtifactRead(
     ScientificArtifactBase,
+    IdentifiableMixin,
+    EntityTypeMixin,
+    AuthorizationMixin,
+):
+    pass
+
+
+class ScientificArtifactRead(
+    NestedScientificArtifactRead,
     SubjectReadMixin,
     BrainRegionReadMixin,
     CreatedByUpdatedByMixin,
     CreationMixin,
     LicenseReadMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
-    AuthorizationMixin,
     AssetsMixin,
 ):
     pass

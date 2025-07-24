@@ -2,16 +2,16 @@ from time import sleep
 
 import pytest
 
-from app.db.model import Organization
+from app.db.model import Consortium
 
 from tests.utils import MISSING_ID, MISSING_ID_COMPACT, add_db, assert_request
 
-ROUTE = "/organization"
+ROUTE = "/consortium"
 
 
-def test_create_organization(client, client_admin):
-    label = "test_organization label"
-    alternative_name = "test organization alternative name"
+def test_create(client, client_admin):
+    label = "test consortium label"
+    alternative_name = "test consortium alternative name"
     response = client_admin.post(
         ROUTE,
         json={"pref_label": label, "alternative_name": alternative_name},
@@ -58,7 +58,7 @@ def models(db, person_id):
     for i in range(3):
         row = add_db(
             db,
-            Organization(
+            Consortium(
                 pref_label=f"org-{i}",
                 alternative_name=f"alt-{i}",
                 created_by_id=person_id,

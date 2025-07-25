@@ -118,7 +118,7 @@ def downgrade() -> None:
         ],
         enum_values_to_rename=[
             ("network_stats_a", "network_stats_A"),
-            ("network_stats_b", "network_stats_A"),
+            ("network_stats_b", "network_stats_B"),
         ],
     )
     # ### end Alembic commands ###

@@ -287,8 +287,8 @@ class AssetLabel(StrEnum):
     simulation_designer_image = auto()
     circuit_visualization = auto()
     node_stats = auto()
-    network_stats_A = auto()
-    network_stats_B = auto()
+    network_stats_a = auto()
+    network_stats_b = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -369,10 +369,10 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.node_stats: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
-        AssetLabel.network_stats_A: [
+        AssetLabel.network_stats_a: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
-        AssetLabel.network_stats_B: [
+        AssetLabel.network_stats_b: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
     },

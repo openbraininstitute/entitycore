@@ -6,6 +6,7 @@ from fastapi_filter import with_prefix
 from app.db.model import Simulation
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.circuit import NestedCircuitFilter, NestedCircuitFilterDep
 from app.filters.common import (
     ContributionFilterMixin,
     CreationFilterMixin,
@@ -18,6 +19,7 @@ from app.filters.common import (
 class SimulationFilterBase(NameFilterMixin, IdFilterMixin, CustomFilter):
     entity_id: uuid.UUID | None = None
     entity_id__in: list[uuid.UUID] | None = None
+    circuit: Annotated[NestedCircuitFilter | None, NestedCircuitFilterDep] = None
 
 
 class NestedSimulationFilter(SimulationFilterBase):

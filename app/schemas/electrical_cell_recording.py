@@ -4,31 +4,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.types import (
     ElectricalRecordingOrigin,
-    ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
 )
 from app.schemas.annotation import ETypeClassRead
-from app.schemas.base import (
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
-)
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
 from app.schemas.scientific_artifact import (
     ScientificArtifactCreate,
     ScientificArtifactRead,
 )
-
-
-class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin, EntityTypeMixin):
-    name: str
-    description: str
-    dt: float | None = None
-    injection_type: ElectricalRecordingStimulusType
-    shape: ElectricalRecordingStimulusShape
-    start_time: float | None = None
-    end_time: float | None = None
 
 
 class ElectricalCellRecordingBase(BaseModel):
@@ -92,7 +77,7 @@ class ElectricalCellRecordingRead(
     ContributionReadWithoutEntityMixin,
 ):
     stimuli: Annotated[
-        list[ElectricalRecordingStimulusRead] | None,
+        list[NestedElectricalRecordingStimulusRead] | None,
         Field(
             title="Electrical Recording Stimuli",
             description="List of stimuli applied to the cell with their respective time steps",

@@ -881,6 +881,11 @@ def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id)
 
 
 @pytest.fixture
+def trace_id_minimal(client, electrical_cell_recording_json_data):
+    return utils.create_electrical_cell_recording_id(client, electrical_cell_recording_json_data)
+
+
+@pytest.fixture
 def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
     return create_electrical_cell_recording_id_with_assets(
         db, client, tmp_path, electrical_cell_recording_json_data

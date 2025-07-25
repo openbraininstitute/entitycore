@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -8,8 +9,10 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
 )
+from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead
 from app.schemas.base import (
+    AuthorizationOptionalPublicMixin,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
@@ -21,7 +24,7 @@ from app.schemas.scientific_artifact import (
 )
 
 
-class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin, EntityTypeMixin):
+class ElectricalRecordingStimulusBase(BaseModel):
     name: str
     description: str
     dt: float | None = None
@@ -29,6 +32,27 @@ class ElectricalRecordingStimulusRead(CreationMixin, IdentifiableMixin, EntityTy
     shape: ElectricalRecordingStimulusShape
     start_time: float | None = None
     end_time: float | None = None
+    recording_id: uuid.UUID
+
+
+class NestedElectricalRecordingStimulusRead(
+    ElectricalRecordingStimulusBase, IdentifiableMixin, EntityTypeMixin
+):
+    pass
+
+
+class ElectricalRecordingStimulusRead(
+    NestedElectricalRecordingStimulusRead,
+    CreationMixin,
+    CreatedByUpdatedByMixin,
+):
+    pass
+
+
+class ElectricalRecordingStimulusCreate(
+    ElectricalRecordingStimulusBase, AuthorizationOptionalPublicMixin
+):
+    pass
 
 
 class ElectricalCellRecordingBase(BaseModel):
@@ -92,7 +116,7 @@ class ElectricalCellRecordingRead(
     ContributionReadWithoutEntityMixin,
 ):
     stimuli: Annotated[
-        list[ElectricalRecordingStimulusRead] | None,
+        list[NestedElectricalRecordingStimulusRead] | None,
         Field(
             title="Electrical Recording Stimuli",
             description="List of stimuli applied to the cell with their respective time steps",

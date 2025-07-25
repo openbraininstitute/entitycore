@@ -1,14 +1,13 @@
 import uuid
 from typing import Annotated
 
-from app.db.model import ElectricalCellRecording
+from app.db.model import ElectricalRecordingStimulus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     EntityFilterMixin,
     NameFilterMixin,
 )
-from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
 class ElectricalRecordingStimulusFilter(EntityFilterMixin, NameFilterMixin, CustomFilter):
@@ -20,8 +19,8 @@ class ElectricalRecordingStimulusFilter(EntityFilterMixin, NameFilterMixin, Cust
     recording_id: uuid.UUID | None = None
     recording_id__in: list[uuid.UUID] | None = None
 
-    class Constants(ScientificArtifactFilter.Constants):
-        model = ElectricalCellRecording
+    class Constants(CustomFilter.Constants):
+        model = ElectricalRecordingStimulus
         ordering_model_fields = [  # noqa: RUF012
             "creation_date",
             "update_date",

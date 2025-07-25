@@ -1,60 +1,19 @@
-import uuid
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.types import (
     ElectricalRecordingOrigin,
-    ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
 )
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead
-from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
-)
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
 from app.schemas.scientific_artifact import (
     ScientificArtifactCreate,
     ScientificArtifactRead,
 )
-
-
-class ElectricalRecordingStimulusBase(BaseModel):
-    name: str
-    description: str
-    dt: float | None = None
-    injection_type: ElectricalRecordingStimulusType
-    shape: ElectricalRecordingStimulusShape
-    start_time: float | None = None
-    end_time: float | None = None
-    recording_id: uuid.UUID
-
-
-class NestedElectricalRecordingStimulusRead(
-    ElectricalRecordingStimulusBase, IdentifiableMixin, EntityTypeMixin
-):
-    pass
-
-
-class ElectricalRecordingStimulusRead(
-    NestedElectricalRecordingStimulusRead,
-    CreationMixin,
-    CreatedByUpdatedByMixin,
-    AuthorizationMixin,
-):
-    pass
-
-
-class ElectricalRecordingStimulusCreate(
-    ElectricalRecordingStimulusBase, AuthorizationOptionalPublicMixin
-):
-    pass
 
 
 class ElectricalCellRecordingBase(BaseModel):

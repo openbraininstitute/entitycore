@@ -16,6 +16,7 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    AuthorizationMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.scientific_artifact import (
@@ -45,6 +46,7 @@ class ElectricalRecordingStimulusRead(
     NestedElectricalRecordingStimulusRead,
     CreationMixin,
     CreatedByUpdatedByMixin,
+    AuthorizationMixin,
 ):
     pass
 

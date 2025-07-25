@@ -1,14 +1,16 @@
 """Entity router."""
 
 from typing import Annotated
+from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query, Request
+from fastapi.security import HTTPAuthorizationCredentials
 
 from app.db.utils import EntityTypeWithBrainRegion
-from app.dependencies.auth import UserContextDep
+from app.dependencies.auth import AuthHeader, UserContextDep
 from app.dependencies.common import InBrainRegionDep
 from app.dependencies.db import SessionDep
-from app.schemas.entity import EntityCountRead
+from app.schemas.entity import EntityCountRead, EntityRead
 from app.service import entity as entity_service
 
 router = APIRouter(
@@ -36,3 +38,13 @@ def count_entities_by_type(
         entity_types=types,
         in_brain_region=in_brain_region,
     )
+
+
+@router.get("/{id_}")
+def read_one(
+    id_: UUID,
+    db: SessionDep,
+    token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
+    request: Request,
+) -> EntityRead | None:
+    return entity_service.read_one(id_, db, token, request)

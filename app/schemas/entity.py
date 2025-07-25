@@ -16,7 +16,7 @@ class NestedEntityRead(BaseModel):
 
 
 class EntityRead(NestedEntityRead, CreatedByUpdatedByMixin):
-    pass
+    virtual_lab_id: uuid.UUID | None = None
 
 
 class EntityCountRead(RootModel[dict[str, int]]):

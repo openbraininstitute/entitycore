@@ -87,6 +87,7 @@ def _check_user_info(
     project_context: OptionalProjectContext,
     token: HTTPAuthorizationCredentials,
     http_client: httpx.Client,
+    find_vlab_id: bool = False,
 ) -> UserContext:
     """Retrieve the user info from KeyCloak and check the correctness of ProjectContext.
 
@@ -127,11 +128,22 @@ def _check_user_info(
         )
 
     user_info_response = deserialize_response(response, model_class=UserInfoResponse)
-    is_authorized = user_info_response.is_authorized_for(
-        virtual_lab_id=project_context.virtual_lab_id,
-        project_id=project_context.project_id,
-    )
+
+    is_authorized = False
+
+    if not find_vlab_id:
+        is_authorized = user_info_response.is_authorized_for(
+            virtual_lab_id=project_context.virtual_lab_id,
+            project_id=project_context.project_id,
+        )
+
+    elif project_context.project_id:
+        vlab_id = user_info_response.find_virtual_lab_id(project_context.project_id)
+        is_authorized = bool(vlab_id)
+        project_context.virtual_lab_id = vlab_id
+
     is_service_admin = user_info_response.is_service_admin(settings.APP_NAME)
+
     user_context = UserContext(
         profile=UserProfile.from_user_info(user_info_response),
         expiration=decoded.exp if decoded else None,
@@ -153,6 +165,38 @@ def _check_user_info(
             project_id=lambda: project_context.project_id,
             groups=lambda: sorted(user_info_response.groups),
         )
+
+    return user_context
+
+
+def check_user_info(
+    project_context: OptionalProjectContext,
+    token: HTTPAuthorizationCredentials,
+    request: Request,
+    *,
+    find_vlab_id=False,
+):
+    user_context = _check_user_info(
+        project_context=project_context,
+        token=token,
+        http_client=request.state.http_client,
+        find_vlab_id=find_vlab_id,
+    )
+
+    if not user_context.is_authorized:
+        match user_context.auth_error_reason:
+            case AuthErrorReason.NOT_AUTHORIZED_USER | AuthErrorReason.NOT_AUTHORIZED_PROJECT:
+                raise ApiError(
+                    message=user_context.auth_error_reason,
+                    error_code=ApiErrorCode.NOT_AUTHORIZED,
+                    http_status_code=403,
+                )
+            case _:
+                raise ApiError(
+                    message=user_context.auth_error_reason or AuthErrorReason.UNKNOWN,
+                    error_code=ApiErrorCode.NOT_AUTHENTICATED,
+                    http_status_code=401,
+                )
 
     return user_context
 
@@ -196,28 +240,7 @@ def user_verified(
             http_status_code=401,
         )
 
-    user_context = _check_user_info(
-        project_context=project_context,
-        token=token,
-        http_client=request.state.http_client,
-    )
-
-    if not user_context.is_authorized:
-        match user_context.auth_error_reason:
-            case AuthErrorReason.NOT_AUTHORIZED_USER | AuthErrorReason.NOT_AUTHORIZED_PROJECT:
-                raise ApiError(
-                    message=user_context.auth_error_reason,
-                    error_code=ApiErrorCode.NOT_AUTHORIZED,
-                    http_status_code=403,
-                )
-            case _:
-                raise ApiError(
-                    message=user_context.auth_error_reason or AuthErrorReason.UNKNOWN,
-                    error_code=ApiErrorCode.NOT_AUTHENTICATED,
-                    http_status_code=401,
-                )
-
-    return user_context
+    return check_user_info(project_context, token, request)
 
 
 def user_with_project_id(user_context: "UserContextDep") -> UserContextWithProjectId:

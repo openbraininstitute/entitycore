@@ -12,11 +12,11 @@ from app.db.types import (
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead
 from app.schemas.base import (
+    AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
-    AuthorizationMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.scientific_artifact import (

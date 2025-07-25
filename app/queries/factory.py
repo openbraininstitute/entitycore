@@ -3,6 +3,7 @@ from typing import Any, cast
 from app.db.model import (
     Agent,
     BrainRegion,
+    Circuit,
     Contribution,
     EModel,
     Entity,
@@ -72,6 +73,7 @@ def query_params_factory[I: Identifiable](
     simulation_alias = _get_alias(Simulation)
     used_alias = _get_alias(Entity, "used")
     generated_alias = _get_alias(Entity, "generated")
+    circuit_alias = _get_alias(Circuit)
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -111,6 +113,7 @@ def query_params_factory[I: Identifiable](
         "pre_region": {"id": pre_region_alias.id, "label": pre_region_alias.name},
         "post_region": {"id": post_region_alias.id, "label": post_region_alias.name},
         "simulation": {"id": simulation_alias.id, "label": simulation_alias.name},
+        "simulation.circuit": {"id": circuit_alias.id, "label": circuit_alias.name},
     }
     filter_joins = {
         "species": lambda q: q.join(Species, db_model_class.species_id == Species.id),
@@ -179,6 +182,9 @@ def query_params_factory[I: Identifiable](
         ),
         "simulation": lambda q: q.outerjoin(
             simulation_alias, db_model_class.id == simulation_alias.simulation_campaign_id
+        ),
+        "simulation.circuit": lambda q: q.outerjoin(
+            circuit_alias, simulation_alias.entity_id == circuit_alias.id
         ),
         "used": lambda q: q.outerjoin(
             Usage, db_model_class.id == Usage.usage_activity_id

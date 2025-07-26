@@ -30,7 +30,6 @@ def json_data(morphology_id, validation_result_id):
         "end_time": str(datetime.now(UTC)),
         "used_ids": [str(morphology_id)],
         "generated_ids": [str(validation_result_id)],
-        "calibration_type": "foo",
     }
 
 
@@ -73,7 +72,6 @@ def _assert_read_response(data, json_data, *, empty_ids: bool = False):
         json_data["end_time"]
     )
     assert data["type"] == TYPE
-    assert data["calibration_type"] == json_data["calibration_type"]
 
 
 def test_create_one(client, json_data):

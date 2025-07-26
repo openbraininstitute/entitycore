@@ -514,15 +514,3 @@ class PublicationType(StrEnum):
     entity_source = auto()
     component_source = auto()
     application = auto()
-
-
-class CalibrationType(StrEnum):
-    """The type of calibration."""
-
-    foo = auto()
-
-
-class ValidationType(StrEnum):
-    """The type of validation."""
-
-    bar = auto()

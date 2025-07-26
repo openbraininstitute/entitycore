@@ -11,7 +11,7 @@ class ValidationFilter(CustomFilter, ActivityFilterMixin):
 
     class Constants(CustomFilter.Constants):
         model = Validation
-        ordering_model_fields = ["creation_date", "update_date", "validation_type"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date"]  # noqa: RUF012
 
 
 ValidationFilterDep = Annotated[ValidationFilter, FilterDepends(ValidationFilter)]

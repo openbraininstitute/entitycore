@@ -11,7 +11,7 @@ class CalibrationFilter(CustomFilter, ActivityFilterMixin):
 
     class Constants(CustomFilter.Constants):
         model = Calibration
-        ordering_model_fields = ["creation_date", "update_date", "calibration_type"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date"]  # noqa: RUF012
 
 
 CalibrationFilterDep = Annotated[CalibrationFilter, FilterDepends(CalibrationFilter)]

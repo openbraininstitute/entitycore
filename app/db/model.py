@@ -41,7 +41,6 @@ from app.db.types import (
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
-    CalibrationType,
     CircuitBuildCategory,
     CircuitScale,
     ContentType,
@@ -62,7 +61,6 @@ from app.db.types import (
     StorageType,
     StructuralDomain,
     ValidationStatus,
-    ValidationType,
 )
 from app.schemas.publication import Author
 from app.utils.uuid import create_uuid
@@ -1244,8 +1242,6 @@ class Validation(Activity):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    validation_type: Mapped[ValidationType]
-
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
@@ -1256,8 +1252,6 @@ class Calibration(Activity):
     __tablename__ = ActivityType.calibration.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-
-    calibration_type: Mapped[CalibrationType]
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,

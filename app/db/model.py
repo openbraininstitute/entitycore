@@ -767,7 +767,6 @@ class CellMorphology(ScientificArtifact,
  
     # Attributes from ComputationallySynthesized
 
-    provenance: Mapped[str]
     #can it be structured, maybe renamed/?
 
     __mapper_args__ = {

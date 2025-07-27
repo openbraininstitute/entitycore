@@ -160,13 +160,11 @@ class ModifiedReconstructionCreate(CellMorphologyCreate):
 
 class ComputationallySynthesized(CellMorphologyRead):
     method_description: ComputationallySynthesizedMorphologyProtocol
-    provenance: str
 
 
 class ComputationallySynthesizedCreate(CellMorphologyCreate):
     morphology_generation_type: Literal[MorphologyGenerationType.computational]
     method_description: ComputationallySynthesizedMorphologyProtocol
-    provenance: str
 
 
 class Placeholder(CellMorphologyRead):

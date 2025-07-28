@@ -2,7 +2,6 @@ from typing import Annotated
 
 from app.db.model import IonChannelModel
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
 from app.filters.scientific_artifact import ScientificArtifactFilter
 
 

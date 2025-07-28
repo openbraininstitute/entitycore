@@ -89,7 +89,6 @@ class CellMorphologyBase(BaseModel):
     description: str
     location: PointLocationBase | None
     legacy_id: list[str] | None
-    morphology_generation_type: MorphologyGenerationType = MorphologyGenerationType.placeholder
 
 
 class CellMorphologyCreate(
@@ -101,7 +100,6 @@ class CellMorphologyCreate(
     strain_id: uuid.UUID | None = None
     brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
-    morphology_genration_type: MorphologyGenerationType = MorphologyGenerationType.placeholder
 
 
 class CellMorphologyCreate(
@@ -143,7 +141,6 @@ class DigitalReconstruction(CellMorphologyRead):
 
 
 class DigitalReconstructionCreate(CellMorphologyCreate):
-    morphology_generation_type: Literal[MorphologyGenerationType.digital]
     reconstruction_method: ExperimentalMorphologyProtocol
     repair_pipeline_state: RepairPipelineType
 
@@ -154,7 +151,6 @@ class ModifiedReconstruction(CellMorphologyRead):
 
 
 class ModifiedReconstructionCreate(CellMorphologyCreate):
-    morphology_generation_type: Literal[MorphologyGenerationType.modified]
     method_description: ModifiedMorphologyProtocol
 
 
@@ -163,7 +159,6 @@ class ComputationallySynthesized(CellMorphologyRead):
 
 
 class ComputationallySynthesizedCreate(CellMorphologyCreate):
-    morphology_generation_type: Literal[MorphologyGenerationType.computational]
     method_description: ComputationallySynthesizedMorphologyProtocol
 
 
@@ -172,5 +167,5 @@ class Placeholder(CellMorphologyRead):
 
 
 class PlaceholderCreate(CellMorphologyCreate):
-    morphology_generation_type: Literal[MorphologyGenerationType.placeholder]
+
 

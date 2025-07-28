@@ -540,17 +540,17 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
-class ExternalDatabase(Entity, NameDescriptionVectorMixin):
-    """Represents an external database entity.
+class ExternalDataSource(Entity, NameDescriptionVectorMixin):
+    """Represents an external data source entity.
 
     Attributes:
         id (uuid.UUID): Primary key, references the base entity ID.
-        label (str): Unique label for the database, e.g. "Channelpedia".
-        URL (str): URL of the database home page, e.g. "https://channelpedia.epfl.ch/".
+        label (str): Unique label for the data source, e.g. "Channelpedia".
+        URL (str): URL of the data source home page, e.g. "https://channelpedia.epfl.ch/".
 
     """
 
-    __tablename__ = EntityType.external_database.value
+    __tablename__ = EntityType.external_data_source.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     label: Mapped[str] = mapped_column(unique=True, index=True)
     URL: Mapped[str] = mapped_column(String, index=True)
@@ -560,19 +560,20 @@ class ExternalDatabase(Entity, NameDescriptionVectorMixin):
     }
 
 
-class ExternalDatabaseURL(Entity, NameDescriptionVectorMixin):
-    """Represents a web page on an external database.
+class ExternalDataSourcePage(Entity, NameDescriptionVectorMixin):
+    """Represents a web page on an external data source.
 
     Attributes:
         id (uuid.UUID): Primary key, references the base entity ID.
-        URL (str): URL of the database webpage, e.g. "https://channelpedia.epfl.ch/wikipages/189".
+        URL (str): URL of the data source webpage,
+            e.g. "https://channelpedia.epfl.ch/wikipages/189".
 
     """
 
-    __tablename__ = EntityType.external_database_url.value
+    __tablename__ = EntityType.external_data_source_page.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    external_database_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("external_database.id"), index=True, nullable=False
+    external_data_source_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("external_data_source.id"), index=True, nullable=False
     )
     URL: Mapped[str] = mapped_column(String, index=True)
 
@@ -1324,36 +1325,36 @@ class ScientificArtifactPublicationLink(Identifiable):
     )
 
 
-class ScientificArtifactExternalDatabaseURLLink(Identifiable):
-    """Represents the association between a scientific artifact and an external database URL.
+class ScientificArtifactExternalDataSourcePageLink(Identifiable):
+    """Represents the association between a scientific artifact and an external data source page.
 
-    It enforces uniqueness on the combination of external database URL and scientific artifact,
+    It enforces uniqueness on the combination of external data source page and scientific artifact,
     ensuring that each artifact-database URL pair is unique.
 
     Attributes:
-        external_database_url_id (UUID): Foreign key referencing
-            the associated external database URL.
+        external_data_source_page_id (UUID): Foreign key referencing
+            the associated external data source page.
         scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
-        external_database_url (ExternalDatabaseURL): Relationship to the
-            external database URL model.
+        external_data_source_page (ExternalDataSourcePage): Relationship to the
+            external data source page model.
         scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
 
     Table:
-        Unique constraint on (external_database_url_id, scientific_artifact_id).
+        Unique constraint on (external_data_source_page_id, scientific_artifact_id).
     """
 
-    __tablename__ = "scientific_artifact_external_database_url_link"
-    external_database_url_id: Mapped[UUID] = mapped_column(
-        ForeignKey("external_database_url.id"), index=True
+    __tablename__ = "scientific_artifact_external_data_source_page_link"
+    external_data_source_page_id: Mapped[UUID] = mapped_column(
+        ForeignKey("external_data_source_page.id"), index=True
     )
     scientific_artifact_id: Mapped[UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), index=True
     )
 
-    # Relationships - assuming ScientificArtifact and ExternalDatabseURL exist
-    external_database_url: Mapped["ExternalDatabaseURL"] = relationship(
-        "ExternalDatabaseURL",
-        foreign_keys=[external_database_url_id],
+    # Relationships - assuming ScientificArtifact and ExternalDataSourcePage exist
+    external_data_source_page: Mapped["ExternalDataSourcePage"] = relationship(
+        "ExternalDataSourcePage",
+        foreign_keys=[external_data_source_page_id],
         uselist=False,
     )
     scientific_artifact: Mapped["ScientificArtifact"] = relationship(
@@ -1364,7 +1365,7 @@ class ScientificArtifactExternalDatabaseURLLink(Identifiable):
 
     __table_args__ = (
         UniqueConstraint(
-            "external_database_url_id", "scientific_artifact_id", name="uq_publishedin_ids"
+            "external_data_source_page_id", "scientific_artifact_id", name="uq_publishedin_ids"
         ),
     )
 

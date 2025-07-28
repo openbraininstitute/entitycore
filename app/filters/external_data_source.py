@@ -22,7 +22,9 @@ class ExternalDataSourceFilter(
         ordering_model_fields = ["label"]  # noqa: RUF012
 
 
-ExternalDataSourceFilterDep = Annotated[ExternalDataSourceFilter, FilterDepends(ExternalDataSourceFilter)]
+ExternalDataSourceFilterDep = Annotated[
+    ExternalDataSourceFilter, FilterDepends(ExternalDataSourceFilter)
+]
 
 
 class ExternalDataSourcePageFilter(

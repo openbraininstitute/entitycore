@@ -16,7 +16,7 @@ class ExternalDataSourceBase(BaseModel):
     URL: str
 
 
-class ExternalDataSourceBaseRead(
+class ExternalDataSourceRead(
     ExternalDataSourceBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin
 ):
     """Read model for external data source."""

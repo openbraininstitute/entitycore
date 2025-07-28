@@ -78,7 +78,7 @@ class MorphologyProtocolRead(BaseModel):
     # or by having specific read schemas for each CellMorphology type.
     # For simplicity, we'll assume a "smart" client that knows how to parse based on 'type'.
     id: uuid.UUID
-    type: Literal["experimental", "computationally_synthesized", "modified"]
+    type: MorphologyGenerationType #Literal["digital", "computational", "modified"]
     protocol_document: str | None = None
     protocol_design: str
 

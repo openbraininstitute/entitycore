@@ -25,7 +25,6 @@ class MorphologyGenerationType(StrEnum):
     modified = auto() #modifed from digital
     computational = auto() #computationally synthesized
     placeholder = auto() #could be a morphology or compartment
-    experimental = auto()
 
 class SlicingDirectionType(StrEnum):
     coronal = auto()

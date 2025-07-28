@@ -695,7 +695,7 @@ class MorphologyProtocol(Identifiable): # Inherit from Identifiable for primary 
     }
 
 class ExperimentalMorphologyProtocol(MorphologyProtocol):
-    __tablename__ = MorphologyGenerationType.experimental.value
+    __tablename__ = MorphologyGenerationType.digital.value #because digital reconstructions use real experiments
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     staining_type: Mapped[StainingType| None] 
@@ -739,13 +739,6 @@ class CellMorphology(ScientificArtifact,
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     
     location: Mapped[PointLocation | None]
-    generation_type: Mapped[MorphologyGenerationType] = mapped_column(
-        Enum(MorphologyGenerationType, name="morphologygenerationtype"),
-        nullable=False,
-        default=MorphologyGenerationType.placeholder,
-        index=True, # Add index for polymorphic loading
-    )
-
 
     # New foreign key for the morphology method
     morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -762,17 +755,6 @@ class CellMorphology(ScientificArtifact,
     # Attributes from DigitalReconstruction
     repair_pipeline_state: Mapped[RepairPipelineType | None]
  
-    # Attributes from ComputationallySynthesized
-
-    #can it be structured, maybe renamed/?
-
-    __mapper_args__ = {
-        "polymorphic_identity": __tablename__,
-        "polymorphic_on": generation_type, # Use generation_type for polymorphic loading
-    }
-    
-
-
 class MeasurementAnnotation(LegacyMixin, Identifiable):
     __tablename__ = "measurement_annotation"
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True, unique=True)

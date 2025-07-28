@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 
 from app.db.types import STRING_LIST

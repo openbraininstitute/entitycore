@@ -760,10 +760,7 @@ class CellMorphology(ScientificArtifact,
 
     #structured jsonb , pydantic typedict
     # Attributes from DigitalReconstruction
-    repair_pipeline_state: Mapped[RepairPipelineType | None] = mapped_column(
-        Enum(RepairPipelineType, name="RepairPipelineType"), 
-        nullable=True,
-    )
+    repair_pipeline_state: Mapped[RepairPipelineType | None]
  
     # Attributes from ComputationallySynthesized
 

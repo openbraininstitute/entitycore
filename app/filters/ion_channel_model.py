@@ -17,7 +17,7 @@ class IonChannelModelFilter(ScientificArtifactFilter):
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
+    class Constants(ScientificArtifactFilter.Constants):
         model = IonChannelModel
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
 

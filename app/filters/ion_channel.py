@@ -1,4 +1,3 @@
-import uuid
 from typing import Annotated
 
 from fastapi_filter import FilterDepends
@@ -24,6 +23,4 @@ class IonChannelFilter(
         ordering_model_fields = ["label"]  # noqa: RUF012
 
 
-IonChannelFilterDep = Annotated[
-    IonChannelFilter, FilterDepends(IonChannelFilter)
-]
+IonChannelFilterDep = Annotated[IonChannelFilter, FilterDepends(IonChannelFilter)]

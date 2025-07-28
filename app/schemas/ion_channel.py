@@ -1,4 +1,3 @@
-import uuid
 
 from pydantic import BaseModel
 
@@ -20,9 +19,7 @@ class IonChannelBase(BaseModel):
     synonyms: STRING_LIST
 
 
-class IonChannelRead(
-    IonChannelBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin
-):
+class IonChannelRead(IonChannelBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin):
     """Read model for ion channel."""
 
 

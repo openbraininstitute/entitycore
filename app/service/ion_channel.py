@@ -44,7 +44,7 @@ def read_one(
 
 def create_one(
     user_context: UserContextWithProjectIdDep,
-    json_model:IonChannelCreate,
+    json_model: IonChannelCreate,
     db: SessionDep,
 ) -> IonChannelRead:
     return router_create_one(

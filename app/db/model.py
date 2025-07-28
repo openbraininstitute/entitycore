@@ -842,6 +842,7 @@ class IonChannel(NameDescriptionVectorMixin, Identifiable):
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
+
 class IonChannelRecording(ElectricalCellRecording):
     __tablename__ = EntityType.ion_channel_recording.value
 

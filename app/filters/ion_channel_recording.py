@@ -2,7 +2,6 @@ from typing import Annotated
 
 from app.db.model import IonChannelRecording
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
 from app.filters.common import (
     NameFilterMixin,
 )
@@ -15,7 +14,7 @@ class IonChannelRecordingFilter(
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
+    class Constants(ScientificArtifactFilter.Constants):
         model = IonChannelRecording
         ordering_model_fields = [  # noqa: RUF012
             "ion_channel",

@@ -2,7 +2,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from app.model import IonChannel
+from app.db.model import IonChannel
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.electrical_cell_recording import (
     ElectricalCellRecordingBase,

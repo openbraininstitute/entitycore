@@ -4,13 +4,9 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
     CreationMixin,
-    EntityTypeMixin,
     IdentifiableMixin,
 )
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
 
 
 class Author(TypedDict):
@@ -31,13 +27,11 @@ class PublicationBase(BaseModel):
     abstract: str | None = None
 
 
-class PublicationCreate(PublicationBase, AuthorizationOptionalPublicMixin):
+class PublicationCreate(PublicationBase):
     pass
 
 
-class NestedPublicationRead(
-    PublicationBase, IdentifiableMixin, AuthorizationMixin, EntityTypeMixin
-):
+class NestedPublicationRead(PublicationBase, IdentifiableMixin):
     pass
 
 
@@ -45,6 +39,5 @@ class PublicationRead(
     NestedPublicationRead,
     CreationMixin,
     CreatedByUpdatedByMixin,
-    ContributionReadWithoutEntityMixin,
 ):
     pass

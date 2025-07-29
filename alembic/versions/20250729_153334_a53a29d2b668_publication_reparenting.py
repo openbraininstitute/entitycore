@@ -1,8 +1,8 @@
 """publication_reparenting
 
-Revision ID: 5c3e9368a524
+Revision ID: a53a29d2b668
 Revises: 6856ab93bd63
-Create Date: 2025-07-29 15:06:21.204112
+Create Date: 2025-07-29 15:33:34.032539
 
 """
 
@@ -18,7 +18,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "5c3e9368a524"
+revision: str = "a53a29d2b668"
 down_revision: Union[str, None] = "6856ab93bd63"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -60,13 +60,7 @@ def upgrade() -> None:
         op.f("ix_publication_updated_by_id"), "publication", ["updated_by_id"], unique=False
     )
     op.create_unique_constraint("uq_publication_doi", "publication", ["DOI"])
-    op.create_foreign_key(
-        op.f("fk_publication_updated_by_id_agent"),
-        "publication",
-        "agent",
-        ["updated_by_id"],
-        ["id"],
-    )
+    op.drop_constraint(op.f("fk_publication_id_entity"), "publication", type_="foreignkey")
     op.create_foreign_key(
         op.f("fk_publication_created_by_id_agent"),
         "publication",
@@ -74,9 +68,16 @@ def upgrade() -> None:
         ["created_by_id"],
         ["id"],
     )
-    op.drop_column("publication", "name")
-    op.drop_column("publication", "description")
+    op.create_foreign_key(
+        op.f("fk_publication_updated_by_id_agent"),
+        "publication",
+        "agent",
+        ["updated_by_id"],
+        ["id"],
+    )
     op.drop_column("publication", "description_vector")
+    op.drop_column("publication", "description")
+    op.drop_column("publication", "name")
     public_publication_publication_description_vector = PGTrigger(
         schema="public",
         signature="publication_description_vector",
@@ -101,21 +102,22 @@ def downgrade() -> None:
     op.create_entity(public_publication_publication_description_vector)
 
     op.add_column(
-        "publication",
-        sa.Column("description_vector", postgresql.TSVECTOR(), autoincrement=False, nullable=True),
+        "publication", sa.Column("name", sa.VARCHAR(), autoincrement=False, nullable=False)
     )
     op.add_column(
         "publication", sa.Column("description", sa.VARCHAR(), autoincrement=False, nullable=False)
     )
     op.add_column(
-        "publication", sa.Column("name", sa.VARCHAR(), autoincrement=False, nullable=False)
-    )
-    op.drop_constraint(
-        op.f("fk_publication_created_by_id_agent"), "publication", type_="foreignkey"
+        "publication",
+        sa.Column("description_vector", postgresql.TSVECTOR(), autoincrement=False, nullable=True),
     )
     op.drop_constraint(
         op.f("fk_publication_updated_by_id_agent"), "publication", type_="foreignkey"
     )
+    op.drop_constraint(
+        op.f("fk_publication_created_by_id_agent"), "publication", type_="foreignkey"
+    )
+    op.create_foreign_key(op.f("fk_publication_id_entity"), "publication", "entity", ["id"], ["id"])
     op.drop_constraint("uq_publication_doi", "publication", type_="unique")
     op.drop_index(op.f("ix_publication_updated_by_id"), table_name="publication")
     op.drop_index(op.f("ix_publication_creation_date"), table_name="publication")

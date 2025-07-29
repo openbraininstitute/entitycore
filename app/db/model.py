@@ -530,7 +530,6 @@ class Publication(Identifiable):
     """
 
     __tablename__ = EntityType.publication.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)

@@ -18,8 +18,6 @@ class Author(TypedDict):
 
 class PublicationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     DOI: str | None = None
     title: str | None = None
     authors: list[Author] | None = None

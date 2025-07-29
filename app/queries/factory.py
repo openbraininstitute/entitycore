@@ -183,7 +183,7 @@ def query_params_factory[I: Identifiable](
         "simulation": lambda q: q.outerjoin(
             simulation_alias, db_model_class.id == simulation_alias.simulation_campaign_id
         ),
-        "simulation.circuit": lambda q: q.outerjoin(
+        "simulation.circuit": lambda q: q.join(
             circuit_alias, simulation_alias.entity_id == circuit_alias.id
         ),
         "used": lambda q: q.outerjoin(

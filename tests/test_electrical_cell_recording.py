@@ -257,18 +257,38 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
 
     recordings = []
     recordings_ids = [0, 1, 1, 1, 2, 2]
-    for i, subject in enumerate(subjects):
+    recording_types = [
+        ElectricalRecordingType.extracellular,
+        ElectricalRecordingType.intracellular,
+        ElectricalRecordingType.both,
+        ElectricalRecordingType.unknown,
+        ElectricalRecordingType.extracellular,
+        ElectricalRecordingType.extracellular,
+    ]
+    recording_origins = [
+        ElectricalRecordingOrigin.in_silico,
+        ElectricalRecordingOrigin.in_vitro,
+        ElectricalRecordingOrigin.in_vivo,
+        ElectricalRecordingOrigin.unknown,
+        ElectricalRecordingOrigin.in_silico,
+        ElectricalRecordingOrigin.in_silico,
+    ]
+    for i, (subject, recordings_id, recording_type, recording_origin) in enumerate(
+        zip(subjects, recordings_ids, recording_types, recording_origins, strict=True)
+    ):
         rec = add_db(
             db,
             ElectricalCellRecording(
                 **electrical_cell_recording_json_data
                 | {
                     "subject_id": str(subject.id),
-                    "name": f"e-{recordings_ids[i]}",
+                    "name": f"e-{recordings_id}",
                     "created_by_id": str(person_id),
                     "updated_by_id": str(person_id),
                     "authorized_project_id": PROJECT_ID,
                     "brain_region_id": brain_regions[i].id,
+                    "recording_type": recording_type,
+                    "recording_origin": recording_origin,
                 }
             ),
         )
@@ -343,14 +363,16 @@ def test_filtering(client, models):
         url=ROUTE,
         params={"recording_type": ElectricalRecordingType.intracellular},
     ).json()["data"]
-    assert len(data) == len(recordings)
+    assert len(data) == 1
+    assert all(d["recording_type"] == ElectricalRecordingType.intracellular for d in data)
 
     data = assert_request(
         client.get,
         url=ROUTE,
         params={"recording_type": ElectricalRecordingType.extracellular},
     ).json()["data"]
-    assert len(data) == 0
+    assert len(data) == 3
+    assert all(d["recording_type"] == ElectricalRecordingType.extracellular for d in data)
 
     data = assert_request(
         client.get,
@@ -362,21 +384,23 @@ def test_filtering(client, models):
             ]
         },
     ).json()["data"]
-    assert len(data) == len(recordings)
+    assert len(data) == 4
 
     data = assert_request(
         client.get,
         url=ROUTE,
         params={"recording_origin": ElectricalRecordingOrigin.in_vivo},
     ).json()["data"]
-    assert len(data) == len(recordings)
+    assert len(data) == 1
+    assert all(d["recording_origin"] == ElectricalRecordingOrigin.in_vivo for d in data)
 
     data = assert_request(
         client.get,
         url=ROUTE,
         params={"recording_origin": ElectricalRecordingOrigin.in_silico},
     ).json()["data"]
-    assert len(data) == 0
+    assert len(data) == 3
+    assert all(d["recording_origin"] == ElectricalRecordingOrigin.in_silico for d in data)
 
     data = assert_request(
         client.get,
@@ -388,7 +412,7 @@ def test_filtering(client, models):
             ]
         },
     ).json()["data"]
-    assert len(data) == len(recordings)
+    assert len(data) == 4
 
 
 def test_sorting(client, models):

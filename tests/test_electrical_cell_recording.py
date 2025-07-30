@@ -12,7 +12,7 @@ from app.db.model import (
     Species,
     Subject,
 )
-from app.db.types import EntityType
+from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType, EntityType
 
 from .utils import (
     PROJECT_ID,
@@ -337,6 +337,58 @@ def test_filtering(client, models):
         params={"name__in": "e-1,e-2"},
     ).json()["data"]
     assert {d["name"] for d in data} == {"e-1", "e-2"}
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"recording_type": ElectricalRecordingType.intracellular},
+    ).json()["data"]
+    assert len(data) == len(recordings)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"recording_type": ElectricalRecordingType.extracellular},
+    ).json()["data"]
+    assert len(data) == 0
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "recording_type__in": [
+                ElectricalRecordingType.intracellular,
+                ElectricalRecordingType.extracellular,
+            ]
+        },
+    ).json()["data"]
+    assert len(data) == len(recordings)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"recording_origin": ElectricalRecordingOrigin.in_vivo},
+    ).json()["data"]
+    assert len(data) == len(recordings)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"recording_origin": ElectricalRecordingOrigin.in_silico},
+    ).json()["data"]
+    assert len(data) == 0
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "recording_origin__in": [
+                ElectricalRecordingOrigin.in_vivo,
+                ElectricalRecordingOrigin.in_silico,
+            ]
+        },
+    ).json()["data"]
+    assert len(data) == len(recordings)
 
 
 def test_sorting(client, models):

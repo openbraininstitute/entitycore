@@ -1069,13 +1069,13 @@ class Asset(Identifiable):
 class METypeDensity(
     NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, MTypesMixin, ETypesMixin, Entity
 ):
-    __tablename__ = EntityType.me_type_density
+    __tablename__ = EntityType.me_type_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.brain_atlas
+    __tablename__ = EntityType.brain_atlas.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1087,7 +1087,7 @@ class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
 
 
 class BrainAtlasRegion(Entity, LocationMixin):
-    __tablename__ = EntityType.brain_atlas_region
+    __tablename__ = EntityType.brain_atlas_region.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1102,7 +1102,7 @@ class BrainAtlasRegion(Entity, LocationMixin):
 
 
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.cell_composition
+    __tablename__ = EntityType.cell_composition.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

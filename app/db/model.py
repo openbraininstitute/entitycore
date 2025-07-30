@@ -516,7 +516,7 @@ class SubjectMixin:
         return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
-class Publication(Entity, NameDescriptionVectorMixin):
+class Publication(Identifiable):
     """Represents a scientific publication entity in the database.
 
     Attributes:
@@ -530,16 +530,13 @@ class Publication(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.publication.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
     publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-    }
+    __table_args__ = (UniqueConstraint("DOI", name="uq_publication_doi"),)
 
 
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):

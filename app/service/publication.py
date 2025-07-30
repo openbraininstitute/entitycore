@@ -8,7 +8,7 @@ from app.db.model import (
     Agent,
     Publication,
 )
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
@@ -34,7 +34,6 @@ def _load(query: sa.Select):
 
 
 def read_one(
-    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
 ) -> PublicationRead:
@@ -42,7 +41,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=Publication,
-        authorized_project_id=user_context.project_id,
+        authorized_project_id=None,
         response_schema_class=PublicationRead,
         apply_operations=_load,
     )
@@ -51,7 +50,7 @@ def read_one(
 def create_one(
     db: SessionDep,
     json_model: PublicationCreate,
-    user_context: UserContextWithProjectIdDep,
+    user_context: AdminContextDep,
 ) -> PublicationRead:
     return router_create_one(
         db=db,
@@ -64,7 +63,6 @@ def create_one(
 
 
 def read_many(
-    user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: PublicationFilterDep,
@@ -112,6 +110,6 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=PublicationRead,
-        authorized_project_id=user_context.project_id,
+        authorized_project_id=None,
         filter_joins=filter_joins,
     )

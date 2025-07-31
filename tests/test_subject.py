@@ -7,6 +7,7 @@ from app.schemas.subject import SubjectCreate
 
 from .utils import (
     PROJECT_ID,
+    add_all_db,
     assert_request,
     check_authorization,
     check_missing,
@@ -118,3 +119,49 @@ def test_schema_constraints(client, json_data):
         json=json_data | {"age_min": 1.0, "age_max": 1.0},
         expected_status_code=422,
     )
+
+
+@pytest.fixture
+def models(db, person_id, species_id):
+    rows = [
+        Subject(
+            sex="female",
+            name=f"my-subject-{i}",
+            description="my-description-{i}",
+            species_id=species_id,
+            age_value=timedelta(days=i + 1),
+            age_period="postnatal",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+            authorized_project_id=PROJECT_ID,
+            creation_date=f"2025-01-01 00:00:{i:02}",
+        )
+        for i in range(5)
+    ]
+    return add_all_db(db, rows)
+
+
+def test_filtering_sorting(client, models):
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req({})
+    assert len(data) == len(models)
+
+    data = req({"name": "my-subject-1"})
+    assert len(data) == 1
+
+    data = req({"name": "my-subject"})
+    assert len(data) == 0
+
+    data = req({"age_value": "2 days"})
+    assert len(data) == 1
+
+    data = req({"age_value": "99 days"})
+    assert len(data) == 0
+
+    data = req({"name__in": ["my-subject-1", "my-subject-2"], "order_by": "creation_date"})
+    assert [d["name"] for d in data] == ["my-subject-1", "my-subject-2"]
+
+    data = req({"name__in": ["my-subject-1", "my-subject-2"], "order_by": "-creation_date"})
+    assert [d["name"] for d in data] == ["my-subject-2", "my-subject-1"]

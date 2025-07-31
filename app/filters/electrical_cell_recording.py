@@ -2,7 +2,6 @@ from typing import Annotated
 
 from app.db.model import ElectricalCellRecording
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
 from app.filters.common import (
     ETypeClassFilterMixin,
     NameFilterMixin,
@@ -17,7 +16,7 @@ class ElectricalCellRecordingFilter(
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
+    class Constants(ScientificArtifactFilter.Constants):
         model = ElectricalCellRecording
         ordering_model_fields = [  # noqa: RUF012
             "creation_date",

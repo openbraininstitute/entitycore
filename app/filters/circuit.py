@@ -3,7 +3,6 @@ from typing import Annotated
 
 from app.db.model import Circuit
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
 from app.filters.common import NameFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
 
@@ -34,7 +33,7 @@ class CircuitFilter(ScientificArtifactFilter, NameFilterMixin):
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
+    class Constants(ScientificArtifactFilter.Constants):
         model = Circuit
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
 

@@ -1,17 +1,25 @@
 import os
 import uuid
 from pathlib import Path
-from typing import IO
+from typing import IO, Protocol
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 
 import boto3
+import botocore.client
 from boto3.s3.transfer import TransferConfig
+from botocore.exceptions import ClientError
 from types_boto3_s3 import S3Client
+from types_boto3_s3.type_defs import PaginatorConfigTypeDef
 
-from app.config import settings
+from app.config import StorageUnion, settings
 from app.db.types import EntityType
 from app.logger import L
+from app.schemas.asset import validate_path
+
+
+class StorageClientFactory(Protocol):
+    def __call__(self, storage: StorageUnion) -> S3Client: ...
 
 
 def build_s3_path(
@@ -25,12 +33,15 @@ def build_s3_path(
 ) -> str:
     """Return the key used to store the file on S3."""
     prefix = "public" if is_public else "private"
-    # TODO: verify if prefix partitioning is needed for better performance
     return f"{prefix}/{vlab_id}/{proj_id}/assets/{entity_type.name}/{entity_id}/{filename}"
 
 
 def validate_filename(filename: str) -> bool:
-    return "/" not in filename
+    try:
+        validate_path(filename)
+    except ValueError:
+        return False
+    return True
 
 
 def sanitize_directory_traversal(filename: str | Path) -> Path:
@@ -41,7 +52,7 @@ def validate_filesize(filesize: int) -> bool:
     return filesize <= settings.API_ASSET_POST_MAX_SIZE
 
 
-def get_s3_client() -> S3Client:
+def get_s3_client(storage: StorageUnion) -> S3Client:
     """Return a new S3 client (not thread-safe).
 
     Boto should get credentials from ~/.aws/credentials or the environment.
@@ -49,10 +60,20 @@ def get_s3_client() -> S3Client:
 
     - AWS_ACCESS_KEY_ID
     - AWS_SECRET_ACCESS_KEY
-    - AWS_DEFAULT_REGION
     - AWS_ENDPOINT_URL
+
+    Implements StorageClientFactory.
+
+    Args:
+        storage: Storage configuration.
     """
-    return boto3.client("s3")
+    if storage.is_open:
+        # For open storage, we use unsigned requests
+        config = botocore.client.Config(signature_version=botocore.UNSIGNED)
+    else:
+        # For internal storage, we use signed requests
+        config = botocore.client.Config()
+    return boto3.client("s3", region_name=storage.region, config=config)
 
 
 def upload_to_s3(
@@ -135,6 +156,7 @@ def list_directory_with_details(
     s3_client: S3Client,
     bucket_name: str,
     prefix: str,
+    pagination_config: PaginatorConfigTypeDef | None = None,
 ) -> dict:
     # with `prefix="foo/asdf" argument will match all `foo/asdf/` and `foo/asdf_asdf/,
     # insure we have a ending / to prevent being promiscuous
@@ -143,7 +165,11 @@ def list_directory_with_details(
 
     paginator = s3_client.get_paginator("list_objects_v2")
     files = {}
-    for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+    for page in paginator.paginate(
+        Bucket=bucket_name,
+        Prefix=prefix,
+        PaginationConfig=pagination_config or {},
+    ):
         if "Contents" not in page:
             continue
         for obj in page["Contents"]:
@@ -155,3 +181,31 @@ def list_directory_with_details(
                 "last_modified": obj["LastModified"],
             }
     return files
+
+
+def check_object(
+    s3_client: S3Client,
+    *,
+    bucket_name: str,
+    s3_key: str,
+    is_directory: bool,
+) -> dict:
+    """Check if an object exists in S3 and return its type."""
+    try:
+        if is_directory:
+            list_directory_with_details(
+                s3_client,
+                bucket_name=bucket_name,
+                prefix=s3_key,
+                pagination_config={"MaxItems": 1, "PageSize": 1},
+            )
+            object_type = "directory"
+        else:
+            s3_client.head_object(Bucket=bucket_name, Key=s3_key)
+            object_type = "file"
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") in {"404", "403"}:
+            # 404 = Not Found, 403 = Access Denied
+            return {"exists": False}
+        raise
+    return {"exists": True, "type": object_type}

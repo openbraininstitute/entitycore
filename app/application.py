@@ -10,6 +10,7 @@ from fastapi import Depends, FastAPI
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -54,7 +55,13 @@ async def api_error_handler(request: Request, exception: ApiError) -> Response:
         error_code=exception.error_code,
         details=exception.details,
     )
-    L.warning("API error in {} {}: {}", request.method, request.url, err_content)
+    L.warning(
+        "API error in {} {}: {}, cause: {}",
+        request.method,
+        request.url,
+        err_content,
+        exception.__cause__,
+    )
     return Response(
         media_type="application/json",
         status_code=int(exception.http_status_code),
@@ -72,10 +79,40 @@ async def validation_exception_handler(
         error_code=ApiErrorCode.INVALID_REQUEST,
         details=details,
     )
-    L.warning("Validation error in {} {}: {}", request.method, request.url, err_content)
+    L.warning(
+        "Validation error in {} {}: {}, cause: {}",
+        request.method,
+        request.url,
+        err_content,
+        exception.__cause__,
+    )
     return Response(
         media_type="application/json",
         status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        content=err_content.model_dump_json(),
+    )
+
+
+async def http_exception_handler(request: Request, exception: StarletteHTTPException) -> Response:
+    """Handle HTTP exceptions to be returned to the client.
+
+    Without this handler, FastAPI would return a JSON error without logging the details.
+    """
+    err_content = ErrorResponse(
+        message="HTTP error",
+        error_code=ApiErrorCode.GENERIC_ERROR,
+        details=exception.detail,
+    )
+    L.warning(
+        "HTTP error in {} {}: {}, cause: {}",
+        request.method,
+        request.url,
+        err_content,
+        exception.__cause__,
+    )
+    return Response(
+        media_type="application/json",
+        status_code=int(exception.status_code),
         content=err_content.model_dump_json(),
     )
 
@@ -88,6 +125,7 @@ app = FastAPI(
     exception_handlers={
         ApiError: api_error_handler,
         RequestValidationError: validation_exception_handler,
+        StarletteHTTPException: http_exception_handler,
     },
     root_path=settings.ROOT_PATH,
 )

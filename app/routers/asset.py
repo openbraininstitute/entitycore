@@ -8,18 +8,25 @@ from typing import Annotated
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from starlette.responses import RedirectResponse
 
-from app.config import settings
-from app.db.types import AssetLabel, ContentType
+from app.config import settings, storages
+from app.db.types import AssetLabel, ContentType, StorageType
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.db import RepoGroupDep
-from app.dependencies.s3 import S3ClientDep
+from app.dependencies.s3 import StorageClientFactoryDep
 from app.errors import ApiError, ApiErrorCode
-from app.schemas.asset import AssetAndPresignedURLS, AssetRead, DetailedFileList, DirectoryUpload
+from app.schemas.asset import (
+    AssetAndPresignedURLS,
+    AssetRead,
+    AssetRegister,
+    DetailedFileList,
+    DirectoryUpload,
+)
 from app.schemas.types import ListResponse, PaginationResponse
 from app.service import asset as asset_service
 from app.utils.files import calculate_sha256_digest, get_content_type
 from app.utils.routers import EntityRoute, entity_route_to_type
 from app.utils.s3 import (
+    check_object,
     delete_from_s3,
     generate_presigned_url,
     sanitize_directory_traversal,
@@ -76,7 +83,7 @@ def upload_entity_asset(
     *,
     repos: RepoGroupDep,
     user_context: UserContextWithProjectIdDep,
-    s3_client: S3ClientDep,
+    storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     file: UploadFile,
@@ -87,6 +94,8 @@ def upload_entity_asset(
 
     To be used only for small files. Use delegation for big files.
     """
+    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+    s3_client = storage_client_factory(storage)
     if not file.size or not validate_filesize(file.size):
         msg = f"File bigger than {settings.API_ASSET_POST_MAX_SIZE}, please use delegation"
         raise ApiError(
@@ -128,14 +137,73 @@ def upload_entity_asset(
         sha256_digest=sha256_digest,
         meta=meta,
         label=label,
+        is_directory=False,
+        storage_type=storage.type,
     )
     if not upload_to_s3(
         s3_client,
         file_obj=file.file,
-        bucket_name=settings.S3_BUCKET_NAME,
+        bucket_name=storage.bucket,
         s3_key=asset_read.full_path,
     ):
         raise HTTPException(status_code=500, detail="Failed to upload object")
+    return asset_read
+
+
+@router.post("/{entity_route}/{entity_id}/assets/register", status_code=status.HTTP_201_CREATED)
+def register_entity_asset(
+    *,
+    repos: RepoGroupDep,
+    user_context: UserContextWithProjectIdDep,
+    storage_client_factory: StorageClientFactoryDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset: AssetRegister,
+) -> AssetRead:
+    """Register an asset already in cloud.
+
+    Only open data storage is supported for now.
+    """
+    storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
+
+    try:
+        check_result = check_object(
+            s3_client,
+            bucket_name=storage.bucket,
+            s3_key=asset.full_path,
+            is_directory=asset.is_directory,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to check object") from e
+
+    if check_result["exists"] is False:
+        raise ApiError(
+            message="Object does not exist in S3",
+            error_code=ApiErrorCode.ASSET_NOT_FOUND,
+            http_status_code=HTTPStatus.CONFLICT,
+            details={
+                "bucket": storage.bucket,
+                "region": storage.region,
+                "s3_key": asset.full_path,
+            },
+        )
+
+    asset_read = asset_service.create_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        filename=asset.path,
+        content_type=asset.content_type,
+        size=-1,  # considered unknown for already existing assets
+        sha256_digest=None,  # considered unknown for already existing assets
+        meta=asset.meta,
+        label=asset.label,
+        is_directory=asset.is_directory,
+        storage_type=storage.type,
+        full_path=asset.full_path,
+    )
     return asset_read
 
 
@@ -143,7 +211,7 @@ def upload_entity_asset(
 def download_entity_asset(
     repos: RepoGroupDep,
     user_context: UserContextDep,
-    s3_client: S3ClientDep,
+    storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -175,10 +243,13 @@ def download_entity_asset(
             )
         full_path = asset.full_path
 
+    storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
+
     url = generate_presigned_url(
         s3_client=s3_client,
         operation="get_object",
-        bucket_name=settings.S3_BUCKET_NAME,
+        bucket_name=storage.bucket,
         s3_key=full_path,
     )
     if not url:
@@ -190,7 +261,7 @@ def download_entity_asset(
 def delete_entity_asset(
     repos: RepoGroupDep,
     user_context: UserContextWithProjectIdDep,
-    s3_client: S3ClientDep,
+    storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -198,7 +269,7 @@ def delete_entity_asset(
     """Delete an assets associated with a specific entity.
 
     The asset record is not deleted from the database, but its status is changed.
-    The file is actually deleted from S3, unless using a versioning-enabled bucket.
+    The file is actually deleted from S3, unless it's stored in open data storage.
     """
     asset = asset_service.delete_entity_asset(
         repos,
@@ -207,8 +278,12 @@ def delete_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    if not delete_from_s3(s3_client, bucket_name=settings.S3_BUCKET_NAME, s3_key=asset.full_path):
-        raise HTTPException(status_code=500, detail="Failed to delete object")
+    storage = storages[asset.storage_type]
+    # delete the file from S3 only if not using an open data storage
+    if not storage.is_open:
+        s3_client = storage_client_factory(storage)
+        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=asset.full_path):
+            raise HTTPException(status_code=500, detail="Failed to delete object")
     return AssetRead.model_validate(asset)
 
 
@@ -216,12 +291,14 @@ def delete_entity_asset(
 def entity_asset_directory_upload(
     repos: RepoGroupDep,
     user_context: UserContextWithProjectIdDep,
-    s3_client: S3ClientDep,
+    storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     files: DirectoryUpload,
 ) -> AssetAndPresignedURLS:
     """Given a list of full paths, return a dictionary of presigned URLS for uploading."""
+    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+    s3_client = storage_client_factory(storage)
     if not files.directory_name or not validate_filename(str(files.directory_name)):
         msg = f"Invalid directory_name {files.directory_name!r}"
         raise ApiError(
@@ -235,6 +312,7 @@ def entity_asset_directory_upload(
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         s3_client=s3_client,
+        storage=storage,
         files=files,
     )
     return AssetAndPresignedURLS.model_validate({"asset": model.model_dump(), "files": urls})
@@ -244,18 +322,18 @@ def entity_asset_directory_upload(
 def entity_asset_directory_list(
     repos: RepoGroupDep,
     user_context: UserContextWithProjectIdDep,
-    s3_client: S3ClientDep,
+    storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
 ) -> DetailedFileList:
-    """."""
+    """Return the list of files in a directory asset."""
     files = asset_service.list_directory(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
-        s3_client=s3_client,
+        storage_client_factory=storage_client_factory,
         asset_id=asset_id,
     )
     return files

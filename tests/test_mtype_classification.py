@@ -66,7 +66,7 @@ def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, j
     data = assert_request(
         client_user_1.post, url=ROUTE, json=json_data, expected_status_code=403
     ).json()
-    assert data["detail"] == f"Cannot access entity {unauthorized_morph_id}"
+    assert data["details"] == f"Cannot access entity {unauthorized_morph_id}"
 
 
 @pytest.fixture
@@ -98,4 +98,6 @@ def test_do_not_allow_private_classification(client, db, person_id, public_morph
         },
         expected_status_code=400,
     ).json()
-    assert data["detail"] == "Private classifications are not supported. Use authorized_public=True"
+    assert (
+        data["details"] == "Private classifications are not supported. Use authorized_public=True"
+    )

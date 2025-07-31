@@ -1,6 +1,10 @@
+from typing import Literal
+
 from pydantic import PostgresDsn, field_validator
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.db.types import StorageType
 
 
 class Settings(BaseSettings):
@@ -35,13 +39,12 @@ class Settings(BaseSettings):
     LOG_CATCH: bool = True
     LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO"}
 
-    KEYCLOAK_URL: str = "https://example.openbluebrain.com/auth/realms/SBO"
+    KEYCLOAK_URL: str = "https://example.openbraininstitute.org/auth/realms/SBO"
     AUTH_CACHE_MAXSIZE: int = 128  # items
     AUTH_CACHE_MAX_TTL: int = 300  # seconds
     AUTH_CACHE_INFO: bool = False
 
     S3_PRESIGNED_URL_NETLOC: str | None = None  # to override the presigned url hostname and port
-    S3_BUCKET_NAME: str = "entitycore-data-dev"
     S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value
     S3_PRESIGNED_URL_EXPIRATION: int = 600  # seconds  # TODO: decide an appropriate value
 
@@ -77,4 +80,31 @@ class Settings(BaseSettings):
         return dsn.unicode_string()
 
 
+class AWSS3InternalConfig(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="aws_s3_internal_",
+    )
+    type: Literal[StorageType.aws_s3_internal] = StorageType.aws_s3_internal
+    bucket: str = "entitycore-data-dev"
+    region: str = "us-east-1"
+    is_open: bool = False
+
+
+class AWSS3OpenConfig(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="aws_s3_open_",
+    )
+    type: Literal[StorageType.aws_s3_open] = StorageType.aws_s3_open
+    bucket: str = "openbluebrain"
+    region: str = "us-west-2"
+    is_open: bool = True
+
+
+StorageUnion = AWSS3InternalConfig | AWSS3OpenConfig
+
+
 settings = Settings()
+storages: dict[StorageType, StorageUnion] = {
+    StorageType.aws_s3_internal: AWSS3InternalConfig(),
+    StorageType.aws_s3_open: AWSS3OpenConfig(),
+}

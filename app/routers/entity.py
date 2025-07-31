@@ -3,11 +3,10 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Request
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi import APIRouter, Query
 
 from app.db.utils import EntityTypeWithBrainRegion
-from app.dependencies.auth import AuthHeader, UserContextDep
+from app.dependencies.auth import UserContextDep
 from app.dependencies.common import InBrainRegionDep
 from app.dependencies.db import SessionDep
 from app.schemas.entity import EntityCountRead, EntityRead
@@ -43,8 +42,7 @@ def count_entities_by_type(
 @router.get("/{id_}")
 def read_one(
     id_: UUID,
+    user_context: UserContextDep,
     db: SessionDep,
-    token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
-    request: Request,
 ) -> EntityRead | None:
-    return entity_service.read_one(id_, db, token, request)
+    return entity_service.read_one(id_, db, user_context)

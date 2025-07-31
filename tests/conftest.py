@@ -186,7 +186,7 @@ def _override_check_user_info(
         (TOKEN_USER_1, UUID(UNRELATED_PROJECT_ID)): unauthorized_user_context,
     }
 
-    def mock_check_user_info(*, project_context, token, http_client, find_vlab_id):  # noqa: ARG001
+    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
         return mapping[token.credentials, project_context.project_id]
 
     monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)

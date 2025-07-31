@@ -1,8 +1,6 @@
 import uuid
 
 import sqlalchemy as sa
-from fastapi import Request
-from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 import app.queries.entity
@@ -13,15 +11,11 @@ from app.db.utils import (
     ENTITY_TYPE_TO_CLASS,
     EntityTypeWithBrainRegion,
 )
-from app.dependencies.auth import check_user_info
 from app.dependencies.common import InBrainRegionDep
-from app.errors import (
-    ensure_result,
-)
+from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.brain_region import get_family_query
 from app.repository.group import RepositoryGroup
 from app.schemas.auth import UserContext, UserContextWithProjectId
-from app.schemas.base import OptionalProjectContext
 from app.schemas.entity import EntityCountRead, EntityRead
 
 
@@ -125,25 +119,21 @@ def count_entities_by_type(
 def read_one(
     id_: uuid.UUID,
     db: Session,
-    token: HTTPAuthorizationCredentials | None,
-    request: Request,
+    user_context: UserContext,
 ) -> EntityRead | None:
     with ensure_result(f"Entity {id_} not found or forbidden"):
         query = sa.select(Entity).where(Entity.id == id_)
         row = db.execute(query).unique().scalar_one()
-        if row.authorized_public:
-            return EntityRead.model_validate(row)
+        validated_entity = EntityRead.model_validate(row)
 
-        user_context = token and check_user_info(
-            OptionalProjectContext(project_id=row.authorized_project_id),
-            token,
-            request,
-            find_vlab_id=True,
-        )
+        if (
+            validated_entity.authorized_public
+            or validated_entity.authorized_project_id in user_context.user_project_ids
+        ):
+            return validated_entity
 
-        if user_context and user_context.is_authorized:
-            entity = EntityRead.model_validate(row)
-            entity.virtual_lab_id = user_context.virtual_lab_id
-            return entity
-
-    return None
+    raise ApiError(
+        message=f"Entity {id_} not found or forbidden",
+        error_code=ApiErrorCode.ENTITY_NOT_FOUND,
+        http_status_code=404,
+    )

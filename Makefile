@@ -116,6 +116,7 @@ migration:  ## Create or update the alembic migration
 	uv run -m alembic upgrade head
 	uv run -m alembic revision --autogenerate -m "$(MESSAGE)"
 	uv run -m alembic -x register_triggers="true" revision --autogenerate -m "Update triggers"
+	uv run ./scripts/export/write_scripts.py # update export scripts if needed
 
 dump:  ## Dump the local database to file
 	docker compose up --wait db

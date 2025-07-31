@@ -127,11 +127,14 @@ def _check_user_info(
         )
 
     user_info_response = deserialize_response(response, model_class=UserInfoResponse)
+
     is_authorized = user_info_response.is_authorized_for(
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
     )
+
     is_service_admin = user_info_response.is_service_admin(settings.APP_NAME)
+
     user_context = UserContext(
         profile=UserProfile.from_user_info(user_info_response),
         expiration=decoded.exp if decoded else None,
@@ -140,6 +143,7 @@ def _check_user_info(
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
         auth_error_reason=AuthErrorReason.NOT_AUTHORIZED_PROJECT if not is_authorized else None,
+        user_project_ids=user_info_response.user_project_ids(),
     )
 
     if not user_context.is_authorized:

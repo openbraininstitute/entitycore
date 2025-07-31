@@ -1,4 +1,5 @@
 from app.db.model import IonChannelModel
+from app.schemas.morphology import ReconstructionMorphologyRead
 
 from .utils import (
     PROJECT_ID,
@@ -9,6 +10,79 @@ from .utils import (
 )
 
 ROUTE = "/entity"
+
+
+def test_get_entity(client, brain_region_id, species_id, strain_id, license_id):
+    morph = assert_request(
+        client.post,
+        url="/reconstruction-morphology",
+        json={
+            "brain_region_id": str(brain_region_id),
+            "species_id": str(species_id),
+            "strain_id": str(strain_id),
+            "description": "Test morph",
+            "name": "Test morph",
+            "location": {"x": 10, "y": 20, "z": 30},
+            "legacy_id": ["Test Legacy ID"],
+            "license_id": str(license_id),
+        },
+    ).json()
+
+    data = assert_request(client.get, url=f"{ROUTE}/{morph['id']}").json()
+
+    assert data["type"] == "reconstruction_morphology"
+
+
+def test_get_entity_no_auth(
+    client, client_user_2, brain_region_id, species_id, strain_id, license_id
+):
+    morph = assert_request(
+        client_user_2.post,
+        url="/reconstruction-morphology",
+        json={
+            "brain_region_id": str(brain_region_id),
+            "species_id": str(species_id),
+            "strain_id": str(strain_id),
+            "description": "Test morph",
+            "name": "Test morph",
+            "location": {"x": 10, "y": 20, "z": 30},
+            "legacy_id": ["Test Legacy ID"],
+            "license_id": str(license_id),
+        },
+    ).json()
+
+    res = client.get(url=f"{ROUTE}/{morph['id']}")
+
+    assert res.status_code == 404
+
+
+def test_public_unrelated_project_accessible(
+    client, client_user_2, brain_region_id, species_id, strain_id, license_id
+):
+    morph = assert_request(
+        client_user_2.post,
+        url="/reconstruction-morphology",
+        json={
+            "authorized_public": True,
+            "brain_region_id": str(brain_region_id),
+            "species_id": str(species_id),
+            "strain_id": str(strain_id),
+            "description": "Test morph",
+            "name": "Test morph",
+            "location": {"x": 10, "y": 20, "z": 30},
+            "legacy_id": ["Test Legacy ID"],
+            "license_id": str(license_id),
+        },
+    ).json()
+
+    data = assert_request(client.get, url=f"{ROUTE}/{morph['id']}").json()
+    assert data["type"] == "reconstruction_morphology"
+
+    morph_detail = assert_request(
+        client.get, url=f"/reconstruction-morphology/{morph['id']}"
+    ).json()
+
+    assert ReconstructionMorphologyRead.model_validate(morph_detail)
 
 
 def test_count_entities_validation_errors(client):

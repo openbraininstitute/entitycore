@@ -96,6 +96,7 @@ def test_user_verified_ok(httpx_mock, request_mock, is_admin, is_token_jwt, proj
         is_service_admin=is_admin,
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
+        user_project_ids=[uuid.UUID(PROJECT_ID)],
     )
 
 

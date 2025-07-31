@@ -1,3 +1,4 @@
+import re
 from typing import Self
 from uuid import UUID
 
@@ -105,6 +106,19 @@ class UserInfoResponse(UserInfoBase):
                     ]
                 )
 
+    def user_project_ids(self) -> list[UUID]:
+        """Return the the list if project_ids the user is authorized for."""
+        pattern = r"/proj/[0-9a-fA-F-]+/([0-9a-fA-F-]+)/(admin|member)"
+
+        project_ids: list[UUID] = []
+
+        for s in self.groups:
+            match = re.search(pattern, s)
+            if match:
+                project_ids.append(UUID(match.group(1)))
+
+        return project_ids
+
 
 class UserProfile(BaseModel):
     """User profile representing a keycloak user."""
@@ -145,6 +159,7 @@ class UserContext(UserContextBase):
 
     virtual_lab_id: UUID | None = None
     project_id: UUID | None = None
+    user_project_ids: list[UUID] = []
 
 
 class UserContextWithProjectId(UserContextBase):

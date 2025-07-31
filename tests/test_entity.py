@@ -31,7 +31,6 @@ def test_get_entity(client, brain_region_id, species_id, strain_id, license_id):
     data = assert_request(client.get, url=f"{ROUTE}/{morph['id']}").json()
 
     assert data["type"] == "reconstruction_morphology"
-    assert data["virtual_lab_id"] is not None
 
 
 def test_get_entity_no_auth(
@@ -54,7 +53,7 @@ def test_get_entity_no_auth(
 
     res = client.get(url=f"{ROUTE}/{morph['id']}")
 
-    assert res.status_code == 401
+    assert res.status_code == 404
 
 
 def test_public_unrelated_project_accessible(

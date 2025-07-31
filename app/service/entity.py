@@ -120,7 +120,7 @@ def read_one(
     id_: uuid.UUID,
     db: Session,
     user_context: UserContext,
-) -> EntityRead | None:
+) -> EntityRead:
     with ensure_result(f"Entity {id_} not found or forbidden"):
         query = sa.select(Entity).where(Entity.id == id_)
         row = db.execute(query).unique().scalar_one()

@@ -44,5 +44,5 @@ def read_one(
     id_: UUID,
     user_context: UserContextDep,
     db: SessionDep,
-) -> EntityRead | None:
+) -> EntityRead:
     return entity_service.read_one(id_, db, user_context)

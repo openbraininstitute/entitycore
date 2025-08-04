@@ -521,7 +521,7 @@ class Publication(Identifiable):
 
     Attributes:
         id (uuid.UUID): Primary key, references the base entity ID.
-        DOI (str | None): Digital Object Identifier for the publication, if available.
+        DOI (str): Digital Object Identifier for the publication.
         title (str | None): Title of the publication.
         authors (list[Author] | None): List of authors associated with the publication.
         publication_year (int | None): Year the publication was released.
@@ -530,13 +530,13 @@ class Publication(Identifiable):
     """
 
     __tablename__ = EntityType.publication.value
-    DOI: Mapped[str] = mapped_column(String, index=True)
+    DOI: Mapped[str] = mapped_column(String)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
     publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    __table_args__ = (UniqueConstraint("DOI", name="uq_publication_doi"),)
+    __table_args__ = (Index("ix_publication_doi_normalized", func.lower(DOI), unique=True),)
 
 
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):

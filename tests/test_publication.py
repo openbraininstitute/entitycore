@@ -44,6 +44,15 @@ def test_create_one(client_admin, json_data):
 
 
 def test_create_one__doi_validation(client_admin, json_data):
+    # should not allow registering a publication without a DOI
+    data = assert_request(
+        client_admin.post,
+        url=ROUTE,
+        json={k: v for k, v in json_data.items() if k != "DOI"},
+        expected_status_code=422,
+    ).json()
+    assert data["message"] == "Validation error"
+
     valid_dois = [
         "10.1080/10509585.2015.1092083",
         "10.1038/s41586-020-2649-2",
@@ -56,7 +65,7 @@ def test_create_one__doi_validation(client_admin, json_data):
 
     for doi in valid_dois:
         data = assert_request(client_admin.post, url=ROUTE, json=json_data | {"DOI": doi}).json()
-        assert data["DOI"] == doi.lower()
+        assert data["DOI"] == doi
 
     invalid_dois = [
         "10.1000/",
@@ -70,6 +79,13 @@ def test_create_one__doi_validation(client_admin, json_data):
             client_admin.post, url=ROUTE, json=json_data | {"DOI": doi}, expected_status_code=422
         ).json()
         assert data["message"] == "Validation error"
+
+    # duplicate should not be registered regardless of the case
+    doi = "10.5281/ZENODO.3477281"
+    data = assert_request(
+        client_admin.post, url=ROUTE, json=json_data | {"DOI": doi}, expected_status_code=409
+    ).json()
+    assert data["error_code"] == "ENTITY_DUPLICATED"
 
 
 def test_read_one(client, model_id, json_data):

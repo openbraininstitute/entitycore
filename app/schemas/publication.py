@@ -7,7 +7,7 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
-from app.utils.doi import is_doi, normalize_doi
+from app.utils.doi import is_doi
 
 
 class Author(TypedDict):
@@ -29,15 +29,12 @@ class PublicationBase(BaseModel):
 class PublicationCreate(PublicationBase):
     @field_validator("DOI", mode="before")
     @classmethod
-    def validate_doi(cls, value: str | None):
+    def validate_doi(cls, value: str):
         """Check if DOI is valid and return it normalized."""
-        if value is None:
-            return value
-
         if not is_doi(value):
             return ValueError(f"Invalid DOI format: {value}")
 
-        return normalize_doi(value)
+        return value
 
 
 class NestedPublicationRead(PublicationBase, IdentifiableMixin):

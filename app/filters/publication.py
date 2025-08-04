@@ -5,19 +5,19 @@ from fastapi_filter import with_prefix
 from app.db.model import Publication
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import EntityFilterMixin, IdFilterMixin, NameFilterMixin
+from app.filters.common import EntityFilterMixin, IdFilterMixin
 
 
 class NestedPublicationFilter(
     IdFilterMixin,
     CustomFilter,
-    NameFilterMixin,
 ):
     DOI: str | None = None
     publication_year: int | None = None
     publication_year__in: list[int] | None = None
     publication_year__lte: int | None = None
     publication_year__gte: int | None = None
+    title: str | None = None
 
     class Constants(CustomFilter.Constants):
         model = Publication
@@ -35,6 +35,7 @@ class PublicationFilter(
             "update_date",
             "name",
             "publication_year",
+            "title",
         ]
 
 

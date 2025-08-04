@@ -516,12 +516,12 @@ class SubjectMixin:
         return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
-class Publication(Entity, NameDescriptionVectorMixin):
+class Publication(Identifiable):
     """Represents a scientific publication entity in the database.
 
     Attributes:
         id (uuid.UUID): Primary key, references the base entity ID.
-        DOI (str | None): Digital Object Identifier for the publication, if available.
+        DOI (str): Digital Object Identifier for the publication.
         title (str | None): Title of the publication.
         authors (list[Author] | None): List of authors associated with the publication.
         publication_year (int | None): Year the publication was released.
@@ -530,16 +530,13 @@ class Publication(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.publication.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    DOI: Mapped[str] = mapped_column(String)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
     publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-    }
+    __table_args__ = (Index("ix_publication_doi_normalized", func.lower(DOI), unique=True),)
 
 
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):

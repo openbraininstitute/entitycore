@@ -67,7 +67,7 @@ def test_authorization(
     client_user_2,
     json_data,
     root_circuit_json_data,
-    publication_json_data,
+    publication,
 ):
     circuit_1 = assert_request(
         client_user_1.post,
@@ -79,16 +79,6 @@ def test_authorization(
         url="/circuit",
         json=root_circuit_json_data,
     ).json()
-    publication_1 = assert_request(
-        client_user_1.post,
-        url="/publication",
-        json=publication_json_data,
-    ).json()
-    publication_2 = assert_request(
-        client_user_2.post,
-        url="/publication",
-        json=publication_json_data,
-    ).json()
 
     # user 1 creates link between accessible entities
     data = assert_request(
@@ -96,7 +86,7 @@ def test_authorization(
         url=ROUTE,
         json=json_data
         | {
-            "publication_id": publication_1["id"],
+            "publication_id": str(publication.id),
             "scientific_artifact_id": circuit_1["id"],
         },
     ).json()
@@ -112,31 +102,7 @@ def test_authorization(
         url=ROUTE,
         json=json_data
         | {
-            "publication_id": publication_1["id"],
-            "scientific_artifact_id": circuit_2["id"],
-        },
-        expected_status_code=404,
-    ).json()
-
-    # user 1 creates link between accessible circuit and inaccessible publication
-    data = assert_request(
-        client_user_1.post,
-        url=ROUTE,
-        json=json_data
-        | {
-            "publication_id": publication_2["id"],
-            "scientific_artifact_id": circuit_1["id"],
-        },
-        expected_status_code=404,
-    ).json()
-
-    # user 1 links two inaccessible entities
-    data = assert_request(
-        client_user_1.post,
-        url=ROUTE,
-        json=json_data
-        | {
-            "publication_id": publication_2["id"],
+            "publication_id": str(publication.id),
             "scientific_artifact_id": circuit_2["id"],
         },
         expected_status_code=404,
@@ -148,7 +114,7 @@ def test_authorization(
         url=ROUTE,
         json=json_data
         | {
-            "publication_id": publication_2["id"],
+            "publication_id": str(publication.id),
             "scientific_artifact_id": circuit_2["id"],
         },
     ).json()

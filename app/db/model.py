@@ -530,7 +530,7 @@ class Publication(Identifiable):
     """
 
     __tablename__ = EntityType.publication.value
-    DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    DOI: Mapped[str] = mapped_column(String, index=True)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
     publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)

@@ -66,20 +66,6 @@ def _load_with_eager(query: sa.Select, aliases):
     )
 
 
-def _constrain_to_accessible_artifact_publication(
-    query, project_id, artifact_class, publication_class
-):
-    return constrain_to_accessible_entities(
-        constrain_to_accessible_entities(
-            query,
-            project_id,
-            db_model_class=artifact_class,
-        ),
-        project_id,
-        db_model_class=publication_class,
-    )
-
-
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,

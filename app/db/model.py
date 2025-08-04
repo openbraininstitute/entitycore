@@ -846,7 +846,15 @@ class IonChannel(NameDescriptionVectorMixin, Identifiable):
 class IonChannelRecording(ElectricalCellRecording):
     __tablename__ = EntityType.ion_channel_recording.value
 
-    ion_channel: Mapped[IonChannel]
+    ion_channel_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ion_channel.id"),
+        index=True,
+    )
+    ion_channel: Mapped[IonChannel] = relationship(
+        "IonChannel",
+        uselist=False,
+        foreign_keys=[ion_channel_id],
+    )
     cell_line: Mapped[str]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

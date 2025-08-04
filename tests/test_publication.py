@@ -43,6 +43,35 @@ def test_create_one(client_admin, json_data):
     _assert_read_response(data, json_data)
 
 
+def test_create_one__doi_validation(client_admin, json_data):
+    valid_dois = [
+        "10.1080/10509585.2015.1092083",
+        "10.1038/s41586-020-2649-2",
+        "10.1016/B978-0-12-814141-0.00003-4",
+        "10.5061/dryad.q447c/1",
+        "10.6028/NIST.SP.800-53r5",
+        "10.5281/zenodo.3477281",
+        "10.1101/2020.01.01.123456",
+    ]
+
+    for doi in valid_dois:
+        data = assert_request(client_admin.post, url=ROUTE, json=json_data | {"DOI": doi}).json()
+        assert data["DOI"] == doi.lower()
+
+    invalid_dois = [
+        "10.1000/",
+        "11.1038/s41586-020-2649-2",
+        "10.1000/abc def",
+        "10.1000/abc@def",
+    ]
+
+    for doi in invalid_dois:
+        data = assert_request(
+            client_admin.post, url=ROUTE, json=json_data | {"DOI": doi}, expected_status_code=422
+        ).json()
+        assert data["message"] == "Validation error"
+
+
 def test_read_one(client, model_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)

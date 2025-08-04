@@ -1049,7 +1049,7 @@ def simulation_result(db, simulation_result_json_data, person_id):
 @pytest.fixture
 def publication_json_data():
     return {
-        "DOI": "my-doi",
+        "DOI": "10.1080/10509585.2015.1092083",
         "title": "my-title",
         "authors": [
             {

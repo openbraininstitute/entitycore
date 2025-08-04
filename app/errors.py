@@ -157,4 +157,4 @@ def ensure_valid_schema(
             error_code=error_code,
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             details=[e["msg"] for e in err.errors()],
-        ) from err
+        ) from None  # do not include the original exception because the wrapper is sufficient

@@ -54,13 +54,15 @@ from app.db.types import (
     MeasurementUnit,
     PointLocation,
     PointLocationType,
+    PublicationType,
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
+    StorageType,
     StructuralDomain,
     ValidationStatus,
 )
-from app.schemas.publication import Author, PublicationType
+from app.schemas.publication import Author
 from app.utils.uuid import create_uuid
 
 
@@ -1071,6 +1073,7 @@ class Asset(Identifiable):
     meta: Mapped[JSON_DICT]  # not used yet. can be useful?
     label: Mapped[AssetLabel]
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    storage_type: Mapped[StorageType]
 
     # partial unique index
     __table_args__ = (
@@ -1080,19 +1083,26 @@ class Asset(Identifiable):
             unique=True,
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
+        Index(
+            "uq_asset_entity_id_path",
+            "path",
+            "entity_id",
+            unique=True,
+            postgresql_where=(status != AssetStatus.DELETED.name),
+        ),
     )
 
 
 class METypeDensity(
     NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, MTypesMixin, ETypesMixin, Entity
 ):
-    __tablename__ = EntityType.me_type_density
+    __tablename__ = EntityType.me_type_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.brain_atlas
+    __tablename__ = EntityType.brain_atlas.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1104,7 +1114,7 @@ class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
 
 
 class BrainAtlasRegion(Entity, LocationMixin):
-    __tablename__ = EntityType.brain_atlas_region
+    __tablename__ = EntityType.brain_atlas_region.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1119,7 +1129,7 @@ class BrainAtlasRegion(Entity, LocationMixin):
 
 
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.cell_composition
+    __tablename__ = EntityType.cell_composition.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

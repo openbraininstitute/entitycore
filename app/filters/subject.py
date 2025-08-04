@@ -40,6 +40,7 @@ class SubjectFilter(
     SpeciesFilterMixin,
     CreationFilterMixin,
     CreatorFilterMixin,
+    NameFilterMixin,
     CustomFilter,
 ):
     age_value: timedelta | None = None

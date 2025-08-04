@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from app.db.model import ElectricalCellRecording
+from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
 from app.filters.common import (
     ETypeClassFilterMixin,
     NameFilterMixin,
@@ -15,9 +15,14 @@ class ElectricalCellRecordingFilter(
     NameFilterMixin,
     ETypeClassFilterMixin,
 ):
+    recording_type: ElectricalRecordingType | None = None
+    recording_type__in: list[ElectricalRecordingType] | None = None
+    recording_origin: ElectricalRecordingOrigin | None = None
+    recording_origin__in: list[ElectricalRecordingOrigin] | None = None
+
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
+    class Constants(ScientificArtifactFilter.Constants):
         model = ElectricalCellRecording
         ordering_model_fields = [  # noqa: RUF012
             "creation_date",

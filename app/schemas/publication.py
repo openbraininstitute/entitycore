@@ -1,4 +1,3 @@
-from enum import StrEnum, auto
 from typing import TypedDict
 
 from pydantic import BaseModel, ConfigDict
@@ -12,19 +11,6 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
-
-
-class PublicationType(StrEnum):
-    """The type of of the relation between publication and a scientific artifact.
-
-    entity_source: The artefact is published with this publication.
-    component_source: The publication is used to generate the artifact.
-    application: The publication uses the artifact.
-    """
-
-    entity_source = auto()
-    component_source = auto()
-    application = auto()
 
 
 class Author(TypedDict):
@@ -49,12 +35,15 @@ class PublicationCreate(PublicationBase, AuthorizationOptionalPublicMixin):
     pass
 
 
+class NestedPublicationRead(
+    PublicationBase, IdentifiableMixin, AuthorizationMixin, EntityTypeMixin
+):
+    pass
+
+
 class PublicationRead(
-    PublicationBase,
+    NestedPublicationRead,
     CreationMixin,
-    IdentifiableMixin,
-    AuthorizationMixin,
-    EntityTypeMixin,
     CreatedByUpdatedByMixin,
     ContributionReadWithoutEntityMixin,
 ):

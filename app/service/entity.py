@@ -12,7 +12,7 @@ from app.db.utils import (
     EntityTypeWithBrainRegion,
 )
 from app.dependencies.common import InBrainRegionDep
-from app.errors import ApiError, ApiErrorCode, ensure_result
+from app.errors import ensure_result
 from app.filters.brain_region import get_family_query
 from app.repository.group import RepositoryGroup
 from app.schemas.auth import UserContext, UserContextWithProjectId
@@ -122,18 +122,12 @@ def read_one(
     user_context: UserContext,
 ) -> EntityRead:
     with ensure_result(f"Entity {id_} not found or forbidden"):
-        query = sa.select(Entity).where(Entity.id == id_)
+        query = sa.select(Entity).where(
+            Entity.id == id_,
+            sa.or_(
+                Entity.authorized_public.is_(True),
+                Entity.authorized_project_id.in_(user_context.user_project_ids),
+            ),
+        )
         row = db.execute(query).unique().scalar_one()
-        validated_entity = EntityRead.model_validate(row)
-
-        if (
-            validated_entity.authorized_public
-            or validated_entity.authorized_project_id in user_context.user_project_ids
-        ):
-            return validated_entity
-
-    raise ApiError(
-        message=f"Entity {id_} not found or forbidden",
-        error_code=ApiErrorCode.ENTITY_NOT_FOUND,
-        http_status_code=404,
-    )
+        return EntityRead.model_validate(row)

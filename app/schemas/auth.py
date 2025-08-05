@@ -110,14 +110,14 @@ class UserInfoResponse(UserInfoBase):
         """Return the the list if project_ids the user is authorized for."""
         pattern = r"/proj/[0-9a-fA-F-]+/([0-9a-fA-F-]+)/(admin|member)"
 
-        project_ids: list[UUID] = []
+        project_ids: set[UUID] = set()
 
         for s in self.groups:
-            match = re.search(pattern, s)
+            match = re.match(pattern, s)
             if match:
-                project_ids.append(UUID(match.group(1)))
+                project_ids.add(UUID(match.group(1)))
 
-        return project_ids
+        return list(project_ids)
 
 
 class UserProfile(BaseModel):

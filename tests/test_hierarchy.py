@@ -7,7 +7,7 @@ from app.db.types import CircuitBuildCategory, CircuitScale, DerivationType
 
 from tests.utils import PROJECT_ID, UNRELATED_PROJECT_ID, add_all_db, add_db, assert_request
 
-ROUTE = "/circuit-hierarchy"
+ROUTE = "/hierarchy/circuit"
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def root_circuits(db, root_circuit_json_data, person_id):
 
 
 @pytest.fixture
-def models(db, circuit_json_data, person_id, root_circuit):
+def models(db, circuit_json_data, person_id, root_circuits):
     booleans = [True, False] * 4
     scales = (
         [
@@ -46,9 +46,7 @@ def models(db, circuit_json_data, person_id, root_circuit):
         CircuitBuildCategory.em_reconstruction,
     ] * 4
     project_ids = [PROJECT_ID] * 6 + [UNRELATED_PROJECT_ID] * 2
-    # in these tests, root_circuit_id is checked only for null/not null,
-    # so it doesn't need to be set to the actual root
-    root_circuit_id = root_circuit.id
+    root_circuit_ids = [root_circuits[i].id for i in [0, 0, 0, 0, 0, 1, 1, 2]]
     rows = [
         Circuit(
             **(
@@ -73,8 +71,8 @@ def models(db, circuit_json_data, person_id, root_circuit):
                 }
             )
         )
-        for i, (bool_value, scale, category, project_id) in enumerate(
-            zip(booleans, scales, categories, project_ids, strict=True)
+        for i, (bool_value, scale, category, project_id, root_circuit_id) in enumerate(
+            zip(booleans, scales, categories, project_ids, root_circuit_ids, strict=True)
         )
     ]
     return add_all_db(db, rows)
@@ -98,19 +96,19 @@ def hierarchy(db, root_circuits, models):
 
         R
     """
-    R = root_circuits
-    C = models
-    D0 = partial(Derivation, derivation_type=DerivationType.circuit_extraction)
-    D1 = partial(Derivation, derivation_type=DerivationType.circuit_rewiring)
+    r = root_circuits
+    c = models
+    d0 = partial(Derivation, derivation_type=DerivationType.circuit_extraction)
+    d1 = partial(Derivation, derivation_type=DerivationType.circuit_rewiring)
     derivations = [
-        D0(used_id=R[0].id, generated_id=C[0].id),
-        D0(used_id=C[0].id, generated_id=C[1].id),
-        D1(used_id=C[0].id, generated_id=C[2].id),
-        D1(used_id=R[0].id, generated_id=C[3].id),
-        D0(used_id=C[3].id, generated_id=C[4].id),
-        D0(used_id=R[1].id, generated_id=C[5].id),
-        D0(used_id=C[5].id, generated_id=C[6].id),
-        D1(used_id=R[2].id, generated_id=C[7].id),
+        d0(used_id=r[0].id, generated_id=c[0].id),
+        d0(used_id=c[0].id, generated_id=c[1].id),
+        d1(used_id=c[0].id, generated_id=c[2].id),
+        d1(used_id=r[0].id, generated_id=c[3].id),
+        d0(used_id=c[3].id, generated_id=c[4].id),
+        d0(used_id=r[1].id, generated_id=c[5].id),
+        d0(used_id=c[5].id, generated_id=c[6].id),
+        d1(used_id=r[2].id, generated_id=c[7].id),
     ]
     return add_all_db(db, derivations)
 
@@ -235,4 +233,4 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
         ),
     )
     response = assert_request(client_user_1.get, url=ROUTE, expected_status_code=500).json()
-    assert response["details"] == "Inconsistent circuit hierarchy."
+    assert response["details"] == "Inconsistent hierarchy."

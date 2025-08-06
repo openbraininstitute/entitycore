@@ -7,13 +7,13 @@ from pydantic import BaseModel
 from app.db.types import DerivationType
 
 
-class CircuitNode(BaseModel):
+class HierarchyNode(BaseModel):
     id: uuid.UUID
     name: str
     parent_id: uuid.UUID | None
     derivation_type: DerivationType | None
-    children: list["CircuitNode"] = []
+    children: list["HierarchyNode"] = []
 
 
-class CircuitHierarchy(BaseModel):
-    data: list[CircuitNode]
+class HierarchyTree(BaseModel):
+    data: list[HierarchyNode]

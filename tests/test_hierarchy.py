@@ -7,7 +7,7 @@ from app.db.types import CircuitBuildCategory, CircuitScale, DerivationType
 
 from tests.utils import PROJECT_ID, UNRELATED_PROJECT_ID, add_all_db, add_db, assert_request
 
-ROUTE = "/hierarchy/circuit"
+ROUTE = "/circuit/hierarchy"
 
 
 @pytest.fixture

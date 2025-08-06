@@ -28,9 +28,10 @@ from .utils import (
     create_brain_region,
     create_electrical_cell_recording_db,
     create_electrical_cell_recording_id,
+    delete_entity_assets,
 )
 
-ROUTE = "electrical-cell-recording"
+ROUTE = "/electrical-cell-recording"
 
 
 def test_create_one(
@@ -93,6 +94,10 @@ def test_delete_one(db, client, client_admin, trace_id_with_assets):
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
+
+    # manually delete the assets to remove foreign key reference to entity id and thus be able to
+    # delete the entity thereafter
+    delete_entity_assets(client_admin, ROUTE, trace_id_with_assets)
 
     data = assert_request(client_admin.delete, url=f"{ROUTE}/{trace_id_with_assets}").json()
     assert data["id"] == str(trace_id_with_assets)

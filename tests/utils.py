@@ -562,3 +562,17 @@ def check_creation_fields(data: dict):
 
 def count_db_class(db, db_class):
     return db.execute(sa.select(sa.func.count(db_class.id))).scalar()
+
+
+def delete_entity_assets(client_admin, entity_route, entity_id):
+    data = assert_request(
+        client_admin.get,
+        url=f"{entity_route}/{entity_id}",
+    ).json()
+
+    for json_asset in data["assets"]:
+        asset_id = json_asset["id"]
+        data = assert_request(
+            client_admin.delete,
+            url=f"/admin{entity_route}/{entity_id}/assets/{asset_id}",
+        ).json()

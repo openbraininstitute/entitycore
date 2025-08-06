@@ -16,6 +16,7 @@ from .utils import (
     check_brain_region_filter,
     count_db_class,
     create_brain_region,
+    delete_entity_assets,
     upload_entity_asset,
 )
 
@@ -87,7 +88,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_ne
             client,
             EntityType.single_neuron_simulation,
             data["id"],
-            label=AssetLabel.single_cell_simulation_data,
+            label=AssetLabel.single_neuron_simulation_data,
             files={"file": ("c.json", f, "application/json")},
         )
 
@@ -148,6 +149,10 @@ def test_delete_one(db, client, client_admin, single_neuron_simulation_id):
 
     assert count_db_class(db, SingleNeuronSimulation) == 1
     assert count_db_class(db, MEModel) == 1
+
+    # manually delete the assets to remove foreign key reference to entity id and thus be able to
+    # delete the entity thereafter
+    delete_entity_assets(client_admin, ROUTE, model_id)
 
     data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
     assert data["error_code"] == "NOT_AUTHORIZED"

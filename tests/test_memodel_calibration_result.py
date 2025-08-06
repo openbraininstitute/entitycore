@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.db.model import MEModelCalibrationResult
 
-from .utils import assert_request
+from .utils import assert_request, count_db_class
 
 MODEL = MEModelCalibrationResult
 ROUTE = "/memodel-calibration-result"
@@ -55,6 +55,21 @@ def test_create_one(client: TestClient, json_data):
 
     data = assert_request(client.get, url=ROUTE).json()["data"][0]
     _assert_read_response(data, json_data)
+
+
+def test_delete_one(db, client, client_admin, memodel_calibration_result_id):
+    model_id = memodel_calibration_result_id
+
+    assert count_db_class(db, MEModelCalibrationResult) == 1
+
+    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, MEModelCalibrationResult) == 0
 
 
 def test_missing(client):

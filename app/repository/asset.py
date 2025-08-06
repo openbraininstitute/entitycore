@@ -101,3 +101,22 @@ class AssetRepository(BaseRepository):
             .returning(Asset)
         )
         return self.db.execute(query).scalar_one()
+
+    def delete_entity_asset(
+        self,
+        entity_type: EntityType,
+        entity_id: uuid.UUID,
+        asset_id: uuid.UUID,
+    ) -> Asset:
+        """Delete an entity asset."""
+        query = (
+            sa.delete(Asset)
+            .where(
+                Asset.entity_id == entity_id,
+                Asset.id == asset_id,
+                Entity.type == entity_type.name,
+                Entity.id == Asset.entity_id,
+            )
+            .returning(Asset)
+        )
+        return self.db.execute(query).scalar_one()

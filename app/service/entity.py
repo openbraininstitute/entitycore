@@ -1,6 +1,7 @@
 import uuid
 
 import sqlalchemy as sa
+from sqlalchemy.orm import Session
 
 import app.queries.entity
 from app.db.auth import constrain_to_accessible_entities
@@ -10,13 +11,12 @@ from app.db.utils import (
     ENTITY_TYPE_TO_CLASS,
     EntityTypeWithBrainRegion,
 )
-from app.dependencies.auth import UserContextDep
 from app.dependencies.common import InBrainRegionDep
-from app.dependencies.db import SessionDep
+from app.errors import ensure_result
 from app.filters.brain_region import get_family_query
 from app.repository.group import RepositoryGroup
 from app.schemas.auth import UserContext, UserContextWithProjectId
-from app.schemas.entity import EntityCountRead
+from app.schemas.entity import EntityCountRead, EntityRead
 
 
 def get_readable_entity(
@@ -55,8 +55,8 @@ def get_writable_entity(
 
 def count_entities_by_type(
     *,
-    user_context: UserContextDep,
-    db: SessionDep,
+    user_context: UserContext,
+    db: Session,
     entity_types: list[EntityTypeWithBrainRegion],
     in_brain_region: InBrainRegionDep,
 ) -> EntityCountRead:
@@ -114,3 +114,20 @@ def count_entities_by_type(
         results = EntityCountRead.model_validate(data)
 
     return results
+
+
+def read_one(
+    id_: uuid.UUID,
+    db: Session,
+    user_context: UserContext,
+) -> EntityRead:
+    with ensure_result(f"Entity {id_} not found or forbidden"):
+        query = sa.select(Entity).where(
+            Entity.id == id_,
+            sa.or_(
+                Entity.authorized_public.is_(True),
+                Entity.authorized_project_id.in_(user_context.user_project_ids),
+            ),
+        )
+        row = db.execute(query).unique().scalar_one()
+        return EntityRead.model_validate(row)

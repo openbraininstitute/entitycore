@@ -118,8 +118,9 @@ def user_context_user_1():
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
-        virtual_lab_id=VIRTUAL_LAB_ID,
-        project_id=PROJECT_ID,
+        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
+        project_id=UUID(PROJECT_ID),
+        user_project_ids=[UUID(PROJECT_ID)],
     )
 
 
@@ -134,8 +135,8 @@ def user_context_user_2():
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
-        virtual_lab_id=UNRELATED_VIRTUAL_LAB_ID,
-        project_id=UNRELATED_PROJECT_ID,
+        virtual_lab_id=UUID(UNRELATED_VIRTUAL_LAB_ID),
+        project_id=UUID(UNRELATED_PROJECT_ID),
     )
 
 

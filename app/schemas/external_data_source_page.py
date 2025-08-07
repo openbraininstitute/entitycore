@@ -1,7 +1,6 @@
-import uuid
-
 from pydantic import BaseModel
 
+from app.db.types import ExternalDataSource
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     CreationMixin,
@@ -9,28 +8,11 @@ from app.schemas.base import (
 )
 
 
-class ExternalDataSourceBase(BaseModel):
-    """Base model for external data source."""
-
-    label: str
-    URL: str
-
-
-class ExternalDataSourceRead(
-    ExternalDataSourceBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin
-):
-    """Read model for external data source."""
-
-
-class ExternalDataSourceCreate(ExternalDataSourceBase):
-    """Create model for external data source."""
-
-
 class ExternalDataSourcePageBase(BaseModel):
     """Base model for external data source page."""
 
-    external_data_source_id: uuid.UUID
-    URL: str
+    source_label: ExternalDataSource
+    url: str
 
 
 class ExternalDataSourcePageRead(

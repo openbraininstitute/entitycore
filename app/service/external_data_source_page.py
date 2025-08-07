@@ -12,9 +12,9 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.external_data_source import ExternalDataSourcePageFilterDep
+from app.filters.external_data_source_page import ExternalDataSourcePageFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
-from app.schemas.external_data_source import (
+from app.schemas.external_data_source_page import (
     ExternalDataSourcePageCreate,
     ExternalDataSourcePageRead,
 )

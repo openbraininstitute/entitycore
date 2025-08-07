@@ -2,19 +2,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import (
-    AuthorizationMixin,
-    BrainRegionReadMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
-    LicensedReadMixin,
-)
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.scientific_artifact import (
     ScientificArtifactCreate,
+    ScientificArtifactRead,
 )
-from app.schemas.subject import SubjectReadMixin
 
 
 class UseIon(BaseModel):
@@ -50,13 +42,7 @@ class IonChannelModelCreate(IonChannelModelBase, ScientificArtifactCreate):
 
 class IonChannelModelRead(
     IonChannelModelBase,
-    CreationMixin,
-    IdentifiableMixin,
-    AuthorizationMixin,
-    EntityTypeMixin,
-    LicensedReadMixin,
-    SubjectReadMixin,
-    BrainRegionReadMixin,
+    ScientificArtifactRead,
 ):
     pass
 

@@ -50,6 +50,7 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
     EntityType,
+    ExternalDataSource,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -540,42 +541,21 @@ class Publication(Entity, NameDescriptionVectorMixin):
     }
 
 
-class ExternalDataSource(Entity, NameDescriptionVectorMixin):
-    """Represents an external data source entity.
-
-    Attributes:
-        id (uuid.UUID): Primary key, references the base entity ID.
-        label (str): Unique label for the data source, e.g. "Channelpedia".
-        URL (str): URL of the data source home page, e.g. "https://channelpedia.epfl.ch/".
-
-    """
-
-    __tablename__ = EntityType.external_data_source.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    label: Mapped[str] = mapped_column(unique=True, index=True)
-    URL: Mapped[str] = mapped_column(String, index=True)
-
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-    }
-
-
-class ExternalDataSourcePage(Entity, NameDescriptionVectorMixin):
+class ExternalDataSourcePage(Identifiable, NameDescriptionVectorMixin):
     """Represents a web page on an external data source.
 
     Attributes:
         id (uuid.UUID): Primary key, references the base entity ID.
-        URL (str): URL of the data source webpage,
+        source_label (ExternalDataSource): Unique label for the data source, e.g. channelpedia.
+        url (str): URL of the data source webpage,
             e.g. "https://channelpedia.epfl.ch/wikipages/189".
 
     """
 
     __tablename__ = EntityType.external_data_source_page.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    external_data_source_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("external_data_source.id"), index=True, nullable=False
-    )
-    URL: Mapped[str] = mapped_column(String, index=True)
+    source_label: Mapped[ExternalDataSource]
+    url: Mapped[str] = mapped_column(String, index=True)
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,

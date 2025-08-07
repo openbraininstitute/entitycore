@@ -370,7 +370,7 @@ def test_update_one__fail_if_generated_ids_unauthorized(
     data = assert_request(
         client_user_1.patch, url=f"{ROUTE}/{data['id']}", json=update_json, expected_status_code=404
     ).json()
-    assert data["detail"] == f"Cannot access entities {user2_morph_id}"
+    assert data["details"] == f"Cannot access entities {user2_morph_id}"
 
 
 def test_update_one__fail_if_generated_ids_exists(
@@ -387,4 +387,4 @@ def test_update_one__fail_if_generated_ids_exists(
     data = assert_request(
         client.patch, url=f"{ROUTE}/{gen1}", json=update_json, expected_status_code=404
     ).json()
-    assert data["detail"] == "It is forbidden to update generated_ids if they exist."
+    assert data["details"] == "It is forbidden to update generated_ids if they exist."

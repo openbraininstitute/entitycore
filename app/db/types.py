@@ -43,6 +43,13 @@ JSON_DICT = Annotated[dict[str, Any], mapped_column(JSONB)]
 STRING_LIST = Annotated[list[str], mapped_column(ARRAY(VARCHAR))]
 
 
+class StorageType(StrEnum):
+    """Storage type."""
+
+    aws_s3_internal = auto()
+    aws_s3_open = auto()
+
+
 class EntityType(StrEnum):
     """Entity types."""
 
@@ -281,8 +288,8 @@ class AssetLabel(StrEnum):
     simulation_designer_image = auto()
     circuit_visualization = auto()
     node_stats = auto()
-    network_stats_A = auto()
-    network_stats_B = auto()
+    network_stats_a = auto()
+    network_stats_b = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -363,10 +370,10 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
         AssetLabel.node_stats: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
-        AssetLabel.network_stats_A: [
+        AssetLabel.network_stats_a: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
-        AssetLabel.network_stats_B: [
+        AssetLabel.network_stats_b: [
             LabelRequirements(content_type=ContentType.webp, is_directory=False)
         ],
     },
@@ -493,6 +500,19 @@ class CircuitScale(StrEnum):
     region = auto()
     system = auto()
     whole_brain = auto()
+
+
+class PublicationType(StrEnum):
+    """The type of of the relation between publication and a scientific artifact.
+
+    entity_source: The artefact is published with this publication.
+    component_source: The publication is used to generate the artifact.
+    application: The publication uses the artifact.
+    """
+
+    entity_source = auto()
+    component_source = auto()
+    application = auto()
 
 
 class ExternalDataSource(StrEnum):

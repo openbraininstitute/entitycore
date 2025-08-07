@@ -164,7 +164,12 @@ def router_create_one[T: BaseModel, I: Identifiable](
 
     db_agent = get_or_create_user_agent(db, user_context.profile)
     created_by_id = updated_by_id = db_agent.id
-    project_id = user_context.project_id
+
+    project_id = (
+        user_context.project_id
+        if get_declaring_class(db_model_class, "authorized_project_id")
+        else None
+    )
 
     db_model_instance = load_db_model_from_pydantic(
         json_model,

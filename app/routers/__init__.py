@@ -10,9 +10,11 @@ from app.routers import (
     brain_region_hierarchy,
     cell_composition,
     circuit,
+    consortium,
     contribution,
     derivation,
     electrical_cell_recording,
+    electrical_recording_stimulus,
     emodel,
     entity,
     etype,
@@ -34,6 +36,7 @@ from app.routers import (
     publication,
     role,
     root,
+    scientific_artifact_publication_link,
     simulation,
     simulation_campaign,
     simulation_execution,
@@ -50,6 +53,8 @@ from app.routers import (
 
 router = APIRouter()
 router.include_router(root.router)
+
+
 authenticated_routers = [
     asset.router,
     brain_atlas.router,
@@ -57,9 +62,11 @@ authenticated_routers = [
     brain_region_hierarchy.router,
     cell_composition.router,
     circuit.router,
+    consortium.router,
     contribution.router,
     derivation.router,
     electrical_cell_recording.router,
+    electrical_recording_stimulus.router,
     emodel.router,
     entity.router,
     etype.router,
@@ -80,6 +87,7 @@ authenticated_routers = [
     person.router,
     publication.router,
     role.router,
+    scientific_artifact_publication_link.router,
     simulation.router,
     simulation_campaign.router,
     simulation_execution.router,

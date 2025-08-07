@@ -55,13 +55,15 @@ from app.db.types import (
     MeasurementUnit,
     PointLocation,
     PointLocationType,
+    PublicationType,
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
+    StorageType,
     StructuralDomain,
     ValidationStatus,
 )
-from app.schemas.publication import Author, PublicationType
+from app.schemas.publication import Author
 from app.utils.uuid import create_uuid
 
 
@@ -515,12 +517,12 @@ class SubjectMixin:
         return relationship("Subject", uselist=False, foreign_keys=cls.subject_id)
 
 
-class Publication(Entity, NameDescriptionVectorMixin):
+class Publication(Identifiable):
     """Represents a scientific publication entity in the database.
 
     Attributes:
         id (uuid.UUID): Primary key, references the base entity ID.
-        DOI (str | None): Digital Object Identifier for the publication, if available.
+        DOI (str): Digital Object Identifier for the publication.
         title (str | None): Title of the publication.
         authors (list[Author] | None): List of authors associated with the publication.
         publication_year (int | None): Year the publication was released.
@@ -529,16 +531,13 @@ class Publication(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.publication.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    DOI: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    DOI: Mapped[str] = mapped_column(String)
     title: Mapped[str | None] = mapped_column(String, nullable=True)
     authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
     publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-    }
+    __table_args__ = (Index("ix_publication_doi_normalized", func.lower(DOI), unique=True),)
 
 
 class ExternalDataSourcePage(Identifiable, NameDescriptionVectorMixin):
@@ -1066,6 +1065,7 @@ class Asset(Identifiable):
     meta: Mapped[JSON_DICT]  # not used yet. can be useful?
     label: Mapped[AssetLabel]
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    storage_type: Mapped[StorageType]
 
     # partial unique index
     __table_args__ = (
@@ -1075,19 +1075,26 @@ class Asset(Identifiable):
             unique=True,
             postgresql_where=(status != AssetStatus.DELETED.name),
         ),
+        Index(
+            "uq_asset_entity_id_path",
+            "path",
+            "entity_id",
+            unique=True,
+            postgresql_where=(status != AssetStatus.DELETED.name),
+        ),
     )
 
 
 class METypeDensity(
     NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, MTypesMixin, ETypesMixin, Entity
 ):
-    __tablename__ = EntityType.me_type_density
+    __tablename__ = EntityType.me_type_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.brain_atlas
+    __tablename__ = EntityType.brain_atlas.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1099,7 +1106,7 @@ class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
 
 
 class BrainAtlasRegion(Entity, LocationMixin):
-    __tablename__ = EntityType.brain_atlas_region
+    __tablename__ = EntityType.brain_atlas_region.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1114,7 +1121,7 @@ class BrainAtlasRegion(Entity, LocationMixin):
 
 
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
-    __tablename__ = EntityType.cell_composition
+    __tablename__ = EntityType.cell_composition.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

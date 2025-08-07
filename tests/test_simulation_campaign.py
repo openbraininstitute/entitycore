@@ -1,6 +1,6 @@
 import pytest
 
-from app.db.model import Simulation, SimulationCampaign
+from app.db.model import Circuit, CircuitBuildCategory, CircuitScale, Simulation, SimulationCampaign
 from app.db.types import EntityType
 
 from .utils import (
@@ -125,3 +125,235 @@ def test_filtering(client, models, simulation_json_data, person_id):
         client.get, url=ROUTE, params={"simulation__name": simulation_json_data["name"]}
     ).json()["data"]
     assert len(data) == 3
+
+
+@pytest.fixture
+def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_id, person_id):
+    circuits_data = [
+        {
+            "name": "micro-circuit-1",
+            "description": "Micro Circuit 1",
+            "has_morphologies": True,
+            "has_point_neurons": False,
+            "has_electrical_cell_models": True,
+            "has_spines": False,
+            "number_neurons": 100,
+            "number_synapses": 1000,
+            "number_connections": 50,
+            "scale": CircuitScale.microcircuit,
+            "build_category": CircuitBuildCategory.computational_model,
+            "atlas_id": brain_atlas_id,
+            "subject_id": subject_id,
+            "brain_region_id": brain_region_id,
+            "license_id": license_id,
+            "authorized_public": False,
+            "created_by_id": person_id,
+            "updated_by_id": person_id,
+            "authorized_project_id": PROJECT_ID,
+        },
+        {
+            "name": "micro-circuit-2",
+            "description": "Micro Circuit 2",
+            "has_morphologies": False,
+            "has_point_neurons": True,
+            "has_electrical_cell_models": False,
+            "has_spines": True,
+            "number_neurons": 1000,
+            "number_synapses": 10000,
+            "number_connections": 200,
+            "scale": CircuitScale.microcircuit,
+            "build_category": CircuitBuildCategory.em_reconstruction,
+            "atlas_id": brain_atlas_id,
+            "subject_id": subject_id,
+            "brain_region_id": brain_region_id,
+            "license_id": license_id,
+            "authorized_public": False,
+            "created_by_id": person_id,
+            "updated_by_id": person_id,
+            "authorized_project_id": PROJECT_ID,
+        },
+        {
+            "name": "pair-circuit-1",
+            "description": "Pair Circuit 1",
+            "has_morphologies": True,
+            "has_point_neurons": True,
+            "has_electrical_cell_models": True,
+            "has_spines": True,
+            "number_neurons": 10000,
+            "number_synapses": 100000,
+            "number_connections": 500,
+            "scale": CircuitScale.pair,
+            "build_category": CircuitBuildCategory.computational_model,
+            "atlas_id": brain_atlas_id,
+            "subject_id": subject_id,
+            "brain_region_id": brain_region_id,
+            "license_id": license_id,
+            "authorized_public": False,
+            "created_by_id": person_id,
+            "updated_by_id": person_id,
+            "authorized_project_id": PROJECT_ID,
+        },
+    ]
+
+    circuits = [add_db(db, Circuit(**circuit_data)) for circuit_data in circuits_data]
+    return circuits
+
+
+@pytest.fixture
+def campaigns_with_different_circuits(
+    db, json_data, person_id, simulation_json_data, multiple_circuits
+):
+    campaigns = []
+
+    for i, circuit in enumerate(multiple_circuits):
+        campaign = add_db(
+            db,
+            MODEL(
+                **(
+                    json_data
+                    | {
+                        "name": f"campaign-circuit-{i}",
+                        "description": f"Campaign for circuit {i}",
+                        "created_by_id": person_id,
+                        "updated_by_id": person_id,
+                        "authorized_project_id": PROJECT_ID,
+                    }
+                )
+            ),
+        )
+        campaigns.append(campaign)
+
+        add_db(
+            db,
+            Simulation(
+                **simulation_json_data
+                | {
+                    "name": f"simulation-circuit-{i}",
+                    "simulation_campaign_id": campaign.id,
+                    "entity_id": circuit.id,
+                    "created_by_id": person_id,
+                    "updated_by_id": person_id,
+                    "authorized_project_id": PROJECT_ID,
+                }
+            ),
+        )
+
+    return campaigns
+
+
+def test_filter_by_circuit_id(client, campaigns_with_different_circuits, multiple_circuits):  # noqa: ARG001
+    first_circuit_id = str(multiple_circuits[0].id)
+    data = assert_request(client.get, url=ROUTE, params={"circuit__id": first_circuit_id}).json()[
+        "data"
+    ]
+
+    assert len(data) == 1
+    assert data[0]["name"] == "campaign-circuit-0"
+
+    second_circuit_id = str(multiple_circuits[1].id)
+    data = assert_request(client.get, url=ROUTE, params={"circuit__id": second_circuit_id}).json()[
+        "data"
+    ]
+
+    assert len(data) == 1
+    assert data[0]["name"] == "campaign-circuit-1"
+
+
+def test_filter_by_circuit_name(client, campaigns_with_different_circuits, multiple_circuits):  # noqa: ARG001
+    data = assert_request(
+        client.get, url=ROUTE, params={"circuit__name": "micro-circuit-1"}
+    ).json()["data"]
+
+    assert len(data) == 1
+    assert data[0]["name"] == "campaign-circuit-0"
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"circuit__name__in": "micro-circuit-2"}
+    ).json()["data"]
+
+    assert len(data) == 1
+    assert data[0]["name"] == "campaign-circuit-1"
+
+
+def test_filter_by_circuit_scale(client, campaigns_with_different_circuits, multiple_circuits):  # noqa: ARG001
+    data = assert_request(
+        client.get, url=ROUTE, params={"circuit__scale": CircuitScale.microcircuit}
+    ).json()["data"]
+
+    assert len(data) == 2
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"circuit__scale": CircuitScale.pair}
+    ).json()["data"]
+
+    assert len(data) == 1
+
+
+def test_filter_by_circuit_scale_empty(
+    client,
+    campaigns_with_different_circuits,  # noqa: ARG001
+    multiple_circuits,  # noqa: ARG001
+):
+    data = assert_request(
+        client.get, url=ROUTE, params={"circuit__scale": CircuitScale.small}
+    ).json()["data"]
+
+    assert len(data) == 0
+
+
+def test_filter_by_circuit_scale_in(client, campaigns_with_different_circuits, multiple_circuits):  # noqa: ARG001
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"circuit__scale__in": [CircuitScale.microcircuit, CircuitScale.pair]},
+    ).json()["data"]
+
+    assert len(data) == 3
+    campaign_names = {campaign["name"] for campaign in data}
+    assert campaign_names == {"campaign-circuit-0", "campaign-circuit-1", "campaign-circuit-2"}
+
+
+def test_filter_by_circuit_build_category(
+    client,
+    campaigns_with_different_circuits,  # noqa: ARG001
+    multiple_circuits,  # noqa: ARG001
+):
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"circuit__build_category": CircuitBuildCategory.computational_model},
+    ).json()["data"]
+
+    assert len(data) == 2
+    campaign_names = {campaign["name"] for campaign in data}
+    assert campaign_names == {"campaign-circuit-0", "campaign-circuit-2"}
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"circuit__build_category": CircuitBuildCategory.em_reconstruction},
+    ).json()["data"]
+
+    assert len(data) == 1
+    assert data[0]["name"] == "campaign-circuit-1"
+
+
+def test_filter_by_circuit_build_category_in(
+    client,
+    campaigns_with_different_circuits,  # noqa: ARG001
+    multiple_circuits,  # noqa: ARG001
+):
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "circuit__build_category__in": [
+                CircuitBuildCategory.computational_model,
+                CircuitBuildCategory.em_reconstruction,
+            ],
+        },
+    ).json()["data"]
+
+    assert len(data) == 3
+    campaign_names = {campaign["name"] for campaign in data}
+    assert campaign_names == {"campaign-circuit-0", "campaign-circuit-1", "campaign-circuit-2"}

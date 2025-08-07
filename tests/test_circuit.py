@@ -57,6 +57,7 @@ def test_create_one(client, circuit_json_data):
 def test_read_one(client, circuit, circuit_json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{circuit.id}").json()
     _assert_read_response(data, circuit_json_data)
+    assert len(data["contributions"]) == 1
 
 
 def test_read_many(client, circuit, circuit_json_data):

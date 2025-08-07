@@ -15,7 +15,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.application import app
-from app.config import settings
+from app.config import storages
 from app.db.model import (
     Agent,
     Base,
@@ -29,6 +29,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Organization,
+    Publication,
     ReconstructionMorphology,
     Role,
     Simulation,
@@ -39,6 +40,7 @@ from app.db.model import (
     Subject,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
+from app.db.types import StorageType
 from app.dependencies import auth
 from app.schemas.auth import UserContext, UserProfile
 
@@ -60,6 +62,7 @@ from .utils import (
     USER_SUB_ID_2,
     VIRTUAL_LAB_ID,
     ClientProxy,
+    add_contribution,
     add_db,
     assert_request,
     create_electrical_cell_recording_id_with_assets,
@@ -73,7 +76,6 @@ def _setup_env_variables():
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # noqa: S105
     os.environ["AWS_SECURITY_TOKEN"] = "testing"  # noqa: S105
     os.environ["AWS_SESSION_TOKEN"] = "testing"  # noqa: S105
-    os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
 
 
 @pytest.fixture(scope="session")
@@ -85,7 +87,8 @@ def s3():
 
 @pytest.fixture(scope="session")
 def _create_buckets(s3):
-    s3.create_bucket(Bucket=settings.S3_BUCKET_NAME)
+    s3.create_bucket(Bucket=storages[StorageType.aws_s3_internal].bucket)
+    s3.create_bucket(Bucket=storages[StorageType.aws_s3_open].bucket, ACL="public-read")
 
 
 @pytest.fixture
@@ -115,8 +118,9 @@ def user_context_user_1():
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
-        virtual_lab_id=VIRTUAL_LAB_ID,
-        project_id=PROJECT_ID,
+        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
+        project_id=UUID(PROJECT_ID),
+        user_project_ids=[UUID(PROJECT_ID)],
     )
 
 
@@ -131,8 +135,8 @@ def user_context_user_2():
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
-        virtual_lab_id=UNRELATED_VIRTUAL_LAB_ID,
-        project_id=UNRELATED_PROJECT_ID,
+        virtual_lab_id=UUID(UNRELATED_VIRTUAL_LAB_ID),
+        project_id=UUID(UNRELATED_PROJECT_ID),
     )
 
 
@@ -879,6 +883,11 @@ def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id)
 
 
 @pytest.fixture
+def trace_id_minimal(client, electrical_cell_recording_json_data):
+    return utils.create_electrical_cell_recording_id(client, electrical_cell_recording_json_data)
+
+
+@pytest.fixture
 def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
     return create_electrical_cell_recording_id_with_assets(
         db, client, tmp_path, electrical_cell_recording_json_data
@@ -950,8 +959,8 @@ def circuit_json_data(brain_atlas_id, root_circuit, subject_id, brain_region_id,
 
 
 @pytest.fixture
-def circuit(db, circuit_json_data, person_id):
-    return add_db(
+def circuit(db, circuit_json_data, person_id, role_id):
+    circuit = add_db(
         db,
         Circuit(
             **circuit_json_data
@@ -962,6 +971,8 @@ def circuit(db, circuit_json_data, person_id):
             }
         ),
     )
+    add_contribution(db, circuit.id, person_id, role_id, person_id)
+    return circuit
 
 
 @pytest.fixture
@@ -1035,5 +1046,39 @@ def simulation_result(db, simulation_result_json_data, person_id):
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
             },
+        ),
+    )
+
+
+@pytest.fixture
+def publication_json_data():
+    return {
+        "DOI": "10.1080/10509585.2015.1092083",
+        "title": "my-title",
+        "authors": [
+            {
+                "given_name": "John",
+                "family_name": "Smith",
+            },
+            {
+                "given_name": "Joanne",
+                "family_name": "Smith",
+            },
+        ],
+        "publication_year": 2024,
+        "abstract": "my-abstract",
+    }
+
+
+@pytest.fixture
+def publication(db, publication_json_data, person_id):
+    return add_db(
+        db,
+        Publication(
+            **publication_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+            }
         ),
     )

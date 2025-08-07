@@ -7,6 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 from app.db.model import (
     Agent,
     Circuit,
+    Contribution,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -37,6 +38,8 @@ def _load(query: sa.Select):
         joinedload(Circuit.brain_region),
         joinedload(Circuit.created_by),
         joinedload(Circuit.updated_by),
+        selectinload(Circuit.contributions).joinedload(Contribution.agent),
+        selectinload(Circuit.contributions).joinedload(Contribution.role),
         selectinload(Circuit.assets),
         raiseload("*"),
     )

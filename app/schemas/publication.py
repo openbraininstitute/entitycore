@@ -1,16 +1,13 @@
 from typing import TypedDict
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
     CreationMixin,
-    EntityTypeMixin,
     IdentifiableMixin,
 )
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.utils.doi import is_doi
 
 
 class Author(TypedDict):
@@ -22,22 +19,25 @@ class Author(TypedDict):
 
 class PublicationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
-    DOI: str | None = None
+    DOI: str
     title: str | None = None
     authors: list[Author] | None = None
     publication_year: int | None = None
     abstract: str | None = None
 
 
-class PublicationCreate(PublicationBase, AuthorizationOptionalPublicMixin):
-    pass
+class PublicationCreate(PublicationBase):
+    @field_validator("DOI", mode="before")
+    @classmethod
+    def validate_doi(cls, value: str):
+        """Check if DOI is valid and return it normalized."""
+        if not is_doi(value):
+            return ValueError(f"Invalid DOI format: {value}")
+
+        return value
 
 
-class NestedPublicationRead(
-    PublicationBase, IdentifiableMixin, AuthorizationMixin, EntityTypeMixin
-):
+class NestedPublicationRead(PublicationBase, IdentifiableMixin):
     pass
 
 
@@ -45,6 +45,5 @@ class PublicationRead(
     NestedPublicationRead,
     CreationMixin,
     CreatedByUpdatedByMixin,
-    ContributionReadWithoutEntityMixin,
 ):
     pass

@@ -16,6 +16,7 @@ from app.schemas.base import (
     LicenseCreateMixin,
     LicenseReadMixin,
 )
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.subject import SubjectCreateMixin, SubjectReadMixin
 
 
@@ -45,6 +46,7 @@ class ScientificArtifactRead(
     CreationMixin,
     LicenseReadMixin,
     AssetsMixin,
+    ContributionReadWithoutEntityMixin,
 ):
     pass
 

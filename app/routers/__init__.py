@@ -54,6 +54,8 @@ from app.routers import (
 
 router = APIRouter()
 router.include_router(root.router)
+
+
 authenticated_routers = [
     asset.router,
     brain_atlas.router,

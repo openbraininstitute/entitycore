@@ -66,20 +66,6 @@ def _load_with_eager(query: sa.Select, aliases):
     )
 
 
-def _constrain_to_accessible_artifact_publication(
-    query, project_id, artifact_class, publication_class
-):
-    return constrain_to_accessible_entities(
-        constrain_to_accessible_entities(
-            query,
-            project_id,
-            db_model_class=artifact_class,
-        ),
-        project_id,
-        db_model_class=publication_class,
-    )
-
-
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,
@@ -94,7 +80,6 @@ def read_one(
         apply_operations=_load,
     )
     ensure_readable(entity.scientific_artifact, user_context.project_id)
-    ensure_readable(entity.publication, user_context.project_id)
     return entity
 
 
@@ -104,7 +89,6 @@ def create_one(
     user_context: UserContextWithProjectIdDep,
 ) -> ScientificArtifactPublicationLinkRead:
     # ensure linked entities are accessible to user's project id
-    get_writable_entity(db, Publication, json_model.publication_id, user_context.project_id)
     get_writable_entity(
         db, ScientificArtifact, json_model.scientific_artifact_id, user_context.project_id
     )
@@ -155,7 +139,7 @@ def read_many(
         aliases=aliases,
     )
 
-    filter_query = lambda q: _constrain_to_accessible_artifact_publication(
+    filter_query = lambda q: constrain_to_accessible_entities(
         q.join(
             scientific_artifact_alias,
             ScientificArtifactPublicationLink.scientific_artifact_id
@@ -174,8 +158,7 @@ def read_many(
             ScientificArtifactPublicationLink.updated_by_id == updated_by_alias.id,
         ),
         project_id=user_context.project_id,
-        artifact_class=scientific_artifact_alias,
-        publication_class=publication_alias,
+        db_model_class=scientific_artifact_alias,
     )
 
     load_with_aliases = lambda q: _load_with_eager(q, aliases)

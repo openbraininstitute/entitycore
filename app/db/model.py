@@ -306,7 +306,7 @@ class Consortium(Agent):
 class Usage(Base):
     __tablename__ = "usage"
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"),
+        ForeignKey("entity.id"),
         primary_key=True,
     )
     usage_activity_id: Mapped[uuid.UUID] = mapped_column(
@@ -317,7 +317,7 @@ class Usage(Base):
 class Generation(Base):
     __tablename__ = "generation"
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("entity.id"), primary_key=True
     )
     generation_activity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("activity.id", ondelete="CASCADE"),

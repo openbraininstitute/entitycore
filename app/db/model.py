@@ -579,7 +579,7 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
+    experiment_date: Mapped[datetime | None]
     contact_email: Mapped[str | None]
     published_in: Mapped[str | None]
 

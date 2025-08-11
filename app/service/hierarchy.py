@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, aliased
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import Circuit, Derivation, Entity
+from app.db.types import DerivationType
 from app.dependencies.auth import UserContextDep
 from app.dependencies.db import SessionDep
 from app.logger import L
@@ -17,6 +18,7 @@ def _load_nodes(
     db: Session,
     project_id: uuid.UUID | None,
     entity_class: type[Entity],
+    derivation_type: DerivationType,
 ) -> dict[uuid.UUID, HierarchyNode]:
     root = aliased(entity_class, flat=True, name="root")
     parent = aliased(entity_class, flat=True, name="parent")
@@ -24,13 +26,13 @@ def _load_nodes(
     order_by = ["name", "id"]
     subq = sa.select(sa.literal(1)).where(
         Derivation.generated_id == root.id,
+        Derivation.derivation_type == derivation_type,
     )
     query_roots = (
         sa.select(
             root.id,
             getattr(root, "name", sa.literal(None)).label("name"),
             sa.literal(None).label("parent_id"),
-            sa.literal(None).label("derivation_type"),
         )
         .where(~sa.exists(subq))
         .order_by(*order_by)
@@ -43,11 +45,11 @@ def _load_nodes(
             child.id,
             getattr(child, "name", sa.literal(None)).label("name"),
             parent.id.label("parent_id"),
-            Derivation.derivation_type,
         )
         .select_from(Derivation)
         .join(parent, parent.id == Derivation.used_id)
         .join(child, child.id == Derivation.generated_id)
+        .where(Derivation.derivation_type == derivation_type)
         .order_by(*order_by)
     )
     query_children = constrain_to_accessible_entities(
@@ -64,7 +66,6 @@ def _load_nodes(
             id=row.id,
             name=row.name,
             parent_id=row.parent_id,
-            derivation_type=row.derivation_type,
         )
         for row in rows
     }
@@ -79,9 +80,26 @@ def _load_nodes(
 def read_circuit_hierarchy(
     user_context: UserContextDep,
     db: SessionDep,
+    derivation_type: DerivationType,
 ) -> HierarchyTree:
-    """Return the circuit hierarchy based on derivations."""
-    all_nodes = _load_nodes(db, project_id=user_context.project_id, entity_class=Circuit)
+    """Return a hierarchy tree of circuits based on derivations.
+
+    Depending on the derivation type, the hierarchy will be built differently. In particular,
+    a circuit is considered a root if it has no parents of the specified derivation type.
+
+    The hierarchy assumes the following rules for the derivations:
+
+    - A circuit can have zero or more children of any derivation type.
+    - A circuit can have zero or more parents, provided each parent has a different derivation type.
+    - A public circuit can have any combination of public and private circuits as children.
+    - A private circuit can have only private circuits with the same project_id as children.
+    """
+    all_nodes = _load_nodes(
+        db,
+        project_id=user_context.project_id,
+        entity_class=Circuit,
+        derivation_type=derivation_type,
+    )
     root_nodes: list[HierarchyNode] = []
     for node in all_nodes.values():
         if node.parent_id is None:
@@ -89,4 +107,7 @@ def read_circuit_hierarchy(
         else:
             parent = all_nodes[node.parent_id]
             parent.children.append(node)
-    return HierarchyTree(data=root_nodes)
+    return HierarchyTree(
+        derivation_type=derivation_type,
+        data=root_nodes,
+    )

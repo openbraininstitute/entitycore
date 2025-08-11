@@ -14,7 +14,7 @@ MEASURABLE_ENTITIES: dict[str, type[MeasurableEntity]] = {
     for mapper in Base.registry.mappers
     if issubclass(mapper.class_, MeasurableEntity) and mapper.class_.__tablename__
 }
-MeasurableEntityType = StrEnum("MeasurableEntity", list(MEASURABLE_ENTITIES))
+MeasurableEntityType = StrEnum("MeasurableEntity", sorted(MEASURABLE_ENTITIES))
 
 ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     EntityType[mapper.class_.__tablename__]: mapper.class_
@@ -31,7 +31,7 @@ entity_type_with_brain_region_enum_members = {
 
 EntityTypeWithBrainRegion = StrEnum(
     "EntityTypeWithBrainRegion",
-    entity_type_with_brain_region_enum_members,
+    sorted(entity_type_with_brain_region_enum_members),
 )
 
 

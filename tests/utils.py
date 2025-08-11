@@ -11,6 +11,7 @@ from starlette.testclient import TestClient
 from app.db.model import (
     BrainRegion,
     BrainRegionHierarchy,
+    Contribution,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
     ETypeClass,
@@ -558,3 +559,16 @@ def check_creation_fields(data: dict):
     assert data["update_date"] == ANY
     assert data["created_by"]["id"] == ANY
     assert data["updated_by"]["id"] == ANY
+
+
+def add_contribution(db, entity_id, agent_id, role_id, created_by_id):
+    return add_db(
+        db,
+        Contribution(
+            agent_id=agent_id,
+            role_id=role_id,
+            entity_id=entity_id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+        ),
+    )

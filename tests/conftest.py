@@ -62,6 +62,7 @@ from .utils import (
     USER_SUB_ID_2,
     VIRTUAL_LAB_ID,
     ClientProxy,
+    add_contribution,
     add_db,
     assert_request,
     create_electrical_cell_recording_id_with_assets,
@@ -117,8 +118,9 @@ def user_context_user_1():
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
-        virtual_lab_id=VIRTUAL_LAB_ID,
-        project_id=PROJECT_ID,
+        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
+        project_id=UUID(PROJECT_ID),
+        user_project_ids=[UUID(PROJECT_ID)],
     )
 
 
@@ -133,8 +135,8 @@ def user_context_user_2():
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
-        virtual_lab_id=UNRELATED_VIRTUAL_LAB_ID,
-        project_id=UNRELATED_PROJECT_ID,
+        virtual_lab_id=UUID(UNRELATED_VIRTUAL_LAB_ID),
+        project_id=UUID(UNRELATED_PROJECT_ID),
     )
 
 
@@ -957,8 +959,8 @@ def circuit_json_data(brain_atlas_id, root_circuit, subject_id, brain_region_id,
 
 
 @pytest.fixture
-def circuit(db, circuit_json_data, person_id):
-    return add_db(
+def circuit(db, circuit_json_data, person_id, role_id):
+    circuit = add_db(
         db,
         Circuit(
             **circuit_json_data
@@ -969,6 +971,8 @@ def circuit(db, circuit_json_data, person_id):
             }
         ),
     )
+    add_contribution(db, circuit.id, person_id, role_id, person_id)
+    return circuit
 
 
 @pytest.fixture

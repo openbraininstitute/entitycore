@@ -95,8 +95,9 @@ def read_circuit_hierarchy(
 
     The hierarchy assumes the following rules for the derivations:
 
-    - A circuit can have zero or more children of any derivation type.
-    - A circuit can have zero or more parents, provided each parent has a different derivation type.
+    - A circuit can have zero or more children linked with any derivation type.
+    - A circuit can have zero or more parents, provided each parent is different, and is linked with
+      a different derivation type.
     - A public circuit can have any combination of public and private circuits as children.
     - A private circuit can have only private circuits with the same project_id as children.
     """

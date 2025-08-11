@@ -33,6 +33,8 @@ def _load_nodes(
             root.id,
             getattr(root, "name", sa.literal(None)).label("name"),
             sa.literal(None).label("parent_id"),
+            root.authorized_public,
+            root.authorized_project_id,
         )
         .where(~sa.exists(subq))
         .order_by(*order_by)
@@ -45,6 +47,8 @@ def _load_nodes(
             child.id,
             getattr(child, "name", sa.literal(None)).label("name"),
             parent.id.label("parent_id"),
+            child.authorized_public,
+            child.authorized_project_id,
         )
         .select_from(Derivation)
         .join(parent, parent.id == Derivation.used_id)
@@ -66,6 +70,8 @@ def _load_nodes(
             id=row.id,
             name=row.name,
             parent_id=row.parent_id,
+            authorized_public=row.authorized_public,
+            authorized_project_id=row.authorized_project_id,
         )
         for row in rows
     }

@@ -12,6 +12,8 @@ class HierarchyNode(BaseModel):
     name: str
     parent_id: uuid.UUID | None
     children: list["HierarchyNode"] = []
+    authorized_public: bool
+    authorized_project_id: uuid.UUID
 
 
 class HierarchyTree(BaseModel):

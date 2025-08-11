@@ -186,14 +186,20 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
         "derivation_type": "circuit_extraction",
         "data": [
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": False,
                 "children": [],
                 "id": str(models[2].id),
                 "name": "circuit-2",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": False,
                 "children": [
                     {
+                        "authorized_project_id": str(PROJECT_ID),
+                        "authorized_public": False,
                         "children": [],
                         "id": str(models[4].id),
                         "name": "circuit-4",
@@ -205,16 +211,24 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": False,
                 "children": [],
                 "id": str(root_circuit.id),
                 "name": "root-circuit",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": True,
                 "children": [
                     {
+                        "authorized_project_id": str(PROJECT_ID),
+                        "authorized_public": False,
                         "children": [
                             {
+                                "authorized_project_id": str(PROJECT_ID),
+                                "authorized_public": False,
                                 "children": [],
                                 "id": str(models[1].id),
                                 "name": "circuit-1",
@@ -231,8 +245,12 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                "authorized_public": True,
                 "children": [
                     {
+                        "authorized_project_id": str(PROJECT_ID),
+                        "authorized_public": True,
                         "children": [],
                         "id": str(models[5].id),
                         "name": "circuit-5",
@@ -245,6 +263,7 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
             },
         ],
     }
+
     # test with user_1, derivation_type=circuit_rewiring
     response = assert_request(
         client_user_1.get, url=ROUTE, params={"derivation_type": DerivationType.circuit_rewiring}
@@ -253,14 +272,20 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
         "derivation_type": "circuit_rewiring",
         "data": [
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": False,
                 "children": [
                     {
+                        "authorized_project_id": str(PROJECT_ID),
+                        "authorized_public": False,
                         "children": [],
                         "id": str(models[2].id),
                         "name": "circuit-2",
                         "parent_id": str(models[0].id),
                     },
                     {
+                        "authorized_project_id": str(PROJECT_ID),
+                        "authorized_public": False,
                         "children": [],
                         "id": str(models[4].id),
                         "name": "circuit-4",
@@ -272,26 +297,36 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": False,
                 "children": [],
                 "id": str(models[1].id),
                 "name": "circuit-1",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": True,
                 "children": [],
                 "id": str(models[5].id),
                 "name": "circuit-5",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": False,
                 "children": [],
                 "id": str(root_circuit.id),
                 "name": "root-circuit",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": True,
                 "children": [
                     {
+                        "authorized_project_id": str(PROJECT_ID),
+                        "authorized_public": False,
                         "children": [],
                         "id": str(models[3].id),
                         "name": "circuit-3",
@@ -303,6 +338,8 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                "authorized_public": True,
                 "children": [],
                 "id": str(root_circuits[1].id),
                 "name": "root-circuit-1",
@@ -319,22 +356,32 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
         "derivation_type": "circuit_extraction",
         "data": [
             {
+                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                "authorized_public": False,
                 "children": [],
                 "id": str(models[7].id),
                 "name": "circuit-7",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": True,
                 "children": [],
                 "id": str(root_circuits[0].id),
                 "name": "root-circuit-0",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                "authorized_public": True,
                 "children": [
                     {
+                        "authorized_project_id": str(PROJECT_ID),
+                        "authorized_public": True,
                         "children": [
                             {
+                                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                                "authorized_public": False,
                                 "children": [],
                                 "id": str(models[6].id),
                                 "name": "circuit-6",
@@ -351,6 +398,8 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                "authorized_public": False,
                 "children": [],
                 "id": str(root_circuits[2].id),
                 "name": "root-circuit-2",
@@ -367,32 +416,44 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
         "derivation_type": "circuit_rewiring",
         "data": [
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": True,
                 "children": [],
                 "id": str(models[5].id),
                 "name": "circuit-5",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                "authorized_public": False,
                 "children": [],
                 "id": str(models[6].id),
                 "name": "circuit-6",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": True,
                 "children": [],
                 "id": str(root_circuits[0].id),
                 "name": "root-circuit-0",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                "authorized_public": True,
                 "children": [],
                 "id": str(root_circuits[1].id),
                 "name": "root-circuit-1",
                 "parent_id": None,
             },
             {
+                "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                "authorized_public": False,
                 "children": [
                     {
+                        "authorized_project_id": str(UNRELATED_PROJECT_ID),
+                        "authorized_public": False,
                         "children": [],
                         "id": str(models[7].id),
                         "name": "circuit-7",

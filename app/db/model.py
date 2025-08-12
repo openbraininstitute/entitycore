@@ -501,7 +501,7 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     age_min: Mapped[timedelta | None]
     age_max: Mapped[timedelta | None]
     age_period: Mapped[AgePeriod | None]
-    sex: Mapped[Sex | None]
+    sex: Mapped[Sex]
     weight: Mapped[float | None]  # in grams
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

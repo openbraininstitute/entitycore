@@ -12,6 +12,7 @@ import hashlib
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 from sqlalchemy import Connection
@@ -55,6 +56,7 @@ subject = sa.table(
     sa.column("id", sa.UUID()),
     sa.column("name", sa.TEXT()),
     sa.column("description", sa.TEXT()),
+    sa.column("sex", sa.TEXT()),
     sa.column("species_id", sa.UUID()),
     sa.column("strain_id", sa.UUID()),
 )
@@ -119,6 +121,7 @@ def _migrate_data() -> None:
                 "id": subject["id"],
                 "name": subject["name"],
                 "description": "",
+                "sex": "unknown",
                 "species_id": species_id,
                 "strain_id": None,
             }
@@ -227,9 +230,21 @@ def upgrade() -> None:
     op.drop_column("ion_channel_model", "species_id")
     op.drop_column("ion_channel_model", "brain_region_id")
     op.drop_column("ion_channel_model", "strain_id")
+    op.alter_column(
+        "subject",
+        "sex",
+        existing_type=postgresql.ENUM("male", "female", "unknown", name="sex"),
+        nullable=False,
+    )
 
 
 def downgrade() -> None:
+    op.alter_column(
+        "subject",
+        "sex",
+        existing_type=postgresql.ENUM("male", "female", "unknown", name="sex"),
+        nullable=True,
+    )
     op.add_column(
         "ion_channel_model", sa.Column("strain_id", sa.UUID(), autoincrement=False, nullable=True)
     )

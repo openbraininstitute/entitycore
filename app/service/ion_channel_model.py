@@ -1,11 +1,11 @@
 import uuid
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import sqlalchemy as sa
 from fastapi import Depends
-from sqlalchemy.orm import joinedload, raiseload, selectinload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, Ion, IonChannelModel
+from app.db.model import Contribution, Ion, IonChannelModel, Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -21,15 +21,18 @@ from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_model import IonChannelModelCreate, IonChannelModelRead
 from app.schemas.types import ListResponse, Select
 
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
+
 
 def _load(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
     return q.options(
-        joinedload(IonChannelModel.subject, innerjoin=True),
-        # joinedload(IonChannelModel.subject).joinedload(Subject.species),
-        # joinedload(IonChannelModel.subject).joinedload(Subject.strain),
+        joinedload(IonChannelModel.subject, innerjoin=True).selectinload(Subject.species),
+        joinedload(IonChannelModel.subject, innerjoin=True).selectinload(Subject.strain),
         joinedload(IonChannelModel.brain_region, innerjoin=True),
         joinedload(IonChannelModel.created_by),
         joinedload(IonChannelModel.updated_by),
+        joinedload(IonChannelModel.license),
         selectinload(IonChannelModel.contributions).selectinload(Contribution.agent),
         selectinload(IonChannelModel.contributions).selectinload(Contribution.role),
         selectinload(IonChannelModel.assets),
@@ -46,15 +49,26 @@ def read_many(
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
 ) -> ListResponse[IonChannelModelRead]:
-    facet_keys = filter_keys = [
+    subject_alias = aliased(Subject, flat=True)
+    aliases: Aliases = {
+        Subject: subject_alias,
+    }
+    facet_keys = [
         "brain_region",
-        "species",
+        "subject.species",
+        "subject.strain",
+    ]
+    filter_keys = [
+        "brain_region",
+        "subject",
+        "subject.species",
+        "subject.strain",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=IonChannelModel,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases={},
+        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -63,7 +77,7 @@ def read_many(
         with_search=with_search,
         with_in_brain_region=in_brain_region,
         facets=facets,
-        aliases=None,
+        aliases=aliases,
         apply_data_query_operations=_load,
         apply_filter_query_operations=None,
         pagination_request=pagination_request,

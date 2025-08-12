@@ -70,12 +70,10 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[PublicationRead]:
-    agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
     aliases: Aliases = {
         Agent: {
-            "contribution": agent_alias,
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
@@ -83,12 +81,10 @@ def read_many(
     facet_keys = [
         "created_by",
         "updated_by",
-        "contribution",
     ]
     filter_keys = [
         "created_by",
         "updated_by",
-        "contribution",
     ]
 
     name_to_facet_query_params, filter_joins = query_params_factory(

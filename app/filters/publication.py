@@ -5,7 +5,7 @@ from fastapi_filter import with_prefix
 from app.db.model import Publication
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import EntityFilterMixin, IdFilterMixin
+from app.filters.common import CreationFilterMixin, CreatorFilterMixin, IdFilterMixin
 
 
 class NestedPublicationFilter(
@@ -24,7 +24,8 @@ class NestedPublicationFilter(
 
 
 class PublicationFilter(
-    EntityFilterMixin,
+    CreatorFilterMixin,
+    CreationFilterMixin,
     NestedPublicationFilter,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

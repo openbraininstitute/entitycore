@@ -228,7 +228,6 @@ def upgrade() -> None:
     op.drop_index(
         op.f("ix_reconstruction_morphology_strain_id"), table_name="reconstruction_morphology"
     )
-    op.drop_table("reconstruction_morphology")
     op.drop_constraint(
         op.f("fk_emodel_exemplar_morphology_id_reconstruction_morphology"),
         "emodel",
@@ -333,6 +332,7 @@ def upgrade() -> None:
         signature="unauthorized_private_reference_function_memodel_morphology_id_r()",
         definition="returns trigger\n LANGUAGE plpgsql\nAS $function$\n            BEGIN\n                IF NOT EXISTS (\n                    SELECT 1 FROM entity e1\n                    JOIN entity e2 ON e2.id = NEW.id\n                    WHERE e1.id = NEW.morphology_id\n                    AND (e1.authorized_public = TRUE\n                        OR (e2.authorized_public = FALSE\n                            AND e1.authorized_project_id = e2.authorized_project_id\n                        )\n                    )\n                ) THEN\n                    RAISE EXCEPTION 'unauthorized private reference'\n                        USING ERRCODE = '42501'; -- Insufficient Privilege\n                END IF;\n                RETURN NEW;\n            END;\n            $function$",
     )
+    op.drop_table("reconstruction_morphology")
     op.drop_entity(public_unauthorized_private_reference_function_memodel_morphology_id_r)
 
     # ### end Alembic commands ###
@@ -427,23 +427,6 @@ def downgrade() -> None:
     op.drop_constraint(
         op.f("fk_memodel_morphology_id_cell_morphology"), "memodel", type_="foreignkey"
     )
-    op.create_foreign_key(
-        op.f("fk_memodel_morphology_id_reconstruction_morphology"),
-        "memodel",
-        "reconstruction_morphology",
-        ["morphology_id"],
-        ["id"],
-    )
-    op.drop_constraint(
-        op.f("fk_emodel_exemplar_morphology_id_cell_morphology"), "emodel", type_="foreignkey"
-    )
-    op.create_foreign_key(
-        op.f("fk_emodel_exemplar_morphology_id_reconstruction_morphology"),
-        "emodel",
-        "reconstruction_morphology",
-        ["exemplar_morphology_id"],
-        ["id"],
-    )
     op.create_table(
         "reconstruction_morphology",
         sa.Column("id", sa.UUID(), autoincrement=False, nullable=False),
@@ -481,6 +464,23 @@ def downgrade() -> None:
             name=op.f("fk_reconstruction_morphology_strain_id_species_id"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_reconstruction_morphology")),
+    )
+    op.create_foreign_key(
+        op.f("fk_memodel_morphology_id_reconstruction_morphology"),
+        "memodel",
+        "reconstruction_morphology",
+        ["morphology_id"],
+        ["id"],
+    )
+    op.drop_constraint(
+        op.f("fk_emodel_exemplar_morphology_id_cell_morphology"), "emodel", type_="foreignkey"
+    )
+    op.create_foreign_key(
+        op.f("fk_emodel_exemplar_morphology_id_reconstruction_morphology"),
+        "emodel",
+        "reconstruction_morphology",
+        ["exemplar_morphology_id"],
+        ["id"],
     )
     op.create_index(
         op.f("ix_reconstruction_morphology_strain_id"),

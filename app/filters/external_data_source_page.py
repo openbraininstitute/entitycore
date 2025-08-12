@@ -5,12 +5,14 @@ from fastapi_filter import FilterDepends
 from app.db.model import ExternalDataSourcePage
 from app.db.types import ExternalDataSource
 from app.filters.base import CustomFilter
-from app.filters.common import EntityFilterMixin
+from app.filters.common import CreationFilterMixin, CreatorFilterMixin, IdFilterMixin
 
 
 class ExternalDataSourcePageFilter(
     CustomFilter,
-    EntityFilterMixin,
+    IdFilterMixin,
+    CreatorFilterMixin,
+    CreationFilterMixin,
 ):
     source_label: ExternalDataSource | None = None
     url: str | None = None

@@ -521,7 +521,7 @@ class Publication(Identifiable):
     """Represents a scientific publication entity in the database.
 
     Attributes:
-        id (uuid.UUID): Primary key, references the base entity ID.
+        id (uuid.UUID): Primary key.
         DOI (str): Digital Object Identifier for the publication.
         title (str | None): Title of the publication.
         authors (list[Author] | None): List of authors associated with the publication.
@@ -544,7 +544,7 @@ class ExternalDataSourcePage(Identifiable, NameDescriptionVectorMixin):
     """Represents a web page on an external data source.
 
     Attributes:
-        id (uuid.UUID): Primary key, references the base entity ID.
+        id (uuid.UUID): Primary key.
         source_label (ExternalDataSource): Unique label for the data source, e.g. channelpedia.
         url (str): URL of the data source webpage,
             e.g. "https://channelpedia.epfl.ch/wikipages/189".
@@ -552,13 +552,8 @@ class ExternalDataSourcePage(Identifiable, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.external_data_source_page.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     source_label: Mapped[ExternalDataSource]
-    url: Mapped[str] = mapped_column(String, index=True)
-
-    __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": __tablename__,
-    }
+    url: Mapped[str] = mapped_column(String, index=True, unique=True)
 
 
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
@@ -1352,7 +1347,9 @@ class ScientificArtifactExternalDataSourcePageLink(Identifiable):
 
     __table_args__ = (
         UniqueConstraint(
-            "external_data_source_page_id", "scientific_artifact_id", name="uq_publishedin_ids"
+            "external_data_source_page_id",
+            "scientific_artifact_id",
+            name="uq_saedspl_external_data_source_page_id_scientific_artifact_id",
         ),
     )
 

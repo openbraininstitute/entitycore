@@ -47,11 +47,6 @@ class IonChannelModelRead(
     pass
 
 
-class IonChannelModelWAssets(IonChannelModelRead, AssetsMixin):
-    pass
-
-
-class IonChannelModelExpanded(
-    IonChannelModelWAssets, CreatedByUpdatedByMixin, ContributionReadWithoutEntityMixin
-):
-    pass
+# temporary aliases for backward compatibility
+IonChannelModelWAssets = IonChannelModelRead
+IonChannelModelExpanded = IonChannelModelRead

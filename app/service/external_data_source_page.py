@@ -1,7 +1,7 @@
 import uuid
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import raiseload
 
 from app.db.model import ExternalDataSourcePage, Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -21,9 +21,9 @@ from app.schemas.external_data_source_page import (
 from app.schemas.types import ListResponse
 
 
-def _load(query: sa.Select):
+def _load(query: sa.Select) -> sa.Select:
     return query.options(
-        joinedload(Subject.species),
+        raiseload("*"),
     )
 
 
@@ -43,7 +43,7 @@ def read_one(
 
 
 def create_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,  # everybody can create
     json_model: ExternalDataSourcePageCreate,
     db: SessionDep,
 ) -> ExternalDataSourcePageRead:

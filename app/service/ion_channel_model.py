@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from fastapi import Depends
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, Ion, IonChannelModel
+from app.db.model import Contribution, Ion, IonChannelModel, Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -26,11 +26,18 @@ from app.schemas.ion_channel_model import (
 from app.schemas.types import ListResponse, Select
 
 
-def _load(q: Select[IonChannelModel]):
-    return (
-        q.options(joinedload(IonChannelModel.subject, innerjoin=True))
-        .options(joinedload(IonChannelModel.brain_region))
-        .options(raiseload("*"))
+def _load(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
+    return q.options(
+        joinedload(IonChannelModel.subject, innerjoin=True),
+        # joinedload(IonChannelModel.subject).joinedload(Subject.species),
+        # joinedload(IonChannelModel.subject).joinedload(Subject.strain),
+        joinedload(IonChannelModel.brain_region, innerjoin=True),
+        joinedload(IonChannelModel.created_by),
+        joinedload(IonChannelModel.updated_by),
+        selectinload(IonChannelModel.contributions).selectinload(Contribution.agent),
+        selectinload(IonChannelModel.contributions).selectinload(Contribution.role),
+        selectinload(IonChannelModel.assets),
+        raiseload("*"),
     )
 
 
@@ -76,18 +83,6 @@ def read_one(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> IonChannelModelExpanded:
-    def _load(q: Select[IonChannelModel]):
-        return (
-            q.options(joinedload(IonChannelModel.subject, innerjoin=True))
-            .options(joinedload(IonChannelModel.brain_region))
-            .options(joinedload(IonChannelModel.created_by))
-            .options(joinedload(IonChannelModel.updated_by))
-            .options(selectinload(IonChannelModel.contributions).selectinload(Contribution.agent))
-            .options(selectinload(IonChannelModel.contributions).selectinload(Contribution.role))
-            .options(selectinload(IonChannelModel.assets))
-            .options(raiseload("*"))
-        )
-
     return router_read_one(
         id_=id_,
         db=db,

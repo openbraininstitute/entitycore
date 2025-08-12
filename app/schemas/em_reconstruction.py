@@ -5,7 +5,8 @@ from pydantic import BaseModel, ConfigDict, HttpUrl, AnyUrl
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.db.types import EmMeshType, EmMeshGenerationMethod
 
-class EMMethodsMixin(BaseModel):  # TODO: Which one's are not optional?
+
+class EMDenseReconstructionDatasetBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     protocol: HttpUrl | None = None
     fixation: str | None = None
@@ -21,14 +22,13 @@ class EMMethodsMixin(BaseModel):  # TODO: Which one's are not optional?
     dose: float | None = None
     temperature: float | None = None
 
-class EMDenseReconstructionDatasetBase(EMMethodsMixin):
-    model_config = ConfigDict(from_attributes=True)
     volume_resolution_x_nm: float
     volume_resolution_y_nm: float
     volume_resolution_z_nm: float
-    release_url: HttpUrl | None = None
+    release_url: HttpUrl
     cave_client_url: AnyUrl
     cave_datastack: str
+    precomputed_mesh_url: AnyUrl | None = None
     cell_identifying_property: str = "pt_root_id"
 
 class EMDenseReconstructionDatasetRead(EMDenseReconstructionDatasetBase, ScientificArtifactRead):

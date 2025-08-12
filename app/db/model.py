@@ -49,6 +49,8 @@ from app.db.types import (
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
+    EmMeshGenerationMethod,
+    EmMeshType,
     EntityType,
     MeasurementStatistic,
     MeasurementUnit,
@@ -1359,3 +1361,96 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     # calibration_data (multiple entities): ...
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixin):
+    """Represents a dense EM reconstruction released in the format compatible with 
+    'Neuronglancer' and 'CAVE'.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+
+        [related to core EM methodology]
+        protocol: (str) A link to a document giving a detailed description of the tissue preparation protocol.
+        fixation: (str) The method and chemicals used for fixing the tissue (e.g., 4% paraformaldehyde).
+        staining: (str) The stains or labels used to visualize specific structures or molecules (e.g., heavy metal stains for EM).
+        slicing: (float) The thickness of the tissue sections.
+        shrinkage: (float) Any tissue shrinkage that occurred during processing and whether it was corrected.
+        microscope_type: (str). The specific type of electron microscope used (e.g., Transmission EM, Scanning EM, Serial Block-Face SEM).
+        detector: (str) The type of detector used
+        orientation: (str) The biological orientation of the image, such as left-to-right, anterior-to-posterior, or dorsal-to-ventral.
+        landmarks: (str) The names and coordinates of any anatomical landmarks in the image.
+        voltage (float): The technical settings used during imaging -- Voltage
+        current (float): The technical settings used during imaging -- Current
+        dose (float): The technical settings used during imaging -- Dose
+        temperature: (float) The temperature of the sample during imaging.
+
+        [important for analyses]
+        volume_resolution_x_nm (float): The x-width of a single voxel of the imaging stack
+        volume_resolution_y_nm (float): The y-width of a single voxel of the imaging stack
+        volume_resolution_z_nm (float): The z-width of a single voxel of the imaging stack
+        release_url (str): A link to the main webpage of the data release
+        cave_client_url (str): A url to be used for programmatic access to the data using CAVEclient
+        cave_datastack (str): Name of the datastack under that url that contains the data
+        precomputed_mesh_url (str): Url that can be used to access precomputed cell meshes in the data
+        cell_identifying_property (str): Name of a property (column of a table of the release) that
+          can be used to uniquely identify a cell in the data. Often "pt_root_id".
+
+    Notes:
+        - Has no assets. Data access all through the specified URLs
+    """
+    __tablename__ = EntityType.em_dense_reconstruction_dataset.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    
+    protocol: Mapped[str | None]
+    fixation: Mapped[str | None]
+    staining: Mapped[str | None]  # TODO: controlled vocabulary?
+    slicing: Mapped[float | None]
+    shrinkage: Mapped[float | None]
+    microscope_type: Mapped[str | None]  # TODO: controlled vocabulary
+    detector: Mapped[str | None]
+    orientation: Mapped[str | None]
+    landmarks: Mapped[str | None]
+    voltage : Mapped[float | None]
+    current: Mapped[float | None]
+    dose: Mapped[float | None]
+    temperature: Mapped[float | None]
+
+    volume_resolution_x_nm: Mapped[float]
+    volume_resolution_y_nm: Mapped[float]
+    volume_resolution_z_nm: Mapped[float]
+    release_url: Mapped[str]
+    cave_client_url: Mapped[str]
+    cave_datastack: Mapped[str]
+    precomputed_mesh_url: Mapped[str]
+    cell_identifying_property: Mapped[str]
+
+class EMCellMesh(ScientificArtifact):
+    """Represents a cell surface mesh created from a dense EM reconstruction.
+
+    Attributes:
+        - id (uuid.UUID): Primary key.
+        - em_release_id (uuid.UUID): The id of the dense em reconstruction dataset that 
+          the mesh originates from
+        - relase_version (int): Version of the em reconstruction dataset that was used
+        - dense_reconstruction_cell_id (int): An identifier of the cell within the em 
+          reconstruction dataset. Often its 'pt_root_id'.
+        - generation_method (EMMeshGenerationMethod): The algorithm used to generate the 
+          mesh from volumetric data.
+        - level_of_detail (int): The level of detail parameter used during mesh generation
+        - generation_parameters (str): Any additional parameters of relevance
+        - mesh_type (EMMeshType): One of "static" or "dynamic". Static meshes are precomputed,
+          dynamic ones are generated when the em reconstruction dataset is queried.
+    Notes:
+        - Asset: A cell surface mesh in .h5 format
+    """
+    __tablename__ = EntityType.em_cell_mesh.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    em_release_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("em_dense_reconstruction_dataset.id"), index=True)
+    relase_version: Mapped[int]
+    dense_reconstruction_cell_id: Mapped[int]
+    generation_method: Mapped[EmMeshGenerationMethod]
+    level_of_detail: Mapped[int]
+    generation_parameters: Mapped[str | None]
+    mesh_type : Mapped[EmMeshType]

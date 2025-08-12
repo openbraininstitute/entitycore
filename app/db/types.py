@@ -82,6 +82,7 @@ class EntityType(StrEnum):
     subject = auto()
     validation_result = auto()
     circuit = auto()
+    em_dense_reconstruction_dataset = auto()
     em_cell_mesh = auto()
 
 
@@ -535,5 +536,6 @@ class EmMeshGenerationMethod(StrEnum):
     """The algorithm generating the mesh from a volume
     
     marching_cubes: The marching cubes algorithm
+    TODO: Add more!
     """
     marching_cubes = auto()

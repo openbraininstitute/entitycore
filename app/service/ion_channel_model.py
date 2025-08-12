@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from fastapi import Depends
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, Ion, IonChannelModel, Subject
+from app.db.model import Contribution, Ion, IonChannelModel
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,

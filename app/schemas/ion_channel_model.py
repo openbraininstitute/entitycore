@@ -1,8 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.scientific_artifact import (
     ScientificArtifactCreate,
     ScientificArtifactRead,

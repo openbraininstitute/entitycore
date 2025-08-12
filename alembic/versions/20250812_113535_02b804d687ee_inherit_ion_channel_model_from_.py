@@ -70,6 +70,7 @@ strain = sa.table(
 )
 
 PUBLIC_PROJECT_ID = "0dbced5f-cc3d-488a-8c7f-cfb8ea039dc6"
+ADMIN_ID = "cd613e30-d8f1-4adf-91b7-584a2265b1f5"  # Admin/OBI
 
 
 def _make_uuid(id_: uuid.UUID) -> uuid.UUID:
@@ -97,7 +98,6 @@ def _migrate_data() -> None:
     conn = op.get_bind()
     # add a generic subject for each existing species
     species_to_subject = _species_to_subject(conn)
-    admin_id = conn.execute(sa.select(agent.c.id).where(agent.c.pref_label == "Admin")).scalar_one()
     op.bulk_insert(
         entity,
         [
@@ -106,8 +106,8 @@ def _migrate_data() -> None:
                 "type": "subject",
                 "authorized_project_id": PUBLIC_PROJECT_ID,
                 "authorized_public": True,
-                "created_by_id": admin_id,
-                "updated_by_id": admin_id,
+                "created_by_id": ADMIN_ID,
+                "updated_by_id": ADMIN_ID,
             }
             for _, subject in species_to_subject.items()
         ],

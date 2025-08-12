@@ -33,7 +33,10 @@ class IonChannelModelBase(BaseModel):
     neuron_block: NeuronBlock
 
 
-class IonChannelModelCreate(IonChannelModelBase, ScientificArtifactCreate):
+class IonChannelModelCreate(
+    IonChannelModelBase,
+    ScientificArtifactCreate,
+):
     pass
 
 
@@ -42,8 +45,3 @@ class IonChannelModelRead(
     ScientificArtifactRead,
 ):
     pass
-
-
-# temporary aliases for backward compatibility
-IonChannelModelWAssets = IonChannelModelRead
-IonChannelModelExpanded = IonChannelModelRead

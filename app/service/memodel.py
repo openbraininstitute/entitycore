@@ -16,6 +16,7 @@ from app.db.model import (
     EModel,
     MEModel,
     MEModelCalibrationResult,
+    Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -58,8 +59,8 @@ def _load(select: Select):
             selectinload(CellMorphology.contributions).selectinload(Contribution.role),
             joinedload(CellMorphology.mtypes),
             joinedload(CellMorphology.license),
-            joinedload(CellMorphology.species),
-            joinedload(CellMorphology.strain),
+            joinedload(CellMorphology.subject).joinedload(Subject.species),
+            joinedload(CellMorphology.subject).joinedload(Subject.strain),
             joinedload(CellMorphology.created_by),
             joinedload(CellMorphology.updated_by),
             selectinload(CellMorphology.assets),

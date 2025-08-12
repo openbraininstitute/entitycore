@@ -45,7 +45,7 @@ class NestedMorphologyFilter(
     ] = None
 
     class Constants(CustomFilter.Constants):
-        model = ReconstructionMorphology
+        model = CellMorphology
 
 
 class NestedExemplarMorphologyFilter(
@@ -71,7 +71,7 @@ class NestedExemplarMorphologyFilter(
     ] = None
 
     class Constants(CustomFilter.Constants):
-        model = ReconstructionMorphology
+        model = CellMorphology
 
 
 class MorphologyFilter(

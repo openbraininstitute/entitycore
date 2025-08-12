@@ -457,7 +457,7 @@ def create_asset_label(entity_type, name, content_type) -> AssetLabel | None:
         EntityType.me_type_density: {
             ContentType.nrrd: AssetLabel.voxel_densities,
         },
-        EntityType.reconstruction_morphology: {
+        EntityType.cell_morphology: {
             ContentType.swc: AssetLabel.morphology,
             ContentType.h5: AssetLabel.morphology,
             ContentType.asc: AssetLabel.morphology,

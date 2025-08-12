@@ -5,7 +5,6 @@ from app.db.model import (
     CellMorphology,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
     Species,
     Strain,
 )
@@ -18,14 +17,17 @@ from .utils import (
     add_db,
     assert_request,
     check_brain_region_filter,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
-ROUTE = "/reconstruction-morphology"
+ROUTE = "/cell-morphology"
 
 
-def test_create_reconstruction_morphology(
-    client, species_id, strain_id, license_id, brain_region_id
+def test_create_cell_morphology(
+    client,
+    license_id,
+    brain_region_id,
+    subject_id,
 ):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
@@ -34,8 +36,7 @@ def test_create_reconstruction_morphology(
         url=ROUTE,
         json={
             "brain_region_id": str(brain_region_id),
-            "species_id": str(species_id),
-            "strain_id": str(strain_id),
+            "subject_id": str(subject_id),
             "description": morph_description,
             "name": morph_name,
             "location": {"x": 10, "y": 20, "z": 30},
@@ -44,33 +45,28 @@ def test_create_reconstruction_morphology(
         },
     ).json()
     assert data["brain_region"]["id"] == str(brain_region_id), (
-        f"Failed to get id for reconstruction morphology: {data}"
+        f"Failed to get id for cell morphology: {data}"
     )
-    assert data["species"]["id"] == species_id, (
-        f"Failed to get species_id for reconstruction morphology: {data}"
-    )
-    assert data["strain"]["id"] == strain_id, (
-        f"Failed to get strain_id for reconstruction morphology: {data}"
+    assert data["subject"]["id"] == subject_id, (
+        f"Failed to get subject_id for cell morphology: {data}"
     )
     assert data["description"] == morph_description, (
-        f"Failed to get description for reconstruction morphology: {data}"
+        f"Failed to get description for cell morphology: {data}"
     )
-    assert data["name"] == morph_name, f"Failed to get name for reconstruction morphology: {data}"
+    assert data["name"] == morph_name, f"Failed to get name for cell morphology: {data}"
     assert data["license"]["name"] == "Test License", (
-        f"Failed to get license for reconstruction morphology: {data}"
+        f"Failed to get license for cell morphology: {data}"
     )
-    assert data["type"] == EntityType.reconstruction_morphology, (
-        f"Failed to get correct type for reconstruction morphology: {data}"
+    assert data["type"] == EntityType.cell_morphology, (
+        f"Failed to get correct type for cell morphology: {data}"
     )
     assert data["created_by"]["id"] == data["updated_by"]["id"]
 
     response = client.get(ROUTE)
-    assert response.status_code == 200, (
-        f"Failed to get reconstruction morphologies: {response.text}"
-    )
+    assert response.status_code == 200, f"Failed to get cell morphologies: {response.text}"
     data = response.json()["data"]
-    assert data and all(item["type"] == EntityType.reconstruction_morphology for item in data), (  # noqa: PT018
-        "One or more reconstruction morphologies has incorrect type"
+    assert data and all(item["type"] == EntityType.cell_morphology for item in data), (  # noqa: PT018
+        "One or more cell morphologies has incorrect type"
     )
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
 
@@ -89,7 +85,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_query_reconstruction_morphology(db, client, brain_region_id, person_id):
+def test_query_cell_morphology(db, client, brain_region_id, person_id):
     species1 = add_db(
         db,
         Species(
@@ -136,7 +132,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id, person_id)
                 )
             ),
         ):
-            morphology_id = create_reconstruction_morphology_id(
+            morphology_id = create_cell_morphology_id(
                 client,
                 species_id=species.id,
                 strain_id=strain.id,
@@ -160,9 +156,9 @@ def test_query_reconstruction_morphology(db, client, brain_region_id, person_id)
     assert "data" in response_json
     assert response_json["facets"] is None
     assert len(response_json["data"]) == 10
-    assert all(
-        item["type"] == EntityType.reconstruction_morphology for item in response_json["data"]
-    ), "One or more reconstruction morphologies has incorrect type"
+    assert all(item["type"] == EntityType.cell_morphology for item in response_json["data"]), (
+        "One or more cell morphologies has incorrect type"
+    )
 
     response = client.get(ROUTE, params={"page_size": 100, "order_by": "+creation_date"})
     assert response.status_code == 200
@@ -310,7 +306,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id, person_id)
     }
 
 
-def test_query_reconstruction_morphology_species_join(db, client, brain_region_id, person_id):
+def test_query_cell_morphology_species_join(db, client, brain_region_id, person_id):
     """Make sure not to join all the species w/ their strains while doing query"""
     species0 = add_db(
         db,
@@ -414,7 +410,7 @@ def test_authorization(
     )
     assert public_morph.status_code == 200
     public_morph = public_morph.json()
-    assert public_morph["type"] == EntityType.reconstruction_morphology, (
+    assert public_morph["type"] == EntityType.cell_morphology, (
         "Public morphology has incorrect type"
     )
 
@@ -423,21 +419,21 @@ def test_authorization(
     )
     assert inaccessible_obj.status_code == 200
     inaccessible_obj = inaccessible_obj.json()
-    assert inaccessible_obj["type"] == EntityType.reconstruction_morphology, (
+    assert inaccessible_obj["type"] == EntityType.cell_morphology, (
         "Inaccessible morphology has incorrect type"
     )
 
     private_morph0 = client_user_1.post(ROUTE, json=morph_json | {"name": "private morphology 0"})
     assert private_morph0.status_code == 200
     private_morph0 = private_morph0.json()
-    assert private_morph0["type"] == EntityType.reconstruction_morphology, (
+    assert private_morph0["type"] == EntityType.cell_morphology, (
         "Private morphology 0 has incorrect type"
     )
 
     private_morph1 = client_user_1.post(ROUTE, json=morph_json | {"name": "private morphology 1"})
     assert private_morph1.status_code == 200
     private_morph1 = private_morph1.json()
-    assert private_morph1["type"] == EntityType.reconstruction_morphology, (
+    assert private_morph1["type"] == EntityType.cell_morphology, (
         "Private morphology 1 has incorrect type"
     )
 
@@ -501,7 +497,7 @@ def test_pagination(db, client, brain_region_id, person_id):
     for i, (species, strain) in zip(
         range(total_items), it.cycle(((species0, None), (species0, strain0), (species1, strain1)))
     ):
-        create_reconstruction_morphology_id(
+        create_cell_morphology_id(
             client,
             species_id=species.id,
             strain_id=strain.id if strain else None,
@@ -515,8 +511,8 @@ def test_pagination(db, client, brain_region_id, person_id):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == total_items
-    assert all(item["type"] == EntityType.reconstruction_morphology for item in data), (
-        "One or more reconstruction morphologies has incorrect type"
+    assert all(item["type"] == EntityType.cell_morphology for item in data), (
+        "One or more cell morphologies has incorrect type"
     )
 
     for i in range(1, total_items + 10, 2):
@@ -544,7 +540,7 @@ def test_pagination(db, client, brain_region_id, person_id):
 
 
 def test_filter_by_id__in(db, client, brain_region_id, person_id):
-    """Test filtering reconstruction morphologies by id__in parameter."""
+    """Test filtering cell morphologies by id__in parameter."""
     species = add_db(
         db,
         Species(
@@ -567,7 +563,7 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
 
     morphology_ids = []
     for i in range(5):
-        morphology_id = create_reconstruction_morphology_id(
+        morphology_id = create_cell_morphology_id(
             client,
             species_id=species.id,
             strain_id=strain.id,
@@ -605,9 +601,7 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
     data = response.json()["data"]
     assert len(data) == 1
     assert data[0]["id"] == morphology_ids[0]
-    assert data[0]["type"] == EntityType.reconstruction_morphology, (
-        "Filtered morphology has incorrect type"
-    )
+    assert data[0]["type"] == EntityType.cell_morphology, "Filtered morphology has incorrect type"
 
     # filtering by multiple IDs
     selected_ids = [morphology_ids[1], morphology_ids[3]]
@@ -700,6 +694,7 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id, 
             authorized_project_id=PROJECT_ID,
             created_by_id=person_id,
             updated_by_id=person_id,
+            morphology_protocol_id=None,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

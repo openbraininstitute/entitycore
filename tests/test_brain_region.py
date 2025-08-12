@@ -118,7 +118,7 @@ def test_family_queries(db, client, species_id, strain_id, person_id):
 
     for acronym, row in it.chain(brain_regions0.items(), brain_regions1.items()):
         hier = "hier0" if row.hierarchy_id == hierarchy_name0.id else "hier1"
-        utils.create_reconstruction_morphology_id(
+        utils.create_cell_morphology_id(
             client,
             species_id=species_id,
             strain_id=strain_id,
@@ -127,7 +127,7 @@ def test_family_queries(db, client, species_id, strain_id, person_id):
             name=f"{acronym}-{hier}",
             description=f"Description {acronym}-{hier}",
         )
-    assert len(client.get("/reconstruction-morphology").json()["data"]) == 8
+    assert len(client.get("/cell-morphology").json()["data"]) == 8
 
     def get_response(hier, acronym, ascendents):
         hierarchy_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
@@ -136,7 +136,7 @@ def test_family_queries(db, client, species_id, strain_id, person_id):
         )
 
         return client.get(
-            "/reconstruction-morphology",
+            "/cell-morphology",
             params={
                 "within_brain_region_hierarchy_id": hierarchy_id,
                 "within_brain_region_brain_region_id": brain_region_id,

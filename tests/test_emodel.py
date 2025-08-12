@@ -9,7 +9,7 @@ from .conftest import CreateIds, EModelIds
 from .utils import (
     TEST_DATA_DIR,
     assert_request,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
     upload_entity_asset,
 )
 
@@ -253,7 +253,7 @@ def test_authorization(
     brain_region_id,
     morphology_id,
 ):
-    public_morphology_id = create_reconstruction_morphology_id(
+    public_morphology_id = create_cell_morphology_id(
         client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
     )
 
@@ -292,7 +292,7 @@ def test_authorization(
 
     assert unauthorized_public_with_private_exemplar_morphology.status_code == 403
 
-    exemplar_morphology_id = create_reconstruction_morphology_id(
+    exemplar_morphology_id = create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=strain_id,

@@ -23,7 +23,8 @@ from app.schemas.base import (
     LicensedReadMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.species import NestedSpeciesRead, NestedStrainRead
+from app.schemas.measurement_annotation import MeasurementAnnotationRead
+from app.schemas.subject import SubjectReadMixin
 
 
 class ProtocolMixin(BaseModel):
@@ -122,9 +123,12 @@ class CellMorphologyRead(
     EntityTypeMixin,
     CreatedByUpdatedByMixin,
     ContributionReadWithoutEntityMixin,
+    SubjectReadMixin,
 ):
-    species: NestedSpeciesRead
-    strain: NestedStrainRead | None
     brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
     morphology_protocol: MorphologyProtocolRead | None  # Now references the polymorphic method
+
+
+class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
+    measurement_annotation: MeasurementAnnotationRead | None

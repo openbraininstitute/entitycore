@@ -3,8 +3,8 @@ import pytest
 from .utils import (
     assert_request,
     check_creation_fields,
+    create_cell_morphology_id,
     create_etype,
-    create_reconstruction_morphology_id,
 )
 
 ROUTE = "etype-classification"
@@ -23,7 +23,7 @@ def custom_etype(db, person_id):
 
 @pytest.fixture
 def unauthorized_morph_id(species_id, client_user_2, brain_region_id):
-    return create_reconstruction_morphology_id(
+    return create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=None,

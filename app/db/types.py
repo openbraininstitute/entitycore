@@ -108,7 +108,7 @@ class EntityType(StrEnum):
     memodel_calibration_result = auto()
     me_type_density = auto()
     publication = auto()
-    reconstruction_morphology = auto()
+    cell_morphology = auto()
     simulation = auto()
     simulation_campaign = auto()
     simulation_campaign_generation = auto()
@@ -438,7 +438,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
         ],
     },
-    EntityType.reconstruction_morphology: {
+    EntityType.cell_morphology: {
         AssetLabel.morphology: [
             LabelRequirements(content_type=ContentType.asc, is_directory=False),
             LabelRequirements(content_type=ContentType.swc, is_directory=False),

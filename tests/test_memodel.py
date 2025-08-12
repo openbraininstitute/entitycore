@@ -14,7 +14,7 @@ from .utils import (
     PROJECT_ID,
     assert_request,
     check_brain_region_filter,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
 ROUTE = "/memodel"
@@ -466,7 +466,7 @@ def test_authorization(
     morphology_id,
     emodel_id,
 ):
-    public_morphology_id = create_reconstruction_morphology_id(
+    public_morphology_id = create_cell_morphology_id(
         client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
     )
 
@@ -525,7 +525,7 @@ def test_authorization(
 
     assert unauthorized_public_with_private_relations.status_code == 403
 
-    morphology_id = create_reconstruction_morphology_id(
+    morphology_id = create_cell_morphology_id(
         client_user_2,
         species_id,
         strain_id,
@@ -542,7 +542,7 @@ def test_authorization(
 
     morphology_id_2 = (
         client_user_2.post(
-            "/reconstruction-morphology",
+            "/cell-morphology",
             json={
                 "name": "test",
                 "description": "test",

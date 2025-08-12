@@ -13,7 +13,7 @@ from .utils import (
     check_creation_fields,
     check_missing,
     check_pagination,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
 DateTimeAdapter = TypeAdapter(datetime)
@@ -51,7 +51,7 @@ def _assert_read_response(data, json_data, *, empty_ids: bool = False):
         assert data["used"] == [
             {
                 "id": json_data["used_ids"][0],
-                "type": "reconstruction_morphology",
+                "type": "cell_morphology",
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": False,
             }
@@ -108,21 +108,21 @@ def test_create_one__unauthorized_entities(
 ):
     """Do not allow associations with entities that are not authorized to the user."""
 
-    user1_morph_id = create_reconstruction_morphology_id(
+    user1_morph_id = create_cell_morphology_id(
         client_user_1,
         species_id=species_id,
         strain_id=None,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-    user2_morph_id = create_reconstruction_morphology_id(
+    user2_morph_id = create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=None,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-    user2_public_morph_id = create_reconstruction_morphology_id(
+    user2_public_morph_id = create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=None,
@@ -342,14 +342,14 @@ def test_update_one__fail_if_generated_ids_unauthorized(
 ):
     """Test that it is not allowed to update generated_ids with unauthorized entities."""
 
-    user1_morph_id = create_reconstruction_morphology_id(
+    user1_morph_id = create_cell_morphology_id(
         client_user_1,
         species_id=species_id,
         strain_id=None,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-    user2_morph_id = create_reconstruction_morphology_id(
+    user2_morph_id = create_cell_morphology_id(
         client_user_2,
         species_id=species_id,
         strain_id=None,

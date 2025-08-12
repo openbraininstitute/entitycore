@@ -17,6 +17,7 @@ from app.db.model import (
     Contribution,
     MeasurementAnnotation,
     MeasurementKind,
+    Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -48,8 +49,8 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
         selectinload(CellMorphology.contributions).selectinload(Contribution.role),
         joinedload(CellMorphology.mtypes),
         joinedload(CellMorphology.license),
-        joinedload(CellMorphology.species, innerjoin=True),
-        joinedload(CellMorphology.strain),
+        joinedload(CellMorphology.subject).joinedload(Subject.species),
+        joinedload(CellMorphology.subject).joinedload(Subject.strain),
         selectinload(CellMorphology.assets),
         joinedload(CellMorphology.created_by),
         joinedload(CellMorphology.updated_by),
@@ -114,10 +115,12 @@ def read_many(
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[CellMorphologyRead]:
+    subject_alias = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
     aliases: Aliases = {
+        Subject: subject_alias,
         Agent: {
             "contribution": agent_alias,
             "created_by": created_by_alias,
@@ -126,12 +129,10 @@ def read_many(
     }
     facet_keys = [
         "brain_region",
-        "species",
-        "created_by",
+        "subjectcreated_by",
         "updated_by",
         "contribution",
         "mtype",
-        "strain",
     ]
     filter_keys = [
         *facet_keys,

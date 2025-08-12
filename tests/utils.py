@@ -57,7 +57,7 @@ UNRELATED_PROJECT_HEADERS = {
 }
 
 ROUTES = {
-    CellMorphology: "/reconstruction-morphology",
+    CellMorphology: "/cell-morphology",
     ElectricalCellRecording: "/electrical-cell-recording",
 }
 
@@ -87,10 +87,9 @@ class ClientProxy:
         return decorator(method) if name in self._methods else method
 
 
-def create_reconstruction_morphology_id(
+def create_cell_morphology_id(
     client,
-    species_id,
-    strain_id,
+    subject_id,
     brain_region_id,
     authorized_public,
     name="Test Morphology Name",
@@ -102,8 +101,7 @@ def create_reconstruction_morphology_id(
             "name": name,
             "description": description,
             "brain_region_id": str(brain_region_id),
-            "species_id": str(species_id) if species_id else None,
-            "strain_id": str(strain_id) if strain_id else None,
+            "subject_id": str(subject_id),
             "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": ["Test Legacy ID"],
             "authorized_public": authorized_public,

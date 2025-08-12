@@ -5,7 +5,7 @@ from app.schemas.morphology import CellMorphologyCreate
 
 from tests.utils import PROJECT_ID
 
-ENTITY_TYPE = "reconstruction_morphology"
+ENTITY_TYPE = "cell_morphology"
 ENTITY_ID = "2013824a-ad49-4179-a961-8e7a98deb9d0"
 SPECIES_ID = "6de20568-8e44-4341-ad5a-8999d2d23de2"
 
@@ -74,8 +74,8 @@ def test_construct_model_measurement_annotation(person_id):
     _check_result(result)
 
 
-def test_construct_model_reconstruction_morphology(brain_region_id, person_id):
-    reconstruction_morphology = {
+def test_construct_model_cell_morphology(brain_region_id, person_id):
+    cell_morphology = {
         "name": "morph-0",
         "description": "desc-0",
         "species_id": SPECIES_ID,
@@ -85,13 +85,13 @@ def test_construct_model_reconstruction_morphology(brain_region_id, person_id):
 
     def _check_result(r):
         assert isinstance(r, CellMorphology)
-        assert r.name == reconstruction_morphology["name"]
-        assert r.location == reconstruction_morphology["location"]
+        assert r.name == cell_morphology["name"]
+        assert r.location == cell_morphology["location"]
 
-    result = test_module.construct_model(model_cls=CellMorphology, data=reconstruction_morphology)
+    result = test_module.construct_model(model_cls=CellMorphology, data=cell_morphology)
     _check_result(result)
 
-    json_model = CellMorphologyCreate.model_validate(reconstruction_morphology)
+    json_model = CellMorphologyCreate.model_validate(cell_morphology)
     result = test_module.load_db_model_from_pydantic(
         json_model,
         db_model_class=CellMorphology,

@@ -61,8 +61,8 @@ from app.db.types import (
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
     SlicingDirectionType,
-    StorageType,
     StainingType,
+    StorageType,
     StructuralDomain,
     ValidationStatus,
 )
@@ -622,7 +622,7 @@ class EModel(
     seed: Mapped[int] = mapped_column(default=-1)
 
     exemplar_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
+        ForeignKey(f"{EntityType.cell_morphology}.id")
     )
 
     exemplar_morphology = relationship(
@@ -651,9 +651,7 @@ class MEModel(
         default=ValidationStatus.created,
     )
 
-    morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
-    )
+    morphology_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.cell_morphology}.id"))
 
     morphology = relationship("CellMorphology", foreign_keys=[morphology_id], uselist=False)
 
@@ -759,7 +757,7 @@ class ModifiedMorphologyProtocol(MorphologyProtocol):
 class CellMorphology(
     ScientificArtifact, MTypesMixin, NameDescriptionVectorMixin, MeasurableEntityMixin
 ):
-    __tablename__ = EntityType.reconstruction_morphology.value
+    __tablename__ = EntityType.cell_morphology.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
@@ -767,7 +765,7 @@ class CellMorphology(
 
     # New foreign key for the morphology method
     morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("morphology_protocol.id"), nullable=True, index=True
+        ForeignKey("morphology_protocol.id"), index=True
     )
     # Relationship to the polymorphic MorphologyProtocol
     morphology_protocol: Mapped["MorphologyProtocol"] = relationship(

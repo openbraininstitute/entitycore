@@ -3,8 +3,8 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import raiseload
 
-from app.db.model import ExternalDataSourcePage, Subject
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.db.model import ExternalDataSourcePage
+from app.dependencies.auth import UserContextDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,

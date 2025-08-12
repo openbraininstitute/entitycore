@@ -50,7 +50,6 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
     EntityType,
-    ExternalDataSource,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -538,22 +537,6 @@ class Publication(Identifiable):
     abstract: Mapped[str | None] = mapped_column(String, nullable=True)
 
     __table_args__ = (Index("ix_publication_doi_normalized", func.lower(DOI), unique=True),)
-
-
-class ExternalDataSourcePage(Identifiable, NameDescriptionVectorMixin):
-    """Represents a web page on an external data source.
-
-    Attributes:
-        id (uuid.UUID): Primary key.
-        source_label (ExternalDataSource): Unique label for the data source, e.g. channelpedia.
-        url (str): URL of the data source webpage,
-            e.g. "https://channelpedia.epfl.ch/wikipages/189".
-
-    """
-
-    __tablename__ = EntityType.external_data_source_page.value
-    source_label: Mapped[ExternalDataSource]
-    url: Mapped[str] = mapped_column(String, index=True, unique=True)
 
 
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
@@ -1304,53 +1287,6 @@ class ScientificArtifactPublicationLink(Identifiable):
 
     __table_args__ = (
         UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
-    )
-
-
-class ScientificArtifactExternalDataSourcePageLink(Identifiable):
-    """Represents the association between a scientific artifact and an external data source page.
-
-    It enforces uniqueness on the combination of external data source page and scientific artifact,
-    ensuring that each artifact-database URL pair is unique.
-
-    Attributes:
-        external_data_source_page_id (UUID): Foreign key referencing
-            the associated external data source page.
-        scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
-        external_data_source_page (ExternalDataSourcePage): Relationship to the
-            external data source page model.
-        scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
-
-    Table:
-        Unique constraint on (external_data_source_page_id, scientific_artifact_id).
-    """
-
-    __tablename__ = "scientific_artifact_external_data_source_page_link"
-    external_data_source_page_id: Mapped[UUID] = mapped_column(
-        ForeignKey("external_data_source_page.id"), index=True
-    )
-    scientific_artifact_id: Mapped[UUID] = mapped_column(
-        ForeignKey("scientific_artifact.id"), index=True
-    )
-
-    # Relationships - assuming ScientificArtifact and ExternalDataSourcePage exist
-    external_data_source_page: Mapped["ExternalDataSourcePage"] = relationship(
-        "ExternalDataSourcePage",
-        foreign_keys=[external_data_source_page_id],
-        uselist=False,
-    )
-    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
-        "ScientificArtifact",
-        foreign_keys=[scientific_artifact_id],
-        uselist=False,
-    )
-
-    __table_args__ = (
-        UniqueConstraint(
-            "external_data_source_page_id",
-            "scientific_artifact_id",
-            name="uq_saedspl_external_data_source_page_id_scientific_artifact_id",
-        ),
     )
 
 

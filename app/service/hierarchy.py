@@ -24,7 +24,7 @@ def _load_nodes(
     parent = aliased(entity_class, flat=True, name="parent")
     child = aliased(entity_class, flat=True, name="child")
     order_by = ["name", "id"]
-    subq = sa.select(sa.literal(1)).where(
+    matching_derivation_for_root = sa.select(sa.literal(1)).where(
         Derivation.generated_id == root.id,
         Derivation.derivation_type == derivation_type,
     )
@@ -36,7 +36,7 @@ def _load_nodes(
             root.authorized_public,
             root.authorized_project_id,
         )
-        .where(~sa.exists(subq))
+        .where(~sa.exists(matching_derivation_for_root))
         .order_by(*order_by)
     )
     query_roots = constrain_to_accessible_entities(
@@ -100,6 +100,8 @@ def read_circuit_hierarchy(
       a different derivation type.
     - A public circuit can have any combination of public and private circuits as children.
     - A private circuit can have only private circuits with the same project_id as children.
+
+    See also https://github.com/openbraininstitute/entitycore/issues/292#issuecomment-3174884561
     """
     all_nodes = _load_nodes(
         db,

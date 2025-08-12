@@ -130,6 +130,9 @@ def models(db, circuit_json_data, person_id, root_circuits):
 def hierarchy(db, root_circuits, models):
     """Build a circuit hierarchy.
 
+    Mermaid diagram:
+
+    ```mermaid
     flowchart TD
         R[R-u1-private]
         R0[R0-u1-public]
@@ -157,6 +160,7 @@ def hierarchy(db, root_circuits, models):
         R2 -->|D1| C7
 
         C0 -->|D1| C4
+    ```
     """
     r = root_circuits
     c = models

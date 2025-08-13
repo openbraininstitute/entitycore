@@ -2,12 +2,9 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, raiseload
 
-from app.db.model import (
-    Agent,
-    Publication,
-)
+from app.db.model import Agent, Publication
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import (
     FacetsDep,
@@ -29,8 +26,10 @@ if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-def _load(query: sa.Select):
-    return query
+def _load(query: sa.Select) -> sa.Select:
+    return query.options(
+        raiseload("*"),
+    )
 
 
 def read_one(

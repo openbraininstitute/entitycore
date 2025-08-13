@@ -530,7 +530,7 @@ class Publication(Identifiable):
     """
 
     __tablename__ = EntityType.publication.value
-    DOI: Mapped[str] = mapped_column(String)  # String is explicit for the case insensitive index
+    DOI: Mapped[str] = mapped_column()  # explicit for the case insensitive index
     title: Mapped[str | None]
     authors: Mapped[list[Author] | None] = mapped_column(JSONB)
     publication_year: Mapped[int | None]

@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import IdentifiableMixin
-from app.schemas.external_url import ExternalUrlRead
+from app.schemas.external_url import NestedExternalUrlRead
 from app.schemas.scientific_artifact import NestedScientificArtifactRead
 
 
@@ -22,5 +22,5 @@ class ScientificArtifactExternalUrlLinkRead(
     CreatedByUpdatedByMixin,
     IdentifiableMixin,
 ):
-    external_url: ExternalUrlRead
+    external_url: NestedExternalUrlRead
     scientific_artifact: NestedScientificArtifactRead

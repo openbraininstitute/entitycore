@@ -1,9 +1,10 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import raiseload
+from sqlalchemy.orm import aliased, raiseload
 
-from app.db.model import ExternalUrl
+from app.db.model import Agent, ExternalUrl
 from app.dependencies.auth import UserContextDep
 from app.dependencies.common import (
     FacetsDep,
@@ -14,11 +15,15 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.filters.external_url import ExternalUrlFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.factory import query_params_factory
 from app.schemas.external_url import (
     ExternalUrlCreate,
     ExternalUrlRead,
 )
 from app.schemas.types import ListResponse
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select) -> sa.Select:
@@ -28,7 +33,6 @@ def _load(query: sa.Select) -> sa.Select:
 
 
 def read_one(
-    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
 ) -> ExternalUrlRead:
@@ -36,28 +40,28 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=ExternalUrl,
-        authorized_project_id=user_context.project_id,
+        authorized_project_id=None,
         response_schema_class=ExternalUrlRead,
         apply_operations=_load,
     )
 
 
 def create_one(
-    user_context: UserContextDep,  # everybody can create
-    json_model: ExternalUrlCreate,
     db: SessionDep,
+    json_model: ExternalUrlCreate,
+    user_context: UserContextDep,  # everybody can create
 ) -> ExternalUrlRead:
     return router_create_one(
         db=db,
+        json_model=json_model,
         user_context=user_context,
         db_model_class=ExternalUrl,
-        json_model=json_model,
         response_schema_class=ExternalUrlRead,
+        apply_operations=_load,
     )
 
 
 def read_many(
-    user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: ExternalUrlFilterDep,
@@ -65,8 +69,29 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ExternalUrlRead]:
-    aliases = {}
-    name_to_facet_query_params = {}
+    created_by_alias = aliased(Agent, flat=True)
+    updated_by_alias = aliased(Agent, flat=True)
+    aliases: Aliases = {
+        Agent: {
+            "created_by": created_by_alias,
+            "updated_by": updated_by_alias,
+        },
+    }
+    facet_keys = [
+        "created_by",
+        "updated_by",
+    ]
+    filter_keys = [
+        "created_by",
+        "updated_by",
+    ]
+
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=ExternalUrl,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
+    )
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -80,6 +105,6 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ExternalUrlRead,
-        authorized_project_id=user_context.project_id,
-        filter_joins=None,
+        authorized_project_id=None,
+        filter_joins=filter_joins,
     )

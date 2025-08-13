@@ -63,7 +63,7 @@ class EntityType(StrEnum):
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
-    external_data_source_page = auto()
+    external_url = auto()
     ion_channel_model = auto()
     memodel = auto()
     mesh = auto()
@@ -515,7 +515,7 @@ class PublicationType(StrEnum):
     application = auto()
 
 
-class ExternalDataSource(StrEnum):
+class ExternalSource(StrEnum):
     channelpedia = "Channelpedia"
     modeldb = "ModelDB"
     icgenealogy = "ICGenealogy"

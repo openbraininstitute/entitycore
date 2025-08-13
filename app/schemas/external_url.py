@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, HttpUrl, model_validator
+from pydantic import BaseModel, ConfigDict, HttpUrl, field_serializer, model_validator
 
 from app.db.types import ALLOWED_URLS_PER_EXTERNAL_SOURCE, ExternalSource
 from app.schemas.agent import CreatedByUpdatedByMixin
@@ -12,6 +12,10 @@ class ExternalUrlBase(BaseModel):
     source: ExternalSource
     url: HttpUrl
     title: str | None = None
+
+    @field_serializer("url")
+    def serialize_url(self, url: HttpUrl) -> str:
+        return url.unicode_string()
 
 
 class ExternalUrlCreate(ExternalUrlBase):

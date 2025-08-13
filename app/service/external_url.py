@@ -2,7 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Agent, ExternalUrl
 from app.dependencies.auth import UserContextDep
@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 
 def _load(query: sa.Select) -> sa.Select:
     return query.options(
+        joinedload(ExternalUrl.created_by, innerjoin=True),
+        joinedload(ExternalUrl.updated_by, innerjoin=True),
         raiseload("*"),
     )
 

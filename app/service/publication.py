@@ -2,7 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Agent, Publication
 from app.dependencies.auth import AdminContextDep
@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 
 def _load(query: sa.Select) -> sa.Select:
     return query.options(
+        joinedload(Publication.created_by, innerjoin=True),
+        joinedload(Publication.updated_by, innerjoin=True),
         raiseload("*"),
     )
 

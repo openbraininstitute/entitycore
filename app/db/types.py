@@ -516,9 +516,9 @@ class PublicationType(StrEnum):
 
 
 class ExternalSource(StrEnum):
-    channelpedia = "Channelpedia"
-    modeldb = "ModelDB"
-    icgenealogy = "ICGenealogy"
+    channelpedia = auto()
+    modeldb = auto()
+    icgenealogy = auto()
 
 
 ALLOWED_URLS_PER_EXTERNAL_SOURCE = {

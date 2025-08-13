@@ -519,3 +519,10 @@ class ExternalSource(StrEnum):
     channelpedia = "Channelpedia"
     modeldb = "ModelDB"
     icgenealogy = "ICGenealogy"
+
+
+ALLOWED_URLS_PER_EXTERNAL_SOURCE = {
+    ExternalSource.channelpedia: "https://channelpedia.epfl.ch/",
+    ExternalSource.icgenealogy: "https://icg.neurotheory.ox.ac.uk/",
+    ExternalSource.modeldb: "https://modeldb.science/",
+}

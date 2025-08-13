@@ -544,12 +544,12 @@ class ExternalUrl(Identifiable):
 
     Attributes:
         id (uuid.UUID): Primary key.
-        external_source (ExternalSource): Name of the external data source, e.g. channelpedia.
+        source (ExternalSource): Name of the external data source, e.g. channelpedia.
         url (str): URL of the webpage, e.g. "https://channelpedia.epfl.ch/wikipages/189".
     """
 
     __tablename__ = EntityType.external_url.value
-    external_source: Mapped[ExternalSource]
+    source: Mapped[ExternalSource]
     url: Mapped[str] = mapped_column(String, index=True, unique=True)
     title: Mapped[str | None]
 

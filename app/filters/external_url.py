@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi_filter import FilterDepends
+from fastapi_filter import FilterDepends, with_prefix
 
 from app.db.model import ExternalUrl
 from app.db.types import ExternalSource
@@ -8,20 +8,34 @@ from app.filters.base import CustomFilter
 from app.filters.common import CreationFilterMixin, CreatorFilterMixin, IdFilterMixin
 
 
-class ExternalUrlFilter(
-    CustomFilter,
+class NestedExternalUrlFilter(
     IdFilterMixin,
-    CreatorFilterMixin,
-    CreationFilterMixin,
+    CustomFilter,
 ):
-    external_source: ExternalSource | None = None
+    source: ExternalSource | None = None
     url: str | None = None
-
-    order_by: list[str] = ["external_source"]  # noqa: RUF012
+    title: str | None = None
 
     class Constants(CustomFilter.Constants):
         model = ExternalUrl
-        ordering_model_fields = ["external_source"]  # noqa: RUF012
+
+
+class ExternalUrlFilter(
+    CreatorFilterMixin,
+    CreationFilterMixin,
+    NestedExternalUrlFilter,
+):
+    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+
+    class Constants(NestedExternalUrlFilter.Constants):
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "source",
+            "url",
+            "title",
+        ]
 
 
 ExternalUrlFilterDep = Annotated[ExternalUrlFilter, FilterDepends(ExternalUrlFilter)]
+NestedExternalUrlFilterDep = FilterDepends(with_prefix("external_url", NestedExternalUrlFilter))

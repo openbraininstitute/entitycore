@@ -18,18 +18,28 @@ from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
-from app.schemas.ion_channel_model import IonChannelModelCreate, IonChannelModelRead
+from app.schemas.ion_channel_model import (
+    IonChannelModelCreate,
+    IonChannelModelExpanded,
+    IonChannelModelRead,
+)
 from app.schemas.types import ListResponse, Select
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-def _load(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
+def _load_minimal(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
     return q.options(
         joinedload(IonChannelModel.subject, innerjoin=True).selectinload(Subject.species),
         joinedload(IonChannelModel.subject, innerjoin=True).selectinload(Subject.strain),
         joinedload(IonChannelModel.brain_region, innerjoin=True),
+        raiseload("*"),
+    )
+
+
+def _load_expanded(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
+    return _load_minimal(q).options(
         joinedload(IonChannelModel.created_by),
         joinedload(IonChannelModel.updated_by),
         joinedload(IonChannelModel.license),
@@ -78,7 +88,7 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
-        apply_data_query_operations=_load,
+        apply_data_query_operations=_load_minimal,
         apply_filter_query_operations=None,
         pagination_request=pagination_request,
         response_schema_class=IonChannelModelRead,
@@ -92,14 +102,14 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> IonChannelModelRead:
+) -> IonChannelModelExpanded:
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=IonChannelModel,
         authorized_project_id=user_context.project_id,
-        response_schema_class=IonChannelModelRead,
-        apply_operations=_load,
+        response_schema_class=IonChannelModelExpanded,
+        apply_operations=_load_expanded,
     )
 
 
@@ -127,7 +137,7 @@ def create_one(
 ) -> IonChannelModelRead:
     return router_create_one(
         db=db,
-        apply_operations=_load,
+        apply_operations=_load_minimal,
         user_context=user_context,
         json_model=ion_channel_model,
         db_model_class=IonChannelModel,

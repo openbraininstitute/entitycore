@@ -14,7 +14,7 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.ion_channel_model import IonChannelModelRead
+from app.schemas.ion_channel_model import IonChannelModelWAssets
 from app.schemas.morphology import ReconstructionMorphologyBase
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
@@ -58,4 +58,4 @@ class EModelRead(
 
 
 class EModelReadExpanded(EModelRead, AssetsMixin):
-    ion_channel_models: list[IonChannelModelRead]
+    ion_channel_models: list[IonChannelModelWAssets]

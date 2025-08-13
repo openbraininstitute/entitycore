@@ -1,9 +1,13 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.asset import AssetsMixin
+from app.schemas.base import BrainRegionReadMixin, CreationMixin
 from app.schemas.scientific_artifact import (
+    NestedScientificArtifactRead,
     ScientificArtifactCreate,
     ScientificArtifactRead,
 )
+from app.schemas.subject import SubjectReadMixin
 
 
 class UseIon(BaseModel):
@@ -41,6 +45,23 @@ class IonChannelModelCreate(
 
 
 class IonChannelModelRead(
+    IonChannelModelBase,
+    NestedScientificArtifactRead,
+    SubjectReadMixin,
+    BrainRegionReadMixin,
+    CreationMixin,
+):
+    pass
+
+
+class IonChannelModelWAssets(
+    IonChannelModelRead,
+    AssetsMixin,
+):
+    pass
+
+
+class IonChannelModelExpanded(
     IonChannelModelBase,
     ScientificArtifactRead,
 ):

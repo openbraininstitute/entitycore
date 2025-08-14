@@ -53,7 +53,11 @@ def test_get_entity_no_auth(client, client_user_2, brain_region_id, subject_id, 
 
 
 def test_public_unrelated_project_accessible(
-    client, client_user_2, brain_region_id, license_id, subject_id,
+    client,
+    client_user_2,
+    brain_region_id,
+    license_id,
+    subject_id,
 ):
     morph = assert_request(
         client_user_2.post,

@@ -737,7 +737,10 @@ class ModifiedMorphologyProtocol(MorphologyProtocol):
 
 
 class CellMorphology(
-    ScientificArtifact, MTypesMixin, NameDescriptionVectorMixin, MeasurableEntityMixin,
+    ScientificArtifact,
+    MTypesMixin,
+    NameDescriptionVectorMixin,
+    MeasurableEntityMixin,
 ):
     __tablename__ = EntityType.cell_morphology.value
 

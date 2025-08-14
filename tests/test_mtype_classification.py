@@ -3,8 +3,8 @@ import pytest
 from .utils import (
     assert_request,
     check_creation_fields,
+    create_cell_morphology_id,
     create_mtype,
-    create_reconstruction_morphology_id,
 )
 
 ROUTE = "mtype-classification"
@@ -22,11 +22,10 @@ def custom_mtype(db, person_id):
 
 
 @pytest.fixture
-def unauthorized_morph_id(species_id, client_user_2, brain_region_id):
-    return create_reconstruction_morphology_id(
+def unauthorized_morph_id(subject_id, client_user_2, brain_region_id):
+    return create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -54,7 +53,7 @@ def test_create_one(client, json_data, morphology_id):
     # check that mtype classification worked and morph now has a custom mtype
     data = assert_request(
         client.get,
-        url=f"/reconstruction-morphology/{morphology_id}",
+        url=f"/cell-morphology/{morphology_id}",
     ).json()["mtypes"]
 
     assert json_data["mtype_class_id"] in {m["id"] for m in data}
@@ -70,12 +69,11 @@ def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, j
 
 
 @pytest.fixture
-def public_morphology_id(client_user_1, species_id, brain_region_id, strain_id):
-    return create_reconstruction_morphology_id(
+def public_morphology_id(client_user_1, subject_id, brain_region_id):
+    return create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
-        strain_id=strain_id,
         authorized_public=True,
     )
 

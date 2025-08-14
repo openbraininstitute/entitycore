@@ -15,11 +15,11 @@ from app.schemas.base import (
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.ion_channel_model import IonChannelModelWAssets
-from app.schemas.morphology import ReconstructionMorphologyBase
+from app.schemas.morphology import CellMorphologyBase
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 
-class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase, IdentifiableMixin):
+class ExemplarMorphology(CreationMixin, CellMorphologyBase, IdentifiableMixin):
     pass
 
 

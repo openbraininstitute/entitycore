@@ -20,6 +20,7 @@ from app.db.model import (
     Agent,
     Base,
     BrainAtlas,
+    CellMorphology,
     Circuit,
     Contribution,
     EModel,
@@ -30,13 +31,10 @@ from app.db.model import (
     MTypeClassification,
     Organization,
     Publication,
-    ReconstructionMorphology,
     Role,
     Simulation,
     SimulationCampaign,
     SimulationResult,
-    Species,
-    Strain,
     Subject,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
@@ -322,7 +320,7 @@ def strain_id(client_admin, species_id, person_id):
 
 
 @pytest.fixture
-def subject_id(db, species_id, person_id):
+def subject_id(db, species_id, person_id, strain_id):
     return str(
         add_db(
             db,
@@ -330,7 +328,7 @@ def subject_id(db, species_id, person_id):
                 name="my-subject",
                 description="my-description",
                 species_id=species_id,
-                strain_id=None,
+                strain_id=strain_id,
                 age_value=timedelta(days=14),
                 age_period="postnatal",
                 sex="female",
@@ -394,11 +392,10 @@ def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id):
 
 
 @pytest.fixture
-def morphology_id(db, client, species_id, strain_id, brain_region_id, person_id):
-    model_id = utils.create_reconstruction_morphology_id(
+def morphology_id(db, client, subject_id, brain_region_id, person_id):
+    model_id = utils.create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -614,7 +611,7 @@ def create_memodel_ids(
             add_contributions(db, agents, memodel_id)
 
             emodel = db.get(EModel, emodel_id)
-            morphology = db.get(ReconstructionMorphology, morphology_id)
+            morphology = db.get(CellMorphology, morphology_id)
 
             add_db(
                 db,
@@ -670,36 +667,8 @@ class MEModels:
 
 @pytest.fixture
 def faceted_emodel_ids(db: Session, client, person_id):
-    species_ids = [
-        str(
-            add_db(
-                db,
-                Species(
-                    name=f"TestSpecies{i}",
-                    taxonomy_id=f"{i}",
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
-                ),
-            ).id
-        )
-        for i in range(2)
-    ]
+    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
 
-    strain_ids = [
-        str(
-            add_db(
-                db,
-                Strain(
-                    name=f"TestStrain{i}",
-                    taxonomy_id=f"{i + 2}",
-                    species_id=species_ids[i],
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
-                ),
-            ).id
-        )
-        for i in range(2)
-    ]
     hierarchy_name = utils.create_hiearchy_name(db, "test_hier", created_by_id=person_id)
     brain_region_ids = [
         utils.create_brain_region(
@@ -710,10 +679,9 @@ def faceted_emodel_ids(db: Session, client, person_id):
 
     morphology_ids = [
         str(
-            utils.create_reconstruction_morphology_id(
+            utils.create_cell_morphology_id(
                 client,
-                species_id=species_ids[i],
-                strain_id=strain_ids[i],
+                subject_id=subject_ids[i],
                 brain_region_id=brain_region_ids[i],
                 authorized_public=False,
                 name=f"test exemplar morphology {i}",
@@ -757,36 +725,9 @@ def faceted_emodel_ids(db: Session, client, person_id):
 @pytest.fixture
 def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent, Role]):
     person_id = agents[1].id
-    species_ids = [
-        str(
-            add_db(
-                db,
-                Species(
-                    name=f"TestSpecies{i}",
-                    taxonomy_id=f"{i}",
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
-                ),
-            ).id
-        )
-        for i in range(2)
-    ]
 
-    strain_ids = [
-        str(
-            add_db(
-                db,
-                Strain(
-                    name=f"TestStrain{i}",
-                    taxonomy_id=f"{i + 2}",
-                    species_id=species_ids[i],
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
-                ),
-            ).id
-        )
-        for i in range(2)
-    ]
+    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
+
     hierarchy_name = utils.create_hiearchy_name(db, "test_hier", created_by_id=person_id)
     brain_region_ids = [
         utils.create_brain_region(
@@ -797,10 +738,9 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
 
     morphology_ids = [
         str(
-            utils.create_reconstruction_morphology_id(
+            utils.create_cell_morphology_id(
                 client,
-                species_id=species_ids[i],
-                strain_id=strain_ids[i],
+                subject_id=subject_ids[i],
                 brain_region_id=brain_region_ids[i],
                 authorized_public=False,
                 name=f"test morphology {i}",

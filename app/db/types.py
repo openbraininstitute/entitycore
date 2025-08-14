@@ -8,6 +8,45 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
 
+class RepairPipelineType(StrEnum):
+    raw = auto()
+    curated = auto()
+    unraveled = auto()
+    repaired = auto()
+
+
+class MethodsType(StrEnum):
+    cloned = auto()
+    mix_and_match = auto()
+    mousified = auto()
+    ratified = auto()
+
+
+class MorphologyGenerationType(StrEnum):
+    digital = auto()  # digital reconstruction
+    modified = auto()  # modifed from digital
+    computational = auto()  # computationally synthesized
+    placeholder = auto()  # could be a morphology or compartment
+
+
+class SlicingDirectionType(StrEnum):
+    coronal = auto()
+    sagittal = auto()
+    horizontal = auto()
+    custom = auto()
+
+
+class StainingType(StrEnum):
+    golgi = auto()
+    nissl = auto()
+    luxol_fast_blue = auto()
+    fluorescent_nissl = auto()
+    fluorescent_dyes = auto()
+    fluorescent_orotein_expression = auto()
+    immunohistochemistry = auto()
+    other = auto()
+
+
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -69,7 +108,7 @@ class EntityType(StrEnum):
     memodel_calibration_result = auto()
     me_type_density = auto()
     publication = auto()
-    reconstruction_morphology = auto()
+    cell_morphology = auto()
     simulation = auto()
     simulation_campaign = auto()
     simulation_campaign_generation = auto()
@@ -399,7 +438,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY = {
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
         ],
     },
-    EntityType.reconstruction_morphology: {
+    EntityType.cell_morphology: {
         AssetLabel.morphology: [
             LabelRequirements(content_type=ContentType.asc, is_directory=False),
             LabelRequirements(content_type=ContentType.swc, is_directory=False),

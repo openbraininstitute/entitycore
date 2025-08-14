@@ -119,7 +119,7 @@ def test_count_entities_by_type_multiple_types(
     morphology_id,  # noqa: ARG001
     emodel_id,  # noqa: ARG001
     brain_region_id,
-    species_id,
+    subject_id,
     person_id,
 ):
     """Test counting entities for multiple entity types."""
@@ -132,8 +132,7 @@ def test_count_entities_by_type_multiple_types(
             temperature_celsius=20,
             neuron_block={},
             brain_region_id=brain_region_id,
-            species_id=species_id,
-            strain_id=None,
+            subject_id=subject_id,
             authorized_project_id=PROJECT_ID,
             created_by_id=person_id,
             updated_by_id=person_id,

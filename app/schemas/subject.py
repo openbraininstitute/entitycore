@@ -52,7 +52,7 @@ class SubjectBase(BaseModel):
 
     @model_validator(mode="after")
     def either_age_value_or_age_range(self):
-        """Either age_value or age_min and age_max must be provided."""
+        """Either a single age value or an age range can be provided, but not both."""
         if self.age_value and any([self.age_min, self.age_max]):
             msg = "age_value and age_min/age_max cannot both be provided"
             raise ValueError(msg)

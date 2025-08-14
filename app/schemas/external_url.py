@@ -14,7 +14,8 @@ class ExternalUrlBase(BaseModel):
     title: str | None = None
 
     @field_serializer("url")
-    def serialize_url(self, url: HttpUrl) -> str:
+    def serialize_url(self, url: HttpUrl) -> str:  # noqa: PLR6301
+        """Return the url as string for serialization to the db."""
         return url.unicode_string()
 
 

@@ -53,7 +53,7 @@ def test_get_entity_no_auth(client, client_user_2, brain_region_id, subject_id, 
 
 
 def test_public_unrelated_project_accessible(
-    client, client_user_2, brain_region_id, species_id, strain_id, license_id
+    client, client_user_2, brain_region_id, license_id, subject_id,
 ):
     morph = assert_request(
         client_user_2.post,
@@ -61,8 +61,7 @@ def test_public_unrelated_project_accessible(
         json={
             "authorized_public": True,
             "brain_region_id": str(brain_region_id),
-            "species_id": str(species_id),
-            "strain_id": str(strain_id),
+            "subject_id": str(subject_id),
             "description": "Test morph",
             "name": "Test morph",
             "location": {"x": 10, "y": 20, "z": 30},

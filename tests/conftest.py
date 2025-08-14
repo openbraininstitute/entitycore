@@ -25,6 +25,7 @@ from app.db.model import (
     EModel,
     ETypeClass,
     ETypeClassification,
+    ExternalUrl,
     MEModel,
     MTypeClass,
     MTypeClassification,
@@ -1076,6 +1077,29 @@ def publication(db, publication_json_data, person_id):
         db,
         Publication(
             **publication_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def external_url_json_data():
+    return {
+        "source": "channelpedia",
+        "url": "https://channelpedia.epfl.ch/wikipages/1",
+        "title": "Kv1.1",
+    }
+
+
+@pytest.fixture
+def external_url(db, external_url_json_data, person_id):
+    return add_db(
+        db,
+        ExternalUrl(
+            **external_url_json_data
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,

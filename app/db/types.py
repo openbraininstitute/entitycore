@@ -63,6 +63,7 @@ class EntityType(StrEnum):
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
+    external_url = auto()
     ion_channel_model = auto()
     memodel = auto()
     mesh = auto()
@@ -512,3 +513,16 @@ class PublicationType(StrEnum):
     entity_source = auto()
     component_source = auto()
     application = auto()
+
+
+class ExternalSource(StrEnum):
+    channelpedia = auto()
+    modeldb = auto()
+    icgenealogy = auto()
+
+
+ALLOWED_URLS_PER_EXTERNAL_SOURCE = {
+    ExternalSource.channelpedia: "https://channelpedia.epfl.ch/",
+    ExternalSource.icgenealogy: "https://icg.neurotheory.ox.ac.uk/",
+    ExternalSource.modeldb: "https://modeldb.science/",
+}

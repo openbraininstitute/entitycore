@@ -43,12 +43,11 @@ def _get_expected_full_path(entity, path):
 
 
 @pytest.fixture
-def entity(client, species_id, strain_id, brain_region_id) -> Entity:
+def entity(client, subject_id, brain_region_id) -> Entity:
     entity_type = EntityType.cell_morphology
     entity_id = create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )

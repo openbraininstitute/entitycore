@@ -5,14 +5,14 @@ from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
-from app.db.model import Base, Entity, Identifiable, LocationMixin, MeasurableEntity
+from app.db.model import Base, Entity, Identifiable, LocationMixin, MeasurableEntityMixin
 from app.db.types import EntityType
 from app.logger import L
 
-MEASURABLE_ENTITIES: dict[str, type[MeasurableEntity]] = {
+MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
     mapper.class_.__tablename__: mapper.class_
     for mapper in Base.registry.mappers
-    if issubclass(mapper.class_, MeasurableEntity) and mapper.class_.__tablename__
+    if issubclass(mapper.class_, MeasurableEntityMixin) and mapper.class_.__tablename__
 }
 MeasurableEntityType = StrEnum("MeasurableEntity", sorted(MEASURABLE_ENTITIES))
 

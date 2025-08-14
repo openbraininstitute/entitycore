@@ -1,4 +1,4 @@
-from app.db.model import CellMorphology, Contribution, Organization, Role
+from app.db.model import CellMorphology, Contribution, Organization, Role, Subject
 
 from .utils import (
     MISSING_ID,
@@ -18,14 +18,12 @@ def test_create_contribution(
     person_id,
     organization_id,
     role_id,
-    species_id,
-    strain_id,
+    subject_id,
     brain_region_id,
 ):
     cell_morphology_id = create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -126,15 +124,13 @@ def test_authorization(
     client_user_2,
     client_no_project,
     brain_region_id,
-    species_id,
-    strain_id,
+    subject_id,
     person_id,
     role_id,
 ):
     inaccessible_entity_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -166,8 +162,7 @@ def test_authorization(
 
     public_entity_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
@@ -215,11 +210,14 @@ def test_authorization(
 def test_contribution_facets(
     db,
     client,
-    species_id,
-    strain_id,
+    subject_id,
     brain_region_id,
     person_id,
 ):
+    subject = db.get(Subject, subject_id)
+    species_id = str(subject.species.id)
+    strain_id = str(subject.strain.id)
+
     person = create_person(
         db,
         given_name="GivenName",
@@ -277,8 +275,7 @@ def test_contribution_facets(
     ):
         cell_morphology_id = create_cell_morphology_id(
             client,
-            species_id=species_id,
-            strain_id=strain_id,
+            subject_id=subject_id,
             brain_region_id=brain_region_id,
             name=f"TestMorphologyName{i}",
             authorized_public=False,
@@ -351,14 +348,16 @@ def test_contribution_facets(
         ],
         "mtype": [],
         "species": [
-            {"count": 9, "id": str(species_id), "label": "Test Species", "type": "species"}
+            {"count": 9, "id": str(species_id), "label": "Test Species", "type": "subject.species"}
         ],
-        "strain": [{"count": 9, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
+        "strain": [
+            {"count": 9, "id": str(strain_id), "label": "Test Strain", "type": "subject.strain"}
+        ],
         "created_by": [
-            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
+            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": str(agent.type)}
         ],
         "updated_by": [
-            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
+            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": str(agent.type)}
         ],
     }
     assert len(data["data"]) == 9

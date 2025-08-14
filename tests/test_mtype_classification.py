@@ -22,11 +22,10 @@ def custom_mtype(db, person_id):
 
 
 @pytest.fixture
-def unauthorized_morph_id(species_id, client_user_2, brain_region_id):
+def unauthorized_morph_id(subject_id, client_user_2, brain_region_id):
     return create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -70,12 +69,11 @@ def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, j
 
 
 @pytest.fixture
-def public_morphology_id(client_user_1, species_id, brain_region_id, strain_id):
+def public_morphology_id(client_user_1, subject_id, brain_region_id):
     return create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
-        strain_id=strain_id,
         authorized_public=True,
     )
 

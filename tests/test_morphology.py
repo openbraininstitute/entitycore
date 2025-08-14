@@ -1,4 +1,5 @@
 import itertools as it
+from datetime import timedelta
 
 from app.db.model import (
     Agent,
@@ -7,6 +8,7 @@ from app.db.model import (
     MTypeClassification,
     Species,
     Strain,
+    Subject,
 )
 from app.db.types import EntityType
 
@@ -23,7 +25,7 @@ from .utils import (
 ROUTE = "/cell-morphology"
 
 
-def test_create_cell_morphology(
+def test_create_one(
     client,
     license_id,
     brain_region_id,
@@ -132,10 +134,26 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 )
             ),
         ):
+            subject = add_db(
+                db,
+                Subject(
+                    name=f"subject-{i}",
+                    description=f"my-description-{i}",
+                    species_id=species.id,
+                    strain_id=strain.id,
+                    age_value=timedelta(days=14),
+                    age_period="postnatal",
+                    sex="male",
+                    weight=1.5,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
+            )
             morphology_id = create_cell_morphology_id(
                 client,
-                species_id=species.id,
-                strain_id=strain.id,
+                subject_id=str(subject.id),
                 brain_region_id=brain_region_id,
                 authorized_public=False,
                 name=f"Test Morphology Name {i}",
@@ -207,19 +225,29 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
         "contribution": [],
         "mtype": [],
         "species": [
-            {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "species"},
-            {"id": str(species2.id), "label": "TestSpecies2", "count": 5, "type": "species"},
+            {
+                "id": str(species1.id),
+                "label": "TestSpecies1",
+                "count": 6,
+                "type": "subject.species",
+            },
+            {
+                "id": str(species2.id),
+                "label": "TestSpecies2",
+                "count": 5,
+                "type": "subject.species",
+            },
         ],
         "strain": [
-            {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"},
-            {"id": str(strain2.id), "label": "TestStrain2", "count": 5, "type": "strain"},
+            {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "subject.strain"},
+            {"id": str(strain2.id), "label": "TestStrain2", "count": 5, "type": "subject.strain"},
         ],
         "created_by": [
             {
                 "count": 11,
                 "id": str(agent.id),
                 "label": agent.pref_label,
-                "type": agent.type,
+                "type": str(agent.type),
             },
         ],
         "updated_by": [
@@ -227,7 +255,7 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "count": 11,
                 "id": str(agent.id),
                 "label": agent.pref_label,
-                "type": agent.type,
+                "type": str(agent.type),
             },
         ],
     }
@@ -245,19 +273,29 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
         "contribution": [],
         "mtype": [],
         "species": [
-            {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "species"},
-            {"id": str(species2.id), "label": "TestSpecies2", "count": 5, "type": "species"},
+            {
+                "id": str(species1.id),
+                "label": "TestSpecies1",
+                "count": 6,
+                "type": "subject.species",
+            },
+            {
+                "id": str(species2.id),
+                "label": "TestSpecies2",
+                "count": 5,
+                "type": "subject.species",
+            },
         ],
         "strain": [
-            {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"},
-            {"id": str(strain2.id), "label": "TestStrain2", "count": 5, "type": "strain"},
+            {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "subject.strain"},
+            {"id": str(strain2.id), "label": "TestStrain2", "count": 5, "type": "subject.strain"},
         ],
         "created_by": [
             {
                 "count": 11,
                 "id": str(agent.id),
                 "label": agent.pref_label,
-                "type": agent.type,
+                "type": str(agent.type),
             },
         ],
         "updated_by": [
@@ -265,12 +303,14 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "count": 11,
                 "id": str(agent.id),
                 "label": agent.pref_label,
-                "type": agent.type,
+                "type": str(agent.type),
             },
         ],
     }
 
-    response = client.get(ROUTE, params={"species__name": "TestSpecies1", "with_facets": True})
+    response = client.get(
+        ROUTE, params={"subject__species__name": "TestSpecies1", "with_facets": True}
+    )
     assert response.status_code == 200
     data = response.json()
     assert len(data["data"]) == 6
@@ -284,15 +324,17 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
         "contribution": [],
         "mtype": [],
         "species": [
-            {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "species"}
+            {"id": str(species1.id), "label": "TestSpecies1", "count": 6, "type": "subject.species"}
         ],
-        "strain": [{"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "strain"}],
+        "strain": [
+            {"id": str(strain1.id), "label": "TestStrain1", "count": 6, "type": "subject.strain"}
+        ],
         "created_by": [
             {
                 "count": 6,
                 "id": str(agent.id),
                 "label": agent.pref_label,
-                "type": agent.type,
+                "type": str(agent.type),
             },
         ],
         "updated_by": [
@@ -300,48 +342,23 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "count": 6,
                 "id": str(agent.id),
                 "label": agent.pref_label,
-                "type": agent.type,
+                "type": str(agent.type),
             },
         ],
     }
 
 
-def test_query_cell_morphology_species_join(db, client, brain_region_id, person_id):
+def test_query_cell_morphology_species_join(db, client, brain_region_id, subject_id):
     """Make sure not to join all the species w/ their strains while doing query"""
-    species0 = add_db(
-        db,
-        Species(
-            name="TestSpecies0", taxonomy_id="1", created_by_id=person_id, updated_by_id=person_id
-        ),
-    )
-    strain0 = add_db(
-        db,
-        Strain(
-            name="Strain0",
-            taxonomy_id="strain0",
-            species_id=species0.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
-    )
-    add_db(
-        db,
-        Strain(
-            name="Strain1",
-            taxonomy_id="strain1",
-            species_id=species0.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
-    )
+
+    subject = db.get(Subject, subject_id)
 
     registered = assert_request(
         client.post,
         url=ROUTE,
         json={
             "brain_region_id": str(brain_region_id),
-            "species_id": str(species0.id),
-            "strain_id": str(strain0.id),
+            "subject_id": str(subject_id),
             "description": "description",
             "name": "morph00",
             "location": {"x": 10, "y": 20, "z": 30},
@@ -363,9 +380,21 @@ def test_query_cell_morphology_species_join(db, client, brain_region_id, person_
         "contribution": [],
         "mtype": [],
         "species": [
-            {"id": str(species0.id), "label": "TestSpecies0", "count": 1, "type": "species"}
+            {
+                "id": str(subject.species.id),
+                "label": subject.species.name,
+                "count": 1,
+                "type": "subject.species",
+            }
         ],
-        "strain": [{"id": str(strain0.id), "label": "Strain0", "count": 1, "type": "strain"}],
+        "strain": [
+            {
+                "id": str(subject.strain.id),
+                "label": subject.strain.name,
+                "count": 1,
+                "type": "subject.strain",
+            }
+        ],
         "created_by": [
             {
                 "count": 1,
@@ -389,8 +418,7 @@ def test_authorization(
     client_user_1,
     client_user_2,
     client_no_project,
-    species_id,
-    strain_id,
+    subject_id,
     license_id,
     brain_region_id,
 ):
@@ -401,8 +429,7 @@ def test_authorization(
         "legacy_id": ["Test Legacy ID"],
         "license_id": license_id,
         "name": "Test Morphology Name",
-        "species_id": species_id,
-        "strain_id": strain_id,
+        "subject_id": str(subject_id),
     }
 
     public_morph = client_user_1.post(
@@ -497,10 +524,26 @@ def test_pagination(db, client, brain_region_id, person_id):
     for i, (species, strain) in zip(
         range(total_items), it.cycle(((species0, None), (species0, strain0), (species1, strain1)))
     ):
+        subject = add_db(
+            db,
+            Subject(
+                name=f"subject-{i}",
+                description=f"my-description-{i}",
+                species_id=species.id,
+                strain_id=strain.id if strain else None,
+                age_value=timedelta(days=14),
+                age_period="postnatal",
+                sex="male",
+                weight=1.5,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+        )
         create_cell_morphology_id(
             client,
-            species_id=species.id,
-            strain_id=strain.id if strain else None,
+            subject_id=str(subject.id),
             brain_region_id=brain_region_id,
             name=f"TestMorphologyName{i}",
             authorized_public=False,
@@ -539,34 +582,13 @@ def test_pagination(db, client, brain_region_id, person_id):
     assert list(reversed(names)) == list(range(total_items))
 
 
-def test_filter_by_id__in(db, client, brain_region_id, person_id):
+def test_filter_by_id__in(db, client, brain_region_id, person_id, subject_id):
     """Test filtering cell morphologies by id__in parameter."""
-    species = add_db(
-        db,
-        Species(
-            name="TestSpeciesFilter",
-            taxonomy_id="0",
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
-    )
-    strain = add_db(
-        db,
-        Strain(
-            name="TestStrainFilter",
-            species_id=species.id,
-            taxonomy_id="0",
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
-    )
-
     morphology_ids = []
     for i in range(5):
         morphology_id = create_cell_morphology_id(
             client,
-            species_id=species.id,
-            strain_id=strain.id,
+            subject_id=str(subject_id),
             brain_region_id=brain_region_id,
             authorized_public=False,
             name=f"Filter Test Morphology {i}",
@@ -680,13 +702,12 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
     assert [d["mtypes"][0]["pref_label"] for d in data] == ["m2", "m1"]
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, species_id, person_id):
+def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, subject_id):
     def create_model_function(_db, name, brain_region_id):
         return CellMorphology(
             name=name,
             brain_region_id=brain_region_id,
-            species_id=species_id,
-            strain_id=None,
+            subject_id=subject_id,
             description="description",
             location=None,
             legacy_id="Test Legacy ID",

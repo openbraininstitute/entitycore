@@ -464,10 +464,14 @@ def test_authorization(
     strain_id,
     brain_region_id,
     morphology_id,
+    subject_id,
     emodel_id,
 ):
     public_morphology_id = create_cell_morphology_id(
-        client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
+        client_user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
     )
 
     # Different user but public accessible
@@ -527,9 +531,8 @@ def test_authorization(
 
     morphology_id = create_cell_morphology_id(
         client_user_2,
-        species_id,
-        strain_id,
-        str(brain_region_id),
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
 
@@ -546,8 +549,7 @@ def test_authorization(
             json={
                 "name": "test",
                 "description": "test",
-                "species_id": species_id,
-                "strain_id": strain_id,
+                "subject_id": str(subject_id),
                 "brain_region_id": str(brain_region_id),
                 "location": None,
                 "legacy_id": None,

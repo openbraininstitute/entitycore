@@ -94,12 +94,11 @@ def _get_return_payload(request_payload):
     return payload
 
 
-def test_create_and_retrieve(client, species_id, strain_id, brain_region_id, measurement_labels):
+def test_create_and_retrieve(client, subject_id, brain_region_id, measurement_labels):
     cell_morphology_id = create_cell_morphology_id(
         client,
-        species_id,
-        strain_id,
-        brain_region_id,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
     request_payload_1 = _get_request_payload_1(
@@ -213,15 +212,13 @@ def test_authorization(
     client_user_1,
     client_user_2,
     client_no_project,
-    species_id,
-    strain_id,
+    subject_id,
     brain_region_id,
     measurement_labels,
 ):
     cell_morphology_id_public = create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
@@ -235,8 +232,7 @@ def test_authorization(
 
     cell_morphology_id_inaccessible = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -264,8 +260,7 @@ def test_authorization(
 
     cell_morphology_id_public_inaccessible = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )

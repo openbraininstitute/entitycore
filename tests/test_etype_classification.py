@@ -22,11 +22,10 @@ def custom_etype(db, person_id):
 
 
 @pytest.fixture
-def unauthorized_morph_id(species_id, client_user_2, brain_region_id):
+def unauthorized_morph_id(client_user_2, brain_region_id, subject_id):
     return create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )

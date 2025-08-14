@@ -1,5 +1,6 @@
 import functools
 import uuid
+from datetime import timedelta
 from pathlib import Path
 from unittest.mock import ANY
 from uuid import UUID
@@ -20,6 +21,9 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Person,
+    Species,
+    Strain,
+    Subject,
 )
 from app.db.types import EntityType
 from app.routers.asset import EntityRoute
@@ -570,3 +574,58 @@ def add_contribution(db, entity_id, agent_id, role_id, created_by_id):
             updated_by_id=created_by_id,
         ),
     )
+
+
+def create_subject_ids(db, *, created_by_id, n):
+    strain_ids = []
+    species_ids = []
+    subject_ids = []
+
+    for i in range(n):
+        species_id = str(
+            add_db(
+                db,
+                Species(
+                    name=f"TestSpecies{i}",
+                    taxonomy_id=f"{i}",
+                    created_by_id=created_by_id,
+                    updated_by_id=created_by_id,
+                ),
+            ).id
+        )
+        strain_id = str(
+            add_db(
+                db,
+                Strain(
+                    name=f"TestStrain{i}",
+                    taxonomy_id=f"{i + 2}",
+                    species_id=species_id,
+                    created_by_id=created_by_id,
+                    updated_by_id=created_by_id,
+                ),
+            ).id
+        )
+        subject_id = str(
+            add_db(
+                db,
+                Subject(
+                    name=f"test-subject-{i}",
+                    description=f"test-description-{i}",
+                    species_id=species_id,
+                    strain_id=strain_id,
+                    age_value=timedelta(days=14),
+                    age_period="postnatal",
+                    sex="female",
+                    weight=1.5,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
+                    created_by_id=str(created_by_id),
+                    updated_by_id=str(created_by_id),
+                ),
+            ).id
+        )
+        strain_ids.append(strain_id)
+        species_ids.append(species_id)
+        subject_ids.append(subject_id)
+
+    return subject_ids, species_ids, strain_ids

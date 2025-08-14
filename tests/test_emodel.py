@@ -250,11 +250,15 @@ def test_authorization(
     client_no_project,
     species_id,
     strain_id,
+    subject_id,
     brain_region_id,
     morphology_id,
 ):
     public_morphology_id = create_cell_morphology_id(
-        client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
+        client_user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
     )
 
     emodel_json = {
@@ -294,8 +298,7 @@ def test_authorization(
 
     exemplar_morphology_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )

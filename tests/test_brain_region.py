@@ -109,7 +109,7 @@ def test_brain_region_id(db, client, person_id):
     assert data["acronym"] == "root"
 
 
-def test_family_queries(db, client, species_id, strain_id, person_id):
+def test_family_queries(db, client, subject_id, person_id):
     hierarchy_name0 = utils.create_hiearchy_name(db, "hier0", created_by_id=person_id)
     brain_regions0 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name0.id)
 
@@ -120,8 +120,7 @@ def test_family_queries(db, client, species_id, strain_id, person_id):
         hier = "hier0" if row.hierarchy_id == hierarchy_name0.id else "hier1"
         utils.create_cell_morphology_id(
             client,
-            species_id=species_id,
-            strain_id=strain_id,
+            subject_id=subject_id,
             brain_region_id=row.id,
             authorized_public=False,
             name=f"{acronym}-{hier}",

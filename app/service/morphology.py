@@ -45,6 +45,7 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
     """Return the query with the required options to load the data."""
     query = query.options(
         joinedload(CellMorphology.brain_region),
+        joinedload(CellMorphology.morphology_protocol),
         selectinload(CellMorphology.contributions).selectinload(Contribution.agent),
         selectinload(CellMorphology.contributions).selectinload(Contribution.role),
         joinedload(CellMorphology.mtypes),
@@ -129,12 +130,15 @@ def read_many(
     }
     facet_keys = [
         "brain_region",
-        "subjectcreated_by",
+        "subject.species",
+        "subject.strain",
+        "created_by",
         "updated_by",
         "contribution",
         "mtype",
     ]
     filter_keys = [
+        "subject",
         *facet_keys,
         "measurement_annotation",
         "measurement_annotation.measurement_kind",

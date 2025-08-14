@@ -103,29 +103,26 @@ def test_create_one__unauthorized_entities(
     client_user_1,
     client_user_2,
     json_data,
-    species_id,
+    subject_id,
     brain_region_id,
 ):
     """Do not allow associations with entities that are not authorized to the user."""
 
     user1_morph_id = create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
     user2_morph_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
     user2_public_morph_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
@@ -338,21 +335,19 @@ def test_update_one(client, root_circuit, simulation_result, create_id):
 
 
 def test_update_one__fail_if_generated_ids_unauthorized(
-    client_user_1, client_user_2, json_data, species_id, brain_region_id
+    client_user_1, client_user_2, json_data, subject_id, brain_region_id
 ):
     """Test that it is not allowed to update generated_ids with unauthorized entities."""
 
     user1_morph_id = create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
     user2_morph_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )

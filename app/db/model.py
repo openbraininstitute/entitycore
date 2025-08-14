@@ -669,26 +669,8 @@ class MEModel(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class MeasurableEntity(Entity):
-    """Abstract class for measurable entities."""
-
-    __abstract__ = True
-
-    @declared_attr
-    @classmethod
-    def measurement_annotation(cls):
-        return relationship(
-            "MeasurementAnnotation",
-            foreign_keys="MeasurementAnnotation.entity_id",
-            uselist=False,
-            viewonly=True,
-        )
-
-
 class MeasurableEntityMixin:
     """Abstract class for measurable entities."""
-
-    __abstract__ = True
 
     @declared_attr
     @classmethod
@@ -755,7 +737,7 @@ class ModifiedMorphologyProtocol(MorphologyProtocol):
 
 
 class CellMorphology(
-    ScientificArtifact, MTypesMixin, NameDescriptionVectorMixin, MeasurableEntityMixin
+    ScientificArtifact, MTypesMixin, NameDescriptionVectorMixin, MeasurableEntityMixin,
 ):
     __tablename__ = EntityType.cell_morphology.value
 

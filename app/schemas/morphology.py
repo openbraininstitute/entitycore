@@ -106,8 +106,7 @@ class CellMorphologyCreate(
     LicensedCreateMixin,
     AuthorizationOptionalPublicMixin,
 ):
-    species_id: uuid.UUID
-    strain_id: uuid.UUID | None = None
+    subject_id: uuid.UUID
     brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
     morphology_protocol_id: uuid.UUID | None = None  # This would be set after the method is created
@@ -127,8 +126,8 @@ class CellMorphologyRead(
 ):
     brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
-    morphology_protocol: MorphologyProtocolRead | None  # Now references the polymorphic method
 
 
 class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
     measurement_annotation: MeasurementAnnotationRead | None
+    morphology_protocol: MorphologyProtocolRead | None  # Now references the polymorphic method

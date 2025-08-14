@@ -7,7 +7,7 @@ from tests.utils import PROJECT_ID
 
 ENTITY_TYPE = "cell_morphology"
 ENTITY_ID = "2013824a-ad49-4179-a961-8e7a98deb9d0"
-SPECIES_ID = "6de20568-8e44-4341-ad5a-8999d2d23de2"
+SUBJECT_ID = "6de20568-8e44-4341-ad5a-8999d2d23de2"
 
 MEASUREMENT_ANNOTATION = {
     "unknown_attribute": 999999,
@@ -78,7 +78,7 @@ def test_construct_model_cell_morphology(brain_region_id, person_id):
     cell_morphology = {
         "name": "morph-0",
         "description": "desc-0",
-        "species_id": SPECIES_ID,
+        "subject_id": SUBJECT_ID,
         "brain_region_id": str(brain_region_id),
         "location": {"x": 100.1, "y": 100.2, "z": 100.3},
     }

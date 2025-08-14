@@ -12,14 +12,13 @@ from .utils import (
 ROUTE = "/entity"
 
 
-def test_get_entity(client, brain_region_id, species_id, strain_id, license_id):
+def test_get_entity(client, brain_region_id, license_id, subject_id):
     morph = assert_request(
         client.post,
         url="/cell-morphology",
         json={
             "brain_region_id": str(brain_region_id),
-            "species_id": str(species_id),
-            "strain_id": str(strain_id),
+            "subject_id": str(subject_id),
             "description": "Test morph",
             "name": "Test morph",
             "location": {"x": 10, "y": 20, "z": 30},
@@ -33,16 +32,13 @@ def test_get_entity(client, brain_region_id, species_id, strain_id, license_id):
     assert data["type"] == "cell_morphology"
 
 
-def test_get_entity_no_auth(
-    client, client_user_2, brain_region_id, species_id, strain_id, license_id
-):
+def test_get_entity_no_auth(client, client_user_2, brain_region_id, subject_id, license_id):
     morph = assert_request(
         client_user_2.post,
         url="/cell-morphology",
         json={
             "brain_region_id": str(brain_region_id),
-            "species_id": str(species_id),
-            "strain_id": str(strain_id),
+            "subject_id": str(subject_id),
             "description": "Test morph",
             "name": "Test morph",
             "location": {"x": 10, "y": 20, "z": 30},
@@ -166,7 +162,7 @@ def test_count_entities_by_type_zero_results(client):
 
 
 def test_count_entities_by_type_with_brain_region_filter(
-    db, client, brain_region_hierarchy_id, species_id, person_id
+    db, client, brain_region_hierarchy_id, subject_id, person_id
 ):
     """Test counting entities with brain region filtering."""
 
@@ -179,16 +175,14 @@ def test_count_entities_by_type_with_brain_region_filter(
 
     create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=region1.id,
         authorized_public=False,
         name="morph1",
     )
     create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=region2.id,
         authorized_public=False,
         name="morph2",
@@ -220,15 +214,13 @@ def test_count_entities_authorization(
     client_user_1,
     client_user_2,
     client_no_project,
-    species_id,
-    strain_id,
+    subject_id,
     brain_region_id,
 ):
     """Test that entity counts respect authorization rules."""
     create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
         name="private_morph",
@@ -236,8 +228,7 @@ def test_count_entities_authorization(
 
     create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
         name="public_morph",
@@ -245,8 +236,7 @@ def test_count_entities_authorization(
 
     create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
         name="user2_private_morph",

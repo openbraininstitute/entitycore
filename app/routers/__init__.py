@@ -8,6 +8,7 @@ from app.routers import (
     brain_atlas,
     brain_region,
     brain_region_hierarchy,
+    calibration,
     cell_composition,
     circuit,
     consortium,
@@ -47,6 +48,7 @@ from app.routers import (
     species,
     strain,
     subject,
+    validation,
     validation_result,
 )
 
@@ -59,6 +61,7 @@ authenticated_routers = [
     brain_atlas.router,
     brain_region.router,
     brain_region_hierarchy.router,
+    calibration.router,
     cell_composition.router,
     circuit.router,
     consortium.router,
@@ -97,6 +100,7 @@ authenticated_routers = [
     species.router,
     strain.router,
     subject.router,
+    validation.router,
     validation_result.router,
 ]
 for r in authenticated_routers:

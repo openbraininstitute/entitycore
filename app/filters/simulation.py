@@ -7,13 +7,7 @@ from app.db.model import Simulation
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.circuit import NestedCircuitFilter, NestedCircuitFilterDep
-from app.filters.common import (
-    ContributionFilterMixin,
-    CreationFilterMixin,
-    CreatorFilterMixin,
-    IdFilterMixin,
-    NameFilterMixin,
-)
+from app.filters.common import EntityFilterMixin, IdFilterMixin, NameFilterMixin
 
 
 class SimulationFilterBase(NameFilterMixin, IdFilterMixin, CustomFilter):
@@ -27,9 +21,7 @@ class NestedSimulationFilter(SimulationFilterBase):
         model = Simulation
 
 
-class SimulationFilter(
-    CreationFilterMixin, CreatorFilterMixin, ContributionFilterMixin, SimulationFilterBase
-):
+class SimulationFilter(EntityFilterMixin, SimulationFilterBase):
     simulation_campaign_id: uuid.UUID | None = None
     simulation_campaign_id__in: list[uuid.UUID] | None = None
 

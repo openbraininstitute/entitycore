@@ -13,6 +13,7 @@ from .utils import (
     TEST_DATA_DIR,
     add_db,
     assert_request,
+    check_authorization,
     check_brain_region_filter,
     create_brain_region,
     upload_entity_asset,
@@ -139,57 +140,7 @@ def test_authorization(
         "seed": 1,
         "brain_region_id": str(brain_region_id),
     }
-
-    response = assert_request(
-        client_user_1.post,
-        url=ROUTE,
-        json=json_data | {"name": "Public Entity", "authorized_public": True},
-    )
-    public_morph = response.json()
-
-    inaccessible_obj = assert_request(
-        client_user_2.post,
-        url=ROUTE,
-        json=json_data | {"name": "inaccessible morphology 1"},
-    )
-    inaccessible_obj = inaccessible_obj.json()
-
-    private_obj0 = assert_request(
-        client_user_1.post,
-        url=ROUTE,
-        json=json_data | {"name": "private morphology 0"},
-    )
-    private_obj0 = private_obj0.json()
-
-    private_obj1 = assert_request(
-        client_user_1.post,
-        url=ROUTE,
-        json=json_data | {"name": "private morphology 1"},
-    )
-    private_obj1 = private_obj1.json()
-
-    # only return results that matches the desired project, and public ones
-    response = assert_request(client_user_1.get, url=ROUTE)
-    data = response.json()["data"]
-
-    ids = {row["id"] for row in data}
-    assert ids == {
-        public_morph["id"],
-        private_obj0["id"],
-        private_obj1["id"],
-    }, data
-
-    assert_request(
-        client_user_1.get,
-        url=f"{ROUTE}/{inaccessible_obj['id']}",
-        expected_status_code=404,
-    )
-
-    # only return public results
-    response = client_no_project.get(ROUTE)
-    data = response.json()["data"]
-    assert len(data) == 1
-    assert data[0]["id"] == public_morph["id"]
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
 
 
 def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, person_id):

@@ -4,6 +4,7 @@ from app.db.model import IonChannelModel
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
+    AuthorizedFilterMixin,
     BrainRegionFilterMixin,
     CreationFilterMixin,
     SpeciesFilterMixin,
@@ -11,7 +12,11 @@ from app.filters.common import (
 
 
 class IonChannelModelFilter(
-    CustomFilter, CreationFilterMixin, BrainRegionFilterMixin, SpeciesFilterMixin
+    CustomFilter,
+    CreationFilterMixin,
+    AuthorizedFilterMixin,
+    BrainRegionFilterMixin,
+    SpeciesFilterMixin,
 ):
     nmodl_suffix: str | None = None
 

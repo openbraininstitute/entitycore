@@ -27,6 +27,11 @@ class IdFilterMixin:
     id__in: list[str] | None = None
 
 
+class AuthorizedFilterMixin:
+    authorized_public: bool | None = None
+    authorized_project_id: uuid.UUID | None = None
+
+
 class NameFilterMixin:
     name: str | None = None
     name__in: list[str] | None = None
@@ -210,6 +215,7 @@ class BrainRegionFilterMixin:
 
 class EntityFilterMixin(
     IdFilterMixin,
+    AuthorizedFilterMixin,
     CreatorFilterMixin,
     CreationFilterMixin,
     ContributionFilterMixin,

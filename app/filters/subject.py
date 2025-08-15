@@ -7,9 +7,7 @@ from app.db.model import Subject
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    ContributionFilterMixin,
-    CreationFilterMixin,
-    CreatorFilterMixin,
+    EntityFilterMixin,
     IdFilterMixin,
     NameFilterMixin,
     NestedSpeciesFilter,
@@ -36,10 +34,8 @@ class NestedSubjectFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
 
 
 class SubjectFilter(
-    ContributionFilterMixin,
+    EntityFilterMixin,
     SpeciesFilterMixin,
-    CreationFilterMixin,
-    CreatorFilterMixin,
     NameFilterMixin,
     CustomFilter,
 ):

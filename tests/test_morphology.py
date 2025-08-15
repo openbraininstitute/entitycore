@@ -16,6 +16,7 @@ from .utils import (
     PROJECT_ID,
     add_db,
     assert_request,
+    check_authorization,
     check_brain_region_filter,
     create_reconstruction_morphology_id,
 )
@@ -397,7 +398,7 @@ def test_authorization(
     license_id,
     brain_region_id,
 ):
-    morph_json = {
+    json_data = {
         "location": {"x": 10, "y": 20, "z": 30},
         "brain_region_id": str(brain_region_id),
         "description": "morph description",
@@ -407,59 +408,7 @@ def test_authorization(
         "species_id": species_id,
         "strain_id": strain_id,
     }
-
-    public_morph = client_user_1.post(
-        ROUTE, json=morph_json | {"name": "public morphology", "authorized_public": True}
-    )
-    assert public_morph.status_code == 200
-    public_morph = public_morph.json()
-    assert public_morph["type"] == EntityType.reconstruction_morphology, (
-        "Public morphology has incorrect type"
-    )
-
-    inaccessible_obj = client_user_2.post(
-        ROUTE, json=morph_json | {"name": "inaccessible morphology 1"}
-    )
-    assert inaccessible_obj.status_code == 200
-    inaccessible_obj = inaccessible_obj.json()
-    assert inaccessible_obj["type"] == EntityType.reconstruction_morphology, (
-        "Inaccessible morphology has incorrect type"
-    )
-
-    private_morph0 = client_user_1.post(ROUTE, json=morph_json | {"name": "private morphology 0"})
-    assert private_morph0.status_code == 200
-    private_morph0 = private_morph0.json()
-    assert private_morph0["type"] == EntityType.reconstruction_morphology, (
-        "Private morphology 0 has incorrect type"
-    )
-
-    private_morph1 = client_user_1.post(ROUTE, json=morph_json | {"name": "private morphology 1"})
-    assert private_morph1.status_code == 200
-    private_morph1 = private_morph1.json()
-    assert private_morph1["type"] == EntityType.reconstruction_morphology, (
-        "Private morphology 1 has incorrect type"
-    )
-
-    # only return results that matches the desired project, and public ones
-    response = client_user_1.get(ROUTE)
-    data = response.json()["data"]
-    assert len(data) == 3
-
-    ids = {row["id"] for row in data}
-    assert ids == {
-        public_morph["id"],
-        private_morph0["id"],
-        private_morph1["id"],
-    }
-
-    response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
-    assert response.status_code == 404
-
-    # only return public results
-    response = client_no_project.get(ROUTE)
-    data = response.json()["data"]
-    assert len(data) == 1
-    assert data[0]["id"] == public_morph["id"]
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
 
 
 def test_pagination(db, client, brain_region_id, person_id):

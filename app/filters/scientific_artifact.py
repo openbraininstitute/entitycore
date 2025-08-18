@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 from typing import Annotated
 
@@ -17,7 +16,7 @@ from app.filters.subject import SubjectFilterMixin
 class ScientificArtifactFilterBase(CustomFilter):
     experiment_date__lte: datetime | None = None
     experiment_date__gte: datetime | None = None
-    contact_id: uuid.UUID | None = None
+    contact_email: str | None = None
 
 
 class NestedScientificArtifactFilter(ScientificArtifactFilterBase, IdFilterMixin):

@@ -1448,7 +1448,7 @@ class EMCellMesh(ScientificArtifact):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     em_release_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("em_dense_reconstruction_dataset.id"), index=True)
-    relase_version: Mapped[int]
+    release_version: Mapped[int]
     dense_reconstruction_cell_id: Mapped[int]
     generation_method: Mapped[EmMeshGenerationMethod]
     level_of_detail: Mapped[int]

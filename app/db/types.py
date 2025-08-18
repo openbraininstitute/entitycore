@@ -523,7 +523,7 @@ class PublicationType(StrEnum):
 
 
 class EmMeshType(StrEnum):
-    """How and when a EM cell mash was created.
+    """How and when a EM cell mesh was created.
 
     static: The mesh was precomputed at a given level of detail.
     dynamic: The mesh was dynamically generated at query time.

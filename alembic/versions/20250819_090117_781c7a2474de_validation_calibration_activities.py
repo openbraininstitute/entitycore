@@ -1,8 +1,8 @@
 """validation_calibration_activities
 
-Revision ID: edfd39c3a464
-Revises: 6856ab93bd63
-Create Date: 2025-07-26 13:01:43.811634
+Revision ID: 781c7a2474de
+Revises: 77e367d5b4a5
+Create Date: 2025-08-19 09:01:17.309511
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "edfd39c3a464"
-down_revision: Union[str, None] = "6856ab93bd63"
+revision: str = "781c7a2474de"
+down_revision: Union[str, None] = "77e367d5b4a5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

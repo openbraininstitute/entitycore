@@ -1,7 +1,9 @@
+from unittest.mock import ANY
+
 import pytest
 
 from app.db.model import ExternalUrl
-from app.db.types import ALLOWED_URLS_PER_EXTERNAL_SOURCE, ExternalSource
+from app.db.types import EXTERNAL_SOURCE_INFO, ExternalSource
 
 from .utils import (
     add_db,
@@ -18,10 +20,14 @@ def json_data(external_url_json_data):
 
 
 def _assert_read_response(data, json_data):
-    assert data["source"] == json_data["source"]
-    assert data["url"] == json_data["url"]
-    assert data["title"] == json_data["title"]
-    assert data["created_by"]["id"] == data["updated_by"]["id"]
+    expected = {
+        "id": ANY,
+        "creation_date": ANY,
+        "update_date": ANY,
+        "created_by": ANY,
+        "updated_by": ANY,
+    } | json_data
+    assert data == expected
 
 
 @pytest.fixture
@@ -34,7 +40,7 @@ def create_id(client_admin, json_data):
 
 @pytest.fixture
 def model_id(external_url):
-    return external_url.id
+    return str(external_url.id)
 
 
 def test_create_one(client_admin, json_data):
@@ -85,12 +91,14 @@ def test_create_one__url_validation(client_admin, json_data):
 
 
 def test_read_one(client, model_id, json_data):
+    expected = json_data | {"id": model_id}
+
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
-    _assert_read_response(data, json_data)
+    _assert_read_response(data, expected)
 
     data = assert_request(client.get, url=ROUTE).json()
     assert len(data["data"]) == 1
-    _assert_read_response(data["data"][0], json_data)
+    _assert_read_response(data["data"][0], expected)
 
 
 def test_missing(client):
@@ -110,19 +118,19 @@ def models(db, person_id):
     data = [
         {
             "source": ExternalSource.channelpedia,
-            "url": f"{ALLOWED_URLS_PER_EXTERNAL_SOURCE[ExternalSource.channelpedia]}/wiki",
+            "url": f"{EXTERNAL_SOURCE_INFO[ExternalSource.channelpedia]['allowed_url']}/wiki",
         },
         {
             "source": ExternalSource.icgenealogy,
-            "url": f"{ALLOWED_URLS_PER_EXTERNAL_SOURCE[ExternalSource.icgenealogy]}/wiki",
+            "url": f"{EXTERNAL_SOURCE_INFO[ExternalSource.icgenealogy]['allowed_url']}/wiki",
         },
         {
             "source": ExternalSource.modeldb,
-            "url": f"{ALLOWED_URLS_PER_EXTERNAL_SOURCE[ExternalSource.modeldb]}/wiki",
+            "url": f"{EXTERNAL_SOURCE_INFO[ExternalSource.modeldb]['allowed_url']}/wiki",
         },
         {
             "source": ExternalSource.channelpedia,
-            "url": f"{ALLOWED_URLS_PER_EXTERNAL_SOURCE[ExternalSource.channelpedia]}/wiki",
+            "url": f"{EXTERNAL_SOURCE_INFO[ExternalSource.channelpedia]['allowed_url']}/wiki",
         },
     ]
     res = []
@@ -132,7 +140,8 @@ def models(db, person_id):
             ExternalUrl(
                 **d
                 | {
-                    "title": f"title-{i}",
+                    "name": f"name-{i}",
+                    "description": f"description-{i}",
                     "url": f"{d['url']}/page-{i}",
                     "created_by_id": person_id,
                     "updated_by_id": person_id,
@@ -153,14 +162,14 @@ def test_filtering_sorting(client, models, person_id):
 
     data = req({"source": "channelpedia"})
     assert len(data) == 2
-    assert {d["title"] for d in data} == {"title-0", "title-3"}
+    assert {d["name"] for d in data} == {"name-0", "name-3"}
 
-    data = req({"title": "title-1"})
+    data = req({"name": "name-1"})
     assert len(data) == 1
-    assert {d["title"] for d in data} == {"title-1"}
+    assert {d["name"] for d in data} == {"name-1"}
 
-    data = req({"source": "channelpedia", "order_by": "title"})
-    assert [d["title"] for d in data] == ["title-0", "title-3"]
+    data = req({"source": "channelpedia", "order_by": "name"})
+    assert [d["name"] for d in data] == ["name-0", "name-3"]
 
-    data = req({"source": "channelpedia", "order_by": "-title"})
-    assert [d["title"] for d in data] == ["title-3", "title-0"]
+    data = req({"source": "channelpedia", "order_by": "-name"})
+    assert [d["name"] for d in data] == ["name-3", "name-0"]

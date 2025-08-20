@@ -1,6 +1,13 @@
-from pydantic import BaseModel, ConfigDict, HttpUrl, field_serializer, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    HttpUrl,
+    computed_field,
+    field_serializer,
+    model_validator,
+)
 
-from app.db.types import ALLOWED_URLS_PER_EXTERNAL_SOURCE, ExternalSource
+from app.db.types import EXTERNAL_SOURCE_INFO, ExternalSource
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import CreationMixin, IdentifiableMixin
 
@@ -11,7 +18,8 @@ class ExternalUrlBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     source: ExternalSource
     url: HttpUrl
-    title: str | None = None
+    name: str
+    description: str
 
     @field_serializer("url")
     def serialize_url(self, url: HttpUrl) -> str:  # noqa: PLR6301
@@ -24,10 +32,7 @@ class ExternalUrlCreate(ExternalUrlBase):
 
     @model_validator(mode="after")
     def validate_url(self):
-        allowed_url = ALLOWED_URLS_PER_EXTERNAL_SOURCE.get(self.source)
-        if allowed_url is None:
-            msg = f"There are no allowed urls defined for '{self.source}'"
-            raise ValueError(msg)
+        allowed_url = EXTERNAL_SOURCE_INFO[self.source]["allowed_url"]
         if not self.url.unicode_string().startswith(allowed_url):
             msg = f"The url for '{self.source}' must start with {allowed_url}"
             raise ValueError(msg)
@@ -39,6 +44,11 @@ class NestedExternalUrlRead(
     IdentifiableMixin,
 ):
     """Read model for nested external url."""
+
+    @computed_field
+    @property
+    def source_label(self) -> str:
+        return EXTERNAL_SOURCE_INFO[self.source]["label"]
 
 
 class ExternalUrlRead(

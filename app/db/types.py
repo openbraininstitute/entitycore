@@ -1,5 +1,5 @@
 from enum import StrEnum, auto
-from typing import Annotated, Any
+from typing import Annotated, Any, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import ARRAY, BigInteger
@@ -299,7 +299,7 @@ class LabelRequirements(BaseModel):
     is_directory: bool
 
 
-CONTENT_TYPE_TO_SUFFIX = {
+CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.json: (".json",),
     ContentType.swc: (".swc",),
     ContentType.nrrd: (".nrrd",),
@@ -327,7 +327,9 @@ CONTENT_TYPE_TO_SUFFIX = {
     ContentType.webp: (".webp",),
 }
 
-ALLOWED_ASSET_LABELS_PER_ENTITY = {
+ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
+    EntityType, dict[AssetLabel, list[LabelRequirements]] | None
+] = dict.fromkeys(EntityType) | {
     EntityType.brain_atlas: {
         AssetLabel.brain_atlas_annotation: [
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
@@ -518,13 +520,31 @@ class PublicationType(StrEnum):
 
 
 class ExternalSource(StrEnum):
+    """External sources that can be used for external urls."""
+
     channelpedia = auto()
     modeldb = auto()
     icgenealogy = auto()
 
 
-ALLOWED_URLS_PER_EXTERNAL_SOURCE = {
-    ExternalSource.channelpedia: "https://channelpedia.epfl.ch/",
-    ExternalSource.icgenealogy: "https://icg.neurotheory.ox.ac.uk/",
-    ExternalSource.modeldb: "https://modeldb.science/",
+class ExternalSourceInfo(TypedDict):
+    """Additional information for the external source."""
+
+    label: str
+    allowed_url: str
+
+
+EXTERNAL_SOURCE_INFO: dict[ExternalSource, ExternalSourceInfo] = {
+    ExternalSource.channelpedia: {
+        "label": "Channelpedia",
+        "allowed_url": "https://channelpedia.epfl.ch/",
+    },
+    ExternalSource.icgenealogy: {
+        "label": "ICGenealogy",
+        "allowed_url": "https://icg.neurotheory.ox.ac.uk/",
+    },
+    ExternalSource.modeldb: {
+        "label": "ModelDB",
+        "allowed_url": "https://modeldb.science/",
+    },
 }

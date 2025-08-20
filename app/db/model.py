@@ -539,7 +539,7 @@ class Publication(Identifiable):
     __table_args__ = (Index("ix_publication_doi_normalized", func.lower(DOI), unique=True),)
 
 
-class ExternalUrl(Identifiable):
+class ExternalUrl(Identifiable, NameDescriptionVectorMixin):
     """Represents a web page on an external data source.
 
     Attributes:
@@ -551,7 +551,6 @@ class ExternalUrl(Identifiable):
     __tablename__ = EntityType.external_url.value
     source: Mapped[ExternalSource]
     url: Mapped[str] = mapped_column(String, index=True, unique=True)
-    title: Mapped[str | None]
 
 
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):

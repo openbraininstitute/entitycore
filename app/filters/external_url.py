@@ -6,16 +6,21 @@ from app.db.model import ExternalUrl
 from app.db.types import ExternalSource
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import CreationFilterMixin, CreatorFilterMixin, IdFilterMixin
+from app.filters.common import (
+    CreationFilterMixin,
+    CreatorFilterMixin,
+    IdFilterMixin,
+    NameFilterMixin,
+)
 
 
 class NestedExternalUrlFilter(
     IdFilterMixin,
+    NameFilterMixin,
     CustomFilter,
 ):
     source: ExternalSource | None = None
     url: str | None = None
-    title: str | None = None
 
     class Constants(CustomFilter.Constants):
         model = ExternalUrl
@@ -34,7 +39,7 @@ class ExternalUrlFilter(
             "update_date",
             "source",
             "url",
-            "title",
+            "name",
         ]
 
 

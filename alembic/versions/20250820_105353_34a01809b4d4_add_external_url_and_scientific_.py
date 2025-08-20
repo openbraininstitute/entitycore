@@ -1,8 +1,8 @@
 """Add external_url and scientific_artifact_external_url_link
 
-Revision ID: f0077700de55
-Revises: 77e367d5b4a5
-Create Date: 2025-08-13 15:54:29.063769
+Revision ID: 34a01809b4d4
+Revises: 781c7a2474de
+Create Date: 2025-08-20 10:53:53.943089
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "f0077700de55"
-down_revision: Union[str, None] = "77e367d5b4a5"
+revision: str = "34a01809b4d4"
+down_revision: Union[str, None] = "781c7a2474de"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -36,7 +36,6 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("url", sa.String(), nullable=False),
-        sa.Column("title", sa.String(), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("created_by_id", sa.Uuid(), nullable=False),
         sa.Column("updated_by_id", sa.Uuid(), nullable=False),
@@ -52,6 +51,9 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["created_by_id"], ["agent.id"], name=op.f("fk_external_url_created_by_id_agent")
         ),
@@ -66,6 +68,14 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_external_url_creation_date"), "external_url", ["creation_date"], unique=False
     )
+    op.create_index(
+        "ix_external_url_description_vector",
+        "external_url",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_external_url_name"), "external_url", ["name"], unique=False)
     op.create_index(
         op.f("ix_external_url_updated_by_id"), "external_url", ["updated_by_id"], unique=False
     )
@@ -255,6 +265,10 @@ def downgrade() -> None:
     op.drop_table("scientific_artifact_external_url_link")
     op.drop_index(op.f("ix_external_url_url"), table_name="external_url")
     op.drop_index(op.f("ix_external_url_updated_by_id"), table_name="external_url")
+    op.drop_index(op.f("ix_external_url_name"), table_name="external_url")
+    op.drop_index(
+        "ix_external_url_description_vector", table_name="external_url", postgresql_using="gin"
+    )
     op.drop_index(op.f("ix_external_url_creation_date"), table_name="external_url")
     op.drop_index(op.f("ix_external_url_created_by_id"), table_name="external_url")
     op.drop_table("external_url")

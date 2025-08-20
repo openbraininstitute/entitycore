@@ -12,7 +12,7 @@ class PaginationRequest(BaseModel):
     page: Annotated[int, Field(ge=1)] = 1
     page_size: Annotated[int, Field(ge=1)] = 100
 
-    @computed_field  # type: ignore[prop-decorator]
+    @computed_field
     @property
     def offset(self) -> int:
         return (self.page - 1) * self.page_size

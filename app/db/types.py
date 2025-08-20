@@ -83,6 +83,8 @@ class EntityType(StrEnum):
     subject = auto()
     validation_result = auto()
     circuit = auto()
+    analysis_notebook_template = auto()
+    analysis_results_file = auto()
 
 
 class AgentType(StrEnum):
@@ -105,6 +107,7 @@ class ActivityType(StrEnum):
     simulation_generation = auto()
     validation = auto()
     calibration = auto()
+    data_analysis = auto()
 
 
 class DerivationType(StrEnum):
@@ -254,6 +257,8 @@ class ContentType(StrEnum):
     gltf_binary = "model/gltf-binary"
     gzip = "application/gzip"
     webp = "image/webp"
+    notebook = "application/x-ipynb+json"
+    csv = "text/csv"
 
 
 class AssetLabel(StrEnum):
@@ -292,6 +297,11 @@ class AssetLabel(StrEnum):
     node_stats = auto()
     network_stats_a = auto()
     network_stats_b = auto()
+    jupyter_notebook = auto()
+    h5_exported_dataframe = auto()
+    csv_table = auto()
+    json_results = auto()
+    plot = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -325,11 +335,35 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
         ".tgz",
     ),
     ContentType.webp: (".webp",),
+    ContentType.notebook: (".ipynb",),
+    ContentType.csv: (".csv",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType, dict[AssetLabel, list[LabelRequirements]] | None
 ] = dict.fromkeys(EntityType) | {
+    EntityType.analysis_notebook_template: {
+        AssetLabel.jupyter_notebook: [
+            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
+        ],
+    },
+    EntityType.analysis_results_file: {
+        AssetLabel.csv_table: [
+            LabelRequirements(content_type=ContentType.csv, is_directory=False)
+        ],
+        AssetLabel.h5_exported_dataframe: [
+            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+        ],
+        AssetLabel.jupyter_notebook: [
+            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
+        ],
+        AssetLabel.json_results: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+        AssetLabel.plot: [
+            LabelRequirements(content_type=ContentType.png, is_directory=False)
+        ]
+    },
     EntityType.brain_atlas: {
         AssetLabel.brain_atlas_annotation: [
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
@@ -548,3 +582,19 @@ EXTERNAL_SOURCE_INFO: dict[ExternalSource, ExternalSourceInfo] = {
         "allowed_url": "https://modeldb.science/",
     },
 }
+
+class AnalysisInputCountSpecs(StrEnum):
+    """Represents specs of how many inputs of a given type are expected for analysis"""
+    single = auto()
+    pair = auto()
+    triplet = auto()
+    any = auto()
+    any_nonzero = auto()
+
+
+class ActivityScale(StrEnum):
+    """Rough scale that an activity takes place in. Note: Not equal to CircuitScale."""
+    subcellular = auto()
+    cellular = auto()
+    circuit = auto()
+    system = auto()

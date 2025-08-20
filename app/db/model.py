@@ -61,6 +61,8 @@ from app.db.types import (
     StorageType,
     StructuralDomain,
     ValidationStatus,
+    AnalysisInputCountSpecs,
+    ActivityScale
 )
 from app.schemas.publication import Author
 from app.utils.uuid import create_uuid
@@ -1436,3 +1438,77 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     # calibration_data (multiple entities): ...
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
+    """Represents a notebook template that offers to analyze a type of entity or
+    multiple entities.
+
+    Attributes:
+        id: (uuid.UUID): Primary key for the template, referencing the entity ID.
+        primary_input_type: The type of entity that is expected to be the primary input
+        primary_input_count: Specifies how many entities of the primary input type are expected.
+            Can be one, two, three, any, any > 0
+        primary_input_variable: The name of the variable in the notebook that the 
+            primary input entity / entities should be assigned to
+
+        secondary_input_type (optional): The type of entity that is expected to be a secondary input.
+            If no secondary input is used, then set to None.
+        secondary_input_count (optional): Specifies how many entities of the primary input type are 
+            expected. Can be one, two, three, any, any > 0.
+        secondary_input_variable (optional): The name of the variable in the notebook that the 
+            secondary input entity / entities should be assigned to.
+        
+        scale: The overall scale of the analysis in the notebook. Used for filtering.
+        requirements: A string that defines the python package requirements of the notebook. 
+            formatted as a requirements.txt file.
+    
+    """
+    __tablename__ = EntityType.analysis_notebook_template.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    
+    primary_input_type = Mapped[EntityType]
+    primary_input_count = Mapped[AnalysisInputCountSpecs]
+    primary_input_variable = Mapped[str]
+
+    secondary_input_type = Mapped[EntityType]
+    secondary_input_type = Mapped[AnalysisInputCountSpecs]
+    secondary_input_variable = Mapped[str]
+
+    scale = Mapped[ActivityScale]
+
+    requirements = Mapped[str]
+
+
+class DataAnalysis(Activity):
+    """Represents a basic analysis of any kind of data on the platform that creates
+    a digest file representing its result.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the analysis, referencing the activity ID.
+    """
+
+    __tablename__ = ActivityType.data_analysis.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class AnalysisResultsFile(Entity, NameDescriptionVectorMixin):
+    """Represents the result of an analysis in a digested format. Can be one of:
+    a json file with undefined format
+    a pandas.Dataframe, exported to a h5 file
+    a .png plot
+    a table in csv format
+    a jupyter notebook containing any number of results
+
+    Attributes:
+        id (uuid.UUID): Primary key for the result, referencing the entity ID.
+        is_notebook (bool): For convenient filtering: True if and only if the result
+            is a jupyter notebook file.
+    
+    """
+    __tablename__ = EntityType.analysis_results_file.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    is_notebook: Mapped[bool]
+

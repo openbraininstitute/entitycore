@@ -1,6 +1,6 @@
 import pytest
 
-from app.db.model import ScientificArtifactPublicationLink
+from app.db.model import ScientificArtifactExternalUrlLink
 
 from .utils import (
     add_all_db,
@@ -8,23 +8,21 @@ from .utils import (
     check_missing,
 )
 
-ROUTE = "/scientific-artifact-publication-link"
+ROUTE = "/scientific-artifact-external-url-link"
 
 
 @pytest.fixture
-def json_data(publication, root_circuit):
+def json_data(external_url, root_circuit):
     return {
-        "publication_id": str(publication.id),
-        "publication_type": "entity_source",
+        "external_url_id": str(external_url.id),
         "scientific_artifact_id": str(root_circuit.id),
     }
 
 
 def _assert_read_response(data, json_data):
     assert "id" in data
-    assert data["publication"]["id"] == json_data["publication_id"]
+    assert data["external_url"]["id"] == json_data["external_url_id"]
     assert data["scientific_artifact"]["id"] == json_data["scientific_artifact_id"]
-    assert data["publication_type"] == json_data["publication_type"]
     assert data["created_by"]["id"] == data["updated_by"]["id"]
 
 
@@ -67,7 +65,7 @@ def test_authorization(
     client_user_2,
     json_data,
     root_circuit_json_data,
-    publication,
+    external_url,
 ):
     circuit_1 = assert_request(
         client_user_1.post,
@@ -86,7 +84,7 @@ def test_authorization(
         url=ROUTE,
         json=json_data
         | {
-            "publication_id": str(publication.id),
+            "external_url_id": str(external_url.id),
             "scientific_artifact_id": circuit_1["id"],
         },
     ).json()
@@ -96,25 +94,25 @@ def test_authorization(
     data = assert_request(client_user_1.get, url=ROUTE).json()["data"]
     assert len(data) == 1
 
-    # user 1 creates link between accessible publication and inaccessible circuit
+    # user 1 creates link between external_url and inaccessible circuit
     data = assert_request(
         client_user_1.post,
         url=ROUTE,
         json=json_data
         | {
-            "publication_id": str(publication.id),
+            "external_url_id": str(external_url.id),
             "scientific_artifact_id": circuit_2["id"],
         },
         expected_status_code=404,
     ).json()
 
-    # user 2 creates link between accessible publication and inaccessible circuit
+    # user 2 creates link between external_url and inaccessible circuit
     data = assert_request(
         client_user_2.post,
         url=ROUTE,
         json=json_data
         | {
-            "publication_id": str(publication.id),
+            "external_url_id": str(external_url.id),
             "scientific_artifact_id": circuit_2["id"],
         },
     ).json()
@@ -131,23 +129,23 @@ def test_authorization(
 
 
 @pytest.fixture
-def models(db, json_data, person_id, publication, root_circuit, circuit):
+def models(db, json_data, person_id, external_url, root_circuit, circuit):
     results = add_all_db(
         db,
         [
-            ScientificArtifactPublicationLink(
+            ScientificArtifactExternalUrlLink(
                 **json_data
                 | {
-                    "publication_id": publication.id,
+                    "external_url_id": external_url.id,
                     "scientific_artifact_id": root_circuit.id,
                     "created_by_id": person_id,
                     "updated_by_id": person_id,
                 }
             ),
-            ScientificArtifactPublicationLink(
+            ScientificArtifactExternalUrlLink(
                 **json_data
                 | {
-                    "publication_id": publication.id,
+                    "external_url_id": external_url.id,
                     "scientific_artifact_id": circuit.id,
                     "created_by_id": person_id,
                     "updated_by_id": person_id,
@@ -178,17 +176,14 @@ def test_pagination(client, models):
     assert len(data["data"]) == len(models)
 
 
-def test_filtering_sorting(client, models, publication, root_circuit):
+def test_filtering_sorting(client, models, external_url, root_circuit):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
-    data = req({"publication_type": "entity_source"})
+    data = req({"order_by": "creation_date"})
     assert len(data) == len(models)
 
-    data = req({"publication_type": "entity_source", "order_by": "-creation_date"})
-    assert len(data) == len(models)
-
-    data = req({"publication__id": str(publication.id)})
+    data = req({"external_url__id": str(external_url.id)})
     assert len(data) == len(models)
 
     data = req({"scientific_artifact__id": str(root_circuit.id)})

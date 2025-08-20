@@ -1,5 +1,5 @@
 from enum import StrEnum, auto
-from typing import Annotated, Any
+from typing import Annotated, Any, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import ARRAY, BigInteger
@@ -63,6 +63,7 @@ class EntityType(StrEnum):
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
+    external_url = auto()
     ion_channel_model = auto()
     memodel = auto()
     mesh = auto()
@@ -104,6 +105,8 @@ class ActivityType(StrEnum):
 
     simulation_execution = auto()
     simulation_generation = auto()
+    validation = auto()
+    calibration = auto()
 
 
 class DerivationType(StrEnum):
@@ -299,7 +302,7 @@ class LabelRequirements(BaseModel):
     is_directory: bool
 
 
-CONTENT_TYPE_TO_SUFFIX = {
+CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.json: (".json",),
     ContentType.swc: (".swc",),
     ContentType.nrrd: (".nrrd",),
@@ -327,7 +330,9 @@ CONTENT_TYPE_TO_SUFFIX = {
     ContentType.webp: (".webp",),
 }
 
-ALLOWED_ASSET_LABELS_PER_ENTITY = {
+ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
+    EntityType, dict[AssetLabel, list[LabelRequirements]] | None
+] = dict.fromkeys(EntityType) | {
     EntityType.brain_atlas: {
         AssetLabel.brain_atlas_annotation: [
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
@@ -522,6 +527,37 @@ class PublicationType(StrEnum):
     application = auto()
 
 
+class ExternalSource(StrEnum):
+    """External sources that can be used for external urls."""
+
+    channelpedia = auto()
+    modeldb = auto()
+    icgenealogy = auto()
+
+
+class ExternalSourceInfo(TypedDict):
+    """Additional information for the external source."""
+
+    name: str
+    allowed_url: str
+
+
+EXTERNAL_SOURCE_INFO: dict[ExternalSource, ExternalSourceInfo] = {
+    ExternalSource.channelpedia: {
+        "name": "Channelpedia",
+        "allowed_url": "https://channelpedia.epfl.ch/",
+    },
+    ExternalSource.icgenealogy: {
+        "name": "ICGenealogy",
+        "allowed_url": "https://icg.neurotheory.ox.ac.uk/",
+    },
+    ExternalSource.modeldb: {
+        "name": "ModelDB",
+        "allowed_url": "https://modeldb.science/",
+    },
+}
+
+
 class EmMeshType(StrEnum):
     """How and when a EM cell mesh was created.
 
@@ -534,7 +570,7 @@ class EmMeshType(StrEnum):
 
 class EmMeshGenerationMethod(StrEnum):
     """The algorithm generating the mesh from a volume
-    
+
     marching_cubes: The marching cubes algorithm
     TODO: Add more!
     """

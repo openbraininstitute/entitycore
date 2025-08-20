@@ -501,7 +501,7 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     age_min: Mapped[timedelta | None]
     age_max: Mapped[timedelta | None]
     age_period: Mapped[AgePeriod | None]
-    sex: Mapped[Sex | None]
+    sex: Mapped[Sex]
     weight: Mapped[float | None]  # in grams
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -520,7 +520,7 @@ class Publication(Identifiable):
     """Represents a scientific publication entity in the database.
 
     Attributes:
-        id (uuid.UUID): Primary key, references the base entity ID.
+        id (uuid.UUID): Primary key.
         DOI (str): Digital Object Identifier for the publication.
         title (str | None): Title of the publication.
         authors (list[Author] | None): List of authors associated with the publication.
@@ -976,10 +976,10 @@ class Ion(Identifiable):
         return value.lower() if value else value
 
 
-class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     __tablename__ = EntityType.ion_channel_model.value
 
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)

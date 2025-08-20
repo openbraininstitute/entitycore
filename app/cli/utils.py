@@ -124,7 +124,10 @@ def get_or_create_species(species, db, _cache={}):
 def create_stimulus(data, entity_id, project_context, db, created_by_id, updated_by_id):
     label = data["label"]
 
-    info = STIMULUS_INFO[label]
+    try:
+        info = STIMULUS_INFO[label]
+    except:
+        return None
 
     row = ElectricalRecordingStimulus(
         name=info["ecode"],
@@ -142,6 +145,8 @@ def create_stimulus(data, entity_id, project_context, db, created_by_id, updated
     )
     db.add(row)
     db.commit()
+
+    return row
 
 
 def get_brain_location(data):

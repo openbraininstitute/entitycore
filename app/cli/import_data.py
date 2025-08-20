@@ -105,6 +105,8 @@ CELL_COMPOSITION_ID = "https://bbp.epfl.ch/neurosciencegraph/data/cellcompositio
 
 l_distributions = []
 
+STIMULI = []
+
 
 def get_or_create_annotation_body(annotation_body, db, created_by_id, updated_by_id):
     annotation_body = curate.curate_annotation_body(annotation_body)
@@ -1073,7 +1075,8 @@ class ImportElectricalCellRecording(Import):
 
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name, project_ids):
-        for data in tqdm(data_list):
+        visited = set()
+        for data in data_list:
             legacy_id = data["@id"]
             legacy_self = data["_self"]
 
@@ -1140,6 +1143,42 @@ class ImportElectricalCellRecording(Import):
                 create_annotation(
                     annotation, db_item.id, db, created_by_id, updated_by_id, project_context
                 )
+
+            for stimulus in ensurelist(data.get("stimuli", [])):
+                stimulus_type = stimulus["stimulusType"]
+                if "@id" in stimulus_type and stimulus_type["@id"] in all_data_by_id:
+                    stimulus_type = all_data_by_id[stimulus_type["@id"]]
+
+                # create a stimulus for each stimulus in the data
+                row = utils.create_stimulus(
+                    stimulus_type, db_item.id, project_context, db, created_by_id, updated_by_id
+                )
+
+                if row:
+                    STIMULI.append(
+                        {
+                            "name": row.name,
+                            "description": row.description,
+                            "dt": row.dt,
+                            "injection_type": row.injection_type,
+                            "shape": row.shape,
+                            "start_time": None,
+                            "end_time": None,
+                            "recording_id": str(db_item.id),
+                            "recording_name": str(data["name"]),
+                            "recording_legacy_id": str(legacy_id),
+                        }
+                    )
+                else:
+                    label = stimulus["stimulusType"]["label"]
+                    if label not in visited:
+                        print(
+                            data["distribution"]["digest"]["value"],
+                            data["_createdAt"],
+                            data["distribution"]["name"],
+                            label,
+                        )
+                        visited.add(label)
 
             for stimulus in ensurelist(data.get("stimulus", [])):
                 stimulus_type = stimulus["stimulusType"]
@@ -1863,24 +1902,24 @@ def _do_import(db, input_dir, project_context, hierarchy_name, project_ids):
         ImportLicense,
         ImportMTypeAnnotation,
         ImportETypeAnnotation,
-        ImportMETypeDensity,
-        ImportCellComposition,
-        ImportAnalysisSoftwareSourceCode,
-        ImportMorphologies,
-        ImportEModels,
-        ImportExperimentalNeuronDensities,
-        ImportExperimentalBoutonDensity,
-        ImportExperimentalSynapsesPerConnection,
-        ImportMEModel,
-        ImportSynaptome,
+        # ImportMETypeDensity,
+        # ImportCellComposition,
+        # ImportAnalysisSoftwareSourceCode,
+        # ImportMorphologies,
+        # ImportEModels,
+        # ImportExperimentalNeuronDensities,
+        # ImportExperimentalBoutonDensity,
+        # ImportExperimentalSynapsesPerConnection,
+        # ImportMEModel,
+        # ImportSynaptome,
         ImportElectricalCellRecording,
-        ImportSingleNeuronSimulation,
-        ImportSingleNeuronSynaptomeSimulation,
-        ImportValidationResult,
-        ImportBrainAtlas,
-        ImportDistribution,
-        ImportNeuronMorphologyFeatureAnnotation,
-        ImportEModelDerivations,
+        # ImportSingleNeuronSimulation,
+        # ImportSingleNeuronSynaptomeSimulation,
+        # ImportValidationResult,
+        # ImportBrainAtlas,
+        # ImportDistribution,
+        # ImportNeuronMorphologyFeatureAnnotation,
+        # ImportEModelDerivations,
     ]
 
     for importer in importers:
@@ -1926,6 +1965,10 @@ def _do_import(db, input_dir, project_context, hierarchy_name, project_ids):
             hierarchy_name=hierarchy_name,
             project_ids=project_ids,
         )
+
+    from pathlib import Path
+
+    Path("stimuli.json").write_text(json.dumps(STIMULI, indent=2))
 
 
 def _analyze() -> None:

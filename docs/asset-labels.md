@@ -1,5 +1,7 @@
 | Type                                  | Value                                             | Content-Type       | Suffix          | Description                                                                                                 |
 | ------------------------------------- | ------------------------------------------------- | ------------------ | --------------- | ----------------------------------------------------------------------------------------------------------- |
+| analysis_notebook_template            | jupyter_notebook                                  | application/x-ipynb+json  | .ipynb    |   Jupyter notebook file.
+| analysis_result_notebook              | jupyter_notebook                                  | application/x-ipynb+json  | .ipynb    |   Jupyter notebook file.
 | brain_atlas                           | brain_atlas_annotation                            | application/nrrd   | .nrrd           | Brain atlas annotation nrrd volume.                                                                         |
 | brain_atlas_region                    | brain_atlas_region_mesh                           | application/obj    | .obj            | Brain atlas region mesh geometry object.                                                                    |
 | cell_composition                      | cell_composition_summary                          | application/json   | .json           | Region/mtype/etype densities summary                                                                        |

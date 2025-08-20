@@ -88,6 +88,8 @@ class EntityType(StrEnum):
     circuit = auto()
     em_dense_reconstruction_dataset = auto()
     em_cell_mesh = auto()
+    analysis_notebook_template = auto()
+    analysis_result_notebook = auto()
 
 
 class AgentType(StrEnum):
@@ -136,6 +138,8 @@ class ActivityType(StrEnum):
     simulation_generation = auto()
     validation = auto()
     calibration = auto()
+    data_analysis = auto()
+    notebook_execution = auto()
 
 
 class DerivationType(StrEnum):
@@ -293,6 +297,8 @@ class ContentType(StrEnum):
     gltf_binary = "model/gltf-binary"
     gzip = "application/gzip"
     webp = "image/webp"
+    notebook = "application/x-ipynb+json"
+    csv = "text/csv"
 
 
 class AssetLabel(StrEnum):
@@ -332,6 +338,7 @@ class AssetLabel(StrEnum):
     network_stats_a = auto()
     network_stats_b = auto()
     cell_surface_mesh = auto()
+    jupyter_notebook = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -365,11 +372,23 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
         ".tgz",
     ),
     ContentType.webp: (".webp",),
+    ContentType.notebook: (".ipynb",),
+    ContentType.csv: (".csv",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType, dict[AssetLabel, list[LabelRequirements]] | None
 ] = dict.fromkeys(EntityType) | {
+    EntityType.analysis_notebook_template: {
+        AssetLabel.jupyter_notebook: [
+            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
+        ],
+    },
+    EntityType.analysis_result_notebook: {
+        AssetLabel.jupyter_notebook: [
+            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
+        ]
+    },
     EntityType.brain_atlas: {
         AssetLabel.brain_atlas_annotation: [
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
@@ -626,3 +645,19 @@ class SlicingDirectionType(StrEnum):
     sagittal = auto()
     horizontal = auto()
     custom = auto()
+
+class AnalysisInputCountSpecs(StrEnum):
+    """Represents specs of how many inputs of a given type are expected for analysis"""
+    single = auto()
+    pair = auto()
+    triplet = auto()
+    any = auto()
+    any_nonzero = auto()
+
+
+class ActivityScale(StrEnum):
+    """Rough scale that an activity takes place in. Note: Not equal to CircuitScale."""
+    subcellular = auto()
+    cellular = auto()
+    circuit = auto()
+    system = auto()

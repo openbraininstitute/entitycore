@@ -12,7 +12,6 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Index,
-    Integer,
     LargeBinary,
     MetaData,
     String,
@@ -50,6 +49,7 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
     EntityType,
+    ExternalSource,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -530,13 +530,27 @@ class Publication(Identifiable):
     """
 
     __tablename__ = EntityType.publication.value
-    DOI: Mapped[str] = mapped_column(String)
-    title: Mapped[str | None] = mapped_column(String, nullable=True)
-    authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
-    publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    abstract: Mapped[str | None] = mapped_column(String, nullable=True)
+    DOI: Mapped[str] = mapped_column()  # explicit for the case insensitive index
+    title: Mapped[str | None]
+    authors: Mapped[list[Author] | None] = mapped_column(JSONB)
+    publication_year: Mapped[int | None]
+    abstract: Mapped[str | None]
 
     __table_args__ = (Index("ix_publication_doi_normalized", func.lower(DOI), unique=True),)
+
+
+class ExternalUrl(Identifiable, NameDescriptionVectorMixin):
+    """Represents a web page on an external data source.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        source (ExternalSource): Name of the external data source, e.g. channelpedia.
+        url (str): URL of the webpage, e.g. "https://channelpedia.epfl.ch/wikipages/189".
+    """
+
+    __tablename__ = EntityType.external_url.value
+    source: Mapped[ExternalSource]
+    url: Mapped[str] = mapped_column(String, index=True, unique=True)
 
 
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
@@ -1295,7 +1309,6 @@ class ScientificArtifactPublicationLink(Identifiable):
         ForeignKey("scientific_artifact.id"), index=True
     )
 
-    # Relationships - assuming ScientificArtifact and Publication exist
     publication: Mapped["Publication"] = relationship(
         "Publication",
         foreign_keys=[publication_id],
@@ -1309,6 +1322,48 @@ class ScientificArtifactPublicationLink(Identifiable):
 
     __table_args__ = (
         UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
+    )
+
+
+class ScientificArtifactExternalUrlLink(Identifiable):
+    """Represents the association between a scientific artifact and an external url.
+
+    It enforces uniqueness on the combination of external url and scientific artifact,
+    ensuring that each (scientific_artifact, external_url) pair is unique.
+
+    Attributes:
+        external_url_id (UUID): Foreign key referencing the associated external url.
+        scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
+        external_url (ExternalUrl): Relationship to the ExternalUrl model.
+        scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
+
+    Table:
+        Unique constraint on (external_url_id, scientific_artifact_id).
+    """
+
+    __tablename__ = "scientific_artifact_external_url_link"
+    external_url_id: Mapped[UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
+    scientific_artifact_id: Mapped[UUID] = mapped_column(
+        ForeignKey("scientific_artifact.id"), index=True
+    )
+
+    external_url: Mapped["ExternalUrl"] = relationship(
+        "ExternalUrl",
+        foreign_keys=[external_url_id],
+        uselist=False,
+    )
+    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+        "ScientificArtifact",
+        foreign_keys=[scientific_artifact_id],
+        uselist=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "external_url_id",
+            "scientific_artifact_id",
+            name="uq_scientific_artifact_external_url_link",
+        ),
     )
 
 

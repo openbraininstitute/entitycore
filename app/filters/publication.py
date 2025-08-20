@@ -34,7 +34,7 @@ class PublicationFilter(
         ordering_model_fields = [  # noqa: RUF012
             "creation_date",
             "update_date",
-            "name",
+            "DOI",
             "publication_year",
             "title",
         ]

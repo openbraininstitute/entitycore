@@ -1,7 +1,7 @@
 """Inherit ion_channel_model from scientific_artifact
 
 Revision ID: 02b804d687ee
-Revises: 781c7a2474de
+Revises: 80139d43afaf
 Create Date: 2025-08-19 11:35:35.679039
 
 """
@@ -19,7 +19,7 @@ from sqlalchemy import Connection
 
 # revision identifiers, used by Alembic.
 revision: str = "02b804d687ee"
-down_revision: Union[str, None] = "781c7a2474de"
+down_revision: Union[str, None] = "80139d43afaf"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

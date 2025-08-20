@@ -103,6 +103,8 @@ class ActivityType(StrEnum):
 
     simulation_execution = auto()
     simulation_generation = auto()
+    validation = auto()
+    calibration = auto()
 
 
 class DerivationType(StrEnum):

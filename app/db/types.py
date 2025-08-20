@@ -530,21 +530,21 @@ class ExternalSource(StrEnum):
 class ExternalSourceInfo(TypedDict):
     """Additional information for the external source."""
 
-    label: str
+    name: str
     allowed_url: str
 
 
 EXTERNAL_SOURCE_INFO: dict[ExternalSource, ExternalSourceInfo] = {
     ExternalSource.channelpedia: {
-        "label": "Channelpedia",
+        "name": "Channelpedia",
         "allowed_url": "https://channelpedia.epfl.ch/",
     },
     ExternalSource.icgenealogy: {
-        "label": "ICGenealogy",
+        "name": "ICGenealogy",
         "allowed_url": "https://icg.neurotheory.ox.ac.uk/",
     },
     ExternalSource.modeldb: {
-        "label": "ModelDB",
+        "name": "ModelDB",
         "allowed_url": "https://modeldb.science/",
     },
 }

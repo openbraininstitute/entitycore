@@ -1090,7 +1090,7 @@ def publication(db, publication_json_data, person_id):
 def external_url_json_data():
     return {
         "source": "channelpedia",
-        "source_label": "Channelpedia",
+        "source_name": "Channelpedia",
         "url": "https://channelpedia.epfl.ch/wikipages/188",
         "name": "Potassium channel page on Channelpedia",
         "description": "Contains description of potassium channels...",

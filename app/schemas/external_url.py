@@ -47,8 +47,8 @@ class NestedExternalUrlRead(
 
     @computed_field
     @property
-    def source_label(self) -> str:
-        return EXTERNAL_SOURCE_INFO[self.source]["label"]
+    def source_name(self) -> str:
+        return EXTERNAL_SOURCE_INFO[self.source]["name"]
 
 
 class ExternalUrlRead(

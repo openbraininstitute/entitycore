@@ -1463,21 +1463,23 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
         requirements: A string that defines the python package requirements of the notebook. 
             formatted as a requirements.txt file.
     
+    TODO: What's the relation to AnalysisSoftwareSourceCode?
+    
     """
     __tablename__ = EntityType.analysis_notebook_template.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     
-    primary_input_type = Mapped[EntityType]
-    primary_input_count = Mapped[AnalysisInputCountSpecs]
-    primary_input_variable = Mapped[str]
+    primary_input_type: Mapped[EntityType]
+    primary_input_count: Mapped[AnalysisInputCountSpecs]
+    primary_input_variable: Mapped[str]
 
-    secondary_input_type = Mapped[EntityType]
-    secondary_input_type = Mapped[AnalysisInputCountSpecs]
-    secondary_input_variable = Mapped[str]
+    secondary_input_type: Mapped[EntityType]
+    secondary_input_count: Mapped[AnalysisInputCountSpecs]
+    secondary_input_variable: Mapped[str]
 
-    scale = Mapped[ActivityScale]
+    scale: Mapped[ActivityScale]
 
-    requirements = Mapped[str]
+    requirements: Mapped[str]
 
 
 class DataAnalysis(Activity):
@@ -1486,10 +1488,15 @@ class DataAnalysis(Activity):
 
     Attributes:
         id (uuid.UUID): Primary key for the analysis, referencing the activity ID.
+        environment (str): Installed packages and versions; i.e., output of pip freeze
+    
+    TODO:
+        Reference the source code used somewhere.
     """
 
     __tablename__ = ActivityType.data_analysis.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    environment: Mapped[str]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

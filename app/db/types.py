@@ -275,6 +275,7 @@ class AssetLabel(StrEnum):
     """See docs/asset-labels.md."""
 
     morphology = auto()
+    morphology_with_spines = auto()
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()

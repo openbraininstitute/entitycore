@@ -28,6 +28,7 @@ class ECode(StrEnum):
     de_hyper_pol = "DeHyperPol"
     elec_cal = "ElecCal"
     fire_pattern = "FirePattern"
+    generic_noise = "GenericNoise"
     generic_step = "GenericStep"
     h10s8 = "H10S8"
     h20s8 = "H20S8"
@@ -52,12 +53,14 @@ class ECode(StrEnum):
     step = "Step"
     lo_offset = "LoOffset"
     iv = "IV"
+    iv_astrocyte = "IVAstrocyte"
     rin = "Rin"
     neg_cheops = "NegCheops"
     noise_pp = "NoisePP"
     noise_spiking = "NoiseSpiking"
     noise_ou3 = "NoiseOU3"
     ou10 = "OU10"
+    pulse_astrocyte = "PulseAstrocyte"
     pulser = "pulser"
     ramp_sine_20 = "RampSine20Hz"
     reset_itc = "ResetITC"
@@ -782,6 +785,76 @@ STIMULUS_INFO = {
         "shape": ElectricalRecordingStimulusShape.step,
         "type": ElectricalRecordingStimulusType.current_clamp,
         "ecode": ECode.generic_step,
+    },
+    "SponHold15": {
+        "shape": ElectricalRecordingStimulusShape.constant,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.spontaneous,
+    },
+    "H20S10": {
+        "shape": ElectricalRecordingStimulusShape.constant,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.spontaneous,
+    },
+    "PulseAstrocyte": {
+        "shape": ElectricalRecordingStimulusShape.pulse,
+        "type": ElectricalRecordingStimulusType.voltage_clamp,
+        "ecode": ECode.pulse_astrocyte,
+    },
+    "IVAstrocyte": {
+        "shape": ElectricalRecordingStimulusShape.step,
+        "type": ElectricalRecordingStimulusType.voltage_clamp,
+        "ecode": ECode.iv_astrocyte,
+    },
+    "TestPersistant": {
+        "shape": ElectricalRecordingStimulusShape.step,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.generic_step,
+    },
+    "Ger3Test": {
+        "shape": ElectricalRecordingStimulusShape.noise,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.generic_noise,
+    },
+    "Ger3Tr10000": {
+        "shape": ElectricalRecordingStimulusShape.noise,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.generic_noise,
+    },
+    "Ger3Tr2500": {
+        "shape": ElectricalRecordingStimulusShape.noise,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.generic_noise,
+    },
+    "Ger3Tr5000": {
+        "shape": ElectricalRecordingStimulusShape.noise,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.generic_noise,
+    },
+    "Ger3Tr20000": {
+        "shape": ElectricalRecordingStimulusShape.noise,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.generic_noise,
+    },
+    "Ger3Elec": {
+        "shape": ElectricalRecordingStimulusShape.noise,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.elec_cal,
+    },
+    "Ger3Rac1B": {
+        "shape": ElectricalRecordingStimulusShape.step,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.rac,
+    },
+    "Ger3ResetITC": {
+        "shape": ElectricalRecordingStimulusShape.constant,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.reset_itc,
+    },
+    "Ger3SpontS2": {
+        "shape": ElectricalRecordingStimulusShape.constant,
+        "type": ElectricalRecordingStimulusType.current_clamp,
+        "ecode": ECode.spontaneous,
     },
 }
 

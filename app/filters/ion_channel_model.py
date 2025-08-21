@@ -2,10 +2,11 @@ from typing import Annotated
 
 from app.db.model import IonChannelModel
 from app.dependencies.filter import FilterDepends
+from app.filters.common import NameFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
-class IonChannelModelFilter(ScientificArtifactFilter):
+class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin):
     nmodl_suffix: str | None = None
 
     is_ljp_corrected: bool | None = None

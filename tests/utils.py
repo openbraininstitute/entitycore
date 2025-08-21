@@ -598,17 +598,14 @@ def upload_entity_asset(
     entity_type: EntityType,
     entity_id: UUID,
     files: dict[str, tuple],
-    label: str | None = None,
+    label: str,
 ):
     """Attach a file to an entity
 
     files maps to: (filename, file (or bytes), content_type, headers)
     """
-    data = None
     assert label
-    if label:
-        data = {"label": label}
-
+    data = {"label": label}
     response = client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)
     return response
 

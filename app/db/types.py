@@ -473,7 +473,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         AssetLabel.cell_surface_mesh: [
             LabelRequirements(content_type=ContentType.h5, is_directory=False)
         ]
-    }
+    },
 }
 
 
@@ -558,20 +558,21 @@ EXTERNAL_SOURCE_INFO: dict[ExternalSource, ExternalSourceInfo] = {
 }
 
 
-class EmMeshType(StrEnum):
-    """How and when a EM cell mesh was created.
+class EMCellMeshType(StrEnum):
+    """How an EM cell mesh was created.
 
     static: The mesh was precomputed at a given level of detail.
     dynamic: The mesh was dynamically generated at query time.
     """
+
     static = auto()
     dynamic = auto()
 
 
-class EmMeshGenerationMethod(StrEnum):
-    """The algorithm generating the mesh from a volume
+class EMCellMeshGenerationMethod(StrEnum):
+    """The algorithm generating the mesh from a volume.
 
-    marching_cubes: The marching cubes algorithm
-    TODO: Add more!
+    marching_cubes: The marching cubes algorithm.
     """
+
     marching_cubes = auto()

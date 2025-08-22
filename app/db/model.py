@@ -62,7 +62,8 @@ from app.db.types import (
     StructuralDomain,
     ValidationStatus,
     AnalysisInputCountSpecs,
-    ActivityScale
+    ActivityScale,
+    AnalysisIntention
 )
 from app.schemas.publication import Author
 from app.utils.uuid import create_uuid
@@ -1493,6 +1494,7 @@ class DataAnalysis(Activity):
         id (uuid.UUID): Primary key for the analysis, referencing the activity ID.
         analysis_code_id (uuid.UUID, optional): References the AnalysisSoftwareSourceCode that was used.
         environment (str): Installed packages and versions; i.e., output of pip freeze
+        intention (AnalysisIntention): The intention of the analysis. Validation / prediction / etc.
     
     """
 
@@ -1500,6 +1502,7 @@ class DataAnalysis(Activity):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     environment: Mapped[str]
     analysis_code_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("analysis_software_source_code.id"))
+    intent: Mapped[AnalysisIntention]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1511,12 +1514,13 @@ class NotebookExecution(Activity):
         id (uuid.UUID): Primary key, referencing the activity ID.
         notebook_template_id (uuid.UUID, optional): References the AnalysisSoftwareSourceCode that was used.
         environment (str): Installed packages and versions; i.e., output of pip freeze
-    
+        intention (AnalysisIntention): The intention of the analysis. Validation / prediction / etc.
     """
     __tablename__ = ActivityType.notebook_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     environment: Mapped[str]
     notebook_template_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("analysis_notebook_template.id"))
+    intent: Mapped[AnalysisIntention]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

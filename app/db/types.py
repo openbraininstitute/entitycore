@@ -600,6 +600,12 @@ class AnalysisInputCountSpecs(StrEnum):
     any = auto()
     any_nonzero = auto()
 
+class AnalysisIntention(StrEnum):
+    """Represents the experimenters intention when running an analysis"""
+    calibration = auto() # Analysis compares to an experimental data point. Creates updated model that fits better.
+    validation = auto() # Analysis compares to an experimental data point. Often includes pass / fail assessment.
+    prediction = auto() # Any other analysis
+
 
 class ActivityScale(StrEnum):
     """Rough scale that an activity takes place in. Note: Not equal to CircuitScale."""

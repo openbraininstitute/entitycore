@@ -84,7 +84,9 @@ class EntityType(StrEnum):
     validation_result = auto()
     circuit = auto()
     analysis_notebook_template = auto()
-    analysis_results_file = auto()
+    analysis_result_plot = auto()
+    analysis_result_table = auto()
+    analysis_result_notebook = auto()
 
 
 class AgentType(StrEnum):
@@ -108,6 +110,7 @@ class ActivityType(StrEnum):
     validation = auto()
     calibration = auto()
     data_analysis = auto()
+    notebook_execution = auto()
 
 
 class DerivationType(StrEnum):
@@ -300,7 +303,6 @@ class AssetLabel(StrEnum):
     jupyter_notebook = auto()
     h5_exported_dataframe = auto()
     csv_table = auto()
-    json_results = auto()
     plot = auto()
 
 
@@ -347,21 +349,28 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.notebook, is_directory=False)
         ],
     },
-    EntityType.analysis_results_file: {
-        AssetLabel.csv_table: [
-            LabelRequirements(content_type=ContentType.csv, is_directory=False)
-        ],
+    EntityType.analysis_notebook_template: {
+        AssetLabel.jupyter_notebook: [
+            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
+        ]
+    },
+    EntityType.analysis_result_notebook: {
+        AssetLabel.jupyter_notebook: [
+            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
+        ]
+    },
+    EntityType.analysis_result_plot: {
+        AssetLabel.plot: [
+            LabelRequirements(content_type=ContentType.png, is_directory=False),
+            LabelRequirements(content_type=ContentType.pdf, is_directory=False)
+        ]
+    },
+    EntityType.analysis_result_table: {
         AssetLabel.h5_exported_dataframe: [
             LabelRequirements(content_type=ContentType.h5, is_directory=False)
         ],
-        AssetLabel.jupyter_notebook: [
-            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
-        ],
-        AssetLabel.json_results: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
-        ],
-        AssetLabel.plot: [
-            LabelRequirements(content_type=ContentType.png, is_directory=False)
+        AssetLabel.csv_table: [
+            LabelRequirements(content_type=ContentType.csv, is_directory=False)
         ]
     },
     EntityType.brain_atlas: {

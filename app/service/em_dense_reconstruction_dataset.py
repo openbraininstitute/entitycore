@@ -107,13 +107,13 @@ def read_one(
 def create_one(
     user_context: AdminContextWithProjectIdDep,
     db: SessionDep,
-    ion_channel_model: EMDenseReconstructionDatasetCreate,
+    json_model: EMDenseReconstructionDatasetCreate,
 ) -> EMDenseReconstructionDatasetRead:
     return router_create_one(
         db=db,
         apply_operations=_load,
         user_context=user_context,
-        json_model=ion_channel_model,
+        json_model=json_model,
         db_model_class=EMDenseReconstructionDataset,
         response_schema_class=EMDenseReconstructionDatasetRead,
     )

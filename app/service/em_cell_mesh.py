@@ -111,13 +111,13 @@ def read_one(
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
-    ion_channel_model: EMCellMeshCreate,
+    json_model: EMCellMeshCreate,
 ) -> EMCellMeshRead:
     return router_create_one(
         db=db,
         apply_operations=_load,
         user_context=user_context,
-        json_model=ion_channel_model,
+        json_model=json_model,
         db_model_class=EMCellMesh,
         response_schema_class=EMCellMeshRead,
     )

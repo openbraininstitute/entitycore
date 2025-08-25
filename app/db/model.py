@@ -4,6 +4,7 @@ from typing import ClassVar
 from uuid import UUID
 
 import sqlalchemy as sa
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -175,6 +176,7 @@ class BrainRegion(Identifiable):
     hierarchy_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("brain_region_hierarchy.id"), index=True
     )
+    embedding = mapped_column(Vector(1536))
 
 
 class Species(Identifiable):

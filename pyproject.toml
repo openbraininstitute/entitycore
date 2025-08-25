@@ -26,6 +26,7 @@ dependencies = [
     "pyjwt>=2.10.1",
     "python-multipart>=0.0.20",
     "h5py",
+    "pgvector>=0.4.1",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"

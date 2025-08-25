@@ -4,6 +4,7 @@ from typing import ClassVar
 from uuid import UUID
 
 import sqlalchemy as sa
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -175,12 +176,14 @@ class BrainRegion(Identifiable):
     hierarchy_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("brain_region_hierarchy.id"), index=True
     )
+    embedding: Mapped[Vector] = mapped_column(Vector(1536), nullable=False)
 
 
 class Species(Identifiable):
     __tablename__ = "species"
     name: Mapped[str] = mapped_column(unique=True, index=True)
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
+    embedding: Mapped[Vector] = mapped_column(Vector(1536), nullable=False)
 
 
 class Strain(Identifiable):
@@ -189,6 +192,7 @@ class Strain(Identifiable):
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
     species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
     species = relationship("Species", uselist=False)
+    embedding: Mapped[Vector] = mapped_column(Vector(1536), nullable=False)
 
     __table_args__ = (
         # needed for the composite foreign key in SpeciesMixin

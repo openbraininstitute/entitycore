@@ -29,7 +29,7 @@ services:
 
   db:
     profiles: [run]
-    image: postgres:17-alpine
+    image: pgvector/pgvector:0.8.0-pg17-trixie
     environment:
     - POSTGRES_USER=entitycore
     - POSTGRES_PASSWORD=entitycore

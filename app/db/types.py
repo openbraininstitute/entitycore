@@ -83,6 +83,8 @@ class EntityType(StrEnum):
     subject = auto()
     validation_result = auto()
     circuit = auto()
+    em_dense_reconstruction_dataset = auto()
+    em_cell_mesh = auto()
 
 
 class AgentType(StrEnum):
@@ -292,6 +294,7 @@ class AssetLabel(StrEnum):
     node_stats = auto()
     network_stats_a = auto()
     network_stats_b = auto()
+    cell_surface_mesh = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -466,6 +469,11 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.text, is_directory=False)
         ],
     },
+    EntityType.em_cell_mesh: {
+        AssetLabel.cell_surface_mesh: [
+            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+        ]
+    },
 }
 
 
@@ -548,3 +556,23 @@ EXTERNAL_SOURCE_INFO: dict[ExternalSource, ExternalSourceInfo] = {
         "allowed_url": "https://modeldb.science/",
     },
 }
+
+
+class EMCellMeshType(StrEnum):
+    """How an EM cell mesh was created.
+
+    static: The mesh was precomputed at a given level of detail.
+    dynamic: The mesh was dynamically generated at query time.
+    """
+
+    static = auto()
+    dynamic = auto()
+
+
+class EMCellMeshGenerationMethod(StrEnum):
+    """The algorithm generating the mesh from a volume.
+
+    marching_cubes: The marching cubes algorithm.
+    """
+
+    marching_cubes = auto()

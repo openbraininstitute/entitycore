@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
+from pydantic import ConfigDict
 from typing import ClassVar
 from uuid import UUID
 
@@ -858,6 +859,8 @@ class IonChannel(NameDescriptionVectorMixin, Identifiable):
 
 class IonChannelRecording(ElectricalCellRecording):
     __tablename__ = EntityType.ion_channel_recording.value
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("electrical_cell_recording.id"), primary_key=True

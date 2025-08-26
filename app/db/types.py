@@ -471,7 +471,8 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     },
     EntityType.em_cell_mesh: {
         AssetLabel.cell_surface_mesh: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+            LabelRequirements(content_type=ContentType.h5, is_directory=False),
+            LabelRequirements(content_type=ContentType.obj, is_directory=False),
         ]
     },
 }

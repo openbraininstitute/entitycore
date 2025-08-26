@@ -1,11 +1,11 @@
 import uuid
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import sqlalchemy as sa
 from fastapi import Depends
-from sqlalchemy.orm import joinedload, raiseload, selectinload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, Ion, IonChannelModel
+from app.db.model import Contribution, Ion, IonChannelModel, Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -25,13 +25,28 @@ from app.schemas.ion_channel_model import (
 )
 from app.schemas.types import ListResponse, Select
 
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
-def _load(q: Select[IonChannelModel]):
-    return (
-        q.options(joinedload(IonChannelModel.species, innerjoin=True))
-        .options(joinedload(IonChannelModel.strain))
-        .options(joinedload(IonChannelModel.brain_region))
-        .options(raiseload("*"))
+
+def _load_minimal(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
+    return q.options(
+        joinedload(IonChannelModel.subject, innerjoin=True).selectinload(Subject.species),
+        joinedload(IonChannelModel.subject, innerjoin=True).selectinload(Subject.strain),
+        joinedload(IonChannelModel.brain_region, innerjoin=True),
+        raiseload("*"),
+    )
+
+
+def _load_expanded(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
+    return _load_minimal(q).options(
+        joinedload(IonChannelModel.created_by),
+        joinedload(IonChannelModel.updated_by),
+        joinedload(IonChannelModel.license),
+        selectinload(IonChannelModel.contributions).selectinload(Contribution.agent),
+        selectinload(IonChannelModel.contributions).selectinload(Contribution.role),
+        selectinload(IonChannelModel.assets),
+        raiseload("*"),
     )
 
 
@@ -44,15 +59,26 @@ def read_many(
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
 ) -> ListResponse[IonChannelModelRead]:
-    facet_keys = filter_keys = [
+    subject_alias = aliased(Subject, flat=True)
+    aliases: Aliases = {
+        Subject: subject_alias,
+    }
+    facet_keys = [
         "brain_region",
-        "species",
+        "subject.species",
+        "subject.strain",
+    ]
+    filter_keys = [
+        "brain_region",
+        "subject",
+        "subject.species",
+        "subject.strain",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=IonChannelModel,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases={},
+        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -61,8 +87,8 @@ def read_many(
         with_search=with_search,
         with_in_brain_region=in_brain_region,
         facets=facets,
-        aliases=None,
-        apply_data_query_operations=_load,
+        aliases=aliases,
+        apply_data_query_operations=_load_minimal,
         apply_filter_query_operations=None,
         pagination_request=pagination_request,
         response_schema_class=IonChannelModelRead,
@@ -77,26 +103,13 @@ def read_one(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> IonChannelModelExpanded:
-    def _load(q: Select[IonChannelModel]):
-        return (
-            q.options(joinedload(IonChannelModel.species, innerjoin=True))
-            .options(joinedload(IonChannelModel.strain))
-            .options(joinedload(IonChannelModel.brain_region))
-            .options(joinedload(IonChannelModel.created_by))
-            .options(joinedload(IonChannelModel.updated_by))
-            .options(selectinload(IonChannelModel.contributions).selectinload(Contribution.agent))
-            .options(selectinload(IonChannelModel.contributions).selectinload(Contribution.role))
-            .options(selectinload(IonChannelModel.assets))
-            .options(raiseload("*"))
-        )
-
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=IonChannelModel,
         authorized_project_id=user_context.project_id,
         response_schema_class=IonChannelModelExpanded,
-        apply_operations=_load,
+        apply_operations=_load_expanded,
     )
 
 
@@ -124,7 +137,7 @@ def create_one(
 ) -> IonChannelModelRead:
     return router_create_one(
         db=db,
-        apply_operations=_load,
+        apply_operations=_load_minimal,
         user_context=user_context,
         json_model=ion_channel_model,
         db_model_class=IonChannelModel,

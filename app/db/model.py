@@ -11,7 +11,6 @@ from sqlalchemy import (
     ForeignKeyConstraint,
     Identity,
     Index,
-    Integer,
     LargeBinary,
     MetaData,
     String,
@@ -49,6 +48,7 @@ from app.db.types import (
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
     EntityType,
+    ExternalSource,
     MeasurementStatistic,
     MeasurementUnit,
     MethodsType,
@@ -505,7 +505,7 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     age_min: Mapped[timedelta | None]
     age_max: Mapped[timedelta | None]
     age_period: Mapped[AgePeriod | None]
-    sex: Mapped[Sex | None]
+    sex: Mapped[Sex]
     weight: Mapped[float | None]  # in grams
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -524,7 +524,7 @@ class Publication(Identifiable):
     """Represents a scientific publication entity in the database.
 
     Attributes:
-        id (uuid.UUID): Primary key, references the base entity ID.
+        id (uuid.UUID): Primary key.
         DOI (str): Digital Object Identifier for the publication.
         title (str | None): Title of the publication.
         authors (list[Author] | None): List of authors associated with the publication.
@@ -534,13 +534,27 @@ class Publication(Identifiable):
     """
 
     __tablename__ = EntityType.publication.value
-    DOI: Mapped[str] = mapped_column(String)
-    title: Mapped[str | None] = mapped_column(String, nullable=True)
-    authors: Mapped[list[Author] | None] = mapped_column(JSONB, nullable=True)
-    publication_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    abstract: Mapped[str | None] = mapped_column(String, nullable=True)
+    DOI: Mapped[str] = mapped_column()  # explicit for the case insensitive index
+    title: Mapped[str | None]
+    authors: Mapped[list[Author] | None] = mapped_column(JSONB)
+    publication_year: Mapped[int | None]
+    abstract: Mapped[str | None]
 
     __table_args__ = (Index("ix_publication_doi_normalized", func.lower(DOI), unique=True),)
+
+
+class ExternalUrl(Identifiable, NameDescriptionVectorMixin):
+    """Represents a web page on an external data source.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        source (ExternalSource): Name of the external data source, e.g. channelpedia.
+        url (str): URL of the webpage, e.g. "https://channelpedia.epfl.ch/wikipages/189".
+    """
+
+    __tablename__ = EntityType.external_url.value
+    source: Mapped[ExternalSource]
+    url: Mapped[str] = mapped_column(String, index=True, unique=True)
 
 
 class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
@@ -561,7 +575,7 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    experiment_date: Mapped[datetime | None] = mapped_column(DateTime)
+    experiment_date: Mapped[datetime | None]
     contact_email: Mapped[str | None]
     published_in: Mapped[str | None]
 
@@ -1027,10 +1041,10 @@ class Ion(Identifiable):
         return value.lower() if value else value
 
 
-class IonChannelModel(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
+class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     __tablename__ = EntityType.ion_channel_model.value
 
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
     is_ljp_corrected: Mapped[bool] = mapped_column(default=False)
     is_temperature_dependent: Mapped[bool] = mapped_column(default=False)
@@ -1302,6 +1316,28 @@ class SimulationGeneration(Activity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class Validation(Activity):
+    __tablename__ = ActivityType.validation.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
+    }
+
+
+class Calibration(Activity):
+    __tablename__ = ActivityType.calibration.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "type",
+    }
+
+
 class Derivation(Base):
     __tablename__ = "derivation"
     used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -1338,7 +1374,6 @@ class ScientificArtifactPublicationLink(Identifiable):
         ForeignKey("scientific_artifact.id"), index=True
     )
 
-    # Relationships - assuming ScientificArtifact and Publication exist
     publication: Mapped["Publication"] = relationship(
         "Publication",
         foreign_keys=[publication_id],
@@ -1352,6 +1387,48 @@ class ScientificArtifactPublicationLink(Identifiable):
 
     __table_args__ = (
         UniqueConstraint("publication_id", "scientific_artifact_id", name="uq_publishedin_ids"),
+    )
+
+
+class ScientificArtifactExternalUrlLink(Identifiable):
+    """Represents the association between a scientific artifact and an external url.
+
+    It enforces uniqueness on the combination of external url and scientific artifact,
+    ensuring that each (scientific_artifact, external_url) pair is unique.
+
+    Attributes:
+        external_url_id (UUID): Foreign key referencing the associated external url.
+        scientific_artifact_id (UUID): Foreign key referencing the associated scientific artifact.
+        external_url (ExternalUrl): Relationship to the ExternalUrl model.
+        scientific_artifact (ScientificArtifact): Relationship to the ScientificArtifact model.
+
+    Table:
+        Unique constraint on (external_url_id, scientific_artifact_id).
+    """
+
+    __tablename__ = "scientific_artifact_external_url_link"
+    external_url_id: Mapped[UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
+    scientific_artifact_id: Mapped[UUID] = mapped_column(
+        ForeignKey("scientific_artifact.id"), index=True
+    )
+
+    external_url: Mapped["ExternalUrl"] = relationship(
+        "ExternalUrl",
+        foreign_keys=[external_url_id],
+        uselist=False,
+    )
+    scientific_artifact: Mapped["ScientificArtifact"] = relationship(
+        "ScientificArtifact",
+        foreign_keys=[scientific_artifact_id],
+        uselist=False,
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "external_url_id",
+            "scientific_artifact_id",
+            name="uq_scientific_artifact_external_url_link",
+        ),
     )
 
 

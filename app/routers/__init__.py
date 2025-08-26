@@ -8,6 +8,7 @@ from app.routers import (
     brain_atlas,
     brain_region,
     brain_region_hierarchy,
+    calibration,
     cell_composition,
     cell_morphology,
     circuit,
@@ -23,6 +24,7 @@ from app.routers import (
     experimental_bouton_density,
     experimental_neuron_density,
     experimental_synapses_per_connection,
+    external_url,
     ion_channel_model,
     license,
     measurement_annotation,
@@ -35,6 +37,7 @@ from app.routers import (
     publication,
     role,
     root,
+    scientific_artifact_external_url_link,
     scientific_artifact_publication_link,
     simulation,
     simulation_campaign,
@@ -47,6 +50,7 @@ from app.routers import (
     species,
     strain,
     subject,
+    validation,
     validation_result,
 )
 
@@ -59,6 +63,7 @@ authenticated_routers = [
     brain_atlas.router,
     brain_region.router,
     brain_region_hierarchy.router,
+    calibration.router,
     cell_composition.router,
     circuit.router,
     consortium.router,
@@ -73,6 +78,7 @@ authenticated_routers = [
     experimental_bouton_density.router,
     experimental_neuron_density.router,
     experimental_synapses_per_connection.router,
+    external_url.router,
     ion_channel_model.router,
     license.router,
     measurement_annotation.router,
@@ -85,6 +91,7 @@ authenticated_routers = [
     person.router,
     publication.router,
     role.router,
+    scientific_artifact_external_url_link.router,
     scientific_artifact_publication_link.router,
     simulation.router,
     simulation_campaign.router,
@@ -97,6 +104,7 @@ authenticated_routers = [
     species.router,
     strain.router,
     subject.router,
+    validation.router,
     validation_result.router,
 ]
 for r in authenticated_routers:

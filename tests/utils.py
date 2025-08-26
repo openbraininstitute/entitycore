@@ -360,74 +360,159 @@ def check_pagination(route, client, constructor_func):
 
 
 def check_authorization(route, client_user_1, client_user_2, client_no_project, json_data):
-    response = assert_request(
+    """Check the authorization when trying to access the entities.
+
+    Created entities:
+
+    public_u1_0 (PROJECT_ID)
+    public_u2_0 (UNRELATED_PROJECT_ID)
+    private_u2_0 (UNRELATED_PROJECT_ID)
+    private_u1_0 (PROJECT_ID)
+    private_u1_1 (PROJECT_ID)
+    """
+    # create the entities
+    public_u1_0 = assert_request(
         client_user_1.post,
         url=route,
-        json=json_data
-        | {
-            "name": "Public Entity",
-            "authorized_public": True,
-        },
-    )
-    public_morph = response.json()
+        json=json_data | {"name": "Public u1/0", "authorized_public": True},
+    ).json()
+    assert public_u1_0["authorized_public"] is True
+    assert public_u1_0["authorized_project_id"] == PROJECT_ID
 
-    inaccessible_obj = assert_request(
+    public_u2_0 = assert_request(
         client_user_2.post,
         url=route,
-        json=json_data | {"name": "inaccessible morphology 1"},
-    )
-    inaccessible_obj = inaccessible_obj.json()
+        json=json_data | {"name": "Public u2/0", "authorized_public": True},
+    ).json()
+    assert public_u2_0["authorized_public"] is True
+    assert public_u2_0["authorized_project_id"] == UNRELATED_PROJECT_ID
 
-    private_obj0 = assert_request(
-        client_user_1.post,
-        url=route,
-        json=json_data | {"name": "private morphology 0"},
-    )
-    private_obj0 = private_obj0.json()
+    private_u2_0 = assert_request(
+        client_user_2.post, url=route, json=json_data | {"name": "Private u2/0"}
+    ).json()
+    assert private_u2_0["authorized_public"] is False
+    assert private_u2_0["authorized_project_id"] == UNRELATED_PROJECT_ID
 
-    private_obj1 = assert_request(
-        client_user_1.post,
-        url=route,
-        json=json_data
-        | {
-            "name": "private morphology 1",
-        },
-    )
-    private_obj1 = private_obj1.json()
+    private_u1_0 = assert_request(
+        client_user_1.post, url=route, json=json_data | {"name": "Private u1/0"}
+    ).json()
+    assert private_u1_0["authorized_public"] is False
+    assert private_u1_0["authorized_project_id"] == PROJECT_ID
+
+    private_u1_1 = assert_request(
+        client_user_1.post, url=route, json=json_data | {"name": "Private u1/1"}
+    ).json()
+    assert private_u1_1["authorized_public"] is False
+    assert private_u1_1["authorized_project_id"] == PROJECT_ID
 
     # only return results that matches the desired project, and public ones
-    response = assert_request(
-        client_user_1.get,
-        url=route,
-    )
-    data = response.json()["data"]
-
-    ids = {row["id"] for row in data}
-    expected = {
-        public_morph["id"],
-        private_obj0["id"],
-        private_obj1["id"],
+    data = assert_request(client_user_1.get, url=route).json()["data"]
+    assert len(data) == 4
+    assert {row["id"] for row in data} == {
+        public_u1_0["id"],
+        public_u2_0["id"],
+        private_u1_0["id"],
+        private_u1_1["id"],
     }
-    assert ids == expected, (
-        "Failed to fetch project-specific and public ids.\n"
-        f"Expected: {sorted(expected)}\n"
-        f"Actual  : {sorted(ids)}"
-    )
 
+    # cannot access the private entity of the other user
     assert_request(
         client_user_1.get,
-        url=f"{route}/{inaccessible_obj['id']}",
+        url=f"{route}/{private_u2_0['id']}",
         expected_status_code=404,
     )
 
-    # only returns public results
-    response = assert_request(
-        client_no_project.get,
+    # client_no_project can get public entities only
+    data = assert_request(client_no_project.get, url=route).json()["data"]
+    assert len(data) == 2
+    assert {row["id"] for row in data} == {
+        public_u1_0["id"],
+        public_u2_0["id"],
+    }
+
+    # client_user_1 wants only public results
+    data = assert_request(
+        client_user_1.get,
         url=route,
-    )
-    data = response.json()["data"]
+        params={"authorized_public": True},
+    ).json()["data"]
+    assert len(data) == 2
+    assert {row["id"] for row in data} == {public_u1_0["id"], public_u2_0["id"]}
+
+    # client_user_1 wants only private (and accessible) results
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_public": False},
+    ).json()["data"]
+    assert len(data) == 2
+    assert {row["id"] for row in data} == {private_u1_0["id"], private_u1_1["id"]}
+
+    # client_user_1 wants only their own entities (private or public)
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_project_id": PROJECT_ID},
+    ).json()["data"]
+    assert len(data) == 3
+    assert {row["id"] for row in data} == {
+        public_u1_0["id"],
+        private_u1_0["id"],
+        private_u1_1["id"],
+    }
+
+    # client_user_1 can get entities in other projects only if they are public
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_project_id": UNRELATED_PROJECT_ID},
+    ).json()["data"]
     assert len(data) == 1
-    assert data[0]["id"] == public_morph["id"]
+    assert {row["id"] for row in data} == {public_u2_0["id"]}
+
+    # client_user_1 can get entities in other projects only if they are public (again)
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_public": True, "authorized_project_id": UNRELATED_PROJECT_ID},
+    ).json()["data"]
+    assert len(data) == 1
+    assert {row["id"] for row in data} == {public_u2_0["id"]}
+
+    # client_user_1 can get entities in other projects only if they are public (no results)
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_public": False, "authorized_project_id": UNRELATED_PROJECT_ID},
+    ).json()["data"]
+    assert len(data) == 0
+
+    # client_user_2 wants only their own entities (private or public)
+    data = assert_request(
+        client_user_2.get,
+        url=route,
+        params={"authorized_project_id": UNRELATED_PROJECT_ID},
+    ).json()["data"]
+    assert len(data) == 2
+    assert {row["id"] for row in data} == {public_u2_0["id"], private_u2_0["id"]}
+
+    # client_user_1 wants only their own public entities
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_public": True, "authorized_project_id": PROJECT_ID},
+    ).json()["data"]
+    assert len(data) == 1
+    assert {row["id"] for row in data} == {public_u1_0["id"]}
+
+    # client_user_1 wants only their own private entities
+    data = assert_request(
+        client_user_1.get,
+        url=route,
+        params={"authorized_public": False, "authorized_project_id": PROJECT_ID},
+    ).json()["data"]
+    assert len(data) == 2
+    assert {row["id"] for row in data} == {private_u1_0["id"], private_u1_1["id"]}
 
 
 def check_brain_region_filter(route, client, db, brain_region_hierarchy_id, create_model_function):

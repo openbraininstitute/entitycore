@@ -1,9 +1,11 @@
 import uuid
 
+import openai
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
+from app.config import settings
 from app.db.model import Strain
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
@@ -69,6 +71,19 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
 def create_one(
     json_model: StrainCreate, db: SessionDep, user_context: AdminContextDep
 ) -> StrainRead:
+    if settings.OPENAI_API_KEY is None:
+        message = "OpenAI API key is not configured."
+        raise ValueError(message)
+
+    openai_api_key = settings.OPENAI_API_KEY.get_secret_value()
+
+    # Generate embedding using OpenAI API
+    client = openai.OpenAI(api_key=openai_api_key)
+    response = client.embeddings.create(model="text-embedding-3-small", input=json_model.name)
+
+    # Set the generated embedding
+    json_model.embedding = response.data[0].embedding
+
     return app.queries.common.router_create_one(
         db=db,
         db_model_class=Strain,

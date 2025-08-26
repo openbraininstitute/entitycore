@@ -27,11 +27,12 @@ class StrainCreate(BaseModel):
     name: str
     taxonomy_id: str
     species_id: UUID
+    embedding: SkipJsonSchema[list[float] | None] = None
 
 
 class StrainRead(StrainCreate, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
-    pass
+    embedding: list[float] | None = Field(default=None, exclude=True)
 
 
 class NestedStrainRead(StrainCreate, IdentifiableMixin):
-    pass
+    embedding: list[float] | None = Field(default=None, exclude=True)

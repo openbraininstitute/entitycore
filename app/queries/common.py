@@ -238,6 +238,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
     filter_model: CustomFilter[I],
     filter_joins: dict[str, ApplyOperations] | None = None,
+    embedding: list[float] | None = None,
 ) -> ListResponse[T]:
     """Read multiple models from the database.
 
@@ -258,6 +259,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         filter_joins: mapping of filter names to join functions. The keys should match both:
             - the nested filters attributes, to choose which joins should be applied for filtering.
             - the keys in `name_to_facet_query_params`, for retrieving the facets.
+        embedding: optional list of floats representing an embedding vector for semantic search.
 
     Returns:
         the list of model data, pagination, and facets as a Pydantic model.
@@ -290,6 +292,15 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         .offset(pagination_request.offset)
         .limit(pagination_request.page_size)
     )
+
+    # Add semantic similarity ordering if embedding is provided and model has embedding field
+    if embedding is not None and hasattr(db_model_class, "embedding"):
+        # Remove existing ordering clauses and replace with semantic similarity ordering
+        if hasattr(data_query, "_order_by_clauses") and data_query._order_by_clauses:  # noqa: SLF001
+            # Clear existing ordering by setting _order_by_clauses to empty tuple
+            data_query._order_by_clauses = ()  # noqa: SLF001
+
+        data_query = data_query.order_by(db_model_class.embedding.l2_distance(embedding))  # type: ignore[attr-defined]
 
     if apply_data_query_operations:
         data_query = apply_data_query_operations(data_query)

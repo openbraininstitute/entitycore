@@ -1,8 +1,10 @@
 import uuid
 
+import openai
 import sqlalchemy as sa
 
 import app.queries.common
+from app.config import settings
 from app.db.model import BrainRegion
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -17,7 +19,23 @@ def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     brain_region_filter: BrainRegionFilterDep,
+    semantic_search: str | None = None,
 ) -> ListResponse[BrainRegionRead]:
+    embedding = None
+
+    if semantic_search is not None:
+        if settings.OPENAI_API_KEY is None:
+            message = "OpenAI API key is not configured."
+            raise ValueError(message)
+
+        # Generate embedding using OpenAI API
+        openai_api_key = settings.OPENAI_API_KEY.get_secret_value()
+        client = openai.OpenAI(api_key=openai_api_key)
+        response = client.embeddings.create(model="text-embedding-3-small", input=semantic_search)
+
+        # Set the generated embedding
+        embedding = response.data[0].embedding
+
     return app.queries.common.router_read_many(
         db=db,
         db_model_class=BrainRegion,
@@ -32,6 +50,7 @@ def read_many(
         response_schema_class=BrainRegionRead,
         name_to_facet_query_params=None,
         filter_model=brain_region_filter,
+        embedding=embedding,
     )
 
 

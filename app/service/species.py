@@ -1,11 +1,9 @@
 import uuid
 
-import openai
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
-from app.config import settings
 from app.db.model import Species
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
@@ -14,6 +12,7 @@ from app.filters.common import SpeciesFilterDep
 from app.queries.factory import query_params_factory
 from app.schemas.species import SpeciesCreate, SpeciesRead
 from app.schemas.types import ListResponse
+from app.utils.embedding import generate_embedding
 
 
 def _load(query: sa.Select):
@@ -45,18 +44,8 @@ def create_one(
     species: SpeciesCreate,
     user_context: AdminContextDep,
 ) -> SpeciesRead:
-    if settings.OPENAI_API_KEY is None:
-        message = "OpenAI API key is not configured."
-        raise ValueError(message)
-
-    openai_api_key = settings.OPENAI_API_KEY.get_secret_value()
-
     # Generate embedding using OpenAI API
-    client = openai.OpenAI(api_key=openai_api_key)
-    response = client.embeddings.create(model="text-embedding-3-small", input=species.name)
-
-    # Set the generated embedding
-    species.embedding = response.data[0].embedding
+    species.embedding = generate_embedding(species.name)
 
     return app.queries.common.router_create_one(
         db=db,
@@ -78,17 +67,8 @@ def read_many(
     embedding = None
 
     if semantic_search is not None:
-        if settings.OPENAI_API_KEY is None:
-            message = "OpenAI API key is not configured."
-            raise ValueError(message)
-
         # Generate embedding using OpenAI API
-        openai_api_key = settings.OPENAI_API_KEY.get_secret_value()
-        client = openai.OpenAI(api_key=openai_api_key)
-        response = client.embeddings.create(model="text-embedding-3-small", input=semantic_search)
-
-        # Set the generated embedding
-        embedding = response.data[0].embedding
+        embedding = generate_embedding(semantic_search)
 
     facet_keys = filter_keys = [
         "created_by",

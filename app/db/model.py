@@ -870,6 +870,12 @@ class IonChannelRecording(ElectricalCellRecording):
     )
     cell_line: Mapped[str]
 
+    # Fixes sqlalchemy.exc.ArgumentError:
+    # Index 'ix_ion_channel_recording_description_vector'
+    # is against table 'electrical_cell_recording',
+    # and cannot be associated with table 'ion_channel_recording'.
+    __table_args__ = ()  # type: ignore[reportAssignmentType]
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

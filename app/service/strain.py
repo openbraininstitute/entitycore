@@ -25,10 +25,27 @@ def _load(query: sa.Select):
 
 
 def read_many(
+    *,
     db: SessionDep,
     pagination_request: PaginationQuery,
     strain_filter: StrainFilterDep,
+    semantic_search: str | None = None,
 ) -> ListResponse[StrainRead]:
+    embedding = None
+
+    if semantic_search is not None:
+        if settings.OPENAI_API_KEY is None:
+            message = "OpenAI API key is not configured."
+            raise ValueError(message)
+
+        # Generate embedding using OpenAI API
+        openai_api_key = settings.OPENAI_API_KEY.get_secret_value()
+        client = openai.OpenAI(api_key=openai_api_key)
+        response = client.embeddings.create(model="text-embedding-3-small", input=semantic_search)
+
+        # Set the generated embedding
+        embedding = response.data[0].embedding
+
     facet_keys = filter_keys = [
         "created_by",
         "updated_by",
@@ -54,6 +71,7 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=strain_filter,
         filter_joins=filter_joins,
+        embedding=embedding,
     )
 
 

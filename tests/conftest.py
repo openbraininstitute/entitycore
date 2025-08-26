@@ -785,6 +785,7 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
                     taxonomy_id=f"{i}",
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    embedding=[0.1] * 1536,  # Mocked embedding
                 ),
             ).id
         )
@@ -801,6 +802,7 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
                     species_id=species_ids[i],
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    embedding=[0.1] * 1536,  # Mocked embedding
                 ),
             ).id
         )

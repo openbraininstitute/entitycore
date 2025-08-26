@@ -43,6 +43,8 @@ def create_one(
     species: SpeciesCreate,
     user_context: AdminContextDep,
 ) -> SpeciesRead:
+    species.embedding = [0.5] * 1536  # Placeholder for actual embeddings
+
     return app.queries.common.router_create_one(
         db=db,
         db_model_class=Species,

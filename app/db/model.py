@@ -1,10 +1,10 @@
 import uuid
 from datetime import datetime, timedelta
-from pydantic import ConfigDict
 from typing import ClassVar
 from uuid import UUID
 
 import sqlalchemy as sa
+from pydantic import ConfigDict
 from sqlalchemy import (
     BigInteger,
     DateTime,

@@ -4,10 +4,8 @@ from pydantic import Field
 
 from app.db.model import IonChannel
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.electrical_cell_recording import (
-    ElectricalCellRecordingBase,
-    ElectricalRecordingStimulusRead,
-)
+from app.schemas.electrical_cell_recording import ElectricalCellRecordingBase
+from app.schemas.electrical_recording_stimulus import ElectricalRecordingStimulusRead
 from app.schemas.scientific_artifact import (
     ScientificArtifactCreate,
     ScientificArtifactRead,

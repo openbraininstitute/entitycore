@@ -19,7 +19,7 @@ class SpeciesRead(SpeciesCreate, CreationMixin, CreatedByUpdatedByMixin, Identif
 
 
 class NestedSpeciesRead(SpeciesCreate, IdentifiableMixin):
-    pass
+    embedding: list[float] | None = Field(default=None, exclude=True)
 
 
 class StrainCreate(BaseModel):

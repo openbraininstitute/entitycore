@@ -577,6 +577,7 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
             hierarchy_id=hierarchy_id,
             created_by_id=db_hierarchy.created_by_id,
             updated_by_id=db_hierarchy.created_by_id,
+            embedding=1536 * [0.1],
         )
         db_br = add_db(db, row)
         db.flush()

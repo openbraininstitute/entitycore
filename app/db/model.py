@@ -859,8 +859,11 @@ class IonChannel(NameDescriptionVectorMixin, Identifiable):
 class IonChannelRecording(ElectricalCellRecording):
     __tablename__ = EntityType.ion_channel_recording.value
 
+    id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("electrical_cell_recording.id"), primary_key=True
+    )
     ion_channel_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("electrical_cell_recording.id"),
+        ForeignKey("ion_channel.id"),
         index=True,
     )
     ion_channel: Mapped[IonChannel] = relationship(

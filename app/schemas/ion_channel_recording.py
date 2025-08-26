@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from app.db.model import IonChannel
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
@@ -13,6 +13,8 @@ from app.schemas.scientific_artifact import (
 
 
 class IonChannelRecordingBase(ElectricalCellRecordingBase):
+    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
+
     ion_channel: Annotated[
         IonChannel,
         Field(

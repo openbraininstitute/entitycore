@@ -696,6 +696,7 @@ def faceted_emodel_ids(db: Session, client, person_id):
                     taxonomy_id=f"{i}",
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    embedding=[0.1] * 1536,  # Mocked embedding
                 ),
             ).id
         )
@@ -712,6 +713,7 @@ def faceted_emodel_ids(db: Session, client, person_id):
                     species_id=species_ids[i],
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    embedding=[0.1] * 1536,  # Mocked embedding
                 ),
             ).id
         )

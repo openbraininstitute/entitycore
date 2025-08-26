@@ -170,6 +170,7 @@ def create_brain_region(
         hierarchy_id=hierarchy_id,
         created_by_id=created_by_id,
         updated_by_id=created_by_id or updated_by_id,
+        embedding=1536 * [0.1],
     )
     return add_db(db, row)
 

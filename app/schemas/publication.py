@@ -27,6 +27,8 @@ class PublicationBase(BaseModel):
 
 
 class PublicationCreate(PublicationBase):
+    """Create model for publication."""
+
     @field_validator("DOI", mode="before")
     @classmethod
     def validate_doi(cls, value: str):
@@ -37,8 +39,11 @@ class PublicationCreate(PublicationBase):
         return value
 
 
-class NestedPublicationRead(PublicationBase, IdentifiableMixin):
-    pass
+class NestedPublicationRead(
+    PublicationBase,
+    IdentifiableMixin,
+):
+    """Read model for nested publication."""
 
 
 class PublicationRead(
@@ -46,4 +51,4 @@ class PublicationRead(
     CreationMixin,
     CreatedByUpdatedByMixin,
 ):
-    pass
+    """Read model for publication."""

@@ -4,7 +4,7 @@ import app.service.simulation_campaign
 
 router = APIRouter(
     prefix="/simulation-campaign",
-    tags=["simulation_campaign"],
+    tags=["simulation-campaign"],
 )
 
 read_many = router.get("")(app.service.simulation_campaign.read_many)

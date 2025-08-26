@@ -25,6 +25,7 @@ from app.db.model import (
     EModel,
     ETypeClass,
     ETypeClassification,
+    ExternalUrl,
     MEModel,
     MTypeClass,
     MTypeClassification,
@@ -43,6 +44,7 @@ from app.db.session import DatabaseSessionManager, configure_database_session_ma
 from app.db.types import StorageType
 from app.dependencies import auth
 from app.schemas.auth import UserContext, UserProfile
+from app.schemas.external_url import ExternalUrlCreate
 
 from . import utils
 from .utils import (
@@ -662,7 +664,7 @@ class EModelIds(BaseModel):
 class MEModels:
     memodels: list[MEModel]
     species_ids: list[str]
-    brain_region_ids: list[int]
+    brain_region_ids: list[uuid.UUID]
     morphology_ids: list[str]
     emodel_ids: list[str]
     agent_ids: list[str]
@@ -1082,3 +1084,23 @@ def publication(db, publication_json_data, person_id):
             }
         ),
     )
+
+
+@pytest.fixture
+def external_url_json_data():
+    return {
+        "source": "channelpedia",
+        "source_name": "Channelpedia",
+        "url": "https://channelpedia.epfl.ch/wikipages/188",
+        "name": "Potassium channel page on Channelpedia",
+        "description": "Contains description of potassium channels...",
+    }
+
+
+@pytest.fixture
+def external_url(db, external_url_json_data, person_id):
+    data = ExternalUrlCreate.model_validate(external_url_json_data).model_dump() | {
+        "created_by_id": person_id,
+        "updated_by_id": person_id,
+    }
+    return add_db(db, ExternalUrl(**data))

@@ -1,19 +1,13 @@
-from uuid import UUID
-
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    BrainRegionRead,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
+from app.schemas.base import BrainRegionReadMixin, CreationMixin
+from app.schemas.scientific_artifact import (
+    NestedScientificArtifactRead,
+    ScientificArtifactCreate,
+    ScientificArtifactRead,
 )
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.species import NestedSpeciesRead, NestedStrainRead
+from app.schemas.subject import SubjectReadMixin
 
 
 class UseIon(BaseModel):
@@ -43,25 +37,32 @@ class IonChannelModelBase(BaseModel):
     neuron_block: NeuronBlock
 
 
-class IonChannelModelCreate(IonChannelModelBase, AuthorizationOptionalPublicMixin):
-    species_id: UUID
-    strain_id: UUID | None = None
-    brain_region_id: UUID
+class IonChannelModelCreate(
+    IonChannelModelBase,
+    ScientificArtifactCreate,
+):
+    pass
 
 
 class IonChannelModelRead(
-    IonChannelModelBase, CreationMixin, IdentifiableMixin, AuthorizationMixin, EntityTypeMixin
+    IonChannelModelBase,
+    NestedScientificArtifactRead,
+    SubjectReadMixin,
+    BrainRegionReadMixin,
+    CreationMixin,
 ):
-    species: NestedSpeciesRead
-    strain: NestedStrainRead | None
-    brain_region: BrainRegionRead
+    pass
 
 
-class IonChannelModelWAssets(IonChannelModelRead, AssetsMixin):
+class IonChannelModelWAssets(
+    IonChannelModelRead,
+    AssetsMixin,
+):
     pass
 
 
 class IonChannelModelExpanded(
-    IonChannelModelWAssets, CreatedByUpdatedByMixin, ContributionReadWithoutEntityMixin
+    IonChannelModelBase,
+    ScientificArtifactRead,
 ):
     pass

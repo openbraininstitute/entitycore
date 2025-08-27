@@ -10,6 +10,7 @@ from app.db.model import (
     Contribution,
     EModel,
     IonChannelModel,
+    Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (

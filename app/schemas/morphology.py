@@ -3,7 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import (
-    MethodsType,
+    ModifiedMorphologyMethodType,
     MorphologyGenerationType,
     PointLocationBase,
     SlicingDirectionType,
@@ -15,7 +15,7 @@ from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainRegionRead,
+    BrainRegionReadMixin,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
@@ -30,12 +30,9 @@ from app.schemas.subject import SubjectReadMixin
 class ProtocolMixin(BaseModel):
     """Generic Experimental method.
 
-    Parameters:
-    -----------
-    protocol_document: str, optional
-        URL link to protocol document or publication
-    protocol_design: str
-        From a controlled vocabulary (e.g., EM, CellPatch, Fluorophore, Imp)
+    Attributes:
+        protocol_document: URL link to protocol document or publication.
+        protocol_design: From a controlled vocabulary (e.g., EM, CellPatch, Fluorophore, Imp)
     """
 
     protocol_document: str | None = None
@@ -45,21 +42,13 @@ class ProtocolMixin(BaseModel):
 class ExperimentalMorphologyProtocolRead(ProtocolMixin):
     """Experimental morphology method for capturing cell morphology data.
 
-    Parameters:
-    -----------
-
-    staining_type: strenum
-        Method used for staining
-    slicing_thickness: float
-        Thickness of the slice in microns
-    slicing_direction: SlicingDirectionType, optional
-        Direction of slicing
-    magnification: float, optional
-        Magnification level used
-    tissue_shrinkage: float, optional
-        Amount tissue shrunk by (not correction factor)
-    has_been_corrected_for_shrinkage: bool, optional
-        Whether data has been corrected for shrinkage
+    Attributes:
+        staining_type: Method used for staining.
+        slicing_thickness: Thickness of the slice in microns.
+        slicing_direction: Direction of slicing.
+        magnification: Magnification level used.
+        tissue_shrinkage: Amount tissue shrunk by (not correction factor).
+        corrected_for_shrinkage: Whether data has been corrected for shrinkage.
     """
 
     id: uuid.UUID
@@ -78,19 +67,12 @@ class ComputationallySynthesizedMorphologyProtocolRead(ProtocolMixin):
 
 class ModifiedMorphologyProtocolRead(ProtocolMixin):
     id: uuid.UUID
-    method: MethodsType
+    method: ModifiedMorphologyMethodType
 
 
-class MorphologyProtocolRead(BaseModel):
-    # This acts as a union type for reading different methods
-    # Pydantic's discriminated unions would be ideal here if using Pydantic V2+
-    # For V1, you might need to handle this with a custom root validator
-    # or by having specific read schemas for each CellMorphology type.
-    # For simplicity, we'll assume a "smart" client that knows how to parse based on 'type'.
+class MorphologyProtocolRead(ProtocolMixin):
     id: uuid.UUID
-    type: MorphologyGenerationType  # Literal["digital", "computational", "modified"]
-    protocol_document: str | None = None
-    protocol_design: str
+    type: MorphologyGenerationType
 
 
 class CellMorphologyBase(BaseModel):
@@ -98,7 +80,7 @@ class CellMorphologyBase(BaseModel):
     name: str
     description: str
     location: PointLocationBase | None
-    legacy_id: list[str] | None
+    legacy_id: list[str] | None = None
 
 
 class CellMorphologyCreate(
@@ -108,8 +90,7 @@ class CellMorphologyCreate(
 ):
     subject_id: uuid.UUID
     brain_region_id: uuid.UUID
-    legacy_id: list[str] | None = None
-    morphology_protocol_id: uuid.UUID | None = None  # This would be set after the method is created
+    morphology_protocol_id: uuid.UUID | None = None
 
 
 class CellMorphologyRead(
@@ -123,11 +104,11 @@ class CellMorphologyRead(
     CreatedByUpdatedByMixin,
     ContributionReadWithoutEntityMixin,
     SubjectReadMixin,
+    BrainRegionReadMixin,
 ):
-    brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
 
 
 class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
     measurement_annotation: MeasurementAnnotationRead | None
-    morphology_protocol: MorphologyProtocolRead | None  # Now references the polymorphic method
+    morphology_protocol: MorphologyProtocolRead | None

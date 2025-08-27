@@ -15,7 +15,7 @@ class RepairPipelineType(StrEnum):
     repaired = auto()
 
 
-class MethodsType(StrEnum):
+class ModifiedMorphologyMethodType(StrEnum):
     cloned = auto()
     mix_and_match = auto()
     mousified = auto()
@@ -96,6 +96,7 @@ class EntityType(StrEnum):
     brain_atlas = auto()
     brain_atlas_region = auto()
     cell_composition = auto()
+    cell_morphology = auto()
     electrical_cell_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
@@ -109,7 +110,6 @@ class EntityType(StrEnum):
     memodel_calibration_result = auto()
     me_type_density = auto()
     publication = auto()
-    cell_morphology = auto()
     simulation = auto()
     simulation_campaign = auto()
     simulation_campaign_generation = auto()
@@ -299,6 +299,7 @@ class AssetLabel(StrEnum):
     """See docs/asset-labels.md."""
 
     morphology = auto()
+    morphology_with_spines = auto()
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()
@@ -445,6 +446,11 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     },
     EntityType.cell_morphology: {
         AssetLabel.morphology: [
+            LabelRequirements(content_type=ContentType.asc, is_directory=False),
+            LabelRequirements(content_type=ContentType.swc, is_directory=False),
+            LabelRequirements(content_type=ContentType.h5, is_directory=False),
+        ],
+        AssetLabel.morphology_with_spines: [
             LabelRequirements(content_type=ContentType.asc, is_directory=False),
             LabelRequirements(content_type=ContentType.swc, is_directory=False),
             LabelRequirements(content_type=ContentType.h5, is_directory=False),

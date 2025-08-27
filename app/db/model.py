@@ -17,7 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR, UUID
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -51,7 +51,6 @@ from app.db.types import (
     ExternalSource,
     MeasurementStatistic,
     MeasurementUnit,
-    MethodsType,
     MorphologyGenerationType,
     PointLocation,
     PointLocationType,
@@ -697,11 +696,11 @@ class MeasurableEntityMixin:
         )
 
 
-class MorphologyProtocol(Identifiable):  # Inherit from Identifiable for primary key and timestamps
+class MorphologyProtocol(Identifiable):
     __tablename__ = "morphology_protocol"
     protocol_document: Mapped[str | None]
     protocol_design: Mapped[str]
-    type: Mapped[str]  # Discriminator column for polymorphism
+    type: Mapped[MorphologyGenerationType]
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
@@ -710,43 +709,37 @@ class MorphologyProtocol(Identifiable):  # Inherit from Identifiable for primary
 
 
 class ExperimentalMorphologyProtocol(MorphologyProtocol):
-    __tablename__ = (
-        MorphologyGenerationType.digital.value
-    )  # because digital reconstructions use real experiments
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
+    # __tablename__ = f"morphology_protocol_{MorphologyGenerationType.digital.value}"
+    # id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     staining_type: Mapped[StainingType | None]
-    slicing_thickness: Mapped[float]
+    slicing_thickness: Mapped[float] = mapped_column(nullable=True)
     slicing_direction: Mapped[SlicingDirectionType | None]
     magnification: Mapped[float | None]
     tissue_shrinkage: Mapped[float | None]
     corrected_for_shrinkage: Mapped[bool | None]
 
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_on": "type",
-        "polymorphic_identity": __tablename__,
+        "polymorphic_identity": MorphologyGenerationType.digital.value,
     }
 
 
 class ComputationallySynthesizedMorphologyProtocol(MorphologyProtocol):
-    __tablename__ = MorphologyGenerationType.computational.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
-    method_description: Mapped[str]
+    # __tablename__ = f"morphology_protocol_{MorphologyGenerationType.computational}"
+    # id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
+    method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_on": "type",
-        "polymorphic_identity": __tablename__,
+        "polymorphic_identity": MorphologyGenerationType.computational.value,
     }
 
 
 class ModifiedMorphologyProtocol(MorphologyProtocol):
-    __tablename__ = MorphologyGenerationType.modified.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
-    method_description: Mapped[MethodsType]
+    # __tablename__ = f"morphology_protocol_{MorphologyGenerationType.modified}"
+    # id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
+    method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_on": "type",
-        "polymorphic_identity": __tablename__,
+        "polymorphic_identity": MorphologyGenerationType.modified.value,
     }
 
 
@@ -761,21 +754,16 @@ class CellMorphology(
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
     location: Mapped[PointLocation | None]
-
-    # New foreign key for the morphology method
+    repair_pipeline_state: Mapped[RepairPipelineType | None]
     morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("morphology_protocol.id"), index=True
     )
-    # Relationship to the polymorphic MorphologyProtocol
+
     morphology_protocol: Mapped["MorphologyProtocol"] = relationship(
         "MorphologyProtocol",
         foreign_keys=[morphology_protocol_id],
         uselist=False,
     )
-
-    # structured jsonb , pydantic typedict
-    # Attributes from DigitalReconstruction
-    repair_pipeline_state: Mapped[RepairPipelineType | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1368,9 +1356,9 @@ class ScientificArtifactPublicationLink(Identifiable):
     """
 
     __tablename__ = "scientific_artifact_publication_link"
-    publication_id: Mapped[UUID] = mapped_column(ForeignKey("publication.id"), index=True)
+    publication_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("publication.id"), index=True)
     publication_type: Mapped[PublicationType]
-    scientific_artifact_id: Mapped[UUID] = mapped_column(
+    scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), index=True
     )
 
@@ -1407,8 +1395,8 @@ class ScientificArtifactExternalUrlLink(Identifiable):
     """
 
     __tablename__ = "scientific_artifact_external_url_link"
-    external_url_id: Mapped[UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
-    scientific_artifact_id: Mapped[UUID] = mapped_column(
+    external_url_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
+    scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), index=True
     )
 

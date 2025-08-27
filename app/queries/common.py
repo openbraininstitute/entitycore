@@ -296,7 +296,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     # Add semantic similarity ordering if embedding is provided and model has embedding field
     if embedding is not None and hasattr(db_model_class, "embedding"):
         # Remove existing ordering clauses and replace with semantic similarity ordering
-        if hasattr(data_query, "_order_by_clauses") and data_query._order_by_clauses:  # noqa: SLF001
+        if getattr(data_query, "_order_by_clauses", None):
             # Clear existing ordering by setting _order_by_clauses to empty tuple
             data_query._order_by_clauses = ()  # noqa: SLF001
 

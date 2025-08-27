@@ -364,6 +364,7 @@ In addition, this value can be changed by using the `PATCH` operation.
 Once an `Entity` is made public, it can not be made private, since it could be already shared/used by others.
 
 Users in the [service admin group](#service-admin-group) can read data from any project, and edit (read/update/delete) data in any project.
+
 Users belonging to a project can read/update/delete data that are not global resources.
 
 

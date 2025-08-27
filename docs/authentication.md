@@ -15,7 +15,9 @@
   - **Read** endpoints do not require `virtual-lab-id` or `project-id`, but:
     - If neither is provided, only public resources are returned.
     - If both are provided, both public and private resources are returned.
+    - private resources are visible to the [service admin group](#service-admin-group).
   - **Write** endpoints require both `virtual-lab-id` and `project-id`.
+    -  [service admin group](#service-admin-group) can write into any project.
 
 ## Service Admin Group
 

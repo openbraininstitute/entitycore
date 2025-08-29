@@ -84,8 +84,6 @@ class EntityType(StrEnum):
     validation_result = auto()
     circuit = auto()
     analysis_notebook_template = auto()
-    analysis_result_plot = auto()
-    analysis_result_table = auto()
     analysis_result_notebook = auto()
 
 
@@ -301,9 +299,6 @@ class AssetLabel(StrEnum):
     network_stats_a = auto()
     network_stats_b = auto()
     jupyter_notebook = auto()
-    h5_exported_dataframe = auto()
-    csv_table = auto()
-    plot = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -349,28 +344,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.notebook, is_directory=False)
         ],
     },
-    EntityType.analysis_notebook_template: {
-        AssetLabel.jupyter_notebook: [
-            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
-        ]
-    },
     EntityType.analysis_result_notebook: {
         AssetLabel.jupyter_notebook: [
             LabelRequirements(content_type=ContentType.notebook, is_directory=False)
-        ]
-    },
-    EntityType.analysis_result_plot: {
-        AssetLabel.plot: [
-            LabelRequirements(content_type=ContentType.png, is_directory=False),
-            LabelRequirements(content_type=ContentType.pdf, is_directory=False)
-        ]
-    },
-    EntityType.analysis_result_table: {
-        AssetLabel.h5_exported_dataframe: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False)
-        ],
-        AssetLabel.csv_table: [
-            LabelRequirements(content_type=ContentType.csv, is_directory=False)
         ]
     },
     EntityType.brain_atlas: {
@@ -599,12 +575,6 @@ class AnalysisInputCountSpecs(StrEnum):
     triplet = auto()
     any = auto()
     any_nonzero = auto()
-
-class AnalysisIntention(StrEnum):
-    """Represents the experimenters intention when running an analysis"""
-    calibration = auto() # Analysis compares to an experimental data point. Creates updated model that fits better.
-    validation = auto() # Analysis compares to an experimental data point. Often includes pass / fail assessment.
-    prediction = auto() # Any other analysis
 
 
 class ActivityScale(StrEnum):

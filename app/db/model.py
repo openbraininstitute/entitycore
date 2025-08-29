@@ -63,7 +63,6 @@ from app.db.types import (
     ValidationStatus,
     AnalysisInputCountSpecs,
     ActivityScale,
-    AnalysisIntention
 )
 from app.schemas.publication import Author
 from app.utils.uuid import create_uuid
@@ -1467,7 +1466,6 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     Assets:
         Contains an .ipynb file as asset.
     
-    TODO: What's the relation to AnalysisSoftwareSourceCode?
     
     """
     __tablename__ = EntityType.analysis_notebook_template.value
@@ -1486,29 +1484,9 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     requirements: Mapped[str]
 
 
-class DataAnalysis(Activity):
-    """Represents a basic analysis of any kind of data on the platform that creates
-    a digest file representing its result.
-
-    Attributes:
-        id (uuid.UUID): Primary key for the analysis, referencing the activity ID.
-        analysis_code_id (uuid.UUID, optional): References the AnalysisSoftwareSourceCode that was used.
-        environment (str): Installed packages and versions; i.e., output of pip freeze
-        intention (AnalysisIntention): The intention of the analysis. Validation / prediction / etc.
-    
-    """
-
-    __tablename__ = ActivityType.data_analysis.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-    environment: Mapped[str]
-    analysis_code_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("analysis_software_source_code.id"))
-    intent: Mapped[AnalysisIntention]
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
 class NotebookExecution(Activity):
     """Represents the execution of a Jupyter notebook to analyze entities and create a result.
+    Analyzed entities are the input of this Activity, the AnalysisResultNotebook is the output.
 
     Attributes:
         id (uuid.UUID): Primary key, referencing the activity ID.
@@ -1520,52 +1498,14 @@ class NotebookExecution(Activity):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     environment: Mapped[str]
     notebook_template_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("analysis_notebook_template.id"))
-    intent: Mapped[AnalysisIntention]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class AnalysisResultPlot(Entity, NameDescriptionVectorMixin):
-    """Represents the result of an analysis in a digested format. This one represents:
-    a .png plot or a .pdf plot
-
-    Attributes:
-        id (uuid.UUID): Primary key for the result, referencing the entity ID.
-    
-    Assets:
-        - any number of .png files
-        OR
-        - any number of .pdf files
-    
-    """
-    __tablename__ = EntityType.analysis_result_plot.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
-
-class AnalysisResultTable(Entity, NameDescriptionVectorMixin):
-    """Represents the result of an analysis in a digested format. This one represents:
-    a data table.
-
-    Attributes:
-        id (uuid.UUID): Primary key for the result, referencing the entity ID.
-        within_file_location (str, optional): For .h5 files: Location within the .h5 file
-        where the table can be found. (Different AnalysisResultTable entities can share the
-        same .h5 asset!)
-    
-    Assets:
-        - a table in .csv format
-        OR
-        - a DataFrame exported to an .h5 file
-    
-    """
-    __tablename__ = EntityType.analysis_result_table.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    within_file_location: Mapped[str | None]
-
-
 class AnalysisResultNotebook(Entity, NameDescriptionVectorMixin):
     """Represents the result of an analysis in a digested format. This one represents:
-    a .ipynb notebook, containing any number of results.
+    a .ipynb notebook, containing any number of results. Valuable additional info is in the
+    NotebookExecution associated with this entity.
 
     Attributes:
         id (uuid.UUID): Primary key for the result, referencing the entity ID.

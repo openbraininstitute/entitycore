@@ -365,7 +365,7 @@ Once an `Entity` is made public, it can not be made private, since it could be a
 
 Users in the [service admin group](#service-admin-group) can read data from any project, and edit (read/update/delete) data in any project.
 
-Users belonging to a project can update/delete data of that project that are not global resources and that are not public.
+Global resources and public entities can be updated only by service admins.
 
 
 ### To be looked at more:

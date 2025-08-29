@@ -577,3 +577,10 @@ class EMCellMeshGenerationMethod(StrEnum):
     """
 
     marching_cubes = auto()
+
+
+class SlicingDirectionType(StrEnum):
+    coronal = auto()
+    sagittal = auto()
+    horizontal = auto()
+    custom = auto()

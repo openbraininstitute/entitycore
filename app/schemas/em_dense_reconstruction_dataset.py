@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+from app.db.types import SlicingDirectionType
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.types import SerializableAnyUrl, SerializableHttpUrl
 
@@ -8,14 +9,14 @@ class EMDenseReconstructionDatasetBase(BaseModel):
     name: str
     description: str
 
-    protocol: SerializableHttpUrl | None = None
+    protocol_document: SerializableHttpUrl | None = None
     fixation: str | None = None
-    staining: str | None = None  # TODO: controlled vocabulary
-    slicing: float | None = None
-    shrinkage: float | None = None
+    staining_type: str | None = None  # TODO: controlled vocabulary
+    slicing_thickness: float | None = None
+    tissue_shrinkage: float | None = None
     microscope_type: str | None = None  # TODO: controlled vocabulary
     detector: str | None = None
-    orientation: str | None = None
+    slicing_direction: SlicingDirectionType | None = None
     landmarks: str | None = None
     voltage: float | None = None
     current: float | None = None

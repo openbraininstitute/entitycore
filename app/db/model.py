@@ -60,6 +60,7 @@ from app.db.types import (
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
+    SlicingDirectionType,
     StorageType,
     StructuralDomain,
     ValidationStatus,
@@ -1447,20 +1448,20 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
         id (uuid.UUID): Primary key.
 
         [related to core EM methodology]
-        protocol: (str) A link to a document giving a detailed description of the tissue
+        protocol_document: (str) A link to a document giving a detailed description of the tissue
             preparation protocol.
         fixation: (str) The method and chemicals used for fixing the tissue
             (e.g., 4% paraformaldehyde).
-        staining: (str) The stains or labels used to visualize specific structures or molecules
+        staining_type: (str) The stains or labels used to visualize specific structures or molecules
             (e.g., heavy metal stains for EM).
-        slicing: (float) The thickness of the tissue sections.
-        shrinkage: (float) Any tissue shrinkage that occurred during processing and whether
+        slicing_thickness: (float) The thickness of the tissue sections.
+        tissue_shrinkage: (float) Any tissue shrinkage that occurred during processing and whether
             it was corrected.
         microscope_type: (str). The specific type of electron microscope used
             (e.g., Transmission EM, Scanning EM, Serial Block-Face SEM).
         detector: (str) The type of detector used
-        orientation: (str) The biological orientation of the image, such as left-to-right,
-            anterior-to-posterior, or dorsal-to-ventral.
+        slicing_direction: (SlicingDirectionType) The biological slicing direction of the image,
+            such as left-to-right, anterior-to-posterior, or dorsal-to-ventral.
         landmarks: (str) The names and coordinates of any anatomical landmarks in the image.
         voltage (float): The technical settings used during imaging -- Voltage
         current (float): The technical settings used during imaging -- Current
@@ -1485,14 +1486,14 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
     __tablename__ = EntityType.em_dense_reconstruction_dataset.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
-    protocol: Mapped[str | None]
+    protocol_document: Mapped[str | None]
     fixation: Mapped[str | None]
-    staining: Mapped[str | None]  # TODO: controlled vocabulary?
-    slicing: Mapped[float | None]
-    shrinkage: Mapped[float | None]
+    staining_type: Mapped[str | None]  # TODO: controlled vocabulary?
+    slicing_thickness: Mapped[float | None]
+    tissue_shrinkage: Mapped[float | None]
     microscope_type: Mapped[str | None]  # TODO: controlled vocabulary
     detector: Mapped[str | None]
-    orientation: Mapped[str | None]
+    slicing_direction: Mapped[SlicingDirectionType | None]
     landmarks: Mapped[str | None]
     voltage: Mapped[float | None]
     current: Mapped[float | None]

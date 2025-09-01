@@ -11,9 +11,8 @@ from app.schemas.ion_channel_model import IonChannelModelRead
 from .utils import (
     PROJECT_ID,
     TEST_DATA_DIR,
-    check_authorization,
-    check_brain_region_filter,
     assert_request,
+    check_authorization,
     check_brain_region_filter,
     count_db_class,
     upload_entity_asset,
@@ -47,11 +46,13 @@ def create(
 
     return response
 
+
 @pytest.fixture
-def model_id(client, species_id, strain_id, brain_region_id):
-    response = create(client, species_id, strain_id, brain_region_id)
+def model_id(client, subject_id, brain_region_id):
+    response = create(client, subject_id, brain_region_id)
     assert response.status_code == 200, f"Failed to create icm: {response.text}"
     return response.json()["id"]
+
 
 def test_create(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):
     response = create(client, subject_id, brain_region_id)

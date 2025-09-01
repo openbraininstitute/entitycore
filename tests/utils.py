@@ -658,6 +658,7 @@ def add_contribution(db, entity_id, agent_id, role_id, created_by_id):
         ),
     )
 
+
 def count_db_class(db, db_class):
     return db.execute(sa.select(sa.func.count(db_class.id))).scalar()
 

@@ -161,7 +161,7 @@ def delete_one(
         db_model_class=IonChannelModel,
         authorized_project_id=None,
         response_schema_class=IonChannelModelRead,
-        apply_operations=_load,
+        apply_operations=_load_minimal,
     )
     router_delete_one(
         id_=id_,

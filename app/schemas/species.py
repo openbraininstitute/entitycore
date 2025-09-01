@@ -15,11 +15,11 @@ class SpeciesCreate(BaseModel):
 
 
 class SpeciesRead(SpeciesCreate, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
-    embedding: list[float] | None = Field(default=None, exclude=True)
+    embedding: SkipJsonSchema[list[float] | None] = Field(default=None, exclude=True)
 
 
 class NestedSpeciesRead(SpeciesCreate, IdentifiableMixin):
-    embedding: list[float] | None = Field(default=None, exclude=True)
+    embedding: SkipJsonSchema[list[float] | None] = Field(default=None, exclude=True)
 
 
 class StrainCreate(BaseModel):
@@ -31,8 +31,8 @@ class StrainCreate(BaseModel):
 
 
 class StrainRead(StrainCreate, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
-    embedding: list[float] | None = Field(default=None, exclude=True)
+    embedding: SkipJsonSchema[list[float] | None] = Field(default=None, exclude=True)
 
 
 class NestedStrainRead(StrainCreate, IdentifiableMixin):
-    embedding: list[float] | None = Field(default=None, exclude=True)
+    embedding: SkipJsonSchema[list[float] | None] = Field(default=None, exclude=True)

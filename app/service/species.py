@@ -67,7 +67,6 @@ def read_many(
     embedding = None
 
     if semantic_search is not None:
-        # Generate embedding using OpenAI API
         embedding = generate_embedding(semantic_search)
 
     facet_keys = filter_keys = [

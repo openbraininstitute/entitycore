@@ -67,6 +67,26 @@ def test_update_one(client, trace_id_with_assets):
     assert data["description"] == new_description
 
 
+def test_update_one__public(client, trace_id_with_assets):
+    # make private entity public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
     data = assert_request(
         client.get,

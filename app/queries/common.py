@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.auth import (
     constrain_to_accessible_entities,
+    constrain_to_private_entities,
     select_unauthorized_entities,
 )
 from app.db.model import Activity, Agent, Generation, Identifiable, Person, Usage
@@ -336,9 +337,11 @@ def router_update_one[T: BaseModel, I: Identifiable](
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
 ):
-    query = sa.select(db_model_class).where(db_model_class.id == id_).with_for_update()
+    query = (
+        sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
+    )
     if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
-        query = constrain_to_accessible_entities(
+        query = constrain_to_private_entities(
             query, user_context.project_id, db_model_class=id_model_class
         )
     if apply_operations:

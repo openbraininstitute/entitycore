@@ -52,6 +52,7 @@ from app.db.types import (
     MeasurementStatistic,
     MeasurementUnit,
     MorphologyGenerationType,
+    MorphologyProtocolDesign,
     PointLocation,
     PointLocationType,
     PublicationType,
@@ -696,21 +697,21 @@ class MeasurableEntityMixin:
         )
 
 
-class MorphologyProtocol(Identifiable):
-    __tablename__ = "morphology_protocol"
+class MorphologyProtocol(Entity):
+    __tablename__ = EntityType.morphology_protocol.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     protocol_document: Mapped[str | None]
-    protocol_design: Mapped[str]
-    type: Mapped[MorphologyGenerationType]
+    protocol_design: Mapped[MorphologyProtocolDesign | None]
+    generation_type: Mapped[MorphologyGenerationType]
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
-        "polymorphic_on": "type",
+        "polymorphic_on": "generation_type",
+        "with_polymorphic": "*",  # pull in all STI subclasses automatically
     }
 
 
-class ExperimentalMorphologyProtocol(MorphologyProtocol):
-    # __tablename__ = f"morphology_protocol_{MorphologyGenerationType.digital.value}"
-    # id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
+class DigitalReconstructionMorphologyProtocol(MorphologyProtocol):
     staining_type: Mapped[StainingType | None]
     slicing_thickness: Mapped[float] = mapped_column(nullable=True)
     slicing_direction: Mapped[SlicingDirectionType | None]
@@ -719,27 +720,29 @@ class ExperimentalMorphologyProtocol(MorphologyProtocol):
     corrected_for_shrinkage: Mapped[bool | None]
 
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": MorphologyGenerationType.digital.value,
+        "polymorphic_identity": MorphologyGenerationType.digital_reconstruction.value,
+    }
+
+
+class ModifiedReconstructionMorphologyProtocol(MorphologyProtocol):
+    method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": MorphologyGenerationType.modified_reconstruction.value,
     }
 
 
 class ComputationallySynthesizedMorphologyProtocol(MorphologyProtocol):
-    # __tablename__ = f"morphology_protocol_{MorphologyGenerationType.computational}"
-    # id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
     method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": MorphologyGenerationType.computational.value,
+        "polymorphic_identity": MorphologyGenerationType.computationally_synthesized.value,
     }
 
 
-class ModifiedMorphologyProtocol(MorphologyProtocol):
-    # __tablename__ = f"morphology_protocol_{MorphologyGenerationType.modified}"
-    # id: Mapped[uuid.UUID] = mapped_column(ForeignKey("morphology_protocol.id"), primary_key=True)
-    method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
-
+class PlaceholderMorphologyProtocol(MorphologyProtocol):
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": MorphologyGenerationType.modified.value,
+        "polymorphic_identity": MorphologyGenerationType.placeholder.value,
     }
 
 

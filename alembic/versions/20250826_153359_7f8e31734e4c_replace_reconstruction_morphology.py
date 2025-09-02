@@ -250,14 +250,32 @@ def upgrade() -> None:
 
     # create the new enums and tables
     sa.Enum(
-        "digital", "modified", "computational", "placeholder", name="morphologygenerationtype"
+        "electron_microscopy",
+        "cell_patch",
+        "fluorophore",
+        name="morphologyprotocoldesign",
     ).create(op.get_bind())
-    sa.Enum("raw", "curated", "unraveled", "repaired", name="repairpipelinetype").create(
-        op.get_bind()
-    )
-    sa.Enum("coronal", "sagittal", "horizontal", "custom", name="slicingdirectiontype").create(
-        op.get_bind()
-    )
+    sa.Enum(
+        "digital_reconstruction",
+        "modified_reconstruction",
+        "computationally_synthesized",
+        "placeholder",
+        name="morphologygenerationtype",
+    ).create(op.get_bind())
+    sa.Enum(
+        "raw",
+        "curated",
+        "unraveled",
+        "repaired",
+        name="repairpipelinetype",
+    ).create(op.get_bind())
+    sa.Enum(
+        "coronal",
+        "sagittal",
+        "horizontal",
+        "custom",
+        name="slicingdirectiontype",
+    ).create(op.get_bind())
     sa.Enum(
         "golgi",
         "nissl",
@@ -271,33 +289,29 @@ def upgrade() -> None:
     ).create(op.get_bind())
     op.create_table(
         "morphology_protocol",
+        sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("protocol_document", sa.String(), nullable=True),
-        sa.Column("protocol_design", sa.String(), nullable=False),
         sa.Column(
-            "type",
+            "protocol_design",
             postgresql.ENUM(
-                "digital",
-                "modified",
-                "computational",
+                "electron_microscopy",
+                "cell_patch",
+                "fluorophore",
+                name="morphologyprotocoldesign",
+                create_type=False,
+            ),
+            nullable=True,
+        ),
+        sa.Column(
+            "generation_type",
+            postgresql.ENUM(
+                "digital_reconstruction",
+                "modified_reconstruction",
+                "computationally_synthesized",
                 "placeholder",
                 name="morphologygenerationtype",
                 create_type=False,
             ),
-            nullable=False,
-        ),
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_by_id", sa.Uuid(), nullable=False),
-        sa.Column("updated_by_id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "creation_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.Column(
-            "update_date",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
             nullable=False,
         ),
         sa.Column(
@@ -334,30 +348,9 @@ def upgrade() -> None:
         sa.Column("corrected_for_shrinkage", sa.Boolean(), nullable=True),
         sa.Column("method_type", sa.String(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["created_by_id"], ["agent.id"], name=op.f("fk_morphology_protocol_created_by_id_agent")
-        ),
-        sa.ForeignKeyConstraint(
-            ["updated_by_id"], ["agent.id"], name=op.f("fk_morphology_protocol_updated_by_id_agent")
+            ["id"], ["entity.id"], name=op.f("fk_morphology_protocol_id_entity")
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_morphology_protocol")),
-    )
-    op.create_index(
-        op.f("ix_morphology_protocol_created_by_id"),
-        "morphology_protocol",
-        ["created_by_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_morphology_protocol_creation_date"),
-        "morphology_protocol",
-        ["creation_date"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_morphology_protocol_updated_by_id"),
-        "morphology_protocol",
-        ["updated_by_id"],
-        unique=False,
     )
 
     # drop old indexes
@@ -519,6 +512,7 @@ def upgrade() -> None:
             "mesh",
             "memodel_calibration_result",
             "me_type_density",
+            "morphology_protocol",
             "publication",
             "simulation",
             "simulation_campaign",
@@ -814,10 +808,12 @@ def downgrade() -> None:
         "TO fk_emodel_exemplar_morphology_id_reconstruction_morphology"
     )
 
-    # drop other indexes, tables, and enums
-    op.drop_index(op.f("ix_morphology_protocol_updated_by_id"), table_name="morphology_protocol")
-    op.drop_index(op.f("ix_morphology_protocol_creation_date"), table_name="morphology_protocol")
-    op.drop_index(op.f("ix_morphology_protocol_created_by_id"), table_name="morphology_protocol")
+    # drop other constraints, tables, and enums
+    op.drop_constraint(
+        op.f("fk_morphology_protocol_id_entity"),
+        "morphology_protocol",
+        type_="foreignkey",
+    )
     op.drop_table("morphology_protocol")
     sa.Enum(
         "golgi",
@@ -830,14 +826,32 @@ def downgrade() -> None:
         "other",
         name="stainingtype",
     ).drop(op.get_bind())
-    sa.Enum("coronal", "sagittal", "horizontal", "custom", name="slicingdirectiontype").drop(
-        op.get_bind()
-    )
-    sa.Enum("raw", "curated", "unraveled", "repaired", name="repairpipelinetype").drop(
-        op.get_bind()
-    )
     sa.Enum(
-        "digital", "modified", "computational", "placeholder", name="morphologygenerationtype"
+        "coronal",
+        "sagittal",
+        "horizontal",
+        "custom",
+        name="slicingdirectiontype",
+    ).drop(op.get_bind())
+    sa.Enum(
+        "raw",
+        "curated",
+        "unraveled",
+        "repaired",
+        name="repairpipelinetype",
+    ).drop(op.get_bind())
+    sa.Enum(
+        "digital_reconstruction",
+        "modified_reconstruction",
+        "computationally_synthesized",
+        "placeholder",
+        name="morphologygenerationtype",
+    ).drop(op.get_bind())
+    sa.Enum(
+        "electron_microscopy",
+        "cell_patch",
+        "fluorophore",
+        name="morphologyprotocoldesign",
     ).drop(op.get_bind())
 
     # restore the previous data

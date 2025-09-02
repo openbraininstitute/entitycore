@@ -1,10 +1,13 @@
 import uuid
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.types import (
+    EntityType,
     ModifiedMorphologyMethodType,
     MorphologyGenerationType,
+    MorphologyProtocolDesign,
     PointLocationBase,
     SlicingDirectionType,
     StainingType,
@@ -25,21 +28,28 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.subject import SubjectReadMixin
+from app.schemas.types import SerializableHttpUrl
 
 
-class ProtocolMixin(BaseModel):
-    """Generic Experimental method.
+class ProtocolMixin:
+    """Generic Protocol Mixin.
 
     Attributes:
         protocol_document: URL link to protocol document or publication.
         protocol_design: From a controlled vocabulary (e.g., EM, CellPatch, Fluorophore, Imp)
     """
 
-    protocol_document: str | None = None
-    protocol_design: str
+    protocol_document: SerializableHttpUrl | None = None
+    protocol_design: MorphologyProtocolDesign
 
 
-class ExperimentalMorphologyProtocolRead(ProtocolMixin):
+class MorphologyProtocolRead(BaseModel):
+    id: uuid.UUID
+    type: Literal[EntityType.morphology_protocol]
+    generation_type: MorphologyGenerationType
+
+
+class DigitalReconstructionMorphologyProtocolRead(MorphologyProtocolRead, ProtocolMixin):
     """Experimental morphology method for capturing cell morphology data.
 
     Attributes:
@@ -53,26 +63,31 @@ class ExperimentalMorphologyProtocolRead(ProtocolMixin):
 
     id: uuid.UUID
     staining_type: StainingType | None = None
-    slicing_thickness: float
+    slicing_thickness: Annotated[float, Field(ge=0.0, le=1000.0)]
     slicing_direction: SlicingDirectionType | None = None
-    magnification: float | None = None
-    tissue_shrinkage: float | None = None
+    magnification: Annotated[float | None, Field(ge=0.0)] = None
+    tissue_shrinkage: Annotated[float | None, Field(ge=0.0)] = None
     corrected_for_shrinkage: bool | None = None
 
 
-class ComputationallySynthesizedMorphologyProtocolRead(ProtocolMixin):
-    id: uuid.UUID
-    method: str
-
-
-class ModifiedMorphologyProtocolRead(ProtocolMixin):
-    id: uuid.UUID
+class ModifiedReconstructionMorphologyProtocolRead(
+    MorphologyProtocolRead,
+    ProtocolMixin,
+):
     method: ModifiedMorphologyMethodType
 
 
-class MorphologyProtocolRead(ProtocolMixin):
-    id: uuid.UUID
-    type: MorphologyGenerationType
+class ComputationallySynthesizedMorphologyProtocolRead(
+    MorphologyProtocolRead,
+    ProtocolMixin,
+):
+    method: str
+
+
+class PlaceholderMorphologyProtocolRead(
+    MorphologyProtocolRead,
+):
+    pass
 
 
 class CellMorphologyBase(BaseModel):

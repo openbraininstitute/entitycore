@@ -23,10 +23,16 @@ class ModifiedMorphologyMethodType(StrEnum):
 
 
 class MorphologyGenerationType(StrEnum):
-    digital = auto()  # digital reconstruction
-    modified = auto()  # modifed from digital
-    computational = auto()  # computationally synthesized
-    placeholder = auto()  # could be a morphology or compartment
+    digital_reconstruction = auto()
+    modified_reconstruction = auto()
+    computationally_synthesized = auto()
+    placeholder = auto()
+
+
+class MorphologyProtocolDesign(StrEnum):
+    electron_microscopy = auto()
+    cell_patch = auto()
+    fluorophore = auto()
 
 
 class SlicingDirectionType(StrEnum):
@@ -109,6 +115,7 @@ class EntityType(StrEnum):
     mesh = auto()
     memodel_calibration_result = auto()
     me_type_density = auto()
+    morphology_protocol = auto()
     publication = auto()
     simulation = auto()
     simulation_campaign = auto()

@@ -23,7 +23,7 @@ define load_env
 endef
 
 help:  ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?#+ .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-23s\033[0m %s\n", $$1, $$2}'
 
 install:  ## Install dependencies into .venv
 	uv sync --no-install-project
@@ -113,7 +113,7 @@ migration:  ## Create or update the alembic migration
 	uv run -m alembic upgrade head
 	uv run -m alembic revision --autogenerate -m "$(MESSAGE)"
 
-dump:  # Dump the local database to file
+dump:  ## Dump the local database to file
 	docker compose up --wait db
 	docker compose exec \
 		-e DUMPFILE=$${DUMPFILE:-/data/db_$$APP_VERSION.dump} \
@@ -123,7 +123,7 @@ dump:  # Dump the local database to file
 		echo "Dumping database $$PGDATABASE from $$PGHOST:$$PGPORT to $$DUMPFILE" && \
 		pg_dump --dbname $$PGDATABASE -Fc -f $$DUMPFILE'
 
-restore:  # Delete and restore the local database from file
+restore:  ## Delete and restore the local database from file
 	docker compose up --wait db
 	docker compose exec \
 		-e DUMPFILE=$${DUMPFILE:-/data/db_$$APP_VERSION.dump} \

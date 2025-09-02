@@ -35,6 +35,7 @@ def _assert_read_response(data, json_data):
     assert data["validated_entity_id"] == json_data["validated_entity_id"]
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["creation_date"] == data["update_date"]
+    assert "assets" in data
 
 
 def test_read_one(client: TestClient, validation_result_id, json_data):

@@ -1,7 +1,7 @@
 import uuid
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Subject, ValidationResult
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -23,6 +23,7 @@ def _load(query: sa.Select):
         joinedload(Subject.species),
         joinedload(ValidationResult.created_by),
         joinedload(ValidationResult.updated_by),
+        selectinload(ValidationResult.assets),
         raiseload("*"),
     )
 

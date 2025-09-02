@@ -50,6 +50,23 @@ def test_create_one(
     assert data["etypes"] == []
 
 
+def test_update_one(client, trace_id_with_assets):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
     data = assert_request(
         client.get,

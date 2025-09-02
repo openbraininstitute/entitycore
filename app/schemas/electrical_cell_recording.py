@@ -14,6 +14,7 @@ from app.schemas.scientific_artifact import (
     ScientificArtifactCreate,
     ScientificArtifactRead,
 )
+from app.schemas.utils import make_fields_optional
 
 
 class ElectricalCellRecordingBase(BaseModel):
@@ -69,6 +70,11 @@ class ElectricalCellRecordingBase(BaseModel):
 
 class ElectricalCellRecordingCreate(ElectricalCellRecordingBase, ScientificArtifactCreate):
     pass
+
+
+ElectricalCellRecordingUpdate = make_fields_optional(
+    ElectricalCellRecordingCreate, "ElectricalCellRecordingUpdate"
+)
 
 
 class ElectricalCellRecordingRead(

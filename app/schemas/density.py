@@ -18,6 +18,7 @@ from app.schemas.base import (
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.subject import SubjectReadMixin
+from app.schemas.utils import make_update_schema
 
 
 class MeasurementRead(BaseModel):
@@ -71,6 +72,19 @@ class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
     post_mtype_id: uuid.UUID
     pre_region_id: uuid.UUID
     post_region_id: uuid.UUID
+
+
+ExperimentalSynapsesPerConnectionUpdate = make_update_schema(
+    ExperimentalSynapsesPerConnectionCreate, "ExperimentalSynapsesPerConnectionUpdate"
+)
+
+ExperimentalBoutonDensityUpdate = make_update_schema(
+    ExperimentalBoutonDensityCreate, "ExperimentalBoutonDensityUpdate"
+)
+
+ExperimentalNeuronDensityUpdate = make_update_schema(
+    ExperimentalNeuronDensityCreate, "ExperimentalNeuronDensityUpdate"
+)
 
 
 class ExperimentalNeuronDensityRead(ExperimentalDensityRead):

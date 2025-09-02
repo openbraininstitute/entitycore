@@ -11,6 +11,7 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
+from app.schemas.utils import make_update_schema
 
 
 class ValidationCreate(ActivityCreate):
@@ -44,3 +45,6 @@ class ValidationResultRead(
 
 class ValidationResultCreate(ValidationResultBase, AuthorizationOptionalPublicMixin):
     pass
+
+
+ValidationResultUpdate = make_update_schema(ValidationResultCreate, "ValidationResultUpdate")

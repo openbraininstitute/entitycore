@@ -9,6 +9,7 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
+from app.schemas.utils import make_update_schema
 
 
 class MEModelCalibrationResultBase(BaseModel):
@@ -34,3 +35,8 @@ class MEModelCalibrationResultCreate(
     MEModelCalibrationResultBase, AuthorizationOptionalPublicMixin
 ):
     """Create model for MEModel calibration results."""
+
+
+MEModelCalibrationResultUpdate = make_update_schema(
+    MEModelCalibrationResultCreate, "MEModelCalibrationResultUpdate"
+)

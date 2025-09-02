@@ -13,6 +13,7 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.species import NestedSpeciesRead
+from app.schemas.utils import make_update_schema
 
 
 class SubjectBase(BaseModel):
@@ -76,6 +77,9 @@ class SubjectBase(BaseModel):
 
 class SubjectCreate(AuthorizationOptionalPublicMixin, SubjectBase):
     species_id: uuid.UUID
+
+
+SubjectUpdate = make_update_schema(SubjectCreate, "SubjectUpdate")
 
 
 class NestedSubjectRead(SubjectBase, IdentifiableMixin):

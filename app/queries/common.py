@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.auth import (
     constrain_to_accessible_entities,
+    constrain_to_private_entities,
     select_unauthorized_entities,
 )
 from app.db.model import Activity, Agent, Generation, Identifiable, Person, Usage
@@ -327,6 +328,41 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         ),
         facets=facets_result,
     )
+
+
+def router_update_one[T: BaseModel, I: Identifiable](
+    *,
+    id_: uuid.UUID,
+    db: Session,
+    db_model_class: type[I],
+    user_context: UserContext | UserContextWithProjectId,
+    json_model: BaseModel,
+    response_schema_class: type[T],
+    apply_operations: ApplyOperations | None = None,
+):
+    query = (
+        sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
+    )
+    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+        query = constrain_to_private_entities(
+            query, user_context.project_id, db_model_class=id_model_class
+        )
+    if apply_operations:
+        query = apply_operations(query)
+
+    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
+        obj = db.execute(query).unique().scalar_one()
+
+    # remove attributes with NOT_SET sentinel and leave only user set ones
+    update_data = json_model.model_dump(exclude_defaults=True)
+
+    for key, value in update_data.items():
+        setattr(obj, key, value)
+
+    db.flush()
+    db.refresh(obj)
+
+    return response_schema_class.model_validate(obj)
 
 
 def router_delete_one[T: BaseModel, I: Identifiable](

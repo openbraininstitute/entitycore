@@ -336,7 +336,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
 ):
-    query = sa.select(db_model_class).where(db_model_class.id == id_)
+    query = sa.select(db_model_class).where(db_model_class.id == id_).with_for_update()
     if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
         query = constrain_to_accessible_entities(
             query, user_context.project_id, db_model_class=id_model_class

@@ -16,11 +16,7 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
-from app.queries.common import (
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_model import (
     IonChannelModelCreate,

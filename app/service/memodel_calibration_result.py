@@ -13,11 +13,7 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.memodel_calibration_result import MEModelCalibrationResultFilterDep
-from app.queries.common import (
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.schemas.memodel_calibration_result import (
     MEModelCalibrationResultCreate,
     MEModelCalibrationResultRead,

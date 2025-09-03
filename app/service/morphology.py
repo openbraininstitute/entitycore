@@ -27,11 +27,7 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilterDep
-from app.queries.common import (
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
 from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,

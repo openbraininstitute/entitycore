@@ -9,11 +9,7 @@ from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.person import PersonFilterDep
-from app.queries.common import (
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
 from app.schemas.agent import PersonCreate, PersonRead
 from app.schemas.types import ListResponse

@@ -20,11 +20,7 @@ from app.dependencies.db import SessionDep
 from app.filters.measurement_annotation import (
     MeasurementAnnotationFilterDep,
 )
-from app.queries.common import (
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
 from app.schemas.measurement_annotation import (

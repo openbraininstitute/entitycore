@@ -21,11 +21,7 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.emodel import EModelFilterDep
-from app.queries.common import (
-    router_create_one,
-    router_read_many,
-    router_read_one,
-)
+from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
 from app.schemas.emodel import EModelCreate, EModelRead, EModelReadExpanded
 from app.schemas.types import ListResponse

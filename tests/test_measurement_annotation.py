@@ -10,7 +10,6 @@ from .utils import (
 )
 
 ROUTE = "/measurement-annotation"
-ADMIN_ROUTE = "/admin/measurement-annotation"
 MORPHOLOGY_ROUTE = "/reconstruction-morphology"
 ENTITY_TYPE = "reconstruction_morphology"
 
@@ -95,9 +94,7 @@ def _get_return_payload(request_payload):
     return payload
 
 
-def test_create_and_retrieve(
-    client, client_admin, species_id, strain_id, brain_region_id, measurement_labels
-):
+def test_create_and_retrieve(client, species_id, strain_id, brain_region_id, measurement_labels):
     reconstruction_morphology_id = create_reconstruction_morphology_id(
         client,
         species_id,
@@ -138,10 +135,10 @@ def test_create_and_retrieve(
     assert "measurement_annotation" in data
 
     # delete the 1st annotation
-    response = client_admin.delete(f"{ADMIN_ROUTE}/{measurement_annotation_id_1}")
+    response = client.delete(f"{ROUTE}/{measurement_annotation_id_1}")
     assert_response(response, expected_status_code=200)
     data = response.json()
-    assert data["id"] == expected_payload_1["id"]
+    assert data == expected_payload_1
 
     # create a 2nd annotation
     request_payload_2 = _get_request_payload_2(

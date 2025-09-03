@@ -66,6 +66,26 @@ def test_update_one(client, trace_id_with_assets):
     assert data["name"] == new_name
     assert data["description"] == new_description
 
+    # set temperature
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "temperature": 10.0,
+        },
+    ).json()
+    assert data["temperature"] == 10.0
+
+    # unset temperature
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "temperature": None,
+        },
+    ).json()
+    assert data["temperature"] is None
+
 
 def test_update_one__public(client, trace_id_with_assets):
     # make private entity public

@@ -350,11 +350,8 @@ def router_update_one[T: BaseModel, I: Identifiable](
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         obj = db.execute(query).unique().scalar_one()
 
-    update_data = json_model.model_dump(
-        exclude_unset=True,
-        exclude_none=True,
-        exclude_defaults=True,
-    )
+    # remove attributes with NOT_SET sentinel and leave only user set ones
+    update_data = json_model.model_dump(exclude_defaults=True)
 
     for key, value in update_data.items():
         setattr(obj, key, value)

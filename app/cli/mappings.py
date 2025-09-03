@@ -801,7 +801,17 @@ STIMULUS_INFO = {
         "type": ElectricalRecordingStimulusType.voltage_clamp,
         "ecode": ECode.pulse_astrocyte,
     },
+    "Pulseastrocyte": {
+        "shape": ElectricalRecordingStimulusShape.pulse,
+        "type": ElectricalRecordingStimulusType.voltage_clamp,
+        "ecode": ECode.pulse_astrocyte,
+    },
     "IVAstrocyte": {
+        "shape": ElectricalRecordingStimulusShape.step,
+        "type": ElectricalRecordingStimulusType.voltage_clamp,
+        "ecode": ECode.iv_astrocyte,
+    },
+    "IVastrocyte": {
         "shape": ElectricalRecordingStimulusShape.step,
         "type": ElectricalRecordingStimulusType.voltage_clamp,
         "ecode": ECode.iv_astrocyte,

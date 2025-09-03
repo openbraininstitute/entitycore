@@ -16,12 +16,18 @@ from app.dependencies.common import (
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_model import (
     IonChannelModelCreate,
     IonChannelModelExpanded,
     IonChannelModelRead,
+    IonChannelModelUpdate,
 )
 from app.schemas.types import ListResponse, Select
 
@@ -142,4 +148,21 @@ def create_one(
         json_model=ion_channel_model,
         db_model_class=IonChannelModel,
         response_schema_class=IonChannelModelRead,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: IonChannelModelUpdate,
+) -> IonChannelModelRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelModel,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=IonChannelModelRead,
+        apply_operations=_load_minimal,
     )

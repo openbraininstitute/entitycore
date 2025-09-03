@@ -19,11 +19,17 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.circuit import CircuitFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.circuit import (
     CircuitCreate,
     CircuitRead,
+    CircuitUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -70,6 +76,23 @@ def create_one(
         json_model=json_model,
         user_context=user_context,
         db_model_class=Circuit,
+        response_schema_class=CircuitRead,
+        apply_operations=_load,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CircuitUpdate,
+) -> CircuitRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Circuit,
+        user_context=user_context,
+        json_model=json_model,
         response_schema_class=CircuitRead,
         apply_operations=_load,
     )

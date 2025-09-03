@@ -5,6 +5,7 @@ from app.db.model import (
     BrainRegion,
     Circuit,
     Contribution,
+    EMDenseReconstructionDataset,
     EModel,
     Entity,
     ETypeClass,
@@ -74,6 +75,7 @@ def query_params_factory[I: Identifiable](
     used_alias = _get_alias(Entity, "used")
     generated_alias = _get_alias(Entity, "generated")
     circuit_alias = _get_alias(Circuit)
+    em_dense_reconstruction_dataset_alias = _get_alias(EMDenseReconstructionDataset)
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -114,6 +116,10 @@ def query_params_factory[I: Identifiable](
         "post_region": {"id": post_region_alias.id, "label": post_region_alias.name},
         "simulation": {"id": simulation_alias.id, "label": simulation_alias.name},
         "simulation.circuit": {"id": circuit_alias.id, "label": circuit_alias.name},
+        "em_dense_reconstruction_dataset": {
+            "id": em_dense_reconstruction_dataset_alias.id,
+            "label": em_dense_reconstruction_dataset_alias.name,
+        },
     }
     filter_joins = {
         "species": lambda q: q.join(Species, db_model_class.species_id == Species.id),
@@ -192,6 +198,11 @@ def query_params_factory[I: Identifiable](
         "generated": lambda q: q.outerjoin(
             Generation, db_model_class.id == Generation.generation_activity_id
         ).outerjoin(generated_alias, Generation.generation_entity_id == generated_alias.id),
+        "em_dense_reconstruction_dataset": lambda q: q.join(
+            em_dense_reconstruction_dataset_alias,
+            em_dense_reconstruction_dataset_alias.id
+            == db_model_class.em_dense_reconstruction_dataset_id,
+        ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}
     filter_joins = {k: filter_joins[k] for k in filter_keys}

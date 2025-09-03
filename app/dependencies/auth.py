@@ -246,6 +246,17 @@ def user_with_service_admin_role(user_context: "UserContextDep") -> UserContext:
     return user_context
 
 
+def user_with_service_admin_role_and_project_id(
+    user_context: "UserContextDep",
+) -> UserContextWithProjectId:
+    """Ensure that the authenticated user has an admin role and valid virtual_lab_id/project_id."""
+    user_with_service_admin_role(user_context)
+    return user_with_project_id(user_context)
+
+
 UserContextDep = Annotated[UserContext, Depends(user_verified)]
 AdminContextDep = Annotated[UserContext, Depends(user_with_service_admin_role)]
 UserContextWithProjectIdDep = Annotated[UserContextWithProjectId, Depends(user_with_project_id)]
+AdminContextWithProjectIdDep = Annotated[
+    UserContextWithProjectId, Depends(user_with_service_admin_role_and_project_id)
+]

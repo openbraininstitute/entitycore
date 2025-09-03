@@ -14,20 +14,11 @@
 ```
 
 These have CRUD-able patterns:
-    GET /contribution/{id} to get
-    POST /contribution/ to create
+    GET /experimental-bouton-density/{id} to get
+    POST /experimental-bouton-density/ to create
+    PATCH /experimental-bouton-density/ to update
 
-
-Note: the organizations will need to be filled in; they include ones that are not yet part of the OBI, so there isn't a one-to-one relationship with what is included virtual lab service.
-Future work may include auto-additing organizations when one joins the OBI; alternatively the first time data is created, they could be added.
-Currently, `Entity`s are immutable, with the exception of the `authorized_public` property (see Authorization).
-
-TODO:
-    What are the ACLs on these operations?
-        contribution
-        organization
-        person
-        role
+API reserved for the service admin group (see [Authorization](#Authorization)) will be prefixed by /admin/ .
 
 # List views
 The endpoint for returning the listing per type; including faceting; if no query parameter is passed, the traditional list view will be returned (ie: no filtering)

@@ -1076,7 +1076,7 @@ class ImportElectricalCellRecording(Import):
     @staticmethod
     def ingest(db, project_context, data_list, all_data_by_id, hierarchy_name, project_ids):
         visited = set()
-        for data in data_list:
+        for data in tqdm(data_list):
             legacy_id = data["@id"]
             legacy_self = data["_self"]
 
@@ -1167,6 +1167,7 @@ class ImportElectricalCellRecording(Import):
                             "recording_id": str(db_item.id),
                             "recording_name": str(data["name"]),
                             "recording_legacy_id": str(legacy_id),
+                            "recording_legacy_self": str(legacy_self),
                         }
                     )
                 else:

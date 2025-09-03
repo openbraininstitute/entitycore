@@ -846,6 +846,42 @@ class ElectricalCellRecording(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class IonChannel(NameDescriptionVectorMixin, Identifiable):
+    __tablename__ = "ion_channel"
+
+    label: Mapped[str]
+    gene: Mapped[str]
+    synonyms: Mapped[STRING_LIST]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class IonChannelRecording(ElectricalCellRecording):
+    __tablename__ = EntityType.ion_channel_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("electrical_cell_recording.id"), primary_key=True
+    )
+    ion_channel_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ion_channel.id"),
+        index=True,
+    )
+    ion_channel: Mapped[IonChannel] = relationship(
+        "IonChannel",
+        uselist=False,
+        foreign_keys=[ion_channel_id],
+    )
+    cell_line: Mapped[str]
+
+    # Fixes sqlalchemy.exc.ArgumentError:
+    # Index 'ix_ion_channel_recording_description_vector'
+    # is against table 'electrical_cell_recording',
+    # and cannot be associated with table 'ion_channel_recording'.
+    __table_args__ = ()  # type: ignore[reportAssignmentType]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_synaptome.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)

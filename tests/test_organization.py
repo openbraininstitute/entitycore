@@ -7,6 +7,7 @@ from app.db.model import Agent, Organization
 from tests.utils import MISSING_ID, MISSING_ID_COMPACT, add_db, assert_request, count_db_class
 
 ROUTE = "/organization"
+ADMIN_ROUTE = "/admin/organization"
 
 
 def test_create_organization(client, client_admin):
@@ -53,11 +54,13 @@ def test_delete_one(db, client, client_admin):
     # 1 created_by/updated_by 1 Organization
     assert count_db_class(db, Agent) == 2
 
-    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
     assert data["id"] == str(model_id)
 
     assert count_db_class(db, Organization) == 0

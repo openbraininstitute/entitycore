@@ -7,7 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 import app.queries.common
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
 from app.db.model import Agent, Contribution, Entity
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.common import ContributionFilterDep
@@ -121,25 +121,3 @@ def create_one(
         user_context=user_context,
         apply_operations=_load,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> ContributionRead:
-    one = app.queries.common.router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=Contribution,
-        authorized_project_id=None,
-        response_schema_class=ContributionRead,
-        apply_operations=_load,
-    )
-    app.queries.common.router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=Contribution,
-        authorized_project_id=None,
-    )
-    return one

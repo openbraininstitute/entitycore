@@ -7,7 +7,7 @@ from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
-from app.queries.common import router_create_one, router_delete_one, router_read_one
+from app.queries.common import router_create_one
 from app.schemas.base import LicenseCreate, LicenseRead
 from app.schemas.types import ListResponse, PaginationResponse
 
@@ -54,25 +54,3 @@ def create_one(
         response_schema_class=LicenseRead,
         user_context=user_context,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> LicenseRead:
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=License,
-        authorized_project_id=None,
-        response_schema_class=LicenseRead,
-        apply_operations=None,
-    )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=License,
-        authorized_project_id=None,
-    )
-    return one

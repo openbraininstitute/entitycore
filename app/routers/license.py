@@ -10,4 +10,3 @@ router = APIRouter(
 read_many = router.get("")(app.service.license.read_many)
 read_one = router.get("/{id_}")(app.service.license.read_one)
 create_one = router.post("")(app.service.license.create_one)
-delete_one = router.delete("/{id_}")(app.service.license.delete_one)

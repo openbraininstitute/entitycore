@@ -14,7 +14,7 @@ from app.db.model import (
     ExperimentalBoutonDensity,
     Subject,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
@@ -25,7 +25,6 @@ from app.dependencies.db import SessionDep
 from app.filters.density import ExperimentalBoutonDensityFilterDep
 from app.queries.common import (
     router_create_one,
-    router_delete_one,
     router_read_many,
     router_read_one,
 )
@@ -143,25 +142,3 @@ def create_one(
         response_schema_class=ExperimentalBoutonDensityRead,
         apply_operations=_load,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> ExperimentalBoutonDensityRead:
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=ExperimentalBoutonDensity,
-        authorized_project_id=None,
-        response_schema_class=ExperimentalBoutonDensityRead,
-        apply_operations=_load,
-    )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=ExperimentalBoutonDensity,
-        authorized_project_id=None,
-    )
-    return one

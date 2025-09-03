@@ -85,25 +85,3 @@ def read_many(
         filter_model=species_filter,
         filter_joins=filter_joins,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> SpeciesRead:
-    one = app.queries.common.router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=Species,
-        authorized_project_id=None,
-        response_schema_class=SpeciesRead,
-        apply_operations=None,
-    )
-    app.queries.common.router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=Species,
-        authorized_project_id=None,
-    )
-    return one

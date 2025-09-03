@@ -334,7 +334,7 @@ def router_delete_one[T: BaseModel, I: Identifiable](
     db: Session,
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
-) -> None:
+) -> dict:
     """Delete a model from the database.
 
     Args:
@@ -364,6 +364,8 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         # subclasses are deleted as it is the case with Activity/SimulationGeneration.
         db.delete(obj)
         db.flush()
+
+    return {"id": id_}
 
 
 def router_update_activity_one[T: BaseModel, I: Activity](

@@ -9,4 +9,3 @@ router = APIRouter(
 
 read_many = router.get("")(app.service.mtype.read_many)
 read_one = router.get("/{id_}")(app.service.mtype.read_one)
-delete_one = router.delete("/{id_}")(app.service.mtype.delete_one)

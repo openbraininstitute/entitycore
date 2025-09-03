@@ -11,6 +11,7 @@ from .utils import (
 )
 
 ROUTE = "etype-classification"
+ADMIN_ROUTE = "/admin/etype-classification"
 
 
 @pytest.fixture
@@ -75,12 +76,12 @@ def test_delete_one(db, client, client_admin, json_data):
     assert count_db_class(db, ETypeClass) == 2
 
     data = assert_request(
-        client.delete, url=f"{ROUTE}/{classification['id']}", expected_status_code=403
+        client.delete, url=f"{ADMIN_ROUTE}/{classification['id']}", expected_status_code=403
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{classification['id']}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{classification['id']}").json()
     assert data["id"] == str(classification["id"])
 
     assert count_db_class(db, EModel) == 1

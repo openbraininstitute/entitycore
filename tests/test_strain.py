@@ -9,6 +9,7 @@ from tests.utils import (
 )
 
 ROUTE = "/strain"
+ADMIN_ROUTE = "/admin/strain"
 
 
 def test_create_strain(client, client_admin, species_id, person_id):
@@ -90,11 +91,13 @@ def test_delete_one(db, client, client_admin, strain_id):
 
     assert count_db_class(db, Strain) == 1
 
-    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
     assert data["id"] == str(model_id)
 
     assert count_db_class(db, Strain) == 0

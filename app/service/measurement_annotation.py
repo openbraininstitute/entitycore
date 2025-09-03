@@ -22,7 +22,6 @@ from app.filters.measurement_annotation import (
 )
 from app.queries.common import (
     router_create_one,
-    router_delete_one,
     router_read_many,
     router_read_one,
 )
@@ -130,30 +129,3 @@ def create_one(
         apply_operations=apply_operations,
     )
     return response
-
-
-def delete_one(
-    user_context: UserContextWithProjectIdDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> MeasurementAnnotationRead:
-    def apply_operations(q):
-        q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_entity_query_to_project(q, project_id=user_context.project_id)
-        return _load_from_db(q=q)
-
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # validated with apply_operations
-        response_schema_class=MeasurementAnnotationRead,
-        apply_operations=apply_operations,
-    )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # already validated
-    )
-    return one

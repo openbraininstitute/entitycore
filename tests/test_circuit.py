@@ -14,6 +14,7 @@ from .utils import (
 )
 
 ROUTE = "circuit"
+ADMIN_ROUTE = "/admin/circuit"
 
 
 @pytest.fixture
@@ -62,21 +63,23 @@ def test_read_one(client, circuit, circuit_json_data):
 
 def test_delete_one(client, client_admin, circuit):
     data = assert_request(
-        client.delete, url=f"{ROUTE}/{circuit.id}", expected_status_code=403
+        client.delete, url=f"{ADMIN_ROUTE}/{circuit.id}", expected_status_code=403
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
     # root circuit cannot be deleted because circuit points to it
     data = assert_request(
-        client_admin.delete, url=f"{ROUTE}/{circuit.root_circuit_id}", expected_status_code=409
+        client_admin.delete,
+        url=f"{ADMIN_ROUTE}/{circuit.root_circuit_id}",
+        expected_status_code=409,
     ).json()
     assert data["error_code"] == "INVALID_REQUEST"
     assert (
         data["message"] == "Circuit cannot be deleted because of foreign keys integrity violation"
     )
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{circuit.id}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{circuit.id}").json()
     assert data["id"] == str(circuit.id)
 
 

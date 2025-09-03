@@ -16,6 +16,7 @@ from .utils import (
 )
 
 ROUTE = "simulation-campaign"
+ADMIN_ROUTE = "/admin/simulation-campaign"
 MODEL = SimulationCampaign
 
 
@@ -70,11 +71,13 @@ def test_delete_one(db, client, client_admin, model):
 
     assert count_db_class(db, SimulationCampaign) == 1
 
-    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
     assert data["id"] == str(model_id)
 
     assert count_db_class(db, SimulationCampaign) == 0

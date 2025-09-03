@@ -17,7 +17,7 @@ from app.db.model import (
     MEModelCalibrationResult,
     ReconstructionMorphology,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
@@ -28,7 +28,6 @@ from app.dependencies.db import SessionDep
 from app.filters.memodel import MEModelFilterDep
 from app.queries.common import (
     router_create_one,
-    router_delete_one,
     router_read_many,
     router_read_one,
 )
@@ -167,25 +166,3 @@ def read_many(
         filter_model=memodel_filter,
         filter_joins=filter_joins,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> MEModelRead:
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=MEModel,
-        authorized_project_id=None,
-        response_schema_class=MEModelRead,
-        apply_operations=_load,
-    )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=MEModel,
-        authorized_project_id=None,
-    )
-    return one

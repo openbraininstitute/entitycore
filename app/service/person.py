@@ -11,7 +11,6 @@ from app.dependencies.db import SessionDep
 from app.filters.person import PersonFilterDep
 from app.queries.common import (
     router_create_one,
-    router_delete_one,
     router_read_many,
     router_read_one,
 )
@@ -97,25 +96,3 @@ def create_one(person: PersonCreate, db: SessionDep, user_context: AdminContextD
         user_context=user_context,
         apply_operations=_load,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> PersonRead:
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=Person,
-        authorized_project_id=None,
-        response_schema_class=PersonRead,
-        apply_operations=_load,
-    )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=Person,
-        authorized_project_id=None,
-    )
-    return one

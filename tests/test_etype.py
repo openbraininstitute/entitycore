@@ -11,6 +11,7 @@ from .utils import (
 )
 
 ROUTE = "/etype"
+ADMIN_ROUTE = "/admin/etype"
 ROUTE_EMODEL = "/emodel"
 
 
@@ -203,11 +204,13 @@ def test_delete_one(
     assert count_db_class(db, ETypeClass) == 1
     assert count_db_class(db, ETypeClassification) == 1
 
-    data = assert_request(client.delete, url=f"{ROUTE}/{etype.id}", expected_status_code=403).json()
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{etype.id}", expected_status_code=403
+    ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{etype.id}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{etype.id}").json()
     assert data["id"] == str(etype.id)
 
     assert count_db_class(db, EModel) == 1

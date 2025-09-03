@@ -89,25 +89,3 @@ def create_one(
         user_context=user_context,
         apply_operations=_load,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> OrganizationRead:
-    one = app.queries.common.router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=Organization,
-        authorized_project_id=None,
-        response_schema_class=OrganizationRead,
-        apply_operations=_load,
-    )
-    app.queries.common.router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=Organization,
-        authorized_project_id=None,
-    )
-    return one

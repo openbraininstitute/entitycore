@@ -17,6 +17,7 @@ from .utils import (
 
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/emodel"
+ADMIN_ROUTE = "/admin/emodel"
 
 
 def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, morphology_id):
@@ -78,12 +79,12 @@ def test_delete_one(db, client, client_admin, emodel_id):
     assert count_db_class(db, ETypeClass) == 1
 
     data = assert_request(
-        client.delete, url=f"{ROUTE}/{emodel_id}", expected_status_code=403
+        client.delete, url=f"{ADMIN_ROUTE}/{emodel_id}", expected_status_code=403
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{emodel_id}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{emodel_id}").json()
     assert data["id"] == str(emodel_id)
 
     assert count_db_class(db, EModel) == 0

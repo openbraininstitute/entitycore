@@ -51,25 +51,3 @@ def create_one(json_model: RoleCreate, db: SessionDep, user_context: AdminContex
         response_schema_class=RoleRead,
         user_context=user_context,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> RoleRead:
-    one = app.queries.common.router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=Role,
-        authorized_project_id=None,
-        response_schema_class=RoleRead,
-        apply_operations=None,
-    )
-    app.queries.common.router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=Role,
-        authorized_project_id=None,
-    )
-    return one

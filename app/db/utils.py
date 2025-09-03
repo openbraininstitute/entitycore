@@ -6,7 +6,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
 from app.db.model import Base, Entity, Identifiable, LocationMixin, MeasurableEntity
-from app.db.types import EntityType
+from app.db.types import EntityType, ResourceType
 from app.logger import L
 
 MEASURABLE_ENTITIES: dict[str, type[MeasurableEntity]] = {
@@ -20,6 +20,12 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     EntityType[mapper.class_.__tablename__]: mapper.class_
     for mapper in Base.registry.mappers
     if hasattr(EntityType, mapper.class_.__tablename__)
+}
+
+RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
+    mapper.class_.__tablename__: mapper.class_
+    for mapper in Base.registry.mappers
+    if mapper.class_.__tablename__ in set(ResourceType)
 }
 
 

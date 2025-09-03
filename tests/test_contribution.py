@@ -11,6 +11,7 @@ from .utils import (
 )
 
 ROUTE = "/contribution"
+ADMIN_ROUTE = "/admin/contribution"
 ROUTE_MORPH = "/reconstruction-morphology"
 
 
@@ -137,11 +138,13 @@ def test_delete_one(
     assert len(data["contributions"]) == 1
     assert data["contributions"][0]["id"] == str(contribution["id"])
 
-    data = assert_request(client.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403).json()
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{model_id}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
     assert data["id"] == str(model_id)
 
     data = assert_request(

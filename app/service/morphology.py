@@ -18,7 +18,7 @@ from app.db.model import (
     MeasurementKind,
     ReconstructionMorphology,
 )
-from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
@@ -29,7 +29,6 @@ from app.dependencies.db import SessionDep
 from app.filters.morphology import MorphologyFilterDep
 from app.queries.common import (
     router_create_one,
-    router_delete_one,
     router_read_many,
     router_read_one,
 )
@@ -166,22 +165,3 @@ def read_many(
         filter_model=morphology_filter,
         filter_joins=filter_joins,
     )
-
-
-def delete_one(
-    _: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> ReconstructionMorphologyRead:
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=ReconstructionMorphology,
-        authorized_project_id=None,
-        response_schema_class=ReconstructionMorphologyRead,
-        apply_operations=partial(_load_from_db, expand_measurement_annotation=False),
-    )
-    router_delete_one(
-        id_=id_, db=db, db_model_class=ReconstructionMorphology, authorized_project_id=None
-    )
-    return one

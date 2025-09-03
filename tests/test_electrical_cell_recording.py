@@ -32,6 +32,7 @@ from .utils import (
 )
 
 ROUTE = "/electrical-cell-recording"
+ADMIN_ROUTE = f"/admin{ROUTE}"
 
 
 def test_create_one(
@@ -90,7 +91,7 @@ def test_delete_one(db, client, client_admin, trace_id_with_assets):
     assert count_db_class(db, ETypeClassification) == 1
 
     data = assert_request(
-        client.delete, url=f"{ROUTE}/{trace_id_with_assets}", expected_status_code=403
+        client.delete, url=f"{ADMIN_ROUTE}/{trace_id_with_assets}", expected_status_code=403
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
@@ -99,7 +100,7 @@ def test_delete_one(db, client, client_admin, trace_id_with_assets):
     # delete the entity thereafter
     delete_entity_assets(client_admin, ROUTE, trace_id_with_assets)
 
-    data = assert_request(client_admin.delete, url=f"{ROUTE}/{trace_id_with_assets}").json()
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{trace_id_with_assets}").json()
     assert data["id"] == str(trace_id_with_assets)
 
     assert count_db_class(db, ElectricalCellRecording) == 0

@@ -13,6 +13,7 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.simulation import NestedSimulationRead
+from app.schemas.utils import make_update_schema
 
 
 class SimulationCampaignBase(BaseModel):
@@ -25,6 +26,9 @@ class SimulationCampaignBase(BaseModel):
 
 class SimulationCampaignCreate(SimulationCampaignBase, AuthorizationOptionalPublicMixin):
     pass
+
+
+SimulationCampaignUpdate = make_update_schema(SimulationCampaignCreate, "SimulationCampaignUpdate")
 
 
 class NestedSimulationCampaignRead(SimulationCampaignBase, EntityTypeMixin, IdentifiableMixin):

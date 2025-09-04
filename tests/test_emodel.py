@@ -48,6 +48,43 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
 
 
+def test_update_one(client, emodel_id):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{emodel_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+
+def test_update_one__public(client, emodel_id):
+    # make private entity public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{emodel_id}",
+        json={
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{emodel_id}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_get_emodel(client: TestClient, emodel_id: str):
     with FILE_EXAMPLE_PATH.open("rb") as f:
         upload_entity_asset(

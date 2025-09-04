@@ -19,11 +19,17 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.electrical_cell_recording import ElectricalCellRecordingFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.electrical_cell_recording import (
     ElectricalCellRecordingCreate,
     ElectricalCellRecordingRead,
+    ElectricalCellRecordingUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -140,4 +146,21 @@ def read_many(
         response_schema_class=ElectricalCellRecordingRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ElectricalCellRecordingUpdate,
+) -> ElectricalCellRecordingRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ElectricalCellRecording,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=ElectricalCellRecordingRead,
+        apply_operations=_load,
     )

@@ -75,6 +75,65 @@ def test_create_reconstruction_morphology(
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
 
 
+def test_update_one(client, morphology_id):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{morphology_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # set location
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{morphology_id}",
+        json={
+            "location": {"x": 100, "y": 200, "z": 300},
+        },
+    ).json()
+    assert data["location"]["x"] == 100
+    assert data["location"]["y"] == 200
+    assert data["location"]["z"] == 300
+
+    # unset location
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{morphology_id}",
+        json={
+            "location": None,
+        },
+    ).json()
+    assert data["location"] is None
+
+
+def test_update_one__public(client, morphology_id):
+    # make private entity public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{morphology_id}",
+        json={
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{morphology_id}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_missing(client):
     response = client.get(f"{ROUTE}/{MISSING_ID}")
     assert response.status_code == 404

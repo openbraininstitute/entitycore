@@ -26,9 +26,14 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.memodel import MEModelFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
-from app.schemas.me_model import MEModelCreate, MEModelRead
+from app.schemas.me_model import MEModelCreate, MEModelRead, MEModelUpdate
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -99,6 +104,23 @@ def create_one(
         user_context=user_context,
         response_schema_class=MEModelRead,
         json_model=memodel,
+        apply_operations=_load,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: MEModelUpdate,
+) -> MEModelRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=MEModel,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=MEModelRead,
         apply_operations=_load,
     )
 

@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.db.types import CircuitBuildCategory, CircuitScale
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
+from app.schemas.utils import make_update_schema
 
 
 class CircuitBase(BaseModel):
@@ -34,3 +35,6 @@ class CircuitRead(CircuitBase, ScientificArtifactRead):
 
 class CircuitCreate(CircuitBase, ScientificArtifactCreate):
     pass
+
+
+CircuitUpdate = make_update_schema(CircuitCreate, "CircuitUpdate")

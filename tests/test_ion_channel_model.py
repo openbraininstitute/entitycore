@@ -10,6 +10,7 @@ from app.schemas.ion_channel_model import IonChannelModelRead
 from .utils import (
     PROJECT_ID,
     TEST_DATA_DIR,
+    assert_request,
     check_authorization,
     check_brain_region_filter,
     upload_entity_asset,
@@ -53,6 +54,73 @@ def test_create(client: TestClient, subject_id: str, brain_region_id: uuid.UUID)
 
     response = client.get(ROUTE)
     assert response.status_code == 200, f"Failed to get icms: {response.text}"
+
+
+def test_update_one(client, subject_id, brain_region_id):
+    # Create an ion channel model first
+    response = create(client, subject_id, brain_region_id, "test_icm")
+    assert response.status_code == 200
+    icm_id = response.json()["id"]
+
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{icm_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # set temperature_celsius
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{icm_id}",
+        json={
+            "temperature_celsius": 25,
+        },
+    ).json()
+    assert data["temperature_celsius"] == 25
+
+    # set is_ljp_corrected
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{icm_id}",
+        json={
+            "is_ljp_corrected": True,
+        },
+    ).json()
+    assert data["is_ljp_corrected"] is True
+
+
+def test_update_one__public(client, subject_id, brain_region_id):
+    # Create an ion channel model first
+    response = create(client, subject_id, brain_region_id, "test_icm")
+    assert response.status_code == 200
+    icm_id = response.json()["id"]
+
+    # make private entity public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{icm_id}",
+        json={
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{icm_id}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def test_read_one(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):

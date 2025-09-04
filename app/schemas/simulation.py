@@ -16,6 +16,7 @@ from app.schemas.base import (
 )
 from app.schemas.me_model import NestedMEModel
 from app.schemas.synaptome import NestedSynaptome
+from app.schemas.utils import make_update_schema
 
 
 class SingleNeuronSimulationBase(BaseModel):
@@ -34,6 +35,11 @@ class SingleNeuronSimulationCreate(
     BrainRegionCreateMixin,
 ):
     me_model_id: uuid.UUID
+
+
+SingleNeuronSimulationUpdate = make_update_schema(
+    SingleNeuronSimulationCreate, "SingleNeuronSimulationUpdate"
+)
 
 
 class SingleNeuronSimulationRead(
@@ -55,6 +61,11 @@ class SingleNeuronSynaptomeSimulationCreate(
     BrainRegionCreateMixin,
 ):
     synaptome_id: uuid.UUID
+
+
+SingleNeuronSynaptomeSimulationUpdate = make_update_schema(
+    SingleNeuronSynaptomeSimulationCreate, "SingleNeuronSynaptomeSimulationUpdate"
+)
 
 
 class SingleNeuronSynaptomeSimulationRead(
@@ -81,6 +92,9 @@ class SimulationBase(BaseModel):
 
 class SimulationCreate(SimulationBase, AuthorizationOptionalPublicMixin):
     pass
+
+
+SimulationUpdate = make_update_schema(SimulationCreate, "SimulationUpdate")
 
 
 class NestedSimulationRead(SimulationBase, EntityTypeMixin, IdentifiableMixin):

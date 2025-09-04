@@ -28,10 +28,10 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.morphology import MorphologyFilterDep
+from app.filters.cell_morphology import CellMorphologyFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
-from app.schemas.morphology import (
+from app.schemas.cell_morphology import (
     CellMorphologyAnnotationExpandedRead,
     CellMorphologyCreate,
     CellMorphologyRead,
@@ -112,7 +112,7 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    morphology_filter: MorphologyFilterDep,
+    morphology_filter: CellMorphologyFilterDep,
     search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,

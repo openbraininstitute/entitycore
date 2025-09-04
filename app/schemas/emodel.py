@@ -13,9 +13,9 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
+from app.schemas.cell_morphology import CellMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.ion_channel_model import IonChannelModelWAssets
-from app.schemas.morphology import CellMorphologyBase
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 

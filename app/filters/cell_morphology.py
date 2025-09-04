@@ -22,7 +22,7 @@ from app.filters.measurement_annotation import MeasurableFilterMixin
 from app.filters.subject import NestedSubjectFilter, SubjectFilterMixin
 
 
-class NestedMorphologyFilter(
+class NestedCellMorphologyFilter(
     IdFilterMixin,
     NameFilterMixin,
     CustomFilter,
@@ -66,7 +66,7 @@ class NestedExemplarMorphologyFilter(
         model = CellMorphology
 
 
-class MorphologyFilter(
+class CellMorphologyFilter(
     EntityFilterMixin,
     BrainRegionFilterMixin,
     SubjectFilterMixin,
@@ -93,10 +93,4 @@ class MorphologyFilter(
 
 
 # Dependencies
-MorphologyFilterDep = Annotated[MorphologyFilter, FilterDepends(MorphologyFilter)]
-
-# Nested dependencies
-NestedMorphologyFilterDep = FilterDepends(with_prefix("morphology", NestedMorphologyFilter))
-NestedExemplarMorphologyFilterDep = FilterDepends(
-    with_prefix("exemplar_morphology", NestedExemplarMorphologyFilter)
-)
+CellMorphologyFilterDep = Annotated[CellMorphologyFilter, FilterDepends(CellMorphologyFilter)]

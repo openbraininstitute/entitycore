@@ -1,5 +1,5 @@
 from app.db.model import IonChannelModel
-from app.schemas.morphology import CellMorphologyRead
+from app.schemas.cell_morphology import CellMorphologyRead
 
 from .utils import (
     PROJECT_ID,

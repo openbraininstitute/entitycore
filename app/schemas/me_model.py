@@ -13,10 +13,10 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
+from app.schemas.cell_morphology import CellMorphologyRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.emodel import EModelRead
 from app.schemas.memodel_calibration_result import MEModelCalibrationResultRead
-from app.schemas.morphology import CellMorphologyRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 

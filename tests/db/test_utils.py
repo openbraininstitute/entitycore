@@ -1,7 +1,7 @@
 from app.db import utils as test_module
 from app.db.model import CellMorphology, MeasurementAnnotation, MeasurementKind
+from app.schemas.cell_morphology import CellMorphologyCreate
 from app.schemas.measurement_annotation import MeasurementAnnotationCreate
-from app.schemas.morphology import CellMorphologyCreate
 
 from tests.utils import PROJECT_ID
 

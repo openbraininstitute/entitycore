@@ -7,13 +7,13 @@ from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipP
 
 from app.db.model import (
     Base,
+    CellMorphologyProtocol,
     Entity,
     Identifiable,
     LocationMixin,
     MeasurableEntityMixin,
-    MorphologyProtocol,
 )
-from app.db.types import EntityType, MorphologyGenerationType
+from app.db.types import CellMorphologyGenerationType, EntityType
 from app.logger import L
 
 MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
@@ -31,11 +31,13 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     if hasattr(EntityType, mapper.class_.__tablename__)
 }
 
-MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[MorphologyGenerationType, type[MorphologyProtocol]] = {
-    MorphologyGenerationType[mapper.polymorphic_identity]: mapper.class_
+CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[
+    CellMorphologyGenerationType, type[CellMorphologyProtocol]
+] = {
+    CellMorphologyGenerationType[mapper.polymorphic_identity]: mapper.class_
     for mapper in Base.registry.mappers
-    if issubclass(mapper.class_, MorphologyProtocol)
-    and mapper.class_ != MorphologyProtocol  # exclude the base class
+    if issubclass(mapper.class_, CellMorphologyProtocol)
+    and mapper.class_ != CellMorphologyProtocol  # exclude the base class
     and mapper.polymorphic_identity
 }
 

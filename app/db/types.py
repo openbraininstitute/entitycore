@@ -22,14 +22,14 @@ class ModifiedMorphologyMethodType(StrEnum):
     ratified = auto()
 
 
-class MorphologyGenerationType(StrEnum):
+class CellMorphologyGenerationType(StrEnum):
     digital_reconstruction = auto()
     modified_reconstruction = auto()
     computationally_synthesized = auto()
     placeholder = auto()
 
 
-class MorphologyProtocolDesign(StrEnum):
+class CellMorphologyProtocolDesign(StrEnum):
     electron_microscopy = auto()
     cell_patch = auto()
     fluorophore = auto()
@@ -103,6 +103,7 @@ class EntityType(StrEnum):
     brain_atlas_region = auto()
     cell_composition = auto()
     cell_morphology = auto()
+    cell_morphology_protocol = auto()
     electrical_cell_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
@@ -115,7 +116,6 @@ class EntityType(StrEnum):
     mesh = auto()
     memodel_calibration_result = auto()
     me_type_density = auto()
-    morphology_protocol = auto()
     publication = auto()
     simulation = auto()
     simulation_campaign = auto()

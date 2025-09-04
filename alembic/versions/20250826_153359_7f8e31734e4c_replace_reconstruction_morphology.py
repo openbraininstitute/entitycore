@@ -253,7 +253,7 @@ def upgrade() -> None:
         "electron_microscopy",
         "cell_patch",
         "fluorophore",
-        name="morphologyprotocoldesign",
+        name="cellmorphologyprotocoldesign",
     ).create(op.get_bind())
     sa.Enum(
         "digital_reconstruction",
@@ -288,7 +288,7 @@ def upgrade() -> None:
         name="stainingtype",
     ).create(op.get_bind())
     op.create_table(
-        "morphology_protocol",
+        "cell_morphology_protocol",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("protocol_document", sa.String(), nullable=True),
         sa.Column(
@@ -297,7 +297,7 @@ def upgrade() -> None:
                 "electron_microscopy",
                 "cell_patch",
                 "fluorophore",
-                name="morphologyprotocoldesign",
+                name="cellmorphologyprotocoldesign",
                 create_type=False,
             ),
             nullable=True,
@@ -348,9 +348,9 @@ def upgrade() -> None:
         sa.Column("corrected_for_shrinkage", sa.Boolean(), nullable=True),
         sa.Column("method_type", sa.String(), nullable=True),
         sa.ForeignKeyConstraint(
-            ["id"], ["entity.id"], name=op.f("fk_morphology_protocol_id_entity")
+            ["id"], ["entity.id"], name=op.f("fk_cell_morphology_protocol_id_entity")
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_morphology_protocol")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_cell_morphology_protocol")),
     )
 
     # drop old indexes
@@ -451,7 +451,7 @@ def upgrade() -> None:
     op.add_column(
         "cell_morphology",
         sa.Column(
-            "morphology_protocol_id",
+            "cell_morphology_protocol_id",
             sa.Uuid(),
             nullable=True,
         ),
@@ -466,16 +466,16 @@ def upgrade() -> None:
         ["id"],
     )
     op.create_foreign_key(
-        op.f("fk_cell_morphology_morphology_protocol_id_morphology_protocol"),
+        op.f("fk_cell_morphology_cell_morphology_protocol_id_cell_morphology_protocol"),
         "cell_morphology",
-        "morphology_protocol",
-        ["morphology_protocol_id"],
+        "cell_morphology_protocol",
+        ["cell_morphology_protocol_id"],
         ["id"],
     )
     op.create_index(
-        op.f("ix_cell_morphology_morphology_protocol_id"),
+        op.f("ix_cell_morphology_cell_morphology_protocol_id"),
         "cell_morphology",
-        ["morphology_protocol_id"],
+        ["cell_morphology_protocol_id"],
         unique=False,
     )
 
@@ -500,6 +500,7 @@ def upgrade() -> None:
             "brain_atlas_region",
             "cell_composition",
             "cell_morphology",
+            "cell_morphology_protocol",
             "electrical_cell_recording",
             "electrical_recording_stimulus",
             "emodel",
@@ -512,7 +513,6 @@ def upgrade() -> None:
             "mesh",
             "memodel_calibration_result",
             "me_type_density",
-            "morphology_protocol",
             "publication",
             "simulation",
             "simulation_campaign",
@@ -669,7 +669,7 @@ def downgrade() -> None:
 
     # drop old constraints
     op.drop_constraint(
-        op.f("fk_cell_morphology_morphology_protocol_id_morphology_protocol"),
+        op.f("fk_cell_morphology_cell_morphology_protocol_id_cell_morphology_protocol"),
         "cell_morphology",
         type_="foreignkey",
     )
@@ -681,7 +681,7 @@ def downgrade() -> None:
 
     # drop old columns
     op.drop_column("cell_morphology", "repair_pipeline_state")
-    op.drop_column("cell_morphology", "morphology_protocol_id")
+    op.drop_column("cell_morphology", "cell_morphology_protocol_id")
 
     # rename table and indexes
     op.rename_table("cell_morphology", "reconstruction_morphology")
@@ -810,11 +810,11 @@ def downgrade() -> None:
 
     # drop other constraints, tables, and enums
     op.drop_constraint(
-        op.f("fk_morphology_protocol_id_entity"),
-        "morphology_protocol",
+        op.f("fk_cell_morphology_protocol_id_entity"),
+        "cell_morphology_protocol",
         type_="foreignkey",
     )
-    op.drop_table("morphology_protocol")
+    op.drop_table("cell_morphology_protocol")
     sa.Enum(
         "golgi",
         "nissl",
@@ -851,7 +851,7 @@ def downgrade() -> None:
         "electron_microscopy",
         "cell_patch",
         "fluorophore",
-        name="morphologyprotocoldesign",
+        name="cellmorphologyprotocoldesign",
     ).drop(op.get_bind())
 
     # restore the previous data

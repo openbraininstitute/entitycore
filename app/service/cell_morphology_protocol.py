@@ -12,29 +12,32 @@ from sqlalchemy.orm import (
 
 from app.db.model import (
     Agent,
-    MorphologyProtocol,
+    CellMorphologyProtocol,
 )
-from app.db.utils import MORPHOLOGY_GENERATION_TYPE_TO_CLASS
+from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
-from app.filters.morphology_protocol import MorphologyProtocolFilterDep
+from app.filters.cell_morphology_protocol import CellMorphologyProtocolFilterDep
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
-from app.schemas.morphology_protocol import MorphologyProtocolCreate, MorphologyProtocolRead
+from app.schemas.cell_morphology_protocol import (
+    CellMorphologyProtocolCreate,
+    CellMorphologyProtocolRead,
+)
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
 
-RESPONSE_SCHEMA_ADAPTER = TypeAdapter(MorphologyProtocolRead)
+RESPONSE_SCHEMA_ADAPTER = TypeAdapter(CellMorphologyProtocolRead)
 
 
 def _load_from_db(query: sa.Select) -> sa.Select:
     """Return the query with the required options to load the data."""
     return query.options(
-        joinedload(MorphologyProtocol.created_by),
-        joinedload(MorphologyProtocol.updated_by),
+        joinedload(CellMorphologyProtocol.created_by),
+        joinedload(CellMorphologyProtocol.updated_by),
         raiseload("*"),
     )
 
@@ -43,11 +46,11 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> MorphologyProtocolRead:
+) -> CellMorphologyProtocolRead:
     return router_read_one(
         id_=id_,
         db=db,
-        db_model_class=MorphologyProtocol,
+        db_model_class=CellMorphologyProtocol,
         authorized_project_id=user_context.project_id,
         response_schema_class=RESPONSE_SCHEMA_ADAPTER,
         apply_operations=_load_from_db,
@@ -57,9 +60,9 @@ def read_one(
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
-    json_model: Annotated[MorphologyProtocolCreate, Body()],
-) -> MorphologyProtocolRead:
-    db_model_class = MORPHOLOGY_GENERATION_TYPE_TO_CLASS[json_model.generation_type]
+    json_model: Annotated[CellMorphologyProtocolCreate, Body()],
+) -> CellMorphologyProtocolRead:
+    db_model_class = CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS[json_model.generation_type]
     return router_create_one(
         db=db,
         user_context=user_context,
@@ -75,9 +78,9 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: MorphologyProtocolFilterDep,
+    filter_model: CellMorphologyProtocolFilterDep,
     with_facets: FacetsDep,
-) -> ListResponse[MorphologyProtocolRead]:
+) -> ListResponse[CellMorphologyProtocolRead]:
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
@@ -97,14 +100,14 @@ def read_many(
         "updated_by",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
-        db_model_class=MorphologyProtocol,
+        db_model_class=CellMorphologyProtocol,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
         aliases=aliases,
     )
     return router_read_many(
         db=db,
-        db_model_class=MorphologyProtocol,
+        db_model_class=CellMorphologyProtocol,
         authorized_project_id=user_context.project_id,
         with_search=None,
         with_in_brain_region=None,

@@ -18,9 +18,9 @@ from app.schemas.base import (
     LicensedCreateMixin,
     LicensedReadMixin,
 )
+from app.schemas.cell_morphology_protocol import NestedCellMorphologyProtocolRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
-from app.schemas.morphology_protocol import NestedMorphologyProtocolRead
 from app.schemas.subject import SubjectReadMixin
 
 
@@ -39,7 +39,7 @@ class CellMorphologyCreate(
 ):
     subject_id: uuid.UUID
     brain_region_id: uuid.UUID
-    morphology_protocol_id: uuid.UUID | None = None
+    cell_morphology_protocol_id: uuid.UUID | None = None
 
 
 class CellMorphologyRead(
@@ -56,7 +56,7 @@ class CellMorphologyRead(
     BrainRegionReadMixin,
 ):
     mtypes: list[MTypeClassRead] | None
-    morphology_protocol: NestedMorphologyProtocolRead | None
+    cell_morphology_protocol: NestedCellMorphologyProtocolRead | None
 
 
 class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):

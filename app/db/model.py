@@ -39,6 +39,8 @@ from app.db.types import (
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
+    CellMorphologyGenerationType,
+    CellMorphologyProtocolDesign,
     CircuitBuildCategory,
     CircuitScale,
     ContentType,
@@ -51,8 +53,6 @@ from app.db.types import (
     ExternalSource,
     MeasurementStatistic,
     MeasurementUnit,
-    MorphologyGenerationType,
-    MorphologyProtocolDesign,
     PointLocation,
     PointLocationType,
     PublicationType,
@@ -697,12 +697,12 @@ class MeasurableEntityMixin:
         )
 
 
-class MorphologyProtocol(Entity):
-    __tablename__ = EntityType.morphology_protocol.value
+class CellMorphologyProtocol(Entity):
+    __tablename__ = EntityType.cell_morphology_protocol.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     protocol_document: Mapped[str | None]
-    protocol_design: Mapped[MorphologyProtocolDesign | None]
-    generation_type: Mapped[MorphologyGenerationType]
+    protocol_design: Mapped[CellMorphologyProtocolDesign | None]
+    generation_type: Mapped[CellMorphologyGenerationType]
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
@@ -711,7 +711,7 @@ class MorphologyProtocol(Entity):
     }
 
 
-class DigitalReconstructionMorphologyProtocol(MorphologyProtocol):
+class DigitalReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
     staining_type: Mapped[StainingType | None]
     slicing_thickness: Mapped[float] = mapped_column(nullable=True)
     slicing_direction: Mapped[SlicingDirectionType | None]
@@ -720,29 +720,29 @@ class DigitalReconstructionMorphologyProtocol(MorphologyProtocol):
     corrected_for_shrinkage: Mapped[bool | None]
 
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": MorphologyGenerationType.digital_reconstruction.value,
+        "polymorphic_identity": CellMorphologyGenerationType.digital_reconstruction.value,
     }
 
 
-class ModifiedReconstructionMorphologyProtocol(MorphologyProtocol):
+class ModifiedReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
     method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": MorphologyGenerationType.modified_reconstruction.value,
+        "polymorphic_identity": CellMorphologyGenerationType.modified_reconstruction.value,
     }
 
 
-class ComputationallySynthesizedMorphologyProtocol(MorphologyProtocol):
+class ComputationallySynthesizedCellMorphologyProtocol(CellMorphologyProtocol):
     method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": MorphologyGenerationType.computationally_synthesized.value,
+        "polymorphic_identity": CellMorphologyGenerationType.computationally_synthesized.value,
     }
 
 
-class PlaceholderMorphologyProtocol(MorphologyProtocol):
+class PlaceholderCellMorphologyProtocol(CellMorphologyProtocol):
     __mapper_args__ = {  # noqa: RUF012
-        "polymorphic_identity": MorphologyGenerationType.placeholder.value,
+        "polymorphic_identity": CellMorphologyGenerationType.placeholder.value,
     }
 
 
@@ -758,13 +758,13 @@ class CellMorphology(
 
     location: Mapped[PointLocation | None]
     repair_pipeline_state: Mapped[RepairPipelineType | None]
-    morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("morphology_protocol.id"), index=True
+    cell_morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("cell_morphology_protocol.id"), index=True
     )
 
-    morphology_protocol: Mapped["MorphologyProtocol"] = relationship(
-        "MorphologyProtocol",
-        foreign_keys=[morphology_protocol_id],
+    cell_morphology_protocol: Mapped["CellMorphologyProtocol"] = relationship(
+        "CellMorphologyProtocol",
+        foreign_keys=[cell_morphology_protocol_id],
         uselist=False,
     )
 

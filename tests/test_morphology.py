@@ -664,7 +664,7 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, s
             authorized_project_id=PROJECT_ID,
             created_by_id=person_id,
             updated_by_id=person_id,
-            morphology_protocol_id=None,
+            cell_morphology_protocol_id=None,
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

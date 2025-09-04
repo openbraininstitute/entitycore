@@ -5,6 +5,10 @@ from fastapi_filter import with_prefix
 from app.db.model import CellMorphology
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.cell_morphology_protocol import (
+    NestedCellMorphologyProtocolFilter,
+    NestedCellMorphologyProtocolFilterDep,
+)
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
@@ -15,10 +19,6 @@ from app.filters.common import (
     NestedMTypeClassFilter,
 )
 from app.filters.measurement_annotation import MeasurableFilterMixin
-from app.filters.morphology_protocol import (
-    NestedMorphologyProtocolFilter,
-    NestedMorphologyProtocolFilterDep,
-)
 from app.filters.subject import NestedSubjectFilter, SubjectFilterMixin
 
 
@@ -75,8 +75,8 @@ class MorphologyFilter(
     NameFilterMixin,
     CustomFilter,
 ):
-    morphology_protocol: Annotated[
-        NestedMorphologyProtocolFilter | None, NestedMorphologyProtocolFilterDep
+    cell_morphology_protocol: Annotated[
+        NestedCellMorphologyProtocolFilter | None, NestedCellMorphologyProtocolFilterDep
     ] = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

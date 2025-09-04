@@ -14,10 +14,10 @@ from sqlalchemy.orm import (
 from app.db.model import (
     Agent,
     CellMorphology,
+    CellMorphologyProtocol,
     Contribution,
     MeasurementAnnotation,
     MeasurementKind,
-    MorphologyProtocol,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -46,7 +46,7 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
     """Return the query with the required options to load the data."""
     query = query.options(
         joinedload(CellMorphology.brain_region),
-        joinedload(CellMorphology.morphology_protocol),
+        joinedload(CellMorphology.cell_morphology_protocol),
         selectinload(CellMorphology.contributions).selectinload(Contribution.agent),
         selectinload(CellMorphology.contributions).selectinload(Contribution.role),
         joinedload(CellMorphology.mtypes),
@@ -121,7 +121,7 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
-    morphology_protocol_alias = aliased(MorphologyProtocol, flat=True)
+    cell_morphology_protocol_alias = aliased(CellMorphologyProtocol, flat=True)
     aliases: Aliases = {
         Subject: subject_alias,
         Agent: {
@@ -129,7 +129,7 @@ def read_many(
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
-        MorphologyProtocol: morphology_protocol_alias,
+        CellMorphologyProtocol: cell_morphology_protocol_alias,
     }
     facet_keys = [
         "brain_region",
@@ -139,7 +139,7 @@ def read_many(
         "updated_by",
         "contribution",
         "mtype",
-        "morphology_protocol",
+        "cell_morphology_protocol",
     ]
     filter_keys = [
         "subject",

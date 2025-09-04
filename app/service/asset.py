@@ -137,8 +137,10 @@ def delete_entity_asset(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
+    *,
+    hard_delete: bool = False,
 ) -> AssetRead:
-    """Mark an entity asset as deleted."""
+    """Delete or mark an entity asset as deleted."""
     _ = entity_service.get_writable_entity(
         repos,
         user_context=user_context,
@@ -146,28 +148,33 @@ def delete_entity_asset(
         entity_id=entity_id,
     )
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
-        asset = repos.asset.update_entity_asset_status(
-            entity_type=entity_type,
-            entity_id=entity_id,
-            asset_id=asset_id,
-            asset_status=AssetStatus.DELETED,
-        )
+        asset = delete_asset(repos, entity_type, entity_id, asset_id, hard_delete=hard_delete)
     return AssetRead.model_validate(asset)
 
 
-def remove_entity_asset(
+def delete_asset(
     repos: RepositoryGroup,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
+    *,
+    hard_delete: bool = False,
 ) -> AssetRead:
-    """Remove completely an entity asset."""
+    """Delete an asset."""
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
-        asset = repos.asset.delete_entity_asset(
-            entity_type=entity_type,
-            entity_id=entity_id,
-            asset_id=asset_id,
-        )
+        if hard_delete:
+            asset = repos.asset.delete_entity_asset(
+                entity_type=entity_type,
+                entity_id=entity_id,
+                asset_id=asset_id,
+            )
+        else:
+            asset = repos.asset.update_entity_asset_status(
+                entity_type=entity_type,
+                entity_id=entity_id,
+                asset_id=asset_id,
+                asset_status=AssetStatus.DELETED,
+            )
     return AssetRead.model_validate(asset)
 
 

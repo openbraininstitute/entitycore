@@ -20,6 +20,43 @@ from .utils import (
 ROUTE = "/memodel"
 
 
+def test_update_one(client, memodel_id):
+    new_name = "my_new_memodel_name"
+    new_description = "my_new_memodel_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{memodel_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+
+def test_update_one__public(client, memodel_id):
+    # make private entity public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{memodel_id}",
+        json={
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{memodel_id}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_get_memodel(client: TestClient, memodel_id):
     response = client.get(f"{ROUTE}/{memodel_id}")
     assert response.status_code == 200

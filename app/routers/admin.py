@@ -1,8 +1,7 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
-from app.config import storages
 from app.db.utils import RESOURCE_TYPE_TO_CLASS
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.db import RepoGroupDep, SessionDep
@@ -13,9 +12,6 @@ from app.schemas.asset import (
 )
 from app.service import asset as asset_service
 from app.utils.routers import EntityRoute, ResourceRoute, entity_route_to_type, route_to_type
-from app.utils.s3 import (
-    delete_from_s3,
-)
 
 router = APIRouter(
     prefix="/admin",
@@ -60,11 +56,5 @@ def delete_entity_asset(
         asset_id=asset_id,
         hard_delete=True,
     )
-    storage = storages[asset.storage_type]
-    # delete the file from S3 only if not using an open data storage
-    if not storage.is_open:
-        s3_client = storage_client_factory(storage)
-        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=asset.full_path):
-            raise HTTPException(status_code=500, detail="Failed to delete object")
-
-    return AssetRead.model_validate(asset)
+    asset_service.delete_asset_storage_object(asset, storage_client_factory)
+    return asset

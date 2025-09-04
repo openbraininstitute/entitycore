@@ -3,6 +3,7 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import cast
 
+from fastapi import HTTPException
 from pydantic.networks import AnyUrl
 from types_boto3_s3 import S3Client
 
@@ -22,6 +23,7 @@ from app.service import entity as entity_service
 from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
+    delete_from_s3,
     generate_presigned_url,
     list_directory_with_details,
     sanitize_directory_traversal,
@@ -176,6 +178,17 @@ def delete_asset(
                 asset_status=AssetStatus.DELETED,
             )
     return AssetRead.model_validate(asset)
+
+
+def delete_asset_storage_object(asset: AssetRead, storage_client_factory: StorageClientFactory):
+    """Delete asset storage object."""
+    # TODO: Handle directories?
+    storage = storages[asset.storage_type]
+    # delete the file from S3 only if not using an open data storage
+    if not storage.is_open:
+        s3_client = storage_client_factory(storage)
+        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=asset.full_path):
+            raise HTTPException(status_code=500, detail="Failed to delete object")
 
 
 def entity_asset_upload_directory(

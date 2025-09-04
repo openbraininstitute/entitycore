@@ -28,7 +28,7 @@ from .utils import (
     check_pagination,
 )
 
-ROUTE = "/experimental-neuron-density"
+ROUTE = "/experimental_neuron_density"
 MODEL_CLASS = ExperimentalNeuronDensity
 
 
@@ -65,6 +65,43 @@ def create_id(client, json_data):
 @pytest.fixture
 def model_id(create_id):
     return create_id()
+
+
+def test_update_one(client, model_id):
+    new_name = "my_new_density_name"
+    new_description = "my_new_density_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+
+def test_update_one__public(client, model_id):
+    # make private entity public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def test_create_one(client, json_data):

@@ -5,8 +5,15 @@ from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
-from app.db.model import Base, Entity, Identifiable, LocationMixin, MeasurableEntityMixin
-from app.db.types import EntityType
+from app.db.model import (
+    Base,
+    Entity,
+    Identifiable,
+    LocationMixin,
+    MeasurableEntityMixin,
+    MorphologyProtocol,
+)
+from app.db.types import EntityType, MorphologyGenerationType
 from app.logger import L
 
 MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
@@ -24,6 +31,13 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     if hasattr(EntityType, mapper.class_.__tablename__)
 }
 
+MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[MorphologyGenerationType, type[MorphologyProtocol]] = {
+    MorphologyGenerationType[mapper.polymorphic_identity]: mapper.class_
+    for mapper in Base.registry.mappers
+    if issubclass(mapper.class_, MorphologyProtocol)
+    and mapper.class_ != MorphologyProtocol  # exclude the base class
+    and mapper.polymorphic_identity
+}
 
 entity_type_with_brain_region_enum_members = {
     member.name: member.value

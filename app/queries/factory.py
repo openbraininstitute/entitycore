@@ -16,6 +16,7 @@ from app.db.model import (
     MeasurementItem,
     MeasurementKind,
     MEModel,
+    MorphologyProtocol,
     MTypeClass,
     MTypeClassification,
     Simulation,
@@ -56,6 +57,7 @@ def query_params_factory[I: Identifiable](
         return cast("T", value)
 
     morphology_alias = _get_alias(CellMorphology)
+    morphology_protocol_alias = _get_alias(MorphologyProtocol)
     emodel_alias = _get_alias(EModel)
     me_model_alias = _get_alias(MEModel)
     synaptome_alias = _get_alias(SingleNeuronSynaptome)
@@ -95,6 +97,10 @@ def query_params_factory[I: Identifiable](
         "brain_region": {"id": brain_region_alias.id, "label": brain_region_alias.name},
         "morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
         "exemplar_morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
+        "morphology_protocol": {
+            "id": morphology_protocol_alias.id,
+            "label": morphology_protocol_alias.generation_type,
+        },
         "emodel": {"id": emodel_alias.id, "label": emodel_alias.name},
         "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
         "synaptome": {"id": synaptome_alias.id, "label": synaptome_alias.name},
@@ -123,6 +129,10 @@ def query_params_factory[I: Identifiable](
         ),
         "exemplar_morphology": lambda q: q.join(
             morphology_alias, db_model_class.exemplar_morphology_id == morphology_alias.id
+        ),
+        "morphology_protocol": lambda q: q.join(
+            morphology_protocol_alias,
+            db_model_class.morphology_protocol_id == morphology_protocol_alias.id,
         ),
         "emodel": lambda q: q.join(emodel_alias, db_model_class.emodel_id == emodel_alias.id),
         "entity": lambda q: q.join(entity_alias, db_model_class.entity_id == entity_alias.id),

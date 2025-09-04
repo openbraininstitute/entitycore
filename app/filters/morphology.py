@@ -15,6 +15,10 @@ from app.filters.common import (
     NestedMTypeClassFilter,
 )
 from app.filters.measurement_annotation import MeasurableFilterMixin
+from app.filters.morphology_protocol import (
+    NestedMorphologyProtocolFilter,
+    NestedMorphologyProtocolFilterDep,
+)
 from app.filters.subject import NestedSubjectFilter, SubjectFilterMixin
 
 
@@ -71,6 +75,9 @@ class MorphologyFilter(
     NameFilterMixin,
     CustomFilter,
 ):
+    morphology_protocol: Annotated[
+        NestedMorphologyProtocolFilter | None, NestedMorphologyProtocolFilterDep
+    ] = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

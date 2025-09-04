@@ -17,6 +17,7 @@ from app.db.model import (
     Contribution,
     MeasurementAnnotation,
     MeasurementKind,
+    MorphologyProtocol,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -120,6 +121,7 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
+    morphology_protocol_alias = aliased(MorphologyProtocol, flat=True)
     aliases: Aliases = {
         Subject: subject_alias,
         Agent: {
@@ -127,6 +129,7 @@ def read_many(
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
+        MorphologyProtocol: morphology_protocol_alias,
     }
     facet_keys = [
         "brain_region",
@@ -136,6 +139,7 @@ def read_many(
         "updated_by",
         "contribution",
         "mtype",
+        "morphology_protocol",
     ]
     filter_keys = [
         "subject",

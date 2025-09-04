@@ -28,7 +28,7 @@ from .utils import (
     check_pagination,
 )
 
-ROUTE = "/experimental_neuron_density"
+ROUTE = "/experimental-neuron-density"
 MODEL_CLASS = ExperimentalNeuronDensity
 
 

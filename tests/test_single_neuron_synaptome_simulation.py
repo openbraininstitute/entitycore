@@ -19,7 +19,7 @@ from .utils import (
 )
 
 MODEL = SingleNeuronSynaptomeSimulation
-ROUTE = "/single_neuron_synaptome_simulation"
+ROUTE = "/single-neuron-synaptome-simulation"
 
 
 def _create_synaptome_id(

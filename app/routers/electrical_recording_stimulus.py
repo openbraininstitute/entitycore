@@ -3,8 +3,8 @@ from fastapi import APIRouter
 import app.service.electrical_recording_stimulus
 
 router = APIRouter(
-    prefix="/electrical_recording_stimulus",
-    tags=["electrical_recording_stimulus"],
+    prefix="/electrical-recording-stimulus",
+    tags=["electrical-recording-stimulus"],
 )
 
 read_many = router.get("")(app.service.electrical_recording_stimulus.read_many)

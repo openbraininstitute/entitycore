@@ -12,7 +12,7 @@ from .utils import (
     check_pagination,
 )
 
-ROUTE = "/electrical_recording_stimulus"
+ROUTE = "/electrical-recording-stimulus"
 MODEL_CLASS = ElectricalRecordingStimulus
 TYPE = EntityType.electrical_recording_stimulus.value
 

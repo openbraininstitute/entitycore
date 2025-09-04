@@ -3,8 +3,8 @@ from fastapi import APIRouter
 import app.service.experimental_neuron_density
 
 router = APIRouter(
-    prefix="/experimental_neuron_density",
-    tags=["experimental_neuron_density"],
+    prefix="/experimental-neuron-density",
+    tags=["experimental-neuron-density"],
 )
 
 read_many = router.get("")(app.service.experimental_neuron_density.read_many)

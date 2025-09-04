@@ -20,7 +20,7 @@ from .utils import (
 )
 
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
-ROUTE = "/single_neuron_simulation"
+ROUTE = "/single-neuron-simulation"
 
 
 def _create_me_model_id(db, data):

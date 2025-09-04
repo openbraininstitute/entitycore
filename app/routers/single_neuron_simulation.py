@@ -3,8 +3,8 @@ from fastapi import APIRouter
 import app.service.single_neuron_simulation
 
 router = APIRouter(
-    prefix="/single_neuron_simulation",
-    tags=["single_neuron_simulation"],
+    prefix="/single-neuron-simulation",
+    tags=["single-neuron-simulation"],
 )
 
 read_many = router.get("")(app.service.single_neuron_simulation.read_many)

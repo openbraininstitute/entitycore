@@ -14,6 +14,7 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
+from app.schemas.utils import make_update_schema
 
 
 class ElectricalRecordingStimulusBase(BaseModel):
@@ -46,3 +47,8 @@ class ElectricalRecordingStimulusCreate(
     ElectricalRecordingStimulusBase, AuthorizationOptionalPublicMixin
 ):
     pass
+
+
+ElectricalRecordingStimulusUpdate = make_update_schema(
+    ElectricalRecordingStimulusCreate, "ElectricalRecordingStimulusUpdate"
+)

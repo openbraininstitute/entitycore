@@ -3,8 +3,8 @@ from fastapi import APIRouter
 import app.service.single_neuron_synaptome
 
 router = APIRouter(
-    prefix="/single_neuron_synaptome",
-    tags=["single_neuron_synaptome"],
+    prefix="/single-neuron-synaptome",
+    tags=["single-neuron-synaptome"],
 )
 
 read_many = router.get("")(app.service.single_neuron_synaptome.read_many)

@@ -24,7 +24,7 @@ from .utils import (
 from tests.conftest import CreateIds
 
 MODEL = SingleNeuronSynaptome
-ROUTE = "/single_neuron_synaptome"
+ROUTE = "/single-neuron-synaptome"
 
 
 @pytest.fixture

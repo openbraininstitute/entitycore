@@ -1,5 +1,6 @@
 """Custom enum."""
 
+import operator
 from collections.abc import Sequence
 from enum import StrEnum
 from typing import cast
@@ -31,5 +32,8 @@ class UpperStrEnum(StrEnum):
 
 def combine_str_enums(name: str, enums: Sequence[type[StrEnum]]) -> type[StrEnum]:
     """Combine mutliple StrEnum into a single one."""
-    members = {e.name: e.value for enum in enums for e in enum.__members__.values()}
-    return cast("type[StrEnum]", StrEnum(name, members))
+    members = sorted(
+        [(e.name, e.value) for enum in enums for e in enum.__members__.values()],
+        key=operator.itemgetter(0),
+    )
+    return cast("type[StrEnum]", StrEnum(name, dict(members)))

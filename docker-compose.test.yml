@@ -18,7 +18,7 @@ services:
 
   db-test:
     profiles: [test]
-    image: postgres:17-alpine
+    image: pgvector/pgvector:0.8.0-pg17-trixie
     environment:
     - POSTGRES_USER=test
     - POSTGRES_PASSWORD=test

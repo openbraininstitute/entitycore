@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import PostgresDsn, field_validator
+from pydantic import PostgresDsn, SecretStr, field_validator
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 30
     DB_POOL_PRE_PING: bool = False
     DB_MAX_OVERFLOW: int = 0
+
+    OPENAI_API_KEY: SecretStr | None = None
 
     @field_validator("DB_URI", mode="before")
     @classmethod

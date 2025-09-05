@@ -1,6 +1,8 @@
+import pytest
+
 from app.db.model import License, ReconstructionMorphology
 
-from tests.utils import PROJECT_ID, add_all_db, check_sort_by_id
+from tests.utils import PROJECT_ID, add_all_db, check_sort_by_field
 
 ROUTE_LICENSE = "/license"
 ROUTE_MORPHOLOGY = "/reconstruction-morphology"
@@ -24,7 +26,7 @@ def test_license_ordering(db, client, person_id):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count
-    check_sort_by_id(data)
+    check_sort_by_field(data, "id")
 
 
 def test_reconstruction_morphology_ordering(
@@ -53,10 +55,18 @@ def test_reconstruction_morphology_ordering(
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count
-    check_sort_by_id(data)
+    check_sort_by_field(data, "id")
 
     response = client.get(ROUTE_MORPHOLOGY, params={"name__ilike": "to_find"})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count / 2
-    check_sort_by_id(data)
+    check_sort_by_field(data, "id")
+
+    response = client.get(ROUTE_MORPHOLOGY, params={"name__ilike": "to_find", "order_by": "name"})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == count / 2
+    with pytest.raises(AssertionError, match="Items unsorted by id"):
+        check_sort_by_field(data, "id")
+    check_sort_by_field(data, "name")

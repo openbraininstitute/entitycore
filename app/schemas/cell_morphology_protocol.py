@@ -66,7 +66,7 @@ class DigitalReconstructionCellMorphologyProtocolBase(
 
     generation_type: Literal[CellMorphologyGenerationType.digital_reconstruction]
     staining_type: StainingType | None = None
-    slicing_thickness: Annotated[float, Field(ge=0.0, le=1000.0)]
+    slicing_thickness: Annotated[float, Field(ge=0.0)]
     slicing_direction: SlicingDirectionType | None = None
     magnification: Annotated[float | None, Field(ge=0.0)] = None
     tissue_shrinkage: Annotated[float | None, Field(ge=0.0)] = None

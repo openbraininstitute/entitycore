@@ -14,20 +14,11 @@
 ```
 
 These have CRUD-able patterns:
-    GET /contribution/{id} to get
-    POST /contribution/ to create
+    GET /experimental-bouton-density/{id} to get
+    POST /experimental-bouton-density/ to create
+    PATCH /experimental-bouton-density/ to update
 
-
-Note: the organizations will need to be filled in; they include ones that are not yet part of the OBI, so there isn't a one-to-one relationship with what is included virtual lab service.
-Future work may include auto-additing organizations when one joins the OBI; alternatively the first time data is created, they could be added.
-Currently, `Entity`s are immutable, with the exception of the `authorized_public` property (see Authorization).
-
-TODO:
-    What are the ACLs on these operations?
-        contribution
-        organization
-        person
-        role
+API reserved for the service admin group (see [Authorization](#Authorization)) will be prefixed by /admin/ .
 
 # List views
 The endpoint for returning the listing per type; including faceting; if no query parameter is passed, the traditional list view will be returned (ie: no filtering)
@@ -362,6 +353,13 @@ By default, an `Entity` is private, and marked as being owned by the `project-id
 Members of the owning project can set the `authorized_public` on creation, to mark the `Entity` as public.
 In addition, this value can be changed by using the `PATCH` operation.
 Once an `Entity` is made public, it can not be made private, since it could be already shared/used by others.
+
+Users in the [service admin group](#service-admin-group) can read data from any project, and edit (read/update/delete) data in any project.
+
+A resource without an authorized_project_id is called a global resource.
+
+Global resources and public entities can be updated only by service admins.
+
 
 
 ### To be looked at more:

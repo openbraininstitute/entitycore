@@ -2,7 +2,7 @@ import uuid
 from typing import Annotated
 
 import sqlalchemy as sa
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import AnyUrl, BaseModel, ConfigDict, Field, HttpUrl, PlainSerializer, computed_field
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -45,3 +45,14 @@ class ListResponse[M: BaseModel](BaseModel):
 
 
 type Select[M: DeclarativeBase] = sa.Select[tuple[M]]
+
+
+# The URL's encoded string, using the punycode-encoded host for serialization to the db.
+SerializableHttpUrl = Annotated[
+    HttpUrl,
+    PlainSerializer(lambda x: x.encoded_string(), return_type=str, when_used="unless-none"),
+]
+SerializableAnyUrl = Annotated[
+    AnyUrl,
+    PlainSerializer(lambda x: x.encoded_string(), return_type=str, when_used="unless-none"),
+]

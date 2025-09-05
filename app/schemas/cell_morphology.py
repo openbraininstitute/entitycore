@@ -2,46 +2,48 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import PointLocationBase
+from app.db.types import (
+    PointLocationBase,
+)
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainRegionRead,
+    BrainRegionReadMixin,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
 )
+from app.schemas.cell_morphology_protocol import NestedCellMorphologyProtocolRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
-from app.schemas.species import NestedSpeciesRead, NestedStrainRead
+from app.schemas.subject import SubjectReadMixin
 
 
-class ReconstructionMorphologyBase(BaseModel):
+class CellMorphologyBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
     location: PointLocationBase | None
-    legacy_id: list[str] | None
-
-
-class ReconstructionMorphologyCreate(
-    ReconstructionMorphologyBase,
-    LicensedCreateMixin,
-    AuthorizationOptionalPublicMixin,
-):
-    species_id: uuid.UUID
-    strain_id: uuid.UUID | None = None
-    brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
 
 
-class ReconstructionMorphologyRead(
-    ReconstructionMorphologyBase,
+class CellMorphologyCreate(
+    CellMorphologyBase,
+    LicensedCreateMixin,
+    AuthorizationOptionalPublicMixin,
+):
+    subject_id: uuid.UUID
+    brain_region_id: uuid.UUID
+    cell_morphology_protocol_id: uuid.UUID | None = None
+
+
+class CellMorphologyRead(
+    CellMorphologyBase,
     CreationMixin,
     IdentifiableMixin,
     LicensedReadMixin,
@@ -50,12 +52,12 @@ class ReconstructionMorphologyRead(
     EntityTypeMixin,
     CreatedByUpdatedByMixin,
     ContributionReadWithoutEntityMixin,
+    SubjectReadMixin,
+    BrainRegionReadMixin,
 ):
-    species: NestedSpeciesRead
-    strain: NestedStrainRead | None
-    brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
+    cell_morphology_protocol: NestedCellMorphologyProtocolRead | None
 
 
-class ReconstructionMorphologyAnnotationExpandedRead(ReconstructionMorphologyRead):
+class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):
     measurement_annotation: MeasurementAnnotationRead | None

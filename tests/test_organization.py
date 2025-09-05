@@ -1,5 +1,3 @@
-from time import sleep
-
 import pytest
 
 from app.db.model import Organization
@@ -66,7 +64,6 @@ def models(db, person_id):
             ),
         )
         res.append(row)
-        sleep(0.1)
     return res
 
 

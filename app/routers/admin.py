@@ -3,7 +3,6 @@ import uuid
 from fastapi import APIRouter
 
 from app.db.utils import RESOURCE_TYPE_TO_CLASS
-from app.dependencies.auth import AdminContextDep
 from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.queries.common import router_delete_one
@@ -21,7 +20,6 @@ router = APIRouter(
 
 @router.delete("/{route}/{id_}")
 def delete_one(
-    _: AdminContextDep,
     db: SessionDep,
     route: ResourceRoute,
     id_: uuid.UUID,
@@ -38,7 +36,6 @@ def delete_one(
 @router.delete("/{entity_route}/{entity_id}/assets/{asset_id}")
 def delete_entity_asset(
     repos: RepoGroupDep,
-    user_context: AdminContextDep,  # noqa: ARG001
     storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,

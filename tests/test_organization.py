@@ -2,11 +2,12 @@ from time import sleep
 
 import pytest
 
-from app.db.model import Organization
+from app.db.model import Agent, Organization
 
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT, add_db, assert_request
+from tests.utils import MISSING_ID, MISSING_ID_COMPACT, add_db, assert_request, count_db_class
 
 ROUTE = "/organization"
+ADMIN_ROUTE = "/admin/organization"
 
 
 def test_create_organization(client, client_admin):
@@ -36,6 +37,34 @@ def test_create_organization(client, client_admin):
     data = response.json()["data"]
     assert data[0]["id"] == id_
     assert len(data) == 1
+
+
+def test_delete_one(db, client, client_admin):
+    response = client_admin.post(
+        ROUTE,
+        json={"pref_label": "foo", "alternative_name": "bar"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    model_id = data["id"]
+
+    assert count_db_class(db, Organization) == 1
+
+    # 1 created_by/updated_by 1 Organization
+    assert count_db_class(db, Agent) == 2
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, Organization) == 0
+    assert count_db_class(db, Agent) == 1
 
 
 def test_missing(client):

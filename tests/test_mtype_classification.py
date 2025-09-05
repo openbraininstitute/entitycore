@@ -1,13 +1,17 @@
 import pytest
 
+from app.db.model import MTypeClass, MTypeClassification, ReconstructionMorphology
+
 from .utils import (
     assert_request,
     check_creation_fields,
+    count_db_class,
     create_mtype,
     create_reconstruction_morphology_id,
 )
 
 ROUTE = "mtype-classification"
+ADMIN_ROUTE = "/admin/mtype-classification"
 
 
 @pytest.fixture
@@ -41,14 +45,28 @@ def json_data(morphology_id, custom_mtype):
     }
 
 
+@pytest.fixture
+def model_id(client, json_data):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data,
+    ).json()
+    return data["id"]
+
+
+def _assert_read_schema(data, json_data):
+    assert data["entity_id"] == json_data["entity_id"]
+    assert data["mtype_class_id"] == json_data["mtype_class_id"]
+
+
 def test_create_one(client, json_data, morphology_id):
     data = assert_request(
         client.post,
         url=ROUTE,
         json=json_data,
     ).json()
-    assert data["entity_id"] == json_data["entity_id"]
-    assert data["mtype_class_id"] == json_data["mtype_class_id"]
+    _assert_read_schema(data, json_data)
     check_creation_fields(data)
 
     # check that mtype classification worked and morph now has a custom mtype
@@ -58,6 +76,60 @@ def test_create_one(client, json_data, morphology_id):
     ).json()["mtypes"]
 
     assert json_data["mtype_class_id"] in {m["id"] for m in data}
+
+
+def test_read_one(client, json_data, model_id):
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE}/{model_id}",
+    ).json()
+    _assert_read_schema(data, json_data)
+
+
+def test_read_many(client, json_data, model_id):
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+    ).json()["data"]
+    _assert_read_schema(data[0], json_data)
+    assert data[0]["id"] == str(model_id)
+
+
+def test_filtering(client, model_id, morphology_id, custom_mtype):
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"entity_id": str(morphology_id), "mtype_class_id": str(custom_mtype.id)},
+    ).json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == str(model_id)
+
+
+def test_delete_one(db, client, client_admin, json_data):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data,
+    ).json()
+
+    model_id = data["id"]
+
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, MTypeClass) == 2
+    assert count_db_class(db, MTypeClassification) == 2
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, MTypeClass) == 2
+    assert count_db_class(db, MTypeClassification) == 1
 
 
 def test_create_one__unauthorized_entity(client_user_1, unauthorized_morph_id, json_data):

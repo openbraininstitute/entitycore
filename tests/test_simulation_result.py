@@ -1,5 +1,6 @@
 import pytest
 
+from app.db.model import SimulationResult
 from app.db.types import EntityType
 
 from .utils import (
@@ -8,9 +9,11 @@ from .utils import (
     check_creation_fields,
     check_missing,
     check_pagination,
+    count_db_class,
 )
 
 ROUTE = "simulation-result"
+ADMIN_ROUTE = "/admin/simulation-result"
 
 
 @pytest.fixture
@@ -62,6 +65,23 @@ def test_read_many(client, model, json_data):
 
     assert data[0]["id"] == str(model.id)
     _assert_read_response(data[0], json_data)
+
+
+def test_delete_one(db, client, client_admin, model):
+    model_id = model.id
+
+    assert count_db_class(db, SimulationResult) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, SimulationResult) == 0
 
 
 def test_missing(client):

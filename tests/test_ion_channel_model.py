@@ -1,6 +1,7 @@
 import itertools as it
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db.model import IonChannelModel
@@ -10,13 +11,16 @@ from app.schemas.ion_channel_model import IonChannelModelRead
 from .utils import (
     PROJECT_ID,
     TEST_DATA_DIR,
+    assert_request,
     check_authorization,
     check_brain_region_filter,
+    count_db_class,
     upload_entity_asset,
 )
 
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/ion-channel-model"
+ADMIN_ROUTE = "/admin/ion-channel-model"
 
 
 def create(
@@ -42,6 +46,13 @@ def create(
     )
 
     return response
+
+
+@pytest.fixture
+def model_id(client, subject_id, brain_region_id):
+    response = create(client, subject_id, brain_region_id)
+    assert response.status_code == 200, f"Failed to create icm: {response.text}"
+    return response.json()["id"]
 
 
 def test_create(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):
@@ -103,6 +114,21 @@ def test_read_many(client: TestClient, subject_id: str, brain_region_id: uuid.UU
     assert len(data) == 11
 
     IonChannelModelRead.model_validate(icm_res[0].json())
+
+
+def test_delete_one(db, client, client_admin, model_id):
+    assert count_db_class(db, IonChannelModel) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, IonChannelModel) == 0
 
 
 def test_sorted(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):

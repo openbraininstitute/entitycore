@@ -15,12 +15,15 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    count_db_class,
     create_brain_region,
+    delete_entity_assets,
     upload_entity_asset,
 )
 
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/single-neuron-simulation"
+ADMIN_ROUTE = "/admin/single-neuron-simulation"
 
 
 def _create_me_model_id(db, data):
@@ -31,7 +34,8 @@ def _create_single_neuron_simulation_id(db, data):
     return add_db(db, SingleNeuronSimulation(**data)).id
 
 
-def test_single_neuron_simulation(client, brain_region_id, memodel_id):
+@pytest.fixture
+def single_neuron_simulation_id(client, memodel_id, brain_region_id):
     response = assert_request(
         client.post,
         url=ROUTE,
@@ -58,6 +62,38 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
             label=AssetLabel.single_neuron_simulation_data,
             files={"file": ("c.json", f, "application/json")},
         )
+
+    return data["id"]
+
+
+def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_neuron_simulation_id):
+    response = assert_request(
+        client.post,
+        url=ROUTE,
+        json={
+            "name": "foo",
+            "description": "my-description",
+            "injection_location": ["soma[0]"],
+            "recording_location": ["soma[0]_0.5"],
+            "me_model_id": memodel_id,
+            "status": "success",
+            "seed": 1,
+            "authorized_public": False,
+            "brain_region_id": str(brain_region_id),
+        },
+    )
+
+    data = response.json()
+
+    with FILE_EXAMPLE_PATH.open("rb") as f:
+        upload_entity_asset(
+            client,
+            EntityType.single_neuron_simulation,
+            data["id"],
+            label=AssetLabel.single_neuron_simulation_data,
+            files={"file": ("c.json", f, "application/json")},
+        )
+
     assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
@@ -72,7 +108,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id):
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["authorized_public"] is False
 
-    response = assert_request(client.get, url=f"{ROUTE}/{data['id']}")
+    response = assert_request(client.get, url=f"{ROUTE}/{single_neuron_simulation_id}")
     data = response.json()
     assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
@@ -108,6 +144,29 @@ def test_single_neuron_simulation__public(client, brain_region_id, memodel_id):
         },
     ).json()
     assert data["authorized_public"] is True
+
+
+def test_delete_one(db, client, client_admin, single_neuron_simulation_id):
+    model_id = single_neuron_simulation_id
+
+    assert count_db_class(db, SingleNeuronSimulation) == 1
+    assert count_db_class(db, MEModel) == 1
+
+    # manually delete the assets to remove foreign key reference to entity id and thus be able to
+    # delete the entity thereafter
+    delete_entity_assets(client_admin, ROUTE, model_id)
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, SingleNeuronSimulation) == 0
+    assert count_db_class(db, MEModel) == 1
 
 
 @pytest.mark.parametrize(

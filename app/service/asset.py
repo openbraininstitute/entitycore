@@ -162,7 +162,13 @@ def delete_asset(
     *,
     hard_delete: bool = False,
 ) -> AssetRead:
-    """Delete an asset."""
+    """Soft or hard delete an asset based on hard_delete flag.
+
+    If hard_delete = False the asset will be marked as deleted.
+    If hard_delete = True the asset will be removed from the database.
+
+    In both cases the s3 file will be deleted.
+    """
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
         if hard_delete:
             asset = repos.asset.delete_entity_asset(

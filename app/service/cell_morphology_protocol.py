@@ -36,8 +36,8 @@ RESPONSE_SCHEMA_ADAPTER = TypeAdapter(CellMorphologyProtocolRead)
 def _load_from_db(query: sa.Select) -> sa.Select:
     """Return the query with the required options to load the data."""
     return query.options(
-        joinedload(CellMorphologyProtocol.created_by),
-        joinedload(CellMorphologyProtocol.updated_by),
+        joinedload(CellMorphologyProtocol.created_by, innerjoin=True),
+        joinedload(CellMorphologyProtocol.updated_by, innerjoin=True),
         raiseload("*"),
     )
 

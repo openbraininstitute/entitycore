@@ -45,17 +45,21 @@ if TYPE_CHECKING:
 def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = False) -> sa.Select:
     """Return the query with the required options to load the data."""
     query = query.options(
-        joinedload(CellMorphology.brain_region),
+        joinedload(CellMorphology.brain_region, innerjoin=True),
         joinedload(CellMorphology.cell_morphology_protocol),
-        selectinload(CellMorphology.contributions).selectinload(Contribution.agent),
-        selectinload(CellMorphology.contributions).selectinload(Contribution.role),
+        selectinload(CellMorphology.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         joinedload(CellMorphology.mtypes),
         joinedload(CellMorphology.license),
-        joinedload(CellMorphology.subject).joinedload(Subject.species),
-        joinedload(CellMorphology.subject).joinedload(Subject.strain),
+        joinedload(CellMorphology.subject).options(
+            joinedload(Subject.species),
+            joinedload(Subject.strain),
+        ),
         selectinload(CellMorphology.assets),
-        joinedload(CellMorphology.created_by),
-        joinedload(CellMorphology.updated_by),
+        joinedload(CellMorphology.created_by, innerjoin=True),
+        joinedload(CellMorphology.updated_by, innerjoin=True),
         raiseload("*"),
     )
     if expand_measurement_annotation:

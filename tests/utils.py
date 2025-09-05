@@ -657,3 +657,9 @@ def add_contribution(db, entity_id, agent_id, role_id, created_by_id):
             updated_by_id=created_by_id,
         ),
     )
+
+
+def check_sort_by_id(items):
+    assert all(items[i]["id"] < items[i + 1]["id"] for i in range(len(items) - 1)), (
+        "Items unsorted by id"
+    )

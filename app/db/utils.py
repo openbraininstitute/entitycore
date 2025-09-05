@@ -25,7 +25,7 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
 RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
     mapper.class_.__tablename__: mapper.class_
     for mapper in Base.registry.mappers
-    if mapper.class_.__tablename__ in set(ResourceType)
+    if mapper.class_.__tablename__ in ResourceType
 }
 
 

@@ -308,7 +308,7 @@ class Consortium(Agent):
 class Usage(Base):
     __tablename__ = "usage"
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id"),
+        ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,
     )
     usage_activity_id: Mapped[uuid.UUID] = mapped_column(
@@ -399,12 +399,8 @@ class MTypeClassification(Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    mtype_class_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("mtype_class.id", ondelete="CASCADE"), index=True
-    )
-    entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), index=True
-    )
+    mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
     __table_args__ = (UniqueConstraint("entity_id", "mtype_class_id", name="uq_mtype_per_entity"),)
 
@@ -415,12 +411,8 @@ class ETypeClassification(Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    etype_class_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("etype_class.id", ondelete="CASCADE"), index=True
-    )
-    entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), index=True
-    )
+    etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
     __table_args__ = (UniqueConstraint("entity_id", "etype_class_id", name="uq_etype_per_entity"),)
 
@@ -472,9 +464,7 @@ class Annotation(LegacyMixin, Identifiable):
     __tablename__ = "annotation"
     note: Mapped[str | None]
     entity = relationship("Entity", back_populates="annotations")
-    entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), index=True
-    )
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
     annotation_body_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("annotation_body.id"), index=True
     )
@@ -619,17 +609,11 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
 
 class Contribution(Identifiable):
     __tablename__ = AssociationType.contribution.value
-    agent_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("agent.id", ondelete="CASCADE"), index=True
-    )
+    agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
     agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
-    role_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("role.id", ondelete="CASCADE"), index=True
-    )
+    role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
     role = relationship("Role", uselist=False)
-    entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), index=True
-    )
+    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
     entity = relationship("Entity", uselist=False, back_populates="contributions")
 
     __table_args__ = (
@@ -836,7 +820,7 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     end_time: Mapped[float | None]
 
     recording_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("electrical_cell_recording.id", ondelete="CASCADE"),
+        ForeignKey("electrical_cell_recording.id"),
         index=True,
     )
 

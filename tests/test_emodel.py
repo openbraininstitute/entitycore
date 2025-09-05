@@ -12,6 +12,8 @@ from .utils import (
     assert_request,
     count_db_class,
     create_reconstruction_morphology_id,
+    delete_entity_classifications,
+    delete_entity_contributions,
     upload_entity_asset,
 )
 
@@ -83,6 +85,10 @@ def test_delete_one(db, client, client_admin, emodel_id):
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
+
+    # remove foreign key references
+    delete_entity_contributions(client_admin, ROUTE, emodel_id)
+    delete_entity_classifications(client, client_admin, emodel_id)
 
     data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{emodel_id}").json()
     assert data["id"] == str(emodel_id)

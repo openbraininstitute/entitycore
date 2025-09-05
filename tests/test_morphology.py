@@ -21,6 +21,8 @@ from .utils import (
     check_brain_region_filter,
     count_db_class,
     create_reconstruction_morphology_id,
+    delete_entity_classifications,
+    delete_entity_contributions,
 )
 
 ROUTE = "/reconstruction-morphology"
@@ -102,6 +104,9 @@ def test_delete_one(db, client, client_admin, morphology_id, person_id, role_id)
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
+
+    delete_entity_contributions(client_admin, ROUTE, model_id)
+    delete_entity_classifications(client, client_admin, model_id)
 
     data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
     assert data["id"] == str(model_id)

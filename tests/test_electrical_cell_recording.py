@@ -29,6 +29,7 @@ from .utils import (
     create_electrical_cell_recording_db,
     create_electrical_cell_recording_id,
     delete_entity_assets,
+    delete_entity_classifications,
 )
 
 ROUTE = "/electrical-cell-recording"
@@ -84,6 +85,20 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with
     ]
 
 
+def _delete_stimuli(client_admin, trace_id):
+    data = assert_request(
+        client_admin.get,
+        url=f"{ROUTE}/{trace_id}",
+    ).json()
+
+    for stimulus in data["stimuli"]:
+        stimulus_id = stimulus["id"]
+        data = assert_request(
+            client_admin.delete,
+            url=f"/admin/electrical-recording-stimulus/{stimulus_id}",
+        ).json()
+
+
 def test_delete_one(db, client, client_admin, trace_id_with_assets):
     assert count_db_class(db, ElectricalCellRecording) == 1
     assert count_db_class(db, ElectricalRecordingStimulus) == 2
@@ -96,9 +111,10 @@ def test_delete_one(db, client, client_admin, trace_id_with_assets):
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    # manually delete the assets to remove foreign key reference to entity id and thus be able to
-    # delete the entity thereafter
+    # manually delete linked entities to remove foreign key references
     delete_entity_assets(client_admin, ROUTE, trace_id_with_assets)
+    delete_entity_classifications(client, client_admin, trace_id_with_assets)
+    _delete_stimuli(client_admin, trace_id_with_assets)
 
     data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{trace_id_with_assets}").json()
     assert data["id"] == str(trace_id_with_assets)

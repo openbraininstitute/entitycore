@@ -188,7 +188,7 @@ def test_delete_one(
         db, ETypeClass(**etype_json | {"created_by_id": person_id, "updated_by_id": person_id})
     )
 
-    add_db(
+    classification_id = add_db(
         db,
         ETypeClassification(
             entity_id=emodel_id,
@@ -198,7 +198,7 @@ def test_delete_one(
             authorized_public=False,
             authorized_project_id=PROJECT_ID,
         ),
-    )
+    ).id
 
     assert count_db_class(db, EModel) == 1
     assert count_db_class(db, ETypeClass) == 1
@@ -209,6 +209,9 @@ def test_delete_one(
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
+
+    # delete classification first to remove foreign key ref
+    assert_request(client_admin.delete, url=f"/admin/etype-classification/{classification_id}")
 
     data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{etype.id}").json()
     assert data["id"] == str(etype.id)

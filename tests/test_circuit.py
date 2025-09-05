@@ -11,6 +11,7 @@ from .utils import (
     check_creation_fields,
     check_missing,
     check_pagination,
+    delete_entity_contributions,
 )
 
 ROUTE = "circuit"
@@ -78,6 +79,8 @@ def test_delete_one(client, client_admin, circuit):
     assert (
         data["message"] == "Circuit cannot be deleted because of foreign keys integrity violation"
     )
+
+    delete_entity_contributions(client_admin, ROUTE, circuit.id)
 
     data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{circuit.id}").json()
     assert data["id"] == str(circuit.id)

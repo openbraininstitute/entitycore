@@ -188,7 +188,7 @@ def delete_asset(
 
 def delete_asset_storage_object(asset: AssetRead, storage_client_factory: StorageClientFactory):
     """Delete asset storage object."""
-    # TODO: Handle directories?
+    # TODO: Handle directories. See https://github.com/openbraininstitute/entitycore/issues/256
     storage = storages[asset.storage_type]
     # delete the file from S3 only if not using an open data storage
     if not storage.is_open:

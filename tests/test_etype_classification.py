@@ -45,6 +45,48 @@ def json_data(emodel_id, custom_etype):
     }
 
 
+@pytest.fixture
+def model_id(client, json_data):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data,
+    ).json()
+    return data["id"]
+
+
+def _assert_read_schema(data, json_data):
+    assert data["entity_id"] == json_data["entity_id"]
+    assert data["etype_class_id"] == json_data["etype_class_id"]
+
+
+def test_read_one(client, json_data, model_id):
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE}/{model_id}",
+    ).json()
+    _assert_read_schema(data, json_data)
+
+
+def test_read_many(client, json_data, model_id):
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+    ).json()["data"]
+    _assert_read_schema(data[0], json_data)
+    assert data[0]["id"] == str(model_id)
+
+
+def test_filtering(client, model_id, emodel_id, custom_etype):
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"entity_id": str(emodel_id), "etype_class_id": str(custom_etype.id)},
+    ).json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == str(model_id)
+
+
 def test_create_one(client, json_data, emodel_id):
     data = assert_request(
         client.post,

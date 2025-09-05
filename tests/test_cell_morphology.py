@@ -259,6 +259,7 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "type": str(agent.type),
             },
         ],
+        "cell_morphology_protocol": [],
     }
 
     response = client.get(ROUTE, params={"search": "Test", "with_facets": True})
@@ -307,6 +308,7 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "type": str(agent.type),
             },
         ],
+        "cell_morphology_protocol": [],
     }
 
     response = client.get(
@@ -346,6 +348,7 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "type": str(agent.type),
             },
         ],
+        "cell_morphology_protocol": [],
     }
 
 
@@ -412,6 +415,7 @@ def test_query_cell_morphology_species_join(db, client, brain_region_id, subject
                 "type": registered["created_by"]["type"],
             },
         ],
+        "cell_morphology_protocol": [],
     }
 
 

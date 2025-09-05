@@ -11,7 +11,12 @@ from app.db.types import (
     StainingType,
 )
 from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.base import AuthorizationMixin, CreationMixin, IdentifiableMixin
+from app.schemas.base import (
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
+    CreationMixin,
+    IdentifiableMixin,
+)
 from app.schemas.types import SerializableHttpUrl
 
 
@@ -34,6 +39,9 @@ class ProtocolMixin:
 
     protocol_document: SerializableHttpUrl | None = None
     protocol_design: CellMorphologyProtocolDesign
+
+
+# Base Models
 
 
 class CellMorphologyProtocolBase(BaseModel):
@@ -70,7 +78,7 @@ class ModifiedReconstructionCellMorphologyProtocolBase(
     ProtocolMixin,
 ):
     generation_type: Literal[CellMorphologyGenerationType.modified_reconstruction]
-    method: ModifiedMorphologyMethodType
+    method_type: ModifiedMorphologyMethodType
 
 
 class ComputationallySynthesizedCellMorphologyProtocolBase(
@@ -78,7 +86,7 @@ class ComputationallySynthesizedCellMorphologyProtocolBase(
     ProtocolMixin,
 ):
     generation_type: Literal[CellMorphologyGenerationType.computationally_synthesized]
-    method: str
+    method_type: str
 
 
 class PlaceholderCellMorphologyProtocolBase(
@@ -87,35 +95,43 @@ class PlaceholderCellMorphologyProtocolBase(
     generation_type: Literal[CellMorphologyGenerationType.placeholder]
 
 
+# Create Models
+
+
 class DigitalReconstructionCellMorphologyProtocolCreate(
     DigitalReconstructionCellMorphologyProtocolBase,
-):
-    pass
-
-
-class NestedDigitalReconstructionCellMorphologyProtocolRead(
-    DigitalReconstructionCellMorphologyProtocolBase,
-    IdentifiableMixin,
-):
-    pass
-
-
-class DigitalReconstructionCellMorphologyProtocolRead(
-    DigitalReconstructionCellMorphologyProtocolBase,
-    CommonReadMixin,
+    AuthorizationOptionalPublicMixin,
 ):
     pass
 
 
 class ModifiedReconstructionCellMorphologyProtocolCreate(
     ModifiedReconstructionCellMorphologyProtocolBase,
+    AuthorizationOptionalPublicMixin,
 ):
     pass
 
 
-class NestedModifiedReconstructionCellMorphologyProtocolRead(
-    ModifiedReconstructionCellMorphologyProtocolBase,
-    IdentifiableMixin,
+class ComputationallySynthesizedCellMorphologyProtocolCreate(
+    ComputationallySynthesizedCellMorphologyProtocolBase,
+    AuthorizationOptionalPublicMixin,
+):
+    pass
+
+
+class PlaceholderCellMorphologyProtocolCreate(
+    PlaceholderCellMorphologyProtocolBase,
+    AuthorizationOptionalPublicMixin,
+):
+    pass
+
+
+# Read Models
+
+
+class DigitalReconstructionCellMorphologyProtocolRead(
+    DigitalReconstructionCellMorphologyProtocolBase,
+    CommonReadMixin,
 ):
     pass
 
@@ -127,8 +143,33 @@ class ModifiedReconstructionCellMorphologyProtocolRead(
     pass
 
 
-class ComputationallySynthesizedCellMorphologyProtocolCreate(
+class ComputationallySynthesizedCellMorphologyProtocolRead(
     ComputationallySynthesizedCellMorphologyProtocolBase,
+    CommonReadMixin,
+):
+    pass
+
+
+class PlaceholderCellMorphologyProtocolRead(
+    PlaceholderCellMorphologyProtocolBase,
+    CommonReadMixin,
+):
+    pass
+
+
+# Nested Read Models
+
+
+class NestedDigitalReconstructionCellMorphologyProtocolRead(
+    DigitalReconstructionCellMorphologyProtocolBase,
+    IdentifiableMixin,
+):
+    pass
+
+
+class NestedModifiedReconstructionCellMorphologyProtocolRead(
+    ModifiedReconstructionCellMorphologyProtocolBase,
+    IdentifiableMixin,
 ):
     pass
 
@@ -140,19 +181,6 @@ class NestedComputationallySynthesizedCellMorphologyProtocolRead(
     pass
 
 
-class ComputationallySynthesizedCellMorphologyProtocolRead(
-    ComputationallySynthesizedCellMorphologyProtocolBase,
-    CommonReadMixin,
-):
-    pass
-
-
-class PlaceholderCellMorphologyProtocolCreate(
-    PlaceholderCellMorphologyProtocolBase,
-):
-    pass
-
-
 class NestedPlaceholderCellMorphologyProtocolRead(
     PlaceholderCellMorphologyProtocolBase,
     IdentifiableMixin,
@@ -160,12 +188,7 @@ class NestedPlaceholderCellMorphologyProtocolRead(
     pass
 
 
-class PlaceholderCellMorphologyProtocolRead(
-    PlaceholderCellMorphologyProtocolBase,
-    CommonReadMixin,
-):
-    pass
-
+# Unions
 
 type CellMorphologyProtocolCreate = Annotated[
     DigitalReconstructionCellMorphologyProtocolCreate

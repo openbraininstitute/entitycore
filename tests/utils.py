@@ -117,15 +117,26 @@ def create_cell_morphology_id(
 
 
 def add_db(db, row):
+    """Add one row to the db and commit the transaction."""
     db.add(row)
     db.commit()
     db.refresh(row)
     return row
 
 
-def add_all_db(db, rows):
-    db.add_all(rows)
-    db.commit()
+def add_all_db(db, rows, *, same_transaction=False):
+    """Add all the rows to the db and commit the transaction.
+
+    If same_transaction is True, all records are inserted in the same transaction,
+    and the creation_date and update_date might be always the same.
+    """
+    if same_transaction:
+        db.add_all(rows)
+        db.commit()
+    else:
+        for row in rows:
+            db.add(row)
+            db.commit()
     for row in rows:
         db.refresh(row)
     return rows

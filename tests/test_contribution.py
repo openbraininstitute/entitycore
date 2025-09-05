@@ -298,40 +298,7 @@ def test_contribution_facets(
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
     agent = db.get(CellMorphology, morphology_ids[0]).created_by
-    """
-    response = client.get(ROUTE_MORPH, params={"with_facets": True, "page_size": 10})
-    assert response.status_code == 200
-    data = response.json()
-    facets = data["facets"]
-    assert facets == {
-        "brain_region": [
-            {"count": 12, "id": str(brain_region_id), "label": "RedRegion", "type": "brain_region"},
-        ],
-        "contribution": [
-            {"count": 6, "id": str(org.id), "label": "org_pref_label", "type": "organization"},
-            {"count": 9, "id": str(person.id), "label": "person_pref_label", "type": "person"},
-        ],
-        "mtype": [],
-        "species": [
-            {"count": 12, "id": str(species_id), "label": "Test Species", "type": "species"}
-        ],
-        "strain": [{"count": 12, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
-        "created_by": [
-            {"count": 12, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
-        ],
-        "updated_by": [
-            {"count": 12, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
-        ],
-    }
-    assert len(data["data"]) == 10
-    expected_indexes = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
 
-    expected_morphology_ids = [morphology_ids[i] for i in expected_indexes]
-    assert [item["id"] for item in data["data"]] == expected_morphology_ids
-
-    expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
-    assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
-    """
     response = client.get(
         f"{ROUTE_MORPH}",
         params={"with_facets": True, "contribution__pref_label": "person_pref_label"},
@@ -359,6 +326,7 @@ def test_contribution_facets(
         "updated_by": [
             {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": str(agent.type)}
         ],
+        "cell_morphology_protocol": [],
     }
     assert len(data["data"]) == 9
     expected_indexes = [11, 10, 6, 5, 4, 3, 2, 1, 0]

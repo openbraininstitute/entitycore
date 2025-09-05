@@ -260,7 +260,7 @@ def upgrade() -> None:
         "modified_reconstruction",
         "computationally_synthesized",
         "placeholder",
-        name="morphologygenerationtype",
+        name="cellmorphologygenerationtype",
     ).create(op.get_bind())
     sa.Enum(
         "raw",
@@ -309,7 +309,7 @@ def upgrade() -> None:
                 "modified_reconstruction",
                 "computationally_synthesized",
                 "placeholder",
-                name="morphologygenerationtype",
+                name="cellmorphologygenerationtype",
                 create_type=False,
             ),
             nullable=False,
@@ -845,7 +845,7 @@ def downgrade() -> None:
         "modified_reconstruction",
         "computationally_synthesized",
         "placeholder",
-        name="morphologygenerationtype",
+        name="cellmorphologygenerationtype",
     ).drop(op.get_bind())
     sa.Enum(
         "electron_microscopy",

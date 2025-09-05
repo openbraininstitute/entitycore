@@ -31,6 +31,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Organization,
+    PlaceholderCellMorphologyProtocol,
     Publication,
     Role,
     Simulation,
@@ -39,7 +40,7 @@ from app.db.model import (
     Subject,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
-from app.db.types import StorageType
+from app.db.types import CellMorphologyGenerationType, EntityType, StorageType
 from app.dependencies import auth
 from app.schemas.auth import UserContext, UserProfile
 from app.schemas.external_url import ExternalUrlCreate
@@ -1044,3 +1045,26 @@ def external_url(db, external_url_json_data, person_id):
         "updated_by_id": person_id,
     }
     return add_db(db, ExternalUrl(**data))
+
+
+@pytest.fixture
+def cell_morphology_protocol_json_data():
+    return {
+        "type": EntityType.cell_morphology_protocol,
+        "generation_type": CellMorphologyGenerationType.placeholder,
+    }
+
+
+@pytest.fixture
+def cell_morphology_protocol(db, cell_morphology_protocol_json_data, person_id):
+    return add_db(
+        db,
+        PlaceholderCellMorphologyProtocol(
+            **cell_morphology_protocol_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )

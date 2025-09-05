@@ -1,5 +1,6 @@
 import itertools as it
 from datetime import timedelta
+from unittest.mock import ANY
 
 from app.db.model import (
     Agent,
@@ -31,7 +32,11 @@ def test_create_one(
     license_id,
     brain_region_id,
     subject_id,
+    cell_morphology_protocol,
+    cell_morphology_protocol_json_data,
 ):
+    expected_cell_morphology_protocol_json_data = cell_morphology_protocol_json_data | {"id": ANY}
+
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
     data = assert_request(
@@ -45,6 +50,7 @@ def test_create_one(
             "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": ["Test Legacy ID"],
             "license_id": str(license_id),
+            "cell_morphology_protocol_id": str(cell_morphology_protocol.id),
         },
     ).json()
     assert data["brain_region"]["id"] == str(brain_region_id), (
@@ -65,6 +71,8 @@ def test_create_one(
     )
     assert data["created_by"]["id"] == data["updated_by"]["id"]
 
+    assert data["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
+
     response = client.get(ROUTE)
     assert response.status_code == 200, f"Failed to get cell morphologies: {response.text}"
     data = response.json()["data"]
@@ -72,6 +80,7 @@ def test_create_one(
         "One or more cell morphologies has incorrect type"
     )
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
+    assert data[0]["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
 
 
 def test_missing(client):

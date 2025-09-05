@@ -63,7 +63,6 @@ def test_reconstruction_morphology_ordering(
     assert len(data) == count / 2
     check_sort_by_field(data, "id")
 
-
     response = client.get(ROUTE_MORPHOLOGY, params={"name__ilike": "to_find", "order_by": "name"})
     assert response.status_code == 200
     data = response.json()["data"]

@@ -8,9 +8,12 @@ from pydantic.networks import AnyUrl
 from types_boto3_s3 import S3Client
 
 from app.config import StorageUnion, storages
+from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, StorageType
+from app.dependencies.common import PaginationQuery
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
-from app.queries.common import get_or_create_user_agent
+from app.filters.asset import AssetFilterDep
+from app.queries.common import get_or_create_user_agent, router_read_many
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import (
     AssetCreate,
@@ -19,7 +22,9 @@ from app.schemas.asset import (
     DirectoryUpload,
 )
 from app.schemas.auth import UserContext, UserContextWithProjectId
+from app.schemas.types import ListResponse
 from app.service import entity as entity_service
+from app.utils.routers import EntityRoute, entity_route_to_type
 from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
@@ -33,20 +38,36 @@ from app.utils.s3 import (
 def get_entity_assets(
     repos: RepositoryGroup,
     user_context: UserContext,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: uuid.UUID,
-) -> list[AssetRead]:
+    pagination_request: PaginationQuery,
+    filter_model: AssetFilterDep,
+) -> ListResponse[AssetRead]:
     """Return the list of assets associated with a specific entity."""
-    _ = entity_service.get_readable_entity(
-        repos,
-        user_context=user_context,
-        entity_type=entity_type,
-        entity_id=entity_id,
+    db_model_class = Asset
+    entity_type = entity_route_to_type(entity_route)
+    apply_filter_query_operations = lambda q: q.join(Entity, Entity.id == Asset.entity_id).where(
+        Asset.entity_id == entity_id,
+        Asset.status != AssetStatus.DELETED,
+        Entity.type == entity_type.name,
     )
-    return [
-        AssetRead.model_validate(row)
-        for row in repos.asset.get_entity_assets(entity_type=entity_type, entity_id=entity_id)
-    ]
+    name_to_facet_query_params = filter_joins = None
+    return router_read_many(
+        db=repos.db,
+        db_model_class=db_model_class,
+        authorized_project_id=user_context.project_id,
+        with_search=None,
+        with_in_brain_region=None,
+        facets=None,
+        aliases={},
+        apply_filter_query_operations=apply_filter_query_operations,
+        apply_data_query_operations=None,
+        pagination_request=pagination_request,
+        response_schema_class=AssetRead,
+        name_to_facet_query_params=name_to_facet_query_params,
+        filter_model=filter_model,
+        filter_joins=filter_joins,
+    )
 
 
 def get_entity_asset(

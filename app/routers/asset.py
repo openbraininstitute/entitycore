@@ -11,9 +11,11 @@ from starlette.responses import RedirectResponse
 from app.config import settings, storages
 from app.db.types import AssetLabel, ContentType, StorageType
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.errors import ApiError, ApiErrorCode
+from app.filters.asset import AssetFilterDep
 from app.schemas.asset import (
     AssetAndPresignedURLS,
     AssetRead,
@@ -21,7 +23,7 @@ from app.schemas.asset import (
     DetailedFileList,
     DirectoryUpload,
 )
-from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.types import ListResponse
 from app.service import asset as asset_service
 from app.utils.files import calculate_sha256_digest, get_content_type
 from app.utils.routers import EntityRoute, entity_route_to_type
@@ -46,17 +48,17 @@ def get_entity_assets(
     user_context: UserContextDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
+    pagination_request: PaginationQuery,
+    filter_model: AssetFilterDep,
 ) -> ListResponse[AssetRead]:
-    """Return the list of assets associated with a specific entity."""
-    assets = asset_service.get_entity_assets(
-        repos,
+    return asset_service.get_entity_assets(
+        repos=repos,
         user_context=user_context,
-        entity_type=entity_route_to_type(entity_route),
+        entity_route=entity_route,
         entity_id=entity_id,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
     )
-    # TODO: proper pagination
-    pagination = PaginationResponse(page=1, page_size=len(assets), total_items=len(assets))
-    return ListResponse[AssetRead](data=assets, pagination=pagination)
 
 
 @router.get("/{entity_route}/{entity_id}/assets/{asset_id}")

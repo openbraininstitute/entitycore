@@ -69,7 +69,9 @@ def router_read_one[T: BaseModel, I: Identifiable](
         the model data as a Pydantic model.
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+    if authorized_project_id and (
+        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    ):
         query = constrain_to_accessible_entities(
             query, authorized_project_id, db_model_class=id_model_class
         )
@@ -349,7 +351,7 @@ def router_delete_one[T: BaseModel, I: Identifiable](
     db: Session,
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
-) -> None:
+) -> dict:
     """Delete a model from the database.
 
     Args:
@@ -365,20 +367,22 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         query = constrain_to_accessible_entities(
             query, authorized_project_id, db_model_class=id_model_class
         )
-    with (
-        ensure_result(error_message=f"{db_model_class.__name__} not found"),
-        ensure_foreign_keys_integrity(
-            error_message=(
-                f"{db_model_class.__name__} cannot be deleted "
-                f"because of foreign keys integrity violation"
-            )
-        ),
-    ):
+
+    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         obj = db.execute(query).scalars().one()
 
+    with ensure_foreign_keys_integrity(
+        error_message=(
+            f"{db_model_class.__name__} cannot be deleted "
+            f"because of foreign keys integrity violation"
+        )
+    ):
         # Use ORM delete in order to ensure that ondelete cascades are triggered in parents  when
         # subclasses are deleted as it is the case with Activity/SimulationGeneration.
         db.delete(obj)
+        db.flush()
+
+    return {"id": id_}
 
 
 def router_update_activity_one[T: BaseModel, I: Activity](

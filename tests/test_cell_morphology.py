@@ -5,6 +5,7 @@ from unittest.mock import ANY
 from app.db.model import (
     Agent,
     CellMorphology,
+    Contribution,
     MTypeClass,
     MTypeClassification,
     Species,
@@ -21,10 +22,14 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    count_db_class,
     create_cell_morphology_id,
+    delete_entity_classifications,
+    delete_entity_contributions,
 )
 
 ROUTE = "/cell-morphology"
+ADMIN_ROUTE = "/admin/cell-morphology"
 
 
 def test_create_one(
@@ -81,6 +86,80 @@ def test_create_one(
     )
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
     assert data[0]["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
+
+
+def test_delete_one(db, client, client_admin, morphology_id, person_id, role_id):
+    model_id = morphology_id
+
+    add_db(
+        db,
+        Contribution(
+            agent_id=person_id,
+            role_id=role_id,
+            entity_id=model_id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, Contribution) == 1
+    assert count_db_class(db, MTypeClass) == 1
+    assert count_db_class(db, MTypeClassification) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    delete_entity_contributions(client_admin, ROUTE, model_id)
+    delete_entity_classifications(client, client_admin, model_id)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, ReconstructionMorphology) == 0
+    assert count_db_class(db, Contribution) == 0
+    assert count_db_class(db, MTypeClass) == 1
+    assert count_db_class(db, MTypeClassification) == 0
+
+
+def test_delete_one(db, client, client_admin, morphology_id, person_id, role_id):
+    model_id = morphology_id
+
+    add_db(
+        db,
+        Contribution(
+            agent_id=person_id,
+            role_id=role_id,
+            entity_id=model_id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, Contribution) == 1
+    assert count_db_class(db, MTypeClass) == 1
+    assert count_db_class(db, MTypeClassification) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    delete_entity_contributions(client_admin, ROUTE, model_id)
+    delete_entity_classifications(client, client_admin, model_id)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, ReconstructionMorphology) == 0
+    assert count_db_class(db, Contribution) == 0
+    assert count_db_class(db, MTypeClass) == 1
+    assert count_db_class(db, MTypeClassification) == 0
 
 
 def test_missing(client):

@@ -4,12 +4,15 @@ from .utils import (
     PROJECT_ID,
     add_all_db,
     add_db,
+    assert_request,
     check_missing,
+    count_db_class,
     create_cell_morphology_id,
     with_creation_fields,
 )
 
 ROUTE = "/mtype"
+ADMIN_ROUTE = "/admin/mtype"
 ROUTE_MORPH = "/cell-morphology"
 
 
@@ -64,6 +67,34 @@ def test_retrieve(db, client, person_id):
     data = response.json()
 
     assert data == with_creation_fields(items[0]) | {"id": str(mtypes[0].id)}
+
+
+def test_delete_one(db, client, client_admin, person_id):
+    mtype = add_db(
+        db,
+        MTypeClass(
+            pref_label="m1",
+            alt_label="m1",
+            definition="m1d",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+
+    model_id = mtype.id
+
+    assert count_db_class(db, MTypeClass) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, MTypeClass) == 0
 
 
 def test_missing(client):

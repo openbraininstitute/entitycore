@@ -13,7 +13,7 @@ from app.db.model import (
     LocationMixin,
     MeasurableEntityMixin,
 )
-from app.db.types import CellMorphologyGenerationType, EntityType
+from app.db.types import CellMorphologyGenerationType, EntityType, ResourceType
 from app.logger import L
 
 MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
@@ -29,6 +29,18 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     EntityType[mapper.class_.__tablename__]: mapper.class_
     for mapper in Base.registry.mappers
     if hasattr(EntityType, mapper.class_.__tablename__)
+}
+
+RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
+    mapper.class_.__tablename__: mapper.class_
+    for mapper in Base.registry.mappers
+    if mapper.class_.__tablename__ in ResourceType
+}
+
+RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
+    mapper.class_.__tablename__: mapper.class_
+    for mapper in Base.registry.mappers
+    if mapper.class_.__tablename__ in ResourceType
 }
 
 CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[

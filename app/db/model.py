@@ -39,6 +39,7 @@ from app.db.types import (
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
+    AssociationType,
     CellMorphologyGenerationType,
     CellMorphologyProtocolDesign,
     CircuitBuildCategory,
@@ -51,6 +52,7 @@ from app.db.types import (
     ElectricalRecordingType,
     EntityType,
     ExternalSource,
+    GlobalType,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -160,13 +162,13 @@ class NameDescriptionVectorMixin(Base):
 
 
 class BrainRegionHierarchy(Identifiable):
-    __tablename__ = "brain_region_hierarchy"
+    __tablename__ = GlobalType.brain_region_hierarchy.value
 
     name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class BrainRegion(Identifiable):
-    __tablename__ = "brain_region"
+    __tablename__ = GlobalType.brain_region.value
 
     annotation_value: Mapped[int] = mapped_column(BigInteger, index=True)
     name: Mapped[str] = mapped_column(index=True)
@@ -182,13 +184,13 @@ class BrainRegion(Identifiable):
 
 
 class Species(Identifiable):
-    __tablename__ = "species"
+    __tablename__ = GlobalType.species.value
     name: Mapped[str] = mapped_column(unique=True, index=True)
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class Strain(Identifiable):
-    __tablename__ = "strain"
+    __tablename__ = GlobalType.strain.value
     name: Mapped[str] = mapped_column(unique=True, index=True)
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
     species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
@@ -201,7 +203,7 @@ class Strain(Identifiable):
 
 
 class License(LegacyMixin, Identifiable, NameDescriptionVectorMixin):
-    __tablename__ = "license"
+    __tablename__ = GlobalType.license.value
     name: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str]
     label: Mapped[str]
@@ -321,7 +323,7 @@ class Usage(Base):
 class Generation(Base):
     __tablename__ = "generation"
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("entity.id"), primary_key=True
     )
     generation_activity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("activity.id", ondelete="CASCADE"),
@@ -388,15 +390,15 @@ class AnnotationMixin:
 
 
 class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
-    __tablename__ = "mtype_class"
+    __tablename__ = GlobalType.mtype_class.value
 
 
 class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
-    __tablename__ = "etype_class"
+    __tablename__ = GlobalType.etype_class.value
 
 
 class MTypeClassification(Identifiable):
-    __tablename__ = "mtype_classification"
+    __tablename__ = AssociationType.mtype_classification.value
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -408,7 +410,7 @@ class MTypeClassification(Identifiable):
 
 
 class ETypeClassification(Identifiable):
-    __tablename__ = "etype_classification"
+    __tablename__ = AssociationType.etype_classification.value
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -431,8 +433,8 @@ class MTypesMixin:
             primaryjoin=f"{cls.__name__}.id == MTypeClassification.entity_id",
             secondary="mtype_classification",
             uselist=True,
-            viewonly=True,
             order_by="MTypeClass.pref_label",
+            passive_deletes=True,
         )
 
 
@@ -448,8 +450,8 @@ class ETypesMixin:
             primaryjoin=f"{cls.__name__}.id == ETypeClassification.entity_id",
             secondary="etype_classification",
             uselist=True,
-            viewonly=True,
             order_by="ETypeClass.pref_label",
+            passive_deletes=True,
         )
 
 
@@ -482,14 +484,16 @@ class Entity(LegacyMixin, Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+    contributions: Mapped[list["Contribution"]] = relationship(
+        "Contribution", uselist=True, passive_deletes=True, back_populates="entity"
+    )
     assets: Mapped[list["Asset"]] = relationship(
         "Asset",
         uselist=True,
-        viewonly=True,
         primaryjoin=lambda: sa.and_(
             Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
         ),
+        passive_deletes=True,
     )
 
     __mapper_args__ = {  # noqa: RUF012
@@ -533,7 +537,7 @@ class Publication(Identifiable):
 
     """
 
-    __tablename__ = EntityType.publication.value
+    __tablename__ = GlobalType.publication.value
     DOI: Mapped[str] = mapped_column()  # explicit for the case insensitive index
     title: Mapped[str | None]
     authors: Mapped[list[Author] | None] = mapped_column(JSONB)
@@ -608,13 +612,13 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
 
 
 class Contribution(Identifiable):
-    __tablename__ = "contribution"
+    __tablename__ = AssociationType.contribution.value
     agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
     agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
     role = relationship("Role", uselist=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    entity = relationship("Entity", uselist=False)
+    entity = relationship("Entity", uselist=False, back_populates="contributions")
 
     __table_args__ = (
         UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
@@ -772,7 +776,7 @@ class CellMorphology(
 
 
 class MeasurementAnnotation(LegacyMixin, Identifiable):
-    __tablename__ = "measurement_annotation"
+    __tablename__ = GlobalType.measurement_annotation.value
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True, unique=True)
     entity: Mapped["Entity"] = relationship(
         viewonly=True,
@@ -856,7 +860,7 @@ class MeasurementItem(Base):
 
 
 class Role(LegacyMixin, Identifiable):
-    __tablename__ = "role"
+    __tablename__ = GlobalType.role.value
     name: Mapped[str] = mapped_column(unique=True, index=True)
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
@@ -897,6 +901,7 @@ class ElectricalCellRecording(
     stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(
         uselist=True,
         foreign_keys="ElectricalRecordingStimulus.recording_id",
+        passive_deletes=True,
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1022,7 +1027,7 @@ class ExperimentalSynapsesPerConnection(
 
 
 class Ion(Identifiable):
-    __tablename__ = "ion"
+    __tablename__ = GlobalType.ion.value
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     name: Mapped[str] = mapped_column(unique=True, index=True)
     ontology_id: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
@@ -1330,9 +1335,11 @@ class Calibration(Activity):
 
 
 class Derivation(Base):
-    __tablename__ = "derivation"
+    __tablename__ = AssociationType.derivation.value
     used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    generated_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+    )
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
     derivation_type: Mapped[DerivationType | None]
@@ -1358,7 +1365,7 @@ class ScientificArtifactPublicationLink(Identifiable):
         Unique constraint on (publication_id, scientific_artifact_id).
     """
 
-    __tablename__ = "scientific_artifact_publication_link"
+    __tablename__ = AssociationType.scientific_artifact_publication_link.value
     publication_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("publication.id"), index=True)
     publication_type: Mapped[PublicationType]
     scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
@@ -1397,7 +1404,7 @@ class ScientificArtifactExternalUrlLink(Identifiable):
         Unique constraint on (external_url_id, scientific_artifact_id).
     """
 
-    __tablename__ = "scientific_artifact_external_url_link"
+    __tablename__ = AssociationType.scientific_artifact_external_url_link.value
     external_url_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
     scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), index=True

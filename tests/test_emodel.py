@@ -3,18 +3,23 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from app.db.model import Contribution, EModel, ETypeClass, ETypeClassification
 from app.db.types import EntityType
 
 from .conftest import CreateIds, EModelIds
 from .utils import (
     TEST_DATA_DIR,
     assert_request,
+    count_db_class,
     create_cell_morphology_id,
+    delete_entity_classifications,
+    delete_entity_contributions,
     upload_entity_asset,
 )
 
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/emodel"
+ADMIN_ROUTE = "/admin/emodel"
 
 
 def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, morphology_id):
@@ -67,6 +72,31 @@ def test_get_emodel(client: TestClient, emodel_id: str):
     assert len(data["assets"]) == 1
     assert "ion_channel_models" in data
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+
+
+def test_delete_one(db, client, client_admin, emodel_id):
+    assert count_db_class(db, EModel) == 1
+    assert count_db_class(db, Contribution) == 2
+    assert count_db_class(db, ETypeClassification) == 1
+    assert count_db_class(db, ETypeClass) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{emodel_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    # remove foreign key references
+    delete_entity_contributions(client_admin, ROUTE, emodel_id)
+    delete_entity_classifications(client, client_admin, emodel_id)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{emodel_id}").json()
+    assert data["id"] == str(emodel_id)
+
+    assert count_db_class(db, EModel) == 0
+    assert count_db_class(db, Contribution) == 0
+    assert count_db_class(db, ETypeClassification) == 0
+    assert count_db_class(db, ETypeClass) == 1
 
 
 def test_missing(client):

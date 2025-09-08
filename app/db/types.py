@@ -7,6 +7,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
+from app.utils.enum import combine_str_enums
+
 
 class RepairPipelineType(StrEnum):
     raw = auto()
@@ -116,7 +118,6 @@ class EntityType(StrEnum):
     mesh = auto()
     memodel_calibration_result = auto()
     me_type_density = auto()
-    publication = auto()
     simulation = auto()
     simulation_campaign = auto()
     simulation_campaign_generation = auto()
@@ -144,6 +145,31 @@ class AgentType(StrEnum):
     consortium = auto()
 
 
+class GlobalType(StrEnum):
+    """Global resource types."""
+
+    brain_region_hierarchy = auto()
+    brain_region = auto()
+    species = auto()
+    strain = auto()
+    license = auto()
+    mtype_class = auto()
+    etype_class = auto()
+    publication = auto()
+    role = auto()
+    ion = auto()
+    measurement_annotation = auto()
+
+
+class AssociationType(StrEnum):
+    etype_classification = auto()
+    mtype_classification = auto()
+    contribution = auto()
+    derivation = auto()
+    scientific_artifact_publication_link = auto()
+    scientific_artifact_external_url_link = auto()
+
+
 class ActivityType(StrEnum):
     """Activity types."""
 
@@ -165,6 +191,12 @@ class DerivationType(StrEnum):
 
     circuit_extraction = auto()
     circuit_rewiring = auto()
+
+
+ResourceType = combine_str_enums(
+    "ResourceType",
+    (EntityType, AssociationType, GlobalType, AgentType),
+)
 
 
 class AnnotationBodyType(StrEnum):

@@ -107,13 +107,10 @@ def test_create_contribution(
     ]
 
 
-def test_delete_one(
-    client, client_admin, role_id, person_id, brain_region_id, strain_id, species_id
-):
-    morphology_id = create_reconstruction_morphology_id(
+def test_delete_one(client, client_admin, role_id, person_id, brain_region_id, subject_id):
+    morphology_id = create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )

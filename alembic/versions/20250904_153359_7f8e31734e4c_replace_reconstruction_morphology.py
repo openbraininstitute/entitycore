@@ -1,8 +1,8 @@
 """Replace reconstruction_morphology with cell_morphology.
 
 Revision ID: 7f8e31734e4c
-Revises: 02b804d687ee
-Create Date: 2025-08-26 15:33:59.497711
+Revises: 9df9950d73a0
+Create Date: 2025-09-04 15:33:59.497711
 
 """
 
@@ -20,7 +20,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "7f8e31734e4c"
-down_revision: Union[str, None] = "02b804d687ee"
+down_revision: Union[str, None] = "9df9950d73a0"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -513,7 +513,6 @@ def upgrade() -> None:
             "mesh",
             "memodel_calibration_result",
             "me_type_density",
-            "publication",
             "simulation",
             "simulation_campaign",
             "simulation_campaign_generation",
@@ -601,7 +600,6 @@ def downgrade() -> None:
             "mesh",
             "memodel_calibration_result",
             "me_type_density",
-            "publication",
             "reconstruction_morphology",
             "simulation",
             "simulation_campaign",

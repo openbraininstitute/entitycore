@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.db.model import (
+    CellMorphology,
     Contribution,
     EModel,
     ETypeClass,
@@ -13,7 +14,6 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
 )
 from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
@@ -112,7 +112,7 @@ def test_delete_one(db, client, client_admin, memodel_id):
     assert count_db_class(db, ETypeClass) == 1
     # 1 for EModel 1 for MEModel for the same ETypeClass
     assert count_db_class(db, ETypeClassification) == 2
-    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, CellMorphology) == 1
     assert count_db_class(db, EModel) == 1
 
     data = assert_request(
@@ -135,7 +135,7 @@ def test_delete_one(db, client, client_admin, memodel_id):
     assert count_db_class(db, ETypeClass) == 1
     # 1 for EModel 1 for MEModel for the same ETypeClass
     assert count_db_class(db, ETypeClassification) == 1
-    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, CellMorphology) == 1
     assert count_db_class(db, EModel) == 1
 
 

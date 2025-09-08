@@ -1,6 +1,6 @@
 import pytest
 
-from app.db.model import MTypeClass, MTypeClassification, ReconstructionMorphology
+from app.db.model import CellMorphology, MTypeClass, MTypeClassification
 
 from .utils import (
     assert_request,
@@ -113,7 +113,7 @@ def test_delete_one(db, client, client_admin, json_data):
 
     model_id = data["id"]
 
-    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, CellMorphology) == 1
     assert count_db_class(db, MTypeClass) == 2
     assert count_db_class(db, MTypeClassification) == 2
 
@@ -126,7 +126,7 @@ def test_delete_one(db, client, client_admin, json_data):
     data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
     assert data["id"] == str(model_id)
 
-    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, CellMorphology) == 1
     assert count_db_class(db, MTypeClass) == 2
     assert count_db_class(db, MTypeClassification) == 1
 

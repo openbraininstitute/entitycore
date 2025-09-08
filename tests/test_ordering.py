@@ -26,6 +26,7 @@ def test_license_ordering(db, client, person_id):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count
+    assert all(d["creation_date"] == data[0]["creation_date"] for d in data)
     check_sort_by_field(data, "id")
 
 
@@ -51,10 +52,12 @@ def test_reconstruction_morphology_ordering(
     ]
 
     add_all_db(db, [ReconstructionMorphology(**item) for item in items])
+
     response = client.get(ROUTE_MORPHOLOGY)
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count
+    assert all(d["creation_date"] == data[0]["creation_date"] for d in data)
     check_sort_by_field(data, "id")
 
     response = client.get(ROUTE_MORPHOLOGY, params={"name__ilike": "to_find"})

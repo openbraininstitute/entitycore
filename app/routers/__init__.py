@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies.auth import user_verified
+from app.dependencies.auth import user_verified, user_with_service_admin_role
 from app.routers import (
+    admin,
     asset,
     brain_atlas,
     brain_region,
@@ -58,6 +59,7 @@ from app.routers import (
 
 router = APIRouter()
 router.include_router(root.router)
+router.include_router(admin.router, dependencies=[Depends(user_with_service_admin_role)])
 
 
 authenticated_routers = [

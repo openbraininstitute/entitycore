@@ -657,3 +657,61 @@ def add_contribution(db, entity_id, agent_id, role_id, created_by_id):
             updated_by_id=created_by_id,
         ),
     )
+
+
+def count_db_class(db, db_class):
+    return db.execute(sa.select(sa.func.count(db_class.id))).scalar()
+
+
+def delete_entity_contributions(client_admin, entity_route, entity_id):
+    data = assert_request(
+        client_admin.get,
+        url=f"{entity_route}/{entity_id}",
+    ).json()
+
+    for contribution in data["contributions"]:
+        contribution_id = contribution["id"]
+        assert_request(
+            client_admin.delete,
+            url=f"/admin/contribution/{contribution_id}",
+        ).json()
+
+
+def delete_entity_assets(client_admin, entity_route, entity_id):
+    data = assert_request(
+        client_admin.get,
+        url=f"{entity_route}/{entity_id}",
+    ).json()
+
+    for json_asset in data["assets"]:
+        asset_id = json_asset["id"]
+        assert_request(
+            client_admin.delete,
+            url=f"/admin{entity_route}/{entity_id}/assets/{asset_id}",
+        ).json()
+
+
+def delete_entity_classifications(client, client_admin, entity_id):
+    mtype_classifications = assert_request(
+        client.get, url="/mtype-classification", params={"entity_id": str(entity_id)}
+    ).json()["data"]
+
+    if mtype_classifications:
+        for classification in mtype_classifications:
+            classification_id = classification["id"]
+            assert_request(
+                client_admin.delete,
+                url=f"/admin/mtype-classification/{classification_id}",
+            )
+
+    etype_classifications = assert_request(
+        client.get, url="/etype-classification", params={"entity_id": str(entity_id)}
+    ).json()["data"]
+
+    if etype_classifications:
+        for classification in etype_classifications:
+            classification_id = classification["id"]
+            assert_request(
+                client_admin.delete,
+                url=f"/admin/etype-classification/{classification_id}",
+            )

@@ -34,15 +34,19 @@ if TYPE_CHECKING:
 def _load(query: sa.Select):
     return query.options(
         joinedload(IonChannelRecording.license),
-        joinedload(IonChannelRecording.subject).joinedload(Subject.species),
-        joinedload(IonChannelRecording.subject).joinedload(Subject.strain),
-        joinedload(IonChannelRecording.brain_region),
-        joinedload(IonChannelRecording.created_by),
-        joinedload(IonChannelRecording.updated_by),
+        joinedload(IonChannelRecording.subject).options(
+            joinedload(Subject.species),
+            joinedload(Subject.strain),
+        ),
+        joinedload(IonChannelRecording.brain_region, innerjoin=True),
+        joinedload(IonChannelRecording.created_by, innerjoin=True),
+        joinedload(IonChannelRecording.updated_by, innerjoin=True),
         selectinload(IonChannelRecording.assets),
         selectinload(IonChannelRecording.stimuli),
-        selectinload(IonChannelRecording.contributions).joinedload(Contribution.agent),
-        selectinload(IonChannelRecording.contributions).joinedload(Contribution.role),
+        selectinload(IonChannelRecording.contributions).options(
+            joinedload(Contribution.agent),
+            joinedload(Contribution.role),
+        ),
         raiseload("*"),
     )
 

@@ -34,15 +34,19 @@ if TYPE_CHECKING:
 def _load(query: sa.Select):
     return query.options(
         joinedload(ElectricalCellRecording.license),
-        joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
-        joinedload(ElectricalCellRecording.subject).joinedload(Subject.strain),
-        joinedload(ElectricalCellRecording.brain_region),
-        joinedload(ElectricalCellRecording.created_by),
-        joinedload(ElectricalCellRecording.updated_by),
+        joinedload(ElectricalCellRecording.subject).options(
+            joinedload(Subject.species),
+            joinedload(Subject.strain),
+        ),
+        joinedload(ElectricalCellRecording.brain_region, innerjoin=True),
+        joinedload(ElectricalCellRecording.created_by, innerjoin=True),
+        joinedload(ElectricalCellRecording.updated_by, innerjoin=True),
         selectinload(ElectricalCellRecording.assets),
         selectinload(ElectricalCellRecording.stimuli),
-        selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.agent),
-        selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.role),
+        selectinload(ElectricalCellRecording.contributions).options(
+            joinedload(Contribution.agent),
+            joinedload(Contribution.role),
+        ),
         joinedload(ElectricalCellRecording.etypes),
         raiseload("*"),
     )

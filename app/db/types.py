@@ -114,6 +114,7 @@ class GlobalType(StrEnum):
     publication = auto()
     role = auto()
     ion = auto()
+    ion_channel = auto()
     measurement_annotation = auto()
 
 

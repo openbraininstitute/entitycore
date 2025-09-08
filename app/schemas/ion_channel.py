@@ -1,6 +1,5 @@
 from pydantic import BaseModel
 
-from app.db.types import STRING_LIST
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     CreationMixin,
@@ -15,10 +14,21 @@ class IonChannelBase(BaseModel):
     description: str
     label: str
     gene: str
-    synonyms: STRING_LIST
+    synonyms: list[str]
 
 
-class IonChannelRead(IonChannelBase, CreationMixin, IdentifiableMixin, CreatedByUpdatedByMixin):
+class NestedIonChannelRead(
+    IonChannelBase,
+    IdentifiableMixin,
+):
+    """Nested read model for ion channel."""
+
+
+class IonChannelRead(
+    NestedIonChannelRead,
+    CreationMixin,
+    CreatedByUpdatedByMixin,
+):
     """Read model for ion channel."""
 
 

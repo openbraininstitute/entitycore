@@ -1,27 +1,16 @@
+import uuid
 from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import Field
 
-from app.db.model import IonChannel
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.electrical_cell_recording import ElectricalCellRecordingBase
-from app.schemas.electrical_recording_stimulus import ElectricalRecordingStimulusRead
-from app.schemas.scientific_artifact import (
-    ScientificArtifactCreate,
-    ScientificArtifactRead,
-)
+from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
+from app.schemas.ion_channel import NestedIonChannelRead
+from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 
 
 class IonChannelRecordingBase(ElectricalCellRecordingBase):
-    model_config = ConfigDict(from_attributes=True, arbitrary_types_allowed=True)
-
-    ion_channel: Annotated[
-        IonChannel,
-        Field(
-            title="Ion Channel",
-            description="The ion channel that was recorded from",
-        ),
-    ]
     cell_line: Annotated[
         str,
         Field(
@@ -31,8 +20,17 @@ class IonChannelRecordingBase(ElectricalCellRecordingBase):
     ]
 
 
-class IonChannelRecordingCreate(IonChannelRecordingBase, ScientificArtifactCreate):
-    pass
+class IonChannelRecordingCreate(
+    IonChannelRecordingBase,
+    ScientificArtifactCreate,
+):
+    ion_channel_id: Annotated[
+        uuid.UUID,
+        Field(
+            title="Ion Channel ID",
+            description="The id of the ion channel that was recorded from",
+        ),
+    ]
 
 
 class IonChannelRecordingRead(
@@ -40,8 +38,15 @@ class IonChannelRecordingRead(
     ScientificArtifactRead,
     ContributionReadWithoutEntityMixin,
 ):
+    ion_channel: Annotated[
+        NestedIonChannelRead,
+        Field(
+            title="Ion Channel",
+            description="The ion channel that was recorded from",
+        ),
+    ]
     stimuli: Annotated[
-        list[ElectricalRecordingStimulusRead] | None,
+        list[NestedElectricalRecordingStimulusRead] | None,
         Field(
             title="Electrical Recording Stimuli",
             description="List of stimuli applied to the cell with their respective time steps",

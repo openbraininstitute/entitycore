@@ -201,4 +201,3 @@ omit = [
 
 [tool.pyright]
 exclude = ["app/routers/legacy", "app/cli/curation/electrical_cell_recording.py"]
-reportInvalidTypeForm = false

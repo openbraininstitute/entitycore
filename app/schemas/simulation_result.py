@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -25,7 +26,9 @@ class SimulationResultCreate(SimulationResultBase, AuthorizationOptionalPublicMi
     pass
 
 
-SimulationResultUpdate = make_update_schema(SimulationResultCreate, "SimulationResultUpdate")
+SimulationResultUpdate = Annotated[
+    BaseModel, make_update_schema(SimulationResultCreate, "SimulationResultUpdate")
+]
 
 
 class NestedSimulationResultRead(SimulationResultBase, EntityTypeMixin, IdentifiableMixin):

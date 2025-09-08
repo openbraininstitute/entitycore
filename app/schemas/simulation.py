@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -37,9 +38,9 @@ class SingleNeuronSimulationCreate(
     me_model_id: uuid.UUID
 
 
-SingleNeuronSimulationUpdate = make_update_schema(
-    SingleNeuronSimulationCreate, "SingleNeuronSimulationUpdate"
-)
+SingleNeuronSimulationUpdate = Annotated[
+    BaseModel, make_update_schema(SingleNeuronSimulationCreate, "SingleNeuronSimulationUpdate")
+]
 
 
 class SingleNeuronSimulationRead(
@@ -63,9 +64,12 @@ class SingleNeuronSynaptomeSimulationCreate(
     synaptome_id: uuid.UUID
 
 
-SingleNeuronSynaptomeSimulationUpdate = make_update_schema(
-    SingleNeuronSynaptomeSimulationCreate, "SingleNeuronSynaptomeSimulationUpdate"
-)
+SingleNeuronSynaptomeSimulationUpdate = Annotated[
+    BaseModel,
+    make_update_schema(
+        SingleNeuronSynaptomeSimulationCreate, "SingleNeuronSynaptomeSimulationUpdate"
+    ),
+]
 
 
 class SingleNeuronSynaptomeSimulationRead(
@@ -94,7 +98,7 @@ class SimulationCreate(SimulationBase, AuthorizationOptionalPublicMixin):
     pass
 
 
-SimulationUpdate = make_update_schema(SimulationCreate, "SimulationUpdate")
+SimulationUpdate = Annotated[BaseModel, make_update_schema(SimulationCreate, "SimulationUpdate")]
 
 
 class NestedSimulationRead(SimulationBase, EntityTypeMixin, IdentifiableMixin):

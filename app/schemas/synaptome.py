@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -32,9 +33,9 @@ class SingleNeuronSynaptomeCreate(
     brain_region_id: uuid.UUID
 
 
-SingleNeuronSynaptomeUpdate = make_update_schema(
-    SingleNeuronSynaptomeCreate, "SingleNeuronSynaptomeUpdate"
-)
+SingleNeuronSynaptomeUpdate = Annotated[
+    BaseModel, make_update_schema(SingleNeuronSynaptomeCreate, "SingleNeuronSynaptomeUpdate")
+]
 
 
 class NestedSynaptome(SingleNeuronSynaptomeBase, CreationMixin, IdentifiableMixin):

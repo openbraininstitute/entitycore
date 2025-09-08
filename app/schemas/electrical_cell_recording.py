@@ -72,9 +72,9 @@ class ElectricalCellRecordingCreate(ElectricalCellRecordingBase, ScientificArtif
     pass
 
 
-ElectricalCellRecordingUpdate = make_update_schema(
-    ElectricalCellRecordingCreate, "ElectricalCellRecordingUpdate"
-)
+ElectricalCellRecordingUpdate = Annotated[
+    BaseModel, make_update_schema(ElectricalCellRecordingCreate, "ElectricalCellRecordingUpdate")
+]
 
 
 class ElectricalCellRecordingRead(

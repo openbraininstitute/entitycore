@@ -79,7 +79,7 @@ class SubjectCreate(AuthorizationOptionalPublicMixin, SubjectBase):
     species_id: uuid.UUID
 
 
-SubjectUpdate = make_update_schema(SubjectCreate, "SubjectUpdate")
+SubjectUpdate = Annotated[BaseModel, make_update_schema(SubjectCreate, "SubjectUpdate")]
 
 
 class NestedSubjectRead(SubjectBase, IdentifiableMixin):

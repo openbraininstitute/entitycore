@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -28,7 +29,9 @@ class SimulationCampaignCreate(SimulationCampaignBase, AuthorizationOptionalPubl
     pass
 
 
-SimulationCampaignUpdate = make_update_schema(SimulationCampaignCreate, "SimulationCampaignUpdate")
+SimulationCampaignUpdate = Annotated[
+    BaseModel, make_update_schema(SimulationCampaignCreate, "SimulationCampaignUpdate")
+]
 
 
 class NestedSimulationCampaignRead(SimulationCampaignBase, EntityTypeMixin, IdentifiableMixin):

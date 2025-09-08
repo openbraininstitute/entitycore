@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -37,4 +38,4 @@ class CircuitCreate(CircuitBase, ScientificArtifactCreate):
     pass
 
 
-CircuitUpdate = make_update_schema(CircuitCreate, "CircuitUpdate")
+CircuitUpdate = Annotated[BaseModel, make_update_schema(CircuitCreate, "CircuitUpdate")]

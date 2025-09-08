@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -74,17 +75,22 @@ class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
     post_region_id: uuid.UUID
 
 
-ExperimentalSynapsesPerConnectionUpdate = make_update_schema(
-    ExperimentalSynapsesPerConnectionCreate, "ExperimentalSynapsesPerConnectionUpdate"
-)
+ExperimentalSynapsesPerConnectionUpdate = Annotated[
+    BaseModel,
+    make_update_schema(
+        ExperimentalSynapsesPerConnectionCreate, "ExperimentalSynapsesPerConnectionUpdate"
+    ),
+]
 
-ExperimentalBoutonDensityUpdate = make_update_schema(
-    ExperimentalBoutonDensityCreate, "ExperimentalBoutonDensityUpdate"
-)
+ExperimentalBoutonDensityUpdate = Annotated[
+    BaseModel,
+    make_update_schema(ExperimentalBoutonDensityCreate, "ExperimentalBoutonDensityUpdate"),
+]
 
-ExperimentalNeuronDensityUpdate = make_update_schema(
-    ExperimentalNeuronDensityCreate, "ExperimentalNeuronDensityUpdate"
-)
+ExperimentalNeuronDensityUpdate = Annotated[
+    BaseModel,
+    make_update_schema(ExperimentalNeuronDensityCreate, "ExperimentalNeuronDensityUpdate"),
+]
 
 
 class ExperimentalNeuronDensityRead(ExperimentalDensityRead):

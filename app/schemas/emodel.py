@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -40,7 +41,7 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     exemplar_morphology_id: uuid.UUID
 
 
-EModelUpdate = make_update_schema(EModelCreate, "EModelUpdate")
+EModelUpdate = Annotated[BaseModel, make_update_schema(EModelCreate, "EModelUpdate")]
 
 
 class EModelRead(

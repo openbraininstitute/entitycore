@@ -1,4 +1,5 @@
 import uuid
+from typing import Annotated
 
 from pydantic import BaseModel
 
@@ -47,4 +48,6 @@ class ValidationResultCreate(ValidationResultBase, AuthorizationOptionalPublicMi
     pass
 
 
-ValidationResultUpdate = make_update_schema(ValidationResultCreate, "ValidationResultUpdate")
+ValidationResultUpdate = Annotated[
+    BaseModel, make_update_schema(ValidationResultCreate, "ValidationResultUpdate")
+]

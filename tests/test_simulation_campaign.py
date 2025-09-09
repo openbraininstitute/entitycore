@@ -57,13 +57,16 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_one(client, model, json_data):
+def test_read_one(client, client_admin, model, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model.id}").json()
     _assert_read_response(data, json_data)
 
     data = assert_request(client.get, url=f"{ROUTE}").json()["data"]
     assert len(data) == 1
     _assert_read_response(data[0], json_data)
+
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model.id}").json()
+    _assert_read_response(data, json_data)
 
 
 def test_delete_one(db, client, client_admin, model):

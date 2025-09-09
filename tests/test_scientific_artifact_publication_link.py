@@ -9,6 +9,7 @@ from .utils import (
 )
 
 ROUTE = "/scientific-artifact-publication-link"
+ADMIN_ROUTE = "/admin/scientific-artifact-publication-link"
 
 
 @pytest.fixture
@@ -46,8 +47,13 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_one(client, model_id, json_data):
+def test_user_read_one(client, model_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
+    _assert_read_response(data, json_data)
+
+
+def test_admin_read_one(client_admin, model_id, json_data):
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
 

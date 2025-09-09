@@ -58,6 +58,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> CalibrationRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=Calibration,
+        authorized_project_id=None,
+        response_schema_class=CalibrationRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: CalibrationCreate,

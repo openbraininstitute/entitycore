@@ -83,6 +83,17 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> PersonRead:
     )
 
 
+def admin_read_one(db: SessionDep, id_: uuid.UUID) -> PersonRead:
+    return router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=Person,
+        authorized_project_id=None,
+        response_schema_class=PersonRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(person: PersonCreate, db: SessionDep, user_context: AdminContextDep) -> PersonRead:
     return router_create_one(
         db=db,

@@ -13,6 +13,7 @@ from .utils import (
 )
 
 ROUTE = "/electrical-recording-stimulus"
+ADMIN_ROUTE = "/admin/electrical-recording-stimulus"
 MODEL_CLASS = ElectricalRecordingStimulus
 TYPE = EntityType.electrical_recording_stimulus.value
 
@@ -119,8 +120,14 @@ def test_update_one__public(client, json_data):
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
-def test_read_one(client, model_id, json_data):
+def test_user_read_one(client, model_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
+    _assert_read_response(data, json_data)
+    assert data["id"] == str(model_id)
+
+
+def test_admin_read_one(client_admin, model_id, json_data):
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
     assert data["id"] == str(model_id)
 

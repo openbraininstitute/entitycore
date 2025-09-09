@@ -44,6 +44,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SubjectRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=Subject,
+        authorized_project_id=None,
+        response_schema_class=SubjectRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,

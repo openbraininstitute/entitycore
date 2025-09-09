@@ -132,7 +132,7 @@ def test_update_one__public(client, json_data):
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
-def test_read_one(client, model_id, json_data, json_data_partial):
+def test_read_one(client, client_admin, model_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
@@ -140,6 +140,9 @@ def test_read_one(client, model_id, json_data, json_data_partial):
     model_id = assert_request(client.post, url=ROUTE, json=json_data_partial).json()["id"]
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data_partial)
+
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    _assert_read_response(data, json_data)
 
 
 def test_delete_one(db, client, client_admin, model_id):

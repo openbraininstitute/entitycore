@@ -85,7 +85,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: CircuitUpdate,
+    json_model: CircuitUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> CircuitRead:
     return router_update_one(
         id_=id_,

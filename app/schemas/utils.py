@@ -8,7 +8,7 @@ EXCLUDED_FIELDS = {
 }
 
 
-def make_update_schema(schema: type[BaseModel], new_schema_name: str) -> type[BaseModel]:
+def make_update_schema(schema: type[BaseModel], new_schema_name: str):
     """Create a new pydantic schema from current schema where all fields are optional.
 
     In order to differentiate between the user providing a None value and an actual not set by the

@@ -71,7 +71,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ValidationResultUpdate,
+    json_model: ValidationResultUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ValidationResultRead:
     return router_update_one(
         id_=id_,

@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -75,22 +74,17 @@ class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
     post_region_id: uuid.UUID
 
 
-ExperimentalSynapsesPerConnectionUpdate = Annotated[
-    BaseModel,
-    make_update_schema(
-        ExperimentalSynapsesPerConnectionCreate, "ExperimentalSynapsesPerConnectionUpdate"
-    ),
-]
+ExperimentalSynapsesPerConnectionUpdate = make_update_schema(
+    ExperimentalSynapsesPerConnectionCreate, "ExperimentalSynapsesPerConnectionUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
-ExperimentalBoutonDensityUpdate = Annotated[
-    BaseModel,
-    make_update_schema(ExperimentalBoutonDensityCreate, "ExperimentalBoutonDensityUpdate"),
-]
+ExperimentalBoutonDensityUpdate = make_update_schema(
+    ExperimentalBoutonDensityCreate, "ExperimentalBoutonDensityUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
-ExperimentalNeuronDensityUpdate = Annotated[
-    BaseModel,
-    make_update_schema(ExperimentalNeuronDensityCreate, "ExperimentalNeuronDensityUpdate"),
-]
+ExperimentalNeuronDensityUpdate = make_update_schema(
+    ExperimentalNeuronDensityCreate, "ExperimentalNeuronDensityUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
 
 class ExperimentalNeuronDensityRead(ExperimentalDensityRead):

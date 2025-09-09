@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel
 
@@ -50,7 +49,6 @@ class ElectricalRecordingStimulusCreate(
     pass
 
 
-ElectricalRecordingStimulusUpdate = Annotated[
-    BaseModel,
-    make_update_schema(ElectricalRecordingStimulusCreate, "ElectricalRecordingStimulusUpdate"),
-]
+ElectricalRecordingStimulusUpdate = make_update_schema(
+    ElectricalRecordingStimulusCreate, "ElectricalRecordingStimulusUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]

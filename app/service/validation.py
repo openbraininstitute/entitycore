@@ -153,7 +153,7 @@ def delete_one(
 def update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ValidationUpdate,
+    json_model: ValidationUpdate,  # pyright: ignore [reportInvalidTypeForm]
     user_context: UserContextWithProjectIdDep,
 ) -> ValidationRead:
     return router_update_activity_one(

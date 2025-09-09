@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -38,4 +37,4 @@ class CircuitCreate(CircuitBase, ScientificArtifactCreate):
     pass
 
 
-CircuitUpdate = Annotated[BaseModel, make_update_schema(CircuitCreate, "CircuitUpdate")]
+CircuitUpdate = make_update_schema(CircuitCreate, "CircuitUpdate")  # pyright: ignore [reportInvalidTypeForm]

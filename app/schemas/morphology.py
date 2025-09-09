@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -42,9 +41,9 @@ class ReconstructionMorphologyCreate(
     legacy_id: list[str] | None = None
 
 
-ReconstructionMorphologyUpdate = Annotated[
-    BaseModel, make_update_schema(ReconstructionMorphologyCreate, "ReconstructionMorphologyUpdate")
-]
+ReconstructionMorphologyUpdate = make_update_schema(
+    ReconstructionMorphologyCreate, "ReconstructionMorphologyUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
 
 class ReconstructionMorphologyRead(

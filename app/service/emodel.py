@@ -94,7 +94,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: EModelUpdate,
+    json_model: EModelUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> EModelRead:
     return router_update_one(
         id_=id_,

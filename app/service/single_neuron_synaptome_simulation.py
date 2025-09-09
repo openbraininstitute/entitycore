@@ -84,7 +84,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SingleNeuronSynaptomeSimulationUpdate,
+    json_model: SingleNeuronSynaptomeSimulationUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SingleNeuronSynaptomeSimulationRead:
     return router_update_one(
         id_=id_,

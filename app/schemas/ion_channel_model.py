@@ -1,5 +1,3 @@
-from typing import Annotated
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.asset import AssetsMixin
@@ -47,9 +45,7 @@ class IonChannelModelCreate(
     pass
 
 
-IonChannelModelUpdate = Annotated[
-    BaseModel, make_update_schema(IonChannelModelCreate, "IonChannelModelUpdate")
-]
+IonChannelModelUpdate = make_update_schema(IonChannelModelCreate, "IonChannelModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class IonChannelModelRead(

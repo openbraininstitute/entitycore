@@ -82,7 +82,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationCampaignUpdate,
+    json_model: SimulationCampaignUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SimulationCampaignRead:
     return router_update_one(
         id_=id_,

@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -26,9 +25,7 @@ class SimulationResultCreate(SimulationResultBase, AuthorizationOptionalPublicMi
     pass
 
 
-SimulationResultUpdate = Annotated[
-    BaseModel, make_update_schema(SimulationResultCreate, "SimulationResultUpdate")
-]
+SimulationResultUpdate = make_update_schema(SimulationResultCreate, "SimulationResultUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class NestedSimulationResultRead(SimulationResultBase, EntityTypeMixin, IdentifiableMixin):

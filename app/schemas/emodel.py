@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -41,7 +40,7 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     exemplar_morphology_id: uuid.UUID
 
 
-EModelUpdate = Annotated[BaseModel, make_update_schema(EModelCreate, "EModelUpdate")]
+EModelUpdate = make_update_schema(EModelCreate, "EModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class EModelRead(

@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -43,7 +42,7 @@ class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
     strain_id: uuid.UUID | None = None
 
 
-MEModelUpdate = Annotated[BaseModel, make_update_schema(MEModelCreate, "MEModelUpdate")]
+MEModelUpdate = make_update_schema(MEModelCreate, "MEModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class MEModelRead(

@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict
 
@@ -38,9 +37,9 @@ class SingleNeuronSimulationCreate(
     me_model_id: uuid.UUID
 
 
-SingleNeuronSimulationUpdate = Annotated[
-    BaseModel, make_update_schema(SingleNeuronSimulationCreate, "SingleNeuronSimulationUpdate")
-]
+SingleNeuronSimulationUpdate = make_update_schema(
+    SingleNeuronSimulationCreate, "SingleNeuronSimulationUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
 
 class SingleNeuronSimulationRead(
@@ -64,12 +63,9 @@ class SingleNeuronSynaptomeSimulationCreate(
     synaptome_id: uuid.UUID
 
 
-SingleNeuronSynaptomeSimulationUpdate = Annotated[
-    BaseModel,
-    make_update_schema(
-        SingleNeuronSynaptomeSimulationCreate, "SingleNeuronSynaptomeSimulationUpdate"
-    ),
-]
+SingleNeuronSynaptomeSimulationUpdate = make_update_schema(
+    SingleNeuronSynaptomeSimulationCreate, "SingleNeuronSynaptomeSimulationUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
 
 class SingleNeuronSynaptomeSimulationRead(
@@ -98,7 +94,7 @@ class SimulationCreate(SimulationBase, AuthorizationOptionalPublicMixin):
     pass
 
 
-SimulationUpdate = Annotated[BaseModel, make_update_schema(SimulationCreate, "SimulationUpdate")]
+SimulationUpdate = make_update_schema(SimulationCreate, "SimulationUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class NestedSimulationRead(SimulationBase, EntityTypeMixin, IdentifiableMixin):

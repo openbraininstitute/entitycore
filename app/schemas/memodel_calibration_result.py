@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel
 
@@ -38,6 +37,6 @@ class MEModelCalibrationResultCreate(
     """Create model for MEModel calibration results."""
 
 
-MEModelCalibrationResultUpdate = Annotated[
-    BaseModel, make_update_schema(MEModelCalibrationResultCreate, "MEModelCalibrationResultUpdate")
-]
+MEModelCalibrationResultUpdate = make_update_schema(
+    MEModelCalibrationResultCreate, "MEModelCalibrationResultUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]

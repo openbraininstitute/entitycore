@@ -153,7 +153,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ExperimentalBoutonDensityUpdate,
+    json_model: ExperimentalBoutonDensityUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ExperimentalBoutonDensityRead:
     return router_update_one(
         id_=id_,

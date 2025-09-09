@@ -72,9 +72,9 @@ class ElectricalCellRecordingCreate(ElectricalCellRecordingBase, ScientificArtif
     pass
 
 
-ElectricalCellRecordingUpdate = Annotated[
-    BaseModel, make_update_schema(ElectricalCellRecordingCreate, "ElectricalCellRecordingUpdate")
-]
+ElectricalCellRecordingUpdate = make_update_schema(
+    ElectricalCellRecordingCreate, "ElectricalCellRecordingUpdate"
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class ElectricalCellRecordingRead(

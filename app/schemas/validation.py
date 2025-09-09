@@ -1,5 +1,4 @@
 import uuid
-from typing import Annotated
 
 from pydantic import BaseModel
 
@@ -48,6 +47,4 @@ class ValidationResultCreate(ValidationResultBase, AuthorizationOptionalPublicMi
     pass
 
 
-ValidationResultUpdate = Annotated[
-    BaseModel, make_update_schema(ValidationResultCreate, "ValidationResultUpdate")
-]
+ValidationResultUpdate = make_update_schema(ValidationResultCreate, "ValidationResultUpdate")  # pyright: ignore [reportInvalidTypeForm]

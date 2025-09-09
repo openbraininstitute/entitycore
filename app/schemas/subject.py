@@ -79,7 +79,7 @@ class SubjectCreate(AuthorizationOptionalPublicMixin, SubjectBase):
     species_id: uuid.UUID
 
 
-SubjectUpdate = Annotated[BaseModel, make_update_schema(SubjectCreate, "SubjectUpdate")]
+SubjectUpdate = make_update_schema(SubjectCreate, "SubjectUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class NestedSubjectRead(SubjectBase, IdentifiableMixin):

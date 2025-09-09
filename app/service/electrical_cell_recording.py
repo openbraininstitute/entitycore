@@ -153,7 +153,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ElectricalCellRecordingUpdate,
+    json_model: ElectricalCellRecordingUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ElectricalCellRecordingRead:
     return router_update_one(
         id_=id_,

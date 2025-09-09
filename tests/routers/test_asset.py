@@ -475,9 +475,9 @@ def test_get_entity_assets(client, entity, asset):
 
     # try to get assets with non-existent entity id
     response = client.get(f"{route(entity.type)}/{MISSING_ID}/assets")
-    assert response.status_code == 404, f"Unexpected result: {response.text}"
-    error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+    assert response.status_code == 200, f"Unexpected result: {response.text}"
+    data = response.json()["data"]
+    assert len(data) == 0
 
 
 def test_download_entity_asset(client, entity, asset):

@@ -85,6 +85,20 @@ def read_one(
     return entity
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> ScientificArtifactExternalUrlLinkRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=ScientificArtifactExternalUrlLink,
+        authorized_project_id=None,
+        response_schema_class=ScientificArtifactExternalUrlLinkRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: ScientificArtifactExternalUrlLinkCreate,

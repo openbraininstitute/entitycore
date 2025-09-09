@@ -89,8 +89,13 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_one(client, model, json_data):
+def test_user_read_one(client, model, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model.id}").json()
+    _assert_read_response(data, json_data)
+
+
+def test_admin_read_one(client_admin, model, json_data):
+    data = assert_request(client_admin.get, url=f"/admin/{ROUTE}/{model.id}").json()
     _assert_read_response(data, json_data)
 
 

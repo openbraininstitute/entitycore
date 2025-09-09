@@ -6,6 +6,7 @@ from app.db.types import EntityType
 from .utils import PROJECT_ID, add_db, assert_request
 
 ROUTE = "cell-composition"
+ADMIN_ROUTE = "/admin/cell-composition"
 
 
 @pytest.fixture
@@ -25,13 +26,18 @@ def cell_composition_id(db, brain_region_id, species_id, person_id):
     return row.id
 
 
-def test_read_one(client, cell_composition_id):
+def test_read_one(client, client_admin, cell_composition_id):
     data = assert_request(client.get, url=f"{ROUTE}/{cell_composition_id}").json()
     assert data["name"] == "my-composition"
     assert "assets" in data
     assert data["type"] == EntityType.cell_composition
 
     data = assert_request(client.get, url=f"{ROUTE}").json()["data"][0]
+    assert data["name"] == "my-composition"
+    assert "assets" in data
+    assert data["type"] == EntityType.cell_composition
+
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{cell_composition_id}").json()
     assert data["name"] == "my-composition"
     assert "assets" in data
     assert data["type"] == EntityType.cell_composition

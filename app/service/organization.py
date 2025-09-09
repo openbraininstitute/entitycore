@@ -78,6 +78,17 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> OrganizationRead:
     )
 
 
+def admin_read_one(db: SessionDep, id_: uuid.UUID) -> OrganizationRead:
+    return app.queries.common.router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=Organization,
+        authorized_project_id=None,
+        response_schema_class=OrganizationRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     organization: OrganizationCreate, db: SessionDep, user_context: AdminContextDep
 ) -> OrganizationRead:

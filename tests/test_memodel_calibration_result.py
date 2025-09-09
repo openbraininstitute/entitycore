@@ -98,8 +98,14 @@ def test_update_one__public(client, json_data):
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
-def test_read_one(client: TestClient, memodel_calibration_result_id, json_data):
+def test_read_one(client, client_admin, memodel_calibration_result_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{memodel_calibration_result_id}").json()
+    _assert_read_response(data, json_data)
+    assert data["id"] == memodel_calibration_result_id
+
+    data = assert_request(
+        client_admin.get, url=f"{ADMIN_ROUTE}/{memodel_calibration_result_id}"
+    ).json()
     _assert_read_response(data, json_data)
     assert data["id"] == memodel_calibration_result_id
 

@@ -124,7 +124,7 @@ def test_update_one__public(client, subject_id, brain_region_id):
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
-def test_read_one(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):
+def test_user_read_one(client, client_admin, subject_id: str, brain_region_id: uuid.UUID):
     icm_res = create(client, subject_id, brain_region_id)
     icm: dict = icm_res.json()
     icm_id = icm.get("id")
@@ -138,6 +138,14 @@ def test_read_one(client: TestClient, subject_id: str, brain_region_id: uuid.UUI
         )
 
     response = client.get(f"{ROUTE}/{icm_id}")
+
+    assert response.status_code == 200
+    json = response.json()
+    IonChannelModelRead.model_validate(json)
+    assert json["id"] == icm_id
+    assert len(json["assets"]) == 1
+
+    response = client_admin.get(f"{ADMIN_ROUTE}/{icm_id}")
 
     assert response.status_code == 200
     json = response.json()

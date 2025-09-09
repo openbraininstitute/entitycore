@@ -9,6 +9,7 @@ from .utils import (
 )
 
 ROUTE = "/publication"
+ADMIN_ROUTE = "/publication"
 
 
 @pytest.fixture
@@ -88,13 +89,16 @@ def test_create_one__doi_validation(client_admin, json_data):
     assert data["error_code"] == "ENTITY_DUPLICATED"
 
 
-def test_read_one(client, model_id, json_data):
+def test_read_one(client, client_admin, model_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
     data = assert_request(client.get, url=ROUTE).json()
     assert len(data["data"]) == 1
     _assert_read_response(data["data"][0], json_data)
+
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    _assert_read_response(data, json_data)
 
 
 def test_missing(client):

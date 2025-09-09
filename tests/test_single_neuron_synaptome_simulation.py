@@ -209,10 +209,26 @@ def test_create_one__public(client, json_data):
     assert data["authorized_public"] is True
 
 
-def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
+def test_read_one(client, client_admin, brain_region_id, synaptome_id, simulation_id):
     data = assert_request(
         client.get,
         url=f"{ROUTE}/{simulation_id}",
+    ).json()
+    assert data["brain_region"]["id"] == str(brain_region_id)
+    assert data["description"] == "my-description"
+    assert data["name"] == "my-sim"
+    assert data["status"] == "success"
+    assert data["injection_location"] == ["soma[0]"]
+    assert data["recording_location"] == ["soma[0]_0.5"]
+    assert data["synaptome"]["id"] == str(synaptome_id)
+    assert data["authorized_project_id"] == PROJECT_ID
+    assert data["type"] == EntityType.single_neuron_synaptome_simulation
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["authorized_public"] is False
+
+    data = assert_request(
+        client_admin.get,
+        url=f"{ADMIN_ROUTE}/{simulation_id}",
     ).json()
     assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["description"] == "my-description"

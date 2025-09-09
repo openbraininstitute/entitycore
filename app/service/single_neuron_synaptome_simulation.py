@@ -65,6 +65,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SingleNeuronSynaptomeSimulationRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        authorized_project_id=None,
+        db_model_class=SingleNeuronSynaptomeSimulation,
+        response_schema_class=SingleNeuronSynaptomeSimulationRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     json_model: SingleNeuronSynaptomeSimulationCreate,

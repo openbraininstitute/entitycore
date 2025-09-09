@@ -55,6 +55,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SingleNeuronSimulationRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=SingleNeuronSimulation,
+        authorized_project_id=None,
+        response_schema_class=SingleNeuronSimulationRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,

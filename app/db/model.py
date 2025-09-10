@@ -1,9 +1,11 @@
 import uuid
 from datetime import datetime, timedelta
+from enum import StrEnum, auto
 from typing import ClassVar
 from uuid import UUID
 
 import sqlalchemy as sa
+from pydantic import BaseModel
 from sqlalchemy import (
     BigInteger,
     DateTime,
@@ -1374,16 +1376,16 @@ class ScientificArtifactExternalUrlLink(Identifiable):
     )
 
 
-from enum import auto, StrEnum
-from pydantic import BaseModel
 class NodePopulationType(StrEnum):
     biophysical = auto()
     virtual = auto()
+
 
 class SpatialCoordinate(StrEnum):
     x = auto()
     y = auto()
     z = auto()
+
 
 class CircuitMetricsNodePopulation(BaseModel):
     number_of_nodes: int

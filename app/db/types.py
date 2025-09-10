@@ -60,6 +60,7 @@ class EntityType(StrEnum):
     brain_atlas_region = auto()
     cell_composition = auto()
     electrical_cell_recording = auto()
+    electrical_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
     experimental_bouton_density = auto()

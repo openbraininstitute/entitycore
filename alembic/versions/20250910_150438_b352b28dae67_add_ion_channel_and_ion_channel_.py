@@ -1,8 +1,8 @@
 """Add ion_channel and ion_channel_recording
 
-Revision ID: 838ede01ac0a
-Revises: 9df9950d73a0
-Create Date: 2025-09-09 17:21:00.639981
+Revision ID: b352b28dae67
+Revises: d58bc70ec10f
+Create Date: 2025-09-10 15:04:38.633137
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "838ede01ac0a"
-down_revision: Union[str, None] = "9df9950d73a0"
+revision: str = "b352b28dae67"
+down_revision: Union[str, None] = "d58bc70ec10f"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -69,51 +69,30 @@ def upgrade() -> None:
         unique=False,
         postgresql_using="gin",
     )
-    op.create_index(op.f("ix_ion_channel_name"), "ion_channel", ["name"], unique=False)
     op.create_index(op.f("ix_ion_channel_label"), "ion_channel", ["label"], unique=True)
+    op.create_index(op.f("ix_ion_channel_name"), "ion_channel", ["name"], unique=False)
     op.create_index(
         op.f("ix_ion_channel_updated_by_id"), "ion_channel", ["updated_by_id"], unique=False
     )
     op.create_table(
-        "ion_channel_recording",
+        "electrical_cell_recording",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("ion_channel_id", sa.Uuid(), nullable=False),
-        sa.Column("cell_line", sa.String(), nullable=False),
-        sa.Column(
-            "recording_type",
-            postgresql.ENUM(
-                "intracellular",
-                "extracellular",
-                "both",
-                "unknown",
-                name="electricalrecordingtype",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
-        sa.Column(
-            "recording_origin",
-            postgresql.ENUM(
-                "in_vivo",
-                "in_vitro",
-                "in_silico",
-                "unknown",
-                name="electricalrecordingorigin",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
-        sa.Column("recording_location", sa.ARRAY(sa.VARCHAR()), nullable=False),
-        sa.Column("ljp", sa.Float(), nullable=False),
-        sa.Column("temperature", sa.Float(), nullable=True),
-        sa.Column("comment", sa.String(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["id"],
-            ["scientific_artifact.id"],
-            name=op.f("fk_ion_channel_recording_id_scientific_artifact"),
+            ["electrical_recording.id"],
+            name=op.f("fk_electrical_cell_recording_id_electrical_recording"),
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_electrical_cell_recording")),
+    )
+    op.create_table(
+        "ion_channel_recording",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column("cell_line", sa.String(), nullable=False),
+        sa.Column("ion_channel_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["id"],
+            ["electrical_recording.id"],
+            name=op.f("fk_ion_channel_recording_id_electrical_recording"),
         ),
         sa.ForeignKeyConstraint(
             ["ion_channel_id"],
@@ -123,20 +102,26 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_ion_channel_recording")),
     )
     op.create_index(
-        "ix_ion_channel_recording_description_vector",
-        "ion_channel_recording",
-        ["description_vector"],
-        unique=False,
-        postgresql_using="gin",
-    )
-    op.create_index(
         op.f("ix_ion_channel_recording_ion_channel_id"),
         "ion_channel_recording",
         ["ion_channel_id"],
         unique=False,
     )
+    op.drop_index(
+        op.f("ix_electrical_cell_recording_description_vector"),
+        table_name="electrical_recording",
+        postgresql_using="gin",
+    )
+    op.drop_index(op.f("ix_electrical_cell_recording_name"), table_name="electrical_recording")
     op.create_index(
-        op.f("ix_ion_channel_recording_name"), "ion_channel_recording", ["name"], unique=False
+        "ix_electrical_recording_description_vector",
+        "electrical_recording",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_electrical_recording_name"), "electrical_recording", ["name"], unique=False
     )
     op.sync_enum_values(
         enum_schema="public",
@@ -147,6 +132,7 @@ def upgrade() -> None:
             "brain_atlas_region",
             "cell_composition",
             "electrical_cell_recording",
+            "electrical_recording",
             "electrical_recording_stimulus",
             "emodel",
             "experimental_bouton_density",
@@ -223,19 +209,30 @@ def downgrade() -> None:
         ],
         enum_values_to_rename=[],
     )
-    op.drop_index(op.f("ix_ion_channel_recording_name"), table_name="ion_channel_recording")
+    op.drop_index(op.f("ix_electrical_recording_name"), table_name="electrical_recording")
+    op.drop_index(
+        "ix_electrical_recording_description_vector",
+        table_name="electrical_recording",
+        postgresql_using="gin",
+    )
+    op.create_index(
+        op.f("ix_electrical_cell_recording_name"), "electrical_recording", ["name"], unique=False
+    )
+    op.create_index(
+        op.f("ix_electrical_cell_recording_description_vector"),
+        "electrical_recording",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
     op.drop_index(
         op.f("ix_ion_channel_recording_ion_channel_id"), table_name="ion_channel_recording"
     )
-    op.drop_index(
-        "ix_ion_channel_recording_description_vector",
-        table_name="ion_channel_recording",
-        postgresql_using="gin",
-    )
     op.drop_table("ion_channel_recording")
+    op.drop_table("electrical_cell_recording")
     op.drop_index(op.f("ix_ion_channel_updated_by_id"), table_name="ion_channel")
-    op.drop_index(op.f("ix_ion_channel_label"), table_name="ion_channel")
     op.drop_index(op.f("ix_ion_channel_name"), table_name="ion_channel")
+    op.drop_index(op.f("ix_ion_channel_label"), table_name="ion_channel")
     op.drop_index(
         "ix_ion_channel_description_vector", table_name="ion_channel", postgresql_using="gin"
     )

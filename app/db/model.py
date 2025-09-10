@@ -1374,6 +1374,27 @@ class ScientificArtifactExternalUrlLink(Identifiable):
     )
 
 
+from enum import auto, StrEnum
+from pydantic import BaseModel
+class NodePopulationType(StrEnum):
+    biophysical = auto()
+    virtual = auto()
+
+class SpatialCoordinate(StrEnum):
+    x = auto()
+    y = auto()
+    z = auto()
+
+class CircuitMetricsNodePopulation(BaseModel):
+    number_of_nodes: int
+    name: str
+    population_type: NodePopulationType
+    property_names: list[str]
+    property_unique_values: dict[str, list[str]]
+    property_value_counts: dict[str, dict[str, int]]
+    node_location_info: dict[SpatialCoordinate, dict[str, float]] | None
+
+
 class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     """Represents a neural circuit as a scientific artifact.
 
@@ -1427,6 +1448,15 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     number_neurons: Mapped[int] = mapped_column(BigInteger)
     number_synapses: Mapped[int] = mapped_column(BigInteger)
     number_connections: Mapped[int | None] = mapped_column(BigInteger)
+
+    names_of_biophys_node_populations: list[str]
+    names_of_virtual_node_populations: list[str]
+    names_of_node_populations: list[str]
+    # Probably the list of names is enough
+    # number_of_biophys_node_populations: int
+    # number_of_virtual_node_populations: int
+    biophysical_node_populations: list[CircuitMetricsNodePopulation | None]
+    virtual_node_populations: list[CircuitMetricsNodePopulation | None]
 
     # To be added later:
     # version: Mapped[str] = mapped_column(default="")

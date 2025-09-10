@@ -1394,7 +1394,6 @@ class CircuitMetricsNodePopulation(BaseModel):
     property_names: list[str]
     property_unique_values: dict[str, list[str]]
     property_value_counts: dict[str, dict[str, int]]
-    node_location_info: dict[SpatialCoordinate, dict[str, float]] | None
 
 
 class Circuit(ScientificArtifact, NameDescriptionVectorMixin):

@@ -46,6 +46,12 @@ def get_entity_assets(
     """Return the list of assets associated with a specific entity."""
     db_model_class = Asset
     entity_type = entity_route_to_type(entity_route)
+    _ = entity_service.get_readable_entity(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
     apply_filter_query_operations = lambda q: q.join(Entity, Entity.id == Asset.entity_id).where(
         Asset.entity_id == entity_id,
         Asset.status != AssetStatus.DELETED,

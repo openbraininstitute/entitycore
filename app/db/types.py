@@ -435,6 +435,11 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.mod, is_directory=False)
         ],
     },
+    EntityType.ion_channel_recording: {
+        AssetLabel.nwb: [
+            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
+        ]
+    },
     EntityType.me_type_density: {
         AssetLabel.voxel_densities: [
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)

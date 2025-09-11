@@ -47,6 +47,7 @@ def _load(query: sa.Select):
             joinedload(Contribution.agent),
             joinedload(Contribution.role),
         ),
+        selectinload(IonChannelRecording.ion_channel),
         raiseload("*"),
     )
 
@@ -109,6 +110,7 @@ def read_many(
         "contribution",
         "subject.species",
         "subject.strain",
+        "ion_channel",
     ]
     filter_keys = [
         "brain_region",
@@ -118,6 +120,7 @@ def read_many(
         "subject",
         "subject.species",
         "subject.strain",
+        "ion_channel",
     ]
 
     name_to_facet_query_params, filter_joins = query_params_factory(

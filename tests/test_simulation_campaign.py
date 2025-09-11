@@ -238,6 +238,7 @@ def campaigns_with_different_circuits(
                 **(
                     json_data
                     | {
+                        "entity_id": str(circuit.id),
                         "name": f"campaign-circuit-{i}",
                         "description": f"Campaign for circuit {i}",
                         "created_by_id": person_id,
@@ -269,6 +270,13 @@ def campaigns_with_different_circuits(
 
 def test_filter_by_circuit_id(client, campaigns_with_different_circuits, multiple_circuits):  # noqa: ARG001
     first_circuit_id = str(multiple_circuits[0].id)
+
+    data = assert_request(client.get, url=ROUTE, params={"entity_id": first_circuit_id}).json()[
+        "data"
+    ]
+    assert len(data) == 1
+    assert data[0]["name"] == "campaign-circuit-0"
+
     data = assert_request(client.get, url=ROUTE, params={"circuit__id": first_circuit_id}).json()[
         "data"
     ]

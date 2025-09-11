@@ -840,7 +840,6 @@ class ElectricalRecording(
     """Base table for all the electrical recordings."""
 
     __tablename__ = EntityType.electrical_recording.value
-    # __tablename__ = EntityType.electrical_cell_recording.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]

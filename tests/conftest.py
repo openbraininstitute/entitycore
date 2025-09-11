@@ -26,6 +26,7 @@ from app.db.model import (
     ETypeClass,
     ETypeClassification,
     ExternalUrl,
+    IonChannel,
     MEModel,
     MTypeClass,
     MTypeClassification,
@@ -68,6 +69,7 @@ from .utils import (
     add_db,
     assert_request,
     create_electrical_cell_recording_id_with_assets,
+    create_ion_channel_recording_id_with_assets,
 )
 
 
@@ -893,6 +895,62 @@ def trace_id_minimal(client, electrical_cell_recording_json_data):
 def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
     return create_electrical_cell_recording_id_with_assets(
         db, client, tmp_path, electrical_cell_recording_json_data
+    )
+
+
+@pytest.fixture
+def ion_channel_json_data():
+    return {
+        "name": "KCa1.1",
+        "description": "",
+        "label": "K<sub>Ca</sub>1.1",
+        "gene": "Kcnma1",
+        "synonyms": ["BK channel", "BK channel alpha subunit"],
+    }
+
+
+@pytest.fixture
+def ion_channel(db, ion_channel_json_data, person_id):
+    return add_db(
+        db,
+        IonChannel(
+            **ion_channel_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def ion_channel_recording_json_data(brain_region_id, subject_id, license_id, ion_channel):
+    return {
+        "name": "my-name",
+        "description": "my-description",
+        "subject_id": subject_id,
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+        "recording_location": ["soma[0]_0.5"],
+        "recording_type": "intracellular",
+        "recording_origin": "in_vivo",
+        "ljp": 11.5,
+        "cell_line": "CHO",
+        "comment": "test comment",
+        "authorized_public": False,
+        "ion_channel_id": str(ion_channel.id),
+    }
+
+
+@pytest.fixture
+def ion_channel_recording_id_minimal(client, ion_channel_recording_json_data):
+    return utils.create_ion_channel_recording_id(client, ion_channel_recording_json_data)
+
+
+@pytest.fixture
+def ion_channel_recording_id_with_assets(db, client, tmp_path, ion_channel_recording_json_data):
+    return create_ion_channel_recording_id_with_assets(
+        db, client, tmp_path, ion_channel_recording_json_data
     )
 
 

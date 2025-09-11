@@ -23,6 +23,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    MappedColumn,
     declared_attr,
     foreign,
     mapped_column,
@@ -147,14 +148,19 @@ class NameDescriptionVectorMixin(Base):
     @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: D105, PLW3201
-        return (
-            Index(
-                f"ix_{cls.__tablename__}_description_vector",
-                cls.description_vector,
-                postgresql_using="gin",
-            ),
-            *getattr(super(), "__table_args__", ()),
-        )
+        super_table_args = getattr(super(), "__table_args__", ())
+        # add the index only to the same table where the Mixin is defined, not subclasses
+        attr = getattr(cls, "description_vector", None)
+        if isinstance(attr, MappedColumn):
+            return (
+                Index(
+                    f"ix_{cls.__tablename__}_description_vector",
+                    cls.description_vector,
+                    postgresql_using="gin",
+                ),
+                *super_table_args,
+            )
+        return super_table_args
 
 
 class BrainRegionHierarchy(Identifiable):
@@ -820,19 +826,20 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     end_time: Mapped[float | None]
 
     recording_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("electrical_cell_recording.id"),
+        ForeignKey("electrical_recording.id"),
         index=True,
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class ElectricalCellRecording(
+class ElectricalRecording(
     ScientificArtifact,
     NameDescriptionVectorMixin,
-    ETypesMixin,
 ):
-    __tablename__ = EntityType.electrical_cell_recording.value
+    """Base table for all the electrical recordings."""
+
+    __tablename__ = EntityType.electrical_recording.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]
@@ -846,6 +853,45 @@ class ElectricalCellRecording(
         uselist=True,
         foreign_keys="ElectricalRecordingStimulus.recording_id",
         passive_deletes=True,
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class ElectricalCellRecording(
+    ElectricalRecording,
+    ETypesMixin,
+):
+    __tablename__ = EntityType.electrical_cell_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class IonChannel(NameDescriptionVectorMixin, Identifiable):
+    __tablename__ = GlobalType.ion_channel.value
+
+    label: Mapped[str] = mapped_column(unique=True, index=True)
+    gene: Mapped[str]
+    synonyms: Mapped[STRING_LIST]
+
+
+class IonChannelRecording(
+    ElectricalRecording,
+):
+    __tablename__ = EntityType.ion_channel_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
+    cell_line: Mapped[str]
+    ion_channel_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ion_channel.id"),
+        index=True,
+    )
+    ion_channel: Mapped[IonChannel] = relationship(
+        "IonChannel",
+        uselist=False,
+        foreign_keys=[ion_channel_id],
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

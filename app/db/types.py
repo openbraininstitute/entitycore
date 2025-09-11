@@ -60,13 +60,16 @@ class EntityType(StrEnum):
     brain_atlas_region = auto()
     cell_composition = auto()
     electrical_cell_recording = auto()
+    electrical_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     external_url = auto()
+    ion_channel = auto()
     ion_channel_model = auto()
+    ion_channel_recording = auto()
     memodel = auto()
     mesh = auto()
     memodel_calibration_result = auto()
@@ -112,6 +115,7 @@ class GlobalType(StrEnum):
     publication = auto()
     role = auto()
     ion = auto()
+    ion_channel = auto()
     measurement_annotation = auto()
 
 
@@ -430,6 +434,11 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         AssetLabel.neuron_mechanisms: [
             LabelRequirements(content_type=ContentType.mod, is_directory=False)
         ],
+    },
+    EntityType.ion_channel_recording: {
+        AssetLabel.nwb: [
+            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
+        ]
     },
     EntityType.me_type_density: {
         AssetLabel.voxel_densities: [

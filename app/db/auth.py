@@ -31,7 +31,7 @@ def constrain_to_private_entities[Q: Query | Select](
     user_context: UserContext,
     db_model_class: Any = Entity,
 ) -> Q:
-    """Ensure a query is filtered to rows that are viewable by the user."""
+    """Ensure a query is filtered to private rows that are viewable by the user."""
     return query.where(
         and_(
             db_model_class.authorized_public == false(),

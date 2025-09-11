@@ -14,6 +14,7 @@ from app.schemas.base import (
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.me_model import NestedMEModel
+from app.schemas.utils import make_update_schema
 
 
 class SingleNeuronSynaptomeBase(BaseModel):
@@ -29,6 +30,11 @@ class SingleNeuronSynaptomeCreate(
 ):
     me_model_id: uuid.UUID
     brain_region_id: uuid.UUID
+
+
+SingleNeuronSynaptomeUpdate = make_update_schema(
+    SingleNeuronSynaptomeCreate, "SingleNeuronSynaptomeUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
 
 class NestedSynaptome(SingleNeuronSynaptomeBase, CreationMixin, IdentifiableMixin):

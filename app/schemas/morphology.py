@@ -19,6 +19,7 @@ from app.schemas.base import (
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
+from app.schemas.utils import make_update_schema
 
 
 class ReconstructionMorphologyBase(BaseModel):
@@ -38,6 +39,11 @@ class ReconstructionMorphologyCreate(
     strain_id: uuid.UUID | None = None
     brain_region_id: uuid.UUID
     legacy_id: list[str] | None = None
+
+
+ReconstructionMorphologyUpdate = make_update_schema(
+    ReconstructionMorphologyCreate, "ReconstructionMorphologyUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
 
 class ReconstructionMorphologyRead(

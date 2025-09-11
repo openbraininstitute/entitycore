@@ -5,8 +5,10 @@ from unittest.mock import ANY
 import pytest
 
 from app.db.model import (
+    Asset,
     BrainRegion,
     ElectricalCellRecording,
+    ElectricalRecordingStimulus,
     ETypeClass,
     ETypeClassification,
     Species,
@@ -22,12 +24,16 @@ from .utils import (
     check_authorization,
     check_brain_region_filter,
     check_missing,
+    count_db_class,
     create_brain_region,
     create_electrical_cell_recording_db,
     create_electrical_cell_recording_id,
+    delete_entity_assets,
+    delete_entity_classifications,
 )
 
-ROUTE = "electrical-cell-recording"
+ROUTE = "/electrical-cell-recording"
+ADMIN_ROUTE = f"/admin{ROUTE}"
 
 
 def test_create_one(
@@ -48,6 +54,64 @@ def test_create_one(
     assert data["type"] == EntityType.electrical_cell_recording
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["etypes"] == []
+
+
+def test_update_one(client, trace_id_with_assets):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # set temperature
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "temperature": 10.0,
+        },
+    ).json()
+    assert data["temperature"] == 10.0
+
+    # unset temperature
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "temperature": None,
+        },
+    ).json()
+    assert data["temperature"] is None
+
+
+def test_update_one__public(client, electrical_cell_recording_json_data):
+    # make private entity public
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=electrical_cell_recording_json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
@@ -77,6 +141,46 @@ def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with
             "update_date": ANY,
         },
     ]
+
+
+def _delete_stimuli(client_admin, trace_id):
+    data = assert_request(
+        client_admin.get,
+        url=f"{ROUTE}/{trace_id}",
+    ).json()
+
+    for stimulus in data["stimuli"]:
+        stimulus_id = stimulus["id"]
+        data = assert_request(
+            client_admin.delete,
+            url=f"/admin/electrical-recording-stimulus/{stimulus_id}",
+        ).json()
+
+
+def test_delete_one(db, client, client_admin, trace_id_with_assets):
+    assert count_db_class(db, ElectricalCellRecording) == 1
+    assert count_db_class(db, ElectricalRecordingStimulus) == 2
+    assert count_db_class(db, Asset) == 1
+    assert count_db_class(db, ETypeClassification) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{trace_id_with_assets}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    # manually delete linked entities to remove foreign key references
+    delete_entity_assets(client_admin, ROUTE, trace_id_with_assets)
+    delete_entity_classifications(client, client_admin, trace_id_with_assets)
+    _delete_stimuli(client_admin, trace_id_with_assets)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{trace_id_with_assets}").json()
+    assert data["id"] == str(trace_id_with_assets)
+
+    assert count_db_class(db, ElectricalCellRecording) == 0
+    assert count_db_class(db, ElectricalRecordingStimulus) == 0
+    assert count_db_class(db, Asset) == 0
+    assert count_db_class(db, ETypeClassification) == 0
 
 
 def test_missing(client):

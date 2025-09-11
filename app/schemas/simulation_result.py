@@ -11,6 +11,7 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
+from app.schemas.utils import make_update_schema
 
 
 class SimulationResultBase(BaseModel):
@@ -22,6 +23,9 @@ class SimulationResultBase(BaseModel):
 
 class SimulationResultCreate(SimulationResultBase, AuthorizationOptionalPublicMixin):
     pass
+
+
+SimulationResultUpdate = make_update_schema(SimulationResultCreate, "SimulationResultUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class NestedSimulationResultRead(SimulationResultBase, EntityTypeMixin, IdentifiableMixin):

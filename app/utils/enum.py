@@ -1,6 +1,9 @@
 """Custom enum."""
 
+import operator
+from collections.abc import Sequence
 from enum import StrEnum
+from typing import cast
 
 
 class HyphenStrEnum(StrEnum):
@@ -25,3 +28,12 @@ class UpperStrEnum(StrEnum):
     def _generate_next_value_(name: str, start: int, count: int, last_values: list[str]) -> str:  # noqa: ARG004
         """Return the upper-cased version of the member name."""
         return name.upper()
+
+
+def combine_str_enums(name: str, enums: Sequence[type[StrEnum]]) -> type[StrEnum]:
+    """Combine mutliple StrEnum into a single one."""
+    members = sorted(
+        [(e.name, e.value) for enum in enums for e in enum.__members__.values()],
+        key=operator.itemgetter(0),
+    )
+    return cast("type[StrEnum]", StrEnum(name, dict(members)))

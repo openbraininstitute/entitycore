@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter, Depends
 
-from app.dependencies.auth import user_verified
+from app.dependencies.auth import user_verified, user_with_service_admin_role
 from app.routers import (
+    admin,
     asset,
     brain_atlas,
     brain_region,
@@ -26,7 +27,9 @@ from app.routers import (
     experimental_neuron_density,
     experimental_synapses_per_connection,
     external_url,
+    ion_channel,
     ion_channel_model,
+    ion_channel_recording,
     license,
     measurement_annotation,
     memodel,
@@ -58,6 +61,7 @@ from app.routers import (
 
 router = APIRouter()
 router.include_router(root.router)
+router.include_router(admin.router, dependencies=[Depends(user_with_service_admin_role)])
 
 
 authenticated_routers = [
@@ -83,7 +87,9 @@ authenticated_routers = [
     experimental_neuron_density.router,
     experimental_synapses_per_connection.router,
     external_url.router,
+    ion_channel.router,
     ion_channel_model.router,
+    ion_channel_recording.router,
     license.router,
     measurement_annotation.router,
     memodel.router,

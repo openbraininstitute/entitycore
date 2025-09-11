@@ -1,7 +1,7 @@
 import uuid
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload, raiseload
+from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 from app.db.model import Subject, ValidationResult
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -13,9 +13,18 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.validation_result import ValidationResultFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.schemas.types import ListResponse
-from app.schemas.validation import ValidationResultCreate, ValidationResultRead
+from app.schemas.validation import (
+    ValidationResultCreate,
+    ValidationResultRead,
+    ValidationResultUpdate,
+)
 
 
 def _load(query: sa.Select):
@@ -23,6 +32,7 @@ def _load(query: sa.Select):
         joinedload(Subject.species),
         joinedload(ValidationResult.created_by),
         joinedload(ValidationResult.updated_by),
+        selectinload(ValidationResult.assets),
         raiseload("*"),
     )
 
@@ -51,6 +61,23 @@ def create_one(
         db=db,
         user_context=user_context,
         db_model_class=ValidationResult,
+        json_model=json_model,
+        response_schema_class=ValidationResultRead,
+        apply_operations=_load,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ValidationResultUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ValidationResultRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ValidationResult,
+        user_context=user_context,
         json_model=json_model,
         response_schema_class=ValidationResultRead,
         apply_operations=_load,

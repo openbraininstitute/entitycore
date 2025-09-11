@@ -7,6 +7,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
+from app.utils.enum import combine_str_enums
+
 
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -58,18 +60,20 @@ class EntityType(StrEnum):
     brain_atlas_region = auto()
     cell_composition = auto()
     electrical_cell_recording = auto()
+    electrical_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     external_url = auto()
+    ion_channel = auto()
     ion_channel_model = auto()
+    ion_channel_recording = auto()
     memodel = auto()
     mesh = auto()
     memodel_calibration_result = auto()
     me_type_density = auto()
-    publication = auto()
     reconstruction_morphology = auto()
     simulation = auto()
     simulation_campaign = auto()
@@ -100,6 +104,32 @@ class AgentType(StrEnum):
     consortium = auto()
 
 
+class GlobalType(StrEnum):
+    """Global resource types."""
+
+    brain_region_hierarchy = auto()
+    brain_region = auto()
+    species = auto()
+    strain = auto()
+    license = auto()
+    mtype_class = auto()
+    etype_class = auto()
+    publication = auto()
+    role = auto()
+    ion = auto()
+    ion_channel = auto()
+    measurement_annotation = auto()
+
+
+class AssociationType(StrEnum):
+    etype_classification = auto()
+    mtype_classification = auto()
+    contribution = auto()
+    derivation = auto()
+    scientific_artifact_publication_link = auto()
+    scientific_artifact_external_url_link = auto()
+
+
 class ActivityType(StrEnum):
     """Activity types."""
 
@@ -121,6 +151,12 @@ class DerivationType(StrEnum):
 
     circuit_extraction = auto()
     circuit_rewiring = auto()
+
+
+ResourceType = combine_str_enums(
+    "ResourceType",
+    (EntityType, AssociationType, GlobalType, AgentType),
+)
 
 
 class AnnotationBodyType(StrEnum):
@@ -401,6 +437,11 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         AssetLabel.neuron_mechanisms: [
             LabelRequirements(content_type=ContentType.mod, is_directory=False)
         ],
+    },
+    EntityType.ion_channel_recording: {
+        AssetLabel.nwb: [
+            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
+        ]
     },
     EntityType.me_type_density: {
         AssetLabel.voxel_densities: [

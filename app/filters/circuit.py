@@ -4,26 +4,38 @@ from typing import Annotated
 from fastapi_filter import with_prefix
 
 from app.db.model import Circuit
+from app.db.types import CircuitBuildCategory, CircuitScale
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, NameFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
-class NestedCircuitFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
+class CircuitFilterMixin:
+    scale: CircuitScale | None = None
+    scale__in: list[CircuitScale] | None = None
+
+    build_category: CircuitBuildCategory | None = None
+    build_category__in: list[CircuitBuildCategory] | None = None
+
+
+class NestedCircuitFilter(
+    IdFilterMixin,
+    NameFilterMixin,
+    CircuitFilterMixin,
+    CustomFilter,
+):
     """Circuit filter with limited fields for nesting."""
-
-    scale: str | None = None
-    scale__in: list[str] | None = None
-
-    build_category: str | None = None
-    build_category__in: list[str] | None = None
 
     class Constants(CustomFilter.Constants):
         model = Circuit
 
 
-class CircuitFilter(ScientificArtifactFilter, NameFilterMixin):
+class CircuitFilter(
+    ScientificArtifactFilter,
+    NameFilterMixin,
+    CircuitFilterMixin,
+):
     atlas_id: uuid.UUID | None = None
     root_circuit_id: uuid.UUID | None = None
 
@@ -40,12 +52,6 @@ class CircuitFilter(ScientificArtifactFilter, NameFilterMixin):
 
     number_connections__lte: int | None = None
     number_connections__gte: int | None = None
-
-    build_category: str | None = None
-    build_category__in: list[str] | None = None
-
-    scale: str | None = None
-    scale__in: list[str] | None = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

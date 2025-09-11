@@ -12,6 +12,7 @@ from app.db.model import (
     ETypeClassification,
     Generation,
     Identifiable,
+    IonChannel,
     MeasurementAnnotation,
     MeasurementItem,
     MeasurementKind,
@@ -75,6 +76,7 @@ def query_params_factory[I: Identifiable](
     used_alias = _get_alias(Entity, "used")
     generated_alias = _get_alias(Entity, "generated")
     circuit_alias = _get_alias(Circuit)
+    ion_channel_alias = _get_alias(IonChannel)
     em_dense_reconstruction_dataset_alias = _get_alias(EMDenseReconstructionDataset)
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
@@ -116,6 +118,7 @@ def query_params_factory[I: Identifiable](
         "post_region": {"id": post_region_alias.id, "label": post_region_alias.name},
         "simulation": {"id": simulation_alias.id, "label": simulation_alias.name},
         "simulation.circuit": {"id": circuit_alias.id, "label": circuit_alias.name},
+        "ion_channel": {"id": ion_channel_alias.id, "label": ion_channel_alias.label},
         "em_dense_reconstruction_dataset": {
             "id": em_dense_reconstruction_dataset_alias.id,
             "label": em_dense_reconstruction_dataset_alias.name,
@@ -198,6 +201,9 @@ def query_params_factory[I: Identifiable](
         "generated": lambda q: q.outerjoin(
             Generation, db_model_class.id == Generation.generation_activity_id
         ).outerjoin(generated_alias, Generation.generation_entity_id == generated_alias.id),
+        "ion_channel": lambda q: q.join(
+            ion_channel_alias, db_model_class.ion_channel_id == ion_channel_alias.id
+        ),
         "em_dense_reconstruction_dataset": lambda q: q.join(
             em_dense_reconstruction_dataset_alias,
             em_dense_reconstruction_dataset_alias.id

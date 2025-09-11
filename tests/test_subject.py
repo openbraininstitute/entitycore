@@ -12,9 +12,11 @@ from .utils import (
     check_authorization,
     check_missing,
     check_pagination,
+    count_db_class,
 )
 
 ROUTE = "/subject"
+ADMIN_ROUTE = "/admin/subject"
 MODEL_CLASS = Subject
 
 
@@ -59,9 +61,76 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
+def test_update_one(client, model_id):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # set weight
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "weight": 25.5,
+        },
+    ).json()
+    assert data["weight"] == 25.5
+
+    # unset weight
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "weight": None,
+        },
+    ).json()
+    assert data["weight"] is None
+
+
+def test_update_one__public(client, json_data):
+    data = assert_request(
+        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_read_one(client, model_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
+
+
+def test_delete_one(db, client, client_admin, model_id):
+    assert count_db_class(db, Subject) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, Subject) == 0
 
 
 def test_missing(client):

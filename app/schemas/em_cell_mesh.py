@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.db.types import EMCellMeshGenerationMethod, EMCellMeshType
 from app.schemas.base import BasicEntityRead
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
+from app.schemas.utils import make_update_schema
 
 
 class EMCellMeshBase(BaseModel):
@@ -29,3 +30,8 @@ class EMCellMeshCreate(
     ScientificArtifactCreate,
 ):
     em_dense_reconstruction_dataset_id: uuid.UUID
+
+
+EMCellMeshUpdate = make_update_schema(
+    EMCellMeshCreate, "EMCellMeshUpdate"
+)  # pyright : ignore [reportInvalidTypeForm]

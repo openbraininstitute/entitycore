@@ -10,3 +10,4 @@ router = APIRouter(
 read_many = router.get("")(app.service.em_cell_mesh.read_many)
 read_one = router.get("/{id_}")(app.service.em_cell_mesh.read_one)
 create_one = router.post("")(app.service.em_cell_mesh.create_one)
+update_one = router.patch("/{id_}")(app.service.em_cell_mesh.update_one)

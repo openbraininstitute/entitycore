@@ -354,7 +354,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext,
+    user_context: UserContext | None,
     json_model: BaseModel,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
@@ -362,7 +362,9 @@ def router_update_one[T: BaseModel, I: Identifiable](
     query = (
         sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
     )
-    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+    if user_context and (
+        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    ):
         query = constrain_to_private_entities(query, user_context, db_model_class=id_model_class)
     if apply_operations:
         query = apply_operations(query)

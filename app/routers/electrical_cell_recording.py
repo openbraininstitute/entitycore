@@ -18,3 +18,6 @@ update_one = router.patch("/{id_}")(app.service.electrical_cell_recording.update
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.electrical_cell_recording.admin_read_one
 )
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
+    app.service.electrical_cell_recording.admin_update_one
+)

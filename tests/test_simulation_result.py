@@ -47,6 +47,43 @@ def _assert_read_response(data, json_data):
     check_creation_fields(data)
 
 
+def test_update_one(client, model):
+    new_name = "my_new_simulation_result_name"
+    new_description = "my_new_simulation_result_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model.id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+
+def test_update_one__public(client, json_data):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)

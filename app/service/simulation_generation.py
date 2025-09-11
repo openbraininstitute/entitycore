@@ -148,7 +148,7 @@ def delete_one(
 def update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationGenerationUpdate,
+    json_model: SimulationGenerationUpdate,  # pyright: ignore [reportInvalidTypeForm]
     user_context: UserContextWithProjectIdDep,
 ) -> SimulationGenerationRead:
     return router_update_activity_one(

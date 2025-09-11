@@ -13,9 +13,18 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.single_neuron_simulation import SingleNeuronSimulationFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
-from app.schemas.simulation import SingleNeuronSimulationCreate, SingleNeuronSimulationRead
+from app.schemas.simulation import (
+    SingleNeuronSimulationCreate,
+    SingleNeuronSimulationRead,
+    SingleNeuronSimulationUpdate,
+)
 from app.schemas.types import ListResponse
 
 
@@ -56,6 +65,23 @@ def create_one(
         json_model=json_model,
         user_context=user_context,
         db_model_class=SingleNeuronSimulation,
+        response_schema_class=SingleNeuronSimulationRead,
+        apply_operations=_load,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SingleNeuronSimulationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SingleNeuronSimulationRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=SingleNeuronSimulation,
+        user_context=user_context,
+        json_model=json_model,
         response_schema_class=SingleNeuronSimulationRead,
         apply_operations=_load,
     )

@@ -105,13 +105,13 @@ def read_one(
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
-    reconstruction: CellMorphologyCreate,
+    json_model: CellMorphologyCreate,
 ) -> CellMorphologyRead:
     return router_create_one(
         db=db,
         user_context=user_context,
         db_model_class=CellMorphology,
-        json_model=reconstruction,
+        json_model=json_model,
         response_schema_class=CellMorphologyRead,
         apply_operations=_load_from_db,
     )

@@ -50,7 +50,7 @@ Auditing is not yet implemented but can be added later using information retriev
 - `/experimental-bouton-density`
 - `/experimental-neuron-density`
 - `/experimental-synapses-per-connection`
-- `/reconstruction-morphology`
+- `/cell-morphology`
 - `/morphology-feature-annotation`
 - `/single-neuron-simulation`
 

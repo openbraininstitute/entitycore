@@ -48,26 +48,11 @@ def json_data(subject_id, license_id, brain_region_id, cell_morphology_protocol)
     }
 
 
-@pytest.fixture
-def json_data(species_id, strain_id, license_id, brain_region_id):
-    return {
-        "brain_region_id": str(brain_region_id),
-        "species_id": str(species_id),
-        "strain_id": str(strain_id),
-        "description": "Test Morphology Description",
-        "name": "Test Morphology Name",
-        "location": {"x": 10, "y": 20, "z": 30},
-        "legacy_id": ["Test Legacy ID"],
-        "license_id": str(license_id),
-    }
-
-
 def test_create_one(
     client,
-    license_id,
     brain_region_id,
     subject_id,
-    cell_morphology_protocol,
+    json_data,
     cell_morphology_protocol_json_data,
 ):
     expected_cell_morphology_protocol_json_data = cell_morphology_protocol_json_data | {"id": ANY}
@@ -189,6 +174,7 @@ def test_update_one__public(client, json_data):
         json=json_data
         | {
             "authorized_public": True,
+            "cell_morphology_protocol_id": None,
         },
     ).json()
 

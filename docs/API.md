@@ -56,7 +56,7 @@ Furthermore, fields of the particular entity being searched for can be specified
 
 Ex:
 ```
-GET /reconstruction-morphology?search=foo&species__name=Mus%20musculus
+GET /cell-morphology?search=foo&subject__species__name=Mus%20musculus
 ```
 
 The return payload is the same as above, except the `data` only includes matches with `foo` and the species name matching `Mus musculus`.
@@ -267,7 +267,7 @@ Instead, one can use the following query parameters:
 ```
 
 ```
-GET /reconstruction-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
+GET /cell-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
 ```
 
 In other words, the name of the hierarchy, and the id which will be recursively included.

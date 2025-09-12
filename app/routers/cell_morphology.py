@@ -10,3 +10,4 @@ router = APIRouter(
 read_many = router.get("")(app.service.cell_morphology.read_many)
 read_one = router.get("/{id_}")(app.service.cell_morphology.read_one)
 create_one = router.post("")(app.service.cell_morphology.create_one)
+update_one = router.patch("/{id_}")(app.service.cell_morphology.update_one)

@@ -43,9 +43,7 @@ class CellMorphologyCreate(
     cell_morphology_protocol_id: uuid.UUID | None = None
 
 
-CellMorphologyUpdate = make_update_schema(
-    CellMorphologyCreate, "CellMorphologyUpdate"
-)  # pyright: ignore [reportInvalidTypeForm]
+CellMorphologyUpdate = make_update_schema(CellMorphologyCreate, "CellMorphologyUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class CellMorphologyRead(

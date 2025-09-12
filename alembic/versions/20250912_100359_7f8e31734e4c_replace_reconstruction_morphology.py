@@ -1,8 +1,8 @@
 """Replace reconstruction_morphology with cell_morphology.
 
 Revision ID: 7f8e31734e4c
-Revises: 9df9950d73a0
-Create Date: 2025-09-04 15:33:59.497711
+Revises: de87a4c88ded
+Create Date: 2025-09-12 10:03:59.497711
 
 """
 
@@ -20,7 +20,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "7f8e31734e4c"
-down_revision: Union[str, None] = "9df9950d73a0"
+down_revision: Union[str, None] = "de87a4c88ded"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -270,13 +270,6 @@ def upgrade() -> None:
         name="repairpipelinetype",
     ).create(op.get_bind())
     sa.Enum(
-        "coronal",
-        "sagittal",
-        "horizontal",
-        "custom",
-        name="slicingdirectiontype",
-    ).create(op.get_bind())
-    sa.Enum(
         "golgi",
         "nissl",
         "luxol_fast_blue",
@@ -502,13 +495,16 @@ def upgrade() -> None:
             "cell_morphology",
             "cell_morphology_protocol",
             "electrical_cell_recording",
+            "electrical_recording",
             "electrical_recording_stimulus",
             "emodel",
             "experimental_bouton_density",
             "experimental_neuron_density",
             "experimental_synapses_per_connection",
             "external_url",
+            "ion_channel",
             "ion_channel_model",
+            "ion_channel_recording",
             "memodel",
             "mesh",
             "memodel_calibration_result",
@@ -525,6 +521,8 @@ def upgrade() -> None:
             "subject",
             "validation_result",
             "circuit",
+            "em_dense_reconstruction_dataset",
+            "em_cell_mesh",
         ],
         affected_columns=[
             TableReference(table_schema="public", table_name="entity", column_name="type")
@@ -571,6 +569,7 @@ def upgrade() -> None:
             "node_stats",
             "network_stats_a",
             "network_stats_b",
+            "cell_surface_mesh",
         ],
         affected_columns=[
             TableReference(table_schema="public", table_name="asset", column_name="label")
@@ -589,13 +588,16 @@ def downgrade() -> None:
             "brain_atlas_region",
             "cell_composition",
             "electrical_cell_recording",
+            "electrical_recording",
             "electrical_recording_stimulus",
             "emodel",
             "experimental_bouton_density",
             "experimental_neuron_density",
             "experimental_synapses_per_connection",
             "external_url",
+            "ion_channel",
             "ion_channel_model",
+            "ion_channel_recording",
             "memodel",
             "mesh",
             "memodel_calibration_result",
@@ -613,6 +615,8 @@ def downgrade() -> None:
             "subject",
             "validation_result",
             "circuit",
+            "em_dense_reconstruction_dataset",
+            "em_cell_mesh",
         ],
         affected_columns=[
             TableReference(table_schema="public", table_name="entity", column_name="type")
@@ -658,6 +662,7 @@ def downgrade() -> None:
             "node_stats",
             "network_stats_a",
             "network_stats_b",
+            "cell_surface_mesh",
         ],
         affected_columns=[
             TableReference(table_schema="public", table_name="asset", column_name="label")
@@ -823,13 +828,6 @@ def downgrade() -> None:
         "immunohistochemistry",
         "other",
         name="stainingtype",
-    ).drop(op.get_bind())
-    sa.Enum(
-        "coronal",
-        "sagittal",
-        "horizontal",
-        "custom",
-        name="slicingdirectiontype",
     ).drop(op.get_bind())
     sa.Enum(
         "raw",

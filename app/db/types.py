@@ -146,10 +146,13 @@ class DerivationType(StrEnum):
          a circuit.
         circuit_rewiring: Indicates that the entity was derived by rewiring the connectivity of
           a circuit.
+        unspecified: Indicates that the method by which the entity was derived originates from data
+          created before derivation types were formally defined.
     """
 
     circuit_extraction = auto()
     circuit_rewiring = auto()
+    unspecified = auto()
 
 
 ResourceType = combine_str_enums(

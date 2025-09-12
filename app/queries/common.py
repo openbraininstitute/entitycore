@@ -429,13 +429,15 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext | UserContextWithProjectId,
+    user_context: UserContext | UserContextWithProjectId | None,
     json_model: ActivityUpdate,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
 ) -> T:
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+    if user_context and (
+        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    ):
         query = constrain_to_accessible_entities(
             query, user_context.project_id, db_model_class=id_model_class
         )
@@ -462,7 +464,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
                 detail="It is forbidden to update generated_ids if they exist.",
             )
 
-        if (
+        if user_context and (
             unaccessible_entities := db.execute(
                 select_unauthorized_entities(generated_ids, user_context.project_id)
             )

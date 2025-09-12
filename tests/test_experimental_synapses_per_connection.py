@@ -94,6 +94,44 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
+def test_update_one(client, model_id):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+
+def test_update_one__public(client, json_data):
+    # make private entity public
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_read_one(client, model_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)

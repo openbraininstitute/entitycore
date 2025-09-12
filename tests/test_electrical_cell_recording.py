@@ -55,6 +55,64 @@ def test_create_one(
     assert data["etypes"] == []
 
 
+def test_update_one(client, trace_id_with_assets):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # set temperature
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "temperature": 10.0,
+        },
+    ).json()
+    assert data["temperature"] == 10.0
+
+    # unset temperature
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{trace_id_with_assets}",
+        json={
+            "temperature": None,
+        },
+    ).json()
+    assert data["temperature"] is None
+
+
+def test_update_one__public(client, electrical_cell_recording_json_data):
+    # make private entity public
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=electrical_cell_recording_json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
     data = assert_request(
         client.get,

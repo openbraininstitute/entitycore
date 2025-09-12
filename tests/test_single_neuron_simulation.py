@@ -66,6 +66,95 @@ def single_neuron_simulation_id(client, memodel_id, brain_region_id):
     return data["id"]
 
 
+def test_update_one(client, brain_region_id, memodel_id):
+    # Create a simulation to update
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json={
+            "name": "original-sim",
+            "description": "original-description",
+            "injection_location": ["soma[0]"],
+            "recording_location": ["soma[0]_0.5"],
+            "me_model_id": memodel_id,
+            "status": "success",
+            "seed": 1,
+            "authorized_public": False,
+            "brain_region_id": str(brain_region_id),
+        },
+    ).json()
+    simulation_id = data["id"]
+
+    # Test updating name and description
+    new_name = "updated-sim"
+    new_description = "updated-description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # Test updating status and seed
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={
+            "status": "failure",
+            "seed": 42,
+        },
+    ).json()
+    assert data["status"] == "failure"
+    assert data["seed"] == 42
+
+    # Test updating injection and recording locations
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={
+            "injection_location": ["dendrite[0]"],
+            "recording_location": ["dendrite[0]_0.5"],
+        },
+    ).json()
+    assert data["injection_location"] == ["dendrite[0]"]
+    assert data["recording_location"] == ["dendrite[0]_0.5"]
+
+
+def test_update_one__public(client, brain_region_id, memodel_id):
+    # Create a simulation to update
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json={
+            "name": "original-sim",
+            "description": "original-description",
+            "injection_location": ["soma[0]"],
+            "recording_location": ["soma[0]_0.5"],
+            "me_model_id": memodel_id,
+            "status": "success",
+            "seed": 1,
+            "authorized_public": True,
+            "brain_region_id": str(brain_region_id),
+        },
+    ).json()
+    simulation_id = data["id"]
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_neuron_simulation_id):
     response = assert_request(
         client.post,

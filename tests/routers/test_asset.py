@@ -54,14 +54,21 @@ def entity(client, subject_id, brain_region_id) -> Entity:
     return Entity(id=entity_id, type=entity_type)
 
 
-def _upload_entity_asset(client, entity_type, entity_id, label, file_upload_name, content_type):
+def _upload_entity_asset(
+    client, entity_type, entity_id, label, file_upload_name, content_type, expected_status=None
+):
     with FILE_EXAMPLE_PATH.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
             "file": (file_upload_name, f, content_type)
         }
         return upload_entity_asset(
-            client=client, entity_type=entity_type, entity_id=entity_id, files=files, label=label
+            client=client,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            files=files,
+            label=label,
+            expected_status=expected_status,
         )
 
 
@@ -181,18 +188,14 @@ def test_upload_entity_asset(client, entity):
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
 
-    with FILE_EXAMPLE_PATH.open("rb") as f:
-        files = {
-            # (filename, file (or bytes), content_type, headers)
-            "file": ("foo.obj", f)
-        }
-        response = upload_entity_asset(
-            client=client,
-            entity_type=entity.type,
-            entity_id=entity.id,
-            files=files,
-            label="morphology",
-        )
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="foo.obj",
+        content_type="application/octet-stream",
+    )
     assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE

@@ -18,6 +18,7 @@ from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.emodel import EModelRead
 from app.schemas.memodel_calibration_result import MEModelCalibrationResultRead
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
+from app.schemas.utils import make_update_schema
 
 
 class MEModelBase(BaseModel):
@@ -39,6 +40,9 @@ class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
     emodel_id: uuid.UUID
     species_id: uuid.UUID
     strain_id: uuid.UUID | None = None
+
+
+MEModelUpdate = make_update_schema(MEModelCreate, "MEModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class MEModelRead(

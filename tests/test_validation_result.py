@@ -44,6 +44,45 @@ def _assert_read_response(data, json_data):
     assert "assets" in data
 
 
+def test_update_one(client, validation_result_id):
+    new_name = "my_new_validation_result_name"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{validation_result_id}",
+        json={
+            "name": new_name,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+
+    # Test updating passed status
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{validation_result_id}",
+        json={
+            "passed": False,
+        },
+    ).json()
+    assert data["passed"] is False
+
+
+def test_update_one__public(client, json_data):
+    data = assert_request(
+        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_read_one(client: TestClient, validation_result_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{validation_result_id}").json()
     _assert_read_response(data, json_data)

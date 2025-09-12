@@ -18,6 +18,7 @@ from app.db.model import (
     ElectricalRecordingStimulus,
     ETypeClass,
     ETypeClassification,
+    IonChannelRecording,
     MTypeClass,
     MTypeClassification,
     Person,
@@ -63,6 +64,7 @@ UNRELATED_PROJECT_HEADERS = {
 ROUTES = {
     CellMorphology: "/cell-morphology",
     ElectricalCellRecording: "/electrical-cell-recording",
+    IonChannelRecording: "/ion-channel-recording",
 }
 
 
@@ -323,6 +325,40 @@ def create_electrical_cell_recording_id_with_assets(db, client, tmp_path, json_d
         created_by_id=trace.created_by_id,
         authorized_public=False,
         authorized_project_id=PROJECT_ID,
+    )
+
+    return trace_id
+
+
+def create_ion_channel_recording_id(client, json_data):
+    result = assert_request(client.post, url=ROUTES[IonChannelRecording], json=json_data).json()
+    return uuid.UUID(result["id"])
+
+
+def create_ion_channel_recording_db(db, client, json_data):
+    trace_id = create_ion_channel_recording_id(client, json_data)
+    return db.get(IonChannelRecording, trace_id)
+
+
+def create_ion_channel_recording_id_with_assets(db, client, tmp_path, json_data):
+    trace_id = create_ion_channel_recording_id(client, json_data)
+
+    trace = db.get(IonChannelRecording, trace_id)
+
+    # add two protocols that refer to it
+    create_electrical_recording_stimulus_id(db, trace_id, created_by_id=trace.created_by_id)
+    create_electrical_recording_stimulus_id(db, trace_id, created_by_id=trace.created_by_id)
+
+    filepath = tmp_path / "trace.nwb"
+    filepath.write_bytes(b"trace")
+
+    # add an asset too
+    upload_entity_asset(
+        client=client,
+        entity_id=trace_id,
+        entity_type=EntityType.ion_channel_recording,
+        files={"file": ("my-trace.nwb", filepath.read_bytes(), "application/nwb")},
+        label="nwb",
     )
 
     return trace_id
@@ -611,18 +647,18 @@ def upload_entity_asset(
     entity_type: EntityType,
     entity_id: UUID,
     files: dict[str, tuple],
-    label: str | None = None,
+    label: str,
+    expected_status: int | None = 201,
 ):
     """Attach a file to an entity
 
     files maps to: (filename, file (or bytes), content_type, headers)
     """
-    data = None
     assert label
-    if label:
-        data = {"label": label}
-
+    data = {"label": label}
     response = client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)
+    if expected_status:
+        assert response.status_code == expected_status
     return response
 
 
@@ -728,6 +764,12 @@ def delete_entity_classifications(client, client_admin, entity_id):
                 client_admin.delete,
                 url=f"/admin/etype-classification/{classification_id}",
             )
+
+
+def check_sort_by_field(items, field_name):
+    assert all(items[i][field_name] < items[i + 1][field_name] for i in range(len(items) - 1)), (
+        f"Items unsorted by {field_name}"
+    )
 
 
 def create_subject_ids(db, *, created_by_id, n):

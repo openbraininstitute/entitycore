@@ -22,6 +22,7 @@ from app.schemas.cell_morphology_protocol import NestedCellMorphologyProtocolRea
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.subject import SubjectReadMixin
+from app.schemas.utils import make_update_schema
 
 
 class CellMorphologyBase(BaseModel):
@@ -40,6 +41,11 @@ class CellMorphologyCreate(
     subject_id: uuid.UUID
     brain_region_id: uuid.UUID
     cell_morphology_protocol_id: uuid.UUID | None = None
+
+
+CellMorphologyUpdate = make_update_schema(
+    CellMorphologyCreate, "CellMorphologyUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
 
 class CellMorphologyRead(

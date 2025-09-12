@@ -22,6 +22,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    MappedColumn,
     declared_attr,
     foreign,
     mapped_column,
@@ -50,6 +51,8 @@ from app.db.types import (
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
+    EMCellMeshGenerationMethod,
+    EMCellMeshType,
     EntityType,
     ExternalSource,
     GlobalType,
@@ -151,14 +154,19 @@ class NameDescriptionVectorMixin(Base):
     @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: D105, PLW3201
-        return (
-            Index(
-                f"ix_{cls.__tablename__}_description_vector",
-                cls.description_vector,
-                postgresql_using="gin",
-            ),
-            *getattr(super(), "__table_args__", ()),
-        )
+        super_table_args = getattr(super(), "__table_args__", ())
+        # add the index only to the same table where the Mixin is defined, not subclasses
+        attr = getattr(cls, "description_vector", None)
+        if isinstance(attr, MappedColumn):
+            return (
+                Index(
+                    f"ix_{cls.__tablename__}_description_vector",
+                    cls.description_vector,
+                    postgresql_using="gin",
+                ),
+                *super_table_args,
+            )
+        return super_table_args
 
 
 class BrainRegionHierarchy(Identifiable):
@@ -876,19 +884,20 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     end_time: Mapped[float | None]
 
     recording_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("electrical_cell_recording.id"),
+        ForeignKey("electrical_recording.id"),
         index=True,
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class ElectricalCellRecording(
+class ElectricalRecording(
     ScientificArtifact,
     NameDescriptionVectorMixin,
-    ETypesMixin,
 ):
-    __tablename__ = EntityType.electrical_cell_recording.value
+    """Base table for all the electrical recordings."""
+
+    __tablename__ = EntityType.electrical_recording.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]
@@ -902,6 +911,45 @@ class ElectricalCellRecording(
         uselist=True,
         foreign_keys="ElectricalRecordingStimulus.recording_id",
         passive_deletes=True,
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class ElectricalCellRecording(
+    ElectricalRecording,
+    ETypesMixin,
+):
+    __tablename__ = EntityType.electrical_cell_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class IonChannel(NameDescriptionVectorMixin, Identifiable):
+    __tablename__ = GlobalType.ion_channel.value
+
+    label: Mapped[str] = mapped_column(unique=True, index=True)
+    gene: Mapped[str]
+    synonyms: Mapped[STRING_LIST]
+
+
+class IonChannelRecording(
+    ElectricalRecording,
+):
+    __tablename__ = EntityType.ion_channel_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
+    cell_line: Mapped[str]
+    ion_channel_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ion_channel.id"),
+        index=True,
+    )
+    ion_channel: Mapped[IonChannel] = relationship(
+        "IonChannel",
+        uselist=False,
+        foreign_keys=[ion_channel_id],
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1497,5 +1545,118 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     # flatmap: Mapped[FlatMap] = relationship("FlatMap", uselist=False, foreign_keys=[flatmap_id])
 
     # calibration_data (multiple entities): ...
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixin):
+    """Dense EM reconstruction released in format compatible with 'Neuronglancer' and 'CAVE'.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+
+        [related to core EM methodology]
+        protocol_document: (str) A link to a document giving a detailed description of the tissue
+            preparation protocol.
+        fixation: (str) The method and chemicals used for fixing the tissue
+            (e.g., 4% paraformaldehyde).
+        staining_type: (str) The stains or labels used to visualize specific structures or molecules
+            (e.g., heavy metal stains for EM).
+        slicing_thickness: (float) The thickness of the tissue sections.
+        tissue_shrinkage: (float) Any tissue shrinkage that occurred during processing and whether
+            it was corrected.
+        microscope_type: (str). The specific type of electron microscope used
+            (e.g., Transmission EM, Scanning EM, Serial Block-Face SEM).
+        detector: (str) The type of detector used
+        slicing_direction: (SlicingDirectionType) The biological slicing direction of the image,
+            such as left-to-right, anterior-to-posterior, or dorsal-to-ventral.
+        landmarks: (str) The names and coordinates of any anatomical landmarks in the image.
+        voltage (float): The technical settings used during imaging -- Voltage
+        current (float): The technical settings used during imaging -- Current
+        dose (float): The technical settings used during imaging -- Dose
+        temperature: (float) The temperature of the sample during imaging.
+
+        [important for analyses]
+        volume_resolution_x_nm (float): The x-width of a single voxel of the imaging stack
+        volume_resolution_y_nm (float): The y-width of a single voxel of the imaging stack
+        volume_resolution_z_nm (float): The z-width of a single voxel of the imaging stack
+        release_url (str): A link to the main webpage of the data release
+        cave_client_url (str): A url to be used for programmatic access to the data using CAVEclient
+        cave_datastack (str): Name of the datastack under that url that contains the data
+        precomputed_mesh_url (str): Url that can be used to access precomputed cell meshes
+        cell_identifying_property (str): Name of a property (column of a table of the release) that
+            can be used to uniquely identify a cell in the data. Often "pt_root_id".
+
+    Notes:
+        - Has no assets. Data access all through the specified URLs.
+    """
+
+    __tablename__ = EntityType.em_dense_reconstruction_dataset.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+
+    protocol_document: Mapped[str | None]
+    fixation: Mapped[str | None]
+    staining_type: Mapped[str | None]  # TODO: controlled vocabulary?
+    slicing_thickness: Mapped[float | None]
+    tissue_shrinkage: Mapped[float | None]
+    microscope_type: Mapped[str | None]  # TODO: controlled vocabulary
+    detector: Mapped[str | None]
+    slicing_direction: Mapped[SlicingDirectionType | None]
+    landmarks: Mapped[str | None]
+    voltage: Mapped[float | None]
+    current: Mapped[float | None]
+    dose: Mapped[float | None]
+    temperature: Mapped[float | None]
+
+    volume_resolution_x_nm: Mapped[float]
+    volume_resolution_y_nm: Mapped[float]
+    volume_resolution_z_nm: Mapped[float]
+    release_url: Mapped[str]
+    cave_client_url: Mapped[str]
+    cave_datastack: Mapped[str]
+    precomputed_mesh_url: Mapped[str]
+    cell_identifying_property: Mapped[str]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class EMCellMesh(ScientificArtifact):
+    """Cell surface mesh created from a dense EM reconstruction.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        em_dense_reconstruction_dataset_id (uuid.UUID): The id of the dense em reconstruction
+            dataset that the mesh originates from.
+        release_version (int): Version of the em reconstruction dataset that was used.
+        dense_reconstruction_cell_id (int): An identifier of the cell within the em
+            reconstruction dataset. Often it's 'pt_root_id'.
+        generation_method (EMMeshGenerationMethod): The algorithm used to generate the
+            mesh from volumetric data.
+        level_of_detail (int): The level of detail parameter used during mesh generation.
+        generation_parameters (str): Any additional parameters of relevance.
+        mesh_type (EMMeshType): One of "static" or "dynamic". Static meshes are precomputed,
+            dynamic ones are generated when the em reconstruction dataset is queried.
+
+    Notes:
+        - Asset: A cell surface mesh in .h5 format.
+    """
+
+    __tablename__ = EntityType.em_cell_mesh.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    em_dense_reconstruction_dataset_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("em_dense_reconstruction_dataset.id"), index=True
+    )
+    release_version: Mapped[int]
+    dense_reconstruction_cell_id: Mapped[int]
+    generation_method: Mapped[EMCellMeshGenerationMethod]
+    level_of_detail: Mapped[int]
+    generation_parameters: Mapped[JSON_DICT | None]
+    mesh_type: Mapped[EMCellMeshType]
+
+    em_dense_reconstruction_dataset: Mapped[EMDenseReconstructionDataset] = relationship(
+        foreign_keys=[em_dense_reconstruction_dataset_id],
+        uselist=False,
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

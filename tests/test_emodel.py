@@ -1,6 +1,7 @@
 import itertools as it
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.db.model import Contribution, EModel, ETypeClass, ETypeClassification
@@ -22,20 +23,25 @@ ROUTE = "/emodel"
 ADMIN_ROUTE = "/admin/emodel"
 
 
-def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, morphology_id):
+@pytest.fixture
+def json_data(species_id, strain_id, brain_region_id, morphology_id):
+    return {
+        "brain_region_id": str(brain_region_id),
+        "species_id": species_id,
+        "strain_id": strain_id,
+        "description": "Test EModel Description",
+        "name": "Test EModel Name",
+        "iteration": "test iteration",
+        "score": -1,
+        "seed": -1,
+        "exemplar_morphology_id": morphology_id,
+    }
+
+
+def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, json_data):
     response = client.post(
         ROUTE,
-        json={
-            "brain_region_id": str(brain_region_id),
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "description": "Test EModel Description",
-            "name": "Test EModel Name",
-            "iteration": "test iteration",
-            "score": -1,
-            "seed": -1,
-            "exemplar_morphology_id": morphology_id,
-        },
+        json=json_data,
     )
     assert response.status_code == 200, f"Failed to create emodel: {response.text}"
     data = response.json()
@@ -51,6 +57,23 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     assert response.status_code == 200, f"Failed to get emodels: {response.text}"
     data = response.json()["data"]
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
+
+
+def test_update_one(client, emodel_id):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{emodel_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
 
 
 def test_get_emodel(client: TestClient, emodel_id: str):

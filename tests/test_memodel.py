@@ -33,6 +33,37 @@ ROUTE = "/memodel"
 ADMIN_ROUTE = "/admin/memodel"
 
 
+@pytest.fixture
+def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
+    return {
+        "brain_region_id": str(brain_region_id),
+        "species_id": species_id,
+        "strain_id": strain_id,
+        "description": "Test MEModel Description",
+        "name": "Test MEModel Name",
+        "morphology_id": morphology_id,
+        "emodel_id": emodel_id,
+        "authorized_public": False,
+    }
+
+
+def test_update_one(client, memodel_id):
+    new_name = "my_new_memodel_name"
+    new_description = "my_new_memodel_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{memodel_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+
 def test_get_memodel(client: TestClient, memodel_id):
     response = client.get(f"{ROUTE}/{memodel_id}")
     assert response.status_code == 200
@@ -54,20 +85,6 @@ def test_missing(client):
 
     response = client.get(f"{ROUTE}/notauuid")
     assert response.status_code == 422
-
-
-@pytest.fixture
-def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
-    return {
-        "brain_region_id": str(brain_region_id),
-        "species_id": species_id,
-        "strain_id": strain_id,
-        "description": "Test MEModel Description",
-        "name": "Test MEModel Name",
-        "morphology_id": morphology_id,
-        "emodel_id": emodel_id,
-        "authorized_public": False,
-    }
 
 
 def _assert_read_response(data, json_data):

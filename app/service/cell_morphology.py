@@ -29,12 +29,18 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.cell_morphology import CellMorphologyFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology import (
     CellMorphologyAnnotationExpandedRead,
     CellMorphologyCreate,
     CellMorphologyRead,
+    CellMorphologyUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -106,6 +112,23 @@ def create_one(
         user_context=user_context,
         db_model_class=CellMorphology,
         json_model=reconstruction,
+        response_schema_class=CellMorphologyRead,
+        apply_operations=_load_from_db,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CellMorphologyUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> CellMorphologyRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellMorphology,
+        user_context=user_context,
+        json_model=json_model,
         response_schema_class=CellMorphologyRead,
         apply_operations=_load_from_db,
     )

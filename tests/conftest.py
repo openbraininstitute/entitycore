@@ -22,6 +22,8 @@ from app.db.model import (
     BrainAtlas,
     Circuit,
     Contribution,
+    EMCellMesh,
+    EMDenseReconstructionDataset,
     EModel,
     ETypeClass,
     ETypeClassification,
@@ -112,6 +114,23 @@ def user_context_admin():
 
 
 @pytest.fixture
+def user_context_admin_with_project():
+    """Admin authenticated user with project-id."""
+    return UserContext(
+        profile=UserProfile(
+            subject=UUID(ADMIN_SUB_ID),
+            name="Admin User With Project Id",
+        ),
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=True,
+        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
+        project_id=UUID(PROJECT_ID),
+        user_project_ids=[UUID(PROJECT_ID)],
+    )
+
+
+@pytest.fixture
 def user_context_user_1():
     """Regular authenticated user with project-id."""
     return UserContext(
@@ -164,6 +183,7 @@ def user_context_no_project():
 def _override_check_user_info(
     monkeypatch,
     user_context_admin,
+    user_context_admin_with_project,
     user_context_user_1,
     user_context_user_2,
     user_context_no_project,
@@ -171,6 +191,7 @@ def _override_check_user_info(
     # map (token, project-id) to the expected user_context
     mapping = {
         (TOKEN_ADMIN, None): user_context_admin,
+        (TOKEN_ADMIN, UUID(PROJECT_ID)): user_context_admin_with_project,
         (TOKEN_USER_1, None): user_context_no_project,
         (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
@@ -202,6 +223,12 @@ def client_no_auth(session_client, _override_check_user_info):
 def client_admin(client_no_auth):
     """Return a web client instance, authenticated as service admin without a project-id."""
     return ClientProxy(client_no_auth, headers=AUTH_HEADER_ADMIN)
+
+
+@pytest.fixture
+def client_admin_with_project(client_no_auth):
+    """Return a web client instance, authenticated as service admin with a project-id."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_ADMIN | PROJECT_HEADERS)
 
 
 @pytest.fixture
@@ -1162,3 +1189,65 @@ def external_url(db, external_url_json_data, person_id):
         "updated_by_id": person_id,
     }
     return add_db(db, ExternalUrl(**data))
+
+
+@pytest.fixture
+def em_dense_reconstruction_dataset_json_data(subject_id, brain_region_id):
+    return {
+        "name": "MICrONS",
+        "description": "",
+        "subject_id": str(subject_id),
+        "brain_region_id": str(brain_region_id),
+        "volume_resolution_x_nm": 4.0,
+        "volume_resolution_y_nm": 4.0,
+        "volume_resolution_z_nm": 40.0,
+        "release_url": "http://microns-explorer.org",
+        "cave_client_url": "https://global.daf-apis.com",
+        "cave_datastack": "minnie65_public",
+        "precomputed_mesh_url": "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300/",
+        "cell_identifying_property": "pt_root_id",
+    }
+
+
+@pytest.fixture
+def em_dense_reconstruction_dataset(db, em_dense_reconstruction_dataset_json_data, person_id):
+    return add_db(
+        db,
+        EMDenseReconstructionDataset(
+            **em_dense_reconstruction_dataset_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def em_cell_mesh_json_data(em_dense_reconstruction_dataset, subject_id, brain_region_id):
+    return {
+        "subject_id": str(subject_id),
+        "brain_region_id": str(brain_region_id),
+        "release_version": 1,
+        "dense_reconstruction_cell_id": 100000,
+        "generation_method": "marching_cubes",
+        "level_of_detail": 10,
+        "mesh_type": "static",
+        "em_dense_reconstruction_dataset_id": str(em_dense_reconstruction_dataset.id),
+    }
+
+
+@pytest.fixture
+def em_cell_mesh(db, em_cell_mesh_json_data, person_id):
+    return add_db(
+        db,
+        EMCellMesh(
+            **em_cell_mesh_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )

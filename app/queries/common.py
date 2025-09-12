@@ -31,6 +31,7 @@ from app.queries.types import ApplyOperations
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
 from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.utils import NOT_SET
 from app.utils.uuid import create_uuid
 
 
@@ -450,14 +451,17 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     update_data = json_model.model_dump(
         exclude_unset=True,
         exclude_none=True,
-        exclude_defaults=True,
         exclude={"used_ids", "generated_ids"},
+        exclude_defaults=True,  # ignore NOT_SET default values
     )
 
     for key, value in update_data.items():
         setattr(obj, key, value)
 
-    if generated_ids := json_model.generated_ids:
+    # ignore NOT_SET values
+    generated_ids = json_model.generated_ids if json_model.generated_ids != NOT_SET else []
+
+    if generated_ids:
         if obj.generated:
             raise HTTPException(
                 status_code=404,

@@ -48,3 +48,15 @@ class ValidationResultCreate(ValidationResultBase, AuthorizationOptionalPublicMi
 
 
 ValidationResultUpdate = make_update_schema(ValidationResultCreate, "ValidationResultUpdate")  # pyright: ignore [reportInvalidTypeForm]
+
+ValidationResultAdminUpdate = make_update_schema(
+    ValidationResultCreate,
+    "ValidationResultAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
+ValidationAdminUpdate = make_update_schema(
+    ValidationCreate,
+    "ValidationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

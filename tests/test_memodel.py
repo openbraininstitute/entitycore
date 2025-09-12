@@ -47,7 +47,7 @@ def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
     }
 
 
-def test_update_one(client, memodel_id):
+def test_update_one(client, client_admin, memodel_id):
     new_name = "my_new_memodel_name"
     new_description = "my_new_memodel_description"
 
@@ -62,6 +62,42 @@ def test_update_one(client, memodel_id):
 
     assert data["name"] == new_name
     assert data["description"] == new_description
+
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        client.patch,
+        url=f"{ADMIN_ROUTE}/{memodel_id}",
+        json={
+            "name": "admin_test_name",
+            "description": "admin_test_description",
+        },
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{memodel_id}",
+        json={
+            "name": "admin_test_name",
+            "description": "admin_test_description",
+        },
+    ).json()
+
+    assert data["name"] == "admin_test_name"
+    assert data["description"] == "admin_test_description"
+
+    # admin is treated as regular user for regular route (no authorized project ids)
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ROUTE}/{memodel_id}",
+        json={
+            "name": "admin_test",
+        },
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def test_get_memodel(client: TestClient, memodel_id):

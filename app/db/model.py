@@ -719,7 +719,7 @@ class CellMorphologyProtocol(Entity):
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "generation_type",
-        "with_polymorphic": "*",  # pull in all STI subclasses automatically
+        "with_polymorphic": "*",  # pull in automatically all the attributes of the subclasses
     }
 
 

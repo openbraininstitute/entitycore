@@ -36,7 +36,7 @@ class ActivityCreate(ActivityBase, AuthorizationOptionalPublicMixin):
     generated_ids: list[uuid.UUID] = []
 
 
-class ActivityUpdate(ActivityBase):
-    start_time: datetime | Literal[NOT_SET] | None = NOT_SET
-    end_time: datetime | Literal[NOT_SET] | None = NOT_SET
-    generated_ids: list[uuid.UUID] | Literal[NOT_SET] | None = NOT_SET
+class ActivityUpdate(BaseModel):
+    start_time: datetime | Literal["<NOT_SET>"] | None = NOT_SET
+    end_time: datetime | Literal["<NOT_SET>"] | None = NOT_SET
+    generated_ids: list[uuid.UUID] | Literal["<NOT_SET>"] | None = NOT_SET

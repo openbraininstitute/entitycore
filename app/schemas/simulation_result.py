@@ -26,6 +26,11 @@ class SimulationResultCreate(SimulationResultBase, AuthorizationOptionalPublicMi
 
 
 SimulationResultUpdate = make_update_schema(SimulationResultCreate, "SimulationResultUpdate")  # pyright: ignore [reportInvalidTypeForm]
+SimulationResultAdminUpdate = make_update_schema(
+    SimulationResultCreate,
+    "SimulationResultAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedSimulationResultRead(SimulationResultBase, EntityTypeMixin, IdentifiableMixin):

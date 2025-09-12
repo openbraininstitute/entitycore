@@ -44,6 +44,12 @@ class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
 
 MEModelUpdate = make_update_schema(MEModelCreate, "MEModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
+MEModelAdminUpdate = make_update_schema(
+    MEModelCreate,
+    "MEModelAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
 
 class MEModelRead(
     MEModelBase,

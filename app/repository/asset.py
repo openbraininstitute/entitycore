@@ -18,6 +18,8 @@ class AssetRepository(BaseRepository):
         entity_type: EntityType,
         entity_id: uuid.UUID,
         asset_id: uuid.UUID,
+        *,
+        include_deleted: bool = False,
     ) -> Asset:
         """Return a single asset, or raise an error."""
         query = (
@@ -26,10 +28,12 @@ class AssetRepository(BaseRepository):
             .where(
                 Asset.entity_id == entity_id,
                 Asset.id == asset_id,
-                Asset.status != AssetStatus.DELETED,
                 Entity.type == entity_type.name,
             )
         )
+        if not include_deleted:
+            query = query.where(Asset.status != AssetStatus.DELETED)
+
         return self.db.execute(query).scalar_one()
 
     def create_entity_asset(self, entity_id: uuid.UUID, asset: AssetCreate) -> Asset:

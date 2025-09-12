@@ -19,6 +19,7 @@ from .utils import (
 DateTimeAdapter = TypeAdapter(datetime)
 
 ROUTE = "calibration"
+ADMIN_ROUTE = "/admin/calibration"
 MODEL = Validation
 TYPE = str(ActivityType.calibration)
 
@@ -319,7 +320,7 @@ def _is_deleted(db, model_id):
     return db.get(MODEL, model_id) is None
 
 
-def test_update_one(client, root_circuit, simulation_result, create_id):
+def test_update_one(client, client_admin, root_circuit, simulation_result, create_id):
     gen1 = create_id(
         used_ids=[str(root_circuit.id)],
         generated_ids=[],
@@ -336,6 +337,39 @@ def test_update_one(client, root_circuit, simulation_result, create_id):
     assert DateTimeAdapter.validate_python(data["end_time"]) == end_time
     assert len(data["generated"]) == 1
     assert data["generated"][0]["id"] == str(simulation_result.id)
+
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        client.patch,
+        url=f"{ADMIN_ROUTE}/{gen1}",
+        json={
+            "end_time": str(end_time),
+        },
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{gen1}",
+        json={
+            "end_time": str(end_time),
+        },
+    ).json()
+
+    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time
+
+    # admin is treated as regular user for regular route (no project context)
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ROUTE}/{gen1}",
+        json={
+            "end_time": str(end_time),
+        },
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
 
 
 def test_update_one__fail_if_generated_ids_unauthorized(

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -12,6 +13,7 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.entity import NestedEntityRead
+from app.schemas.utils import NOT_SET
 
 
 class ActivityBase(BaseModel):
@@ -34,6 +36,7 @@ class ActivityCreate(ActivityBase, AuthorizationOptionalPublicMixin):
     generated_ids: list[uuid.UUID] = []
 
 
-class ActivityUpdate(ActivityBase, AuthorizationOptionalPublicMixin):
-    end_time: datetime | None = None
-    generated_ids: list[uuid.UUID] | None = None
+class ActivityUpdate(ActivityBase):
+    start_time: datetime | Literal[NOT_SET] | None = NOT_SET
+    end_time: datetime | Literal[NOT_SET] | None = NOT_SET
+    generated_ids: list[uuid.UUID] | Literal[NOT_SET] | None = NOT_SET

@@ -9,6 +9,7 @@ services:
       alembic downgrade base &&
       alembic upgrade head &&
       python -m pytest &&
+      pwd && ls -Al && ls -Al coverage &&
       coverage xml
     env_file: .env.test-docker
     volumes:

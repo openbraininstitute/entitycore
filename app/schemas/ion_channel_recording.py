@@ -38,6 +38,12 @@ IonChannelRecordingUpdate = make_update_schema(
     IonChannelRecordingCreate, "IonChannelRecordingUpdate"
 )  # pyright : ignore [reportInvalidTypeForm]
 
+IonChannelRecordingAdminUpdate = make_update_schema(
+    IonChannelRecordingCreate,
+    "IonChannelRecordingAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
 
 class IonChannelRecordingRead(
     IonChannelRecordingBase,

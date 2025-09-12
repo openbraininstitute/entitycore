@@ -40,3 +40,8 @@ class MEModelCalibrationResultCreate(
 MEModelCalibrationResultUpdate = make_update_schema(
     MEModelCalibrationResultCreate, "MEModelCalibrationResultUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+MEModelCalibrationResultAdminUpdate = make_update_schema(
+    MEModelCalibrationResultCreate,
+    "MEModelCalibrationResultAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

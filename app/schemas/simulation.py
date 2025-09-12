@@ -41,6 +41,12 @@ SingleNeuronSimulationUpdate = make_update_schema(
     SingleNeuronSimulationCreate, "SingleNeuronSimulationUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 
+SingleNeuronSimulationAdminUpdate = make_update_schema(
+    SingleNeuronSimulationCreate,
+    "SingleNeuronSimulationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
 
 class SingleNeuronSimulationRead(
     SingleNeuronSimulationBase,
@@ -66,6 +72,12 @@ class SingleNeuronSynaptomeSimulationCreate(
 SingleNeuronSynaptomeSimulationUpdate = make_update_schema(
     SingleNeuronSynaptomeSimulationCreate, "SingleNeuronSynaptomeSimulationUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+
+SingleNeuronSynaptomeSimulationAdminUpdate = make_update_schema(
+    SingleNeuronSynaptomeSimulationCreate,
+    "SingleNeuronSynaptomeSimulationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class SingleNeuronSynaptomeSimulationRead(
@@ -95,6 +107,12 @@ class SimulationCreate(SimulationBase, AuthorizationOptionalPublicMixin):
 
 
 SimulationUpdate = make_update_schema(SimulationCreate, "SimulationUpdate")  # pyright: ignore [reportInvalidTypeForm]
+
+SimulationAdminUpdate = make_update_schema(
+    SimulationCreate,
+    "SimulationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedSimulationRead(SimulationBase, EntityTypeMixin, IdentifiableMixin):

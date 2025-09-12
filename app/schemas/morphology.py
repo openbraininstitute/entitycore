@@ -44,6 +44,11 @@ class ReconstructionMorphologyCreate(
 ReconstructionMorphologyUpdate = make_update_schema(
     ReconstructionMorphologyCreate, "ReconstructionMorphologyUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+ReconstructionMorphologyAdminUpdate = make_update_schema(
+    ReconstructionMorphologyCreate,
+    "ReconstructionMorphologyAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class ReconstructionMorphologyRead(

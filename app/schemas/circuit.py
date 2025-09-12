@@ -38,3 +38,8 @@ class CircuitCreate(CircuitBase, ScientificArtifactCreate):
 
 
 CircuitUpdate = make_update_schema(CircuitCreate, "CircuitUpdate")  # pyright: ignore [reportInvalidTypeForm]
+CircuitAdminUpdate = make_update_schema(
+    CircuitCreate,
+    "CircuitAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

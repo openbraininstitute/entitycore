@@ -9,5 +9,7 @@ router = APIRouter(
     tags=["derivation"],
 )
 
-router.get("/{entity_route}/{entity_id}/derived-from")(app.service.derivation.read_many)
+router.get("/{entity_route}/{entity_id}/derived-from/{derivation_type}")(
+    app.service.derivation.read_many
+)
 create_one = router.post("/derivation")(app.service.derivation.create_one)

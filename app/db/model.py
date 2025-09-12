@@ -1335,7 +1335,7 @@ class Derivation(Base):
     )
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
-    derivation_type: Mapped[DerivationType | None]
+    derivation_type: Mapped[DerivationType]
 
 
 class ScientificArtifactPublicationLink(Identifiable):

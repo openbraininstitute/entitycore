@@ -13,10 +13,10 @@ class DerivationBase(BaseModel):
 class DerivationCreate(DerivationBase):
     used_id: uuid.UUID
     generated_id: uuid.UUID
-    derivation_type: DerivationType | None = None
+    derivation_type: DerivationType
 
 
 class DerivationRead(DerivationBase):
     used: BasicEntityRead
     generated: BasicEntityRead
-    derivation_type: DerivationType | None = None
+    derivation_type: DerivationType

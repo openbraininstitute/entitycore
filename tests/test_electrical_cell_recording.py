@@ -149,8 +149,7 @@ def test_update_one(client, client_admin, trace_id_with_assets):
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
-def test_user_update_one__public(client, client_admin, electrical_cell_recording_json_data):
-    # make private entity public
+def test_update_one__public(client, client_admin, electrical_cell_recording_json_data):
     data = assert_request(
         client.post,
         url=ROUTE,

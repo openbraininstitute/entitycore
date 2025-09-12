@@ -66,7 +66,7 @@ def test_create(client: TestClient, subject_id: str, brain_region_id: uuid.UUID)
     assert response.status_code == 200, f"Failed to get icms: {response.text}"
 
 
-def test_update_one(client, subject_id, brain_region_id):
+def test_update_one(client, client_admin, subject_id, brain_region_id):
     # Create an ion channel model first
     response = create(client, subject_id, brain_region_id, "test_icm")
     assert response.status_code == 200
@@ -107,8 +107,44 @@ def test_update_one(client, subject_id, brain_region_id):
     ).json()
     assert data["is_ljp_corrected"] is True
 
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        client.patch,
+        url=f"{ADMIN_ROUTE}/{icm_id}",
+        json={
+            "name": "admin_test_name",
+            "description": "admin_test_description",
+        },
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
 
-def test_update_one__public(client, subject_id, brain_region_id):
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{icm_id}",
+        json={
+            "name": "admin_test_name",
+            "description": "admin_test_description",
+        },
+    ).json()
+
+    assert data["name"] == "admin_test_name"
+    assert data["description"] == "admin_test_description"
+
+    # admin is treated as regular user for regular route (no authorized project ids)
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ROUTE}/{icm_id}",
+        json={
+            "name": "admin_test",
+        },
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
+def test_update_one__public(client, client_admin, subject_id, brain_region_id):
     # Create an ion channel model first
     response = create(client, subject_id, brain_region_id, "test_icm", authorized_public=True)
     assert response.status_code == 200
@@ -122,6 +158,18 @@ def test_update_one__public(client, subject_id, brain_region_id):
         expected_status_code=404,
     ).json()
     assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admin has no such restrictions
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{icm_id}",
+        json={
+            "authorized_public": False,
+            "name": "foo",
+        },
+    ).json()
+    assert data["authorized_public"] is False
+    assert data["name"] == "foo"
 
 
 def test_user_read_one(client, client_admin, subject_id: str, brain_region_id: uuid.UUID):

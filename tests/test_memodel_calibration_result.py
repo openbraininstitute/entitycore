@@ -41,7 +41,7 @@ def _assert_read_response(data, json_data):
     assert data["authorized_public"] is json_data["authorized_public"]
 
 
-def test_update_one(client, memodel_calibration_result_id):
+def test_update_one(client, client_admin, memodel_calibration_result_id):
     new_threshold_current = 1.2
     new_holding_current = 0.5
 
@@ -76,8 +76,44 @@ def test_update_one(client, memodel_calibration_result_id):
     ).json()
     assert data["rin"] is None
 
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        client.patch,
+        url=f"{ADMIN_ROUTE}/{memodel_calibration_result_id}",
+        json={
+            "threshold_current": 0.5,
+            "holding_current": 0.2,
+        },
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
 
-def test_update_one__public(client, json_data):
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{memodel_calibration_result_id}",
+        json={
+            "threshold_current": 0.5,
+            "holding_current": 0.2,
+        },
+    ).json()
+
+    assert data["threshold_current"] == 0.5
+    assert data["holding_current"] == 0.2
+
+    # admin is treated as regular user for regular route (no authorized project ids)
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ROUTE}/{memodel_calibration_result_id}",
+        json={
+            "threshold_current": 0.5,
+        },
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
+def test_update_one__public(client, client_admin, json_data):
     # make private entity public
     data = assert_request(
         client.post,
@@ -88,14 +124,25 @@ def test_update_one__public(client, json_data):
         },
     ).json()
 
+    entity_id = data["id"]
+
     # should not be allowed to update it once public
     data = assert_request(
         client.patch,
-        url=f"{ROUTE}/{data['id']}",
+        url=f"{ROUTE}/{entity_id}",
         json={"threshold_current": 2.0},
         expected_status_code=404,
     ).json()
     assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admin has no such restrictions
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{entity_id}",
+        json={"authorized_public": False, "threshold_current": 0.1},
+    ).json()
+    assert data["authorized_public"] is False
+    assert data["threshold_current"] == 0.1
 
 
 def test_read_one(client, client_admin, memodel_calibration_result_id, json_data):

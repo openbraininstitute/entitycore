@@ -89,7 +89,7 @@ def test_create_one(
     _assert_read_response(data, data)
 
 
-def test_update_one(client, ion_channel_recording_id_with_assets):
+def test_update_one(client, client_admin, ion_channel_recording_id_with_assets):
     recording = ion_channel_recording_id_with_assets
     new_name = "my_new_name"
     new_description = "my_new_description"
@@ -126,8 +126,64 @@ def test_update_one(client, ion_channel_recording_id_with_assets):
     ).json()
     assert data["temperature"] is None
 
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        client.patch,
+        url=f"{ADMIN_ROUTE}/{recording}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
 
-def test_update_one__public(client, ion_channel_recording_json_data):
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{recording}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # set temperature
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{recording}",
+        json={
+            "temperature": 10.0,
+        },
+    ).json()
+    assert data["temperature"] == 10.0
+
+    # unset temperature
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{recording}",
+        json={
+            "temperature": None,
+        },
+    ).json()
+    assert data["temperature"] is None
+
+    # admin is treated as regular user for regular route (no authorized project ids)
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ROUTE}/{recording}",
+        json={
+            "temperature": None,
+        },
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
+def test_update_one__public(client, client_admin, ion_channel_recording_json_data):
     recording_json_data = ion_channel_recording_json_data
     # make private entity public
     data = assert_request(
@@ -139,14 +195,28 @@ def test_update_one__public(client, ion_channel_recording_json_data):
         },
     ).json()
 
+    entity_id = data["id"]
+
     # should not be allowed to update it once public
     data = assert_request(
         client.patch,
-        url=f"{ROUTE}/{data['id']}",
+        url=f"{ROUTE}/{entity_id}",
         json={"name": "foo"},
         expected_status_code=404,
     ).json()
     assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admin has no such restrictions
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{entity_id}",
+        json={
+            "authorized_public": False,
+            "name": "foo",
+        },
+    ).json()
+    assert data["authorized_public"] is False
+    assert data["name"] == "foo"
 
 
 def test_read_one(

@@ -95,6 +95,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> ReconstructionMorphologyRead:
+    return router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=ReconstructionMorphology,
+        authorized_project_id=None,
+        response_schema_class=ReconstructionMorphologyRead,
+        apply_operations=_load_from_db,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,

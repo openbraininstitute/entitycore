@@ -114,10 +114,41 @@ def test_update_one__public(client, electrical_cell_recording_json_data):
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
-def test_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
+def test_user_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):
     data = assert_request(
         client.get,
         url=f"{ROUTE}/{trace_id_with_assets}",
+    ).json()
+
+    assert data["name"] == "my-name"
+    assert data["description"] == "my-description"
+    assert data["brain_region"]["id"] == str(brain_region_id)
+    assert data["recording_location"] == ["soma[0]_0.5"]
+    assert data["subject"]["id"] == str(subject_id)
+    assert data["license"]["id"] == str(license_id)
+    assert data["authorized_project_id"] == PROJECT_ID
+    assert len(data["stimuli"]) == 2
+    assert len(data["assets"]) == 1
+    assert data["type"] == EntityType.electrical_cell_recording
+    assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["etypes"] == [
+        {
+            "id": ANY,
+            "pref_label": "etype-pref-label",
+            "alt_label": "etype-alt-label",
+            "definition": "etype-definition",
+            "creation_date": ANY,
+            "update_date": ANY,
+        },
+    ]
+
+
+def test_admin_read_one(
+    client_admin, subject_id, license_id, brain_region_id, trace_id_with_assets
+):
+    data = assert_request(
+        client_admin.get,
+        url=f"{ADMIN_ROUTE}/{trace_id_with_assets}",
     ).json()
 
     assert data["name"] == "my-name"

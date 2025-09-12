@@ -15,3 +15,6 @@ update_one = router.patch("/{id_}")(app.service.simulation_execution.update_one)
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.simulation_execution.admin_read_one
 )
+admin_update_one = admin_router.patch("/simulation-execution/{id_}")(
+    app.service.simulation_execution.admin_update_one
+)

@@ -18,3 +18,4 @@ create_one = router.post("")(app.service.circuit.create_one)
 update_one = router.patch("/{id_}")(app.service.circuit.update_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.circuit.admin_read_one)
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.circuit.admin_update_one)

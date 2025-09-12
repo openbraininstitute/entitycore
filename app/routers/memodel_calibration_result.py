@@ -17,4 +17,6 @@ update_one = router.patch("/{id_}")(app.service.memodel_calibration_result.updat
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.memodel_calibration_result.admin_read_one
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
+    app.service.memodel_calibration_result.admin_update_one
 )

@@ -138,7 +138,7 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["authorized_public"] is False
 
 
-def test_update_one(client, simulation_id):
+def test_update_one(client, client_admin, simulation_id):
     new_name = "my_new_simulation_name"
     new_description = "my_new_simulation_description"
 
@@ -178,8 +178,44 @@ def test_update_one(client, simulation_id):
     assert data["injection_location"] == ["dendrite[0]"]
     assert data["recording_location"] == ["dendrite[0]_0.5"]
 
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        client.patch,
+        url=f"{ADMIN_ROUTE}/{simulation_id}",
+        json={
+            "name": "admin_test_name",
+            "description": "admin_test_description",
+        },
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
 
-def test_update_one__public(client, json_data):
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{simulation_id}",
+        json={
+            "name": "admin_test_name",
+            "description": "admin_test_description",
+        },
+    ).json()
+
+    assert data["name"] == "admin_test_name"
+    assert data["description"] == "admin_test_description"
+
+    # admin is treated as regular user for regular route (no authorized project ids)
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={
+            "name": "admin_test",
+        },
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
+def test_update_one__public(client, client_admin, json_data):
     # make private entity public
     data = assert_request(
         client.post,
@@ -190,14 +226,28 @@ def test_update_one__public(client, json_data):
         },
     ).json()
 
+    entity_id = data["id"]
+
     # should not be allowed to update it once public
     data = assert_request(
         client.patch,
-        url=f"{ROUTE}/{data['id']}",
+        url=f"{ROUTE}/{entity_id}",
         json={"name": "foo"},
         expected_status_code=404,
     ).json()
     assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admin has no such restrictions
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{entity_id}",
+        json={
+            "authorized_public": False,
+            "name": "foo",
+        },
+    ).json()
+    assert data["authorized_public"] is False
+    assert data["name"] == "foo"
 
 
 def test_create_one__public(client, json_data):

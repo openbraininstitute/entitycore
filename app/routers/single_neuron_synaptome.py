@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 import app.service.single_neuron_synaptome
+from app.routers.admin import router as admin_router
 
 router = APIRouter(
     prefix="/single-neuron-synaptome",
@@ -11,3 +12,7 @@ read_many = router.get("")(app.service.single_neuron_synaptome.read_many)
 read_one = router.get("/{id_}")(app.service.single_neuron_synaptome.read_one)
 create_one = router.post("")(app.service.single_neuron_synaptome.create_one)
 update_one = router.patch("/{id_}")(app.service.single_neuron_synaptome.update_one)
+
+admin_update_one = admin_router.patch("/single-neuron-synaptome/{id_}")(
+    app.service.single_neuron_synaptome.admin_update_one
+)

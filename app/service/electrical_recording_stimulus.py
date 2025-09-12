@@ -25,6 +25,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.electrical_recording_stimulus import (
+    ElectricalRecordingStimulusAdminUpdate,
     ElectricalRecordingStimulusCreate,
     ElectricalRecordingStimulusRead,
     ElectricalRecordingStimulusUpdate,
@@ -151,4 +152,20 @@ def read_many(
         response_schema_class=ElectricalRecordingStimulusRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ElectricalRecordingStimulusAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ElectricalRecordingStimulusRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ElectricalRecordingStimulus,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=ElectricalRecordingStimulusRead,
+        apply_operations=_load,
     )

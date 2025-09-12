@@ -15,7 +15,7 @@ from app.queries.common import (
     router_update_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.subject import SubjectCreate, SubjectRead, SubjectUpdate
+from app.schemas.subject import SubjectAdminUpdate, SubjectCreate, SubjectRead, SubjectUpdate
 from app.schemas.types import ListResponse
 
 
@@ -84,6 +84,22 @@ def update_one(
         db=db,
         db_model_class=Subject,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=SubjectRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SubjectAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SubjectRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Subject,
+        user_context=None,
         json_model=json_model,
         response_schema_class=SubjectRead,
         apply_operations=_load,

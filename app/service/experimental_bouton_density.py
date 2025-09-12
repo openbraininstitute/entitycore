@@ -31,6 +31,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.density import (
+    ExperimentalBoutonDensityAdminUpdate,
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
     ExperimentalBoutonDensityUpdate,
@@ -174,6 +175,22 @@ def update_one(
         db=db,
         db_model_class=ExperimentalBoutonDensity,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=ExperimentalBoutonDensityRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ExperimentalBoutonDensityAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ExperimentalBoutonDensityRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ExperimentalBoutonDensity,
+        user_context=None,
         json_model=json_model,
         response_schema_class=ExperimentalBoutonDensityRead,
         apply_operations=_load,

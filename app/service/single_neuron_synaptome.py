@@ -21,6 +21,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.synaptome import (
+    SingleNeuronSynaptomeAdminUpdate,
     SingleNeuronSynaptomeCreate,
     SingleNeuronSynaptomeRead,
     SingleNeuronSynaptomeUpdate,
@@ -97,6 +98,22 @@ def update_one(
         db=db,
         db_model_class=SingleNeuronSynaptome,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=SingleNeuronSynaptomeRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SingleNeuronSynaptomeAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SingleNeuronSynaptomeRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=SingleNeuronSynaptome,
+        user_context=None,
         json_model=json_model,
         response_schema_class=SingleNeuronSynaptomeRead,
         apply_operations=_load,

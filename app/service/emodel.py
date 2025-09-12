@@ -28,7 +28,13 @@ from app.queries.common import (
     router_update_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.emodel import EModelCreate, EModelRead, EModelReadExpanded, EModelUpdate
+from app.schemas.emodel import (
+    EModelAdminUpdate,
+    EModelCreate,
+    EModelRead,
+    EModelReadExpanded,
+    EModelUpdate,
+)
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -115,6 +121,22 @@ def update_one(
         db=db,
         db_model_class=EModel,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=EModelRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: EModelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> EModelRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=EModel,
+        user_context=None,
         json_model=json_model,
         response_schema_class=EModelRead,
         apply_operations=_load,

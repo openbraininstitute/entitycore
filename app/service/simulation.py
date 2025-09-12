@@ -25,6 +25,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.simulation import (
+    SimulationAdminUpdate,
     SimulationCreate,
     SimulationRead,
     SimulationUpdate,
@@ -100,6 +101,22 @@ def update_one(
         db=db,
         db_model_class=Simulation,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=SimulationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SimulationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SimulationRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Simulation,
+        user_context=None,
         json_model=json_model,
         response_schema_class=SimulationRead,
         apply_operations=_load,

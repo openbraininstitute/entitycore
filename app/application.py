@@ -44,7 +44,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[dict[str, Any]]:
         L.info("Ignored {} in lifespan", err)
     finally:
         database_session_manager.close()
-        http_client.close()
+        http_client.close()  # noqa: ASYNC212
         L.info("Stopping application")
 
 

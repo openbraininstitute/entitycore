@@ -198,13 +198,21 @@ def test_query_reconstruction_morphology(db, client, brain_region_id, person_id)
     species1 = add_db(
         db,
         Species(
-            name="TestSpecies1", taxonomy_id="0", created_by_id=person_id, updated_by_id=person_id
+            name="TestSpecies1",
+            taxonomy_id="0",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
     species2 = add_db(
         db,
         Species(
-            name="TestSpecies2", taxonomy_id="1", created_by_id=person_id, updated_by_id=person_id
+            name="TestSpecies2",
+            taxonomy_id="1",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
 
@@ -216,6 +224,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id, person_id)
             taxonomy_id="0",
             created_by_id=person_id,
             updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
     strain2 = add_db(
@@ -226,6 +235,7 @@ def test_query_reconstruction_morphology(db, client, brain_region_id, person_id)
             taxonomy_id="1",
             created_by_id=person_id,
             updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
 
@@ -420,7 +430,11 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
     species0 = add_db(
         db,
         Species(
-            name="TestSpecies0", taxonomy_id="1", created_by_id=person_id, updated_by_id=person_id
+            name="TestSpecies0",
+            taxonomy_id="1",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
     strain0 = add_db(
@@ -431,6 +445,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
             species_id=species0.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
     add_db(
@@ -441,6 +456,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
             species_id=species0.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
 
@@ -520,13 +536,21 @@ def test_pagination(db, client, brain_region_id, person_id):
     species0 = add_db(
         db,
         Species(
-            name="TestSpecies0", taxonomy_id="0", created_by_id=person_id, updated_by_id=person_id
+            name="TestSpecies0",
+            taxonomy_id="0",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
     species1 = add_db(
         db,
         Species(
-            name="TestSpecies1", taxonomy_id="1", created_by_id=person_id, updated_by_id=person_id
+            name="TestSpecies1",
+            taxonomy_id="1",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
     strain0 = add_db(
@@ -537,6 +561,7 @@ def test_pagination(db, client, brain_region_id, person_id):
             species_id=species0.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
     strain1 = add_db(
@@ -547,6 +572,7 @@ def test_pagination(db, client, brain_region_id, person_id):
             species_id=species1.id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
 
@@ -605,6 +631,7 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
             taxonomy_id="0",
             created_by_id=person_id,
             updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
     strain = add_db(
@@ -615,6 +642,7 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id):
             taxonomy_id="0",
             created_by_id=person_id,
             updated_by_id=person_id,
+            embedding=1536 * [0.1],
         ),
     )
 

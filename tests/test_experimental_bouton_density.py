@@ -191,6 +191,7 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 taxonomy_id=f"taxonomy-{i}",
                 created_by_id=person_id,
                 updated_by_id=person_id,
+                embedding=1536 * [0.1],
             )
             for i in range(3)
         ],
@@ -228,6 +229,7 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 hierarchy_id=brain_region_hierarchy_id,
                 created_by_id=person_id,
                 updated_by_id=person_id,
+                embedding=1536 * [0.1],
             )
             for i in range(len(subjects))
         ],

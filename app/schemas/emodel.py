@@ -13,14 +13,14 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
+from app.schemas.cell_morphology import CellMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.ion_channel_model import IonChannelModelWAssets
-from app.schemas.morphology import ReconstructionMorphologyBase
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 from app.schemas.utils import make_update_schema
 
 
-class ExemplarMorphology(CreationMixin, ReconstructionMorphologyBase, IdentifiableMixin):
+class ExemplarMorphology(CreationMixin, CellMorphologyBase, IdentifiableMixin):
     pass
 
 

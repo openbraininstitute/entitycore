@@ -19,7 +19,7 @@ from tests.utils import (
     TEST_DATA_DIR,
     VIRTUAL_LAB_ID,
     add_db,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
     route,
     upload_entity_asset,
 )
@@ -43,12 +43,11 @@ def _get_expected_full_path(entity, path):
 
 
 @pytest.fixture
-def entity(client, species_id, strain_id, brain_region_id) -> Entity:
-    entity_type = EntityType.reconstruction_morphology
-    entity_id = create_reconstruction_morphology_id(
+def entity(client, subject_id, brain_region_id) -> Entity:
+    entity_type = EntityType.cell_morphology
+    entity_id = create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -257,7 +256,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
         "details": [f"Value error, There are no allowed asset labels defined for '{entity.type}'"],
     }
 
-    required = {EntityType.reconstruction_morphology: {AssetLabel.cell_composition_summary: None}}
+    required = {EntityType.cell_morphology: {AssetLabel.cell_composition_summary: None}}
 
     monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", required)
 

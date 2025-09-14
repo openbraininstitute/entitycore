@@ -78,7 +78,6 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
 def create_one(
     json_model: StrainCreate, db: SessionDep, user_context: AdminContextDep
 ) -> StrainRead:
-    # Generate embedding using OpenAI API
     json_model.embedding = generate_embedding(json_model.name)
 
     return app.queries.common.router_create_one(

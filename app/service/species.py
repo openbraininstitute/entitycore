@@ -44,7 +44,6 @@ def create_one(
     species: SpeciesCreate,
     user_context: AdminContextDep,
 ) -> SpeciesRead:
-    # Generate embedding using OpenAI API
     species.embedding = generate_embedding(species.name)
 
     return app.queries.common.router_create_one(

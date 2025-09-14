@@ -26,6 +26,17 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def generate_embeddings_for_existing_data():
     """Generate embeddings for existing brain_region, species, and strain data."""
+    # Check environment and API key requirements
+    environment = os.getenv("ENVIRONMENT", "").lower()
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    # Fail if running in production/staging without API key
+    if environment in ["production", "staging", "prod", "stage"] and not api_key:
+        raise RuntimeError(
+            f"Migration cannot run in {environment} environment without OPENAI_API_KEY. "
+            "Please set the OPENAI_API_KEY environment variable or run in development mode."
+        )
+
     # Get connection
     connection = op.get_bind()
 
@@ -48,7 +59,6 @@ def generate_embeddings_for_existing_data():
         all_entities.append(("strain", strain.id, strain.name))
 
     # Generate embeddings based on available API key
-    api_key = os.getenv("OPENAI_API_KEY")
 
     if api_key:
         # Use OpenAI API for real embeddings

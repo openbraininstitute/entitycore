@@ -44,7 +44,7 @@ def create_one(
     species: SpeciesCreate,
     user_context: AdminContextDep,
 ) -> SpeciesRead:
-    species.embedding = generate_embedding(species.name)
+    embedding = generate_embedding(species.name)
 
     return app.queries.common.router_create_one(
         db=db,
@@ -53,6 +53,7 @@ def create_one(
         json_model=species,
         response_schema_class=SpeciesRead,
         apply_operations=_load,
+        embedding=embedding,
     )
 
 

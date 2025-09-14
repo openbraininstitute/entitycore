@@ -78,7 +78,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
 def create_one(
     json_model: StrainCreate, db: SessionDep, user_context: AdminContextDep
 ) -> StrainRead:
-    json_model.embedding = generate_embedding(json_model.name)
+    embedding = generate_embedding(json_model.name)
 
     return app.queries.common.router_create_one(
         db=db,
@@ -87,4 +87,5 @@ def create_one(
         json_model=json_model,
         response_schema_class=StrainRead,
         apply_operations=_load,
+        embedding=embedding,
     )

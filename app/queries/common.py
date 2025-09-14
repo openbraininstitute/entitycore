@@ -149,6 +149,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     json_model: BaseModel,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
+    embedding: list[float] | None = None,
 ) -> T:
     """Create a model in the database.
 
@@ -159,6 +160,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
         json_model: instance of the Pydantic model.
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
+        embedding: optional embedding vector to attach to the model.
 
     Returns:
         the written model data as a Pydantic model.
@@ -181,6 +183,10 @@ def router_create_one[T: BaseModel, I: Identifiable](
         updated_by_id=updated_by_id,
         authorized_project_id=project_id,
     )
+
+    if embedding is not None and hasattr(db_model_instance, "embedding"):
+        db_model_instance.embedding = embedding  # type: ignore[attr-defined]
+
     with (
         ensure_foreign_keys_integrity("One or more foreign keys do not exist in the db"),
         ensure_uniqueness(f"{db_model_class.__name__} already exists or breaks unique constraints"),

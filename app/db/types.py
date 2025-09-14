@@ -7,6 +7,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.types import VARCHAR, TypeDecorator
 
+from app.utils.enum import combine_str_enums
+
 
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -58,18 +60,20 @@ class EntityType(StrEnum):
     brain_atlas_region = auto()
     cell_composition = auto()
     electrical_cell_recording = auto()
+    electrical_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     external_url = auto()
+    ion_channel = auto()
     ion_channel_model = auto()
+    ion_channel_recording = auto()
     memodel = auto()
     mesh = auto()
     memodel_calibration_result = auto()
     me_type_density = auto()
-    publication = auto()
     reconstruction_morphology = auto()
     simulation = auto()
     simulation_campaign = auto()
@@ -83,6 +87,8 @@ class EntityType(StrEnum):
     subject = auto()
     validation_result = auto()
     circuit = auto()
+    em_dense_reconstruction_dataset = auto()
+    em_cell_mesh = auto()
 
 
 class AgentType(StrEnum):
@@ -96,6 +102,32 @@ class AgentType(StrEnum):
     person = auto()
     organization = auto()
     consortium = auto()
+
+
+class GlobalType(StrEnum):
+    """Global resource types."""
+
+    brain_region_hierarchy = auto()
+    brain_region = auto()
+    species = auto()
+    strain = auto()
+    license = auto()
+    mtype_class = auto()
+    etype_class = auto()
+    publication = auto()
+    role = auto()
+    ion = auto()
+    ion_channel = auto()
+    measurement_annotation = auto()
+
+
+class AssociationType(StrEnum):
+    etype_classification = auto()
+    mtype_classification = auto()
+    contribution = auto()
+    derivation = auto()
+    scientific_artifact_publication_link = auto()
+    scientific_artifact_external_url_link = auto()
 
 
 class ActivityType(StrEnum):
@@ -119,6 +151,12 @@ class DerivationType(StrEnum):
 
     circuit_extraction = auto()
     circuit_rewiring = auto()
+
+
+ResourceType = combine_str_enums(
+    "ResourceType",
+    (EntityType, AssociationType, GlobalType, AgentType),
+)
 
 
 class AnnotationBodyType(StrEnum):
@@ -292,6 +330,7 @@ class AssetLabel(StrEnum):
     node_stats = auto()
     network_stats_a = auto()
     network_stats_b = auto()
+    cell_surface_mesh = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -399,6 +438,11 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.mod, is_directory=False)
         ],
     },
+    EntityType.ion_channel_recording: {
+        AssetLabel.nwb: [
+            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
+        ]
+    },
     EntityType.me_type_density: {
         AssetLabel.voxel_densities: [
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
@@ -465,6 +509,12 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         AssetLabel.validation_result_details: [
             LabelRequirements(content_type=ContentType.text, is_directory=False)
         ],
+    },
+    EntityType.em_cell_mesh: {
+        AssetLabel.cell_surface_mesh: [
+            LabelRequirements(content_type=ContentType.h5, is_directory=False),
+            LabelRequirements(content_type=ContentType.obj, is_directory=False),
+        ]
     },
 }
 
@@ -548,3 +598,30 @@ EXTERNAL_SOURCE_INFO: dict[ExternalSource, ExternalSourceInfo] = {
         "allowed_url": "https://modeldb.science/",
     },
 }
+
+
+class EMCellMeshType(StrEnum):
+    """How an EM cell mesh was created.
+
+    static: The mesh was precomputed at a given level of detail.
+    dynamic: The mesh was dynamically generated at query time.
+    """
+
+    static = auto()
+    dynamic = auto()
+
+
+class EMCellMeshGenerationMethod(StrEnum):
+    """The algorithm generating the mesh from a volume.
+
+    marching_cubes: The marching cubes algorithm.
+    """
+
+    marching_cubes = auto()
+
+
+class SlicingDirectionType(StrEnum):
+    coronal = auto()
+    sagittal = auto()
+    horizontal = auto()
+    custom = auto()

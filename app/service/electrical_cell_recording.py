@@ -19,11 +19,17 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.electrical_cell_recording import ElectricalCellRecordingFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.electrical_cell_recording import (
     ElectricalCellRecordingCreate,
     ElectricalCellRecordingRead,
+    ElectricalCellRecordingUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -34,15 +40,19 @@ if TYPE_CHECKING:
 def _load(query: sa.Select):
     return query.options(
         joinedload(ElectricalCellRecording.license),
-        joinedload(ElectricalCellRecording.subject).joinedload(Subject.species),
-        joinedload(ElectricalCellRecording.subject).joinedload(Subject.strain),
-        joinedload(ElectricalCellRecording.brain_region),
-        joinedload(ElectricalCellRecording.created_by),
-        joinedload(ElectricalCellRecording.updated_by),
+        joinedload(ElectricalCellRecording.subject).options(
+            joinedload(Subject.species),
+            joinedload(Subject.strain),
+        ),
+        joinedload(ElectricalCellRecording.brain_region, innerjoin=True),
+        joinedload(ElectricalCellRecording.created_by, innerjoin=True),
+        joinedload(ElectricalCellRecording.updated_by, innerjoin=True),
         selectinload(ElectricalCellRecording.assets),
         selectinload(ElectricalCellRecording.stimuli),
-        selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.agent),
-        selectinload(ElectricalCellRecording.contributions).joinedload(Contribution.role),
+        selectinload(ElectricalCellRecording.contributions).options(
+            joinedload(Contribution.agent),
+            joinedload(Contribution.role),
+        ),
         joinedload(ElectricalCellRecording.etypes),
         raiseload("*"),
     )
@@ -140,4 +150,21 @@ def read_many(
         response_schema_class=ElectricalCellRecordingRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ElectricalCellRecordingUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ElectricalCellRecordingRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ElectricalCellRecording,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=ElectricalCellRecordingRead,
+        apply_operations=_load,
     )

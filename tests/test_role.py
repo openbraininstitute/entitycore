@@ -1,6 +1,9 @@
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT
+from app.db.model import Role
+
+from tests.utils import MISSING_ID, MISSING_ID_COMPACT, assert_request, count_db_class
 
 ROUTE = "/role"
+ADMIN_ROUTE = "/admin/role"
 
 
 def test_create_role(client, client_admin):
@@ -27,6 +30,27 @@ def test_create_role(client, client_admin):
     assert len(data) == 1
     assert data[0]["name"] == name
     assert data[0]["id"] == id_
+
+
+def test_delete_one(db, client, client_admin):
+    response = client_admin.post(ROUTE, json={"name": "foo", "role_id": "bar"})
+    assert response.status_code == 200
+    data = response.json()
+
+    model_id = data["id"]
+
+    assert count_db_class(db, Role) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, Role) == 0
 
 
 def test_missing(client):

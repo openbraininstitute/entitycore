@@ -8,3 +8,5 @@ router = APIRouter(
 )
 
 create_one = router.post("")(app.service.etype_classification.create_one)
+read_one = router.get("/{id_}")(app.service.etype_classification.read_one)
+read_many = router.get("")(app.service.etype_classification.read_many)

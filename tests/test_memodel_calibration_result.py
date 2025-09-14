@@ -5,10 +5,11 @@ from fastapi.testclient import TestClient
 
 from app.db.model import MEModelCalibrationResult
 
-from .utils import assert_request
+from .utils import assert_request, count_db_class
 
 MODEL = MEModelCalibrationResult
 ROUTE = "/memodel-calibration-result"
+ADMIN_ROUTE = "/admin/memodel-calibration-result"
 
 
 @pytest.fixture
@@ -40,6 +41,63 @@ def _assert_read_response(data, json_data):
     assert data["authorized_public"] is json_data["authorized_public"]
 
 
+def test_update_one(client, memodel_calibration_result_id):
+    new_threshold_current = 1.2
+    new_holding_current = 0.5
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{memodel_calibration_result_id}",
+        json={
+            "threshold_current": new_threshold_current,
+            "holding_current": new_holding_current,
+        },
+    ).json()
+
+    assert data["threshold_current"] == new_threshold_current
+    assert data["holding_current"] == new_holding_current
+
+    # Test setting and unsetting optional fields
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{memodel_calibration_result_id}",
+        json={
+            "rin": 150.0,
+        },
+    ).json()
+    assert data["rin"] == 150.0
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{memodel_calibration_result_id}",
+        json={
+            "rin": None,
+        },
+    ).json()
+    assert data["rin"] is None
+
+
+def test_update_one__public(client, json_data):
+    # make private entity public
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"threshold_current": 2.0},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_read_one(client: TestClient, memodel_calibration_result_id, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{memodel_calibration_result_id}").json()
     _assert_read_response(data, json_data)
@@ -55,6 +113,23 @@ def test_create_one(client: TestClient, json_data):
 
     data = assert_request(client.get, url=ROUTE).json()["data"][0]
     _assert_read_response(data, json_data)
+
+
+def test_delete_one(db, client, client_admin, memodel_calibration_result_id):
+    model_id = memodel_calibration_result_id
+
+    assert count_db_class(db, MEModelCalibrationResult) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, MEModelCalibrationResult) == 0
 
 
 def test_missing(client):

@@ -15,11 +15,13 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    count_db_class,
     create_brain_region,
 )
 
 MODEL = SingleNeuronSynaptomeSimulation
 ROUTE = "/single-neuron-synaptome-simulation"
+ADMIN_ROUTE = "/admin/single-neuron-synaptome-simulation"
 
 
 def _create_synaptome_id(
@@ -136,6 +138,68 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["authorized_public"] is False
 
 
+def test_update_one(client, simulation_id):
+    new_name = "my_new_simulation_name"
+    new_description = "my_new_simulation_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # Test updating status and seed
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={
+            "status": "failure",
+            "seed": 42,
+        },
+    ).json()
+    assert data["status"] == "failure"
+    assert data["seed"] == 42
+
+    # Test updating injection and recording locations
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={
+            "injection_location": ["dendrite[0]"],
+            "recording_location": ["dendrite[0]_0.5"],
+        },
+    ).json()
+    assert data["injection_location"] == ["dendrite[0]"]
+    assert data["recording_location"] == ["dendrite[0]_0.5"]
+
+
+def test_update_one__public(client, json_data):
+    # make private entity public
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_create_one__public(client, json_data):
     data = assert_request(
         client.post,
@@ -161,6 +225,25 @@ def test_read_one(client, brain_region_id, synaptome_id, simulation_id):
     assert data["type"] == EntityType.single_neuron_synaptome_simulation
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["authorized_public"] is False
+
+
+def test_delete_one(db, client, client_admin, simulation_id):
+    model_id = simulation_id
+
+    assert count_db_class(db, SingleNeuronSynaptomeSimulation) == 1
+    assert count_db_class(db, SingleNeuronSynaptome) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, SingleNeuronSynaptomeSimulation) == 0
+    assert count_db_class(db, SingleNeuronSynaptome) == 1
 
 
 @pytest.mark.parametrize(

@@ -8,6 +8,7 @@ from app.schemas.scientific_artifact import (
     ScientificArtifactRead,
 )
 from app.schemas.subject import SubjectReadMixin
+from app.schemas.utils import make_update_schema
 
 
 class UseIon(BaseModel):
@@ -42,6 +43,9 @@ class IonChannelModelCreate(
     ScientificArtifactCreate,
 ):
     pass
+
+
+IonChannelModelUpdate = make_update_schema(IonChannelModelCreate, "IonChannelModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 
 class IonChannelModelRead(

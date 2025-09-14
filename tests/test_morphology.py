@@ -1,7 +1,10 @@
 import itertools as it
 
+import pytest
+
 from app.db.model import (
     Agent,
+    Contribution,
     MTypeClass,
     MTypeClassification,
     ReconstructionMorphology,
@@ -18,31 +21,36 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    count_db_class,
     create_reconstruction_morphology_id,
+    delete_entity_classifications,
+    delete_entity_contributions,
 )
 
 ROUTE = "/reconstruction-morphology"
+ADMIN_ROUTE = "/admin/reconstruction-morphology"
+
+
+@pytest.fixture
+def json_data(species_id, strain_id, license_id, brain_region_id):
+    return {
+        "brain_region_id": str(brain_region_id),
+        "species_id": str(species_id),
+        "strain_id": str(strain_id),
+        "description": "Test Morphology Description",
+        "name": "Test Morphology Name",
+        "location": {"x": 10, "y": 20, "z": 30},
+        "legacy_id": ["Test Legacy ID"],
+        "license_id": str(license_id),
+    }
 
 
 def test_create_reconstruction_morphology(
-    client, species_id, strain_id, license_id, brain_region_id
+    client, species_id, strain_id, brain_region_id, json_data
 ):
     morph_description = "Test Morphology Description"
     morph_name = "Test Morphology Name"
-    data = assert_request(
-        client.post,
-        url=ROUTE,
-        json={
-            "brain_region_id": str(brain_region_id),
-            "species_id": str(species_id),
-            "strain_id": str(strain_id),
-            "description": morph_description,
-            "name": morph_name,
-            "location": {"x": 10, "y": 20, "z": 30},
-            "legacy_id": ["Test Legacy ID"],
-            "license_id": str(license_id),
-        },
-    ).json()
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
     assert data["brain_region"]["id"] == str(brain_region_id), (
         f"Failed to get id for reconstruction morphology: {data}"
     )
@@ -73,6 +81,103 @@ def test_create_reconstruction_morphology(
         "One or more reconstruction morphologies has incorrect type"
     )
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
+
+
+def test_delete_one(db, client, client_admin, morphology_id, person_id, role_id):
+    model_id = morphology_id
+
+    add_db(
+        db,
+        Contribution(
+            agent_id=person_id,
+            role_id=role_id,
+            entity_id=model_id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, Contribution) == 1
+    assert count_db_class(db, MTypeClass) == 1
+    assert count_db_class(db, MTypeClassification) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    delete_entity_contributions(client_admin, ROUTE, model_id)
+    delete_entity_classifications(client, client_admin, model_id)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, ReconstructionMorphology) == 0
+    assert count_db_class(db, Contribution) == 0
+    assert count_db_class(db, MTypeClass) == 1
+    assert count_db_class(db, MTypeClassification) == 0
+
+
+def test_update_one(client, morphology_id):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{morphology_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # set location
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{morphology_id}",
+        json={
+            "location": {"x": 100, "y": 200, "z": 300},
+        },
+    ).json()
+    assert data["location"]["x"] == 100
+    assert data["location"]["y"] == 200
+    assert data["location"]["z"] == 300
+
+    # unset location
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{morphology_id}",
+        json={
+            "location": None,
+        },
+    ).json()
+    assert data["location"] is None
+
+
+def test_update_one__public(client, json_data):
+    # make private entity public
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def test_missing(client):

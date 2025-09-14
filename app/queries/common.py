@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.auth import (
     constrain_to_accessible_entities,
+    constrain_to_private_entities,
     select_unauthorized_entities,
 )
 from app.db.model import Activity, Agent, Generation, Identifiable, Person, Usage
@@ -56,7 +57,9 @@ def router_read_one[T: BaseModel, I: Identifiable](
         the model data as a Pydantic model.
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+    if authorized_project_id and (
+        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    ):
         query = constrain_to_accessible_entities(
             query, authorized_project_id, db_model_class=id_model_class
         )
@@ -288,6 +291,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
 
     data_query = (
         filter_model.sort(filter_query, aliases=aliases)
+        .order_by(db_model_class.id)
         .with_only_columns(db_model_class)
         .offset(pagination_request.offset)
         .limit(pagination_request.page_size)
@@ -337,13 +341,46 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     )
 
 
+def router_update_one[T: BaseModel, I: Identifiable](
+    *,
+    id_: uuid.UUID,
+    db: Session,
+    db_model_class: type[I],
+    user_context: UserContext,
+    json_model: BaseModel,
+    response_schema_class: type[T],
+    apply_operations: ApplyOperations | None = None,
+):
+    query = (
+        sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
+    )
+    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+        query = constrain_to_private_entities(query, user_context, db_model_class=id_model_class)
+    if apply_operations:
+        query = apply_operations(query)
+
+    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
+        obj = db.execute(query).unique().scalar_one()
+
+    # remove attributes with NOT_SET sentinel and leave only user set ones
+    update_data = json_model.model_dump(exclude_defaults=True)
+
+    for key, value in update_data.items():
+        setattr(obj, key, value)
+
+    db.flush()
+    db.refresh(obj)
+
+    return response_schema_class.model_validate(obj)
+
+
 def router_delete_one[T: BaseModel, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
-) -> None:
+) -> dict:
     """Delete a model from the database.
 
     Args:
@@ -359,20 +396,22 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         query = constrain_to_accessible_entities(
             query, authorized_project_id, db_model_class=id_model_class
         )
-    with (
-        ensure_result(error_message=f"{db_model_class.__name__} not found"),
-        ensure_foreign_keys_integrity(
-            error_message=(
-                f"{db_model_class.__name__} cannot be deleted "
-                f"because of foreign keys integrity violation"
-            )
-        ),
-    ):
+
+    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         obj = db.execute(query).scalars().one()
 
+    with ensure_foreign_keys_integrity(
+        error_message=(
+            f"{db_model_class.__name__} cannot be deleted "
+            f"because of foreign keys integrity violation"
+        )
+    ):
         # Use ORM delete in order to ensure that ondelete cascades are triggered in parents  when
         # subclasses are deleted as it is the case with Activity/SimulationGeneration.
         db.delete(obj)
+        db.flush()
+
+    return {"id": id_}
 
 
 def router_update_activity_one[T: BaseModel, I: Activity](

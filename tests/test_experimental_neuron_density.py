@@ -26,9 +26,13 @@ from .utils import (
     check_brain_region_filter,
     check_missing,
     check_pagination,
+    count_db_class,
+    delete_entity_classifications,
+    delete_entity_contributions,
 )
 
 ROUTE = "/experimental-neuron-density"
+ADMIN_ROUTE = "/admin/experimental-neuron-density"
 MODEL_CLASS = ExperimentalNeuronDensity
 
 
@@ -67,6 +71,43 @@ def model_id(create_id):
     return create_id()
 
 
+def test_update_one(client, model_id):
+    new_name = "my_new_density_name"
+    new_description = "my_new_density_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+
+def test_update_one__public(client, json_data):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
@@ -79,6 +120,69 @@ def test_read_one(client, model_id, json_data):
     data = assert_request(client.get, url=ROUTE).json()
     assert len(data["data"]) == 1
     _assert_read_response(data["data"][0], json_data)
+
+
+def test_delete_one(
+    db,
+    client,
+    client_admin,
+    model_id,
+    person_id,
+    role_id,
+):
+    add_db(
+        db,
+        Contribution(
+            agent_id=person_id,
+            role_id=role_id,
+            entity_id=model_id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    mtype = add_db(
+        db,
+        MTypeClass(
+            pref_label="m1",
+            alt_label="m1",
+            definition="e1d",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    add_db(
+        db,
+        MTypeClassification(
+            entity_id=model_id,
+            mtype_class_id=mtype.id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+            authorized_public=False,
+            authorized_project_id=PROJECT_ID,
+        ),
+    )
+
+    assert count_db_class(db, ExperimentalNeuronDensity) == 1
+    assert count_db_class(db, Contribution) == 1
+    assert count_db_class(db, MTypeClass) == 1
+    assert count_db_class(db, MTypeClassification) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    delete_entity_contributions(client_admin, ROUTE, model_id)
+    delete_entity_classifications(client, client_admin, model_id)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, ExperimentalNeuronDensity) == 0
+    assert count_db_class(db, Contribution) == 0
+    assert count_db_class(db, MTypeClass) == 1
+    assert count_db_class(db, MTypeClassification) == 0
 
 
 def test_missing(client):

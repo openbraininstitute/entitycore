@@ -11,9 +11,11 @@ from .utils import (
     check_creation_fields,
     check_missing,
     check_pagination,
+    delete_entity_contributions,
 )
 
 ROUTE = "circuit"
+ADMIN_ROUTE = "/admin/circuit"
 
 
 @pytest.fixture
@@ -54,10 +56,91 @@ def test_create_one(client, circuit_json_data):
     _assert_read_response(data, circuit_json_data)
 
 
+def test_update_one(client, circuit):
+    new_name = "my_new_name"
+    new_description = "my_new_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{circuit.id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # set number_connections
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{circuit.id}",
+        json={
+            "number_connections": 500,
+        },
+    ).json()
+    assert data["number_connections"] == 500
+
+    # unset number_connections
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{circuit.id}",
+        json={
+            "number_connections": None,
+        },
+    ).json()
+    assert data["number_connections"] is None
+
+
+def test_update_one__public(client, root_circuit_json_data):
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=root_circuit_json_data
+        | {
+            "authorized_public": True,
+        },
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_read_one(client, circuit, circuit_json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{circuit.id}").json()
     _assert_read_response(data, circuit_json_data)
     assert len(data["contributions"]) == 1
+
+
+def test_delete_one(client, client_admin, circuit):
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{circuit.id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    # root circuit cannot be deleted because circuit points to it
+    data = assert_request(
+        client_admin.delete,
+        url=f"{ADMIN_ROUTE}/{circuit.root_circuit_id}",
+        expected_status_code=409,
+    ).json()
+    assert data["error_code"] == "INVALID_REQUEST"
+    assert (
+        data["message"] == "Circuit cannot be deleted because of foreign keys integrity violation"
+    )
+
+    delete_entity_contributions(client_admin, ROUTE, circuit.id)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{circuit.id}").json()
+    assert data["id"] == str(circuit.id)
 
 
 def test_read_many(client, circuit, circuit_json_data):

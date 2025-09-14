@@ -12,3 +12,4 @@ hierarchy = router.get("/hierarchy")(app.service.hierarchy.read_circuit_hierarch
 read_many = router.get("")(app.service.circuit.read_many)
 read_one = router.get("/{id_}")(app.service.circuit.read_one)
 create_one = router.post("")(app.service.circuit.create_one)
+update_one = router.patch("/{id_}")(app.service.circuit.update_one)

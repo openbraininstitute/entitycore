@@ -24,6 +24,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
+    MappedColumn,
     declared_attr,
     foreign,
     mapped_column,
@@ -41,6 +42,7 @@ from app.db.types import (
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
+    AssociationType,
     CircuitBuildCategory,
     CircuitScale,
     ContentType,
@@ -49,8 +51,11 @@ from app.db.types import (
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
+    EMCellMeshGenerationMethod,
+    EMCellMeshType,
     EntityType,
     ExternalSource,
+    GlobalType,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -59,6 +64,7 @@ from app.db.types import (
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
+    SlicingDirectionType,
     StorageType,
     StructuralDomain,
     ValidationStatus,
@@ -146,14 +152,19 @@ class NameDescriptionVectorMixin(Base):
     @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: D105, PLW3201
-        return (
-            Index(
-                f"ix_{cls.__tablename__}_description_vector",
-                cls.description_vector,
-                postgresql_using="gin",
-            ),
-            *getattr(super(), "__table_args__", ()),
-        )
+        super_table_args = getattr(super(), "__table_args__", ())
+        # add the index only to the same table where the Mixin is defined, not subclasses
+        attr = getattr(cls, "description_vector", None)
+        if isinstance(attr, MappedColumn):
+            return (
+                Index(
+                    f"ix_{cls.__tablename__}_description_vector",
+                    cls.description_vector,
+                    postgresql_using="gin",
+                ),
+                *super_table_args,
+            )
+        return super_table_args
 
 
 class EmbeddingMixin(Base):
@@ -168,13 +179,13 @@ class EmbeddingMixin(Base):
 
 
 class BrainRegionHierarchy(Identifiable):
-    __tablename__ = "brain_region_hierarchy"
+    __tablename__ = GlobalType.brain_region_hierarchy.value
 
     name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class BrainRegion(EmbeddingMixin, Identifiable):
-    __tablename__ = "brain_region"
+    __tablename__ = GlobalType.brain_region.value
 
     annotation_value: Mapped[int] = mapped_column(BigInteger, index=True)
     name: Mapped[str] = mapped_column(index=True)
@@ -190,13 +201,14 @@ class BrainRegion(EmbeddingMixin, Identifiable):
 
 
 class Species(EmbeddingMixin, Identifiable):
-    __tablename__ = "species"
+    __tablename__ = GlobalType.species.value
     name: Mapped[str] = mapped_column(unique=True, index=True)
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class Strain(EmbeddingMixin, Identifiable):
-    __tablename__ = "strain"
+    __tablename__ = GlobalType.strain.value
+
     name: Mapped[str] = mapped_column(unique=True, index=True)
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
     species_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("species.id"), index=True)
@@ -209,7 +221,7 @@ class Strain(EmbeddingMixin, Identifiable):
 
 
 class License(LegacyMixin, Identifiable, NameDescriptionVectorMixin):
-    __tablename__ = "license"
+    __tablename__ = GlobalType.license.value
     name: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str]
     label: Mapped[str]
@@ -329,7 +341,7 @@ class Usage(Base):
 class Generation(Base):
     __tablename__ = "generation"
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("entity.id"), primary_key=True
     )
     generation_activity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("activity.id", ondelete="CASCADE"),
@@ -396,15 +408,15 @@ class AnnotationMixin:
 
 
 class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
-    __tablename__ = "mtype_class"
+    __tablename__ = GlobalType.mtype_class.value
 
 
 class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
-    __tablename__ = "etype_class"
+    __tablename__ = GlobalType.etype_class.value
 
 
 class MTypeClassification(Identifiable):
-    __tablename__ = "mtype_classification"
+    __tablename__ = AssociationType.mtype_classification.value
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -416,7 +428,7 @@ class MTypeClassification(Identifiable):
 
 
 class ETypeClassification(Identifiable):
-    __tablename__ = "etype_classification"
+    __tablename__ = AssociationType.etype_classification.value
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -439,8 +451,8 @@ class MTypesMixin:
             primaryjoin=f"{cls.__name__}.id == MTypeClassification.entity_id",
             secondary="mtype_classification",
             uselist=True,
-            viewonly=True,
             order_by="MTypeClass.pref_label",
+            passive_deletes=True,
         )
 
 
@@ -456,8 +468,8 @@ class ETypesMixin:
             primaryjoin=f"{cls.__name__}.id == ETypeClassification.entity_id",
             secondary="etype_classification",
             uselist=True,
-            viewonly=True,
             order_by="ETypeClass.pref_label",
+            passive_deletes=True,
         )
 
 
@@ -490,14 +502,16 @@ class Entity(LegacyMixin, Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
-    contributions: Mapped[list["Contribution"]] = relationship(uselist=True, viewonly=True)
+    contributions: Mapped[list["Contribution"]] = relationship(
+        "Contribution", uselist=True, passive_deletes=True, back_populates="entity"
+    )
     assets: Mapped[list["Asset"]] = relationship(
         "Asset",
         uselist=True,
-        viewonly=True,
         primaryjoin=lambda: sa.and_(
             Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
         ),
+        passive_deletes=True,
     )
 
     __mapper_args__ = {  # noqa: RUF012
@@ -541,7 +555,7 @@ class Publication(Identifiable):
 
     """
 
-    __tablename__ = EntityType.publication.value
+    __tablename__ = GlobalType.publication.value
     DOI: Mapped[str] = mapped_column()  # explicit for the case insensitive index
     title: Mapped[str | None]
     authors: Mapped[list[Author] | None] = mapped_column(JSONB)
@@ -616,13 +630,13 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
 
 
 class Contribution(Identifiable):
-    __tablename__ = "contribution"
+    __tablename__ = AssociationType.contribution.value
     agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
     agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
     role = relationship("Role", uselist=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    entity = relationship("Entity", uselist=False)
+    entity = relationship("Entity", uselist=False, back_populates="contributions")
 
     __table_args__ = (
         UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
@@ -728,7 +742,7 @@ class ReconstructionMorphology(
 
 
 class MeasurementAnnotation(LegacyMixin, Identifiable):
-    __tablename__ = "measurement_annotation"
+    __tablename__ = GlobalType.measurement_annotation.value
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True, unique=True)
     entity: Mapped["Entity"] = relationship(
         viewonly=True,
@@ -812,7 +826,7 @@ class MeasurementItem(Base):
 
 
 class Role(LegacyMixin, Identifiable):
-    __tablename__ = "role"
+    __tablename__ = GlobalType.role.value
     name: Mapped[str] = mapped_column(unique=True, index=True)
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
@@ -828,19 +842,20 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     end_time: Mapped[float | None]
 
     recording_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("electrical_cell_recording.id"),
+        ForeignKey("electrical_recording.id"),
         index=True,
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class ElectricalCellRecording(
+class ElectricalRecording(
     ScientificArtifact,
     NameDescriptionVectorMixin,
-    ETypesMixin,
 ):
-    __tablename__ = EntityType.electrical_cell_recording.value
+    """Base table for all the electrical recordings."""
+
+    __tablename__ = EntityType.electrical_recording.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]
@@ -853,6 +868,46 @@ class ElectricalCellRecording(
     stimuli: Mapped[list[ElectricalRecordingStimulus]] = relationship(
         uselist=True,
         foreign_keys="ElectricalRecordingStimulus.recording_id",
+        passive_deletes=True,
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class ElectricalCellRecording(
+    ElectricalRecording,
+    ETypesMixin,
+):
+    __tablename__ = EntityType.electrical_cell_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class IonChannel(NameDescriptionVectorMixin, Identifiable):
+    __tablename__ = GlobalType.ion_channel.value
+
+    label: Mapped[str] = mapped_column(unique=True, index=True)
+    gene: Mapped[str]
+    synonyms: Mapped[STRING_LIST]
+
+
+class IonChannelRecording(
+    ElectricalRecording,
+):
+    __tablename__ = EntityType.ion_channel_recording.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
+    cell_line: Mapped[str]
+    ion_channel_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ion_channel.id"),
+        index=True,
+    )
+    ion_channel: Mapped[IonChannel] = relationship(
+        "IonChannel",
+        uselist=False,
+        foreign_keys=[ion_channel_id],
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -978,7 +1033,7 @@ class ExperimentalSynapsesPerConnection(
 
 
 class Ion(Identifiable):
-    __tablename__ = "ion"
+    __tablename__ = GlobalType.ion.value
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     name: Mapped[str] = mapped_column(unique=True, index=True)
     ontology_id: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
@@ -1286,9 +1341,11 @@ class Calibration(Activity):
 
 
 class Derivation(Base):
-    __tablename__ = "derivation"
+    __tablename__ = AssociationType.derivation.value
     used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    generated_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    generated_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+    )
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
     derivation_type: Mapped[DerivationType | None]
@@ -1314,7 +1371,7 @@ class ScientificArtifactPublicationLink(Identifiable):
         Unique constraint on (publication_id, scientific_artifact_id).
     """
 
-    __tablename__ = "scientific_artifact_publication_link"
+    __tablename__ = AssociationType.scientific_artifact_publication_link.value
     publication_id: Mapped[UUID] = mapped_column(ForeignKey("publication.id"), index=True)
     publication_type: Mapped[PublicationType]
     scientific_artifact_id: Mapped[UUID] = mapped_column(
@@ -1353,7 +1410,7 @@ class ScientificArtifactExternalUrlLink(Identifiable):
         Unique constraint on (external_url_id, scientific_artifact_id).
     """
 
-    __tablename__ = "scientific_artifact_external_url_link"
+    __tablename__ = AssociationType.scientific_artifact_external_url_link.value
     external_url_id: Mapped[UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
     scientific_artifact_id: Mapped[UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), index=True
@@ -1446,5 +1503,118 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     # flatmap: Mapped[FlatMap] = relationship("FlatMap", uselist=False, foreign_keys=[flatmap_id])
 
     # calibration_data (multiple entities): ...
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixin):
+    """Dense EM reconstruction released in format compatible with 'Neuronglancer' and 'CAVE'.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+
+        [related to core EM methodology]
+        protocol_document: (str) A link to a document giving a detailed description of the tissue
+            preparation protocol.
+        fixation: (str) The method and chemicals used for fixing the tissue
+            (e.g., 4% paraformaldehyde).
+        staining_type: (str) The stains or labels used to visualize specific structures or molecules
+            (e.g., heavy metal stains for EM).
+        slicing_thickness: (float) The thickness of the tissue sections.
+        tissue_shrinkage: (float) Any tissue shrinkage that occurred during processing and whether
+            it was corrected.
+        microscope_type: (str). The specific type of electron microscope used
+            (e.g., Transmission EM, Scanning EM, Serial Block-Face SEM).
+        detector: (str) The type of detector used
+        slicing_direction: (SlicingDirectionType) The biological slicing direction of the image,
+            such as left-to-right, anterior-to-posterior, or dorsal-to-ventral.
+        landmarks: (str) The names and coordinates of any anatomical landmarks in the image.
+        voltage (float): The technical settings used during imaging -- Voltage
+        current (float): The technical settings used during imaging -- Current
+        dose (float): The technical settings used during imaging -- Dose
+        temperature: (float) The temperature of the sample during imaging.
+
+        [important for analyses]
+        volume_resolution_x_nm (float): The x-width of a single voxel of the imaging stack
+        volume_resolution_y_nm (float): The y-width of a single voxel of the imaging stack
+        volume_resolution_z_nm (float): The z-width of a single voxel of the imaging stack
+        release_url (str): A link to the main webpage of the data release
+        cave_client_url (str): A url to be used for programmatic access to the data using CAVEclient
+        cave_datastack (str): Name of the datastack under that url that contains the data
+        precomputed_mesh_url (str): Url that can be used to access precomputed cell meshes
+        cell_identifying_property (str): Name of a property (column of a table of the release) that
+            can be used to uniquely identify a cell in the data. Often "pt_root_id".
+
+    Notes:
+        - Has no assets. Data access all through the specified URLs.
+    """
+
+    __tablename__ = EntityType.em_dense_reconstruction_dataset.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+
+    protocol_document: Mapped[str | None]
+    fixation: Mapped[str | None]
+    staining_type: Mapped[str | None]  # TODO: controlled vocabulary?
+    slicing_thickness: Mapped[float | None]
+    tissue_shrinkage: Mapped[float | None]
+    microscope_type: Mapped[str | None]  # TODO: controlled vocabulary
+    detector: Mapped[str | None]
+    slicing_direction: Mapped[SlicingDirectionType | None]
+    landmarks: Mapped[str | None]
+    voltage: Mapped[float | None]
+    current: Mapped[float | None]
+    dose: Mapped[float | None]
+    temperature: Mapped[float | None]
+
+    volume_resolution_x_nm: Mapped[float]
+    volume_resolution_y_nm: Mapped[float]
+    volume_resolution_z_nm: Mapped[float]
+    release_url: Mapped[str]
+    cave_client_url: Mapped[str]
+    cave_datastack: Mapped[str]
+    precomputed_mesh_url: Mapped[str]
+    cell_identifying_property: Mapped[str]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class EMCellMesh(ScientificArtifact):
+    """Cell surface mesh created from a dense EM reconstruction.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        em_dense_reconstruction_dataset_id (uuid.UUID): The id of the dense em reconstruction
+            dataset that the mesh originates from.
+        release_version (int): Version of the em reconstruction dataset that was used.
+        dense_reconstruction_cell_id (int): An identifier of the cell within the em
+            reconstruction dataset. Often it's 'pt_root_id'.
+        generation_method (EMMeshGenerationMethod): The algorithm used to generate the
+            mesh from volumetric data.
+        level_of_detail (int): The level of detail parameter used during mesh generation.
+        generation_parameters (str): Any additional parameters of relevance.
+        mesh_type (EMMeshType): One of "static" or "dynamic". Static meshes are precomputed,
+            dynamic ones are generated when the em reconstruction dataset is queried.
+
+    Notes:
+        - Asset: A cell surface mesh in .h5 format.
+    """
+
+    __tablename__ = EntityType.em_cell_mesh.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    em_dense_reconstruction_dataset_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("em_dense_reconstruction_dataset.id"), index=True
+    )
+    release_version: Mapped[int]
+    dense_reconstruction_cell_id: Mapped[int]
+    generation_method: Mapped[EMCellMeshGenerationMethod]
+    level_of_detail: Mapped[int]
+    generation_parameters: Mapped[JSON_DICT | None]
+    mesh_type: Mapped[EMCellMeshType]
+
+    em_dense_reconstruction_dataset: Mapped[EMDenseReconstructionDataset] = relationship(
+        foreign_keys=[em_dense_reconstruction_dataset_id],
+        uselist=False,
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

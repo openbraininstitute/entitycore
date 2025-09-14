@@ -5,7 +5,16 @@ from unittest.mock import ANY
 import pytest
 from fastapi.testclient import TestClient
 
-from app.db.model import MEModel
+from app.db.model import (
+    Contribution,
+    EModel,
+    ETypeClass,
+    ETypeClassification,
+    MEModel,
+    MTypeClass,
+    MTypeClassification,
+    ReconstructionMorphology,
+)
 from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
 
@@ -14,10 +23,45 @@ from .utils import (
     PROJECT_ID,
     assert_request,
     check_brain_region_filter,
+    count_db_class,
     create_reconstruction_morphology_id,
+    delete_entity_classifications,
+    delete_entity_contributions,
 )
 
 ROUTE = "/memodel"
+ADMIN_ROUTE = "/admin/memodel"
+
+
+@pytest.fixture
+def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
+    return {
+        "brain_region_id": str(brain_region_id),
+        "species_id": species_id,
+        "strain_id": strain_id,
+        "description": "Test MEModel Description",
+        "name": "Test MEModel Name",
+        "morphology_id": morphology_id,
+        "emodel_id": emodel_id,
+        "authorized_public": False,
+    }
+
+
+def test_update_one(client, memodel_id):
+    new_name = "my_new_memodel_name"
+    new_description = "my_new_memodel_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{memodel_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
 
 
 def test_get_memodel(client: TestClient, memodel_id):
@@ -41,20 +85,6 @@ def test_missing(client):
 
     response = client.get(f"{ROUTE}/notauuid")
     assert response.status_code == 422
-
-
-@pytest.fixture
-def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
-    return {
-        "brain_region_id": str(brain_region_id),
-        "species_id": species_id,
-        "strain_id": strain_id,
-        "description": "Test MEModel Description",
-        "name": "Test MEModel Name",
-        "morphology_id": morphology_id,
-        "emodel_id": emodel_id,
-        "authorized_public": False,
-    }
 
 
 def _assert_read_response(data, json_data):
@@ -85,6 +115,45 @@ def test_create_memodel(
     assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
     data = response.json()["data"][0]
     _assert_read_response(data, json_data)
+
+
+def test_delete_one(db, client, client_admin, memodel_id):
+    model_id = memodel_id
+
+    assert count_db_class(db, MEModel) == 1
+    # 1 morph, 1 EModel, 2 MEModel
+    assert count_db_class(db, Contribution) == 4
+    assert count_db_class(db, MTypeClass) == 1
+    # 1 for morphology 1 for MEModel for the same MTypeClass
+    assert count_db_class(db, MTypeClassification) == 2
+    assert count_db_class(db, ETypeClass) == 1
+    # 1 for EModel 1 for MEModel for the same ETypeClass
+    assert count_db_class(db, ETypeClassification) == 2
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, EModel) == 1
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    delete_entity_contributions(client_admin, ROUTE, model_id)
+    delete_entity_classifications(client, client_admin, model_id)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, MEModel) == 0
+    assert count_db_class(db, Contribution) == 2
+    assert count_db_class(db, MTypeClass) == 1
+    # 1 for morphology 1 for MEModel for the same MTypeClass
+    assert count_db_class(db, MTypeClassification) == 1
+    assert count_db_class(db, ETypeClass) == 1
+    # 1 for EModel 1 for MEModel for the same ETypeClass
+    assert count_db_class(db, ETypeClassification) == 1
+    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, EModel) == 1
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):

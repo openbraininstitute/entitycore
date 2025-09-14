@@ -19,12 +19,15 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    count_db_class,
     create_brain_region,
+    delete_entity_contributions,
 )
 from tests.conftest import CreateIds
 
 MODEL = SingleNeuronSynaptome
 ROUTE = "/single-neuron-synaptome"
+ADMIN_ROUTE = "/admin/single-neuron-synaptome"
 
 
 @pytest.fixture
@@ -103,6 +106,48 @@ def test_create_one(client, json_data):
     _assert_create_response(data, json_data)
 
 
+def test_update_one(client, model_id):
+    new_name = "my_new_synaptome_name"
+    new_description = "my_new_synaptome_description"
+
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "name": new_name,
+            "description": new_description,
+        },
+    ).json()
+
+    assert data["name"] == new_name
+    assert data["description"] == new_description
+
+    # Test updating seed
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={
+            "seed": 42,
+        },
+    ).json()
+    assert data["seed"] == 42
+
+
+def test_update_one__public(client, json_data):
+    data = assert_request(
+        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
+    ).json()
+
+    # should not be allowed to update it once public
+    data = assert_request(
+        client.patch,
+        url=f"{ROUTE}/{data['id']}",
+        json={"name": "foo"},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_read_one(client, model_id, json_data):
     data = assert_request(
         client.get,
@@ -119,6 +164,28 @@ def test_read_many(client, model_id, json_data):
     assert len(items) == 1
     assert items[0]["id"] == model_id
     _assert_read_response(items[0], json_data)
+
+
+def test_delete_one(db, client, client_admin, model_id):
+    assert count_db_class(db, SingleNeuronSynaptome) == 1
+    assert count_db_class(db, MEModel) == 1
+    assert count_db_class(db, Contribution) == 6
+
+    data = assert_request(
+        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    # delete model's other foreign keys
+    delete_entity_contributions(client_admin, ROUTE, model_id)
+
+    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    assert count_db_class(db, SingleNeuronSynaptome) == 0
+    assert count_db_class(db, MEModel) == 1
+    assert count_db_class(db, Contribution) == 4
 
 
 @pytest.mark.parametrize(

@@ -3,13 +3,17 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import cast
 
+from fastapi import HTTPException
 from pydantic.networks import AnyUrl
 from types_boto3_s3 import S3Client
 
 from app.config import StorageUnion, storages
+from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, StorageType
+from app.dependencies.common import PaginationQuery
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
-from app.queries.common import get_or_create_user_agent
+from app.filters.asset import AssetFilterDep
+from app.queries.common import get_or_create_user_agent, router_read_many
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import (
     AssetCreate,
@@ -18,10 +22,13 @@ from app.schemas.asset import (
     DirectoryUpload,
 )
 from app.schemas.auth import UserContext, UserContextWithProjectId
+from app.schemas.types import ListResponse
 from app.service import entity as entity_service
+from app.utils.routers import EntityRoute, entity_route_to_type
 from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
+    delete_from_s3,
     generate_presigned_url,
     list_directory_with_details,
     sanitize_directory_traversal,
@@ -31,20 +38,42 @@ from app.utils.s3 import (
 def get_entity_assets(
     repos: RepositoryGroup,
     user_context: UserContext,
-    entity_type: EntityType,
+    entity_route: EntityRoute,
     entity_id: uuid.UUID,
-) -> list[AssetRead]:
+    pagination_request: PaginationQuery,
+    filter_model: AssetFilterDep,
+) -> ListResponse[AssetRead]:
     """Return the list of assets associated with a specific entity."""
+    db_model_class = Asset
+    entity_type = entity_route_to_type(entity_route)
     _ = entity_service.get_readable_entity(
         repos,
         user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )
-    return [
-        AssetRead.model_validate(row)
-        for row in repos.asset.get_entity_assets(entity_type=entity_type, entity_id=entity_id)
-    ]
+    apply_filter_query_operations = lambda q: q.join(Entity, Entity.id == Asset.entity_id).where(
+        Asset.entity_id == entity_id,
+        Asset.status != AssetStatus.DELETED,
+        Entity.type == entity_type.name,
+    )
+    name_to_facet_query_params = filter_joins = None
+    return router_read_many(
+        db=repos.db,
+        db_model_class=db_model_class,
+        authorized_project_id=user_context.project_id,
+        with_search=None,
+        with_in_brain_region=None,
+        facets=None,
+        aliases={},
+        apply_filter_query_operations=apply_filter_query_operations,
+        apply_data_query_operations=None,
+        pagination_request=pagination_request,
+        response_schema_class=AssetRead,
+        name_to_facet_query_params=name_to_facet_query_params,
+        filter_model=filter_model,
+        filter_joins=filter_joins,
+    )
 
 
 def get_entity_asset(
@@ -137,8 +166,10 @@ def delete_entity_asset(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
+    *,
+    hard_delete: bool = False,
 ) -> AssetRead:
-    """Mark an entity asset as deleted."""
+    """Delete or mark an entity asset as deleted."""
     _ = entity_service.get_writable_entity(
         repos,
         user_context=user_context,
@@ -146,13 +177,51 @@ def delete_entity_asset(
         entity_id=entity_id,
     )
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
-        asset = repos.asset.update_entity_asset_status(
-            entity_type=entity_type,
-            entity_id=entity_id,
-            asset_id=asset_id,
-            asset_status=AssetStatus.DELETED,
-        )
+        asset = delete_asset(repos, entity_type, entity_id, asset_id, hard_delete=hard_delete)
     return AssetRead.model_validate(asset)
+
+
+def delete_asset(
+    repos: RepositoryGroup,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    *,
+    hard_delete: bool = False,
+) -> AssetRead:
+    """Soft or hard delete an asset based on hard_delete flag.
+
+    If hard_delete = False the asset will be marked as deleted.
+    If hard_delete = True the asset will be removed from the database.
+
+    In both cases the s3 file will be deleted.
+    """
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        if hard_delete:
+            asset = repos.asset.delete_entity_asset(
+                entity_type=entity_type,
+                entity_id=entity_id,
+                asset_id=asset_id,
+            )
+        else:
+            asset = repos.asset.update_entity_asset_status(
+                entity_type=entity_type,
+                entity_id=entity_id,
+                asset_id=asset_id,
+                asset_status=AssetStatus.DELETED,
+            )
+    return AssetRead.model_validate(asset)
+
+
+def delete_asset_storage_object(asset: AssetRead, storage_client_factory: StorageClientFactory):
+    """Delete asset storage object."""
+    # TODO: Handle directories. See https://github.com/openbraininstitute/entitycore/issues/256
+    storage = storages[asset.storage_type]
+    # delete the file from S3 only if not using an open data storage
+    if not storage.is_open:
+        s3_client = storage_client_factory(storage)
+        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=asset.full_path):
+            raise HTTPException(status_code=500, detail="Failed to delete object")
 
 
 def entity_asset_upload_directory(

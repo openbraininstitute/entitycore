@@ -1,15 +1,14 @@
 from pydantic import (
     BaseModel,
     ConfigDict,
-    HttpUrl,
     computed_field,
-    field_serializer,
     model_validator,
 )
 
 from app.db.types import EXTERNAL_SOURCE_INFO, ExternalSource
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.types import SerializableHttpUrl
 
 
 class ExternalUrlBase(BaseModel):
@@ -17,14 +16,9 @@ class ExternalUrlBase(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
     source: ExternalSource
-    url: HttpUrl
+    url: SerializableHttpUrl
     name: str
     description: str
-
-    @field_serializer("url")
-    def serialize_url(self, url: HttpUrl) -> str:  # noqa: PLR6301
-        """Return the url as string for serialization to the db."""
-        return url.unicode_string()
 
 
 class ExternalUrlCreate(ExternalUrlBase):

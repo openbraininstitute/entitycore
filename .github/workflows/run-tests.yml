@@ -29,6 +29,15 @@ jobs:
         run: make lint
       - name: Run tests
         run: make test-docker
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: openbraininstitute/entitycore
+          fail_ci_if_error: false
+          files: ./coverage/coverage.xml
+          flags: pytest
+          verbose: true
       - name: Cleanup
         if: ${{ always() }}
         run: |

@@ -1,7 +1,6 @@
 """Asset repository module."""
 
 import uuid
-from collections.abc import Sequence
 
 import sqlalchemy as sa
 
@@ -13,23 +12,6 @@ from app.schemas.asset import AssetCreate
 
 class AssetRepository(BaseRepository):
     """AssetRepository."""
-
-    def get_entity_assets(
-        self,
-        entity_type: EntityType,
-        entity_id: uuid.UUID,
-    ) -> Sequence[Asset]:
-        """Return a sequence of assets, potentially empty."""
-        query = (
-            sa.select(Asset)
-            .join(Entity, Entity.id == Asset.entity_id)
-            .where(
-                Asset.entity_id == entity_id,
-                Asset.status != AssetStatus.DELETED,
-                Entity.type == entity_type.name,
-            )
-        )
-        return self.db.execute(query).scalars().all()
 
     def get_entity_asset(
         self,
@@ -95,6 +77,25 @@ class AssetRepository(BaseRepository):
                 Asset.entity_id == entity_id,
                 Asset.id == asset_id,
                 Asset.status != asset_status,
+                Entity.type == entity_type.name,
+                Entity.id == Asset.entity_id,
+            )
+            .returning(Asset)
+        )
+        return self.db.execute(query).scalar_one()
+
+    def delete_entity_asset(
+        self,
+        entity_type: EntityType,
+        entity_id: uuid.UUID,
+        asset_id: uuid.UUID,
+    ) -> Asset:
+        """Delete an entity asset."""
+        query = (
+            sa.delete(Asset)
+            .where(
+                Asset.entity_id == entity_id,
+                Asset.id == asset_id,
                 Entity.type == entity_type.name,
                 Entity.id == Asset.entity_id,
             )

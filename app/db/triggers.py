@@ -1,3 +1,4 @@
+from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
@@ -100,6 +101,7 @@ entities = [
 ]
 
 entities += [
+    PGExtension(schema="public", signature="vector"),
     unauthorized_private_reference_function(
         EModel, "exemplar_morphology_id", ReconstructionMorphology
     ),

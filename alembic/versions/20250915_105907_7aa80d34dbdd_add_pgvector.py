@@ -1,8 +1,8 @@
 """add pgvector
 
 Revision ID: 7aa80d34dbdd
-Revises: 02b804d687ee
-Create Date: 2025-08-25 12:34:47.832367
+Revises: 06af11530839
+Create Date: 2025-09-15 10:59:07.825826
 
 """
 

@@ -1,4 +1,4 @@
-"""add unspecified to derivation_type
+"""Add unspecified to derivation_type
 
 Revision ID: 72e49e16de14
 Revises: de87a4c88ded
@@ -18,7 +18,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "72e49e16de14"
-down_revision: Union[str, None] = "de87a4c88ded"
+down_revision: Union[str, None] = "06af11530839"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

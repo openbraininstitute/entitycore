@@ -175,7 +175,7 @@ class EmbeddingMixin(Base):
     """
 
     __abstract__ = True
-    embedding: Mapped[Vector] = mapped_column(Vector(1536), nullable=False)
+    embedding: Mapped[Vector] = mapped_column(Vector(1536), nullable=False, deferred=True)
 
 
 class BrainRegionHierarchy(Identifiable):

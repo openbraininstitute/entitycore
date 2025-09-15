@@ -199,5 +199,8 @@ omit = [
     "app/routers/legacy/*",
 ]
 
+[tool.coverage.xml]
+output = "coverage/coverage.xml"
+
 [tool.pyright]
 exclude = ["app/routers/legacy", "app/cli/curation/electrical_cell_recording.py"]

@@ -118,7 +118,6 @@ class EntityType(StrEnum):
     ion_channel_model = auto()
     ion_channel_recording = auto()
     memodel = auto()
-    mesh = auto()
     memodel_calibration_result = auto()
     me_type_density = auto()
     simulation = auto()

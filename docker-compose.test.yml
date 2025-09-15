@@ -2,16 +2,19 @@ services:
   test:
     profiles: [test]
     image: "${IMAGE_NAME}:${IMAGE_TAG}"
+    user: root
     command:
     - sh
     - -cx
     - |
       alembic downgrade base &&
       alembic upgrade head &&
-      python -m pytest
+      python -m pytest &&
+      coverage xml
     env_file: .env.test-docker
     volumes:
     - ./tests:/code/tests
+    - ./coverage:/code/coverage
     depends_on:
       db-test:
         condition: service_healthy

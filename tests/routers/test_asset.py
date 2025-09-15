@@ -201,6 +201,33 @@ def test_upload_entity_asset(client, entity):
     assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
 
 
+@pytest.mark.parametrize(
+    ("client_fixture", "expected_status", "expected_error"),
+    [
+        ("client_user_2", 404, ApiErrorCode.ENTITY_NOT_FOUND),
+        ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+    ],
+)
+def test_upload_entity_asset_non_authorized(
+    request, client_fixture, expected_status, expected_error, entity
+):
+    client = request.getfixturevalue(client_fixture)
+
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+    )
+    assert response.status_code == expected_status, (
+        f"Asset creation didn't fail as expected: {response.text}"
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == expected_error
+
+
 def test_upload_entity_asset__label(monkeypatch, client, entity):
     response = _upload_entity_asset(
         client,
@@ -450,6 +477,16 @@ def test_get_entity_asset(client, entity, asset):
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
 
+@pytest.mark.parametrize("client_fixture", ["client_user_2", "client_no_project"])
+def test_get_entity_asset_non_authorized(request, client_fixture, entity, asset):
+    client = request.getfixturevalue(client_fixture)
+
+    response = client.get(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
+    assert response.status_code == 404, f"Unexpected result: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
 def test_get_entity_assets(client, entity, asset):
     response = client.get(f"{route(entity.type)}/{entity.id}/assets")
 
@@ -474,6 +511,16 @@ def test_get_entity_assets(client, entity, asset):
 
     # try to get assets with non-existent entity id
     response = client.get(f"{route(entity.type)}/{MISSING_ID}/assets")
+    assert response.status_code == 404, f"Unexpected result: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
+@pytest.mark.parametrize("client_fixture", ["client_user_2", "client_no_project"])
+def test_get_entity_assets_non_authorized(request, client_fixture, entity):
+    client = request.getfixturevalue(client_fixture)
+
+    response = client.get(f"{route(entity.type)}/{entity.id}/assets")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
@@ -514,6 +561,16 @@ def test_download_entity_asset(client, entity, asset):
     )
 
 
+@pytest.mark.parametrize("client_fixture", ["client_user_2", "client_no_project"])
+def test_download_entity_asset_non_authorized(request, client_fixture, entity, asset):
+    client = request.getfixturevalue(client_fixture)
+
+    response = client.get(f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download")
+    assert response.status_code == 404, f"Unexpected result: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
 def test_delete_entity_asset(client, entity, asset):
     response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
     assert response.status_code == 200, f"Failed to delete asset: {response.text}"
@@ -523,14 +580,38 @@ def test_delete_entity_asset(client, entity, asset):
     # try to delete again the same asset
     response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
     # try to delete an asset with non-existent entity id
     response = client.delete(f"{route(entity.type)}/{MISSING_ID}/assets/{asset.id}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to delete an asset with non-existent asset id
     response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}")
     assert response.status_code == 404, f"Unexpected result: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    ("client_fixture", "expected_status", "expected_error"),
+    [
+        ("client_user_2", 404, ApiErrorCode.ENTITY_NOT_FOUND),
+        ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+    ],
+)
+def test_delete_entity_asset_non_authorized(
+    request, client_fixture, expected_status, expected_error, entity, asset
+):
+    client = request.getfixturevalue(client_fixture)
+
+    response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
+    assert response.status_code == expected_status, f"Unexpected result: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == expected_error
 
 
 def test_upload_delete_upload_entity_asset(client, entity):
@@ -749,11 +830,36 @@ def test_list_entity_asset_directory_failures(client, entity, asset):
     # non-directory asset
     response = client.get(f"{entity_type}/{entity.id}/assets/{asset.id}/list")
     assert response.status_code == 422
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_A_DIRECTORY
 
     # non-existent entity
     response = client.get(f"{entity_type}/{MISSING_ID}/assets/{MISSING_ID}/list")
     assert response.status_code == 404
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # non-existent asset
     response = client.get(f"{entity_type}/{entity.id}/assets/{MISSING_ID}/list")
     assert response.status_code == 404
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    ("client_fixture", "expected_status", "expected_error"),
+    [
+        ("client_user_2", 404, ApiErrorCode.ENTITY_NOT_FOUND),
+        ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+    ],
+)
+def test_list_entity_asset_directory_non_authorized(
+    request, client_fixture, expected_status, expected_error, entity, asset
+):
+    client = request.getfixturevalue(client_fixture)
+    entity_type = route(entity.type)
+
+    response = client.get(f"{entity_type}/{entity.id}/assets/{asset.id}/list")
+    assert response.status_code == expected_status
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == expected_error

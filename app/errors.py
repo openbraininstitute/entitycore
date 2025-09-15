@@ -48,6 +48,8 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_INVALID_CONTENT_TYPE = auto()
     ION_NAME_NOT_FOUND = auto()
     S3_CANNOT_CREATE_PRESIGNED_URL = auto()
+    OPENAI_API_KEY_MISSING = auto()
+    OPENAI_API_ERROR = auto()
 
 
 @dataclasses.dataclass(kw_only=True)

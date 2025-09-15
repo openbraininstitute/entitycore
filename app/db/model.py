@@ -1593,7 +1593,7 @@ class EMCellMesh(ScientificArtifact):
         ForeignKey("em_dense_reconstruction_dataset.id"), index=True
     )
     release_version: Mapped[int]
-    dense_reconstruction_cell_id: Mapped[int]
+    dense_reconstruction_cell_id: Mapped[BIGINT]
     generation_method: Mapped[EMCellMeshGenerationMethod]
     level_of_detail: Mapped[int]
     generation_parameters: Mapped[JSON_DICT | None]

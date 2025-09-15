@@ -46,33 +46,53 @@ def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recordi
     )
     add_all_db(db, derivations)
 
-    response = client.get(url=f"/emodel/{generated_emodel_id}/derived-from/circuit_extraction")
+    response = client.get(
+        url=f"/emodel/{generated_emodel_id}/derived-from",
+        params={"derivation_type": "circuit_extraction"},
+    )
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 3
     assert [d["id"] for d in data] == [str(id_) for id_ in reversed(trace_ids[:3])]
     assert all(d["type"] == "electrical_cell_recording" for d in data)
 
-    response = client.get(url=f"/emodel/{generated_emodel_id}/derived-from/circuit_rewiring")
+    response = client.get(
+        url=f"/emodel/{generated_emodel_id}/derived-from",
+        params={"derivation_type": "circuit_rewiring"},
+    )
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 2
     assert [d["id"] for d in data] == [str(id_) for id_ in reversed(trace_ids[3:5])]
     assert all(d["type"] == "electrical_cell_recording" for d in data)
 
-    response = client.get(url=f"/emodel/{generated_emodel_id}/derived-from/unspecified")
+    response = client.get(
+        url=f"/emodel/{generated_emodel_id}/derived-from", params={"derivation_type": "unspecified"}
+    )
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 1
     assert data[0]["id"] == str(trace_ids[5])
     assert data[0]["type"] == "electrical_cell_recording"
 
-    response = client.get(url=f"/emodel/{generated_emodel_id}/derived-from/invalid_type")
+    # Test error without derivation_type param
+    response = client.get(url=f"/emodel/{generated_emodel_id}/derived-from")
     assert_response(response, 422)
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.INVALID_REQUEST
 
-    response = client.get(url=f"/emodel/{other_emodel_id}/derived-from/unspecified")
+    # Test error invalid derivation_type param
+    response = client.get(
+        url=f"/emodel/{generated_emodel_id}/derived-from",
+        params={"derivation_type": "invalid_type"},
+    )
+    assert_response(response, 422)
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+
+    response = client.get(
+        url=f"/emodel/{other_emodel_id}/derived-from", params={"derivation_type": "unspecified"}
+    )
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 0

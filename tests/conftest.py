@@ -1249,7 +1249,7 @@ def em_cell_mesh_json_data(em_dense_reconstruction_dataset, subject_id, brain_re
         "subject_id": str(subject_id),
         "brain_region_id": str(brain_region_id),
         "release_version": 1,
-        "dense_reconstruction_cell_id": 100000,
+        "dense_reconstruction_cell_id": 2**63 - 1,  # max signed bigint
         "generation_method": "marching_cubes",
         "level_of_detail": 10,
         "mesh_type": "static",

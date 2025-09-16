@@ -1,8 +1,8 @@
-"""Add unspecified to derivation_type
+"""Add unspecified to derivationtype
 
-Revision ID: 72e49e16de14
-Revises: de87a4c88ded
-Create Date: 2025-09-15 12:13:23.208101
+Revision ID: 231ca37e0a32
+Revises: f519675415aa
+Create Date: 2025-09-16 10:37:55.733308
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "72e49e16de14"
-down_revision: Union[str, None] = "06af11530839"
+revision: str = "231ca37e0a32"
+down_revision: Union[str, None] = "f519675415aa"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

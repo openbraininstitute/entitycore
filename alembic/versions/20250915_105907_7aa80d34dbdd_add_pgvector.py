@@ -1,8 +1,8 @@
 """add pgvector
 
 Revision ID: 7aa80d34dbdd
-Revises: 06af11530839
-Create Date: 2025-09-15 10:59:07.825826
+Revises: 231ca37e0a32
+Create Date: 2025-09-16 12:59:07.825826
 
 """
 
@@ -19,7 +19,7 @@ from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
 revision: str = "7aa80d34dbdd"
-down_revision: Union[str, None] = "06af11530839"
+down_revision: Union[str, None] = "231ca37e0a32"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

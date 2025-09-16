@@ -24,7 +24,7 @@ def generate_embedding(text: str, model: str = "text-embedding-3-small") -> list
         raise ApiError(
             message="OpenAI API key is not configured",
             error_code=ApiErrorCode.OPENAI_API_KEY_MISSING,
-            http_status_code=401,
+            http_status_code=500,
         )
 
     openai_api_key = settings.OPENAI_API_KEY.get_secret_value()

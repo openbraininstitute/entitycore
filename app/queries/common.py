@@ -305,7 +305,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
 
     # Add semantic similarity ordering if embedding is provided and model has embedding field
     if embedding is not None and hasattr(db_model_class, "embedding"):
-        # Remove existing ordering clauses and replace with semantic similarity ordering
+        # Remove existing ordering clauses
         data_query._order_by_clauses = ()  # noqa: SLF001
 
         # Order by L2 distance first, then by ID to guarantee uniqueness

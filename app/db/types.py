@@ -646,8 +646,10 @@ class SlicingDirectionType(StrEnum):
     horizontal = auto()
     custom = auto()
 
+
 class AnalysisInputCountSpecs(StrEnum):
-    """Represents specs of how many inputs of a given type are expected for analysis"""
+    """Represents specs of how many inputs of a given type are expected for analysis."""
+
     single = auto()
     pair = auto()
     triplet = auto()
@@ -657,6 +659,7 @@ class AnalysisInputCountSpecs(StrEnum):
 
 class ActivityScale(StrEnum):
     """Rough scale that an activity takes place in. Note: Not equal to CircuitScale."""
+
     subcellular = auto()
     cellular = auto()
     circuit = auto()

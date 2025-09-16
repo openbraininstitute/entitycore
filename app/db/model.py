@@ -1623,8 +1623,7 @@ class EMCellMesh(ScientificArtifact):
 
 
 class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
-    """Represents a notebook template that offers to analyze a type of entity or
-    multiple entities.
+    """Represents a notebook template that offers to analyze one or more types of entities.
 
     Attributes:
         id: (uuid.UUID): Primary key for the template, referencing the entity ID.
@@ -1634,7 +1633,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
         primary_input_variable: The name of the variable in the notebook that the
             primary input entity / entities should be assigned to
 
-        secondary_input_type (optional): The type of entity that is expected to be a secondary input.
+        secondary_input_type (optional): The type of entity expected to be a secondary input.
             If no secondary input is used, then set to None.
         secondary_input_count (optional): Specifies how many entities of the primary input type are
             expected. Can be one, two, three, any, any > 0.
@@ -1650,6 +1649,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
 
 
     """
+
     __tablename__ = EntityType.analysis_notebook_template.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1668,26 +1668,32 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
 
 class NotebookExecution(Activity):
     """Represents the execution of a Jupyter notebook to analyze entities and create a result.
+
     Analyzed entities are the input of this Activity, the AnalysisResultNotebook is the output.
 
     Attributes:
         id (uuid.UUID): Primary key, referencing the activity ID.
-        notebook_template_id (uuid.UUID, optional): References the AnalysisSoftwareSourceCode that was used.
+        notebook_template_id (uuid.UUID, optional): References the AnalysisSoftwareSourceCode
+            that was used.
         environment (str): Installed packages and versions; i.e., output of pip freeze
         intention (AnalysisIntention): The intention of the analysis. Validation / prediction / etc.
     """
+
     __tablename__ = ActivityType.notebook_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     environment: Mapped[str]
-    notebook_template_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("analysis_notebook_template.id"))
+    notebook_template_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("analysis_notebook_template.id")
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class AnalysisResultNotebook(Entity, NameDescriptionVectorMixin):
-    """Represents the result of an analysis in a digested format. This one represents:
-    a .ipynb notebook, containing any number of results. Valuable additional info is in the
-    NotebookExecution associated with this entity.
+    """Represents the result of an analysis in a digested format.
+
+    This one represents a .ipynb notebook, containing any number of results.
+    Valuable additional info is in the NotebookExecution associated with this entity.
 
     Attributes:
         id (uuid.UUID): Primary key for the result, referencing the entity ID.
@@ -1696,5 +1702,6 @@ class AnalysisResultNotebook(Entity, NameDescriptionVectorMixin):
         - a .ipynb file
 
     """
+
     __tablename__ = EntityType.analysis_result_notebook.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)

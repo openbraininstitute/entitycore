@@ -108,6 +108,12 @@ def test_brain_region_id(db, client, person_id):
     assert data["name"] == "root"
     assert data["acronym"] == "root"
 
+    # test semantic_search
+    response = client.get(ROUTE, params={"semantic_search": "Blue region"})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 4  # semantic search just reorders - it does not filter out
+
 
 def test_family_queries(db, client, species_id, strain_id, person_id):
     hierarchy_name0 = utils.create_hiearchy_name(db, "hier0", created_by_id=person_id)

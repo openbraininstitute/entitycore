@@ -43,6 +43,12 @@ def test_create_species(client, client_admin):
     assert data == [items[1]]
     check_creation_fields(data[0])
 
+    # test semantic_search
+    response = client.get(ROUTE, params={"semantic_search": "speeecies"})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 3  # semantic search just reorders - it does not filter out
+
 
 def test_delete_one(db, client, client_admin, species_id):
     model_id = species_id

@@ -12,6 +12,7 @@ from app.filters.common import StrainFilterDep
 from app.queries.factory import query_params_factory
 from app.schemas.species import StrainCreate, StrainRead
 from app.schemas.types import ListResponse
+from app.utils.embedding import generate_embedding
 
 
 def _load(query: sa.Select):
@@ -23,10 +24,17 @@ def _load(query: sa.Select):
 
 
 def read_many(
+    *,
     db: SessionDep,
     pagination_request: PaginationQuery,
     strain_filter: StrainFilterDep,
+    semantic_search: str | None = None,
 ) -> ListResponse[StrainRead]:
+    embedding = None
+
+    if semantic_search is not None:
+        embedding = generate_embedding(semantic_search)
+
     facet_keys = filter_keys = [
         "created_by",
         "updated_by",
@@ -52,6 +60,7 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=strain_filter,
         filter_joins=filter_joins,
+        embedding=embedding,
     )
 
 
@@ -69,6 +78,8 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
 def create_one(
     json_model: StrainCreate, db: SessionDep, user_context: AdminContextDep
 ) -> StrainRead:
+    embedding = generate_embedding(json_model.name)
+
     return app.queries.common.router_create_one(
         db=db,
         db_model_class=Strain,
@@ -76,4 +87,5 @@ def create_one(
         json_model=json_model,
         response_schema_class=StrainRead,
         apply_operations=_load,
+        embedding=embedding,
     )

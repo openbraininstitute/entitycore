@@ -10,6 +10,7 @@ from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilterDep
 from app.schemas.base import BrainRegionRead
 from app.schemas.types import ListResponse
+from app.utils.embedding import generate_embedding
 
 
 def read_many(
@@ -17,7 +18,13 @@ def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     brain_region_filter: BrainRegionFilterDep,
+    semantic_search: str | None = None,
 ) -> ListResponse[BrainRegionRead]:
+    embedding = None
+
+    if semantic_search is not None:
+        embedding = generate_embedding(semantic_search)
+
     return app.queries.common.router_read_many(
         db=db,
         db_model_class=BrainRegion,
@@ -32,6 +39,7 @@ def read_many(
         response_schema_class=BrainRegionRead,
         name_to_facet_query_params=None,
         filter_model=brain_region_filter,
+        embedding=embedding,
     )
 
 

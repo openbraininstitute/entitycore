@@ -85,6 +85,12 @@ def test_create_strain(client, client_admin, species_id, person_id):
         "message": "Validation error",
     }
 
+    # test semantic_search
+    response = client.get(ROUTE, params={"semantic_search": "straaains"})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 3  # semantic search just reorders - it does not filter out
+
 
 def test_delete_one(db, client, client_admin, strain_id):
     model_id = strain_id

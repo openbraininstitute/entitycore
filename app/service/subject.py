@@ -22,6 +22,7 @@ from app.schemas.types import ListResponse
 def _load(query: sa.Select):
     return query.options(
         joinedload(Subject.species),
+        joinedload(Subject.strain),
         joinedload(Subject.created_by),
         joinedload(Subject.updated_by),
         raiseload("*"),

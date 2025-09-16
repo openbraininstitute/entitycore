@@ -1390,7 +1390,7 @@ class Derivation(Base):
     )
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
-    derivation_type: Mapped[DerivationType | None]
+    derivation_type: Mapped[DerivationType]
 
 
 class ScientificArtifactPublicationLink(Identifiable):
@@ -1648,7 +1648,7 @@ class EMCellMesh(ScientificArtifact):
         ForeignKey("em_dense_reconstruction_dataset.id"), index=True
     )
     release_version: Mapped[int]
-    dense_reconstruction_cell_id: Mapped[int]
+    dense_reconstruction_cell_id: Mapped[BIGINT]
     generation_method: Mapped[EMCellMeshGenerationMethod]
     level_of_detail: Mapped[int]
     generation_parameters: Mapped[JSON_DICT | None]

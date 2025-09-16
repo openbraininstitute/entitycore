@@ -12,7 +12,7 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
-from app.schemas.species import NestedSpeciesRead
+from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 from app.schemas.utils import make_update_schema
 
 
@@ -77,6 +77,7 @@ class SubjectBase(BaseModel):
 
 class SubjectCreate(AuthorizationOptionalPublicMixin, SubjectBase):
     species_id: uuid.UUID
+    strain_id: uuid.UUID | None = None
 
 
 SubjectUpdate = make_update_schema(SubjectCreate, "SubjectUpdate")  # pyright: ignore [reportInvalidTypeForm]
@@ -84,6 +85,7 @@ SubjectUpdate = make_update_schema(SubjectCreate, "SubjectUpdate")  # pyright: i
 
 class NestedSubjectRead(SubjectBase, IdentifiableMixin):
     species: NestedSpeciesRead
+    strain: NestedStrainRead | None
 
 
 class SubjectRead(

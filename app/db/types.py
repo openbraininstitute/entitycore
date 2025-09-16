@@ -50,7 +50,7 @@ class StainingType(StrEnum):
     luxol_fast_blue = auto()
     fluorescent_nissl = auto()
     fluorescent_dyes = auto()
-    fluorescent_orotein_expression = auto()
+    fluorescent_protein_expression = auto()
     immunohistochemistry = auto()
     other = auto()
 

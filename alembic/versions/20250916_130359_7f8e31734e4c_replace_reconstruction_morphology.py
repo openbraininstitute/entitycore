@@ -1,8 +1,8 @@
 """Replace reconstruction_morphology with cell_morphology.
 
 Revision ID: 7f8e31734e4c
-Revises: 06af11530839
-Create Date: 2025-09-15 10:03:59.497711
+Revises: 231ca37e0a32
+Create Date: 2025-09-16 13:03:59.497711
 
 """
 
@@ -20,7 +20,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "7f8e31734e4c"
-down_revision: Union[str, None] = "06af11530839"
+down_revision: Union[str, None] = "231ca37e0a32"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -275,7 +275,7 @@ def upgrade() -> None:
         "luxol_fast_blue",
         "fluorescent_nissl",
         "fluorescent_dyes",
-        "fluorescent_orotein_expression",
+        "fluorescent_protein_expression",
         "immunohistochemistry",
         "other",
         name="stainingtype",
@@ -315,7 +315,7 @@ def upgrade() -> None:
                 "luxol_fast_blue",
                 "fluorescent_nissl",
                 "fluorescent_dyes",
-                "fluorescent_orotein_expression",
+                "fluorescent_protein_expression",
                 "immunohistochemistry",
                 "other",
                 name="stainingtype",
@@ -822,7 +822,7 @@ def downgrade() -> None:
         "luxol_fast_blue",
         "fluorescent_nissl",
         "fluorescent_dyes",
-        "fluorescent_orotein_expression",
+        "fluorescent_protein_expression",
         "immunohistochemistry",
         "other",
         name="stainingtype",

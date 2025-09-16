@@ -29,8 +29,8 @@ class CommonReadMixin(
     """Common mixin for readable schemas."""
 
 
-class ProtocolMixin:
-    """Generic Protocol Mixin.
+class CellMorphologyProtocolMixin:
+    """Generic Cell Morphology Protocol Mixin.
 
     Attributes:
         protocol_document: URL link to protocol document or publication.
@@ -51,7 +51,7 @@ class CellMorphologyProtocolBase(BaseModel):
 
 class DigitalReconstructionCellMorphologyProtocolBase(
     CellMorphologyProtocolBase,
-    ProtocolMixin,
+    CellMorphologyProtocolMixin,
 ):
     """Experimental morphology method for capturing cell morphology data.
 
@@ -75,7 +75,7 @@ class DigitalReconstructionCellMorphologyProtocolBase(
 
 class ModifiedReconstructionCellMorphologyProtocolBase(
     CellMorphologyProtocolBase,
-    ProtocolMixin,
+    CellMorphologyProtocolMixin,
 ):
     generation_type: Literal[CellMorphologyGenerationType.modified_reconstruction]
     method_type: ModifiedMorphologyMethodType
@@ -83,7 +83,7 @@ class ModifiedReconstructionCellMorphologyProtocolBase(
 
 class ComputationallySynthesizedCellMorphologyProtocolBase(
     CellMorphologyProtocolBase,
-    ProtocolMixin,
+    CellMorphologyProtocolMixin,
 ):
     generation_type: Literal[CellMorphologyGenerationType.computationally_synthesized]
     method_type: str

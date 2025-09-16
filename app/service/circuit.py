@@ -41,6 +41,7 @@ def _load(query: sa.Select):
     return query.options(
         joinedload(Circuit.license),
         joinedload(Circuit.subject).joinedload(Subject.species),
+        joinedload(Circuit.subject).joinedload(Subject.strain),
         joinedload(Circuit.brain_region),
         joinedload(Circuit.created_by),
         joinedload(Circuit.updated_by),

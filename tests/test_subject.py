@@ -21,7 +21,20 @@ MODEL_CLASS = Subject
 
 
 @pytest.fixture
-def json_data(species_id):
+def json_data(species_id, strain_id):
+    return SubjectCreate(
+        sex="female",
+        name="my-subject",
+        description="my-description",
+        species_id=species_id,
+        strain_id=strain_id,
+        age_value=timedelta(days=14),
+        age_period="postnatal",
+    ).model_dump(mode="json")
+
+
+@pytest.fixture
+def json_data_partial(species_id):
     return SubjectCreate(
         sex="female",
         name="my-subject",
@@ -36,6 +49,8 @@ def _assert_read_response(data, json_data):
     assert data["description"] == json_data["description"]
     assert data["name"] == json_data["name"]
     assert data["species"]["id"] == json_data["species_id"]
+    if json_data["strain_id"] is not None:
+        assert data["strain"]["id"] == json_data["strain_id"]
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["age_value"] == 14.0 * 24.0 * 3600.0
     assert data["age_min"] is None
@@ -56,9 +71,13 @@ def model_id(create_id):
     return create_id()
 
 
-def test_create_one(client, json_data):
+def test_create_one(client, json_data, json_data_partial):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+
+    # Test create subject without strain
+    data = assert_request(client.post, url=ROUTE, json=json_data_partial).json()
+    _assert_read_response(data, json_data_partial)
 
 
 def test_update_one(client, model_id):
@@ -113,9 +132,14 @@ def test_update_one__public(client, json_data):
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
-def test_read_one(client, model_id, json_data):
+def test_read_one(client, model_id, json_data, json_data_partial):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
+
+    # Test read subject without strain
+    model_id = assert_request(client.post, url=ROUTE, json=json_data_partial).json()["id"]
+    data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
+    _assert_read_response(data, json_data_partial)
 
 
 def test_delete_one(db, client, client_admin, model_id):

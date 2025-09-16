@@ -31,7 +31,7 @@ def read_many(
     db: SessionDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
-    derivation_type: DerivationType,
+    derivation_type: DerivationType | None = None,  # TODO: make this non-optional in the future
     pagination_request: PaginationQuery,
     entity_filter: BasicEntityFilterDep,
 ) -> ListResponse[BasicEntityRead]:
@@ -40,15 +40,20 @@ def read_many(
     generated_alias = aliased(Entity, flat=True, name="generated_alias")
     entity_type = entity_route_to_type(entity_route)
     # always needed regardless of the filter, so they cannot go to filter_keys
-    apply_filter_query_operations = (
-        lambda q: q.join(Derivation, db_model_class.id == Derivation.used_id)
-        .join(generated_alias, Derivation.generated_id == generated_alias.id)
-        .where(
-            generated_alias.id == entity_id,
-            generated_alias.type == entity_type,
-            Derivation.derivation_type == derivation_type,
+
+    def apply_filter_query_operations(q):
+        q = (
+            q.join(Derivation, db_model_class.id == Derivation.used_id)
+            .join(generated_alias, Derivation.generated_id == generated_alias.id)
+            .where(
+                generated_alias.id == entity_id,
+                generated_alias.type == entity_type,
+            )
         )
-    )
+        if derivation_type is not None:
+            q = q.where(Derivation.derivation_type == derivation_type)
+        return q
+
     name_to_facet_query_params = filter_joins = None
     return router_read_many(
         db=db,

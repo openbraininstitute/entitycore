@@ -1,3 +1,4 @@
+from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy import inspect
@@ -115,6 +116,10 @@ entities = [
     for mapper in Base.registry.mappers
     if issubclass(mapper.class_, NameDescriptionVectorMixin)
     and "description_vector" in mapper.class_.__table__.c  # exclude children
+]
+
+entities += [
+    PGExtension(schema="public", signature="vector"),
 ]
 
 for model, field_name, target_model in [

@@ -12,6 +12,7 @@ from app.filters.common import SpeciesFilterDep
 from app.queries.factory import query_params_factory
 from app.schemas.species import SpeciesCreate, SpeciesRead
 from app.schemas.types import ListResponse
+from app.utils.embedding import generate_embedding
 
 
 def _load(query: sa.Select):
@@ -43,6 +44,8 @@ def create_one(
     species: SpeciesCreate,
     user_context: AdminContextDep,
 ) -> SpeciesRead:
+    embedding = generate_embedding(species.name)
+
     return app.queries.common.router_create_one(
         db=db,
         db_model_class=Species,
@@ -50,6 +53,7 @@ def create_one(
         json_model=species,
         response_schema_class=SpeciesRead,
         apply_operations=_load,
+        embedding=embedding,
     )
 
 
@@ -58,7 +62,13 @@ def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     species_filter: SpeciesFilterDep,
+    semantic_search: str | None = None,
 ) -> ListResponse[SpeciesRead]:
+    embedding = None
+
+    if semantic_search is not None:
+        embedding = generate_embedding(semantic_search)
+
     facet_keys = filter_keys = [
         "created_by",
         "updated_by",
@@ -84,4 +94,5 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=species_filter,
         filter_joins=filter_joins,
+        embedding=embedding,
     )

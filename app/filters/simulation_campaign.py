@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from app.db.model import SimulationCampaign
@@ -8,6 +9,9 @@ from app.filters.simulation import NestedSimulationFilter, NestedSimulationFilte
 
 
 class SimulationCampaignFilter(CustomFilter, EntityFilterMixin, NameFilterMixin):
+    entity_id: uuid.UUID | None = None
+    entity_id__in: list[uuid.UUID] | None = None
+
     simulation: Annotated[NestedSimulationFilter | None, NestedSimulationFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

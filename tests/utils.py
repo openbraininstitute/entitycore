@@ -788,6 +788,7 @@ def create_subject_ids(db, *, created_by_id, n):
                     taxonomy_id=f"{i}",
                     created_by_id=created_by_id,
                     updated_by_id=created_by_id,
+                    embedding=[0.1] * 1536,  # Mocked embedding
                 ),
             ).id
         )
@@ -800,6 +801,7 @@ def create_subject_ids(db, *, created_by_id, n):
                     species_id=species_id,
                     created_by_id=created_by_id,
                     updated_by_id=created_by_id,
+                    embedding=[0.1] * 1536,  # Mocked embedding
                 ),
             ).id
         )

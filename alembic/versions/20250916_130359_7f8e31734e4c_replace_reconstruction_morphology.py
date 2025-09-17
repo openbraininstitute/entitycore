@@ -1,7 +1,7 @@
 """Replace reconstruction_morphology with cell_morphology.
 
 Revision ID: 7f8e31734e4c
-Revises: 231ca37e0a32
+Revises: 7aa80d34dbdd
 Create Date: 2025-09-16 13:03:59.497711
 
 """
@@ -20,7 +20,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "7f8e31734e4c"
-down_revision: Union[str, None] = "231ca37e0a32"
+down_revision: Union[str, None] = "7aa80d34dbdd"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from app.db.model import ElectricalRecordingStimulus
+from app.db.types import ElectricalRecordingStimulusShape, ElectricalRecordingStimulusType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
@@ -13,8 +14,8 @@ from app.filters.common import (
 class ElectricalRecordingStimulusFilter(EntityFilterMixin, NameFilterMixin, CustomFilter):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
-    shape: str | None = None
-    injection_type: str | None = None
+    shape: ElectricalRecordingStimulusShape | None = None
+    injection_type: ElectricalRecordingStimulusType | None = None
 
     recording_id: uuid.UUID | None = None
     recording_id__in: list[uuid.UUID] | None = None

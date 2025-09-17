@@ -19,7 +19,7 @@
 - Versions/revisions of entities and files are not required (to be discussed).
 - Assets are identified by an id.
 - (not specific to assets) Entities must have a unique id that can be used in citations. Examples:
-    - `obi:reconstruction-morphology/27` (exposes the entity type and the internal numeric id)
+    - `obi:cell-morphology/27` (exposes the entity type and the internal numeric id)
     - `obi:27` (the id is globally unique even without the entity type)
 
 ## Asset management
@@ -82,12 +82,12 @@ Tables:
 - `asset`: table of assets
   - `id`: int (PK)  # for internal foreign keys
   - `uuid`: UUID  # for external access, not strictly needed
-  - `status`: AssetStatus  # (created, deleted...) 
+  - `status`: AssetStatus  # (created, deleted...)
   - `path`: str  # relative path to the file or directory, useful when downloading the asset
   - `fullpath`: str  # full path to the file or directory in the S3 bucket
   - `bucket_name`: str  # name of the S3 bucket (private or public)
   - `is_directory`: bool
-  - `content_type`: str 
+  - `content_type`: str
   - `size`: int8
   - `meta`: dict  # not used yet. can be useful?
   - `entity_id`: int (FK)  # the same asset cannot be shared across multiple entities

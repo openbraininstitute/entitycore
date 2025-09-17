@@ -1,4 +1,4 @@
-from app.db.model import Contribution, Organization, ReconstructionMorphology, Role
+from app.db.model import CellMorphology, Contribution, Organization, Role, Subject
 
 from .utils import (
     MISSING_ID,
@@ -6,13 +6,13 @@ from .utils import (
     add_db,
     assert_request,
     check_creation_fields,
+    create_cell_morphology_id,
     create_person,
-    create_reconstruction_morphology_id,
 )
 
 ROUTE = "/contribution"
 ADMIN_ROUTE = "/admin/contribution"
-ROUTE_MORPH = "/reconstruction-morphology"
+ROUTE_MORPH = "/cell-morphology"
 
 
 def test_create_contribution(
@@ -20,14 +20,12 @@ def test_create_contribution(
     person_id,
     organization_id,
     role_id,
-    species_id,
-    strain_id,
+    subject_id,
     brain_region_id,
 ):
-    reconstruction_morphology_id = create_reconstruction_morphology_id(
+    cell_morphology_id = create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -37,7 +35,7 @@ def test_create_contribution(
         json={
             "agent_id": str(person_id),
             "role_id": str(role_id),
-            "entity_id": str(reconstruction_morphology_id),
+            "entity_id": str(cell_morphology_id),
         },
     )
     assert response.status_code == 200
@@ -50,7 +48,7 @@ def test_create_contribution(
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
-    assert data["entity"]["id"] == reconstruction_morphology_id
+    assert data["entity"]["id"] == cell_morphology_id
     check_creation_fields(data)
 
     contribution_id = data["id"]
@@ -65,7 +63,7 @@ def test_create_contribution(
     assert data["role"]["id"] == str(role_id)
     assert data["role"]["name"] == "important role"
     assert data["role"]["role_id"] == "important role id"
-    assert data["entity"]["id"] == reconstruction_morphology_id
+    assert data["entity"]["id"] == cell_morphology_id
     assert data["id"] == contribution_id
     check_creation_fields(data)
 
@@ -74,7 +72,7 @@ def test_create_contribution(
         json={
             "agent_id": str(organization_id),
             "role_id": str(role_id),
-            "entity_id": str(reconstruction_morphology_id),
+            "entity_id": str(cell_morphology_id),
         },
     )
     assert response.status_code == 200
@@ -89,7 +87,7 @@ def test_create_contribution(
     assert response.status_code == 200
     assert len(response.json()["data"]) == 2
 
-    response = client.get(f"{ROUTE_MORPH}/{reconstruction_morphology_id}")
+    response = client.get(f"{ROUTE_MORPH}/{cell_morphology_id}")
     assert response.status_code == 200
     data = response.json()
     assert "contributions" in data
@@ -109,13 +107,10 @@ def test_create_contribution(
     ]
 
 
-def test_delete_one(
-    client, client_admin, role_id, person_id, brain_region_id, strain_id, species_id
-):
-    morphology_id = create_reconstruction_morphology_id(
+def test_delete_one(client, client_admin, role_id, person_id, brain_region_id, subject_id):
+    morphology_id = create_cell_morphology_id(
         client,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -173,15 +168,13 @@ def test_authorization(
     client_user_2,
     client_no_project,
     brain_region_id,
-    species_id,
-    strain_id,
+    subject_id,
     person_id,
     role_id,
 ):
-    inaccessible_entity_id = create_reconstruction_morphology_id(
+    inaccessible_entity_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
@@ -211,10 +204,9 @@ def test_authorization(
     response = client_user_1.get(f"{ROUTE}/{inaccessible_annotation_id}")
     assert response.status_code == 404
 
-    public_entity_id = create_reconstruction_morphology_id(
+    public_entity_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
@@ -262,11 +254,14 @@ def test_authorization(
 def test_contribution_facets(
     db,
     client,
-    species_id,
-    strain_id,
+    subject_id,
     brain_region_id,
     person_id,
 ):
+    subject = db.get(Subject, subject_id)
+    species_id = str(subject.species.id)
+    strain_id = str(subject.strain.id)
+
     person = create_person(
         db,
         given_name="GivenName",
@@ -322,15 +317,14 @@ def test_contribution_facets(
             [(person, person_role), (org, org_role)],
         ]
     ):
-        reconstruction_morphology_id = create_reconstruction_morphology_id(
+        cell_morphology_id = create_cell_morphology_id(
             client,
-            species_id=species_id,
-            strain_id=strain_id,
+            subject_id=subject_id,
             brain_region_id=brain_region_id,
             name=f"TestMorphologyName{i}",
             authorized_public=False,
         )
-        morphology_ids.append(reconstruction_morphology_id)
+        morphology_ids.append(cell_morphology_id)
         contribution_sizes.append(len(contributions))
         for agent, agent_role in contributions:
             add_db(
@@ -338,7 +332,7 @@ def test_contribution_facets(
                 Contribution(
                     agent_id=agent.id,
                     role_id=agent_role.id,
-                    entity_id=reconstruction_morphology_id,
+                    entity_id=cell_morphology_id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
                 ),
@@ -347,41 +341,8 @@ def test_contribution_facets(
     assert len(morphology_ids) == 12
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
-    agent = db.get(ReconstructionMorphology, morphology_ids[0]).created_by
-    """
-    response = client.get(ROUTE_MORPH, params={"with_facets": True, "page_size": 10})
-    assert response.status_code == 200
-    data = response.json()
-    facets = data["facets"]
-    assert facets == {
-        "brain_region": [
-            {"count": 12, "id": str(brain_region_id), "label": "RedRegion", "type": "brain_region"},
-        ],
-        "contribution": [
-            {"count": 6, "id": str(org.id), "label": "org_pref_label", "type": "organization"},
-            {"count": 9, "id": str(person.id), "label": "person_pref_label", "type": "person"},
-        ],
-        "mtype": [],
-        "species": [
-            {"count": 12, "id": str(species_id), "label": "Test Species", "type": "species"}
-        ],
-        "strain": [{"count": 12, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
-        "created_by": [
-            {"count": 12, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
-        ],
-        "updated_by": [
-            {"count": 12, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
-        ],
-    }
-    assert len(data["data"]) == 10
-    expected_indexes = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2]
+    agent = db.get(CellMorphology, morphology_ids[0]).created_by
 
-    expected_morphology_ids = [morphology_ids[i] for i in expected_indexes]
-    assert [item["id"] for item in data["data"]] == expected_morphology_ids
-
-    expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
-    assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
-    """
     response = client.get(
         f"{ROUTE_MORPH}",
         params={"with_facets": True, "contribution__pref_label": "person_pref_label"},
@@ -398,15 +359,18 @@ def test_contribution_facets(
         ],
         "mtype": [],
         "species": [
-            {"count": 9, "id": str(species_id), "label": "Test Species", "type": "species"}
+            {"count": 9, "id": str(species_id), "label": "Test Species", "type": "subject.species"}
         ],
-        "strain": [{"count": 9, "id": str(strain_id), "label": "Test Strain", "type": "strain"}],
+        "strain": [
+            {"count": 9, "id": str(strain_id), "label": "Test Strain", "type": "subject.strain"}
+        ],
         "created_by": [
-            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
+            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": str(agent.type)}
         ],
         "updated_by": [
-            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": agent.type}
+            {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": str(agent.type)}
         ],
+        "cell_morphology_protocol": [],
     }
     assert len(data["data"]) == 9
     expected_indexes = [11, 10, 6, 5, 4, 3, 2, 1, 0]

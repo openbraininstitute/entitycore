@@ -5,6 +5,7 @@ from fastapi_filter import with_prefix
 from app.db.model import MEModel, ValidationStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.cell_morphology import NestedCellMorphologyFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
@@ -20,7 +21,6 @@ from app.filters.common import (
     SpeciesFilterMixin,
 )
 from app.filters.emodel import NestedEModelFilter
-from app.filters.morphology import NestedMorphologyFilter
 
 
 class NestedMEModelFilter(
@@ -43,8 +43,8 @@ class NestedMEModelFilter(
         FilterDepends(with_prefix("me_model__strain", NestedStrainFilter)),
     ] = None
     morphology: Annotated[
-        NestedMorphologyFilter | None,
-        FilterDepends(with_prefix("me_model__morphology", NestedMorphologyFilter)),
+        NestedCellMorphologyFilter | None,
+        FilterDepends(with_prefix("me_model__morphology", NestedCellMorphologyFilter)),
     ] = None
     emodel: Annotated[
         NestedEModelFilter | None,
@@ -73,8 +73,8 @@ class MEModelFilter(
     CustomFilter,
 ):
     morphology: Annotated[
-        NestedMorphologyFilter | None,
-        FilterDepends(with_prefix("morphology", NestedMorphologyFilter)),
+        NestedCellMorphologyFilter | None,
+        FilterDepends(with_prefix("morphology", NestedCellMorphologyFilter)),
     ] = None
     emodel: Annotated[
         NestedEModelFilter | None,

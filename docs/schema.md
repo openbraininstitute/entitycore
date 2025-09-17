@@ -14,7 +14,7 @@ Objects exist independently and have states that can change over time.
      - AnalysisSoftwareSourceCode
      - EModel
      - MEModel
-     - ReconstructionMorphology
+     - CellMorphology
      - SingleCellExperimentalTrace
      - SingleNeuronSynaptome
      - SingleNeuronSimulation

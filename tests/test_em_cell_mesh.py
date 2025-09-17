@@ -131,7 +131,7 @@ def models(db, json_data, person_id):
     return db_models
 
 
-def test_filtering(client, models, brain_region_id, species_id):
+def test_filtering(client, models, brain_region_id, species_id, strain_id):
     params = {"em_dense_reconstruction_dataset__name__ilike": "microns"}
     data = assert_request(client.get, url=ROUTE, params=params).json()["data"]
     assert len(data) == len(models)
@@ -171,5 +171,12 @@ def test_filtering(client, models, brain_region_id, species_id):
                 "type": "subject.species",
             },
         ],
-        "strain": [],
+        "strain": [
+            {
+                "count": 1,
+                "id": strain_id,
+                "label": "Test Strain",
+                "type": "subject.strain",
+            },
+        ],
     }

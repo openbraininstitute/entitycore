@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
-from uuid import UUID
 
 import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector
@@ -43,6 +42,8 @@ from app.db.types import (
     AssetLabel,
     AssetStatus,
     AssociationType,
+    CellMorphologyGenerationType,
+    CellMorphologyProtocolDesign,
     CircuitBuildCategory,
     CircuitScale,
     ContentType,
@@ -61,10 +62,12 @@ from app.db.types import (
     PointLocation,
     PointLocationType,
     PublicationType,
+    RepairPipelineType,
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
     SlicingDirectionType,
+    StainingType,
     StorageType,
     StructuralDomain,
     ValidationStatus,
@@ -658,11 +661,11 @@ class EModel(
     seed: Mapped[int] = mapped_column(default=-1)
 
     exemplar_morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
+        ForeignKey(f"{EntityType.cell_morphology}.id")
     )
 
     exemplar_morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
+        "CellMorphology", foreign_keys=[exemplar_morphology_id], uselist=False
     )
 
     ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
@@ -687,13 +690,9 @@ class MEModel(
         default=ValidationStatus.created,
     )
 
-    morphology_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.reconstruction_morphology}.id")
-    )
+    morphology_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.cell_morphology}.id"))
 
-    morphology = relationship(
-        "ReconstructionMorphology", foreign_keys=[morphology_id], uselist=False
-    )
+    morphology = relationship("CellMorphology", foreign_keys=[morphology_id], uselist=False)
 
     emodel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.emodel}.id"))
 
@@ -709,10 +708,8 @@ class MEModel(
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class MeasurableEntity(Entity):
+class MeasurableEntityMixin:
     """Abstract class for measurable entities."""
-
-    __abstract__ = True
 
     @declared_attr
     @classmethod
@@ -725,18 +722,76 @@ class MeasurableEntity(Entity):
         )
 
 
-class ReconstructionMorphology(
-    MTypesMixin,
-    LicensedMixin,
-    LocationMixin,
-    SpeciesMixin,
-    NameDescriptionVectorMixin,
-    MeasurableEntity,
-):
-    __tablename__ = EntityType.reconstruction_morphology.value
-
+class CellMorphologyProtocol(Entity):
+    __tablename__ = EntityType.cell_morphology_protocol.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    protocol_document: Mapped[str | None]
+    protocol_design: Mapped[CellMorphologyProtocolDesign | None]
+    generation_type: Mapped[CellMorphologyGenerationType]
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "polymorphic_on": "generation_type",
+        "with_polymorphic": "*",  # pull in automatically all the attributes of the subclasses
+    }
+
+
+class DigitalReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
+    staining_type: Mapped[StainingType | None]
+    slicing_thickness: Mapped[float] = mapped_column(nullable=True)
+    slicing_direction: Mapped[SlicingDirectionType | None]
+    magnification: Mapped[float | None]
+    tissue_shrinkage: Mapped[float | None]
+    corrected_for_shrinkage: Mapped[bool | None]
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": CellMorphologyGenerationType.digital_reconstruction.value,
+    }
+
+
+class ModifiedReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
+    method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": CellMorphologyGenerationType.modified_reconstruction.value,
+    }
+
+
+class ComputationallySynthesizedCellMorphologyProtocol(CellMorphologyProtocol):
+    method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": CellMorphologyGenerationType.computationally_synthesized.value,
+    }
+
+
+class PlaceholderCellMorphologyProtocol(CellMorphologyProtocol):
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": CellMorphologyGenerationType.placeholder.value,
+    }
+
+
+class CellMorphology(
+    ScientificArtifact,
+    MTypesMixin,
+    NameDescriptionVectorMixin,
+    MeasurableEntityMixin,
+):
+    __tablename__ = EntityType.cell_morphology.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+
     location: Mapped[PointLocation | None]
+    repair_pipeline_state: Mapped[RepairPipelineType | None]
+    cell_morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("cell_morphology_protocol.id"), index=True
+    )
+
+    cell_morphology_protocol: Mapped["CellMorphologyProtocol"] = relationship(
+        "CellMorphologyProtocol",
+        foreign_keys=[cell_morphology_protocol_id],
+        uselist=False,
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1372,9 +1427,9 @@ class ScientificArtifactPublicationLink(Identifiable):
     """
 
     __tablename__ = AssociationType.scientific_artifact_publication_link.value
-    publication_id: Mapped[UUID] = mapped_column(ForeignKey("publication.id"), index=True)
+    publication_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("publication.id"), index=True)
     publication_type: Mapped[PublicationType]
-    scientific_artifact_id: Mapped[UUID] = mapped_column(
+    scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), index=True
     )
 
@@ -1411,8 +1466,8 @@ class ScientificArtifactExternalUrlLink(Identifiable):
     """
 
     __tablename__ = AssociationType.scientific_artifact_external_url_link.value
-    external_url_id: Mapped[UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
-    scientific_artifact_id: Mapped[UUID] = mapped_column(
+    external_url_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
+    scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("scientific_artifact.id"), index=True
     )
 

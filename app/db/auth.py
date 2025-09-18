@@ -20,9 +20,15 @@ def constrain_to_accessible_entities[Q: Query | Select](
     if not user_context:  # admin or global resource
         return query
 
-    # global resource without authorized_project_id, always accessible
-    if not (id_model_class := get_declaring_class(db_model_class, "authorized_project_id")):
-        return query
+    # if model or alias has an authorized_project_id use it as is
+    if hasattr(db_model_class, "authorized_project_id"):
+        id_model_class = db_model_class
+    # otherwise look up the hierarchy to check if there is one defined there
+    else:
+        id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
+        # global resource without authorized_project_id, always accessible
+        if not id_model_class:
+            return query
 
     # if user passes a specific project_id, use it to constrain resources
     if user_context.project_id:
@@ -33,7 +39,7 @@ def constrain_to_accessible_entities[Q: Query | Select](
             )
         )
 
-    # otherwise use project_ids from token to check if user has access
+    # otherwise use user_project_ids from token to check if user has access
     return query.where(
         or_(
             id_model_class.authorized_public == true(),

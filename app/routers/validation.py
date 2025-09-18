@@ -13,3 +13,4 @@ delete_one = router.delete("/{id_}")(app.service.validation.delete_one)
 update_one = router.patch("/{id_}")(app.service.validation.update_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.validation.admin_read_one)
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.validation.admin_update_one)

@@ -46,6 +46,11 @@ class IonChannelModelCreate(
 
 
 IonChannelModelUpdate = make_update_schema(IonChannelModelCreate, "IonChannelModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
+IonChannelModelAdminUpdate = make_update_schema(
+    IonChannelModelCreate,
+    "IonChannelModelAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class IonChannelModelRead(

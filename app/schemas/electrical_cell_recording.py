@@ -72,8 +72,15 @@ class ElectricalCellRecordingCreate(ElectricalCellRecordingBase, ScientificArtif
     pass
 
 
-ElectricalCellRecordingUpdate = make_update_schema(
-    ElectricalCellRecordingCreate, "ElectricalCellRecordingUpdate"
+ElectricalCellRecordingUserUpdate = make_update_schema(
+    ElectricalCellRecordingCreate,
+    "ElectricalCellRecordingUserUpdate",
+)  # pyright : ignore [reportInvalidTypeForm]
+
+ElectricalCellRecordingAdminUpdate = make_update_schema(
+    ElectricalCellRecordingCreate,
+    "ElectricalCellRecordingAdminUpdate",
+    excluded_fields=set(),
 )  # pyright : ignore [reportInvalidTypeForm]
 
 

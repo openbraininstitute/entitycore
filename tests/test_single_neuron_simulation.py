@@ -66,7 +66,7 @@ def single_neuron_simulation_id(client, memodel_id, brain_region_id):
     return data["id"]
 
 
-def test_update_one(client, brain_region_id, memodel_id):
+def test_update_one(client, client_admin, brain_region_id, memodel_id):
     # Create a simulation to update
     data = assert_request(
         client.post,
@@ -125,8 +125,44 @@ def test_update_one(client, brain_region_id, memodel_id):
     assert data["injection_location"] == ["dendrite[0]"]
     assert data["recording_location"] == ["dendrite[0]_0.5"]
 
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        client.patch,
+        url=f"{ADMIN_ROUTE}/{simulation_id}",
+        json={
+            "name": "admin_test_name",
+            "description": "admin_test_description",
+        },
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
 
-def test_update_one__public(client, brain_region_id, memodel_id):
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{simulation_id}",
+        json={
+            "name": "admin_test_name",
+            "description": "admin_test_description",
+        },
+    ).json()
+
+    assert data["name"] == "admin_test_name"
+    assert data["description"] == "admin_test_description"
+
+    # admin is treated as regular user for regular route (no authorized project ids)
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ROUTE}/{simulation_id}",
+        json={
+            "name": "admin_test",
+        },
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
+def test_update_one__public(client, client_admin, brain_region_id, memodel_id):
     # Create a simulation to update
     data = assert_request(
         client.post,
@@ -153,6 +189,18 @@ def test_update_one__public(client, brain_region_id, memodel_id):
         expected_status_code=404,
     ).json()
     assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admin has no such restrictions
+    data = assert_request(
+        client_admin.patch,
+        url=f"{ADMIN_ROUTE}/{simulation_id}",
+        json={
+            "authorized_public": False,
+            "name": "foo",
+        },
+    ).json()
+    assert data["authorized_public"] is False
+    assert data["name"] == "foo"
 
 
 def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_neuron_simulation_id):

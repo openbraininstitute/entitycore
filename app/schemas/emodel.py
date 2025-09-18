@@ -41,6 +41,11 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
 
 
 EModelUpdate = make_update_schema(EModelCreate, "EModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
+EModelAdminUpdate = make_update_schema(
+    EModelCreate,
+    "EModelAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class EModelRead(

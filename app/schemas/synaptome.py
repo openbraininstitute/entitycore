@@ -36,6 +36,12 @@ SingleNeuronSynaptomeUpdate = make_update_schema(
     SingleNeuronSynaptomeCreate, "SingleNeuronSynaptomeUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 
+SingleNeuronSynaptomeAdminUpdate = make_update_schema(
+    SingleNeuronSynaptomeCreate,
+    "SingleNeuronSynaptomeAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
 
 class NestedSynaptome(SingleNeuronSynaptomeBase, CreationMixin, IdentifiableMixin):
     pass

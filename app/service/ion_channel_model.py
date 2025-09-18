@@ -24,6 +24,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_model import (
+    IonChannelModelAdminUpdate,
     IonChannelModelCreate,
     IonChannelModelExpanded,
     IonChannelModelRead,
@@ -176,6 +177,22 @@ def update_one(
         db=db,
         db_model_class=IonChannelModel,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=IonChannelModelRead,
+        apply_operations=_load_minimal,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: IonChannelModelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> IonChannelModelRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelModel,
+        user_context=None,
         json_model=json_model,
         response_schema_class=IonChannelModelRead,
         apply_operations=_load_minimal,

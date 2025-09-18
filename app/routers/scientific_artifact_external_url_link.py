@@ -1,12 +1,19 @@
 from fastapi import APIRouter
 
 import app.service.scientific_artifact_external_url_link
+from app.routers.admin import router as admin_router
+
+ROUTE = "scientific-artifact-external-url-link"
 
 router = APIRouter(
-    prefix="/scientific-artifact-external-url-link",
-    tags=["scientific-artifact-external-url-link"],
+    prefix=f"/{ROUTE}",
+    tags=[ROUTE],
 )
 
 read_one = router.get("/{id_}")(app.service.scientific_artifact_external_url_link.read_one)
 read_many = router.get("")(app.service.scientific_artifact_external_url_link.read_many)
 create_one = router.post("")(app.service.scientific_artifact_external_url_link.create_one)
+
+admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
+    app.service.scientific_artifact_external_url_link.admin_read_one
+)

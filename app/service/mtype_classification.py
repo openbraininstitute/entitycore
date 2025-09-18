@@ -85,6 +85,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> MTypeClassificationRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=MTypeClassification,
+        authorized_project_id=None,
+        response_schema_class=MTypeClassificationRead,
+        apply_operations=_load,
+    )
+
+
 def read_many(
     user_context: UserContextDep,
     db: SessionDep,

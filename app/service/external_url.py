@@ -48,6 +48,17 @@ def read_one(
     )
 
 
+def admin_read_one(db: SessionDep, id_: uuid.UUID) -> ExternalUrlRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=ExternalUrl,
+        authorized_project_id=None,
+        response_schema_class=ExternalUrlRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: ExternalUrlCreate,

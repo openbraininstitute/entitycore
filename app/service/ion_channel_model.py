@@ -119,6 +119,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> IonChannelModelExpanded:
+    return router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelModel,
+        authorized_project_id=None,
+        response_schema_class=IonChannelModelExpanded,
+        apply_operations=_load_expanded,
+    )
+
+
 def icm_ion_names_exist(db: SessionDep, ion_channel_model: IonChannelModelCreate):
     """Verifies that all Ion names specified in IonChannelModelCreate exist in the Ion database."""
     ion_names = {ion.ion_name.lower() for ion in ion_channel_model.neuron_block.useion}

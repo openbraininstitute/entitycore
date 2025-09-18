@@ -113,8 +113,12 @@ def test_update_one__public(client, root_circuit_json_data):
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
-def test_read_one(client, circuit, circuit_json_data):
+def test_read_one(client, client_admin, circuit, circuit_json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{circuit.id}").json()
+    _assert_read_response(data, circuit_json_data)
+    assert len(data["contributions"]) == 1
+
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{circuit.id}").json()
     _assert_read_response(data, circuit_json_data)
     assert len(data["contributions"]) == 1
 

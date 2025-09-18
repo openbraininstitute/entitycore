@@ -78,6 +78,17 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> ConsortiumRead:
     )
 
 
+def admin_read_one(db: SessionDep, id_: uuid.UUID) -> ConsortiumRead:
+    return app.queries.common.router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=Consortium,
+        authorized_project_id=None,
+        response_schema_class=ConsortiumRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     json_model: ConsortiumCreate, db: SessionDep, user_context: AdminContextDep
 ) -> ConsortiumRead:

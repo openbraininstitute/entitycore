@@ -17,6 +17,4 @@ delete_one = router.delete("/{id_}")(app.service.calibration.delete_one)
 update_one = router.patch("/{id_}")(app.service.calibration.update_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.calibration.admin_read_one)
-admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
-    app.service.calibration.admin_update_one
-)
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.calibration.admin_update_one)

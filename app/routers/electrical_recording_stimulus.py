@@ -17,6 +17,7 @@ update_one = router.patch("/{id_}")(app.service.electrical_recording_stimulus.up
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.electrical_recording_stimulus.admin_read_one
+)
 admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
     app.service.electrical_recording_stimulus.admin_update_one
 )

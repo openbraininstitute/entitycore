@@ -39,7 +39,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    authorized_project_id: uuid.UUID | None,
+    user_context: UserContext | None,
     response_schema_class: type[T],
     apply_operations: ApplyOperations[I] | None,
 ) -> T:
@@ -49,7 +49,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
         id_: id of the entity to read.
         db: database session.
         db_model_class: database model class.
-        authorized_project_id: id of the authorized project.
+        user_context: the user's context
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
 
@@ -57,12 +57,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
         the model data as a Pydantic model.
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if authorized_project_id and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
-    ):
-        query = constrain_to_accessible_entities(
-            query, authorized_project_id, db_model_class=id_model_class
-        )
+    query = constrain_to_accessible_entities(query, user_context, db_model_class)
     if apply_operations:
         query = apply_operations(query)
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
@@ -235,7 +230,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     *,
     db: Session,
     db_model_class: type[I],
-    authorized_project_id: uuid.UUID | None,
+    user_context: UserContext | None,
     with_search: Search[I] | None,
     with_in_brain_region: InBrainRegionQuery | None,
     facets: WithFacets | None,
@@ -254,7 +249,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     Args:
         db: database session.
         db_model_class: database model class.
-        authorized_project_id: project id for filtering the resources.
+        user_context: the user's context
         with_search: search query (str).
         with_in_brain_region: enable family queries based on BrainRegion
         facets: facet query (bool).
@@ -274,12 +269,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         the list of model data, pagination, and facets as a Pydantic model.
     """
     filter_query = sa.select(db_model_class)
-    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
-        filter_query = constrain_to_accessible_entities(
-            filter_query,
-            project_id=authorized_project_id,
-            db_model_class=id_model_class,
-        )
+    filter_query = constrain_to_accessible_entities(filter_query, user_context, db_model_class)
 
     if apply_filter_query_operations:
         filter_query = apply_filter_query_operations(filter_query)
@@ -387,7 +377,7 @@ def router_delete_one[T: BaseModel, I: Identifiable](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    authorized_project_id: uuid.UUID | None,
+    user_context: UserContext | None,
 ) -> dict:
     """Delete a model from the database.
 
@@ -395,15 +385,10 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         id_: id of the entity to read.
         db: database session.
         db_model_class: database model class.
-        authorized_project_id: project id for filtering the resources.
+        user_context: the user's context
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if authorized_project_id and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
-    ):
-        query = constrain_to_accessible_entities(
-            query, authorized_project_id, db_model_class=id_model_class
-        )
+    query = constrain_to_accessible_entities(query, user_context, db_model_class)
 
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         obj = db.execute(query).scalars().one()
@@ -427,7 +412,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext | UserContextWithProjectId,
+    user_context: UserContext,
     json_model: ActivityUpdate,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
@@ -435,7 +420,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
         query = constrain_to_accessible_entities(
-            query, user_context.project_id, db_model_class=id_model_class
+            query, user_context=user_context, db_model_class=id_model_class
         )
     if apply_operations:
         query = apply_operations(query)

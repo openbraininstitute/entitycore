@@ -14,7 +14,7 @@ from .utils import (
     delete_entity_contributions,
 )
 
-ROUTE = "circuit"
+ROUTE = "/circuit"
 ADMIN_ROUTE = "/admin/circuit"
 
 

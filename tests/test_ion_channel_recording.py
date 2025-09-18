@@ -178,7 +178,7 @@ def test_read_one(
 def _delete_stimuli(client_admin, trace_id):
     data = assert_request(
         client_admin.get,
-        url=f"{ROUTE}/{trace_id}",
+        url=f"{ADMIN_ROUTE}/{trace_id}",
     ).json()
 
     for stimulus in data["stimuli"]:

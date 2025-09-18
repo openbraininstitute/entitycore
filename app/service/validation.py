@@ -52,7 +52,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=Validation,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=ValidationRead,
         apply_operations=_load,
     )
@@ -66,7 +66,7 @@ def admin_read_one(
         db=db,
         id_=id_,
         db_model_class=Validation,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ValidationRead,
         apply_operations=_load,
     )
@@ -137,13 +137,13 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ValidationRead,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
     )
 
 
 def delete_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
 ) -> ValidationRead:
@@ -151,7 +151,7 @@ def delete_one(
         id_=id_,
         db=db,
         db_model_class=Validation,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=ValidationRead,
         apply_operations=_load,
     )
@@ -159,7 +159,7 @@ def delete_one(
         id_=id_,
         db=db,
         db_model_class=Validation,
-        authorized_project_id=None,  # already validated
+        user_context=None,  # already validated
     )
     return one
 
@@ -168,7 +168,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: ValidationUpdate,  # pyright: ignore [reportInvalidTypeForm]
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
 ) -> ValidationRead:
     return router_update_activity_one(
         db=db,

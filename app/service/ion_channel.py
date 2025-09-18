@@ -42,7 +42,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=IonChannel,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=IonChannelRead,
         apply_operations=_load,
     )
@@ -108,6 +108,6 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=IonChannelRead,
-        authorized_project_id=None,
+        user_context=None,
         filter_joins=filter_joins,
     )

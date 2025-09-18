@@ -61,7 +61,7 @@ def get_entity_assets(
     return router_read_many(
         db=repos.db,
         db_model_class=db_model_class,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         with_search=None,
         with_in_brain_region=None,
         facets=None,

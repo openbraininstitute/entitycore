@@ -17,7 +17,7 @@ def read_many(
     return router_read_many(
         db=db,
         db_model_class=MTypeClass,
-        authorized_project_id=None,
+        user_context=None,
         with_search=None,
         with_in_brain_region=None,
         facets=None,
@@ -36,7 +36,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> MTypeClassRead:
         id_=id_,
         db=db,
         db_model_class=MTypeClass,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=MTypeClassRead,
         apply_operations=None,
     )

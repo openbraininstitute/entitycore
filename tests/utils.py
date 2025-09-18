@@ -704,7 +704,7 @@ def count_db_class(db, db_class):
 def delete_entity_contributions(client_admin, entity_route, entity_id):
     data = assert_request(
         client_admin.get,
-        url=f"{entity_route}/{entity_id}",
+        url=f"/admin{entity_route}/{entity_id}",
     ).json()
 
     for contribution in data["contributions"]:
@@ -718,7 +718,7 @@ def delete_entity_contributions(client_admin, entity_route, entity_id):
 def delete_entity_assets(client_admin, entity_route, entity_id):
     data = assert_request(
         client_admin.get,
-        url=f"{entity_route}/{entity_id}",
+        url=f"/admin{entity_route}/{entity_id}",
     ).json()
 
     for json_asset in data["assets"]:

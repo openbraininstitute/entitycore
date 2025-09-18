@@ -89,7 +89,7 @@ def read_one(
         id_=id_,
         db=db,
         db_model_class=ReconstructionMorphology,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=response_schema_class,
         apply_operations=apply_operations,
     )
@@ -103,7 +103,7 @@ def admin_read_one(
         id_=id_,
         db=db,
         db_model_class=ReconstructionMorphology,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ReconstructionMorphologyRead,
         apply_operations=_load_from_db,
     )
@@ -185,7 +185,7 @@ def read_many(
     return router_read_many(
         db=db,
         db_model_class=ReconstructionMorphology,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         with_search=search,
         with_in_brain_region=in_brain_region,
         facets=with_facets,

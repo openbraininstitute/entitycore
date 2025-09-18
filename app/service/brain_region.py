@@ -28,7 +28,7 @@ def read_many(
     return app.queries.common.router_read_many(
         db=db,
         db_model_class=BrainRegion,
-        authorized_project_id=None,
+        user_context=None,
         with_search=None,
         with_in_brain_region=None,
         facets=None,

@@ -31,6 +31,7 @@ class AssetRepository(BaseRepository):
                 Entity.type == entity_type.name,
             )
         )
+        # See: https://github.com/openbraininstitute/entitycore/issues/358
         if not include_deleted:
             query = query.where(Asset.status != AssetStatus.DELETED)
 

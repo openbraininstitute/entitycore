@@ -1,8 +1,11 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, create_model
 
+type NotSet = Literal["<NOT_SET>"]
+
 NOT_SET = "<NOT_SET>"
+
 EXCLUDED_FIELDS = {
     "authorized_public",
 }

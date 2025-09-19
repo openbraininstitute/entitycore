@@ -75,7 +75,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=ScientificArtifactPublicationLink,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ScientificArtifactPublicationLinkRead,
         apply_operations=_load,
     )
@@ -91,7 +91,7 @@ def admin_read_one(
         db=db,
         id_=id_,
         db_model_class=ScientificArtifactPublicationLink,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ScientificArtifactPublicationLinkRead,
         apply_operations=_load,
     )
@@ -171,10 +171,9 @@ def read_many(
             updated_by_alias,
             ScientificArtifactPublicationLink.updated_by_id == updated_by_alias.id,
         ),
-        project_id=user_context.project_id,
+        user_context=user_context,
         db_model_class=scientific_artifact_alias,
     )
-
     load_with_aliases = lambda q: _load_with_eager(q, aliases)
 
     return router_read_many(
@@ -190,6 +189,6 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ScientificArtifactPublicationLinkRead,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
     )

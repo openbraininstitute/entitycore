@@ -130,10 +130,10 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
+def test_authorization(clients, json_data):
     # using root_circuit_json_data to avoid the implication of creating two circuits
     # because of the root_circuit_id in circuit_json_data which messes up the check assumptions
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+    check_authorization(ROUTE, clients, json_data)
 
 
 def test_pagination(client, create_id):

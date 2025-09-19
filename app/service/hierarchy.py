@@ -11,12 +11,13 @@ from app.db.types import DerivationType
 from app.dependencies.auth import UserContextDep
 from app.dependencies.db import SessionDep
 from app.logger import L
+from app.schemas.auth import UserContext
 from app.schemas.hierarchy import HierarchyNode, HierarchyTree
 
 
 def _load_nodes(
     db: Session,
-    project_id: uuid.UUID | None,
+    user_context: UserContext,
     entity_class: type[Entity],
     derivation_type: DerivationType,
 ) -> dict[uuid.UUID, HierarchyNode]:
@@ -40,7 +41,7 @@ def _load_nodes(
         .order_by(*order_by)
     )
     query_roots = constrain_to_accessible_entities(
-        query_roots, project_id=project_id, db_model_class=root
+        query_roots, user_context=user_context, db_model_class=root
     )
     query_children = (
         sa.select(
@@ -57,10 +58,10 @@ def _load_nodes(
         .order_by(*order_by)
     )
     query_children = constrain_to_accessible_entities(
-        query_children, project_id=project_id, db_model_class=parent
+        query_children, user_context=user_context, db_model_class=parent
     )
     query_children = constrain_to_accessible_entities(
-        query_children, project_id=project_id, db_model_class=child
+        query_children, user_context=user_context, db_model_class=child
     )
     query = query_roots.union_all(query_children)
 
@@ -105,7 +106,7 @@ def read_circuit_hierarchy(
     """
     all_nodes = _load_nodes(
         db,
-        project_id=user_context.project_id,
+        user_context=user_context,
         entity_class=Circuit,
         derivation_type=derivation_type,
     )

@@ -42,7 +42,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=Publication,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=PublicationRead,
         apply_operations=_load,
     )
@@ -53,7 +53,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> PublicationRead:
         db=db,
         id_=id_,
         db_model_class=Publication,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=PublicationRead,
         apply_operations=_load,
     )
@@ -118,6 +118,6 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=PublicationRead,
-        authorized_project_id=None,
+        user_context=None,
         filter_joins=filter_joins,
     )

@@ -77,7 +77,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=ScientificArtifactExternalUrlLink,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ScientificArtifactExternalUrlLinkRead,
         apply_operations=_load,
     )
@@ -93,7 +93,7 @@ def admin_read_one(
         db=db,
         id_=id_,
         db_model_class=ScientificArtifactExternalUrlLink,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ScientificArtifactExternalUrlLinkRead,
         apply_operations=_load,
     )
@@ -173,7 +173,7 @@ def read_many(
             updated_by_alias,
             ScientificArtifactExternalUrlLink.updated_by_id == updated_by_alias.id,
         ),
-        project_id=user_context.project_id,
+        user_context=user_context,
         db_model_class=scientific_artifact_alias,
     )
 
@@ -192,6 +192,6 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ScientificArtifactExternalUrlLinkRead,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
     )

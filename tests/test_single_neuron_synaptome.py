@@ -211,8 +211,8 @@ def test_missing(client, route_id, expected_status_code):
     )
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+def test_authorization(clients, json_data):
+    check_authorization(ROUTE, clients, json_data)
 
 
 def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, person_id):

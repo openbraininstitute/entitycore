@@ -52,7 +52,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=ElectricalRecordingStimulus,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=ElectricalRecordingStimulusRead,
         apply_operations=_load,
     )
@@ -66,7 +66,7 @@ def admin_read_one(
         db=db,
         id_=id_,
         db_model_class=ElectricalRecordingStimulus,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ElectricalRecordingStimulusRead,
         apply_operations=_load,
     )
@@ -149,6 +149,6 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ElectricalRecordingStimulusRead,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
     )

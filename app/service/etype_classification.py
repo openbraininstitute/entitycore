@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from fastapi import HTTPException
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.auth import constrain_to_accessible_entities
+from app.db.auth import constrain_entity_query_to_project
 from app.db.model import (
     Agent,
     Entity,
@@ -45,9 +45,9 @@ def create_one(
     json_model: ETypeClassificationCreate,
     user_context: UserContextWithProjectIdDep,
 ) -> ETypeClassificationRead:
-    stmt = constrain_to_accessible_entities(
+    stmt = constrain_entity_query_to_project(
         sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.entity_id),
-        user_context.project_id,
+        project_id=user_context.project_id,
     )
     if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")
@@ -78,7 +78,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=ETypeClassification,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=ETypeClassificationRead,
         apply_operations=_load,
     )
@@ -92,7 +92,7 @@ def admin_read_one(
         db=db,
         id_=id_,
         db_model_class=ETypeClassification,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ETypeClassificationRead,
         apply_operations=_load,
     )
@@ -140,7 +140,7 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ETypeClassificationRead,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
         with_in_brain_region=None,
     )

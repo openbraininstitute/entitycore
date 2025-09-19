@@ -511,9 +511,7 @@ def test_query_reconstruction_morphology_species_join(db, client, brain_region_i
 
 
 def test_authorization(
-    client_user_1,
-    client_user_2,
-    client_no_project,
+    clients,
     species_id,
     strain_id,
     license_id,
@@ -529,7 +527,7 @@ def test_authorization(
         "species_id": species_id,
         "strain_id": strain_id,
     }
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+    check_authorization(ROUTE, clients, json_data)
 
 
 def test_pagination(db, client, brain_region_id, person_id):

@@ -178,7 +178,7 @@ def test_read_one(
 def _delete_stimuli(client_admin, trace_id):
     data = assert_request(
         client_admin.get,
-        url=f"{ROUTE}/{trace_id}",
+        url=f"{ADMIN_ROUTE}/{trace_id}",
     ).json()
 
     for stimulus in data["stimuli"]:
@@ -223,12 +223,8 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_authorization(
-    client_user_1, client_user_2, client_no_project, ion_channel_recording_json_data
-):
-    check_authorization(
-        ROUTE, client_user_1, client_user_2, client_no_project, ion_channel_recording_json_data
-    )
+def test_authorization(clients, ion_channel_recording_json_data):
+    check_authorization(ROUTE, clients, ion_channel_recording_json_data)
 
 
 def test_pagination(client, ion_channel_recording_json_data):

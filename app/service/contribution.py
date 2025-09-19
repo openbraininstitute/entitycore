@@ -61,7 +61,7 @@ def read_many(
         aliases=aliases,
     )
 
-    filter_query = lambda q: constrain_to_accessible_entities(_load(q), user_context.project_id)
+    filter_query = lambda q: constrain_to_accessible_entities(_load(q), user_context)
 
     return app.queries.common.router_read_many(
         db=db,
@@ -76,7 +76,7 @@ def read_many(
         response_schema_class=ContributionRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
     )
 
@@ -90,10 +90,10 @@ def read_one(
         id_=id_,
         db=db,
         db_model_class=Contribution,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ContributionRead,
         apply_operations=lambda q: constrain_to_accessible_entities(
-            _load(q), user_context.project_id
+            _load(q), user_context=user_context
         ),
     )
 
@@ -106,7 +106,7 @@ def admin_read_one(
         id_=id_,
         db=db,
         db_model_class=Contribution,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ContributionRead,
         apply_operations=_load,
     )

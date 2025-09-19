@@ -48,7 +48,7 @@ def read_many(
     return app.queries.common.router_read_many(
         db=db,
         db_model_class=Strain,
-        authorized_project_id=None,
+        user_context=None,
         with_search=None,
         with_in_brain_region=None,
         facets=None,
@@ -69,7 +69,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
         id_=id_,
         db=db,
         db_model_class=Strain,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=StrainRead,
         apply_operations=_load,
     )

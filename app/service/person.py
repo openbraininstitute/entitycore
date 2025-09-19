@@ -57,7 +57,7 @@ def read_many(
     return router_read_many(
         db=db,
         db_model_class=Person,
-        authorized_project_id=None,
+        user_context=None,
         with_search=None,
         with_in_brain_region=None,
         facets=None,
@@ -77,21 +77,14 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> PersonRead:
         id_=id_,
         db=db,
         db_model_class=Person,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=PersonRead,
         apply_operations=_load,
     )
 
 
-def admin_read_one(db: SessionDep, id_: uuid.UUID) -> PersonRead:
-    return router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=Person,
-        authorized_project_id=None,
-        response_schema_class=PersonRead,
-        apply_operations=_load,
-    )
+# global resource
+admin_read_one = read_one
 
 
 def create_one(person: PersonCreate, db: SessionDep, user_context: AdminContextDep) -> PersonRead:

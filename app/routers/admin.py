@@ -32,7 +32,7 @@ def delete_one(
         id_=id_,
         db=db,
         db_model_class=RESOURCE_TYPE_TO_CLASS[resource_type],
-        authorized_project_id=None,
+        user_context=None,
     )
 
 

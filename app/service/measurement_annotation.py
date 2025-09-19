@@ -54,7 +54,7 @@ def read_many(
 ) -> ListResponse[MeasurementAnnotationRead]:
     apply_filter_query_operations = lambda q: constrain_to_accessible_entities(
         q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
-        project_id=user_context.project_id,
+        user_context=user_context,
     )
     facet_keys = []
     filter_keys = [
@@ -70,7 +70,7 @@ def read_many(
     return router_read_many(
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # validated with apply_filter_query_operations
+        user_context=None,  # validated with apply_filter_query_operations
         with_search=None,
         with_in_brain_region=in_brain_region,
         facets=None,
@@ -92,14 +92,14 @@ def read_one(
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_to_accessible_entities(q, project_id=user_context.project_id)
+        q = constrain_to_accessible_entities(q, user_context=user_context)
         return _load_from_db(q=q)
 
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # validated with apply_operations
+        user_context=None,  # validated with apply_operations
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
     )
@@ -113,7 +113,7 @@ def admin_read_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=_load_from_db,
     )
@@ -160,7 +160,7 @@ def delete_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # validated with apply_operations
+        user_context=None,  # validated with apply_operations
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
     )
@@ -168,6 +168,6 @@ def delete_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # already validated
+        user_context=None,  # already validated
     )
     return one

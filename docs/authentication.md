@@ -13,13 +13,20 @@
   - **Write** endpoints require the user to be a member of the [service admin group](#service-admin-group).
 - Endpoints for [project resources](#endpoints-for-project-resources):
   - **Read** endpoints do not require `virtual-lab-id` or `project-id`, but:
-    - If neither is provided, only public resources are returned.
-    - If both are provided, both public and private resources are returned.
+    - If neither is provided, the project ids from the user token are used and all resources that match those ids plus public resources are returned.
+    - If both are provided, both public and private resources are returned, constrained within that project.
   - **Write** endpoints require both `virtual-lab-id` and `project-id`.
+  - **Update** endpoints do not require `virtual-lab-id` or `project-id`, but:
+    - If neither is provided, the update will be authorized if the `authorized_project_id` of the resource is in the `user_project_ids` extracted from the access token.
+    - If both are provided the update operation will only be authorized if in that specific project.
+  - **Delete** endpoints do not require `virtual-lab-id` or `project-id`, but:
+    - If neither is provided, the delete will be authorized if the `authorized_project_id` of the resource is in the `user_project_ids` extracted from the access token.
+    - If both are provided the delete operation will only be authorized if in that specific project.
+    
 
 ## Service Admin Group
 
-To call endpoints that modify global resources, the user must belong to a special Keycloak group: `/service/entitycore/admin`.
+To call endpoints that modify global resources, the user must belong to a special Keycloak group: `/service/entitycore/admin`. read/write/update/delete operations for the service admin group are not constrained by project ids.
 
 ## Caching
 
@@ -34,6 +41,7 @@ Auditing is not yet implemented but can be added later using information retriev
 
 - `/brain-region`
 - `/cell-composition`
+- `/consortium`
 - `/license`
 - `/mtype`
 - `/organization`

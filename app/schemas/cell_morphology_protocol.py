@@ -1,6 +1,6 @@
-from typing import Annotated, Literal
+from typing import Annotated, Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from app.db.types import (
     CellMorphologyGenerationType,
@@ -213,3 +213,14 @@ type NestedCellMorphologyProtocolRead = Annotated[
     | NestedPlaceholderCellMorphologyProtocolRead,
     Field(discriminator="generation_type"),
 ]
+
+
+class CellMorphologyProtocolReadAdapter(BaseModel):
+    """Polymorphic wrapper for CellMorphologyProtocolRead."""
+
+    _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolRead)
+
+    @classmethod
+    def model_validate(cls, obj: Any, *args, **kwargs) -> CellMorphologyProtocolRead:  # type: ignore[override]
+        """Return the correct instance of the protocol."""
+        return cls._adapter.validate_python(obj, *args, **kwargs)

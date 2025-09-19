@@ -1,10 +1,8 @@
 import uuid
-from collections.abc import Callable
-from typing import Any
 
 import sqlalchemy as sa
 from fastapi import HTTPException
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.auth import (
@@ -29,22 +27,11 @@ from app.errors import (
 )
 from app.filters.base import Aliases, CustomFilter
 from app.queries.filter import filter_from_db
-from app.queries.types import ApplyOperations
+from app.queries.types import ApplyOperations, SupportsModelValidate
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
 from app.schemas.types import ListResponse, PaginationResponse
 from app.utils.uuid import create_uuid
-
-
-def _get_model_validate_func[T: BaseModel](
-    response_schema_class: type[T] | TypeAdapter[T],
-) -> Callable[[Any], T]:
-    """Return the proper method needed to validate and load a db row."""
-    for name in "model_validate", "validate_python":
-        if model_validate := getattr(response_schema_class, name, None):
-            return model_validate
-    msg = f"Validator not found in {response_schema_class}"
-    raise RuntimeError(msg)
 
 
 def router_read_one[T: BaseModel, I: Identifiable](
@@ -53,7 +40,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     db: Session,
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
-    response_schema_class: type[T] | TypeAdapter[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations[I] | None,
 ) -> T:
     """Read a model from the database.
@@ -63,7 +50,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
         db: database session.
         db_model_class: database model class.
         authorized_project_id: id of the authorized project.
-        response_schema_class: Pydantic schema class or TypeAdapter for the returned data.
+        response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
 
     Returns:
@@ -80,8 +67,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
         query = apply_operations(query)
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         row = db.execute(query).unique().scalar_one()
-    model_validate = _get_model_validate_func(response_schema_class)
-    return model_validate(row)
+    return response_schema_class.model_validate(row)
 
 
 def router_create_activity_one[T: BaseModel, I: Activity](
@@ -90,7 +76,7 @@ def router_create_activity_one[T: BaseModel, I: Activity](
     db_model_class: type[I],
     user_context: UserContext | UserContextWithProjectId,
     json_model: ActivityCreate,
-    response_schema_class: type[T] | TypeAdapter[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
 ):
     created_by_id = updated_by_id = project_id = None
@@ -152,8 +138,7 @@ def router_create_activity_one[T: BaseModel, I: Activity](
         db_model_instance = db.execute(q).unique().scalar_one()
     else:
         db.refresh(db_model_instance)
-    model_validate = _get_model_validate_func(response_schema_class)
-    return model_validate(db_model_instance)
+    return response_schema_class.model_validate(db_model_instance)
 
 
 def router_create_one[T: BaseModel, I: Identifiable](
@@ -162,7 +147,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     db_model_class: type[I],
     user_context: UserContext | UserContextWithProjectId,
     json_model: BaseModel,
-    response_schema_class: type[T] | TypeAdapter[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
     embedding: list[float] | None = None,
 ) -> T:
@@ -173,7 +158,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
         db_model_class: database model class.
         user_context: the user context with project id and user information.
         json_model: instance of the Pydantic model.
-        response_schema_class: Pydantic schema class or TypeAdapter for the returned data.
+        response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
         embedding: optional embedding vector to attach to the model.
 
@@ -219,8 +204,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
         db_model_instance = db.execute(q).unique().scalar_one()
     else:
         db.refresh(db_model_instance)
-    model_validate = _get_model_validate_func(response_schema_class)
-    return model_validate(db_model_instance)
+    return response_schema_class.model_validate(db_model_instance)
 
 
 def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
@@ -259,7 +243,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     apply_filter_query_operations: ApplyOperations[I] | None,
     apply_data_query_operations: ApplyOperations[I] | None,
     pagination_request: PaginationQuery,
-    response_schema_class: type[T] | TypeAdapter[T],
+    response_schema_class: SupportsModelValidate[T],
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
     filter_model: CustomFilter[I],
     filter_joins: dict[str, ApplyOperations] | None = None,
@@ -278,7 +262,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         apply_filter_query_operations: optional callable to transform the filter query.
         apply_data_query_operations: optional callable to transform the data query.
         pagination_request: pagination.
-        response_schema_class: Pydantic schema class or TypeAdapter for the returned data.
+        response_schema_class: Pydantic schema class for the returned data.
         name_to_facet_query_params: dict of FacetQueryParams for building the facets.
         filter_model: instance of CustomFilter for filtering and sorting data.
         filter_joins: mapping of filter names to join functions. The keys should match both:
@@ -354,9 +338,8 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         if facets and name_to_facet_query_params
         else None
     )
-    model_validate = _get_model_validate_func(response_schema_class)
     return ListResponse[T](
-        data=[model_validate(row) for row in data],
+        data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
             page_size=pagination_request.page_size,
@@ -373,7 +356,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     db_model_class: type[I],
     user_context: UserContext,
     json_model: BaseModel,
-    response_schema_class: type[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
 ):
     query = (
@@ -446,7 +429,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     db_model_class: type[I],
     user_context: UserContext | UserContextWithProjectId,
     json_model: ActivityUpdate,
-    response_schema_class: type[T] | TypeAdapter[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
 ) -> T:
     query = sa.select(db_model_class).where(db_model_class.id == id_)
@@ -495,5 +478,4 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     db.flush()
     db.refresh(obj)
 
-    model_validate = _get_model_validate_func(response_schema_class)
-    return model_validate(obj)
+    return response_schema_class.model_validate(obj)

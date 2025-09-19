@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Annotated
 
 import sqlalchemy as sa
 from fastapi import Body
-from pydantic import TypeAdapter
 from sqlalchemy.orm import (
     aliased,
     joinedload,
@@ -24,13 +23,12 @@ from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology_protocol import (
     CellMorphologyProtocolCreate,
     CellMorphologyProtocolRead,
+    CellMorphologyProtocolReadAdapter,
 )
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
-
-RESPONSE_SCHEMA_ADAPTER = TypeAdapter(CellMorphologyProtocolRead)
 
 
 def _load_from_db(query: sa.Select) -> sa.Select:
@@ -52,7 +50,7 @@ def read_one(
         db=db,
         db_model_class=CellMorphologyProtocol,
         authorized_project_id=user_context.project_id,
-        response_schema_class=RESPONSE_SCHEMA_ADAPTER,
+        response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
     )
 
@@ -68,7 +66,7 @@ def create_one(
         user_context=user_context,
         db_model_class=db_model_class,
         json_model=json_model,
-        response_schema_class=RESPONSE_SCHEMA_ADAPTER,
+        response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
     )
 
@@ -116,7 +114,7 @@ def read_many(
         apply_filter_query_operations=None,
         apply_data_query_operations=_load_from_db,
         pagination_request=pagination_request,
-        response_schema_class=RESPONSE_SCHEMA_ADAPTER,
+        response_schema_class=CellMorphologyProtocolReadAdapter,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         filter_joins=filter_joins,

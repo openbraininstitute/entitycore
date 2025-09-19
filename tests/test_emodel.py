@@ -11,6 +11,7 @@ from .conftest import CreateIds, EModelIds
 from .utils import (
     TEST_DATA_DIR,
     assert_request,
+    check_entity_update_one,
     count_db_class,
     create_reconstruction_morphology_id,
     delete_entity_classifications,
@@ -59,57 +60,23 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
 
 
-def test_update_one(client, client_admin, emodel_id):
-    new_name = "my_new_name"
-    new_description = "my_new_description"
+@pytest.fixture
+def public_json_data(json_data, public_morphology_id):
+    return json_data | {"exemplar_morphology_id": str(public_morphology_id)}
 
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{emodel_id}",
-        json={
-            "name": new_name,
-            "description": new_description,
+
+def test_update_one(clients, public_json_data):
+    check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=public_json_data,
+        clients=clients,
+        patch_payload={
+            "name": "name",
+            "description": "description",
         },
-    ).json()
-
-    assert data["name"] == new_name
-    assert data["description"] == new_description
-
-    # only admin client can hit admin endpoint
-    data = assert_request(
-        client.patch,
-        url=f"{ADMIN_ROUTE}/{emodel_id}",
-        json={
-            "name": "admin_test_name",
-            "description": "admin_test_description",
-        },
-        expected_status_code=403,
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ADMIN_ROUTE}/{emodel_id}",
-        json={
-            "name": "admin_test_name",
-            "description": "admin_test_description",
-        },
-    ).json()
-
-    assert data["name"] == "admin_test_name"
-    assert data["description"] == "admin_test_description"
-
-    # admin is treated as regular user for regular route (no authorized project ids)
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ROUTE}/{emodel_id}",
-        json={
-            "name": "admin_test",
-        },
-        expected_status_code=404,
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
+        optional_payload=None,
+    )
 
 
 def test_get_emodel(client: TestClient, emodel_id: str):

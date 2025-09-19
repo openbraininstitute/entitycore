@@ -113,6 +113,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> EMCellMeshRead:
+    return router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=EMCellMesh,
+        authorized_project_id=None,
+        response_schema_class=EMCellMeshRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
@@ -139,6 +153,22 @@ def update_one(
         db=db,
         db_model_class=EMCellMesh,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=EMCellMeshRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: EMCellMeshUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> EMCellMeshRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=EMCellMesh,
+        user_context=None,
         json_model=json_model,
         response_schema_class=EMCellMeshRead,
         apply_operations=_load,

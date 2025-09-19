@@ -23,6 +23,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    check_entity_update_one,
     check_missing,
     count_db_class,
     create_brain_region,
@@ -56,131 +57,20 @@ def test_create_one(
     assert data["etypes"] == []
 
 
-def test_update_one(client, client_admin, trace_id_with_assets):
-    new_name = "my_new_name"
-    new_description = "my_new_description"
-
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{trace_id_with_assets}",
-        json={
-            "name": new_name,
-            "description": new_description,
+def test_update_one(clients, electrical_cell_recording_json_data):
+    check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=electrical_cell_recording_json_data,
+        patch_payload={
+            "name": "name",
+            "description": "description",
         },
-    ).json()
-
-    assert data["name"] == new_name
-    assert data["description"] == new_description
-
-    # set temperature
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{trace_id_with_assets}",
-        json={
+        optional_payload={
             "temperature": 10.0,
         },
-    ).json()
-    assert data["temperature"] == 10.0
-
-    # unset temperature
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{trace_id_with_assets}",
-        json={
-            "temperature": None,
-        },
-    ).json()
-    assert data["temperature"] is None
-
-    # only admin client can hit admin endpoint
-    data = assert_request(
-        client.patch,
-        url=f"{ADMIN_ROUTE}/{trace_id_with_assets}",
-        json={
-            "name": new_name,
-            "description": new_description,
-        },
-        expected_status_code=403,
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ADMIN_ROUTE}/{trace_id_with_assets}",
-        json={
-            "name": new_name,
-            "description": new_description,
-        },
-    ).json()
-
-    assert data["name"] == new_name
-    assert data["description"] == new_description
-
-    # set temperature
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ADMIN_ROUTE}/{trace_id_with_assets}",
-        json={
-            "temperature": 10.0,
-        },
-    ).json()
-    assert data["temperature"] == 10.0
-
-    # unset temperature
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ADMIN_ROUTE}/{trace_id_with_assets}",
-        json={
-            "temperature": None,
-        },
-    ).json()
-    assert data["temperature"] is None
-
-    # admin is treated as regular user for regular route (no authorized project ids)
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ROUTE}/{trace_id_with_assets}",
-        json={
-            "temperature": None,
-        },
-        expected_status_code=404,
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
-
-
-def test_update_one__public(client, client_admin, electrical_cell_recording_json_data):
-    data = assert_request(
-        client.post,
-        url=ROUTE,
-        json=electrical_cell_recording_json_data
-        | {
-            "authorized_public": True,
-        },
-    ).json()
-
-    entity_id = data["id"]
-
-    # should not be allowed to update it once public
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{entity_id}",
-        json={"name": "foo"},
-        expected_status_code=404,
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
-
-    # admin has no such restrictions
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ADMIN_ROUTE}/{entity_id}",
-        json={
-            "authorized_public": False,
-            "name": "foo",
-        },
-    ).json()
-    assert data["authorized_public"] is False
-    assert data["name"] == "foo"
+    )
 
 
 def test_user_read_one(client, subject_id, license_id, brain_region_id, trace_id_with_assets):

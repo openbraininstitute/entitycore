@@ -81,22 +81,6 @@ def json_data(json_data_digital_reconstruction):
     return json_data_digital_reconstruction
 
 
-@pytest.fixture
-def json_data_list(
-    json_data_digital_reconstruction,
-    json_data_modified_reconstruction,
-    json_data_computationally_synthesized,
-    json_data_placeholder,
-):
-    # to be used to test all the types
-    return [
-        json_data_digital_reconstruction,
-        json_data_modified_reconstruction,
-        json_data_computationally_synthesized,
-        json_data_placeholder,
-    ]
-
-
 def _assert_read_response(actual, expected):
     ignored_keys = {
         "authorized_project_id",
@@ -124,10 +108,22 @@ def model_id(create_id):
     return create_id()
 
 
-def test_create_one(client, json_data_list):
-    for json_data in json_data_list:
-        data = assert_request(client.post, url=ROUTE, json=json_data).json()
-        _assert_read_response(data, json_data)
+@pytest.mark.parametrize(
+    "json_data_fixture",
+    [
+        "json_data_digital_reconstruction",
+        "json_data_modified_reconstruction",
+        "json_data_computationally_synthesized",
+        "json_data_placeholder",
+    ],
+)
+def test_create_one(request, client, json_data_fixture):
+    json_data = request.getfixturevalue(json_data_fixture)
+    expected = json_data.copy()
+    # remove `type` from the request to ensure that's not required
+    del json_data["type"]
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, expected)
 
 
 def test_read_one(client, model_id, json_data):

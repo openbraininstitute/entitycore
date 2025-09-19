@@ -4,6 +4,7 @@ import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import NamedTuple
 from uuid import UUID
 
 import boto3
@@ -55,11 +56,13 @@ from .utils import (
     AUTH_HEADER_ADMIN,
     AUTH_HEADER_USER_1,
     AUTH_HEADER_USER_2,
+    AUTH_HEADER_USER_1_IDS,
     PROJECT_HEADERS,
     PROJECT_ID,
     TOKEN_ADMIN,
     TOKEN_USER_1,
     TOKEN_USER_2,
+    TOKEN_USER_1_IDS,
     UNRELATED_PROJECT_HEADERS,
     UNRELATED_PROJECT_ID,
     UNRELATED_VIRTUAL_LAB_ID,
@@ -148,6 +151,20 @@ def user_context_user_1():
 
 
 @pytest.fixture
+def user_context_only_token_ids():
+    return UserContext(
+        profile=UserProfile(
+            subject=UUID(USER_SUB_ID_1),
+            name="Regular User With Token",
+        ),
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=False,
+        user_project_ids=[UUID(PROJECT_ID)],
+    )
+
+
+@pytest.fixture
 def user_context_user_2():
     """Regular authenticated user with different project-id."""
     return UserContext(
@@ -187,12 +204,14 @@ def _override_check_user_info(
     user_context_user_1,
     user_context_user_2,
     user_context_no_project,
+    user_context_only_token_ids
 ):
     # map (token, project-id) to the expected user_context
     mapping = {
         (TOKEN_ADMIN, None): user_context_admin,
         (TOKEN_ADMIN, UUID(PROJECT_ID)): user_context_admin_with_project,
         (TOKEN_USER_1, None): user_context_no_project,
+        (TOKEN_USER_1_IDS, None): user_context_only_token_ids,
         (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
     }
@@ -262,6 +281,28 @@ def client_user_2(client_no_auth):
 def client_no_project(client_no_auth):
     """Return a web client instance, authenticated as regular user without a project-id."""
     return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1)
+
+
+@pytest.fixture
+def client_only_project_ids(client_no_auth):
+    """Return a web client instace, authenticated as a regular user with only user_project_ids."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1_IDS)
+
+
+@pytest.fixture
+def clients(client_user_1, client_user_2, client_no_project, client_only_project_ids):
+    class Clients(NamedTuple):
+        user_1: ClientProxy
+        user_2: ClientProxy
+        no_project: ClientProxy
+        only_project_ids: ClientProxy
+
+    return Clients(
+        user_1=client_user_1,
+        user_2=client_user_2,
+        no_project=client_no_project,
+        only_project_ids=client_only_project_ids,
+    )
 
 
 @pytest.fixture

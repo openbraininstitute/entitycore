@@ -226,9 +226,7 @@ def test_sorted(client: TestClient, subject_id: str, brain_region_id: uuid.UUID)
 
 
 def test_authorization(
-    client_user_1: TestClient,
-    client_user_2: TestClient,
-    client_no_project: TestClient,
+    clients,
     subject_id: str,
     brain_region_id: str,
 ):
@@ -240,7 +238,7 @@ def test_authorization(
         "brain_region_id": brain_region_id,
         "subject_id": subject_id,
     }
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+    check_authorization(ROUTE, clients, json_data)
 
 
 def test_paginate(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):

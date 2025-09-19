@@ -164,8 +164,8 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+def test_authorization(clients, json_data):
+    check_authorization(ROUTE, clients, json_data)
 
 
 def test_pagination(client, create_id):

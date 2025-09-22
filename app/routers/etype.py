@@ -12,5 +12,8 @@ router = APIRouter(
 
 read_many = router.get("")(app.service.etype.read_many)
 read_one = router.get("/{id_}")(app.service.etype.read_one)
+create_one = router.post("")(app.service.etype.create_one)
+update_one = router.patch("/{id_}")(app.service.etype.update_one)
 
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.etype.read_one)
+admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.etype.admin_read_one)
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.etype.admin_update_one)

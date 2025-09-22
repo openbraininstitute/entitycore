@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
-from app.db.types import EntityType, ResourceType
+from app.db.types import EntityType, GlobalType, ResourceType
 
 
 def _convert_resource_type_to_route(name):
@@ -17,12 +17,17 @@ if not TYPE_CHECKING:
     EntityRoute = StrEnum(
         "EntityRoute", {item.name: item.name.replace("_", "-") for item in EntityType}
     )
+    GlobalRoute = StrEnum(
+        "GlobalRoute",
+        {item.name: _convert_resource_type_to_route(item.name) for item in GlobalType},
+    )
     ResourceRoute = StrEnum(
         "ResourceRoute",
         {item.name: _convert_resource_type_to_route(item.name) for item in ResourceType},
     )
 else:
     EntityRoute = StrEnum
+    GlobalRoute = StrEnum
     ResourceRoute = StrEnum
 
 

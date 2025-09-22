@@ -1,5 +1,6 @@
 import functools
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 from typing import NamedTuple
 from unittest.mock import ANY
@@ -767,6 +768,96 @@ def check_sort_by_field(items, field_name):
     assert all(items[i][field_name] < items[i + 1][field_name] for i in range(len(items) - 1)), (
         f"Items unsorted by {field_name}"
     )
+
+
+def check_global_read_one(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+    validator: Callable[[dict, dict], None],
+):
+    model_id = assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+
+    def _req(client, client_route):
+        data = assert_request(client.get, url=f"{client_route}/{model_id}").json()
+        validator(data, json_data)
+
+    # user that created the resource can read it
+    _req(clients.user_1, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_1.get,
+        url=f"{admin_route}/{model_id}",
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # any other user can read it too because it is global
+    _req(clients.user_2, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_2.get,
+        url=f"{admin_route}/{model_id}",
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # service admins can read from both regular and admin routes
+    _req(clients.admin, route)
+    _req(clients.admin, admin_route)
+
+
+def check_global_update_one(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+    patch_payload: dict,
+):
+    def _patch_compare(method, url, patch_data):
+        data = assert_request(method, url=url, json=patch_data).json()
+        for key, value in patch_data.items():
+            assert data[key] == value, f"Key: {key} Expected: {value} Actual: {data[key]}"
+
+    data = assert_request(clients.admin.post, url=route, json=json_data).json()
+    model_id = data["id"]
+
+    old_values = {k: data[k] for k in patch_payload}
+
+    # global resource update endpoint requires admin client
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{route}/{model_id}",
+        json=patch_payload,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # update using admin client and regular route
+    _patch_compare(clients.admin.patch, f"{route}/{model_id}", patch_payload)
+
+    # revert
+    _patch_compare(clients.admin.patch, f"{route}/{model_id}", old_values)
+
+    # global resource admin endpoint requires admin client
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{admin_route}/{model_id}",
+        json=patch_payload,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # update using admin client and admin route
+    _patch_compare(clients.admin.patch, f"{admin_route}/{model_id}", patch_payload)
+
+    # revert
+    _patch_compare(clients.admin.patch, f"{admin_route}/{model_id}", old_values)
 
 
 def check_entity_update_one(

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
 from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.utils import make_update_schema
 
 
 class MeasurementItem(BaseModel):
@@ -43,3 +44,15 @@ class MeasurementAnnotationRead(MeasurementAnnotationBase, CreationMixin, Identi
 
 class MeasurementAnnotationCreate(MeasurementAnnotationBase):
     measurement_kinds: Sequence[MeasurementKindCreate]
+
+
+MeasurementAnnotationUserUpdate = make_update_schema(
+    MeasurementAnnotationCreate,
+    "MeasurementAnnotationUserUpdate",
+)  # pyright : ignore [reportInvalidTypeForm]
+
+MeasurementAnnotationAdminUpdate = make_update_schema(
+    MeasurementAnnotationCreate,
+    "MeasurementAnnotationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

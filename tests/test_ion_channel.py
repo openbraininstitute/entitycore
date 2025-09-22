@@ -7,10 +7,13 @@ from app.db.model import IonChannel
 from .utils import (
     add_db,
     assert_request,
+    check_global_read_one,
+    check_global_update_one,
     check_missing,
 )
 
 ROUTE = "/ion-channel"
+ADMIN_ROUTE = "/admin/ion-channel"
 
 
 @pytest.fixture
@@ -46,13 +49,30 @@ def test_create_one(client_admin, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_one(client, model_id, json_data):
-    data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
-    _assert_read_response(data, json_data)
+def test_read_one(clients, json_data):
+    check_global_read_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
 
-    data = assert_request(client.get, url=ROUTE).json()
-    assert len(data["data"]) == 1
-    _assert_read_response(data["data"][0], json_data)
+
+def test_update_one(clients, json_data):
+    check_global_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "my-ion-channel",
+            "description": "my-description",
+            "label": "my-label",
+            "gene": "my-gene",
+            "synonyms": ["a", "b", "c"],
+        },
+    )
 
 
 def test_missing(client):

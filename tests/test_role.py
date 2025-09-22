@@ -1,9 +1,34 @@
+import pytest
+
 from app.db.model import Role
 
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT, assert_request, count_db_class
+from tests.utils import (
+    MISSING_ID,
+    MISSING_ID_COMPACT,
+    assert_request,
+    check_global_read_one,
+    check_global_update_one,
+    count_db_class,
+)
 
 ROUTE = "/role"
 ADMIN_ROUTE = "/admin/role"
+
+
+@pytest.fixture
+def json_data():
+    return {
+        "name": "role",
+        "role_id": "role_id",
+    }
+
+
+def _assert_read_response(data, json_data):
+    assert "id" in data
+    assert data["name"] == json_data["name"]
+    assert data["role_id"] == json_data["role_id"]
+    assert "creation_date" in data
+    assert "update_date" in data
 
 
 def test_create_role(client, client_admin):
@@ -30,6 +55,29 @@ def test_create_role(client, client_admin):
     assert len(data) == 1
     assert data[0]["name"] == name
     assert data[0]["id"] == id_
+
+
+def test_read_one(clients, json_data):
+    check_global_read_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
+
+
+def test_update_one(clients, json_data):
+    check_global_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "new-name",
+            "role_id": "new_role_id",
+        },
+    )
 
 
 def test_delete_one(db, client, client_admin):

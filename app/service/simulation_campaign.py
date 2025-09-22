@@ -30,7 +30,7 @@ from app.schemas.simulation_campaign import (
     SimulationCampaignAdminUpdate,
     SimulationCampaignCreate,
     SimulationCampaignRead,
-    SimulationCampaignUpdate,
+    SimulationCampaignUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -97,7 +97,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationCampaignUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SimulationCampaignUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SimulationCampaignRead:
     return router_update_one(
         id_=id_,

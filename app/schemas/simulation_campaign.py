@@ -28,7 +28,9 @@ class SimulationCampaignCreate(SimulationCampaignBase, AuthorizationOptionalPubl
     pass
 
 
-SimulationCampaignUpdate = make_update_schema(SimulationCampaignCreate, "SimulationCampaignUpdate")  # pyright: ignore [reportInvalidTypeForm]
+SimulationCampaignUserUpdate = make_update_schema(
+    SimulationCampaignCreate, "SimulationCampaignUserUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 SimulationCampaignAdminUpdate = make_update_schema(
     SimulationCampaignCreate,
     "SimulationCampaignAdminUpdate",

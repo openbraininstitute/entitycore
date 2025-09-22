@@ -10,7 +10,7 @@ class SimulationGenerationRead(ActivityRead):
     pass
 
 
-class SimulationGenerationUpdate(ActivityUpdate):
+class SimulationGenerationUserUpdate(ActivityUpdate):
     pass
 
 

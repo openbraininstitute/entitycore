@@ -20,7 +20,7 @@ from app.queries.common import (
     router_update_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.em_cell_mesh import EMCellMeshCreate, EMCellMeshRead, EMCellMeshUpdate
+from app.schemas.em_cell_mesh import EMCellMeshCreate, EMCellMeshRead, EMCellMeshUserUpdate
 from app.schemas.types import ListResponse, Select
 
 if TYPE_CHECKING:
@@ -146,7 +146,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: EMCellMeshUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: EMCellMeshUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> EMCellMeshRead:
     return router_update_one(
         id_=id_,
@@ -162,7 +162,7 @@ def update_one(
 def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: EMCellMeshUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: EMCellMeshUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> EMCellMeshRead:
     return router_update_one(
         id_=id_,

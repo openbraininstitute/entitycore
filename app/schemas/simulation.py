@@ -37,8 +37,8 @@ class SingleNeuronSimulationCreate(
     me_model_id: uuid.UUID
 
 
-SingleNeuronSimulationUpdate = make_update_schema(
-    SingleNeuronSimulationCreate, "SingleNeuronSimulationUpdate"
+SingleNeuronSimulationUserUpdate = make_update_schema(
+    SingleNeuronSimulationCreate, "SingleNeuronSimulationUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 
 SingleNeuronSimulationAdminUpdate = make_update_schema(
@@ -69,8 +69,8 @@ class SingleNeuronSynaptomeSimulationCreate(
     synaptome_id: uuid.UUID
 
 
-SingleNeuronSynaptomeSimulationUpdate = make_update_schema(
-    SingleNeuronSynaptomeSimulationCreate, "SingleNeuronSynaptomeSimulationUpdate"
+SingleNeuronSynaptomeSimulationUserUpdate = make_update_schema(
+    SingleNeuronSynaptomeSimulationCreate, "SingleNeuronSynaptomeSimulationUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 
 SingleNeuronSynaptomeSimulationAdminUpdate = make_update_schema(
@@ -106,7 +106,7 @@ class SimulationCreate(SimulationBase, AuthorizationOptionalPublicMixin):
     pass
 
 
-SimulationUpdate = make_update_schema(SimulationCreate, "SimulationUpdate")  # pyright: ignore [reportInvalidTypeForm]
+SimulationUserUpdate = make_update_schema(SimulationCreate, "SimulationUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
 
 SimulationAdminUpdate = make_update_schema(
     SimulationCreate,

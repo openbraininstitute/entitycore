@@ -34,7 +34,7 @@ from app.schemas.density import (
     ExperimentalNeuronDensityAdminUpdate,
     ExperimentalNeuronDensityCreate,
     ExperimentalNeuronDensityRead,
-    ExperimentalNeuronDensityUpdate,
+    ExperimentalNeuronDensityUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -171,7 +171,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ExperimentalNeuronDensityUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ExperimentalNeuronDensityUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ExperimentalNeuronDensityRead:
     return router_update_one(
         id_=id_,

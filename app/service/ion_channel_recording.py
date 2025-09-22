@@ -30,7 +30,7 @@ from app.schemas.ion_channel_recording import (
     IonChannelRecordingAdminUpdate,
     IonChannelRecordingCreate,
     IonChannelRecordingRead,
-    IonChannelRecordingUpdate,
+    IonChannelRecordingUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -172,7 +172,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: IonChannelRecordingUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: IonChannelRecordingUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> IonChannelRecordingRead:
     return router_update_one(
         id_=id_,

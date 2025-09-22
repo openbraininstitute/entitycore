@@ -23,7 +23,7 @@ from app.schemas.memodel_calibration_result import (
     MEModelCalibrationResultAdminUpdate,
     MEModelCalibrationResultCreate,
     MEModelCalibrationResultRead,
-    MEModelCalibrationResultUpdate,
+    MEModelCalibrationResultUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -81,7 +81,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: MEModelCalibrationResultUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: MEModelCalibrationResultUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> MEModelCalibrationResultRead:
     return router_update_one(
         id_=id_,

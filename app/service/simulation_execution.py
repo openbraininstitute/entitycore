@@ -26,7 +26,7 @@ from app.schemas.simulation_execution import (
     SimulationExecutionAdminUpdate,
     SimulationExecutionCreate,
     SimulationExecutionRead,
-    SimulationExecutionUpdate,
+    SimulationExecutionUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -168,7 +168,7 @@ def delete_one(
 def update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationExecutionUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SimulationExecutionUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
     user_context: UserContextWithProjectIdDep,
 ) -> SimulationExecutionRead:
     return router_update_activity_one(

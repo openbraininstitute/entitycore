@@ -30,7 +30,7 @@ from app.schemas.circuit import (
     CircuitAdminUpdate,
     CircuitCreate,
     CircuitRead,
-    CircuitUpdate,
+    CircuitUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -101,7 +101,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: CircuitUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: CircuitUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> CircuitRead:
     return router_update_one(
         id_=id_,

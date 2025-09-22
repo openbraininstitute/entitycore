@@ -24,7 +24,7 @@ from app.schemas.synaptome import (
     SingleNeuronSynaptomeAdminUpdate,
     SingleNeuronSynaptomeCreate,
     SingleNeuronSynaptomeRead,
-    SingleNeuronSynaptomeUpdate,
+    SingleNeuronSynaptomeUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -91,7 +91,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SingleNeuronSynaptomeUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SingleNeuronSynaptomeUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SingleNeuronSynaptomeRead:
     return router_update_one(
         id_=id_,

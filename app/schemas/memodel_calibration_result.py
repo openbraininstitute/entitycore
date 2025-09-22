@@ -37,8 +37,8 @@ class MEModelCalibrationResultCreate(
     """Create model for MEModel calibration results."""
 
 
-MEModelCalibrationResultUpdate = make_update_schema(
-    MEModelCalibrationResultCreate, "MEModelCalibrationResultUpdate"
+MEModelCalibrationResultUserUpdate = make_update_schema(
+    MEModelCalibrationResultCreate, "MEModelCalibrationResultUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 MEModelCalibrationResultAdminUpdate = make_update_schema(
     MEModelCalibrationResultCreate,

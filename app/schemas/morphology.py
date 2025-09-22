@@ -41,8 +41,8 @@ class ReconstructionMorphologyCreate(
     legacy_id: list[str] | None = None
 
 
-ReconstructionMorphologyUpdate = make_update_schema(
-    ReconstructionMorphologyCreate, "ReconstructionMorphologyUpdate"
+ReconstructionMorphologyUserUpdate = make_update_schema(
+    ReconstructionMorphologyCreate, "ReconstructionMorphologyUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 ReconstructionMorphologyAdminUpdate = make_update_schema(
     ReconstructionMorphologyCreate,

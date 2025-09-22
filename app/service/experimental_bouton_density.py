@@ -34,7 +34,7 @@ from app.schemas.density import (
     ExperimentalBoutonDensityAdminUpdate,
     ExperimentalBoutonDensityCreate,
     ExperimentalBoutonDensityRead,
-    ExperimentalBoutonDensityUpdate,
+    ExperimentalBoutonDensityUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -168,7 +168,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ExperimentalBoutonDensityUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ExperimentalBoutonDensityUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ExperimentalBoutonDensityRead:
     return router_update_one(
         id_=id_,

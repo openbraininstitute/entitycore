@@ -25,7 +25,9 @@ class SimulationResultCreate(SimulationResultBase, AuthorizationOptionalPublicMi
     pass
 
 
-SimulationResultUpdate = make_update_schema(SimulationResultCreate, "SimulationResultUpdate")  # pyright: ignore [reportInvalidTypeForm]
+SimulationResultUserUpdate = make_update_schema(
+    SimulationResultCreate, "SimulationResultUserUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 SimulationResultAdminUpdate = make_update_schema(
     SimulationResultCreate,
     "SimulationResultAdminUpdate",

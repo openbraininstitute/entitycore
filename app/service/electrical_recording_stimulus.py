@@ -28,7 +28,7 @@ from app.schemas.electrical_recording_stimulus import (
     ElectricalRecordingStimulusAdminUpdate,
     ElectricalRecordingStimulusCreate,
     ElectricalRecordingStimulusRead,
-    ElectricalRecordingStimulusUpdate,
+    ElectricalRecordingStimulusUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -92,7 +92,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ElectricalRecordingStimulusUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ElectricalRecordingStimulusUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ElectricalRecordingStimulusRead:
     return router_update_one(
         id_=id_,

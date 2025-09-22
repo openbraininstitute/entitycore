@@ -33,7 +33,7 @@ from app.schemas.emodel import (
     EModelCreate,
     EModelRead,
     EModelReadExpanded,
-    EModelUpdate,
+    EModelUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -114,7 +114,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: EModelUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: EModelUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> EModelRead:
     return router_update_one(
         id_=id_,

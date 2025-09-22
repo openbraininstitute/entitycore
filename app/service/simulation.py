@@ -28,7 +28,7 @@ from app.schemas.simulation import (
     SimulationAdminUpdate,
     SimulationCreate,
     SimulationRead,
-    SimulationUpdate,
+    SimulationUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -94,7 +94,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SimulationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SimulationRead:
     return router_update_one(
         id_=id_,

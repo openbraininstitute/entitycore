@@ -36,7 +36,7 @@ from app.schemas.density import (
     ExperimentalSynapsesPerConnectionAdminUpdate,
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
-    ExperimentalSynapsesPerConnectionUpdate,
+    ExperimentalSynapsesPerConnectionUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -194,7 +194,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ExperimentalSynapsesPerConnectionUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ExperimentalSynapsesPerConnectionUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ExperimentalSynapsesPerConnectionRead:
     return router_update_one(
         id_=id_,

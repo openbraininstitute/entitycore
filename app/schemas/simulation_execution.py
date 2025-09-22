@@ -11,7 +11,7 @@ class SimulationExecutionRead(ActivityRead):
     status: SimulationExecutionStatus
 
 
-class SimulationExecutionUpdate(ActivityUpdate):
+class SimulationExecutionUserUpdate(ActivityUpdate):
     status: SimulationExecutionStatus | None = None
 
 

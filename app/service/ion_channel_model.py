@@ -28,7 +28,7 @@ from app.schemas.ion_channel_model import (
     IonChannelModelCreate,
     IonChannelModelExpanded,
     IonChannelModelRead,
-    IonChannelModelUpdate,
+    IonChannelModelUserUpdate,
 )
 from app.schemas.types import ListResponse, Select
 
@@ -170,7 +170,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: IonChannelModelUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: IonChannelModelUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> IonChannelModelRead:
     return router_update_one(
         id_=id_,

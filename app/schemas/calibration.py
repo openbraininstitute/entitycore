@@ -10,7 +10,7 @@ class CalibrationRead(ActivityRead):
     pass
 
 
-class CalibrationUpdate(ActivityUpdate):
+class CalibrationUserUpdate(ActivityUpdate):
     pass
 
 

@@ -26,7 +26,7 @@ from app.schemas.calibration import (
     CalibrationAdminUpdate,
     CalibrationCreate,
     CalibrationRead,
-    CalibrationUpdate,
+    CalibrationUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -168,7 +168,7 @@ def delete_one(
 def update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: CalibrationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: CalibrationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
     user_context: UserContextWithProjectIdDep,
 ) -> CalibrationRead:
     return router_update_activity_one(

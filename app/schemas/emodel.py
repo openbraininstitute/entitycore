@@ -40,7 +40,7 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     exemplar_morphology_id: uuid.UUID
 
 
-EModelUpdate = make_update_schema(EModelCreate, "EModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
+EModelUserUpdate = make_update_schema(EModelCreate, "EModelUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
 EModelAdminUpdate = make_update_schema(
     EModelCreate,
     "EModelAdminUpdate",

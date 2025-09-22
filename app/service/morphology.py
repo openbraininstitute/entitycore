@@ -39,7 +39,7 @@ from app.schemas.morphology import (
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
-    ReconstructionMorphologyUpdate,
+    ReconstructionMorphologyUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -129,7 +129,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ReconstructionMorphologyUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ReconstructionMorphologyUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ReconstructionMorphologyRead:
     return router_update_one(
         id_=id_,

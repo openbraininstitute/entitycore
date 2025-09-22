@@ -37,7 +37,7 @@ class CircuitCreate(CircuitBase, ScientificArtifactCreate):
     pass
 
 
-CircuitUpdate = make_update_schema(CircuitCreate, "CircuitUpdate")  # pyright: ignore [reportInvalidTypeForm]
+CircuitUserUpdate = make_update_schema(CircuitCreate, "CircuitUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
 CircuitAdminUpdate = make_update_schema(
     CircuitCreate,
     "CircuitAdminUpdate",

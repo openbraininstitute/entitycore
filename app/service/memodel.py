@@ -33,7 +33,7 @@ from app.queries.common import (
     router_update_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.me_model import MEModelAdminUpdate, MEModelCreate, MEModelRead, MEModelUpdate
+from app.schemas.me_model import MEModelAdminUpdate, MEModelCreate, MEModelRead, MEModelUserUpdate
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -123,7 +123,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: MEModelUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: MEModelUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> MEModelRead:
     return router_update_one(
         id_=id_,

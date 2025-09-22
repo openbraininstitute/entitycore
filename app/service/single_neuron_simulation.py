@@ -24,7 +24,7 @@ from app.schemas.simulation import (
     SingleNeuronSimulationAdminUpdate,
     SingleNeuronSimulationCreate,
     SingleNeuronSimulationRead,
-    SingleNeuronSimulationUpdate,
+    SingleNeuronSimulationUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -89,7 +89,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SingleNeuronSimulationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SingleNeuronSimulationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SingleNeuronSimulationRead:
     return router_update_one(
         id_=id_,

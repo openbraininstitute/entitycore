@@ -35,10 +35,11 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.morphology import (
+    ReconstructionMorphologyAdminUpdate,
     ReconstructionMorphologyAnnotationExpandedRead,
     ReconstructionMorphologyCreate,
     ReconstructionMorphologyRead,
-    ReconstructionMorphologyUpdate,
+    ReconstructionMorphologyUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -128,13 +129,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ReconstructionMorphologyUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ReconstructionMorphologyUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ReconstructionMorphologyRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=ReconstructionMorphology,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=ReconstructionMorphologyRead,
+        apply_operations=_load_from_db,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ReconstructionMorphologyAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ReconstructionMorphologyRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ReconstructionMorphology,
+        user_context=None,
         json_model=json_model,
         response_schema_class=ReconstructionMorphologyRead,
         apply_operations=_load_from_db,

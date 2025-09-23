@@ -27,9 +27,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.simulation import (
+    SingleNeuronSynaptomeSimulationAdminUpdate,
     SingleNeuronSynaptomeSimulationCreate,
     SingleNeuronSynaptomeSimulationRead,
-    SingleNeuronSynaptomeSimulationUpdate,
+    SingleNeuronSynaptomeSimulationUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -98,13 +99,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SingleNeuronSynaptomeSimulationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SingleNeuronSynaptomeSimulationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SingleNeuronSynaptomeSimulationRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=SingleNeuronSynaptomeSimulation,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=SingleNeuronSynaptomeSimulationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SingleNeuronSynaptomeSimulationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SingleNeuronSynaptomeSimulationRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=SingleNeuronSynaptomeSimulation,
+        user_context=None,
         json_model=json_model,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
         apply_operations=_load,

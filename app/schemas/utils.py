@@ -1,14 +1,21 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, create_model
 
+type NotSet = Literal["<NOT_SET>"]
+
 NOT_SET = "<NOT_SET>"
+
 EXCLUDED_FIELDS = {
     "authorized_public",
 }
 
 
-def make_update_schema(schema: type[BaseModel], new_schema_name: str):
+def make_update_schema(
+    schema: type[BaseModel],
+    new_schema_name: str | None = None,
+    excluded_fields: set = EXCLUDED_FIELDS,
+):
     """Create a new pydantic schema from current schema where all fields are optional.
 
     In order to differentiate between the user providing a None value and an actual not set by the
@@ -27,6 +34,6 @@ def make_update_schema(schema: type[BaseModel], new_schema_name: str):
     fields = {
         name: make_optional(field)
         for name, field in schema.model_fields.items()
-        if name not in EXCLUDED_FIELDS
+        if name not in excluded_fields
     }
     return create_model(new_schema_name, **fields)  # pyright: ignore reportArgumentType

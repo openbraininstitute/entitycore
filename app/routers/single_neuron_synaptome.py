@@ -14,3 +14,6 @@ update_one = router.patch("/{id_}")(app.service.single_neuron_synaptome.update_o
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.single_neuron_synaptome.admin_read_one
 )
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
+    app.service.single_neuron_synaptome.admin_update_one
+)

@@ -1,3 +1,5 @@
+import pytest
+
 from app.db.model import Strain
 
 from tests.utils import (
@@ -5,11 +7,30 @@ from tests.utils import (
     MISSING_ID_COMPACT,
     assert_request,
     check_creation_fields,
+    check_global_read_one,
+    check_global_update_one,
     count_db_class,
 )
 
 ROUTE = "/strain"
 ADMIN_ROUTE = "/admin/strain"
+
+
+@pytest.fixture
+def json_data(species_id):
+    return {
+        "name": "strain",
+        "taxonomy_id": "NCBITaxon:2000",
+        "species_id": str(species_id),
+    }
+
+
+def _assert_read_response(data, json_data):
+    assert "id" in data
+    assert data["name"] == json_data["name"]
+    assert data["taxonomy_id"] == json_data["taxonomy_id"]
+    assert "created_by" in data
+    assert "updated_by" in data
 
 
 def test_create_strain(client, client_admin, species_id, person_id):
@@ -90,6 +111,29 @@ def test_create_strain(client, client_admin, species_id, person_id):
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 3  # semantic search just reorders - it does not filter out
+
+
+def test_read_one(clients, json_data):
+    check_global_read_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
+
+
+def test_update_one(clients, json_data):
+    check_global_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "new-strain",
+            "taxonomy_id": "NCBITaxon:9000",
+        },
+    )
 
 
 def test_delete_one(db, client, client_admin, strain_id):

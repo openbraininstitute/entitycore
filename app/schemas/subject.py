@@ -80,7 +80,12 @@ class SubjectCreate(AuthorizationOptionalPublicMixin, SubjectBase):
     strain_id: uuid.UUID | None = None
 
 
-SubjectUpdate = make_update_schema(SubjectCreate, "SubjectUpdate")  # pyright: ignore [reportInvalidTypeForm]
+SubjectUserUpdate = make_update_schema(SubjectCreate, "SubjectUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
+SubjectAdminUpdate = make_update_schema(
+    SubjectCreate,
+    "SubjectAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedSubjectRead(SubjectBase, IdentifiableMixin):

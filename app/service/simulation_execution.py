@@ -23,9 +23,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.simulation_execution import (
+    SimulationExecutionAdminUpdate,
     SimulationExecutionCreate,
     SimulationExecutionRead,
-    SimulationExecutionUpdate,
+    SimulationExecutionUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -167,7 +168,7 @@ def delete_one(
 def update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationExecutionUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SimulationExecutionUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
     user_context: UserContextWithProjectIdDep,
 ) -> SimulationExecutionRead:
     return router_update_activity_one(
@@ -175,6 +176,22 @@ def update_one(
         id_=id_,
         json_model=json_model,
         user_context=user_context,
+        db_model_class=SimulationExecution,
+        response_schema_class=SimulationExecutionRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SimulationExecutionAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SimulationExecutionRead:
+    return router_update_activity_one(
+        db=db,
+        id_=id_,
+        json_model=json_model,
+        user_context=None,
         db_model_class=SimulationExecution,
         response_schema_class=SimulationExecutionRead,
         apply_operations=_load,

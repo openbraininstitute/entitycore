@@ -27,9 +27,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.circuit import (
+    CircuitAdminUpdate,
     CircuitCreate,
     CircuitRead,
-    CircuitUpdate,
+    CircuitUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -100,13 +101,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: CircuitUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: CircuitUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> CircuitRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=Circuit,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=CircuitRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CircuitAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> CircuitRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Circuit,
+        user_context=None,
         json_model=json_model,
         response_schema_class=CircuitRead,
         apply_operations=_load,

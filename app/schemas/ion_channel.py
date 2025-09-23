@@ -5,6 +5,7 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
+from app.schemas.utils import make_update_schema
 
 
 class IonChannelBase(BaseModel):
@@ -34,3 +35,10 @@ class IonChannelRead(
 
 class IonChannelCreate(IonChannelBase):
     """Create model for ion channel."""
+
+
+IonChannelAdminUpdate = make_update_schema(
+    IonChannelCreate,
+    "IonChannelAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

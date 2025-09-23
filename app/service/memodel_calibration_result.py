@@ -20,9 +20,10 @@ from app.queries.common import (
     router_update_one,
 )
 from app.schemas.memodel_calibration_result import (
+    MEModelCalibrationResultAdminUpdate,
     MEModelCalibrationResultCreate,
     MEModelCalibrationResultRead,
-    MEModelCalibrationResultUpdate,
+    MEModelCalibrationResultUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -80,13 +81,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: MEModelCalibrationResultUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: MEModelCalibrationResultUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> MEModelCalibrationResultRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=MEModelCalibrationResult,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=MEModelCalibrationResultRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: MEModelCalibrationResultAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> MEModelCalibrationResultRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=MEModelCalibrationResult,
+        user_context=None,
         json_model=json_model,
         response_schema_class=MEModelCalibrationResultRead,
         apply_operations=_load,

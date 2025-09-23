@@ -10,7 +10,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.common import SpeciesFilterDep
 from app.queries.factory import query_params_factory
-from app.schemas.species import SpeciesCreate, SpeciesRead
+from app.schemas.species import SpeciesAdminUpdate, SpeciesCreate, SpeciesRead
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
 
@@ -36,6 +36,14 @@ def read_one(
         response_schema_class=SpeciesRead,
         apply_operations=_load,
     )
+
+
+def admin_read_one(
+    *,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SpeciesRead:
+    return read_one(id_=id_, db=db)
 
 
 def create_one(
@@ -95,4 +103,35 @@ def read_many(
         filter_model=species_filter,
         filter_joins=filter_joins,
         embedding=embedding,
+    )
+
+
+def update_one(
+    db: SessionDep,
+    user_context: AdminContextDep,  # noqa: ARG001
+    id_: uuid.UUID,
+    json_model: SpeciesAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SpeciesRead:
+    return app.queries.common.router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Species,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=SpeciesRead,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SpeciesAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SpeciesRead:
+    return app.queries.common.router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Species,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=SpeciesRead,
     )

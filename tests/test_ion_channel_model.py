@@ -14,6 +14,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    check_entity_update_one,
     count_db_class,
     upload_entity_asset,
 )
@@ -21,6 +22,23 @@ from .utils import (
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 ROUTE = "/ion-channel-model"
 ADMIN_ROUTE = "/admin/ion-channel-model"
+
+
+@pytest.fixture
+def json_data(
+    subject_id,
+    brain_region_id,
+):
+    return {
+        "description": "Test ICM Description",
+        "name": "test_icm",
+        "nmodl_suffix": "test_icm",
+        "temperature_celsius": 0,
+        "neuron_block": {},
+        "brain_region_id": str(brain_region_id),
+        "subject_id": subject_id,
+        "authorized_public": False,
+    }
 
 
 def create(
@@ -66,62 +84,22 @@ def test_create(client: TestClient, subject_id: str, brain_region_id: uuid.UUID)
     assert response.status_code == 200, f"Failed to get icms: {response.text}"
 
 
-def test_update_one(client, subject_id, brain_region_id):
-    # Create an ion channel model first
-    response = create(client, subject_id, brain_region_id, "test_icm")
-    assert response.status_code == 200
-    icm_id = response.json()["id"]
-
-    new_name = "my_new_name"
-    new_description = "my_new_description"
-
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{icm_id}",
-        json={
-            "name": new_name,
-            "description": new_description,
-        },
-    ).json()
-
-    assert data["name"] == new_name
-    assert data["description"] == new_description
-
-    # set temperature_celsius
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{icm_id}",
-        json={
+def test_update_one(clients, json_data):
+    check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "name",
+            "description": "description",
             "temperature_celsius": 25,
-        },
-    ).json()
-    assert data["temperature_celsius"] == 25
-
-    # set is_ljp_corrected
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{icm_id}",
-        json={
             "is_ljp_corrected": True,
         },
-    ).json()
-    assert data["is_ljp_corrected"] is True
-
-
-def test_update_one__public(client, subject_id, brain_region_id):
-    # Create an ion channel model first
-    response = create(client, subject_id, brain_region_id, "test_icm", authorized_public=True)
-    assert response.status_code == 200
-    icm_id = response.json()["id"]
-
-    # should not be allowed to update it once public
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{icm_id}",
-        json={"name": "foo"},
-        expected_status_code=404,
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
+        optional_payload={
+            "contact_email": "foo.bar@zee.com",
+        },
+    )
 
 
 def test_user_read_one(client, client_admin, subject_id: str, brain_region_id: uuid.UUID):

@@ -24,10 +24,11 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_model import (
+    IonChannelModelAdminUpdate,
     IonChannelModelCreate,
     IonChannelModelExpanded,
     IonChannelModelRead,
-    IonChannelModelUpdate,
+    IonChannelModelUserUpdate,
 )
 from app.schemas.types import ListResponse, Select
 
@@ -169,13 +170,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: IonChannelModelUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: IonChannelModelUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> IonChannelModelRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=IonChannelModel,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=IonChannelModelRead,
+        apply_operations=_load_minimal,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: IonChannelModelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> IonChannelModelRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelModel,
+        user_context=None,
         json_model=json_model,
         response_schema_class=IonChannelModelRead,
         apply_operations=_load_minimal,

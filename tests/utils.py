@@ -1,6 +1,8 @@
 import functools
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from typing import NamedTuple
 from unittest.mock import ANY
 from uuid import UUID
 
@@ -87,6 +89,13 @@ class ClientProxy:
 
         method = getattr(self._client, name)
         return decorator(method) if name in self._methods else method
+
+
+class ClientProxies(NamedTuple):
+    user_1: ClientProxy
+    user_2: ClientProxy
+    no_project: ClientProxy
+    admin: ClientProxy
 
 
 def create_reconstruction_morphology_id(
@@ -758,4 +767,169 @@ def delete_entity_classifications(client, client_admin, entity_id):
 def check_sort_by_field(items, field_name):
     assert all(items[i][field_name] < items[i + 1][field_name] for i in range(len(items) - 1)), (
         f"Items unsorted by {field_name}"
+    )
+
+
+def check_global_read_one(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+    validator: Callable[[dict, dict], None],
+):
+    model_id = assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+
+    def _req(client, client_route):
+        data = assert_request(client.get, url=f"{client_route}/{model_id}").json()
+        validator(data, json_data)
+
+    # user that created the resource can read it
+    _req(clients.user_1, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_1.get,
+        url=f"{admin_route}/{model_id}",
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # any other user can read it too because it is global
+    _req(clients.user_2, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_2.get,
+        url=f"{admin_route}/{model_id}",
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # service admins can read from both regular and admin routes
+    _req(clients.admin, route)
+    _req(clients.admin, admin_route)
+
+
+def check_global_update_one(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+    patch_payload: dict,
+):
+    def _patch_compare(method, url, patch_data):
+        data = assert_request(method, url=url, json=patch_data).json()
+        for key, value in patch_data.items():
+            assert data[key] == value, f"Key: {key} Expected: {value} Actual: {data[key]}"
+
+    data = assert_request(clients.admin.post, url=route, json=json_data).json()
+    model_id = data["id"]
+
+    old_values = {k: data[k] for k in patch_payload}
+
+    # global resource update endpoint requires admin client
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{route}/{model_id}",
+        json=patch_payload,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # update using admin client and regular route
+    _patch_compare(clients.admin.patch, f"{route}/{model_id}", patch_payload)
+
+    # revert
+    _patch_compare(clients.admin.patch, f"{route}/{model_id}", old_values)
+
+    # global resource admin endpoint requires admin client
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{admin_route}/{model_id}",
+        json=patch_payload,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # update using admin client and admin route
+    _patch_compare(clients.admin.patch, f"{admin_route}/{model_id}", patch_payload)
+
+    # revert
+    _patch_compare(clients.admin.patch, f"{admin_route}/{model_id}", old_values)
+
+
+def check_entity_update_one(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+    patch_payload: dict,
+    optional_payload: dict | None,
+):
+    def _create(client, json_data):
+        return assert_request(client, url=route, json=json_data).json()
+
+    def _patch_compare(method, url, patch_data):
+        data = assert_request(method, url=url, json=patch_data).json()
+        for key, value in patch_data.items():
+            assert data[key] == value, f"Key: {key} Expected: {value} Actual: {data[key]}"
+
+    public_1_data = _create(clients.user_1.post, json_data | {"authorized_public": True})
+    private_1_data = _create(clients.user_1.post, json_data | {"authorized_public": False})
+
+    assert public_1_data["authorized_public"] is True
+    assert private_1_data["authorized_public"] is False
+
+    public_1_id = public_1_data["id"]
+    private_1_id = private_1_data["id"]
+
+    # user updates resource
+    _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", patch_payload)
+
+    # user restores resource
+    _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", private_1_data)
+
+    # Test setting and unsetting optional fields
+    if optional_payload:
+        _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", optional_payload)
+        _patch_compare(
+            clients.user_1.patch, f"{route}/{private_1_id}", dict.fromkeys(optional_payload)
+        )
+
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{admin_route}/{private_1_id}",
+        json={},
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    _patch_compare(clients.admin.patch, f"{admin_route}/{private_1_id}", patch_payload)
+
+    # admin is treated as regular user for regular route (no authorized project ids)
+    data = assert_request(
+        clients.admin.patch,
+        url=f"{route}/{private_1_id}",
+        json={},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # user should not be allowed to update a public resource
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{route}/{public_1_id}",
+        json={},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admin has no such restrictions
+    _patch_compare(
+        clients.admin.patch, f"{admin_route}/{public_1_id}", {"authorized_public": False}
     )

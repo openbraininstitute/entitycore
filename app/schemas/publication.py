@@ -7,6 +7,7 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
+from app.schemas.utils import make_update_schema
 from app.utils.doi import is_doi
 
 
@@ -37,6 +38,13 @@ class PublicationCreate(PublicationBase):
             return ValueError(f"Invalid DOI format: {value}")
 
         return value
+
+
+PublicationAdminUpdate = make_update_schema(
+    PublicationCreate,
+    "PublicationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedPublicationRead(

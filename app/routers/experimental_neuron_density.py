@@ -18,3 +18,6 @@ update_one = router.patch("/{id_}")(app.service.experimental_neuron_density.upda
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.experimental_neuron_density.admin_read_one
 )
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
+    app.service.experimental_neuron_density.admin_update_one
+)

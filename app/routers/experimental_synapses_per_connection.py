@@ -18,3 +18,6 @@ update_one = router.patch("/{id_}")(app.service.experimental_synapses_per_connec
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.experimental_synapses_per_connection.admin_read_one
 )
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
+    app.service.experimental_synapses_per_connection.admin_update_one
+)

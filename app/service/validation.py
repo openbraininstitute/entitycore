@@ -24,9 +24,10 @@ from app.queries.common import (
 from app.queries.factory import query_params_factory
 from app.schemas.types import ListResponse
 from app.schemas.validation import (
+    ValidationAdminUpdate,
     ValidationCreate,
     ValidationRead,
-    ValidationUpdate,
+    ValidationUserUpdate,
 )
 
 if TYPE_CHECKING:
@@ -167,7 +168,7 @@ def delete_one(
 def update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ValidationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ValidationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
     user_context: UserContextWithProjectIdDep,
 ) -> ValidationRead:
     return router_update_activity_one(
@@ -175,6 +176,22 @@ def update_one(
         id_=id_,
         json_model=json_model,
         user_context=user_context,
+        db_model_class=Validation,
+        response_schema_class=ValidationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ValidationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ValidationRead:
+    return router_update_activity_one(
+        db=db,
+        id_=id_,
+        json_model=json_model,
+        user_context=None,
         db_model_class=Validation,
         response_schema_class=ValidationRead,
         apply_operations=_load,

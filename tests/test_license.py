@@ -1,9 +1,35 @@
+import pytest
+
 from app.db.model import License
 
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT, assert_request, count_db_class
+from tests.utils import (
+    MISSING_ID,
+    MISSING_ID_COMPACT,
+    assert_request,
+    check_global_read_one,
+    count_db_class,
+)
 
 ROUTE = "/license"
 ADMIN_ROUTE = "/admin/license"
+
+
+@pytest.fixture
+def json_data():
+    return {
+        "name": "Test License",
+        "description": "a license description",
+        "label": "a label",
+    }
+
+
+def _assert_read_response(data, json_data):
+    assert "id" in data
+    assert data["name"] == json_data["name"]
+    assert data["label"] == json_data["label"]
+    assert data["description"] == json_data["description"]
+    assert "creation_date" in data
+    assert "update_date" in data
 
 
 def test_create_license(client, client_admin):
@@ -34,6 +60,16 @@ def test_create_license(client, client_admin):
     assert len(data) == 1
     assert data[0]["name"] == "Test License"
     assert data[0]["description"] == "a license description"
+
+
+def test_read_one(clients, json_data):
+    check_global_read_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
 
 
 def test_missing(client):

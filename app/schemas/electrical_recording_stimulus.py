@@ -49,6 +49,11 @@ class ElectricalRecordingStimulusCreate(
     pass
 
 
-ElectricalRecordingStimulusUpdate = make_update_schema(
-    ElectricalRecordingStimulusCreate, "ElectricalRecordingStimulusUpdate"
+ElectricalRecordingStimulusUserUpdate = make_update_schema(
+    ElectricalRecordingStimulusCreate, "ElectricalRecordingStimulusUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+ElectricalRecordingStimulusAdminUpdate = make_update_schema(
+    ElectricalRecordingStimulusCreate,
+    "ElectricalRecordingStimulusAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

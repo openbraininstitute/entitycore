@@ -16,3 +16,4 @@ create_one = router.post("")(app.service.morphology.create_one)
 update_one = router.patch("/{id_}")(app.service.morphology.update_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.morphology.admin_read_one)
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.morphology.admin_update_one)

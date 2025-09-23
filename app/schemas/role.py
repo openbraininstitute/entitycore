@@ -4,6 +4,7 @@ from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
 )
+from app.schemas.utils import make_update_schema
 
 
 class RoleBase(BaseModel):
@@ -18,3 +19,10 @@ class RoleCreate(RoleBase):
 
 class RoleRead(RoleBase, CreationMixin, IdentifiableMixin):
     pass
+
+
+RoleAdminUpdate = make_update_schema(
+    RoleCreate,
+    "RoleAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

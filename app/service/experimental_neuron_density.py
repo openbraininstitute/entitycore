@@ -31,9 +31,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.density import (
+    ExperimentalNeuronDensityAdminUpdate,
     ExperimentalNeuronDensityCreate,
     ExperimentalNeuronDensityRead,
-    ExperimentalNeuronDensityUpdate,
+    ExperimentalNeuronDensityUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -170,13 +171,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ExperimentalNeuronDensityUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ExperimentalNeuronDensityUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ExperimentalNeuronDensityRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=ExperimentalNeuronDensity,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=ExperimentalNeuronDensityRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ExperimentalNeuronDensityAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ExperimentalNeuronDensityRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ExperimentalNeuronDensity,
+        user_context=None,
         json_model=json_model,
         response_schema_class=ExperimentalNeuronDensityRead,
         apply_operations=_load,

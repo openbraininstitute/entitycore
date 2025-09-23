@@ -5,6 +5,10 @@ from fastapi import APIRouter, Depends
 from app.dependencies.auth import user_verified, user_with_service_admin_role
 from app.routers import (
     admin,
+    analysis_notebook_environment,
+    analysis_notebook_execution,
+    analysis_notebook_result,
+    analysis_notebook_template,
     asset,
     brain_atlas,
     brain_region,
@@ -66,6 +70,10 @@ router.include_router(admin.router, dependencies=[Depends(user_with_service_admi
 
 authenticated_routers = [
     asset.router,
+    analysis_notebook_environment.router,
+    analysis_notebook_execution.router,
+    analysis_notebook_result.router,
+    analysis_notebook_template.router,
     brain_atlas.router,
     brain_region.router,
     brain_region_hierarchy.router,

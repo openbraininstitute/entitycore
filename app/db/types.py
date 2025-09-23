@@ -89,7 +89,8 @@ class EntityType(StrEnum):
     em_dense_reconstruction_dataset = auto()
     em_cell_mesh = auto()
     analysis_notebook_template = auto()
-    analysis_result_notebook = auto()
+    analysis_notebook_environment = auto()
+    analysis_notebook_result = auto()
 
 
 class AgentType(StrEnum):
@@ -297,7 +298,7 @@ class ContentType(StrEnum):
     gltf_binary = "model/gltf-binary"
     gzip = "application/gzip"
     webp = "image/webp"
-    notebook = "application/x-ipynb+json"
+    ipynb = "application/x-ipynb+json"
     csv = "text/csv"
 
 
@@ -339,6 +340,7 @@ class AssetLabel(StrEnum):
     network_stats_b = auto()
     cell_surface_mesh = auto()
     jupyter_notebook = auto()
+    requirements = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -372,7 +374,7 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
         ".tgz",
     ),
     ContentType.webp: (".webp",),
-    ContentType.notebook: (".ipynb",),
+    ContentType.ipynb: (".ipynb",),
     ContentType.csv: (".csv",),
 }
 
@@ -381,12 +383,20 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
 ] = dict.fromkeys(EntityType) | {
     EntityType.analysis_notebook_template: {
         AssetLabel.jupyter_notebook: [
-            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
+            LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
+        ],
+        AssetLabel.requirements: [
+            LabelRequirements(content_type=ContentType.text, is_directory=False)
         ],
     },
-    EntityType.analysis_result_notebook: {
+    EntityType.analysis_notebook_environment: {
+        AssetLabel.requirements: [
+            LabelRequirements(content_type=ContentType.text, is_directory=False)
+        ],
+    },
+    EntityType.analysis_notebook_result: {
         AssetLabel.jupyter_notebook: [
-            LabelRequirements(content_type=ContentType.notebook, is_directory=False)
+            LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
         ]
     },
     EntityType.brain_atlas: {
@@ -647,17 +657,7 @@ class SlicingDirectionType(StrEnum):
     custom = auto()
 
 
-class AnalysisInputCountSpecs(StrEnum):
-    """Represents specs of how many inputs of a given type are expected for analysis."""
-
-    single = auto()
-    pair = auto()
-    triplet = auto()
-    any = auto()
-    any_nonzero = auto()
-
-
-class ActivityScale(StrEnum):
+class AnalysisScale(StrEnum):
     """Rough scale that an activity takes place in. Note: Not equal to CircuitScale."""
 
     subcellular = auto()

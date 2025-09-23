@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import EntityType

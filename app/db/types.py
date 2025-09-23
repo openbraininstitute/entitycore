@@ -139,8 +139,7 @@ class ActivityType(StrEnum):
     simulation_generation = auto()
     validation = auto()
     calibration = auto()
-    data_analysis = auto()
-    notebook_execution = auto()
+    analysis_notebook_execution = auto()
 
 
 class DerivationType(StrEnum):
@@ -299,7 +298,6 @@ class ContentType(StrEnum):
     gzip = "application/gzip"
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
-    csv = "text/csv"
 
 
 class AssetLabel(StrEnum):
@@ -375,7 +373,6 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ),
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
-    ContentType.csv: (".csv",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[

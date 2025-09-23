@@ -1628,8 +1628,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
         id: (uuid.UUID): Primary key, referencing the entity ID.
         scale: The overall scale of the analysis in the notebook. Used for filtering.
         required_python: Required python version expressed as `>=3.12`.
-        definitions: Definitions of entities to be used as input.
-            Definitions schema:
+        definitions: Definitions of entities to be used as input, with schema:
                 InputType:
                     name: str
                     type: EntityType
@@ -1678,9 +1677,10 @@ class AnalysisNotebookEnvironment(Entity):
 
     Attributes:
         id: (uuid.UUID): Primary key, referencing the entity ID.
-        runtime: json dict containing
-            os (dict): from platform.uname()._asdict()
-            python_version (str): from sys.version
+        runtime: runtime variables associated with the environment, with schema:
+            Runtime:
+                os: dict[str, str]  # from platform.uname()._asdict()
+                python_version: str  # from sys.version
 
     Assets:
         - requirements.txt produced with `pip freeze`.
@@ -1709,7 +1709,7 @@ class AnalysisNotebookExecution(Activity):
         analysis_notebook_environment_id: References the corresponding AnalysisNotebookEnvironment.
     """
 
-    __tablename__ = ActivityType.notebook_execution.value
+    __tablename__ = ActivityType.analysis_notebook_execution.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     analysis_notebook_template_id: Mapped[uuid.UUID | None] = mapped_column(

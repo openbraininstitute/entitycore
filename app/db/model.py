@@ -1632,7 +1632,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
                 InputType:
                     name: str
                     type: EntityType
-                    multiple: bool = False
+                    is_list: bool = False
                     count_min: int | None = 1
                     count_max: int | None = 1
                 Definitions:
@@ -1649,7 +1649,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
                     {
                         "name": "my_morphologies",
                         "type": "CellMorphology",
-                        "multiple": true,
+                        "is_list": true,
                         "count_min": 1,
                         "count_max": 3
                     }

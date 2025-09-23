@@ -16,7 +16,7 @@ from app.schemas.utils import make_update_schema
 class InputType(BaseModel):
     name: str
     type: EntityType
-    multiple: bool = False
+    is_list: bool = False
     count_min: int | None = 1
     count_max: int | None = 1
 

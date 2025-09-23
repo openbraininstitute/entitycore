@@ -48,6 +48,9 @@ def read_one(
     )
 
 
+admin_read_one = read_one
+
+
 def create_one(
     db: SessionDep,
     json_model: ExternalUrlCreate,

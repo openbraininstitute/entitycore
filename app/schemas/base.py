@@ -4,6 +4,7 @@ from datetime import datetime
 from pydantic import UUID4, BaseModel, ConfigDict
 
 from app.db.types import ActivityType, EntityType
+from app.schemas.utils import make_update_schema
 
 
 class ActivityTypeMixin:
@@ -63,6 +64,13 @@ class LicenseRead(LicenseCreate, CreationMixin, IdentifiableMixin):
     pass
 
 
+LicenseAdminUpdate = make_update_schema(
+    LicenseCreate,
+    "LicenseAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
 class LicenseReadMixin:
     license: LicenseRead | None = None
 
@@ -71,15 +79,30 @@ class LicenseCreateMixin:
     license_id: uuid.UUID | None = None
 
 
-class BrainRegionRead(IdentifiableMixin, CreationMixin):
+class BrainRegionBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     annotation_value: int
     name: str
     acronym: str
     color_hex_triplet: str
-    parent_structure_id: uuid.UUID | None
+    parent_structure_id: uuid.UUID | None = None
     hierarchy_id: uuid.UUID
+
+
+class BrainRegionRead(BrainRegionBase, IdentifiableMixin, CreationMixin):
+    pass
+
+
+class BrainRegionCreate(BrainRegionBase):
+    pass
+
+
+BrainRegionAdminUpdate = make_update_schema(
+    BrainRegionCreate,
+    "BrainRegionAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class BrainRegionCreateMixin(BaseModel):

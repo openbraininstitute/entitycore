@@ -31,6 +31,7 @@ from app.queries.types import ApplyOperations
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
 from app.schemas.types import ListResponse, PaginationResponse
+from app.schemas.utils import NOT_SET
 from app.utils.uuid import create_uuid
 
 
@@ -354,7 +355,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext,
+    user_context: UserContext | None,
     json_model: BaseModel,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
@@ -362,7 +363,9 @@ def router_update_one[T: BaseModel, I: Identifiable](
     query = (
         sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
     )
-    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+    if user_context and (
+        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    ):
         query = constrain_to_private_entities(query, user_context, db_model_class=id_model_class)
     if apply_operations:
         query = apply_operations(query)
@@ -427,13 +430,15 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext | UserContextWithProjectId,
+    user_context: UserContext | UserContextWithProjectId | None,
     json_model: ActivityUpdate,
     response_schema_class: type[T],
     apply_operations: ApplyOperations | None = None,
 ) -> T:
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+    if user_context and (
+        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    ):
         query = constrain_to_accessible_entities(
             query, user_context.project_id, db_model_class=id_model_class
         )
@@ -446,21 +451,24 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     update_data = json_model.model_dump(
         exclude_unset=True,
         exclude_none=True,
-        exclude_defaults=True,
         exclude={"used_ids", "generated_ids"},
+        exclude_defaults=True,  # ignore NOT_SET default values
     )
 
     for key, value in update_data.items():
         setattr(obj, key, value)
 
-    if generated_ids := json_model.generated_ids:
+    # ignore NOT_SET values
+    generated_ids = json_model.generated_ids if json_model.generated_ids != NOT_SET else []
+
+    if generated_ids:
         if obj.generated:
             raise HTTPException(
                 status_code=404,
                 detail="It is forbidden to update generated_ids if they exist.",
             )
 
-        if (
+        if user_context and (
             unaccessible_entities := db.execute(
                 select_unauthorized_entities(generated_ids, user_context.project_id)
             )

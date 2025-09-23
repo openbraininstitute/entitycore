@@ -32,6 +32,6 @@ class EMCellMeshCreate(
     em_dense_reconstruction_dataset_id: uuid.UUID
 
 
-EMCellMeshUpdate = make_update_schema(
-    EMCellMeshCreate, "EMCellMeshUpdate"
+EMCellMeshUserUpdate = make_update_schema(
+    EMCellMeshCreate, "EMCellMeshUserUpdate"
 )  # pyright : ignore [reportInvalidTypeForm]

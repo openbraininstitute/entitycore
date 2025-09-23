@@ -25,9 +25,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.electrical_recording_stimulus import (
+    ElectricalRecordingStimulusAdminUpdate,
     ElectricalRecordingStimulusCreate,
     ElectricalRecordingStimulusRead,
-    ElectricalRecordingStimulusUpdate,
+    ElectricalRecordingStimulusUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -58,6 +59,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> ElectricalRecordingStimulusRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=ElectricalRecordingStimulus,
+        authorized_project_id=None,
+        response_schema_class=ElectricalRecordingStimulusRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: ElectricalRecordingStimulusCreate,
@@ -77,7 +92,7 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ElectricalRecordingStimulusUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ElectricalRecordingStimulusUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ElectricalRecordingStimulusRead:
     return router_update_one(
         id_=id_,
@@ -137,4 +152,20 @@ def read_many(
         response_schema_class=ElectricalRecordingStimulusRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ElectricalRecordingStimulusAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ElectricalRecordingStimulusRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ElectricalRecordingStimulus,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=ElectricalRecordingStimulusRead,
+        apply_operations=_load,
     )

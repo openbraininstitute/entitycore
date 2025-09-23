@@ -4,12 +4,14 @@ from unittest.mock import ANY
 import pytest
 
 from .utils import (
+    assert_request,
     assert_response,
     check_missing,
     create_reconstruction_morphology_id,
 )
 
 ROUTE = "/measurement-annotation"
+ADMIN_ROUTE = "/admin/measurement-annotation"
 MORPHOLOGY_ROUTE = "/reconstruction-morphology"
 ENTITY_TYPE = "reconstruction_morphology"
 
@@ -17,6 +19,73 @@ ENTITY_TYPE = "reconstruction_morphology"
 @pytest.fixture
 def measurement_labels():
     return [f"pref_label_{i}" for i in range(5)]
+
+
+@pytest.fixture
+def json_data(morphology_id):
+    return {
+        "entity_type": ENTITY_TYPE,
+        "entity_id": str(morphology_id),
+        "measurement_kinds": [
+            {
+                "pref_label": "pref_label_0",
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm",
+                        "value": 54.2,
+                    },
+                    {
+                        "name": "median",
+                        "unit": "μm",
+                        "value": 44.6,
+                    },
+                ],
+            },
+        ],
+    }
+
+
+def test_update_one(clients, json_data, species_id, strain_id, brain_region_id):
+    old_morph_id = json_data["entity_id"]
+
+    new_morph_id = create_reconstruction_morphology_id(
+        clients.user_1,
+        species_id,
+        strain_id,
+        brain_region_id,
+        authorized_public=True,
+    )
+
+    model_id = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()["id"]
+
+    patch_data = {
+        "entity_id": str(new_morph_id),
+    }
+    data = assert_request(clients.user_1.patch, url=f"{ROUTE}/{model_id}", json=patch_data).json()
+    assert data["entity_id"] == patch_data["entity_id"]
+
+    # user 2 shouldn't have access to user's 1 entity to update.
+    data = assert_request(
+        clients.user_2.patch, url=f"{ROUTE}/{model_id}", json=patch_data, expected_status_code=404
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    patch_data = {
+        "entity_id": str(old_morph_id),
+    }
+
+    # users shouldn't have access to service admin endpoints
+    data = assert_request(
+        clients.user_1.patch, url=f"{ADMIN_ROUTE}/{model_id}", json={}, expected_status_code=403
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(
+        clients.admin.patch, url=f"{ADMIN_ROUTE}/{model_id}", json=patch_data
+    ).json()
+    assert data["entity_id"] == patch_data["entity_id"]
 
 
 def _get_request_payload_1(entity_id, labels):
@@ -94,7 +163,9 @@ def _get_return_payload(request_payload):
     return payload
 
 
-def test_create_and_retrieve(client, species_id, strain_id, brain_region_id, measurement_labels):
+def test_create_and_retrieve(clients, species_id, strain_id, brain_region_id, measurement_labels):
+    client = clients.user_1
+
     reconstruction_morphology_id = create_reconstruction_morphology_id(
         client,
         species_id,
@@ -116,6 +187,11 @@ def test_create_and_retrieve(client, species_id, strain_id, brain_region_id, mea
 
     # read the resource
     response = client.get(f"{ROUTE}/{measurement_annotation_id_1}")
+    assert_response(response, expected_status_code=200)
+    data = response.json()
+    assert data == expected_payload_1
+
+    response = clients.admin.get(f"{ADMIN_ROUTE}/{measurement_annotation_id_1}")
     assert_response(response, expected_status_code=200)
     data = response.json()
     assert data == expected_payload_1

@@ -33,9 +33,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.density import (
+    ExperimentalSynapsesPerConnectionAdminUpdate,
     ExperimentalSynapsesPerConnectionCreate,
     ExperimentalSynapsesPerConnectionRead,
-    ExperimentalSynapsesPerConnectionUpdate,
+    ExperimentalSynapsesPerConnectionUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -160,6 +161,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> ExperimentalSynapsesPerConnectionRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=ExperimentalSynapsesPerConnection,
+        authorized_project_id=None,
+        response_schema_class=ExperimentalSynapsesPerConnectionRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     json_model: ExperimentalSynapsesPerConnectionCreate,
@@ -179,13 +194,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: ExperimentalSynapsesPerConnectionUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: ExperimentalSynapsesPerConnectionUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> ExperimentalSynapsesPerConnectionRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=ExperimentalSynapsesPerConnection,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=ExperimentalSynapsesPerConnectionRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: ExperimentalSynapsesPerConnectionAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ExperimentalSynapsesPerConnectionRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ExperimentalSynapsesPerConnection,
+        user_context=None,
         json_model=json_model,
         response_schema_class=ExperimentalSynapsesPerConnectionRead,
         apply_operations=_load,

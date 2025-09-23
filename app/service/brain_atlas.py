@@ -58,6 +58,17 @@ def read_one(user_context: UserContextDep, atlas_id: uuid.UUID, db: SessionDep) 
     )
 
 
+def admin_read_one(db: SessionDep, atlas_id: uuid.UUID) -> BrainAtlasRead:
+    return app.queries.common.router_read_one(
+        id_=atlas_id,
+        db=db,
+        db_model_class=BrainAtlas,
+        authorized_project_id=None,
+        response_schema_class=BrainAtlasRead,
+        apply_operations=_load_brain_atlas,
+    )
+
+
 def read_many_region(
     user_context: UserContextDep,
     atlas_id: uuid.UUID,

@@ -22,7 +22,7 @@ class ValidationRead(ActivityRead):
     pass
 
 
-class ValidationUpdate(ActivityUpdate):
+class ValidationUserUpdate(ActivityUpdate):
     pass
 
 
@@ -47,4 +47,18 @@ class ValidationResultCreate(ValidationResultBase, AuthorizationOptionalPublicMi
     pass
 
 
-ValidationResultUpdate = make_update_schema(ValidationResultCreate, "ValidationResultUpdate")  # pyright: ignore [reportInvalidTypeForm]
+ValidationResultUserUpdate = make_update_schema(
+    ValidationResultCreate, "ValidationResultUserUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
+
+ValidationResultAdminUpdate = make_update_schema(
+    ValidationResultCreate,
+    "ValidationResultAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
+ValidationAdminUpdate = make_update_schema(
+    ValidationCreate,
+    "ValidationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

@@ -23,9 +23,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.simulation_generation import (
+    SimulationGenerationAdminUpdate,
     SimulationGenerationCreate,
     SimulationGenerationRead,
-    SimulationGenerationUpdate,
+    SimulationGenerationUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -53,6 +54,20 @@ def read_one(
         id_=id_,
         db_model_class=SimulationGeneration,
         authorized_project_id=user_context.project_id,
+        response_schema_class=SimulationGenerationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SimulationGenerationRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=SimulationGeneration,
+        authorized_project_id=None,
         response_schema_class=SimulationGenerationRead,
         apply_operations=_load,
     )
@@ -148,7 +163,7 @@ def delete_one(
 def update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationGenerationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SimulationGenerationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
     user_context: UserContextWithProjectIdDep,
 ) -> SimulationGenerationRead:
     return router_update_activity_one(
@@ -156,6 +171,22 @@ def update_one(
         id_=id_,
         json_model=json_model,
         user_context=user_context,
+        db_model_class=SimulationGeneration,
+        response_schema_class=SimulationGenerationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SimulationGenerationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SimulationGenerationRead:
+    return router_update_activity_one(
+        db=db,
+        id_=id_,
+        json_model=json_model,
+        user_context=None,
         db_model_class=SimulationGeneration,
         response_schema_class=SimulationGenerationRead,
         apply_operations=_load,

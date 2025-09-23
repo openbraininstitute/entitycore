@@ -27,9 +27,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_recording import (
+    IonChannelRecordingAdminUpdate,
     IonChannelRecordingCreate,
     IonChannelRecordingRead,
-    IonChannelRecordingUpdate,
+    IonChannelRecordingUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -68,6 +69,20 @@ def read_one(
         id_=id_,
         db_model_class=IonChannelRecording,
         authorized_project_id=user_context.project_id,
+        response_schema_class=IonChannelRecordingRead,
+        apply_operations=_load,
+    )
+
+
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> IonChannelRecordingRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=IonChannelRecording,
+        authorized_project_id=None,
         response_schema_class=IonChannelRecordingRead,
         apply_operations=_load,
     )
@@ -157,13 +172,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: IonChannelRecordingUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: IonChannelRecordingUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> IonChannelRecordingRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=IonChannelRecording,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=IonChannelRecordingRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: IonChannelRecordingAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> IonChannelRecordingRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelRecording,
+        user_context=None,
         json_model=json_model,
         response_schema_class=IonChannelRecordingRead,
         apply_operations=_load,

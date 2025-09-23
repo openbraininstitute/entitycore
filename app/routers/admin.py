@@ -3,13 +3,16 @@ import uuid
 from fastapi import APIRouter
 
 from app.db.utils import RESOURCE_TYPE_TO_CLASS
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
+from app.filters.asset import AssetFilterDep
 from app.queries.common import router_delete_one
 from app.schemas.asset import (
     AssetRead,
 )
-from app.service import asset as asset_service
+from app.schemas.types import ListResponse
+from app.service import admin as admin_service, asset as asset_service
 from app.utils.routers import EntityRoute, ResourceRoute, entity_route_to_type, route_to_type
 
 router = APIRouter(
@@ -30,6 +33,39 @@ def delete_one(
         db=db,
         db_model_class=RESOURCE_TYPE_TO_CLASS[resource_type],
         authorized_project_id=None,
+    )
+
+
+@router.get("/{entity_route}/{entity_id}/assets/{asset_id}")
+def get_entity_asset(
+    repos: RepoGroupDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> AssetRead:
+    """Return an asset associated with a specific entity."""
+    return admin_service.get_entity_asset(
+        repos=repos,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+
+
+@router.get("/{entity_route}/{entity_id}/assets")
+def get_entity_assets(
+    repos: RepoGroupDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    pagination_request: PaginationQuery,
+    filter_model: AssetFilterDep,
+) -> ListResponse[AssetRead]:
+    return admin_service.get_entity_assets(
+        repos=repos,
+        entity_route=entity_route,
+        entity_id=entity_id,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
     )
 
 

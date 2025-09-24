@@ -94,7 +94,7 @@ def test_create_one(client, client_admin, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_create_one__empty_ids(client, json_data):
+def test_create_one__empty_ids(client, client_admin, json_data):
     json_data = {k: v for k, v in json_data.items() if k not in {"used_ids", "generated_ids"}}
 
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
@@ -104,6 +104,9 @@ def test_create_one__empty_ids(client, json_data):
     _assert_read_response(data, json_data, empty_ids=True)
 
     data = assert_request(client.get, url=ROUTE).json()["data"][0]
+    _assert_read_response(data, json_data, empty_ids=True)
+
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{data['id']}").json()
     _assert_read_response(data, json_data, empty_ids=True)
 
 

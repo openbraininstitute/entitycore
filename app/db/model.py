@@ -1627,34 +1627,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     Attributes:
         id: (uuid.UUID): Primary key, referencing the entity ID.
         scale: The overall scale of the analysis in the notebook. Used for filtering.
-        required_python: Required python version expressed as `>=3.12`.
-        definitions: Definitions of entities to be used as input, with schema:
-                InputType:
-                    name: str
-                    type: EntityType
-                    is_list: bool = False
-                    count_min: int | None = 1
-                    count_max: int | None = 1
-                Definitions:
-                    version: int
-                    inputs: list[InputType]
-            Definitions example:
-            {
-                "version": 1,
-                "inputs": [
-                    {
-                        "name": "my_circuit",
-                        "type": "Circuit",
-                    },
-                    {
-                        "name": "my_morphologies",
-                        "type": "CellMorphology",
-                        "is_list": true,
-                        "count_min": 1,
-                        "count_max": 3
-                    }
-                ],
-            }
+        specifications: Definitions of required python version and inputs, with schema.
 
     Assets:
         - a .ipynb file.
@@ -1666,8 +1639,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scale: Mapped[AnalysisScale]
-    required_python: Mapped[str]
-    definitions: Mapped[JSON_DICT | None]
+    specifications: Mapped[JSON_DICT | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1677,10 +1649,7 @@ class AnalysisNotebookEnvironment(Entity):
 
     Attributes:
         id: (uuid.UUID): Primary key, referencing the entity ID.
-        runtime: runtime variables associated with the environment, with schema:
-            Runtime:
-                os: dict[str, str]  # from platform.uname()._asdict()
-                python_version: str  # from sys.version
+        runtime_info: runtime variables associated with the environment, with schema.
 
     Assets:
         - requirements.txt produced with `pip freeze`.
@@ -1690,7 +1659,7 @@ class AnalysisNotebookEnvironment(Entity):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    runtime: Mapped[JSON_DICT | None]
+    runtime_info: Mapped[JSON_DICT | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

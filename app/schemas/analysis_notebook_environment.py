@@ -12,14 +12,33 @@ from app.schemas.base import (
 from app.schemas.utils import make_update_schema
 
 
-class Runtime(BaseModel):
-    os: dict[str, str]  # Expected: platform.uname()._asdict()
-    python_version: str  # Expected: sys.version
+class OsInfo(BaseModel):
+    """OS information."""
+
+    system: str  # platform.system()
+    release: str  # platform.release()
+    version: str  # platform.version()
+    machine: str  # platform.machine()
+    processor: str  # platform.processor()
+
+
+class PythonInfo(BaseModel):
+    """Python runtime information."""
+
+    version: str  # platform.python_version()
+    implementation: str  # platform.python_implementation()
+    executable: str  # sys.executable
+
+
+class RuntimeInfo(BaseModel):
+    schema_version: int = 1
+    os: OsInfo
+    python: PythonInfo
 
 
 class AnalysisNotebookEnvironmentBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    runtime: Runtime | None
+    runtime_info: RuntimeInfo | None
 
 
 class AnalysisNotebookEnvironmentCreate(

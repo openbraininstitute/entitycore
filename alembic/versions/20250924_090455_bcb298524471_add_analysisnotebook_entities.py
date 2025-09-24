@@ -1,8 +1,8 @@
 """Add AnalysisNotebook entities.
 
-Revision ID: 311fb2e37839
+Revision ID: bcb298524471
 Revises: 7aa80d34dbdd
-Create Date: 2025-09-23 16:10:24.685645
+Create Date: 2025-09-24 09:04:55.705453
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "311fb2e37839"
+revision: str = "bcb298524471"
 down_revision: Union[str, None] = "7aa80d34dbdd"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -31,7 +31,7 @@ def upgrade() -> None:
     op.create_table(
         "analysis_notebook_environment",
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("runtime", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("runtime_info", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.ForeignKeyConstraint(
             ["id"], ["entity.id"], name=op.f("fk_analysis_notebook_environment_id_entity")
         ),
@@ -73,8 +73,7 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
-        sa.Column("required_python", sa.String(), nullable=False),
-        sa.Column("definitions", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("specifications", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
@@ -105,20 +104,20 @@ def upgrade() -> None:
             ["analysis_notebook_environment_id"],
             ["analysis_notebook_environment.id"],
             name=op.f(
-                "fk_notebook_execution_analysis_notebook_environment_id_analysis_notebook_environment"
+                "fk_analysis_notebook_execution_analysis_notebook_environment_id_analysis_notebook_environment"
             ),
         ),
         sa.ForeignKeyConstraint(
             ["analysis_notebook_template_id"],
             ["analysis_notebook_template.id"],
             name=op.f(
-                "fk_notebook_execution_analysis_notebook_template_id_analysis_notebook_template"
+                "fk_analysis_notebook_execution_analysis_notebook_template_id_analysis_notebook_template"
             ),
         ),
         sa.ForeignKeyConstraint(
-            ["id"], ["activity.id"], name=op.f("fk_notebook_execution_id_activity")
+            ["id"], ["activity.id"], name=op.f("fk_analysis_notebook_execution_id_activity")
         ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_notebook_execution")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_analysis_notebook_execution")),
     )
     op.sync_enum_values(
         enum_schema="public",

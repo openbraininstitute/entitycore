@@ -17,6 +17,7 @@ from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
+from app.errors import ensure_valid_schema
 from app.filters.cell_morphology_protocol import CellMorphologyProtocolFilterDep
 from app.queries.common import (
     router_create_one,
@@ -26,11 +27,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology_protocol import (
-    CellMorphologyProtocolAdminUpdate,
     CellMorphologyProtocolCreate,
     CellMorphologyProtocolRead,
     CellMorphologyProtocolReadAdapter,
-    CellMorphologyProtocolUserUpdate,
+    CellMorphologyProtocolUserUpdateAdapter,
 )
 from app.schemas.types import ListResponse
 
@@ -143,33 +143,44 @@ def read_many(
 
 
 def update_one(
-    user_context: UserContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-    json_model: CellMorphologyProtocolUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    user_context: UserContextDep, db: SessionDep, id_: uuid.UUID, json_model: dict
 ) -> CellMorphologyProtocolRead:
+    one = read_one(db=db, id_=id_, user_context=user_context)
+
+    # use retrieved model generation_type to find the respective adapted update schema
+    with ensure_valid_schema(f"Payload is not compatible with {one.generation_type} protocol."):
+        patch_model = CellMorphologyProtocolUserUpdateAdapter.model_validate(
+            json_model | {"generation_type": one.generation_type}
+        )
+
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphologyProtocol,
-        user_context=user_context,
-        json_model=json_model,
+        user_context=None,  # already checked for access
+        json_model=patch_model,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
     )
 
 
 def admin_update_one(
-    db: SessionDep,
-    id_: uuid.UUID,
-    json_model: CellMorphologyProtocolAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    db: SessionDep, id_: uuid.UUID, json_model: dict
 ) -> CellMorphologyProtocolRead:
+    one = admin_read_one(db=db, id_=id_)
+
+    # use retrieved model generation_type to find the respective adapted update schema
+    with ensure_valid_schema(f"Payload is not compatible with {one.generation_type} protocol."):
+        patch_model = CellMorphologyProtocolUserUpdateAdapter.model_validate(
+            json_model | {"generation_type": one.generation_type}
+        )
+
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphologyProtocol,
         user_context=None,
-        json_model=json_model,
+        json_model=patch_model,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
     )

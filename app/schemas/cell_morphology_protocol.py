@@ -18,7 +18,7 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.types import SerializableHttpUrl
-from app.schemas.utils import make_update_schema
+from app.schemas.utils import NOT_SET, make_update_schema
 
 
 class CommonReadMixin(
@@ -129,16 +129,16 @@ class PlaceholderCellMorphologyProtocolCreate(
 
 # Update Models
 
-PRESERVED_UPDATE_FIELDS = {"generation_type"}
 USER_EXCLUDED_UPDATE_FIELDS = {"authorized_public"}
 ADMIN_EXCLUDED_UPDATE_FIELDS = set()
+PRESERVED_FIELDS = {"generation_type"}
 
 
 DigitalReconstructionCellMorphologyProtocolUserUpdate = make_update_schema(
     DigitalReconstructionCellMorphologyProtocolCreate,
     "DigitalReconstructionCellMorphologyProtocolUserUpdate",
     excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
-    preserved_fields=PRESERVED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
@@ -146,7 +146,7 @@ ModifiedReconstructionCellMorphologyProtocolUserUpdate = make_update_schema(
     ModifiedReconstructionCellMorphologyProtocolCreate,
     "ModifiedReconstructionCellMorphologyProtocolUserUpdate",
     excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
-    preserved_fields=PRESERVED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
@@ -154,7 +154,7 @@ ComputationallySynthesizedCellMorphologyProtocolUserUpdate = make_update_schema(
     ComputationallySynthesizedCellMorphologyProtocolCreate,
     "ComputationallySynthesizedCellMorphologyProtocolUserUpdate",
     excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
-    preserved_fields=PRESERVED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
@@ -162,7 +162,7 @@ PlaceholderCellMorphologyProtocolUserUpdate = make_update_schema(
     PlaceholderCellMorphologyProtocolCreate,
     "PlaceholderCellMorphologyProtocolUserUpdate",
     excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
-    preserved_fields=PRESERVED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
@@ -170,7 +170,7 @@ DigitalReconstructionCellMorphologyProtocolAdminUpdate = make_update_schema(
     DigitalReconstructionCellMorphologyProtocolCreate,
     "DigitalReconstructionCellMorphologyProtocolAdminUpdate",
     excluded_fields=ADMIN_EXCLUDED_UPDATE_FIELDS,
-    preserved_fields=PRESERVED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
@@ -178,7 +178,7 @@ ModifiedReconstructionCellMorphologyProtocolAdminUpdate = make_update_schema(
     ModifiedReconstructionCellMorphologyProtocolCreate,
     "ModifiedReconstructionCellMorphologyProtocolAdminUpdate",
     excluded_fields=ADMIN_EXCLUDED_UPDATE_FIELDS,
-    preserved_fields=PRESERVED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
@@ -186,7 +186,7 @@ ComputationallySynthesizedCellMorphologyProtocolAdminUpdate = make_update_schema
     ComputationallySynthesizedCellMorphologyProtocolCreate,
     "ComputationallySynthesizedCellMorphologyProtocolAdminUpdate",
     excluded_fields=ADMIN_EXCLUDED_UPDATE_FIELDS,
-    preserved_fields=PRESERVED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
@@ -194,7 +194,7 @@ PlaceholderCellMorphologyProtocolAdminUpdate = make_update_schema(
     PlaceholderCellMorphologyProtocolCreate,
     "PlaceholderCellMorphologyProtocolAdminUpdate",
     excluded_fields=ADMIN_EXCLUDED_UPDATE_FIELDS,
-    preserved_fields=PRESERVED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
@@ -312,3 +312,17 @@ class CellMorphologyProtocolReadAdapter(BaseModel):
     def model_validate(cls, obj: Any, *args, **kwargs) -> CellMorphologyProtocolRead:  # type: ignore[override]
         """Return the correct instance of the protocol."""
         return cls._adapter.validate_python(obj, *args, **kwargs)
+
+
+class CellMorphologyProtocolUserUpdateAdapter(BaseModel):
+    """Polymorphic wrapper for CellMorphologyProtocolRead."""
+
+    _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolUserUpdate)
+
+    @classmethod
+    def model_validate(cls, obj: Any, *args, **kwargs) -> CellMorphologyProtocolUserUpdate:  # type: ignore[override]
+        """Return the correct instance of the protocol."""
+        model = cls._adapter.validate_python(obj, *args, **kwargs)
+        # generation_type was needed only as a discriminator. It should not be updated.
+        model.generation_type = NOT_SET
+        return model

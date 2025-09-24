@@ -29,6 +29,7 @@ from .utils import (
 )
 
 ROUTE = "/cell-morphology-protocol"
+ADMIN_ROUTE = "/admin/cell-morphology-protocol"
 
 
 @pytest.fixture
@@ -124,6 +125,60 @@ def test_create_one(request, client, json_data_fixture):
     del json_data["type"]
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, expected)
+
+
+def test_update_one(clients, json_data_digital_reconstruction):
+    def _req_compare(client, route, patch_data):
+        data = assert_request(
+            client.patch,
+            url=f"{route}/{model_id}",
+            json=patch_data,
+        ).json()
+        for k, v in patch_data.items():
+            assert data[k] == v
+
+    json_data = json_data_digital_reconstruction
+
+    data = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()
+    model_id = data["id"]
+
+    _req_compare(
+        clients.user_1,
+        ROUTE,
+        {
+            "protocol_document": "https://foo.com/",
+            "protocol_design": "cell_patch",
+            "slicing_direction": "coronal",
+            "slicing_thickness": 100,
+        },
+    )
+
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{ROUTE}/{model_id}",
+        json={"protocol_document": "cloned"},
+        expected_status_code=422,
+    ).json()
+    assert data["message"] == "Payload is not compatible with digital_reconstruction protocol."
+
+    _req_compare(
+        clients.admin,
+        ADMIN_ROUTE,
+        {
+            "protocol_document": "https://foo.com/",
+            "protocol_design": "cell_patch",
+            "slicing_direction": "coronal",
+            "slicing_thickness": 100,
+        },
+    )
+
+    data = assert_request(
+        clients.admin.patch,
+        url=f"{ADMIN_ROUTE}/{model_id}",
+        json={"protocol_document": "cloned"},
+        expected_status_code=422,
+    ).json()
+    assert data["message"] == "Payload is not compatible with digital_reconstruction protocol."
 
 
 def test_read_one(client, model_id, json_data):

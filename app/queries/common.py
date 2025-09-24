@@ -374,7 +374,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
         obj = db.execute(query).unique().scalar_one()
 
     # remove attributes with NOT_SET sentinel and leave only user set ones
-    update_data = json_model.model_dump(exclude_defaults=True)
+    update_data = {k: v for k, v in json_model.model_dump().items() if v != NOT_SET}
 
     for key, value in update_data.items():
         setattr(obj, key, value)

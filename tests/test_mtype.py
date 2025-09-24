@@ -1,3 +1,5 @@
+import pytest
+
 from app.db.model import MTypeClass, MTypeClassification
 
 from .utils import (
@@ -5,6 +7,8 @@ from .utils import (
     add_all_db,
     add_db,
     assert_request,
+    check_global_read_one,
+    check_global_update_one,
     check_missing,
     count_db_class,
     create_cell_morphology_id,
@@ -14,6 +18,48 @@ from .utils import (
 ROUTE = "/mtype"
 ADMIN_ROUTE = "/admin/mtype"
 ROUTE_MORPH = "/cell-morphology"
+
+
+@pytest.fixture
+def json_data():
+    return {
+        "pref_label": "pref_label_mtype",
+        "alt_label": "alt_label_mtype",
+        "definition": "definition_mtype",
+    }
+
+
+def _assert_read_response(data, json_data):
+    assert "id" in data
+    assert data["pref_label"] == json_data["pref_label"]
+    assert data["alt_label"] == json_data["alt_label"]
+    assert data["definition"] == json_data["definition"]
+    assert "creation_date" in data
+    assert "update_date" in data
+
+
+def test_read_one(clients, json_data):
+    check_global_read_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
+
+
+def test_update_one(clients, json_data):
+    check_global_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "pref_label": "new_pref_label_mtype",
+            "alt_label": "new_alt_label_mtype",
+            "definition": "new_definition_mtype",
+        },
+    )
 
 
 def test_retrieve(db, client, person_id):

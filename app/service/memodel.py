@@ -34,7 +34,7 @@ from app.queries.common import (
     router_update_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.me_model import MEModelCreate, MEModelRead, MEModelUpdate
+from app.schemas.me_model import MEModelAdminUpdate, MEModelCreate, MEModelRead, MEModelUserUpdate
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -95,6 +95,17 @@ def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> ME
     )
 
 
+def admin_read_one(db: SessionDep, id_: uuid.UUID) -> MEModelRead:
+    return router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=MEModel,
+        authorized_project_id=None,
+        response_schema_class=MEModelRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     memodel: MEModelCreate,
@@ -114,13 +125,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: MEModelUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: MEModelUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> MEModelRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=MEModel,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=MEModelRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: MEModelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> MEModelRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=MEModel,
+        user_context=None,
         json_model=json_model,
         response_schema_class=MEModelRead,
         apply_operations=_load,

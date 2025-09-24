@@ -10,7 +10,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.common import StrainFilterDep
 from app.queries.factory import query_params_factory
-from app.schemas.species import StrainCreate, StrainRead
+from app.schemas.species import StrainAdminUpdate, StrainCreate, StrainRead
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
 
@@ -75,6 +75,14 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
     )
 
 
+def admin_read_one(
+    *,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> StrainRead:
+    return read_one(id_=id_, db=db)
+
+
 def create_one(
     json_model: StrainCreate, db: SessionDep, user_context: AdminContextDep
 ) -> StrainRead:
@@ -88,4 +96,35 @@ def create_one(
         response_schema_class=StrainRead,
         apply_operations=_load,
         embedding=embedding,
+    )
+
+
+def update_one(
+    db: SessionDep,
+    user_context: AdminContextDep,  # noqa: ARG001
+    id_: uuid.UUID,
+    json_model: StrainAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> StrainRead:
+    return app.queries.common.router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Strain,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=StrainRead,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: StrainAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> StrainRead:
+    return app.queries.common.router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Strain,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=StrainRead,
     )

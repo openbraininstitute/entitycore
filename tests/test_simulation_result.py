@@ -7,6 +7,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_creation_fields,
+    check_entity_update_one,
     check_missing,
     check_pagination,
     count_db_class,
@@ -47,41 +48,18 @@ def _assert_read_response(data, json_data):
     check_creation_fields(data)
 
 
-def test_update_one(client, model):
-    new_name = "my_new_simulation_result_name"
-    new_description = "my_new_simulation_result_description"
-
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{model.id}",
-        json={
-            "name": new_name,
-            "description": new_description,
+def test_update_one(clients, json_data):
+    check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "name",
+            "description": "description",
         },
-    ).json()
-
-    assert data["name"] == new_name
-    assert data["description"] == new_description
-
-
-def test_update_one__public(client, json_data):
-    data = assert_request(
-        client.post,
-        url=ROUTE,
-        json=json_data
-        | {
-            "authorized_public": True,
-        },
-    ).json()
-
-    # should not be allowed to update it once public
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{data['id']}",
-        json={"name": "foo"},
-        expected_status_code=404,
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
+        optional_payload=None,
+    )
 
 
 def test_create_one(client, json_data):
@@ -89,8 +67,13 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_one(client, model, json_data):
+def test_user_read_one(client, model, json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model.id}").json()
+    _assert_read_response(data, json_data)
+
+
+def test_admin_read_one(client_admin, model, json_data):
+    data = assert_request(client_admin.get, url=f"/admin/{ROUTE}/{model.id}").json()
     _assert_read_response(data, json_data)
 
 

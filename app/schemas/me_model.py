@@ -42,7 +42,13 @@ class MEModelCreate(MEModelBase, AuthorizationOptionalPublicMixin):
     strain_id: uuid.UUID | None = None
 
 
-MEModelUpdate = make_update_schema(MEModelCreate, "MEModelUpdate")  # pyright: ignore [reportInvalidTypeForm]
+MEModelUserUpdate = make_update_schema(MEModelCreate, "MEModelUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
+
+MEModelAdminUpdate = make_update_schema(
+    MEModelCreate,
+    "MEModelAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class MEModelRead(

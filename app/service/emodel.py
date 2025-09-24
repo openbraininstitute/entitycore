@@ -28,7 +28,13 @@ from app.queries.common import (
     router_update_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.emodel import EModelCreate, EModelRead, EModelReadExpanded, EModelUpdate
+from app.schemas.emodel import (
+    EModelAdminUpdate,
+    EModelCreate,
+    EModelRead,
+    EModelReadExpanded,
+    EModelUserUpdate,
+)
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -75,6 +81,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> EModelReadExpanded:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=EModel,
+        authorized_project_id=None,
+        response_schema_class=EModelReadExpanded,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
@@ -94,13 +114,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: EModelUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: EModelUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> EModelRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=EModel,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=EModelRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: EModelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> EModelRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=EModel,
+        user_context=None,
         json_model=json_model,
         response_schema_class=EModelRead,
         apply_operations=_load,

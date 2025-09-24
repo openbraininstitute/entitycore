@@ -32,9 +32,15 @@ class SingleNeuronSynaptomeCreate(
     brain_region_id: uuid.UUID
 
 
-SingleNeuronSynaptomeUpdate = make_update_schema(
-    SingleNeuronSynaptomeCreate, "SingleNeuronSynaptomeUpdate"
+SingleNeuronSynaptomeUserUpdate = make_update_schema(
+    SingleNeuronSynaptomeCreate, "SingleNeuronSynaptomeUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+
+SingleNeuronSynaptomeAdminUpdate = make_update_schema(
+    SingleNeuronSynaptomeCreate,
+    "SingleNeuronSynaptomeAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedSynaptome(SingleNeuronSynaptomeBase, CreationMixin, IdentifiableMixin):

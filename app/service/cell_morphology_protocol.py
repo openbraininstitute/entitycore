@@ -18,12 +18,19 @@ from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.cell_morphology_protocol import CellMorphologyProtocolFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology_protocol import (
+    CellMorphologyProtocolAdminUpdate,
     CellMorphologyProtocolCreate,
     CellMorphologyProtocolRead,
     CellMorphologyProtocolReadAdapter,
+    CellMorphologyProtocolUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -51,6 +58,20 @@ def read_one(
         db_model_class=CellMorphologyProtocol,
         authorized_project_id=user_context.project_id,
         response_schema_class=CellMorphologyProtocolReadAdapter,
+        apply_operations=_load_from_db,
+    )
+
+
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> CellMorphologyProtocolRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=CellMorphologyProtocol,
+        authorized_project_id=None,
+        response_schema_class=CellMorphologyProtocolRead,
         apply_operations=_load_from_db,
     )
 
@@ -118,4 +139,37 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         filter_joins=filter_joins,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CellMorphologyProtocolUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> CellMorphologyProtocolRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellMorphologyProtocol,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=CellMorphologyProtocolReadAdapter,
+        apply_operations=_load_from_db,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CellMorphologyProtocolAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> CellMorphologyProtocolRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellMorphologyProtocol,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=CellMorphologyProtocolReadAdapter,
+        apply_operations=_load_from_db,
     )

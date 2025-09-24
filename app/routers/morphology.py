@@ -3,7 +3,7 @@ from fastapi import APIRouter
 import app.service.cell_morphology
 from app.routers.admin import router as admin_router
 
-ROUTE = "cell-morphology"
+ROUTE = "reconstruction-morphology"
 
 router = APIRouter(
     prefix=f"/{ROUTE}",

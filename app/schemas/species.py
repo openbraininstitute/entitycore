@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.utils import make_update_schema
 
 
 class SpeciesCreate(BaseModel):
@@ -14,6 +15,13 @@ class SpeciesCreate(BaseModel):
 
 class SpeciesRead(SpeciesCreate, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
     pass
+
+
+SpeciesAdminUpdate = make_update_schema(
+    SpeciesCreate,
+    "SpeciesAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedSpeciesRead(SpeciesCreate, IdentifiableMixin):
@@ -29,6 +37,13 @@ class StrainCreate(BaseModel):
 
 class StrainRead(StrainCreate, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
     pass
+
+
+StrainAdminUpdate = make_update_schema(
+    StrainCreate,
+    "StrainAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedStrainRead(StrainCreate, IdentifiableMixin):

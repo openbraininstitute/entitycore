@@ -24,6 +24,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    check_entity_update_one,
     count_db_class,
     create_cell_morphology_id,
     delete_entity_classifications,
@@ -46,7 +47,7 @@ def json_data(subject_id, license_id, brain_region_id, cell_morphology_protocol)
         "license_id": str(license_id),
         "cell_morphology_protocol_id": str(cell_morphology_protocol.id),
         "contact_email": "test@example.com",
-        "experiment_date": "2025-01-01",
+        "experiment_date": "2025-01-01T00:00:00",
     }
 
 
@@ -130,65 +131,20 @@ def test_delete_one(db, client, client_admin, morphology_id, person_id, role_id)
     assert count_db_class(db, MTypeClassification) == 0
 
 
-def test_update_one(client, morphology_id):
-    new_name = "my_new_name"
-    new_description = "my_new_description"
-
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{morphology_id}",
-        json={
-            "name": new_name,
-            "description": new_description,
+def test_update_one(clients, json_data):
+    check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "name",
+            "description": "description",
         },
-    ).json()
-
-    assert data["name"] == new_name
-    assert data["description"] == new_description
-
-    # set location
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{morphology_id}",
-        json={
+        optional_payload={
             "location": {"x": 100, "y": 200, "z": 300},
         },
-    ).json()
-    assert data["location"]["x"] == 100
-    assert data["location"]["y"] == 200
-    assert data["location"]["z"] == 300
-
-    # unset location
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{morphology_id}",
-        json={
-            "location": None,
-        },
-    ).json()
-    assert data["location"] is None
-
-
-def test_update_one__public(client, json_data):
-    # make private entity public
-    data = assert_request(
-        client.post,
-        url=ROUTE,
-        json=json_data
-        | {
-            "authorized_public": True,
-            "cell_morphology_protocol_id": None,
-        },
-    ).json()
-
-    # should not be allowed to update it once public
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{data['id']}",
-        json={"name": "foo"},
-        expected_status_code=404,
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
+    )
 
 
 def test_missing(client):

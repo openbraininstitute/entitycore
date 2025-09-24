@@ -516,6 +516,56 @@ def test_get_entity_assets(client, entity, asset):
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
 
+def test_get_deleted_entity_assets__admin(client, client_admin, entity, asset):
+    """Test that a service admin can fetch marked as deleted assets."""
+
+    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
+
+    assert response.status_code == 200, f"Failed to get asset: {response.text}"
+    data = response.json()["data"]
+
+    expected_full_path = _get_expected_full_path(entity, path="morph.asc")
+
+    expected_asset_payload = {
+        "id": str(asset.id),
+        "path": "morph.asc",
+        "full_path": expected_full_path,
+        "is_directory": False,
+        "content_type": "application/asc",
+        "size": FILE_EXAMPLE_SIZE,
+        "sha256_digest": FILE_EXAMPLE_DIGEST,
+        "meta": {},
+        "status": "created",
+        "label": "morphology",
+        "storage_type": StorageType.aws_s3_internal,
+    }
+
+    assert data == [expected_asset_payload]
+
+    # mark as deleted, ensure that admin can get the deleted asset
+    response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
+    assert response.status_code == 200, f"Failed to delete asset: {response.text}"
+
+    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}")
+    assert response.status_code == 200, f"Failed to delete asset: {response.text}"
+    assert response.json() == expected_asset_payload | {"status": "deleted"}
+
+    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
+    assert response.status_code == 200, f"Failed to get asset: {response.text}"
+    data = response.json()["data"]
+
+    assert data == [expected_asset_payload | {"status": "deleted"}]
+
+    # delete completely as admin
+    response = client_admin.delete(f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}")
+    assert response.status_code == 200, f"Failed to delete asset: {response.text}"
+
+    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
+    assert response.status_code == 200, f"Failed to get asset: {response.text}"
+    data = response.json()["data"]
+    assert data == []
+
+
 @pytest.mark.parametrize("client_fixture", ["client_user_2", "client_no_project"])
 def test_get_entity_assets_non_authorized(request, client_fixture, entity):
     client = request.getfixturevalue(client_fixture)

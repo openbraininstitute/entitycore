@@ -25,9 +25,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.simulation import (
+    SimulationAdminUpdate,
     SimulationCreate,
     SimulationRead,
-    SimulationUpdate,
+    SimulationUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -60,6 +61,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SimulationRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=Simulation,
+        authorized_project_id=None,
+        response_schema_class=SimulationRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: SimulationCreate,
@@ -79,13 +94,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SimulationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SimulationRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=Simulation,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=SimulationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SimulationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SimulationRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Simulation,
+        user_context=None,
         json_model=json_model,
         response_schema_class=SimulationRead,
         apply_operations=_load,

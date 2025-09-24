@@ -21,9 +21,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.synaptome import (
+    SingleNeuronSynaptomeAdminUpdate,
     SingleNeuronSynaptomeCreate,
     SingleNeuronSynaptomeRead,
-    SingleNeuronSynaptomeUpdate,
+    SingleNeuronSynaptomeUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -57,6 +58,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SingleNeuronSynaptomeRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=SingleNeuronSynaptome,
+        authorized_project_id=None,
+        response_schema_class=SingleNeuronSynaptomeRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: SingleNeuronSynaptomeCreate,
@@ -76,13 +91,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SingleNeuronSynaptomeUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SingleNeuronSynaptomeUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SingleNeuronSynaptomeRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=SingleNeuronSynaptome,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=SingleNeuronSynaptomeRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SingleNeuronSynaptomeAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SingleNeuronSynaptomeRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=SingleNeuronSynaptome,
+        user_context=None,
         json_model=json_model,
         response_schema_class=SingleNeuronSynaptomeRead,
         apply_operations=_load,

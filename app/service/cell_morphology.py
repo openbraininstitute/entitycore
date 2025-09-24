@@ -37,10 +37,11 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.cell_morphology import (
+    CellMorphologyAdminUpdate,
     CellMorphologyAnnotationExpandedRead,
     CellMorphologyCreate,
     CellMorphologyRead,
-    CellMorphologyUpdate,
+    CellMorphologyUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -102,6 +103,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> CellMorphologyRead:
+    return router_read_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellMorphology,
+        authorized_project_id=None,
+        response_schema_class=CellMorphologyRead,
+        apply_operations=_load_from_db,
+    )
+
+
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
@@ -121,13 +136,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: CellMorphologyUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: CellMorphologyUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> CellMorphologyRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphology,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=CellMorphologyRead,
+        apply_operations=_load_from_db,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CellMorphologyAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> CellMorphologyRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellMorphology,
+        user_context=None,
         json_model=json_model,
         response_schema_class=CellMorphologyRead,
         apply_operations=_load_from_db,

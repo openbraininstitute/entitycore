@@ -100,8 +100,10 @@ def load_db_model_from_pydantic[I: DeclarativeBase](
     created_by_id: uuid.UUID | None,
     updated_by_id: uuid.UUID | None,
     ignore_attributes: set[str] | None = None,
+    *,
+    exclude_defaults: bool = False,
 ) -> I:
-    data = json_model.model_dump(by_alias=True)
+    data = json_model.model_dump(by_alias=True, exclude_defaults=exclude_defaults)
 
     if created_by_id or updated_by_id:
         data["created_by_id"] = created_by_id

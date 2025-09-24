@@ -1,9 +1,12 @@
 import itertools as it
 from unittest.mock import ANY
 
+import pytest
+
 from . import utils
 
 ROUTE = "/brain-region"
+ADMIN_ROUTE = "/admin/brain-region"
 
 
 HIERARCHY = {
@@ -42,7 +45,50 @@ HIERARCHY = {
 }
 
 
-def test_brain_region_id(db, client, person_id):
+@pytest.fixture
+def json_data(brain_region_hierarchy_id):
+    return {
+        "name": "my-region",
+        "acronym": "grey",
+        "color_hex_triplet": "BFDAE3",
+        "annotation_value": 9999,
+        "hierarchy_id": str(brain_region_hierarchy_id),
+    }
+
+
+def _assert_read_response(data, json_data):
+    assert data["name"] == json_data["name"]
+    assert data["acronym"] == json_data["acronym"]
+    assert data["color_hex_triplet"] == json_data["color_hex_triplet"]
+    assert data["annotation_value"] == json_data["annotation_value"]
+
+
+def test_create_one(client_admin, json_data):
+    data = utils.assert_request(client_admin.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
+
+
+def test_read_one(clients, json_data):
+    utils.check_global_read_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
+
+
+def test_update_one(clients, json_data):
+    utils.check_global_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={"annotation_value": 800, "acronym": "blue"},
+    )
+
+
+def test_brain_region_id(db, client, client_admin, person_id):
     hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy", created_by_id=person_id)
     utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
@@ -102,6 +148,13 @@ def test_brain_region_id(db, client, person_id):
     root_id = response.json()["data"][0]["id"]
 
     response = client.get(f"{ROUTE}/{root_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["annotation_value"] == 997
+    assert data["name"] == "root"
+    assert data["acronym"] == "root"
+
+    response = client_admin.get(f"{ADMIN_ROUTE}/{root_id}")
     assert response.status_code == 200
     data = response.json()
     assert data["annotation_value"] == 997

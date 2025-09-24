@@ -4,12 +4,14 @@ from unittest.mock import ANY
 import pytest
 
 from .utils import (
+    assert_request,
     assert_response,
     check_missing,
     create_cell_morphology_id,
 )
 
 ROUTE = "/measurement-annotation"
+ADMIN_ROUTE = "/admin/measurement-annotation"
 MORPHOLOGY_ROUTE = "/cell-morphology"
 ENTITY_TYPE = "cell_morphology"
 
@@ -17,6 +19,72 @@ ENTITY_TYPE = "cell_morphology"
 @pytest.fixture
 def measurement_labels():
     return [f"pref_label_{i}" for i in range(5)]
+
+
+@pytest.fixture
+def json_data(morphology_id):
+    return {
+        "entity_type": ENTITY_TYPE,
+        "entity_id": str(morphology_id),
+        "measurement_kinds": [
+            {
+                "pref_label": "pref_label_0",
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm",
+                        "value": 54.2,
+                    },
+                    {
+                        "name": "median",
+                        "unit": "μm",
+                        "value": 44.6,
+                    },
+                ],
+            },
+        ],
+    }
+
+
+def test_update_one(clients, json_data, subject_id, brain_region_id):
+    old_morph_id = json_data["entity_id"]
+
+    new_morph_id = create_cell_morphology_id(
+        clients.user_1,
+        subject_id,
+        brain_region_id,
+        authorized_public=True,
+    )
+
+    model_id = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()["id"]
+
+    patch_data = {
+        "entity_id": str(new_morph_id),
+    }
+    data = assert_request(clients.user_1.patch, url=f"{ROUTE}/{model_id}", json=patch_data).json()
+    assert data["entity_id"] == patch_data["entity_id"]
+
+    # user 2 shouldn't have access to user's 1 entity to update.
+    data = assert_request(
+        clients.user_2.patch, url=f"{ROUTE}/{model_id}", json=patch_data, expected_status_code=404
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    patch_data = {
+        "entity_id": str(old_morph_id),
+    }
+
+    # users shouldn't have access to service admin endpoints
+    data = assert_request(
+        clients.user_1.patch, url=f"{ADMIN_ROUTE}/{model_id}", json={}, expected_status_code=403
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(
+        clients.admin.patch, url=f"{ADMIN_ROUTE}/{model_id}", json=patch_data
+    ).json()
+    assert data["entity_id"] == patch_data["entity_id"]
 
 
 def _get_request_payload_1(entity_id, labels):
@@ -94,16 +162,16 @@ def _get_return_payload(request_payload):
     return payload
 
 
-def test_create_and_retrieve(client, subject_id, brain_region_id, measurement_labels):
-    cell_morphology_id = create_cell_morphology_id(
+def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_labels):
+    client = clients.user_1
+
+    morphology_id = create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-    request_payload_1 = _get_request_payload_1(
-        entity_id=cell_morphology_id, labels=measurement_labels
-    )
+    request_payload_1 = _get_request_payload_1(entity_id=morphology_id, labels=measurement_labels)
     expected_payload_1 = _get_return_payload(request_payload=request_payload_1)
 
     response = client.post(ROUTE, json=request_payload_1)
@@ -119,14 +187,19 @@ def test_create_and_retrieve(client, subject_id, brain_region_id, measurement_la
     data = response.json()
     assert data == expected_payload_1
 
+    response = clients.admin.get(f"{ADMIN_ROUTE}/{measurement_annotation_id_1}")
+    assert_response(response, expected_status_code=200)
+    data = response.json()
+    assert data == expected_payload_1
+
     # read the morphology without measurements
-    response = client.get(f"{MORPHOLOGY_ROUTE}/{cell_morphology_id}")
+    response = client.get(f"{MORPHOLOGY_ROUTE}/{morphology_id}")
     assert_response(response, expected_status_code=200)
     assert "measurement_annotation" not in response.json()
 
     # read the morphology with measurements
     response = client.get(
-        f"{MORPHOLOGY_ROUTE}/{cell_morphology_id}",
+        f"{MORPHOLOGY_ROUTE}/{morphology_id}",
         params={"expand": "measurement_annotation"},
     )
     assert_response(response, expected_status_code=200)
@@ -140,9 +213,7 @@ def test_create_and_retrieve(client, subject_id, brain_region_id, measurement_la
     assert data == expected_payload_1
 
     # create a 2nd annotation
-    request_payload_2 = _get_request_payload_2(
-        entity_id=cell_morphology_id, labels=measurement_labels
-    )
+    request_payload_2 = _get_request_payload_2(entity_id=morphology_id, labels=measurement_labels)
     response = client.post(ROUTE, json=request_payload_2)
     assert_response(response, expected_status_code=200)
     data = response.json()
@@ -150,13 +221,13 @@ def test_create_and_retrieve(client, subject_id, brain_region_id, measurement_la
 
     # read the morphology with the new measurements
     response = client.get(
-        f"{MORPHOLOGY_ROUTE}/{cell_morphology_id}",
+        f"{MORPHOLOGY_ROUTE}/{morphology_id}",
         params={"expand": "measurement_annotation"},
     )
     assert_response(response, expected_status_code=200)
     data = response.json()
     assert data["measurement_annotation"]["id"] == measurement_annotation_id_2
-    assert data["measurement_annotation"]["entity_id"] == data["id"] == cell_morphology_id
+    assert data["measurement_annotation"]["entity_id"] == data["id"] == morphology_id
 
     # filter the annotations
     query_params = {
@@ -189,7 +260,7 @@ def test_create_and_retrieve(client, subject_id, brain_region_id, measurement_la
     assert_response(response, expected_status_code=200)
     data = response.json()
     assert len(data["data"]) == 1
-    assert data["data"][0]["id"] == cell_morphology_id
+    assert data["data"][0]["id"] == morphology_id
 
     # filter the morphology by annotation, no results
     query_params = {
@@ -216,7 +287,7 @@ def test_authorization(
     brain_region_id,
     measurement_labels,
 ):
-    cell_morphology_id_public = create_cell_morphology_id(
+    morphology_id_public = create_cell_morphology_id(
         client_user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
@@ -225,12 +296,12 @@ def test_authorization(
 
     response = client_user_1.post(
         ROUTE,
-        json=_get_request_payload_1(entity_id=cell_morphology_id_public, labels=measurement_labels),
+        json=_get_request_payload_1(entity_id=morphology_id_public, labels=measurement_labels),
     )
     assert_response(response, expected_status_code=200)
     measurement_annotation_id_public = response.json()["id"]
 
-    cell_morphology_id_inaccessible = create_cell_morphology_id(
+    morphology_id_inaccessible = create_cell_morphology_id(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
@@ -241,7 +312,7 @@ def test_authorization(
     response = client_user_1.post(
         ROUTE,
         json=_get_request_payload_1(
-            entity_id=cell_morphology_id_inaccessible, labels=measurement_labels
+            entity_id=morphology_id_inaccessible, labels=measurement_labels
         ),
     )
     assert_response(response, expected_status_code=404)
@@ -250,7 +321,7 @@ def test_authorization(
     response = client_user_2.post(
         ROUTE,
         json=_get_request_payload_1(
-            entity_id=cell_morphology_id_inaccessible, labels=measurement_labels
+            entity_id=morphology_id_inaccessible, labels=measurement_labels
         ),
     )
     assert_response(response, expected_status_code=200)
@@ -258,7 +329,7 @@ def test_authorization(
     response = client_user_1.get(f"{ROUTE}/{response.json()['id']}")
     assert_response(response, expected_status_code=404)
 
-    cell_morphology_id_public_inaccessible = create_cell_morphology_id(
+    morphology_id_public_inaccessible = create_cell_morphology_id(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
@@ -267,7 +338,7 @@ def test_authorization(
     response = client_user_1.post(
         ROUTE,
         json=_get_request_payload_1(
-            entity_id=cell_morphology_id_public_inaccessible, labels=measurement_labels
+            entity_id=morphology_id_public_inaccessible, labels=measurement_labels
         ),
     )
     assert_response(response, expected_status_code=404)

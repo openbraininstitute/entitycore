@@ -12,6 +12,7 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.entity import NestedEntityRead
+from app.schemas.utils import NOT_SET, NotSet
 
 
 class ActivityBase(BaseModel):
@@ -34,6 +35,7 @@ class ActivityCreate(ActivityBase, AuthorizationOptionalPublicMixin):
     generated_ids: list[uuid.UUID] = []
 
 
-class ActivityUpdate(ActivityBase, AuthorizationOptionalPublicMixin):
-    end_time: datetime | None = None
-    generated_ids: list[uuid.UUID] | None = None
+class ActivityUpdate(BaseModel):
+    start_time: datetime | NotSet | None = NOT_SET
+    end_time: datetime | NotSet | None = NOT_SET
+    generated_ids: list[uuid.UUID] | NotSet | None = NOT_SET

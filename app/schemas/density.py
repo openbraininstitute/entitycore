@@ -74,17 +74,35 @@ class ExperimentalSynapsesPerConnectionCreate(ExperimentalDensityCreate):
     post_region_id: uuid.UUID
 
 
-ExperimentalSynapsesPerConnectionUpdate = make_update_schema(
-    ExperimentalSynapsesPerConnectionCreate, "ExperimentalSynapsesPerConnectionUpdate"
+ExperimentalSynapsesPerConnectionUserUpdate = make_update_schema(
+    ExperimentalSynapsesPerConnectionCreate, "ExperimentalSynapsesPerConnectionUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 
-ExperimentalBoutonDensityUpdate = make_update_schema(
-    ExperimentalBoutonDensityCreate, "ExperimentalBoutonDensityUpdate"
+ExperimentalSynapsesPerConnectionAdminUpdate = make_update_schema(
+    ExperimentalSynapsesPerConnectionCreate,
+    "ExperimentalSynapsesPerConnectionAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
+ExperimentalBoutonDensityUserUpdate = make_update_schema(
+    ExperimentalBoutonDensityCreate, "ExperimentalBoutonDensityUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 
-ExperimentalNeuronDensityUpdate = make_update_schema(
-    ExperimentalNeuronDensityCreate, "ExperimentalNeuronDensityUpdate"
+ExperimentalBoutonDensityAdminUpdate = make_update_schema(
+    ExperimentalBoutonDensityCreate,
+    "ExperimentalBoutonDensityAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
+ExperimentalNeuronDensityUserUpdate = make_update_schema(
+    ExperimentalNeuronDensityCreate, "ExperimentalNeuronDensityUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+
+ExperimentalNeuronDensityAdminUpdate = make_update_schema(
+    ExperimentalNeuronDensityCreate,
+    "ExperimentalNeuronDensityAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class ExperimentalNeuronDensityRead(ExperimentalDensityRead):

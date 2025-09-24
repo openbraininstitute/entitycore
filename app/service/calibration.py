@@ -23,9 +23,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.calibration import (
+    CalibrationAdminUpdate,
     CalibrationCreate,
     CalibrationRead,
-    CalibrationUpdate,
+    CalibrationUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -53,6 +54,20 @@ def read_one(
         id_=id_,
         db_model_class=Calibration,
         authorized_project_id=user_context.project_id,
+        response_schema_class=CalibrationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> CalibrationRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=Calibration,
+        authorized_project_id=None,
         response_schema_class=CalibrationRead,
         apply_operations=_load,
     )
@@ -153,7 +168,7 @@ def delete_one(
 def update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: CalibrationUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: CalibrationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
     user_context: UserContextWithProjectIdDep,
 ) -> CalibrationRead:
     return router_update_activity_one(
@@ -161,6 +176,22 @@ def update_one(
         id_=id_,
         json_model=json_model,
         user_context=user_context,
+        db_model_class=Calibration,
+        response_schema_class=CalibrationRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CalibrationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> CalibrationRead:
+    return router_update_activity_one(
+        db=db,
+        id_=id_,
+        json_model=json_model,
+        user_context=None,
         db_model_class=Calibration,
         response_schema_class=CalibrationRead,
         apply_operations=_load,

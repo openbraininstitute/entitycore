@@ -77,10 +77,16 @@ def test_create_one(client, json_data, morphology_id):
     assert json_data["mtype_class_id"] in {m["id"] for m in data}
 
 
-def test_read_one(client, json_data, model_id):
+def test_read_one(client, client_admin, json_data, model_id):
     data = assert_request(
         client.get,
         url=f"{ROUTE}/{model_id}",
+    ).json()
+    _assert_read_schema(data, json_data)
+
+    data = assert_request(
+        client_admin.get,
+        url=f"{ADMIN_ROUTE}/{model_id}",
     ).json()
     _assert_read_schema(data, json_data)
 

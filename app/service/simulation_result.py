@@ -25,9 +25,10 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.simulation_result import (
+    SimulationResultAdminUpdate,
     SimulationResultCreate,
     SimulationResultRead,
-    SimulationResultUpdate,
+    SimulationResultUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -59,6 +60,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> SimulationResultRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=SimulationResult,
+        authorized_project_id=None,
+        response_schema_class=SimulationResultRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: SimulationResultCreate,
@@ -78,13 +93,29 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: SimulationResultUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: SimulationResultUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> SimulationResultRead:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=SimulationResult,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=SimulationResultRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: SimulationResultAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> SimulationResultRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=SimulationResult,
+        user_context=None,
         json_model=json_model,
         response_schema_class=SimulationResultRead,
         apply_operations=_load,

@@ -18,6 +18,7 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.types import SerializableHttpUrl
+from app.schemas.utils import make_update_schema
 
 
 class CommonReadMixin(
@@ -126,6 +127,81 @@ class PlaceholderCellMorphologyProtocolCreate(
     pass
 
 
+# Update Models
+
+PRESERVED_UPDATE_FIELDS = {"generation_type"}
+
+USER_EXCLUDED_UPDATE_FIELDS = {
+    "authorized_public",
+}
+
+DigitalReconstructionCellMorphologyProtocolUserUpdate = make_update_schema(
+    DigitalReconstructionCellMorphologyProtocolCreate,
+    "DigitalReconstructionCellMorphologyProtocolUserUpdate",
+    excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_UPDATE_FIELDS,
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
+ModifiedReconstructionCellMorphologyProtocolUserUpdate = make_update_schema(
+    ModifiedReconstructionCellMorphologyProtocolCreate,
+    "ModifiedReconstructionCellMorphologyProtocolUserUpdate",
+    excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_UPDATE_FIELDS,
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
+ComputationallySynthesizedCellMorphologyProtocolUserUpdate = make_update_schema(
+    ComputationallySynthesizedCellMorphologyProtocolCreate,
+    "ComputationallySynthesizedCellMorphologyProtocolUserUpdate",
+    excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_UPDATE_FIELDS,
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
+PlaceholderCellMorphologyProtocolUserUpdate = make_update_schema(
+    PlaceholderCellMorphologyProtocolCreate,
+    "PlaceholderCellMorphologyProtocolUserUpdate",
+    excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_UPDATE_FIELDS,
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
+ADMIN_EXCLUDED_UPDATE_FIELDS = {}
+
+
+DigitalReconstructionCellMorphologyProtocolAdminUpdate = make_update_schema(
+    DigitalReconstructionCellMorphologyProtocolCreate,
+    "DigitalReconstructionCellMorphologyProtocolAdminUpdate",
+    excluded_fields=ADMIN_EXCLUDED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_UPDATE_FIELDS,
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
+ModifiedReconstructionCellMorphologyProtocolAdminUpdate = make_update_schema(
+    ModifiedReconstructionCellMorphologyProtocolCreate,
+    "ModifiedReconstructionCellMorphologyProtocolAdminUpdate",
+    excluded_fields=ADMIN_EXCLUDED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_UPDATE_FIELDS,
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
+ComputationallySynthesizedCellMorphologyProtocolAdminUpdate = make_update_schema(
+    ComputationallySynthesizedCellMorphologyProtocolCreate,
+    "ComputationallySynthesizedCellMorphologyProtocolAdminUpdate",
+    excluded_fields=ADMIN_EXCLUDED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_UPDATE_FIELDS,
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
+PlaceholderCellMorphologyProtocolAdminUpdate = make_update_schema(
+    PlaceholderCellMorphologyProtocolCreate,
+    "PlaceholderCellMorphologyProtocolAdminUpdate",
+    excluded_fields=ADMIN_EXCLUDED_UPDATE_FIELDS,
+    preserved_fields=PRESERVED_UPDATE_FIELDS,
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
 # Read Models
 
 
@@ -211,6 +287,22 @@ type NestedCellMorphologyProtocolRead = Annotated[
     | NestedModifiedReconstructionCellMorphologyProtocolRead
     | NestedComputationallySynthesizedCellMorphologyProtocolRead
     | NestedPlaceholderCellMorphologyProtocolRead,
+    Field(discriminator="generation_type"),
+]
+
+type CellMorphologyProtocolUserUpdate = Annotated[
+    DigitalReconstructionCellMorphologyProtocolUserUpdate
+    | ModifiedReconstructionCellMorphologyProtocolUserUpdate
+    | ComputationallySynthesizedCellMorphologyProtocolUserUpdate
+    | PlaceholderCellMorphologyProtocolUserUpdate,
+    Field(discriminator="generation_type"),
+]
+
+type CellMorphologyProtocolAdminUpdate = Annotated[
+    DigitalReconstructionCellMorphologyProtocolAdminUpdate
+    | ModifiedReconstructionCellMorphologyProtocolAdminUpdate
+    | ComputationallySynthesizedCellMorphologyProtocolAdminUpdate
+    | PlaceholderCellMorphologyProtocolAdminUpdate,
     Field(discriminator="generation_type"),
 ]
 

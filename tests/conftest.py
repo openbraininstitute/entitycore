@@ -65,6 +65,7 @@ from .utils import (
     USER_SUB_ID_1,
     USER_SUB_ID_2,
     VIRTUAL_LAB_ID,
+    ClientProxies,
     ClientProxy,
     add_contribution,
     add_db,
@@ -266,6 +267,16 @@ def client_no_project(client_no_auth):
 @pytest.fixture
 def client(client_user_1):
     return client_user_1
+
+
+@pytest.fixture
+def clients(client_user_1, client_user_2, client_no_project, client_admin):
+    return ClientProxies(
+        user_1=client_user_1,
+        user_2=client_user_2,
+        no_project=client_no_project,
+        admin=client_admin,
+    )
 
 
 @pytest.fixture(scope="session")
@@ -471,6 +482,21 @@ def morphology_id(db, client, subject_id, brain_region_id, person_id):
 
 
 @pytest.fixture
+def public_morphology_id(
+    client,
+    subject_id,
+    brain_region_id,
+):
+    model_id = utils.create_cell_morphology_id(
+        client,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
+    )
+    return model_id
+
+
+@pytest.fixture
 def mtype_class_id(db, person_id):
     return str(
         add_db(
@@ -629,6 +655,26 @@ def create_emodel_ids(
 @pytest.fixture
 def emodel_id(create_emodel_ids: CreateIds) -> str:
     return create_emodel_ids(1)[0]
+
+
+@pytest.fixture
+def public_emodel_id(client, brain_region_id, species_id, strain_id, public_morphology_id):
+    return assert_request(
+        client.post,
+        url="/emodel",
+        json={
+            "name": "name",
+            "brain_region_id": str(brain_region_id),
+            "description": "description",
+            "species_id": str(species_id),
+            "strain_id": str(strain_id),
+            "iteration": "test iteration",
+            "score": 10,
+            "seed": -1,
+            "exemplar_morphology_id": str(public_morphology_id),
+            "authorized_public": True,
+        },
+    ).json()["id"]
 
 
 @pytest.fixture
@@ -1227,6 +1273,7 @@ def cell_morphology_protocol(db, cell_morphology_protocol_json_data, person_id):
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
+                "authorized_public": True,
             }
         ),
     )

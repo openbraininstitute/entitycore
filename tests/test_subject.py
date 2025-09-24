@@ -10,6 +10,7 @@ from .utils import (
     add_all_db,
     assert_request,
     check_authorization,
+    check_entity_update_one,
     check_missing,
     check_pagination,
     count_db_class,
@@ -80,66 +81,33 @@ def test_create_one(client, json_data, json_data_partial):
     _assert_read_response(data, json_data_partial)
 
 
-def test_update_one(client, model_id):
-    new_name = "my_new_name"
-    new_description = "my_new_description"
-
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{model_id}",
-        json={
-            "name": new_name,
-            "description": new_description,
+def test_update_one(clients, json_data):
+    check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "name",
+            "description": "description",
         },
-    ).json()
-
-    assert data["name"] == new_name
-    assert data["description"] == new_description
-
-    # set weight
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{model_id}",
-        json={
+        optional_payload={
             "weight": 25.5,
         },
-    ).json()
-    assert data["weight"] == 25.5
-
-    # unset weight
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{model_id}",
-        json={
-            "weight": None,
-        },
-    ).json()
-    assert data["weight"] is None
+    )
 
 
-def test_update_one__public(client, json_data):
-    data = assert_request(
-        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
-    ).json()
-
-    # should not be allowed to update it once public
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{data['id']}",
-        json={"name": "foo"},
-        expected_status_code=404,
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
-
-
-def test_read_one(client, model_id, json_data, json_data_partial):
+def test_read_one(client, client_admin, model_id, json_data, json_data_partial):
     data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
     # Test read subject without strain
-    model_id = assert_request(client.post, url=ROUTE, json=json_data_partial).json()["id"]
-    data = assert_request(client.get, url=f"{ROUTE}/{model_id}").json()
+    partial_model_id = assert_request(client.post, url=ROUTE, json=json_data_partial).json()["id"]
+    data = assert_request(client.get, url=f"{ROUTE}/{partial_model_id}").json()
     _assert_read_response(data, json_data_partial)
+
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model_id}").json()
+    _assert_read_response(data, json_data)
 
 
 def test_delete_one(db, client, client_admin, model_id):

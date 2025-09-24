@@ -59,10 +59,16 @@ def _assert_read_schema(data, json_data):
     assert data["etype_class_id"] == json_data["etype_class_id"]
 
 
-def test_read_one(client, json_data, model_id):
+def test_read_one(client, client_admin, json_data, model_id):
     data = assert_request(
         client.get,
         url=f"{ROUTE}/{model_id}",
+    ).json()
+    _assert_read_schema(data, json_data)
+
+    data = assert_request(
+        client_admin.get,
+        url=f"{ADMIN_ROUTE}/{model_id}",
     ).json()
     _assert_read_schema(data, json_data)
 

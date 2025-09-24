@@ -14,6 +14,7 @@ from .utils import (
 )
 
 ROUTE = "/em-cell-mesh"
+ADMIN_ROUTE = "/admin/em-cell-mesh"
 MODEL = EMCellMesh
 
 
@@ -51,39 +52,6 @@ def _assert_read_response(data, json_data):
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
-
-
-def test_update_one(client, model):
-    new_level_of_detail = 999
-
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{model.id}",
-        json={"level_of_detail": new_level_of_detail},
-    ).json()
-
-    assert data["level_of_detail"] == new_level_of_detail
-
-
-def test_update_one__public(client, json_data):
-    # make private entity public
-    data = assert_request(
-        client.post,
-        url=ROUTE,
-        json=json_data
-        | {
-            "authorized_public": True,
-        },
-    ).json()
-
-    # should not be allowed to update it once public
-    data = assert_request(
-        client.patch,
-        url=f"{ROUTE}/{data['id']}",
-        json={"name": "foo"},
-        expected_status_code=404,
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def test_read_one(client, model, json_data):

@@ -1658,7 +1658,6 @@ class AnalysisNotebookEnvironment(Entity):
     __tablename__ = EntityType.analysis_notebook_environment.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
     runtime_info: Mapped[JSON_DICT | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

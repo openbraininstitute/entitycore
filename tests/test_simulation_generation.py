@@ -10,6 +10,10 @@ from app.db.types import ActivityType
 from .utils import (
     PROJECT_ID,
     assert_request,
+    check_activity_create_one__unauthorized_entities,
+    check_activity_update_one,
+    check_activity_update_one__fail_if_generated_ids_exists,
+    check_activity_update_one__fail_if_generated_ids_unauthorized,
     check_creation_fields,
     check_missing,
     check_pagination,
@@ -74,7 +78,7 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
     assert data["type"] == ActivityType.simulation_generation.value
 
 
-def test_create_one(client, json_data):
+def test_create_one(client, client_admin, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
 
@@ -82,6 +86,9 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
     data = assert_request(client.get, url=ROUTE).json()["data"][0]
+    _assert_read_response(data, json_data)
+
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{data['id']}").json()
     _assert_read_response(data, json_data)
 
 
@@ -99,6 +106,7 @@ def test_create_one__empty_ids(client, json_data):
 
 
 def test_create_one__unauthorized_entities(
+    db,
     client_user_1,
     client_user_2,
     json_data,
@@ -128,48 +136,15 @@ def test_create_one__unauthorized_entities(
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
-
-    # user1 is forbidden to create Usage association with entity created by user2
-    unauthorized_used = json_data | {
-        "used_ids": [str(user2_morph_id)],
-        "generated_ids": [str(user1_morph_id)],
-    }
-    assert_request(client_user_1.post, url=ROUTE, json=unauthorized_used, expected_status_code=404)
-
-    # user1 is forbidden to create Generation association with entity created by user2
-    unauthorized_used = json_data | {
-        "used_ids": [str(user1_morph_id)],
-        "generated_ids": [str(user2_morph_id)],
-    }
-    assert_request(client_user_1.post, url=ROUTE, json=unauthorized_used, expected_status_code=404)
-
-    # user1 is forbidden to create both associations with entities created by user 2
-    unauthorized_used = json_data | {
-        "used_ids": [str(user2_morph_id)],
-        "generated_ids": [str(user2_morph_id)],
-    }
-    assert_request(client_user_1.post, url=ROUTE, json=unauthorized_used, expected_status_code=404)
-
-    # user 1 is allowed to create Usage with public entity created by user2
-    authorized_used = json_data | {
-        "used_ids": [str(user2_public_morph_id)],
-        "generated_ids": [str(user1_morph_id)],
-    }
-    assert_request(client_user_1.post, url=ROUTE, json=authorized_used, expected_status_code=200)
-
-    # user 1 is allowed to create Generation with public entity created by user2
-    authorized_used = json_data | {
-        "used_ids": [str(user1_morph_id)],
-        "generated_ids": [str(user2_public_morph_id)],
-    }
-    assert_request(client_user_1.post, url=ROUTE, json=authorized_used, expected_status_code=200)
-
-    # user 1 is allowed to create both with public entity created by user2
-    authorized_used = json_data | {
-        "used_ids": [str(user2_public_morph_id)],
-        "generated_ids": [str(user2_public_morph_id)],
-    }
-    assert_request(client_user_1.post, url=ROUTE, json=authorized_used, expected_status_code=200)
+    check_activity_create_one__unauthorized_entities(
+        db=db,
+        route=ROUTE,
+        client_user_1=client_user_1,
+        json_data=json_data,
+        u1_private_entity_id=user1_morph_id,
+        u2_private_entity_id=user2_morph_id,
+        u2_public_entity_id=user2_public_morph_id,
+    )
 
 
 def test_missing(client):
@@ -299,60 +274,19 @@ def _is_deleted(db, model_id):
 
 
 def test_update_one(client, client_admin, root_circuit, simulation_result, create_id):
-    gen1 = create_id(
-        used_ids=[str(root_circuit.id)],
-        generated_ids=[],
+    check_activity_update_one(
+        client=client,
+        client_admin=client_admin,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        used_id=root_circuit.id,
+        generated_id=simulation_result.id,
+        constructor_func=create_id,
     )
-
-    end_time = datetime.now(UTC)
-
-    update_json = {
-        "end_time": str(end_time),
-        "generated_ids": [str(simulation_result.id)],
-    }
-
-    data = assert_request(client.patch, url=f"{ROUTE}/{gen1}", json=update_json).json()
-    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time
-    assert len(data["generated"]) == 1
-    assert data["generated"][0]["id"] == str(simulation_result.id)
-
-    gen2 = create_id(
-        used_ids=[str(root_circuit.id)],
-        generated_ids=[],
-    )
-
-    # only admin client can hit admin endpoint
-    data = assert_request(
-        client.patch,
-        url=f"{ADMIN_ROUTE}/{gen2}",
-        json=update_json,
-        expected_status_code=403,
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ADMIN_ROUTE}/{gen2}",
-        json=update_json,
-    ).json()
-
-    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time
-    assert len(data["generated"]) == 1
-    assert data["generated"][0]["id"] == str(simulation_result.id)
-
-    # admin is treated as regular user for regular route (no project context)
-    data = assert_request(
-        client_admin.patch,
-        url=f"{ROUTE}/{gen2}",
-        json=update_json,
-        expected_status_code=403,
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
 
 
 def test_update_one__fail_if_generated_ids_unauthorized(
-    client_user_1, client_user_2, json_data, species_id, brain_region_id
+    db, client_user_1, client_user_2, json_data, species_id, brain_region_id
 ):
     """Test that it is not allowed to update generated_ids with unauthorized entities."""
 
@@ -370,35 +304,24 @@ def test_update_one__fail_if_generated_ids_unauthorized(
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-
-    json_data |= {
-        "used_ids": [str(user1_morph_id)],
-        "generated_ids": [],
-    }
-
-    data = assert_request(client_user_1.post, url=ROUTE, json=json_data).json()
-
-    update_json = {
-        "generated_ids": [str(user2_morph_id)],
-    }
-    data = assert_request(
-        client_user_1.patch, url=f"{ROUTE}/{data['id']}", json=update_json, expected_status_code=404
-    ).json()
-    assert data["details"] == f"Cannot access entities {user2_morph_id}"
+    check_activity_update_one__fail_if_generated_ids_unauthorized(
+        db=db,
+        route=ROUTE,
+        client_user_1=client_user_1,
+        json_data=json_data,
+        u1_private_entity_id=user1_morph_id,
+        u2_private_entity_id=user2_morph_id,
+    )
 
 
 def test_update_one__fail_if_generated_ids_exists(
     client, root_circuit, simulation_result, create_id
 ):
     """Test activity Generation associations cannot be updated if they already exist."""
-    gen1 = create_id(
-        used_ids=[str(root_circuit.id)],
-        generated_ids=[str(root_circuit.id)],
+    check_activity_update_one__fail_if_generated_ids_exists(
+        client=client,
+        route=ROUTE,
+        entity_id_1=root_circuit.id,
+        entity_id_2=simulation_result.id,
+        constructor_func=create_id,
     )
-    update_json = {
-        "generated_ids": [str(simulation_result.id)],
-    }
-    data = assert_request(
-        client.patch, url=f"{ROUTE}/{gen1}", json=update_json, expected_status_code=404
-    ).json()
-    assert data["details"] == "It is forbidden to update generated_ids if they exist."

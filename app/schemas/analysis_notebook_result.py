@@ -28,6 +28,11 @@ class AnalysisNotebookResultCreate(
 AnalysisNotebookResultUpdate = make_update_schema(
     AnalysisNotebookResultCreate, "AnalysisNotebookResultUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+AnalysisNotebookResultAdminUpdate = make_update_schema(
+    AnalysisNotebookResultCreate,
+    "AnalysisNotebookResultAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedAnalysisNotebookResultRead(

@@ -23,6 +23,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.analysis_notebook_execution import (
+    AnalysisNotebookExecutionAdminUpdate,
     AnalysisNotebookExecutionCreate,
     AnalysisNotebookExecutionRead,
     AnalysisNotebookExecutionUpdate,
@@ -55,6 +56,20 @@ def read_one(
         id_=id_,
         db_model_class=AnalysisNotebookExecution,
         authorized_project_id=user_context.project_id,
+        response_schema_class=AnalysisNotebookExecutionRead,
+        apply_operations=_load,
+    )
+
+
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> AnalysisNotebookExecutionRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=AnalysisNotebookExecution,
+        authorized_project_id=None,
         response_schema_class=AnalysisNotebookExecutionRead,
         apply_operations=_load,
     )
@@ -163,6 +178,22 @@ def update_one(
         id_=id_,
         json_model=json_model,
         user_context=user_context,
+        db_model_class=AnalysisNotebookExecution,
+        response_schema_class=AnalysisNotebookExecutionRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: AnalysisNotebookExecutionAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> AnalysisNotebookExecutionRead:
+    return router_update_activity_one(
+        db=db,
+        id_=id_,
+        json_model=json_model,
+        user_context=None,
         db_model_class=AnalysisNotebookExecution,
         response_schema_class=AnalysisNotebookExecutionRead,
         apply_operations=_load,

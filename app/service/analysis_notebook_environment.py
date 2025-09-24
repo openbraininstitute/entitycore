@@ -14,13 +14,13 @@ from app.dependencies.db import SessionDep
 from app.filters.analysis_notebook_environment import AnalysisNotebookEnvironmentFilterDep
 from app.queries.common import (
     router_create_one,
-    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
 )
 from app.queries.factory import query_params_factory
 from app.schemas.analysis_notebook_environment import (
+    AnalysisNotebookEnvironmentAdminUpdate,
     AnalysisNotebookEnvironmentCreate,
     AnalysisNotebookEnvironmentRead,
     AnalysisNotebookEnvironmentUpdate,
@@ -55,6 +55,20 @@ def read_one(
     )
 
 
+def admin_read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> AnalysisNotebookEnvironmentRead:
+    return router_read_one(
+        db=db,
+        id_=id_,
+        db_model_class=AnalysisNotebookEnvironment,
+        authorized_project_id=None,
+        response_schema_class=AnalysisNotebookEnvironmentRead,
+        apply_operations=_load,
+    )
+
+
 def create_one(
     db: SessionDep,
     json_model: AnalysisNotebookEnvironmentCreate,
@@ -70,28 +84,6 @@ def create_one(
     )
 
 
-def delete_one(
-    user_context: UserContextWithProjectIdDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-) -> AnalysisNotebookEnvironmentRead:
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=AnalysisNotebookEnvironment,
-        authorized_project_id=user_context.project_id,
-        response_schema_class=AnalysisNotebookEnvironmentRead,
-        apply_operations=_load,
-    )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=AnalysisNotebookEnvironment,
-        authorized_project_id=None,  # already validated
-    )
-    return one
-
-
 def update_one(
     user_context: UserContextDep,
     db: SessionDep,
@@ -103,6 +95,22 @@ def update_one(
         db=db,
         db_model_class=AnalysisNotebookEnvironment,
         user_context=user_context,
+        json_model=json_model,
+        response_schema_class=AnalysisNotebookEnvironmentRead,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: AnalysisNotebookEnvironmentAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> AnalysisNotebookEnvironmentRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=AnalysisNotebookEnvironment,
+        user_context=None,
         json_model=json_model,
         response_schema_class=AnalysisNotebookEnvironmentRead,
         apply_operations=_load,

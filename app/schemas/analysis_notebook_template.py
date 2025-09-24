@@ -2,7 +2,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.db.types import EntityType
+from app.db.types import AnalysisScale, EntityType
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -38,6 +38,7 @@ class AnalysisNotebookTemplateBase(BaseModel):
     name: str
     description: str
     specifications: Specifications | None = None
+    scale: AnalysisScale
 
 
 class AnalysisNotebookTemplateCreate(
@@ -50,6 +51,11 @@ class AnalysisNotebookTemplateCreate(
 AnalysisNotebookTemplateUpdate = make_update_schema(
     AnalysisNotebookTemplateCreate, "AnalysisNotebookTemplateUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+AnalysisNotebookTemplateAdminUpdate = make_update_schema(
+    AnalysisNotebookTemplateCreate,
+    "AnalysisNotebookTemplateAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedAnalysisNotebookTemplateRead(

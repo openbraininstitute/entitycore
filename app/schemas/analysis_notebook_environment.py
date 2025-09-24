@@ -12,6 +12,14 @@ from app.schemas.base import (
 from app.schemas.utils import make_update_schema
 
 
+class PythonInfo(BaseModel):
+    """Python runtime information."""
+
+    version: str  # platform.python_version()
+    implementation: str  # platform.python_implementation()
+    executable: str  # sys.executable
+
+
 class OsInfo(BaseModel):
     """OS information."""
 
@@ -22,18 +30,10 @@ class OsInfo(BaseModel):
     processor: str  # platform.processor()
 
 
-class PythonInfo(BaseModel):
-    """Python runtime information."""
-
-    version: str  # platform.python_version()
-    implementation: str  # platform.python_implementation()
-    executable: str  # sys.executable
-
-
 class RuntimeInfo(BaseModel):
     schema_version: int = 1
-    os: OsInfo
     python: PythonInfo
+    os: OsInfo
 
 
 class AnalysisNotebookEnvironmentBase(BaseModel):
@@ -51,6 +51,11 @@ class AnalysisNotebookEnvironmentCreate(
 AnalysisNotebookEnvironmentUpdate = make_update_schema(
     AnalysisNotebookEnvironmentCreate, "AnalysisNotebookEnvironmentUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
+AnalysisNotebookEnvironmentAdminUpdate = make_update_schema(
+    AnalysisNotebookEnvironmentCreate,
+    "AnalysisNotebookEnvironmentAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedAnalysisNotebookEnvironmentRead(

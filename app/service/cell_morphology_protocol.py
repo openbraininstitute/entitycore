@@ -71,7 +71,7 @@ def admin_read_one(
         id_=id_,
         db_model_class=CellMorphologyProtocol,
         authorized_project_id=None,
-        response_schema_class=CellMorphologyProtocolRead,
+        response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
     )
 

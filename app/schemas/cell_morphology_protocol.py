@@ -130,10 +130,9 @@ class PlaceholderCellMorphologyProtocolCreate(
 # Update Models
 
 PRESERVED_UPDATE_FIELDS = {"generation_type"}
+USER_EXCLUDED_UPDATE_FIELDS = {"authorized_public"}
+ADMIN_EXCLUDED_UPDATE_FIELDS = set()
 
-USER_EXCLUDED_UPDATE_FIELDS = {
-    "authorized_public",
-}
 
 DigitalReconstructionCellMorphologyProtocolUserUpdate = make_update_schema(
     DigitalReconstructionCellMorphologyProtocolCreate,
@@ -165,9 +164,6 @@ PlaceholderCellMorphologyProtocolUserUpdate = make_update_schema(
     excluded_fields=USER_EXCLUDED_UPDATE_FIELDS,
     preserved_fields=PRESERVED_UPDATE_FIELDS,
 )  # pyright : ignore [reportInvalidTypeForm]
-
-
-ADMIN_EXCLUDED_UPDATE_FIELDS = {}
 
 
 DigitalReconstructionCellMorphologyProtocolAdminUpdate = make_update_schema(
@@ -290,7 +286,7 @@ type NestedCellMorphologyProtocolRead = Annotated[
     Field(discriminator="generation_type"),
 ]
 
-type CellMorphologyProtocolUserUpdate = Annotated[
+CellMorphologyProtocolUserUpdate = Annotated[
     DigitalReconstructionCellMorphologyProtocolUserUpdate
     | ModifiedReconstructionCellMorphologyProtocolUserUpdate
     | ComputationallySynthesizedCellMorphologyProtocolUserUpdate
@@ -298,7 +294,7 @@ type CellMorphologyProtocolUserUpdate = Annotated[
     Field(discriminator="generation_type"),
 ]
 
-type CellMorphologyProtocolAdminUpdate = Annotated[
+CellMorphologyProtocolAdminUpdate = Annotated[
     DigitalReconstructionCellMorphologyProtocolAdminUpdate
     | ModifiedReconstructionCellMorphologyProtocolAdminUpdate
     | ComputationallySynthesizedCellMorphologyProtocolAdminUpdate

@@ -9,7 +9,7 @@ NOT_SET = "<NOT_SET>"
 EXCLUDED_FIELDS = {
     "authorized_public",
 }
-PRESERVED_FIELDS = {}
+PRESERVED_FIELDS = set()
 
 
 def make_update_schema(

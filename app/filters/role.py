@@ -6,6 +6,9 @@ from app.filters.base import CustomFilter
 
 
 class RoleFilter(CustomFilter):
+    name: str | None = None
+    role_id: str | None = None
+
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

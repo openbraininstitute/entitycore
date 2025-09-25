@@ -113,3 +113,16 @@ def test_missing(client):
 
     response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
+
+
+def test_filtering(clients):
+    assert_request(clients.admin.post, url=ROUTE, json={"name": "r1", "role_id": "role1"})
+    assert_request(clients.admin.post, url=ROUTE, json={"name": "r2", "role_id": "role2"})
+
+    data = assert_request(clients.user_1.get, url=ROUTE, params={"name": "r1"}).json()["data"]
+    assert len(data) == 1
+    assert data[0]["name"] == "r1"
+
+    data = assert_request(clients.user_1.get, url=ROUTE, params={"role_id": "role1"}).json()["data"]
+    assert len(data) == 1
+    assert data[0]["role_id"] == "role1"

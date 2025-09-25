@@ -1,6 +1,7 @@
 import functools
 import uuid
 from collections.abc import Callable
+from datetime import timedelta
 from pathlib import Path
 from typing import NamedTuple
 from unittest.mock import ANY
@@ -13,6 +14,7 @@ from starlette.testclient import TestClient
 from app.db.model import (
     BrainRegion,
     BrainRegionHierarchy,
+    CellMorphology,
     Contribution,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
@@ -22,7 +24,9 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Person,
-    ReconstructionMorphology,
+    Species,
+    Strain,
+    Subject,
 )
 from app.db.types import EntityType
 from app.routers.asset import EntityRoute
@@ -60,7 +64,7 @@ UNRELATED_PROJECT_HEADERS = {
 }
 
 ROUTES = {
-    ReconstructionMorphology: "/reconstruction-morphology",
+    CellMorphology: "/cell-morphology",
     ElectricalCellRecording: "/electrical-cell-recording",
     IonChannelRecording: "/ion-channel-recording",
 }
@@ -98,23 +102,22 @@ class ClientProxies(NamedTuple):
     admin: ClientProxy
 
 
-def create_reconstruction_morphology_id(
+def create_cell_morphology_id(
     client,
-    species_id,
-    strain_id,
+    subject_id,
     brain_region_id,
-    authorized_public,
     name="Test Morphology Name",
     description="Test Morphology Description",
+    *,
+    authorized_public: bool = False,
 ):
     response = client.post(
-        ROUTES[ReconstructionMorphology],
+        ROUTES[CellMorphology],
         json={
             "name": name,
             "description": description,
             "brain_region_id": str(brain_region_id),
-            "species_id": str(species_id) if species_id else None,
-            "strain_id": str(strain_id) if strain_id else None,
+            "subject_id": str(subject_id),
             "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": ["Test Legacy ID"],
             "authorized_public": authorized_public,
@@ -126,15 +129,26 @@ def create_reconstruction_morphology_id(
 
 
 def add_db(db, row):
+    """Add one row to the db and commit the transaction."""
     db.add(row)
     db.commit()
     db.refresh(row)
     return row
 
 
-def add_all_db(db, rows):
-    db.add_all(rows)
-    db.commit()
+def add_all_db(db, rows, *, same_transaction=False):
+    """Add all the rows to the db and commit the transaction.
+
+    If same_transaction is True, all records are inserted in the same transaction,
+    and the creation_date and update_date might be always the same.
+    """
+    if same_transaction:
+        db.add_all(rows)
+        db.commit()
+    else:
+        for row in rows:
+            db.add(row)
+            db.commit()
     for row in rows:
         db.refresh(row)
     return rows
@@ -770,6 +784,63 @@ def check_sort_by_field(items, field_name):
     )
 
 
+def create_subject_ids(db, *, created_by_id, n):
+    strain_ids = []
+    species_ids = []
+    subject_ids = []
+
+    for i in range(n):
+        species_id = str(
+            add_db(
+                db,
+                Species(
+                    name=f"TestSpecies{i}",
+                    taxonomy_id=f"{i}",
+                    created_by_id=created_by_id,
+                    updated_by_id=created_by_id,
+                    embedding=[0.1] * 1536,  # Mocked embedding
+                ),
+            ).id
+        )
+        strain_id = str(
+            add_db(
+                db,
+                Strain(
+                    name=f"TestStrain{i}",
+                    taxonomy_id=f"{i + 2}",
+                    species_id=species_id,
+                    created_by_id=created_by_id,
+                    updated_by_id=created_by_id,
+                    embedding=[0.1] * 1536,  # Mocked embedding
+                ),
+            ).id
+        )
+        subject_id = str(
+            add_db(
+                db,
+                Subject(
+                    name=f"test-subject-{i}",
+                    description=f"test-description-{i}",
+                    species_id=species_id,
+                    strain_id=strain_id,
+                    age_value=timedelta(days=14),
+                    age_period="postnatal",
+                    sex="female",
+                    weight=1.5,
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
+                    created_by_id=str(created_by_id),
+                    updated_by_id=str(created_by_id),
+                ),
+            ).id
+        )
+        strain_ids.append(strain_id)
+        species_ids.append(species_id)
+        subject_ids.append(subject_id)
+
+    return subject_ids, species_ids, strain_ids
+
+
 def check_global_read_one(
     *,
     route: str,
@@ -879,6 +950,7 @@ def check_entity_update_one(
 
     public_1_data = _create(clients.user_1.post, json_data | {"authorized_public": True})
     private_1_data = _create(clients.user_1.post, json_data | {"authorized_public": False})
+    private_1_old_values = {k: private_1_data[k] for k in patch_payload}
 
     assert public_1_data["authorized_public"] is True
     assert private_1_data["authorized_public"] is False
@@ -890,7 +962,7 @@ def check_entity_update_one(
     _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", patch_payload)
 
     # user restores resource
-    _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", private_1_data)
+    _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", private_1_old_values)
 
     # Test setting and unsetting optional fields
     if optional_payload:

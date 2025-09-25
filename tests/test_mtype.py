@@ -11,13 +11,13 @@ from .utils import (
     check_global_update_one,
     check_missing,
     count_db_class,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
     with_creation_fields,
 )
 
 ROUTE = "/mtype"
 ADMIN_ROUTE = "/admin/mtype"
-ROUTE_MORPH = "/reconstruction-morphology"
+ROUTE_MORPH = "/cell-morphology"
 
 
 @pytest.fixture
@@ -147,12 +147,11 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_morph_mtypes(db, client, species_id, strain_id, brain_region_id, person_id):
-    morph_id = create_reconstruction_morphology_id(
+def test_morph_mtypes(db, client, subject_id, brain_region_id, person_id):
+    morph_id = create_cell_morphology_id(
         client,
-        species_id,
-        strain_id,
-        brain_region_id,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
 

@@ -11,11 +11,12 @@ from sqlalchemy.sql.selectable import Select
 
 from app.db.model import (
     Agent,
+    CellMorphology,
     Contribution,
     EModel,
     MEModel,
     MEModelCalibrationResult,
-    ReconstructionMorphology,
+    Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -58,16 +59,17 @@ def _load(select: Select):
             selectinload(EModel.assets),
         ),
         joinedload(MEModel.morphology).options(
-            joinedload(ReconstructionMorphology.brain_region),
-            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.agent),
-            selectinload(ReconstructionMorphology.contributions).selectinload(Contribution.role),
-            joinedload(ReconstructionMorphology.mtypes),
-            joinedload(ReconstructionMorphology.license),
-            joinedload(ReconstructionMorphology.species),
-            joinedload(ReconstructionMorphology.strain),
-            joinedload(ReconstructionMorphology.created_by),
-            joinedload(ReconstructionMorphology.updated_by),
-            selectinload(ReconstructionMorphology.assets),
+            joinedload(CellMorphology.brain_region),
+            joinedload(CellMorphology.cell_morphology_protocol),
+            selectinload(CellMorphology.contributions).selectinload(Contribution.agent),
+            selectinload(CellMorphology.contributions).selectinload(Contribution.role),
+            joinedload(CellMorphology.mtypes),
+            joinedload(CellMorphology.license),
+            joinedload(CellMorphology.subject).joinedload(Subject.species),
+            joinedload(CellMorphology.subject).joinedload(Subject.strain),
+            joinedload(CellMorphology.created_by),
+            joinedload(CellMorphology.updated_by),
+            selectinload(CellMorphology.assets),
         ),
         joinedload(MEModel.brain_region),
         selectinload(MEModel.contributions).joinedload(Contribution.agent),
@@ -162,14 +164,14 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[MEModelRead]:
-    morphology_alias = aliased(ReconstructionMorphology, flat=True)
+    morphology_alias = aliased(CellMorphology, flat=True)
     emodel_alias = aliased(EModel, flat=True)
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
 
     aliases: Aliases = {
-        ReconstructionMorphology: morphology_alias,
+        CellMorphology: morphology_alias,
         EModel: emodel_alias,
         Agent: {
             "contribution": agent_alias,

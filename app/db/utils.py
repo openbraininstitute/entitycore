@@ -5,14 +5,23 @@ from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
-from app.db.model import Base, Entity, Identifiable, LocationMixin, MeasurableEntity
-from app.db.types import EntityType, ResourceType
+from app.db.model import (
+    Base,
+    CellMorphologyProtocol,
+    Entity,
+    Identifiable,
+    LocationMixin,
+    MeasurableEntityMixin,
+)
+from app.db.types import CellMorphologyGenerationType, EntityType, ResourceType
 from app.logger import L
 
-MEASURABLE_ENTITIES: dict[str, type[MeasurableEntity]] = {
+MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
     mapper.class_.__tablename__: mapper.class_
     for mapper in Base.registry.mappers
-    if issubclass(mapper.class_, MeasurableEntity) and mapper.class_.__tablename__
+    if issubclass(mapper.class_, MeasurableEntityMixin)
+    and issubclass(mapper.class_, Entity)
+    and mapper.class_.__tablename__
 }
 MeasurableEntityType = StrEnum("MeasurableEntity", sorted(MEASURABLE_ENTITIES))
 
@@ -28,6 +37,21 @@ RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
     if mapper.class_.__tablename__ in ResourceType
 }
 
+RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
+    mapper.class_.__tablename__: mapper.class_
+    for mapper in Base.registry.mappers
+    if mapper.class_.__tablename__ in ResourceType
+}
+
+CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[
+    CellMorphologyGenerationType, type[CellMorphologyProtocol]
+] = {
+    CellMorphologyGenerationType[mapper.polymorphic_identity]: mapper.class_
+    for mapper in Base.registry.mappers
+    if issubclass(mapper.class_, CellMorphologyProtocol)
+    and mapper.class_ != CellMorphologyProtocol  # exclude the base class
+    and mapper.polymorphic_identity
+}
 
 entity_type_with_brain_region_enum_members = {
     member.name: member.value

@@ -13,7 +13,7 @@ from .utils import (
     assert_request,
     check_entity_update_one,
     count_db_class,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
     delete_entity_classifications,
     delete_entity_contributions,
     upload_entity_asset,
@@ -306,11 +306,15 @@ def test_authorization(
     client_no_project,
     species_id,
     strain_id,
+    subject_id,
     brain_region_id,
     morphology_id,
 ):
-    public_morphology_id = create_reconstruction_morphology_id(
-        client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
+    public_morphology_id = create_cell_morphology_id(
+        client_user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
     )
 
     emodel_json = {
@@ -348,10 +352,9 @@ def test_authorization(
 
     assert unauthorized_public_with_private_exemplar_morphology.status_code == 403
 
-    exemplar_morphology_id = create_reconstruction_morphology_id(
+    exemplar_morphology_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=strain_id,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )

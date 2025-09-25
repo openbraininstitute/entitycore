@@ -129,7 +129,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_ne
         )
 
     assert data["brain_region"]["id"] == str(brain_region_id), (
-        f"Failed to get id for reconstruction morphology: {data}"
+        f"Failed to get id for cell morphology: {data}"
     )
     assert data["description"] == "my-description"
     assert data["name"] == "foo"
@@ -145,7 +145,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_ne
     response = assert_request(client.get, url=f"{ROUTE}/{single_neuron_simulation_id}")
     data = response.json()
     assert data["brain_region"]["id"] == str(brain_region_id), (
-        f"Failed to get id for reconstruction morphology: {data}"
+        f"Failed to get id for cell morphology: {data}"
     )
     assert data["description"] == "my-description"
     assert data["name"] == "foo"

@@ -27,7 +27,7 @@ from app.errors import (
 )
 from app.filters.base import Aliases, CustomFilter
 from app.queries.filter import filter_from_db
-from app.queries.types import ApplyOperations
+from app.queries.types import ApplyOperations, SupportsModelValidate
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
 from app.schemas.types import ListResponse, PaginationResponse
@@ -41,7 +41,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     db: Session,
     db_model_class: type[I],
     authorized_project_id: uuid.UUID | None,
-    response_schema_class: type[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations[I] | None,
 ) -> T:
     """Read a model from the database.
@@ -77,7 +77,7 @@ def router_create_activity_one[T: BaseModel, I: Activity](
     db_model_class: type[I],
     user_context: UserContext | UserContextWithProjectId,
     json_model: ActivityCreate,
-    response_schema_class: type[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
 ):
     created_by_id = updated_by_id = project_id = None
@@ -148,7 +148,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     db_model_class: type[I],
     user_context: UserContext | UserContextWithProjectId,
     json_model: BaseModel,
-    response_schema_class: type[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
     embedding: list[float] | None = None,
 ) -> T:
@@ -244,7 +244,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     apply_filter_query_operations: ApplyOperations[I] | None,
     apply_data_query_operations: ApplyOperations[I] | None,
     pagination_request: PaginationQuery,
-    response_schema_class: type[T],
+    response_schema_class: SupportsModelValidate[T],
     name_to_facet_query_params: dict[str, FacetQueryParams] | None,
     filter_model: CustomFilter[I],
     filter_joins: dict[str, ApplyOperations] | None = None,
@@ -339,7 +339,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         if facets and name_to_facet_query_params
         else None
     )
-    return ListResponse[response_schema_class](
+    return ListResponse[T](
         data=[response_schema_class.model_validate(row) for row in data],
         pagination=PaginationResponse(
             page=pagination_request.page,
@@ -357,7 +357,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     db_model_class: type[I],
     user_context: UserContext | None,
     json_model: BaseModel,
-    response_schema_class: type[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
 ):
     query = (
@@ -374,7 +374,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
         obj = db.execute(query).unique().scalar_one()
 
     # remove attributes with NOT_SET sentinel and leave only user set ones
-    update_data = json_model.model_dump(exclude_defaults=True)
+    update_data = {k: v for k, v in json_model.model_dump().items() if v != NOT_SET}
 
     for key, value in update_data.items():
         setattr(obj, key, value)
@@ -432,7 +432,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     db_model_class: type[I],
     user_context: UserContext | UserContextWithProjectId | None,
     json_model: ActivityUpdate,
-    response_schema_class: type[T],
+    response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
 ) -> T:
     query = sa.select(db_model_class).where(db_model_class.id == id_)

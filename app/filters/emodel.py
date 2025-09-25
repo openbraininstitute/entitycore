@@ -5,6 +5,7 @@ from fastapi_filter import with_prefix
 from app.db.model import EModel
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.cell_morphology import NestedCellMorphologyFilter
 from app.filters.common import (
     BrainRegionFilterMixin,
     EntityFilterMixin,
@@ -17,7 +18,6 @@ from app.filters.common import (
     NestedMTypeClassFilter,
     SpeciesFilterMixin,
 )
-from app.filters.morphology import NestedMorphologyFilter
 
 
 class NestedEModelFilter(
@@ -41,8 +41,8 @@ class NestedEModelFilter(
         FilterDepends(with_prefix("emodel__etype", NestedETypeClassFilter)),
     ]
     exemplar_morphology: Annotated[
-        NestedMorphologyFilter | None,
-        FilterDepends(with_prefix("emodel__exemplar_morphology", NestedMorphologyFilter)),
+        NestedCellMorphologyFilter | None,
+        FilterDepends(with_prefix("emodel__exemplar_morphology", NestedCellMorphologyFilter)),
     ] = None
 
     class Constants(CustomFilter.Constants):
@@ -62,8 +62,8 @@ class EModelFilter(
     score__gte: float | None = None
 
     exemplar_morphology: Annotated[
-        NestedMorphologyFilter | None,
-        FilterDepends(with_prefix("exemplar_morphology", NestedMorphologyFilter)),
+        NestedCellMorphologyFilter | None,
+        FilterDepends(with_prefix("exemplar_morphology", NestedCellMorphologyFilter)),
     ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

@@ -6,10 +6,10 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
+    CellMorphology,
     Contribution,
     EModel,
     IonChannelModel,
-    ReconstructionMorphology,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -153,12 +153,12 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[EModelReadExpanded]:
-    morphology_alias = aliased(ReconstructionMorphology, flat=True)
+    morphology_alias = aliased(CellMorphology, flat=True)
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
     aliases: Aliases = {
-        ReconstructionMorphology: morphology_alias,
+        CellMorphology: morphology_alias,
         Agent: {
             "contribution": agent_alias,
             "created_by": created_by_alias,

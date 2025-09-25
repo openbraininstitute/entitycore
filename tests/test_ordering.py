@@ -1,11 +1,11 @@
 import pytest
 
-from app.db.model import License, ReconstructionMorphology
+from app.db.model import CellMorphology, License
 
 from tests.utils import PROJECT_ID, add_all_db, check_sort_by_field
 
 ROUTE_LICENSE = "/license"
-ROUTE_MORPHOLOGY = "/reconstruction-morphology"
+ROUTE_MORPHOLOGY = "/cell-morphology"
 
 
 def test_license_ordering(db, client, person_id):
@@ -20,6 +20,7 @@ def test_license_ordering(db, client, person_id):
             License(**item | {"created_by_id": person_id, "updated_by_id": person_id})
             for item in items
         ],
+        same_transaction=True,
     )
 
     response = client.get(ROUTE_LICENSE)
@@ -30,17 +31,14 @@ def test_license_ordering(db, client, person_id):
     check_sort_by_field(data, "id")
 
 
-def test_reconstruction_morphology_ordering(
-    db, client, species_id, strain_id, license_id, brain_region_id, person_id
-):
+def test_cell_morphology_ordering(db, client, subject_id, license_id, brain_region_id, person_id):
     count = 10
     items = [
         {
             "name": f"name_{i}" if i < count / 2 else f"name_to_find_{i}",
             "description": f"description_{i}",
             "brain_region_id": str(brain_region_id),
-            "species_id": str(species_id),
-            "strain_id": str(strain_id),
+            "subject_id": str(subject_id),
             "location": {"x": 10, "y": 20, "z": 30},
             "license_id": str(license_id),
             "legacy_id": ["Test Legacy ID"],
@@ -51,7 +49,11 @@ def test_reconstruction_morphology_ordering(
         for i in range(count)
     ]
 
-    add_all_db(db, [ReconstructionMorphology(**item) for item in items])
+    add_all_db(
+        db,
+        [CellMorphology(**item) for item in items],
+        same_transaction=True,
+    )
 
     response = client.get(ROUTE_MORPHOLOGY)
     assert response.status_code == 200

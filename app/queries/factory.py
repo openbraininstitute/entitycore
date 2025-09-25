@@ -3,6 +3,8 @@ from typing import Any, cast
 from app.db.model import (
     Agent,
     BrainRegion,
+    CellMorphology,
+    CellMorphologyProtocol,
     Circuit,
     Contribution,
     EMDenseReconstructionDataset,
@@ -19,7 +21,6 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
     Simulation,
     SingleNeuronSynaptome,
     Species,
@@ -57,7 +58,8 @@ def query_params_factory[I: Identifiable](
             value = db_cls if name is None else value.get(name, db_cls)
         return cast("T", value)
 
-    morphology_alias = _get_alias(ReconstructionMorphology)
+    morphology_alias = _get_alias(CellMorphology)
+    cell_morphology_protocol_alias = _get_alias(CellMorphologyProtocol)
     emodel_alias = _get_alias(EModel)
     me_model_alias = _get_alias(MEModel)
     synaptome_alias = _get_alias(SingleNeuronSynaptome)
@@ -99,6 +101,10 @@ def query_params_factory[I: Identifiable](
         "brain_region": {"id": brain_region_alias.id, "label": brain_region_alias.name},
         "morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
         "exemplar_morphology": {"id": morphology_alias.id, "label": morphology_alias.name},
+        "cell_morphology_protocol": {
+            "id": cell_morphology_protocol_alias.id,
+            "label": cell_morphology_protocol_alias.generation_type,
+        },
         "emodel": {"id": emodel_alias.id, "label": emodel_alias.name},
         "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
         "synaptome": {"id": synaptome_alias.id, "label": synaptome_alias.name},
@@ -132,6 +138,10 @@ def query_params_factory[I: Identifiable](
         ),
         "exemplar_morphology": lambda q: q.join(
             morphology_alias, db_model_class.exemplar_morphology_id == morphology_alias.id
+        ),
+        "cell_morphology_protocol": lambda q: q.join(
+            cell_morphology_protocol_alias,
+            db_model_class.cell_morphology_protocol_id == cell_morphology_protocol_alias.id,
         ),
         "emodel": lambda q: q.join(emodel_alias, db_model_class.emodel_id == emodel_alias.id),
         "entity": lambda q: q.join(entity_alias, db_model_class.entity_id == entity_alias.id),

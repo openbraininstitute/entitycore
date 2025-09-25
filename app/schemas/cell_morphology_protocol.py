@@ -315,7 +315,7 @@ class CellMorphologyProtocolReadAdapter(BaseModel):
 
 
 class CellMorphologyProtocolUserUpdateAdapter(BaseModel):
-    """Polymorphic wrapper for CellMorphologyProtocolRead."""
+    """Polymorphic wrapper for CellMorphologyProtocolUpdate."""
 
     _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolUserUpdate)
 

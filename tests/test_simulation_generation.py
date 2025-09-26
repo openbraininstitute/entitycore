@@ -276,6 +276,29 @@ def test_delete_one(db, client, models):
     assert {d["id"] for d in data} == {str(models[0]), str(models[2]), str(models[4])}
 
 
+def test_delete_one_admin(db, clients, models):
+    # sanity check
+    assert _count_associations(db, models[1]) == 2
+    assert _count_associations(db, models[3]) == 4
+
+    data = assert_request(clients.admin.delete, url=f"{ADMIN_ROUTE}/{models[1]}").json()
+    assert data["id"] == str(models[1])
+    assert _is_deleted(db, data["id"])
+
+    assert _count_associations(db, models[1]) == 0
+    assert _count_associations(db, models[3]) == 4
+
+    data = assert_request(clients.admin.delete, url=f"{ADMIN_ROUTE}/{models[3]}").json()
+    assert data["id"] == str(models[3])
+    assert _is_deleted(db, data["id"])
+
+    assert _count_associations(db, models[1]) == 0
+    assert _count_associations(db, models[3]) == 0
+
+    data = assert_request(clients.user_1.get, url=f"{ROUTE}").json()["data"]
+    assert {d["id"] for d in data} == {str(models[0]), str(models[2]), str(models[4])}
+
+
 def _count_associations(db, activity_id):
     n_usages = db.execute(
         sa.select(sa.func.count(Usage.usage_activity_id)).where(

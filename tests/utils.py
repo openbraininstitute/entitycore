@@ -1005,3 +1005,52 @@ def check_entity_update_one(
 
     # admin has no such restrictions
     _patch_compare(clients.admin, f"{admin_route}/{public_1_id}", {"authorized_public": False})
+
+
+def check_entity_delete_one(
+    db, clients, route, admin_route, json_data, expected_counts_before, expected_counts_after
+):
+    def _req_count(client, client_route, model_id):
+        for db_class, count in expected_counts_before.items():
+            assert count_db_class(db, db_class) == count
+
+        data = assert_request(client.delete, url=f"{client_route}/{model_id}").json()
+        assert data["id"] == str(model_id)
+
+        for db_class, count in expected_counts_after.items():
+            assert count_db_class(db, db_class) == count
+
+    model_id = assert_request(clients.user_1.post, url=route, json=json_data).json()["id"]
+
+    # user 2 has no access to project id
+    data = assert_request(
+        clients.user_2.delete, url=f"{route}/{model_id}", expected_status_code=404
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # user 1 can delete
+    _req_count(clients.user_1, route, model_id)
+
+    model_id = assert_request(clients.user_1.post, url=route, json=json_data).json()["id"]
+
+    # user cannot use admin route
+    data = assert_request(
+        clients.user_1.delete, url=f"{admin_route}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    _req_count(clients.admin, admin_route, model_id)
+
+    model_id = assert_request(
+        clients.user_1.post, url=route, json=json_data | {"authorized_public": True}
+    ).json()["id"]
+
+    # users cannot update public resources
+    data = assert_request(
+        clients.user_1.delete, url=f"{route}/{model_id}", expected_status_code=404
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admins should be able to
+    _req_count(clients.admin, admin_route, model_id)

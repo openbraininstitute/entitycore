@@ -1627,7 +1627,8 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     Attributes:
         id: (uuid.UUID): Primary key, referencing the entity ID.
         scale: The overall scale of the analysis in the notebook. Used for filtering.
-        specifications: Definitions of required python version and inputs, with schema.
+        specifications: Definitions of required python version and inputs,
+            with schema AnalysisNotebookTemplateSpecifications.
 
     Assets:
         - a .ipynb file.
@@ -1649,7 +1650,8 @@ class AnalysisNotebookEnvironment(Entity):
 
     Attributes:
         id: (uuid.UUID): Primary key, referencing the entity ID.
-        runtime_info: runtime variables associated with the environment, with schema.
+        runtime_info: runtime variables associated with the environment,
+            with schema RuntimeInfo.
 
     Assets:
         - requirements.txt produced with `pip freeze`.

@@ -1331,14 +1331,17 @@ def analysis_notebook_template_json_data():
         "scale": "cellular",
         "specifications": {
             "python": {"version": ">=3.10"},
+            "docker": {
+                "image_repository": "obi-notebook-image",
+            },
             "inputs": [
                 {
                     "name": "my-simulation-campaign",
-                    "type": "simulation_campaign",
+                    "entity_type": "simulation_campaign",
                 },
                 {
                     "name": "my-circuit",
-                    "type": "circuit",
+                    "entity_type": "circuit",
                     "is_list": True,
                     "count_min": 1,
                     "count_max": 3,
@@ -1371,6 +1374,10 @@ def analysis_notebook_environment_json_data():
                 "version": "3.13.7",
                 "implementation": "CPython",
                 "executable": "/opt/homebrew/opt/python@3.13/bin/python3.13",
+            },
+            "docker": {
+                "image_repository": "obi-notebook-image",
+                "image_tag": ">=2025.09.24-2",
             },
             "os": {
                 "system": "Darwin",

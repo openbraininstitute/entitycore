@@ -47,6 +47,10 @@ def _assert_read_response(data, json_data):
     assert data["type"] == EntityType.analysis_notebook_template
     assert data["specifications"]["python"] == json_data["specifications"]["python"]
     assert len(data["specifications"]["inputs"]) == len(json_data["specifications"]["inputs"])
+    assert (
+        data["specifications"]["docker"]["image_repository"]
+        == json_data["specifications"]["docker"]["image_repository"]
+    )
 
     check_creation_fields(data)
 

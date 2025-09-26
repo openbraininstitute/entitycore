@@ -12,32 +12,34 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
+from app.schemas.types import DockerDependency, PythonDependency
 from app.schemas.utils import make_update_schema
 
 
-class PythonDependency(BaseModel):
-    version: str  # e.g. ">=3.10,<3.12"
+class AnalysisNotebookTemplateInputType(BaseModel):
+    """Definition of input types to be used with a notebook template."""
 
-
-class InputType(BaseModel):
     name: str
-    type: EntityType
+    entity_type: EntityType
     is_list: bool = False
     count_min: Annotated[int, Field(ge=0)] = 1
     count_max: Annotated[int | None, Field(ge=0)] = 1
 
 
-class Specifications(BaseModel):
+class AnalysisNotebookTemplateSpecifications(BaseModel):
+    """Full specifications needed for running a notebook template."""
+
     schema_version: int = 1
-    python: PythonDependency
-    inputs: list[InputType]
+    python: PythonDependency | None = None
+    docker: DockerDependency | None = None
+    inputs: list[AnalysisNotebookTemplateInputType] = []
 
 
 class AnalysisNotebookTemplateBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
-    specifications: Specifications | None = None
+    specifications: AnalysisNotebookTemplateSpecifications | None = None
     scale: AnalysisScale
 
 

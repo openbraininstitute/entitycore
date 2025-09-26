@@ -1,5 +1,3 @@
-from unittest.mock import ANY
-
 import pytest
 
 from app.db.model import AnalysisNotebookEnvironment
@@ -44,7 +42,13 @@ def _assert_read_response(data, json_data):
     assert "authorized_project_id" in data
     assert "assets" in data
     assert data["type"] == EntityType.analysis_notebook_environment
-    assert data["runtime_info"] == json_data["runtime_info"] | {"schema_version": ANY}
+    assert set(data["runtime_info"]) == {"schema_version", "python", "docker", "os"}
+    assert data["runtime_info"]["python"] == json_data["runtime_info"]["python"]
+    assert data["runtime_info"]["os"] == json_data["runtime_info"]["os"]
+    assert (
+        data["runtime_info"]["docker"]["image_repository"]
+        == json_data["runtime_info"]["docker"]["image_repository"]
+    )
 
     check_creation_fields(data)
 

@@ -56,3 +56,54 @@ SerializableAnyUrl = Annotated[
     AnyUrl,
     PlainSerializer(lambda x: x.encoded_string(), return_type=str, when_used="unless-none"),
 ]
+
+
+class PythonDependency(BaseModel):
+    """Python dependency."""
+
+    version: str  # e.g. ">=3.10,<3.12"
+
+
+class DockerDependency(BaseModel):
+    """Docker dependency."""
+
+    image_repository: str  # e.g. "obi-notebook-image"
+    image_tag: str | None = None  # e.g. ">=2025.09.24-2"
+    image_digest: str | None = None  # SHA256 digest
+    docker_version: str | None = None  # e.g. ">=20.10,<29.0"
+
+
+class PythonRuntimeInfo(BaseModel):
+    """Python runtime information."""
+
+    version: str  # platform.python_version()
+    implementation: str  # platform.python_implementation()
+    executable: str  # sys.executable
+
+
+class DockerRuntimeInfo(BaseModel):
+    """Docker runtime information."""
+
+    image_repository: str  # e.g. "public.ecr.aws/openbraininstitute/obi-notebook-image"
+    image_tag: str  # e.g. "2025.09.24-2"
+    image_digest: str | None = None  # SHA256 digest
+    docker_version: str | None = None  # e.g. "28.4.0"
+
+
+class OsRuntimeInfo(BaseModel):
+    """OS runtime information."""
+
+    system: str  # platform.system()
+    release: str  # platform.release()
+    version: str  # platform.version()
+    machine: str  # platform.machine()
+    processor: str  # platform.processor()
+
+
+class RuntimeInfo(BaseModel):
+    """Runtime information."""
+
+    schema_version: int = 1
+    python: PythonRuntimeInfo
+    docker: DockerRuntimeInfo | None = None
+    os: OsRuntimeInfo | None = None

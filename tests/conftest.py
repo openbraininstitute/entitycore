@@ -18,6 +18,9 @@ from app.application import app
 from app.config import storages
 from app.db.model import (
     Agent,
+    AnalysisNotebookEnvironment,
+    AnalysisNotebookResult,
+    AnalysisNotebookTemplate,
     Base,
     BrainAtlas,
     CellMorphology,
@@ -1275,5 +1278,110 @@ def cell_morphology_protocol(db, cell_morphology_protocol_json_data, person_id):
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": True,
             }
+        ),
+    )
+
+
+@pytest.fixture
+def analysis_notebook_template_json_data():
+    return {
+        "name": "analysis-notebook-template",
+        "description": "analysis-notebook-template-description",
+        "scale": "cellular",
+        "specifications": {
+            "python": {"version": ">=3.10"},
+            "docker": {
+                "image_repository": "obi-notebook-image",
+            },
+            "inputs": [
+                {
+                    "name": "my-simulation-campaign",
+                    "entity_type": "simulation_campaign",
+                },
+                {
+                    "name": "my-circuit",
+                    "entity_type": "circuit",
+                    "is_list": True,
+                    "count_min": 1,
+                    "count_max": 3,
+                },
+            ],
+        },
+    }
+
+
+@pytest.fixture
+def analysis_notebook_template(db, analysis_notebook_template_json_data, person_id):
+    return add_db(
+        db,
+        AnalysisNotebookTemplate(
+            **analysis_notebook_template_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            },
+        ),
+    )
+
+
+@pytest.fixture
+def analysis_notebook_environment_json_data():
+    return {
+        "runtime_info": {
+            "python": {
+                "version": "3.13.7",
+                "implementation": "CPython",
+                "executable": "/opt/homebrew/opt/python@3.13/bin/python3.13",
+            },
+            "docker": {
+                "image_repository": "obi-notebook-image",
+                "image_tag": ">=2025.09.24-2",
+            },
+            "os": {
+                "system": "Darwin",
+                "release": "24.5.0",
+                "version": "Darwin Kernel Version 24.5.0...",
+                "machine": "arm64",
+                "processor": "arm",
+            },
+        },
+    }
+
+
+@pytest.fixture
+def analysis_notebook_environment(db, analysis_notebook_environment_json_data, person_id):
+    return add_db(
+        db,
+        AnalysisNotebookEnvironment(
+            **analysis_notebook_environment_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            },
+        ),
+    )
+
+
+@pytest.fixture
+def analysis_notebook_result_json_data():
+    return {
+        "name": "analysis-notebook-result",
+        "description": "analysis-notebook-result-description",
+    }
+
+
+@pytest.fixture
+def analysis_notebook_result(db, analysis_notebook_result_json_data, person_id):
+    return add_db(
+        db,
+        AnalysisNotebookResult(
+            **analysis_notebook_result_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            },
         ),
     )

@@ -1,8 +1,8 @@
-"""Add AnalysisNotebook entities.
+"""Add AnalysisNotebook entities
 
-Revision ID: bcb298524471
-Revises: 7aa80d34dbdd
-Create Date: 2025-09-24 09:04:55.705453
+Revision ID: a907d441946a
+Revises: e5ecb929d275
+Create Date: 2025-09-26 18:04:11.678145
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "bcb298524471"
-down_revision: Union[str, None] = "7aa80d34dbdd"
+revision: str = "a907d441946a"
+down_revision: Union[str, None] = "e5ecb929d275"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -142,6 +142,8 @@ def upgrade() -> None:
             "brain_atlas",
             "brain_atlas_region",
             "cell_composition",
+            "cell_morphology",
+            "cell_morphology_protocol",
             "electrical_cell_recording",
             "electrical_recording",
             "electrical_recording_stimulus",
@@ -156,11 +158,8 @@ def upgrade() -> None:
             "memodel",
             "memodel_calibration_result",
             "me_type_density",
-            "reconstruction_morphology",
             "simulation",
             "simulation_campaign",
-            "simulation_campaign_generation",
-            "simulation_execution",
             "simulation_result",
             "scientific_artifact",
             "single_neuron_simulation",
@@ -214,6 +213,7 @@ def upgrade() -> None:
         enum_name="assetlabel",
         new_values=[
             "morphology",
+            "morphology_with_spines",
             "cell_composition_summary",
             "cell_composition_volumes",
             "single_neuron_synaptome_config",
@@ -265,6 +265,7 @@ def downgrade() -> None:
         enum_name="assetlabel",
         new_values=[
             "morphology",
+            "morphology_with_spines",
             "cell_composition_summary",
             "cell_composition_volumes",
             "single_neuron_synaptome_config",
@@ -340,6 +341,8 @@ def downgrade() -> None:
             "brain_atlas",
             "brain_atlas_region",
             "cell_composition",
+            "cell_morphology",
+            "cell_morphology_protocol",
             "electrical_cell_recording",
             "electrical_recording",
             "electrical_recording_stimulus",
@@ -354,11 +357,8 @@ def downgrade() -> None:
             "memodel",
             "memodel_calibration_result",
             "me_type_density",
-            "reconstruction_morphology",
             "simulation",
             "simulation_campaign",
-            "simulation_campaign_generation",
-            "simulation_execution",
             "simulation_result",
             "scientific_artifact",
             "single_neuron_simulation",

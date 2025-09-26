@@ -122,7 +122,7 @@ class EntityType(StrEnum):
     me_type_density = auto()
     simulation = auto()
     simulation_campaign = auto()
-    simulation_campaign_generation = auto()
+    simulation_generation = auto()
     simulation_execution = auto()
     simulation_result = auto()
     scientific_artifact = auto()

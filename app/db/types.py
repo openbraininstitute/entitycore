@@ -122,8 +122,6 @@ class EntityType(StrEnum):
     me_type_density = auto()
     simulation = auto()
     simulation_campaign = auto()
-    simulation_generation = auto()
-    simulation_execution = auto()
     simulation_result = auto()
     scientific_artifact = auto()
     single_neuron_simulation = auto()
@@ -202,7 +200,7 @@ class DerivationType(StrEnum):
 
 ResourceType = combine_str_enums(
     "ResourceType",
-    (EntityType, AssociationType, GlobalType, AgentType),
+    (EntityType, AssociationType, GlobalType, AgentType, ActivityType),
 )
 
 

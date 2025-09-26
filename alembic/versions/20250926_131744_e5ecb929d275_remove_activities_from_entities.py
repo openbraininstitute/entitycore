@@ -1,8 +1,8 @@
-"""fix_simulation_generation_type
+"""remove_activities_from_entities
 
-Revision ID: ca1684bbc6c3
+Revision ID: e5ecb929d275
 Revises: 01644f002227
-Create Date: 2025-09-26 12:25:50.645601
+Create Date: 2025-09-26 13:17:44.194428
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "ca1684bbc6c3"
+revision: str = "e5ecb929d275"
 down_revision: Union[str, None] = "01644f002227"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -50,8 +50,6 @@ def upgrade() -> None:
             "me_type_density",
             "simulation",
             "simulation_campaign",
-            "simulation_generation",
-            "simulation_execution",
             "simulation_result",
             "scientific_artifact",
             "single_neuron_simulation",

@@ -8,6 +8,7 @@ from app.db.types import EntityType
 from .utils import (
     assert_request,
     check_authorization,
+    check_entity_delete_one,
     check_entity_update_one,
     check_missing,
     check_pagination,
@@ -109,3 +110,19 @@ def test_authorization(
 
 def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
+
+
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            ElectricalRecordingStimulus: 1,
+        },
+        expected_counts_after={
+            ElectricalRecordingStimulus: 0,
+        },
+    )

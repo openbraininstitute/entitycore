@@ -1046,7 +1046,7 @@ def check_entity_delete_one(
         clients.user_1.post, url=route, json=json_data | {"authorized_public": True}
     ).json()["id"]
 
-    # users cannot update public resources
+    # users cannot delete public resources
     data = assert_request(
         clients.user_1.delete, url=f"{route}/{model_id}", expected_status_code=404
     ).json()

@@ -14,6 +14,7 @@ read_many = router.get("")(app.service.experimental_synapses_per_connection.read
 read_one = router.get("/{id_}")(app.service.experimental_synapses_per_connection.read_one)
 create_one = router.post("")(app.service.experimental_synapses_per_connection.create_one)
 update_one = router.patch("/{id_}")(app.service.experimental_synapses_per_connection.update_one)
+delete_one = router.delete("/{id_}")(app.service.experimental_synapses_per_connection.delete_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.experimental_synapses_per_connection.admin_read_one

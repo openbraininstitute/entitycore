@@ -21,6 +21,7 @@ from app.dependencies.db import SessionDep
 from app.filters.ion_channel_recording import IonChannelRecordingFilterDep
 from app.queries.common import (
     router_create_one,
+    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
@@ -198,4 +199,17 @@ def admin_update_one(
         json_model=json_model,
         response_schema_class=IonChannelRecordingRead,
         apply_operations=_load,
+    )
+
+
+def delete_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> dict:
+    return router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelRecording,
+        user_context=user_context,
     )

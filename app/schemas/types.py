@@ -61,43 +61,77 @@ SerializableAnyUrl = Annotated[
 class PythonDependency(BaseModel):
     """Python dependency."""
 
-    version: str  # e.g. ">=3.10,<3.12"
+    version: Annotated[str, Field(examples=[">=3.10,<3.12"])]
 
 
 class DockerDependency(BaseModel):
     """Docker dependency."""
 
-    image_repository: str  # e.g. "obi-notebook-image"
-    image_tag: str | None = None  # e.g. ">=2025.09.24-2"
-    image_digest: str | None = None  # SHA256 digest
-    docker_version: str | None = None  # e.g. ">=20.10,<29.0"
+    image_repository: Annotated[str, Field(examples=["openbraininstitute/obi-notebook-image"])]
+    image_tag: Annotated[str | None, Field(examples=[">=2025.09.24-2"])] = None
+    image_digest: Annotated[
+        str | None,
+        Field(
+            description="SHA256 digest",
+            examples=["3406990b6e4c7192317b6fdc5680498744f6142f01f0287f4ee0420d8c74063c"],
+        ),
+    ] = None
+    docker_version: Annotated[str | None, Field(examples=[">=20.10,<29.0"])] = None
 
 
 class PythonRuntimeInfo(BaseModel):
     """Python runtime information."""
 
-    version: str  # platform.python_version()
-    implementation: str  # platform.python_implementation()
-    executable: str  # sys.executable
+    version: Annotated[
+        str, Field(description="Output of `platform.python_version()`", examples=["3.9.21"])
+    ]
+    implementation: Annotated[
+        str, Field(description="Output of `platform.python_implementation()`", examples=["CPython"])
+    ]
+    executable: Annotated[
+        str, Field(description="Output of `sys.executable`", examples=["/usr/bin/python"])
+    ]
 
 
 class DockerRuntimeInfo(BaseModel):
     """Docker runtime information."""
 
-    image_repository: str  # e.g. "public.ecr.aws/openbraininstitute/obi-notebook-image"
-    image_tag: str  # e.g. "2025.09.24-2"
-    image_digest: str | None = None  # SHA256 digest
-    docker_version: str | None = None  # e.g. "28.4.0"
+    image_repository: Annotated[str, Field(examples=["openbraininstitute/obi-notebook-image"])]
+    image_tag: Annotated[str, Field(examples=["2025.09.24-2"])]
+    image_digest: Annotated[
+        str | None,
+        Field(
+            description="SHA256 digest",
+            examples=["3406990b6e4c7192317b6fdc5680498744f6142f01f0287f4ee0420d8c74063c"],
+        ),
+    ] = None
+    docker_version: Annotated[str | None, Field(examples=["28.4.0"])] = None
 
 
 class OsRuntimeInfo(BaseModel):
     """OS runtime information."""
 
-    system: str  # platform.system()
-    release: str  # platform.release()
-    version: str  # platform.version()
-    machine: str  # platform.machine()
-    processor: str  # platform.processor()
+    system: Annotated[str, Field(description="Output of `platform.system()`", examples=["Linux"])]
+    release: Annotated[
+        str,
+        Field(
+            description="Output of `platform.release()`",
+            examples=["5.14.0-427.28.1.el9_4.x86_64"],
+        ),
+    ]
+    version: Annotated[
+        str,
+        Field(
+            description="Output of `platform.version()`",
+            examples=["#1 SMP PREEMPT_DYNAMIC Fri Aug 2 03:44:10 EDT 2024"],
+        ),
+    ]
+    machine: Annotated[
+        str, Field(description="Output of `platform.machine()`", examples=["x86_64"])
+    ]
+    processor: Annotated[
+        str, Field(description="Output of `platform.processor()`", examples=["x86_64"])
+    ]
 
 
 class RuntimeInfo(BaseModel):

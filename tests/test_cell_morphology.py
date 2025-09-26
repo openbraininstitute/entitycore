@@ -7,7 +7,7 @@ import pytest
 from app.db.model import (
     Agent,
     CellMorphology,
-    Contribution,
+    CellMorphologyProtocol,
     MTypeClass,
     MTypeClassification,
     Species,
@@ -24,11 +24,9 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    check_entity_delete_one,
     check_entity_update_one,
-    count_db_class,
     create_cell_morphology_id,
-    delete_entity_classifications,
-    delete_entity_contributions,
 )
 
 ROUTE = "/cell-morphology"
@@ -94,41 +92,19 @@ def test_create_one(
     assert data[0]["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
 
 
-def test_delete_one(db, client, client_admin, morphology_id, person_id, role_id):
-    model_id = morphology_id
-
-    add_db(
-        db,
-        Contribution(
-            agent_id=person_id,
-            role_id=role_id,
-            entity_id=model_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        expected_counts_before={CellMorphology: 1, CellMorphologyProtocol: 1},
+        expected_counts_after={
+            CellMorphology: 0,
+            CellMorphologyProtocol: 1,
+        },
     )
-
-    assert count_db_class(db, CellMorphology) == 1
-    assert count_db_class(db, Contribution) == 1
-    assert count_db_class(db, MTypeClass) == 1
-    assert count_db_class(db, MTypeClassification) == 1
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    delete_entity_contributions(client_admin, ROUTE, model_id)
-    delete_entity_classifications(client, client_admin, model_id)
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
-    assert data["id"] == str(model_id)
-
-    assert count_db_class(db, CellMorphology) == 0
-    assert count_db_class(db, Contribution) == 0
-    assert count_db_class(db, MTypeClass) == 1
-    assert count_db_class(db, MTypeClassification) == 0
 
 
 def test_update_one(clients, json_data):

@@ -155,7 +155,7 @@ def delete_one(
         id_=id_,
         db=db,
         db_model_class=SimulationGeneration,
-        authorized_project_id=None,  # already validated
+        user_context=None,  # already validated
     )
     return one
 

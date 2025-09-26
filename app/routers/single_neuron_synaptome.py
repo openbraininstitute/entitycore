@@ -10,6 +10,7 @@ read_many = router.get("")(app.service.single_neuron_synaptome.read_many)
 read_one = router.get("/{id_}")(app.service.single_neuron_synaptome.read_one)
 create_one = router.post("")(app.service.single_neuron_synaptome.create_one)
 update_one = router.patch("/{id_}")(app.service.single_neuron_synaptome.update_one)
+delete_one = router.delete("/{id_}")(app.service.single_neuron_synaptome.delete_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
     app.service.single_neuron_synaptome.admin_read_one

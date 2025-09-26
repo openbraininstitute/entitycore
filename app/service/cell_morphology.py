@@ -31,6 +31,7 @@ from app.dependencies.db import SessionDep
 from app.filters.cell_morphology import CellMorphologyFilterDep
 from app.queries.common import (
     router_create_one,
+    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
@@ -227,4 +228,17 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=morphology_filter,
         filter_joins=filter_joins,
+    )
+
+
+def delete_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> dict:
+    return router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellMorphology,
+        user_context=user_context,
     )

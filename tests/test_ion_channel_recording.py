@@ -4,9 +4,7 @@ from unittest.mock import ANY
 import pytest
 
 from app.db.model import (
-    Asset,
     BrainRegion,
-    ElectricalRecordingStimulus,
     IonChannel,
     IonChannelRecording,
     Species,
@@ -21,14 +19,12 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    check_entity_delete_one,
     check_entity_update_one,
     check_missing,
-    count_db_class,
     create_brain_region,
     create_ion_channel_recording_db,
     create_ion_channel_recording_id,
-    delete_entity_assets,
-    delete_entity_classifications,
 )
 
 ROUTE = "/ion-channel-recording"
@@ -146,34 +142,20 @@ def _delete_stimuli(client_admin, trace_id):
         ).json()
 
 
-def test_delete_one(db, client, client_admin, ion_channel_recording_id_with_assets):
-    assert count_db_class(db, IonChannelRecording) == 1
-    assert count_db_class(db, ElectricalRecordingStimulus) == 2
-    assert count_db_class(db, Asset) == 1
-    assert count_db_class(db, IonChannelRecording) == 1
-
-    data = assert_request(
-        client.delete,
-        url=f"{ADMIN_ROUTE}/{ion_channel_recording_id_with_assets}",
-        expected_status_code=403,
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    # manually delete linked entities to remove foreign key references
-    delete_entity_assets(client_admin, ROUTE, ion_channel_recording_id_with_assets)
-    delete_entity_classifications(client, client_admin, ion_channel_recording_id_with_assets)
-    _delete_stimuli(client_admin, ion_channel_recording_id_with_assets)
-
-    data = assert_request(
-        client_admin.delete, url=f"{ADMIN_ROUTE}/{ion_channel_recording_id_with_assets}"
-    ).json()
-    assert data["id"] == str(ion_channel_recording_id_with_assets)
-
-    assert count_db_class(db, IonChannelRecording) == 0
-    assert count_db_class(db, ElectricalRecordingStimulus) == 0
-    assert count_db_class(db, Asset) == 0
-    assert count_db_class(db, IonChannelRecording) == 0
+def test_delete_one(db, clients, ion_channel_recording_json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=ion_channel_recording_json_data,
+        expected_counts_before={
+            IonChannelRecording: 1,
+        },
+        expected_counts_after={
+            IonChannelRecording: 0,
+        },
+    )
 
 
 def test_missing(client):

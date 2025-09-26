@@ -65,6 +65,7 @@ def test_entity_route_methods(entity_route_paths):
         "read_many",
         "create_one",
         "update_one",
+        "delete_one",
         "admin_read_one",
         "admin_update_one",
     }

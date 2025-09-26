@@ -31,16 +31,17 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     if hasattr(EntityType, mapper.class_.__tablename__)
 }
 
-RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
-    mapper.class_.__tablename__: mapper.class_
-    for mapper in Base.registry.mappers
-    if mapper.class_.__tablename__ in ResourceType
-}
 
 RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
     mapper.class_.__tablename__: mapper.class_
     for mapper in Base.registry.mappers
     if mapper.class_.__tablename__ in ResourceType
+    and not (
+        hasattr(mapper.class_, "__mapper_args__")
+        and "polymorphic_identity" in mapper.class_.__mapper_args__
+        and mapper.class_.__mapper_args__["polymorphic_identity"]
+        != mapper.class_.__tablename__  # exclude subclasses only
+    )
 }
 
 CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[

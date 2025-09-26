@@ -9,6 +9,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_creation_fields,
+    check_entity_delete_one,
     check_missing,
     check_pagination,
 )
@@ -148,3 +149,19 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
             },
         ],
     }
+
+
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            EMCellMesh: 1,
+        },
+        expected_counts_after={
+            EMCellMesh: 0,
+        },
+    )

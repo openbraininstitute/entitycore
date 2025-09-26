@@ -9,10 +9,10 @@ from .utils import (
     assert_request,
     check_authorization,
     check_creation_fields,
+    check_entity_delete_one,
     check_entity_update_one,
     check_missing,
     check_pagination,
-    delete_entity_contributions,
 )
 
 ROUTE = "circuit"
@@ -83,28 +83,20 @@ def test_read_one(client, client_admin, circuit, circuit_json_data):
     assert len(data["contributions"]) == 1
 
 
-def test_delete_one(client, client_admin, circuit):
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{circuit.id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    # root circuit cannot be deleted because circuit points to it
-    data = assert_request(
-        client_admin.delete,
-        url=f"{ADMIN_ROUTE}/{circuit.root_circuit_id}",
-        expected_status_code=409,
-    ).json()
-    assert data["error_code"] == "INVALID_REQUEST"
-    assert (
-        data["message"] == "Circuit cannot be deleted because of foreign keys integrity violation"
+def test_delete_one(db, clients, root_circuit_json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=root_circuit_json_data,
+        expected_counts_before={
+            Circuit: 1,
+        },
+        expected_counts_after={
+            Circuit: 0,
+        },
     )
-
-    delete_entity_contributions(client_admin, ROUTE, circuit.id)
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{circuit.id}").json()
-    assert data["id"] == str(circuit.id)
 
 
 def test_read_many(client, circuit, circuit_json_data):

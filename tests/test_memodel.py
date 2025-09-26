@@ -7,13 +7,8 @@ from fastapi.testclient import TestClient
 
 from app.db.model import (
     CellMorphology,
-    Contribution,
     EModel,
-    ETypeClass,
-    ETypeClassification,
     MEModel,
-    MTypeClass,
-    MTypeClassification,
 )
 from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
@@ -23,11 +18,9 @@ from .utils import (
     PROJECT_ID,
     assert_request,
     check_brain_region_filter,
+    check_entity_delete_one,
     check_entity_update_one,
-    count_db_class,
     create_cell_morphology_id,
-    delete_entity_classifications,
-    delete_entity_contributions,
 )
 
 ROUTE = "/memodel"
@@ -49,10 +42,18 @@ def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
 
 
 @pytest.fixture
-def public_json_data(json_data, public_morphology_id, public_emodel_id):
-    return json_data | {
+def public_json_data(
+    brain_region_id, species_id, strain_id, public_morphology_id, public_emodel_id
+):
+    return {
+        "brain_region_id": str(brain_region_id),
+        "species_id": species_id,
+        "strain_id": strain_id,
+        "description": "Test MEModel Description",
+        "name": "Test MEModel Name",
         "morphology_id": str(public_morphology_id),
         "emodel_id": str(public_emodel_id),
+        "authorized_public": False,
     }
 
 
@@ -123,43 +124,24 @@ def test_create_memodel(
     _assert_read_response(data, json_data)
 
 
-def test_delete_one(db, client, client_admin, memodel_id):
-    model_id = memodel_id
-
-    assert count_db_class(db, MEModel) == 1
-    # 1 morph, 1 EModel, 2 MEModel
-    assert count_db_class(db, Contribution) == 4
-    assert count_db_class(db, MTypeClass) == 1
-    # 1 for morphology 1 for MEModel for the same MTypeClass
-    assert count_db_class(db, MTypeClassification) == 2
-    assert count_db_class(db, ETypeClass) == 1
-    # 1 for EModel 1 for MEModel for the same ETypeClass
-    assert count_db_class(db, ETypeClassification) == 2
-    assert count_db_class(db, CellMorphology) == 1
-    assert count_db_class(db, EModel) == 1
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    delete_entity_contributions(client_admin, ROUTE, model_id)
-    delete_entity_classifications(client, client_admin, model_id)
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
-    assert data["id"] == str(model_id)
-
-    assert count_db_class(db, MEModel) == 0
-    assert count_db_class(db, Contribution) == 2
-    assert count_db_class(db, MTypeClass) == 1
-    # 1 for morphology 1 for MEModel for the same MTypeClass
-    assert count_db_class(db, MTypeClassification) == 1
-    assert count_db_class(db, ETypeClass) == 1
-    # 1 for EModel 1 for MEModel for the same ETypeClass
-    assert count_db_class(db, ETypeClassification) == 1
-    assert count_db_class(db, CellMorphology) == 1
-    assert count_db_class(db, EModel) == 1
+def test_delete_one(db, clients, public_json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=public_json_data,
+        expected_counts_before={
+            MEModel: 1,
+            EModel: 1,
+            CellMorphology: 1,
+        },
+        expected_counts_after={
+            MEModel: 0,
+            EModel: 1,
+            CellMorphology: 1,
+        },
+    )
 
 
 def test_facets(client: TestClient, faceted_memodels: MEModels):

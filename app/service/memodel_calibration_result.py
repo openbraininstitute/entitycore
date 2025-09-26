@@ -15,6 +15,7 @@ from app.dependencies.db import SessionDep
 from app.filters.memodel_calibration_result import MEModelCalibrationResultFilterDep
 from app.queries.common import (
     router_create_one,
+    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
@@ -136,4 +137,17 @@ def read_many(
         response_schema_class=MEModelCalibrationResultRead,
         authorized_project_id=user_context.project_id,
         filter_joins=None,
+    )
+
+
+def delete_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> dict:
+    return router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=MEModelCalibrationResult,
+        user_context=user_context,
     )

@@ -31,16 +31,49 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     if hasattr(EntityType, mapper.class_.__tablename__)
 }
 
-RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
-    mapper.class_.__tablename__: mapper.class_
-    for mapper in Base.registry.mappers
-    if mapper.class_.__tablename__ in ResourceType
-}
+
+def is_polymorphic_subclass(mapper_class: type) -> bool:
+    """Determine if a SQLAlchemy mapper class is a polymorphic subclass.
+
+    In SQLAlchemy polymorphic inheritance, we have base classes and subclasses:
+    - Base classes: Have polymorphic_identity equal to their __tablename__
+    - Subclasses: Have polymorphic_identity different from their __tablename__
+
+    For example:
+    - CellMorphologyProtocol (base):
+        * __tablename__="cell_morphology_protocol"
+        * polymorphic_identity="cell_morphology_protocol"
+    - ModifiedReconstructionCellMorphologyProtocol (subclass):
+        * __tablename__="cell_morphology_protocol"
+        * polymorphic_identity="modified_reconstruction"
+
+    We want to exclude subclasses from RESOURCE_TYPE_TO_CLASS because:
+    1. They share the same table name as their base class
+    2. They would overwrite the base class in the mapping
+    3. The base class can handle polymorphic queries for all subclasses via polymorphic loading
+
+    Args:
+        mapper_class: The SQLAlchemy mapper class to check
+
+    Returns:
+        True if this is a polymorphic subclass that should be excluded from resource mappings
+        False if this is a base polymorphic class or non-polymorphic class that should be included
+    """
+    if not hasattr(mapper_class, "__mapper_args__"):
+        return False
+
+    mapper_args = mapper_class.__mapper_args__
+    if "polymorphic_identity" not in mapper_args:
+        return False
+
+    # If polymorphic_identity is different from __tablename__, it's a subclass
+    return mapper_args["polymorphic_identity"] != mapper_class.__tablename__
+
 
 RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
     mapper.class_.__tablename__: mapper.class_
     for mapper in Base.registry.mappers
-    if mapper.class_.__tablename__ in ResourceType
+    if mapper.class_.__tablename__ in ResourceType and not is_polymorphic_subclass(mapper.class_)
 }
 
 CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[

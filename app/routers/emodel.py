@@ -15,6 +15,7 @@ read_many = router.get("")(app.service.emodel.read_many)
 read_one = router.get("/{id_}")(app.service.emodel.read_one)
 create_one = router.post("")(app.service.emodel.create_one)
 update_one = router.patch("/{id_}")(app.service.emodel.update_one)
+delete_one = router.delete("/{id_}")(app.service.emodel.delete_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.emodel.admin_read_one)
 admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.emodel.admin_update_one)

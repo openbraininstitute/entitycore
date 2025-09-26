@@ -110,3 +110,17 @@ def test_delete_one(db, client, client_admin):
     assert data["id"] == str(model_id)
 
     assert count_db_class(db, License) == 0
+
+
+def test_filtering(clients, json_data):
+    assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n1", "label": "l"})
+    assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n2", "label": "l"})
+
+    data = assert_request(clients.user_1.get, url=ROUTE, params={"name": "n1"}).json()["data"]
+    assert len(data) == 1
+    assert data[0]["name"] == "n1"
+
+    data = assert_request(clients.user_1.get, url=ROUTE, params={"label": "l"}).json()["data"]
+    assert len(data) == 2
+    assert data[0]["label"] == "l"
+    assert data[1]["label"] == "l"

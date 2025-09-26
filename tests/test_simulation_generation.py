@@ -17,7 +17,7 @@ from .utils import (
     check_creation_fields,
     check_missing,
     check_pagination,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
 )
 
 DateTimeAdapter = TypeAdapter(datetime)
@@ -55,7 +55,7 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
         assert data["used"] == [
             {
                 "id": json_data["used_ids"][0],
-                "type": "reconstruction_morphology",
+                "type": "cell_morphology",
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": False,
             }
@@ -113,29 +113,26 @@ def test_create_one__unauthorized_entities(
     client_user_1,
     client_user_2,
     json_data,
-    species_id,
+    subject_id,
     brain_region_id,
 ):
     """Do not allow associations with entities that are not authorized to the user."""
 
-    user1_morph_id = create_reconstruction_morphology_id(
+    user1_morph_id = create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-    user2_morph_id = create_reconstruction_morphology_id(
+    user2_morph_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-    user2_public_morph_id = create_reconstruction_morphology_id(
+    user2_public_morph_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=True,
     )
@@ -257,6 +254,29 @@ def test_delete_one(db, client, models):
     assert {d["id"] for d in data} == {str(models[0]), str(models[2]), str(models[4])}
 
 
+def test_delete_one_admin(db, clients, models):
+    # sanity check
+    assert _count_associations(db, models[1]) == 2
+    assert _count_associations(db, models[3]) == 4
+
+    data = assert_request(clients.admin.delete, url=f"{ADMIN_ROUTE}/{models[1]}").json()
+    assert data["id"] == str(models[1])
+    assert _is_deleted(db, data["id"])
+
+    assert _count_associations(db, models[1]) == 0
+    assert _count_associations(db, models[3]) == 4
+
+    data = assert_request(clients.admin.delete, url=f"{ADMIN_ROUTE}/{models[3]}").json()
+    assert data["id"] == str(models[3])
+    assert _is_deleted(db, data["id"])
+
+    assert _count_associations(db, models[1]) == 0
+    assert _count_associations(db, models[3]) == 0
+
+    data = assert_request(clients.user_1.get, url=f"{ROUTE}").json()["data"]
+    assert {d["id"] for d in data} == {str(models[0]), str(models[2]), str(models[4])}
+
+
 def _count_associations(db, activity_id):
     n_usages = db.execute(
         sa.select(sa.func.count(Usage.usage_activity_id)).where(
@@ -289,21 +309,19 @@ def test_update_one(client, client_admin, root_circuit, simulation_result, creat
 
 
 def test_update_one__fail_if_generated_ids_unauthorized(
-    db, client_user_1, client_user_2, json_data, species_id, brain_region_id
+    db, client_user_1, client_user_2, json_data, subject_id, brain_region_id
 ):
     """Test that it is not allowed to update generated_ids with unauthorized entities."""
 
-    user1_morph_id = create_reconstruction_morphology_id(
+    user1_morph_id = create_cell_morphology_id(
         client_user_1,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-    user2_morph_id = create_reconstruction_morphology_id(
+    user2_morph_id = create_cell_morphology_id(
         client_user_2,
-        species_id=species_id,
-        strain_id=None,
+        subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )

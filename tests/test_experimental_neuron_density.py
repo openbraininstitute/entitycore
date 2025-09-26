@@ -1,5 +1,4 @@
 from datetime import timedelta
-from time import sleep
 
 import pytest
 
@@ -329,9 +328,6 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
         )
 
         densities.append(density)
-
-        # to vary the creation date
-        sleep(0.01)
 
     return species, subjects, densities
 

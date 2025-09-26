@@ -1,15 +1,17 @@
 from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
+from sqlalchemy import inspect
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
 from app.db.model import (
     Base,
+    CellMorphology,
+    CellMorphologyProtocol,
     EModel,
     Entity,
     MEModel,
     NameDescriptionVectorMixin,
-    ReconstructionMorphology,
 )
 
 
@@ -38,11 +40,26 @@ def description_vector_trigger(
 
 
 def unauthorized_private_reference_function(
-    model: type[Entity], field_name: str, target_model: type[Entity]
+    model: type[Entity],
+    field_name: str,
+    target_model: type[Entity],
 ):
+    """Return a PGFunction that checks that the model is not linked to unaccessible entities.
+
+    A linked entity is considered accessible if and only if any of the following is true:
+
+    - the new entity is private or public, and the linked entity is public.
+    - the new entity is private, and the linked entity is in the same project.
+
+    If the field is nullable and the value is NULL, then the check is skipped.
+
+    A specific exception is raised if the linked entity is unaccessible.
+    """
     table = model.__tablename__
     target = target_model.__tablename__
     signature = f"unauthorized_private_reference_function_{table}_{field_name}_{target}()"
+    nullable = inspect(model).columns[field_name].nullable
+    skip_if_null = f"IF NEW.{field_name} IS NULL THEN RETURN NEW; END IF;" if nullable else ""
 
     return PGFunction(
         "public",
@@ -50,6 +67,7 @@ def unauthorized_private_reference_function(
         f"""
             RETURNS TRIGGER AS $$
             BEGIN
+                {skip_if_null}
                 IF NOT EXISTS (
                     SELECT 1 FROM entity e1
                     JOIN entity e2 ON e2.id = NEW.id
@@ -102,14 +120,20 @@ entities = [
 
 entities += [
     PGExtension(schema="public", signature="vector"),
-    unauthorized_private_reference_function(
-        EModel, "exemplar_morphology_id", ReconstructionMorphology
-    ),
-    unauthorized_private_reference_trigger(
-        EModel, "exemplar_morphology_id", ReconstructionMorphology
-    ),
-    unauthorized_private_reference_function(MEModel, "morphology_id", ReconstructionMorphology),
-    unauthorized_private_reference_trigger(MEModel, "morphology_id", ReconstructionMorphology),
-    unauthorized_private_reference_function(MEModel, "emodel_id", EModel),
-    unauthorized_private_reference_trigger(MEModel, "emodel_id", EModel),
 ]
+
+for model, field_name, target_model in [
+    (EModel, "exemplar_morphology_id", CellMorphology),
+    (MEModel, "morphology_id", CellMorphology),
+    (MEModel, "emodel_id", EModel),
+    (CellMorphology, "cell_morphology_protocol_id", CellMorphologyProtocol),
+    # TODO: enable the following triggers for subject_id
+    # (ScientificArtifact, "subject_id", Subject),
+    # (ExperimentalNeuronDensity, "subject_id", Subject),
+    # (ExperimentalBoutonDensity, "subject_id", Subject),
+    # (ExperimentalSynapsesPerConnection, "subject_id", Subject),
+]:
+    entities += [
+        unauthorized_private_reference_function(model, field_name, target_model),
+        unauthorized_private_reference_trigger(model, field_name, target_model),
+    ]

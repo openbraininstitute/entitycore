@@ -1,5 +1,4 @@
 from datetime import timedelta
-from time import sleep
 from unittest.mock import ANY
 
 import pytest
@@ -411,9 +410,6 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
         )
 
         recordings.append(rec)
-
-        # to vary the creation date
-        sleep(0.01)
 
     return species, subjects, recordings
 

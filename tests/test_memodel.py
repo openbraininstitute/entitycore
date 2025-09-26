@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.db.model import (
+    CellMorphology,
     Contribution,
     EModel,
     ETypeClass,
@@ -13,7 +14,6 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
-    ReconstructionMorphology,
 )
 from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
@@ -25,7 +25,7 @@ from .utils import (
     check_brain_region_filter,
     check_entity_update_one,
     count_db_class,
-    create_reconstruction_morphology_id,
+    create_cell_morphology_id,
     delete_entity_classifications,
     delete_entity_contributions,
 )
@@ -135,7 +135,7 @@ def test_delete_one(db, client, client_admin, memodel_id):
     assert count_db_class(db, ETypeClass) == 1
     # 1 for EModel 1 for MEModel for the same ETypeClass
     assert count_db_class(db, ETypeClassification) == 2
-    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, CellMorphology) == 1
     assert count_db_class(db, EModel) == 1
 
     data = assert_request(
@@ -158,7 +158,7 @@ def test_delete_one(db, client, client_admin, memodel_id):
     assert count_db_class(db, ETypeClass) == 1
     # 1 for EModel 1 for MEModel for the same ETypeClass
     assert count_db_class(db, ETypeClassification) == 1
-    assert count_db_class(db, ReconstructionMorphology) == 1
+    assert count_db_class(db, CellMorphology) == 1
     assert count_db_class(db, EModel) == 1
 
 
@@ -539,10 +539,14 @@ def test_authorization(
     strain_id,
     brain_region_id,
     morphology_id,
+    subject_id,
     emodel_id,
 ):
-    public_morphology_id = create_reconstruction_morphology_id(
-        client_user_1, species_id, strain_id, brain_region_id, authorized_public=True
+    public_morphology_id = create_cell_morphology_id(
+        client_user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
     )
 
     # Different user but public accessible
@@ -600,11 +604,10 @@ def test_authorization(
 
     assert unauthorized_public_with_private_relations.status_code == 403
 
-    morphology_id = create_reconstruction_morphology_id(
+    morphology_id = create_cell_morphology_id(
         client_user_2,
-        species_id,
-        strain_id,
-        str(brain_region_id),
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
         authorized_public=False,
     )
 
@@ -617,12 +620,11 @@ def test_authorization(
 
     morphology_id_2 = (
         client_user_2.post(
-            "/reconstruction-morphology",
+            "/cell-morphology",
             json={
                 "name": "test",
                 "description": "test",
-                "species_id": species_id,
-                "strain_id": strain_id,
+                "subject_id": str(subject_id),
                 "brain_region_id": str(brain_region_id),
                 "location": None,
                 "legacy_id": None,

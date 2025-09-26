@@ -10,6 +10,51 @@ from sqlalchemy.types import VARCHAR, TypeDecorator
 from app.utils.enum import combine_str_enums
 
 
+class RepairPipelineType(StrEnum):
+    raw = auto()
+    curated = auto()
+    unraveled = auto()
+    repaired = auto()
+
+
+class ModifiedMorphologyMethodType(StrEnum):
+    cloned = auto()
+    mix_and_match = auto()
+    mousified = auto()
+    ratified = auto()
+
+
+class CellMorphologyGenerationType(StrEnum):
+    digital_reconstruction = auto()
+    modified_reconstruction = auto()
+    computationally_synthesized = auto()
+    placeholder = auto()
+
+
+class CellMorphologyProtocolDesign(StrEnum):
+    electron_microscopy = auto()
+    cell_patch = auto()
+    fluorophore = auto()
+
+
+class SlicingDirectionType(StrEnum):
+    coronal = auto()
+    sagittal = auto()
+    horizontal = auto()
+    custom = auto()
+
+
+class StainingType(StrEnum):
+    golgi = auto()
+    nissl = auto()
+    luxol_fast_blue = auto()
+    fluorescent_nissl = auto()
+    fluorescent_dyes = auto()
+    fluorescent_protein_expression = auto()
+    immunohistochemistry = auto()
+    other = auto()
+
+
 class PointLocationBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -59,6 +104,8 @@ class EntityType(StrEnum):
     brain_atlas = auto()
     brain_atlas_region = auto()
     cell_composition = auto()
+    cell_morphology = auto()
+    cell_morphology_protocol = auto()
     electrical_cell_recording = auto()
     electrical_recording = auto()
     electrical_recording_stimulus = auto()
@@ -73,11 +120,8 @@ class EntityType(StrEnum):
     memodel = auto()
     memodel_calibration_result = auto()
     me_type_density = auto()
-    reconstruction_morphology = auto()
     simulation = auto()
     simulation_campaign = auto()
-    simulation_campaign_generation = auto()
-    simulation_execution = auto()
     simulation_result = auto()
     scientific_artifact = auto()
     single_neuron_simulation = auto()
@@ -160,7 +204,7 @@ class DerivationType(StrEnum):
 
 ResourceType = combine_str_enums(
     "ResourceType",
-    (EntityType, AssociationType, GlobalType, AgentType),
+    (EntityType, AssociationType, GlobalType, AgentType, ActivityType),
 )
 
 
@@ -304,6 +348,7 @@ class AssetLabel(StrEnum):
     """See docs/asset-labels.md."""
 
     morphology = auto()
+    morphology_with_spines = auto()
     cell_composition_summary = auto()
     cell_composition_volumes = auto()
     single_neuron_synaptome_config = auto()
@@ -475,8 +520,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
         ],
     },
-    EntityType.reconstruction_morphology: {
+    EntityType.cell_morphology: {
         AssetLabel.morphology: [
+            LabelRequirements(content_type=ContentType.asc, is_directory=False),
+            LabelRequirements(content_type=ContentType.swc, is_directory=False),
+            LabelRequirements(content_type=ContentType.h5, is_directory=False),
+        ],
+        AssetLabel.morphology_with_spines: [
             LabelRequirements(content_type=ContentType.asc, is_directory=False),
             LabelRequirements(content_type=ContentType.swc, is_directory=False),
             LabelRequirements(content_type=ContentType.h5, is_directory=False),
@@ -645,13 +695,6 @@ class EMCellMeshGenerationMethod(StrEnum):
     """
 
     marching_cubes = auto()
-
-
-class SlicingDirectionType(StrEnum):
-    coronal = auto()
-    sagittal = auto()
-    horizontal = auto()
-    custom = auto()
 
 
 class AnalysisScale(StrEnum):

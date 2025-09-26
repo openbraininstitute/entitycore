@@ -1,13 +1,13 @@
 from app.db import utils as test_module
-from app.db.model import MeasurementAnnotation, MeasurementKind, ReconstructionMorphology
+from app.db.model import CellMorphology, MeasurementAnnotation, MeasurementKind
+from app.schemas.cell_morphology import CellMorphologyCreate
 from app.schemas.measurement_annotation import MeasurementAnnotationCreate
-from app.schemas.morphology import ReconstructionMorphologyCreate
 
 from tests.utils import PROJECT_ID
 
-ENTITY_TYPE = "reconstruction_morphology"
+ENTITY_TYPE = "cell_morphology"
 ENTITY_ID = "2013824a-ad49-4179-a961-8e7a98deb9d0"
-SPECIES_ID = "6de20568-8e44-4341-ad5a-8999d2d23de2"
+SUBJECT_ID = "6de20568-8e44-4341-ad5a-8999d2d23de2"
 
 MEASUREMENT_ANNOTATION = {
     "unknown_attribute": 999999,
@@ -74,29 +74,27 @@ def test_construct_model_measurement_annotation(person_id):
     _check_result(result)
 
 
-def test_construct_model_reconstruction_morphology(brain_region_id, person_id):
-    reconstruction_morphology = {
+def test_construct_model_cell_morphology(brain_region_id, person_id):
+    cell_morphology = {
         "name": "morph-0",
         "description": "desc-0",
-        "species_id": SPECIES_ID,
+        "subject_id": SUBJECT_ID,
         "brain_region_id": str(brain_region_id),
         "location": {"x": 100.1, "y": 100.2, "z": 100.3},
     }
 
     def _check_result(r):
-        assert isinstance(r, ReconstructionMorphology)
-        assert r.name == reconstruction_morphology["name"]
-        assert r.location == reconstruction_morphology["location"]
+        assert isinstance(r, CellMorphology)
+        assert r.name == cell_morphology["name"]
+        assert r.location == cell_morphology["location"]
 
-    result = test_module.construct_model(
-        model_cls=ReconstructionMorphology, data=reconstruction_morphology
-    )
+    result = test_module.construct_model(model_cls=CellMorphology, data=cell_morphology)
     _check_result(result)
 
-    json_model = ReconstructionMorphologyCreate.model_validate(reconstruction_morphology)
+    json_model = CellMorphologyCreate.model_validate(cell_morphology)
     result = test_module.load_db_model_from_pydantic(
         json_model,
-        db_model_class=ReconstructionMorphology,
+        db_model_class=CellMorphology,
         authorized_project_id=PROJECT_ID,
         created_by_id=person_id,
         updated_by_id=person_id,

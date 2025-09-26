@@ -6,6 +6,9 @@ from app.filters.base import CustomFilter
 
 
 class LicenseFilter(CustomFilter):
+    name: str | None = None
+    label: str | None = None
+
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

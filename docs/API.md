@@ -56,7 +56,7 @@ Furthermore, fields of the particular entity being searched for can be specified
 
 Ex:
 ```
-GET /reconstruction-morphology?search=foo&species__name=Mus%20musculus
+GET /cell-morphology?search=foo&subject__species__name=Mus%20musculus
 ```
 
 The return payload is the same as above, except the `data` only includes matches with `foo` and the species name matching `Mus musculus`.
@@ -267,7 +267,7 @@ Instead, one can use the following query parameters:
 ```
 
 ```
-GET /reconstruction-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
+GET /cell-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
 ```
 
 In other words, the name of the hierarchy, and the id which will be recursively included.
@@ -338,7 +338,7 @@ The volume is in um^3.
 By only storing the volume for leaf nodes, it composes with the different views by climbing the tree, and summing all the children along the way.
 
 # Authorization:
-Current model is to have `Entity`s (ex: `EModel`, `ReconstructionMorphology`, etc) be either public, or private to a project.
+Current model is to have `Entity`s (ex: `EModel`, `CellMorphology`, etc) be either public, or private to a project.
 As such, results returned will be gated by this, based on the logged in user.
 The frontend will have to supply the current user's Bearer token, as well as the current lab and project:
 

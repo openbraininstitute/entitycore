@@ -7,6 +7,7 @@ from app.db.model import IonChannel
 from .utils import (
     add_db,
     assert_request,
+    check_global_delete_one,
     check_global_read_one,
     check_global_update_one,
     check_missing,
@@ -71,6 +72,22 @@ def test_update_one(clients, json_data):
             "label": "my-label",
             "gene": "my-gene",
             "synonyms": ["a", "b", "c"],
+        },
+    )
+
+
+def test_delete_one(db, clients, json_data):
+    check_global_delete_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        expected_counts_before={
+            IonChannel: 1,
+        },
+        expected_counts_after={
+            IonChannel: 0,
         },
     )
 

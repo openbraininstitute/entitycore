@@ -16,6 +16,7 @@ from app.dependencies.db import SessionDep
 from app.filters.publication import PublicationFilterDep
 from app.queries.common import (
     router_create_one,
+    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
@@ -150,4 +151,17 @@ def admin_update_one(
         user_context=None,
         json_model=json_model,
         response_schema_class=PublicationRead,
+    )
+
+
+def delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    user_context: AdminContextDep,  # noqa: ARG001
+):
+    return router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=Publication,
+        user_context=None,
     )

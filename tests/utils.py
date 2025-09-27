@@ -1054,3 +1054,38 @@ def check_entity_delete_one(
 
     # admins should be able to
     _req_count(clients.admin, admin_route, model_id)
+
+
+def check_global_delete_one(
+    db, clients, route, admin_route, json_data, expected_counts_before, expected_counts_after
+):
+    def _req_count(client, client_route, model_id):
+        for db_class, count in expected_counts_before.items():
+            assert count_db_class(db, db_class) == count
+
+        data = assert_request(client.delete, url=f"{client_route}/{model_id}").json()
+        assert data["id"] == str(model_id)
+
+        for db_class, count in expected_counts_after.items():
+            assert count_db_class(db, db_class) == count
+
+    model_id = assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+
+    # user cannot use regular or admin delete routes because resource is global
+    data = assert_request(
+        clients.user_1.delete, url=f"{route}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    data = assert_request(
+        clients.user_1.delete, url=f"{route}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    # admin can use both regular and admin endpoints
+    _req_count(clients.admin, route, model_id)
+
+    model_id = assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+    _req_count(clients.admin, admin_route, model_id)

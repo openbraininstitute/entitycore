@@ -135,3 +135,16 @@ def admin_update_one(
         json_model=json_model,
         response_schema_class=SpeciesRead,
     )
+
+
+def delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    user_context: AdminContextDep,  # noqa: ARG001
+):
+    return app.queries.common.router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=Species,
+        user_context=None,
+    )

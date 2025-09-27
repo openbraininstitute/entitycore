@@ -32,7 +32,7 @@ ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
 }
 
 
-def is_polymorphic_subclass(mapper_class: type) -> bool:
+def is_polymorphic_subclass(mapper_class: type[Identifiable]) -> bool:
     """Determine if a SQLAlchemy mapper class is a polymorphic subclass.
 
     In SQLAlchemy polymorphic inheritance, we have base classes and subclasses:

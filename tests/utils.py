@@ -721,7 +721,7 @@ def add_contribution(db, entity_id, agent_id, role_id, created_by_id):
 
 
 def count_db_class(db, db_class):
-    return db.execute(sa.select(sa.func.count(db_class.id))).scalar()
+    return db.execute(sa.select(sa.func.count()).select_from(db_class)).scalar()
 
 
 def delete_entity_contributions(client_admin, entity_route, entity_id):
@@ -1054,6 +1054,10 @@ def check_entity_delete_one(
 
     # admins should be able to
     _req_count(clients.admin, admin_route, model_id)
+
+
+# so far they don't differ
+check_activity_delete_one = check_entity_delete_one
 
 
 def check_global_delete_one(

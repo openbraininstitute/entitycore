@@ -144,25 +144,16 @@ def read_many(
 
 
 def delete_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> CalibrationRead:
-    one = router_read_one(
+):
+    return router_delete_one(
         id_=id_,
         db=db,
         db_model_class=Calibration,
-        authorized_project_id=user_context.project_id,
-        response_schema_class=CalibrationRead,
-        apply_operations=_load,
+        user_context=user_context,
     )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=Calibration,
-        user_context=None,
-    )
-    return one
 
 
 def update_one(

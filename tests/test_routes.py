@@ -168,16 +168,17 @@ def test_global_route_methods(global_routes):
 
     _assert_routes(global_routes, expected_method_names, skip)
 
-'''
+
 def test_activity_route_methods(activity_routes):
     expected_method_names = [
         "read_one",
-        "read_many,create_one",
+        "read_many",
+        "create_one",
         "update_one",
         "delete_one",
         "admin_read_one",
         "admin_update_one",
+        "admin_delete_one",
     ]
     skip = set()
     _assert_routes(activity_routes, expected_method_names, skip)
-'''

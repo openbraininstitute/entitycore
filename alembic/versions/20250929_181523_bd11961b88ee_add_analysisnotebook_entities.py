@@ -1,8 +1,8 @@
 """Add AnalysisNotebook entities
 
-Revision ID: a907d441946a
-Revises: e5ecb929d275
-Create Date: 2025-09-26 18:04:11.678145
+Revision ID: bd11961b88ee
+Revises: 5190ef470b90
+Create Date: 2025-09-29 18:15:23.900345
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "a907d441946a"
-down_revision: Union[str, None] = "e5ecb929d275"
+revision: str = "bd11961b88ee"
+down_revision: Union[str, None] = "5190ef470b90"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -152,7 +152,6 @@ def upgrade() -> None:
             "experimental_neuron_density",
             "experimental_synapses_per_connection",
             "external_url",
-            "ion_channel",
             "ion_channel_model",
             "ion_channel_recording",
             "memodel",
@@ -351,7 +350,6 @@ def downgrade() -> None:
             "experimental_neuron_density",
             "experimental_synapses_per_connection",
             "external_url",
-            "ion_channel",
             "ion_channel_model",
             "ion_channel_recording",
             "memodel",

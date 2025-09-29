@@ -140,7 +140,6 @@ def test_entity_route_methods(entity_routes):
         "brain-atlas",
         "brain-atlas-region",
         "cell-composition",
-        "ion-channel",
         "em-dense-reconstruction-dataset",
         "external-url",
         "scientific-artifact",  # no router, remove from EntityRoute?

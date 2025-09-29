@@ -26,6 +26,7 @@ from app.schemas.memodel_calibration_result import (
     MEModelCalibrationResultRead,
     MEModelCalibrationResultUserUpdate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 
@@ -144,7 +145,7 @@ def delete_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> dict:
+) -> DeleteResponse:
     return router_delete_one(
         id_=id_,
         db=db,

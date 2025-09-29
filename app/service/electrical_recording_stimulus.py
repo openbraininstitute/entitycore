@@ -31,6 +31,7 @@ from app.schemas.electrical_recording_stimulus import (
     ElectricalRecordingStimulusRead,
     ElectricalRecordingStimulusUserUpdate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -176,7 +177,7 @@ def delete_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> dict:
+) -> DeleteResponse:
     return router_delete_one(
         id_=id_,
         db=db,

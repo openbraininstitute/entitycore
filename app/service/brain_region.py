@@ -10,6 +10,7 @@ from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilterDep
 from app.schemas.base import BrainRegionAdminUpdate, BrainRegionCreate, BrainRegionRead
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
 
@@ -108,7 +109,7 @@ def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
     user_context: AdminContextDep,  # noqa: ARG001
-):
+) -> DeleteResponse:
     return app.queries.common.router_delete_one(
         id_=id_,
         db=db,

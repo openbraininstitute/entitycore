@@ -30,6 +30,7 @@ from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations, SupportsModelValidate
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, PaginationResponse
 from app.schemas.utils import NOT_SET
 from app.utils.uuid import create_uuid
@@ -391,7 +392,7 @@ def router_delete_one[T: BaseModel, I: Identifiable](
     db: Session,
     db_model_class: type[I],
     user_context: UserContext | None,
-) -> dict:
+) -> DeleteResponse:
     """Delete a model from the database.
 
     Args:
@@ -424,7 +425,7 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         db.delete(obj)
         db.flush()
 
-    return {"id": id_}
+    return DeleteResponse(id=id_)
 
 
 def router_update_activity_one[T: BaseModel, I: Activity](

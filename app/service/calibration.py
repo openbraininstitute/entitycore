@@ -28,6 +28,7 @@ from app.schemas.calibration import (
     CalibrationRead,
     CalibrationUserUpdate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -147,7 +148,7 @@ def delete_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-):
+) -> DeleteResponse:
     return router_delete_one(
         id_=id_,
         db=db,

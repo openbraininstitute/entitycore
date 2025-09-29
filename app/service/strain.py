@@ -10,6 +10,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.common import StrainFilterDep
 from app.queries.factory import query_params_factory
+from app.schemas.routers import DeleteResponse
 from app.schemas.species import StrainAdminUpdate, StrainCreate, StrainRead
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
@@ -134,7 +135,7 @@ def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
     user_context: AdminContextDep,  # noqa: ARG001
-):
+) -> DeleteResponse:
     return app.queries.common.router_delete_one(
         id_=id_,
         db=db,

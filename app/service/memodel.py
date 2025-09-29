@@ -36,6 +36,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.me_model import MEModelAdminUpdate, MEModelCreate, MEModelRead, MEModelUserUpdate
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -220,7 +221,7 @@ def delete_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> dict:
+) -> DeleteResponse:
     return router_delete_one(
         id_=id_,
         db=db,

@@ -13,6 +13,7 @@ from app.queries.common import (
     router_update_one,
 )
 from app.schemas.annotation import ETypeClassAdminUpdate, ETypeClassCreate, ETypeClassRead
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 
@@ -103,7 +104,7 @@ def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
     user_context: AdminContextDep,  # noqa: ARG001
-):
+) -> DeleteResponse:
     return router_delete_one(
         id_=id_,
         db=db,

@@ -22,6 +22,7 @@ from app.queries.common import (
     router_update_activity_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.routers import DeleteResponse
 from app.schemas.simulation_execution import (
     SimulationExecutionAdminUpdate,
     SimulationExecutionCreate,
@@ -147,7 +148,7 @@ def delete_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-):
+) -> DeleteResponse:
     return router_delete_one(
         id_=id_,
         db=db,

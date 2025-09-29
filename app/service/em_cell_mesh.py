@@ -22,6 +22,7 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.em_cell_mesh import EMCellMeshCreate, EMCellMeshRead, EMCellMeshUserUpdate
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
 
 if TYPE_CHECKING:
@@ -180,7 +181,7 @@ def delete_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> dict:
+) -> DeleteResponse:
     return router_delete_one(
         id_=id_,
         db=db,

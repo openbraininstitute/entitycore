@@ -114,7 +114,6 @@ class EntityType(StrEnum):
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     external_url = auto()
-    ion_channel = auto()
     ion_channel_model = auto()
     ion_channel_recording = auto()
     memodel = auto()

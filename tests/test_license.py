@@ -6,8 +6,8 @@ from tests.utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     assert_request,
+    check_global_delete_one,
     check_global_read_one,
-    count_db_class,
 )
 
 ROUTE = "/license"
@@ -86,30 +86,20 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_delete_one(db, client, client_admin):
-    response = client_admin.post(
-        ROUTE,
-        json={
-            "name": "Test License",
-            "description": "a license description",
-            "label": "a label",
+def test_delete_one(db, clients, json_data):
+    check_global_delete_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        expected_counts_before={
+            License: 1,
+        },
+        expected_counts_after={
+            License: 0,
         },
     )
-    assert response.status_code == 200
-    model_id = response.json()["id"]
-
-    assert count_db_class(db, License) == 1
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
-    assert data["id"] == str(model_id)
-
-    assert count_db_class(db, License) == 0
 
 
 def test_filtering(clients, json_data):

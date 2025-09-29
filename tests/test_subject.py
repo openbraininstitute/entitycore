@@ -10,10 +10,10 @@ from .utils import (
     add_all_db,
     assert_request,
     check_authorization,
+    check_entity_delete_one,
     check_entity_update_one,
     check_missing,
     check_pagination,
-    count_db_class,
 )
 
 ROUTE = "/subject"
@@ -110,19 +110,20 @@ def test_read_one(client, client_admin, model_id, json_data, json_data_partial):
     _assert_read_response(data, json_data)
 
 
-def test_delete_one(db, client, client_admin, model_id):
-    assert count_db_class(db, Subject) == 1
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
-    assert data["id"] == str(model_id)
-
-    assert count_db_class(db, Subject) == 0
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            Subject: 1,
+        },
+        expected_counts_after={
+            Subject: 0,
+        },
+    )
 
 
 def test_missing(client):

@@ -1,6 +1,7 @@
 import pytest
 
 from app.db.model import (
+    CellMorphologyProtocol,
     CellMorphologyProtocolDesign,
     ComputationallySynthesizedCellMorphologyProtocol,
     DigitalReconstructionCellMorphologyProtocol,
@@ -24,6 +25,7 @@ from .utils import (
     add_all_db,
     assert_request,
     check_authorization,
+    check_entity_delete_one,
     check_missing,
     check_pagination,
 )
@@ -275,3 +277,19 @@ def test_sorting(client, models):
     data = req({"order_by": "-creation_date"})
     assert len(data) == len(models)
     assert [d["id"] for d in data] == [str(m.id) for m in models][::-1]
+
+
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            CellMorphologyProtocol: 1,
+        },
+        expected_counts_after={
+            CellMorphologyProtocol: 0,
+        },
+    )

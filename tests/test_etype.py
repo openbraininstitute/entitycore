@@ -6,11 +6,10 @@ from .utils import (
     PROJECT_ID,
     add_all_db,
     add_db,
-    assert_request,
+    check_global_delete_one,
     check_global_read_one,
     check_global_update_one,
     check_missing,
-    count_db_class,
     with_creation_fields,
 )
 
@@ -206,62 +205,17 @@ def test_emodel_etypes(
     ]
 
 
-def test_delete_one(
-    db, client, client_admin, person_id, brain_region_id, species_id, morphology_id
-):
-    emodel_id = add_db(
-        db,
-        EModel(
-            name="Test name",
-            description="Test description",
-            brain_region_id=brain_region_id,
-            species_id=species_id,
-            strain_id=None,
-            exemplar_morphology_id=morphology_id,
-            authorized_public=False,
-            authorized_project_id=PROJECT_ID,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
-    ).id
-
-    etype_json = {
-        "pref_label": "e1",
-        "alt_label": "e1",
-        "definition": "e1d",
-    }
-    etype = add_db(
-        db, ETypeClass(**etype_json | {"created_by_id": person_id, "updated_by_id": person_id})
+def test_delete_one(db, clients, json_data):
+    check_global_delete_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        expected_counts_before={
+            ETypeClass: 1,
+        },
+        expected_counts_after={
+            ETypeClass: 0,
+        },
     )
-
-    classification_id = add_db(
-        db,
-        ETypeClassification(
-            entity_id=emodel_id,
-            etype_class_id=etype.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-            authorized_public=False,
-            authorized_project_id=PROJECT_ID,
-        ),
-    ).id
-
-    assert count_db_class(db, EModel) == 1
-    assert count_db_class(db, ETypeClass) == 1
-    assert count_db_class(db, ETypeClassification) == 1
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{etype.id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    # delete classification first to remove foreign key ref
-    assert_request(client_admin.delete, url=f"/admin/etype-classification/{classification_id}")
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{etype.id}").json()
-    assert data["id"] == str(etype.id)
-
-    assert count_db_class(db, EModel) == 1
-    assert count_db_class(db, ETypeClass) == 0
-    assert count_db_class(db, ETypeClassification) == 0

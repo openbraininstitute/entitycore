@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.db.model import ValidationResult
 
-from .utils import assert_request, check_entity_update_one, count_db_class
+from .utils import assert_request, check_entity_delete_one, check_entity_update_one
 
 MODEL = ValidationResult
 ROUTE = "/validation-result"
@@ -98,21 +98,20 @@ def test_create_one__public(client, json_data):
     assert data["authorized_public"] is True
 
 
-def test_delete_one(db, client, client_admin, model):
-    model_id = model["id"]
-
-    assert count_db_class(db, ValidationResult) == 1
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
-    assert data["id"] == str(model_id)
-
-    assert count_db_class(db, ValidationResult) == 0
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            ValidationResult: 1,
+        },
+        expected_counts_after={
+            ValidationResult: 0,
+        },
+    )
 
 
 def test_missing(client):

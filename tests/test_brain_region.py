@@ -3,6 +3,8 @@ from unittest.mock import ANY
 
 import pytest
 
+from app.db.model import BrainRegion, BrainRegionHierarchy
+
 from . import utils
 
 ROUTE = "/brain-region"
@@ -85,6 +87,24 @@ def test_update_one(clients, json_data):
         clients=clients,
         json_data=json_data,
         patch_payload={"annotation_value": 800, "acronym": "blue"},
+    )
+
+
+def test_delete_one(db, clients, json_data):
+    utils.check_global_delete_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        expected_counts_before={
+            BrainRegion: 1,
+            BrainRegionHierarchy: 1,
+        },
+        expected_counts_after={
+            BrainRegion: 0,
+            BrainRegionHierarchy: 1,
+        },
     )
 
 

@@ -18,6 +18,7 @@ from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
 from app.queries.common import (
     router_create_one,
+    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
@@ -30,6 +31,7 @@ from app.schemas.ion_channel_model import (
     IonChannelModelRead,
     IonChannelModelUserUpdate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
 
 if TYPE_CHECKING:
@@ -196,4 +198,17 @@ def admin_update_one(
         json_model=json_model,
         response_schema_class=IonChannelModelRead,
         apply_operations=_load_minimal,
+    )
+
+
+def delete_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    return router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=IonChannelModel,
+        user_context=user_context,
     )

@@ -22,6 +22,7 @@ from app.queries.common import (
     router_update_activity_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.routers import DeleteResponse
 from app.schemas.simulation_generation import (
     SimulationGenerationAdminUpdate,
     SimulationGenerationCreate,
@@ -139,25 +140,16 @@ def read_many(
 
 
 def delete_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> SimulationGenerationRead:
-    one = router_read_one(
+) -> DeleteResponse:
+    return router_delete_one(
         id_=id_,
         db=db,
         db_model_class=SimulationGeneration,
-        authorized_project_id=user_context.project_id,
-        response_schema_class=SimulationGenerationRead,
-        apply_operations=_load,
+        user_context=user_context,
     )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=SimulationGeneration,
-        authorized_project_id=None,  # already validated
-    )
-    return one
 
 
 def update_one(

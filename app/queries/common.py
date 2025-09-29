@@ -30,6 +30,7 @@ from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations, SupportsModelValidate
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, PaginationResponse
 from app.schemas.utils import NOT_SET
 from app.utils.uuid import create_uuid
@@ -390,22 +391,24 @@ def router_delete_one[T: BaseModel, I: Identifiable](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    authorized_project_id: uuid.UUID | None,
-) -> dict:
+    user_context: UserContext | None,
+) -> DeleteResponse:
     """Delete a model from the database.
 
     Args:
         id_: id of the entity to read.
         db: database session.
         db_model_class: database model class.
-        authorized_project_id: project id for filtering the resources.
+        user_context: the user context
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if authorized_project_id and (
+    if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        query = constrain_to_accessible_entities(
-            query, authorized_project_id, db_model_class=id_model_class
+        query = constrain_to_private_entities(
+            query=query,
+            user_context=user_context,
+            db_model_class=id_model_class,
         )
 
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
@@ -422,7 +425,7 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         db.delete(obj)
         db.flush()
 
-    return {"id": id_}
+    return DeleteResponse(id=id_)
 
 
 def router_update_activity_one[T: BaseModel, I: Activity](

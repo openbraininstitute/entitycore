@@ -28,6 +28,7 @@ from app.schemas.calibration import (
     CalibrationRead,
     CalibrationUserUpdate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -144,25 +145,16 @@ def read_many(
 
 
 def delete_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> CalibrationRead:
-    one = router_read_one(
+) -> DeleteResponse:
+    return router_delete_one(
         id_=id_,
         db=db,
         db_model_class=Calibration,
-        authorized_project_id=user_context.project_id,
-        response_schema_class=CalibrationRead,
-        apply_operations=_load,
+        user_context=user_context,
     )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=Calibration,
-        authorized_project_id=None,  # already validated
-    )
-    return one
 
 
 def update_one(

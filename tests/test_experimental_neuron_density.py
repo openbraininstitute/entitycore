@@ -23,12 +23,10 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    check_entity_delete_one,
     check_entity_update_one,
     check_missing,
     check_pagination,
-    count_db_class,
-    delete_entity_classifications,
-    delete_entity_contributions,
 )
 
 ROUTE = "/experimental-neuron-density"
@@ -104,65 +102,22 @@ def test_read_one(client, client_admin, model_id, json_data):
 
 def test_delete_one(
     db,
-    client,
-    client_admin,
-    model_id,
-    person_id,
-    role_id,
+    clients,
+    json_data,
 ):
-    add_db(
-        db,
-        Contribution(
-            agent_id=person_id,
-            role_id=role_id,
-            entity_id=model_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            ExperimentalNeuronDensity: 1,
+        },
+        expected_counts_after={
+            ExperimentalNeuronDensity: 0,
+        },
     )
-    mtype = add_db(
-        db,
-        MTypeClass(
-            pref_label="m1",
-            alt_label="m1",
-            definition="e1d",
-            created_by_id=person_id,
-            updated_by_id=person_id,
-        ),
-    )
-    add_db(
-        db,
-        MTypeClassification(
-            entity_id=model_id,
-            mtype_class_id=mtype.id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-            authorized_public=False,
-            authorized_project_id=PROJECT_ID,
-        ),
-    )
-
-    assert count_db_class(db, ExperimentalNeuronDensity) == 1
-    assert count_db_class(db, Contribution) == 1
-    assert count_db_class(db, MTypeClass) == 1
-    assert count_db_class(db, MTypeClassification) == 1
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    delete_entity_contributions(client_admin, ROUTE, model_id)
-    delete_entity_classifications(client, client_admin, model_id)
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
-    assert data["id"] == str(model_id)
-
-    assert count_db_class(db, ExperimentalNeuronDensity) == 0
-    assert count_db_class(db, Contribution) == 0
-    assert count_db_class(db, MTypeClass) == 1
-    assert count_db_class(db, MTypeClassification) == 0
 
 
 def test_missing(client):

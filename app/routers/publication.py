@@ -14,6 +14,7 @@ read_one = router.get("/{id_}")(app.service.publication.read_one)
 read_many = router.get("")(app.service.publication.read_many)
 create_one = router.post("")(app.service.publication.create_one)
 update_one = router.patch("/{id_}")(app.service.publication.update_one)
+delete_one = router.delete("/{id_}")(app.service.publication.delete_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.publication.admin_read_one)
 admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.publication.admin_update_one)

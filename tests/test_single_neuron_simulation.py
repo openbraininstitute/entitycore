@@ -15,10 +15,9 @@ from .utils import (
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    check_entity_delete_one,
     check_entity_update_one,
-    count_db_class,
     create_brain_region,
-    delete_entity_assets,
     upload_entity_asset,
 )
 
@@ -180,27 +179,22 @@ def test_single_neuron_simulation__public(client, brain_region_id, memodel_id):
     assert data["authorized_public"] is True
 
 
-def test_delete_one(db, client, client_admin, single_neuron_simulation_id):
-    model_id = single_neuron_simulation_id
-
-    assert count_db_class(db, SingleNeuronSimulation) == 1
-    assert count_db_class(db, MEModel) == 1
-
-    # manually delete the assets to remove foreign key reference to entity id and thus be able to
-    # delete the entity thereafter
-    delete_entity_assets(client_admin, ROUTE, model_id)
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
-    assert data["id"] == str(model_id)
-
-    assert count_db_class(db, SingleNeuronSimulation) == 0
-    assert count_db_class(db, MEModel) == 1
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            SingleNeuronSimulation: 1,
+            MEModel: 1,
+        },
+        expected_counts_after={
+            SingleNeuronSimulation: 0,
+            MEModel: 1,
+        },
+    )
 
 
 @pytest.mark.parametrize(

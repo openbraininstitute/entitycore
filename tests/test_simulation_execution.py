@@ -1,15 +1,15 @@
 from datetime import UTC, datetime
 
 import pytest
-import sqlalchemy as sa
 from pydantic import TypeAdapter
 
-from app.db.model import Generation, SimulationExecution, Usage
+from app.db.model import CellMorphology, EModel, Generation, SimulationExecution, Usage
 from app.db.types import ActivityType
 
 from .utils import (
     PROJECT_ID,
     assert_request,
+    check_activity_delete_one,
     check_creation_fields,
     check_missing,
     check_pagination,
@@ -274,69 +274,28 @@ def test_filtering(client, models, root_circuit, simulation_result):
     assert len(data) == 4
 
 
-def test_delete_one(db, client, models):
-    # sanity check
-    assert _count_associations(db, models[1]) == 2
-    assert _count_associations(db, models[3]) == 4
-
-    data = assert_request(client.delete, url=f"{ROUTE}/{models[1]}").json()
-    assert data["id"] == str(models[1])
-    assert _is_deleted(db, data["id"])
-
-    assert _count_associations(db, models[1]) == 0
-    assert _count_associations(db, models[3]) == 4
-
-    data = assert_request(client.delete, url=f"{ROUTE}/{models[3]}").json()
-    assert data["id"] == str(models[3])
-    assert _is_deleted(db, data["id"])
-
-    assert _count_associations(db, models[1]) == 0
-    assert _count_associations(db, models[3]) == 0
-
-    data = assert_request(client.get, url=f"{ROUTE}").json()["data"]
-    assert {d["id"] for d in data} == {str(models[0]), str(models[2]), str(models[4])}
-
-
-def test_delete_one_admin(db, clients, models):
-    # sanity check
-    assert _count_associations(db, models[1]) == 2
-    assert _count_associations(db, models[3]) == 4
-
-    data = assert_request(clients.admin.delete, url=f"{ADMIN_ROUTE}/{models[1]}").json()
-    assert data["id"] == str(models[1])
-    assert _is_deleted(db, data["id"])
-
-    assert _count_associations(db, models[1]) == 0
-    assert _count_associations(db, models[3]) == 4
-
-    data = assert_request(clients.admin.delete, url=f"{ADMIN_ROUTE}/{models[3]}").json()
-    assert data["id"] == str(models[3])
-    assert _is_deleted(db, data["id"])
-
-    assert _count_associations(db, models[1]) == 0
-    assert _count_associations(db, models[3]) == 0
-
-    data = assert_request(clients.user_1.get, url=f"{ROUTE}").json()["data"]
-    assert {d["id"] for d in data} == {str(models[0]), str(models[2]), str(models[4])}
-
-
-def _count_associations(db, activity_id):
-    n_usages = db.execute(
-        sa.select(sa.func.count(Usage.usage_activity_id)).where(
-            Usage.usage_activity_id == activity_id
-        )
-    ).scalar()
-    n_generations = db.execute(
-        sa.select(sa.func.count(Generation.generation_activity_id)).where(
-            Generation.generation_activity_id == activity_id
-        )
-    ).scalar()
-
-    return n_usages + n_generations
-
-
-def _is_deleted(db, model_id):
-    return db.get(MODEL, model_id) is None
+def test_delete_one(db, clients, json_data):
+    check_activity_delete_one(
+        db=db,
+        clients=clients,
+        json_data=json_data,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        expected_counts_before={
+            CellMorphology: 1,
+            EModel: 1,
+            Usage: 1,
+            Generation: 1,
+            SimulationExecution: 1,
+        },
+        expected_counts_after={
+            CellMorphology: 1,
+            EModel: 1,
+            Usage: 0,
+            Generation: 0,
+            SimulationExecution: 0,
+        },
+    )
 
 
 def test_update_one(client, client_admin, root_circuit, simulation_result, create_id):

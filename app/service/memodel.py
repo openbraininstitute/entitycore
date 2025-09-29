@@ -29,12 +29,14 @@ from app.dependencies.db import SessionDep
 from app.filters.memodel import MEModelFilterDep
 from app.queries.common import (
     router_create_one,
+    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
 )
 from app.queries.factory import query_params_factory
 from app.schemas.me_model import MEModelAdminUpdate, MEModelCreate, MEModelRead, MEModelUserUpdate
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -212,4 +214,17 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=memodel_filter,
         filter_joins=filter_joins,
+    )
+
+
+def delete_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    return router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=MEModel,
+        user_context=user_context,
     )

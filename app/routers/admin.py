@@ -11,6 +11,7 @@ from app.queries.common import router_delete_one
 from app.schemas.asset import (
     AssetRead,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.service import admin as admin_service, asset as asset_service
 from app.utils.routers import EntityRoute, ResourceRoute, entity_route_to_type, route_to_type
@@ -26,7 +27,7 @@ def delete_one(
     db: SessionDep,
     route: ResourceRoute,
     id_: uuid.UUID,
-):
+) -> DeleteResponse:
     resource_type = route_to_type(route)
     return router_delete_one(
         id_=id_,

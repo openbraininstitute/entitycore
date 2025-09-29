@@ -1687,8 +1687,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
 
     Assets:
         - a .ipynb file.
-        - requirements.txt with the required packages and versions.
-
+        - requirements.txt produced with `pip freeze` if possible.
     """
 
     __tablename__ = EntityType.analysis_notebook_template.value

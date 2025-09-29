@@ -28,6 +28,7 @@ from app.schemas.analysis_notebook_execution import (
     AnalysisNotebookExecutionRead,
     AnalysisNotebookExecutionUpdate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -146,25 +147,16 @@ def read_many(
 
 
 def delete_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> AnalysisNotebookExecutionRead:
-    one = router_read_one(
+) -> DeleteResponse:
+    return router_delete_one(
         id_=id_,
         db=db,
         db_model_class=AnalysisNotebookExecution,
-        authorized_project_id=user_context.project_id,
-        response_schema_class=AnalysisNotebookExecutionRead,
-        apply_operations=_load,
+        user_context=user_context,
     )
-    router_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=AnalysisNotebookExecution,
-        authorized_project_id=None,  # already validated
-    )
-    return one
 
 
 def update_one(

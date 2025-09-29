@@ -945,15 +945,19 @@ def check_entity_update_one(
     optional_payload: dict | None,
 ):
     def _create(client, json_data):
-        return assert_request(client, url=route, json=json_data).json()
+        return assert_request(client.post, url=route, json=json_data).json()
 
-    def _patch_compare(method, url, patch_data):
-        data = assert_request(method, url=url, json=patch_data).json()
-        for key, value in patch_data.items():
-            assert data[key] == value, f"Key: {key} Expected: {value} Actual: {data[key]}"
+    def _patch_compare(client, url, patch_data):
+        old_data = assert_request(client.get, url=url).json()
+        new_data = assert_request(client.patch, url=url, json=patch_data).json()
 
-    public_1_data = _create(clients.user_1.post, json_data | {"authorized_public": True})
-    private_1_data = _create(clients.user_1.post, json_data | {"authorized_public": False})
+        for key, new_value in new_data.items():
+            if key not in {"updated_by_id", "update_date"}:
+                value = patch_data[key] if key in patch_data else old_data[key]
+                assert new_value == value, f"Key {key} Expected: {value} Actual: {new_value}"
+
+    public_1_data = _create(clients.user_1, json_data | {"authorized_public": True})
+    private_1_data = _create(clients.user_1, json_data | {"authorized_public": False})
     private_1_old_values = {k: private_1_data[k] for k in patch_payload}
 
     assert public_1_data["authorized_public"] is True
@@ -963,17 +967,15 @@ def check_entity_update_one(
     private_1_id = private_1_data["id"]
 
     # user updates resource
-    _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", patch_payload)
+    _patch_compare(clients.user_1, f"{route}/{private_1_id}", patch_payload)
 
     # user restores resource
-    _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", private_1_old_values)
+    _patch_compare(clients.user_1, f"{route}/{private_1_id}", private_1_old_values)
 
     # Test setting and unsetting optional fields
     if optional_payload:
-        _patch_compare(clients.user_1.patch, f"{route}/{private_1_id}", optional_payload)
-        _patch_compare(
-            clients.user_1.patch, f"{route}/{private_1_id}", dict.fromkeys(optional_payload)
-        )
+        _patch_compare(clients.user_1, f"{route}/{private_1_id}", optional_payload)
+        _patch_compare(clients.user_1, f"{route}/{private_1_id}", dict.fromkeys(optional_payload))
 
     # only admin client can hit admin endpoint
     data = assert_request(
@@ -985,7 +987,7 @@ def check_entity_update_one(
     assert data["error_code"] == "NOT_AUTHORIZED"
     assert data["message"] == "Service admin role required"
 
-    _patch_compare(clients.admin.patch, f"{admin_route}/{private_1_id}", patch_payload)
+    _patch_compare(clients.admin, f"{admin_route}/{private_1_id}", patch_payload)
 
     # admin is treated as regular user for regular route (no authorized project ids)
     data = assert_request(
@@ -1006,9 +1008,7 @@ def check_entity_update_one(
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
     # admin has no such restrictions
-    _patch_compare(
-        clients.admin.patch, f"{admin_route}/{public_1_id}", {"authorized_public": False}
-    )
+    _patch_compare(clients.admin, f"{admin_route}/{public_1_id}", {"authorized_public": False})
 
 
 def _get_entity(db, entity_id) -> Entity:

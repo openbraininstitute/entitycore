@@ -31,7 +31,7 @@ def make_update_schema(
     """
 
     def make_optional(field):
-        return Annotated[field.annotation | None, Field(default=NOT_SET)]
+        return Annotated[field.annotation | Literal["<NOT_SET>"] | None, Field(default=NOT_SET)]
 
     fields = {}
     for name, field in schema.model_fields.items():

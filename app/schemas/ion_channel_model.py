@@ -79,7 +79,4 @@ class IonChannelModelExpanded(
     IonChannelModelBase,
     ScientificArtifactRead,
 ):
-    emodels: list["EModelRead"]  # use string type hint here to avoid cyclic import
-
-
-IonChannelModelExpanded.model_rebuild()  # to avoid PydanticUserError
+    emodels: "list[EModelRead]"  # use string type hint here to avoid cyclic import

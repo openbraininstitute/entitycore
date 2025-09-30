@@ -15,7 +15,7 @@ from app.schemas.base import (
 )
 from app.schemas.cell_morphology import CellMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.ion_channel_model import IonChannelModelWAssets
+from app.schemas.ion_channel_model import IonChannelModelExpanded, IonChannelModelWAssets
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 from app.schemas.utils import make_update_schema
 
@@ -68,3 +68,8 @@ class EModelRead(
 
 class EModelReadExpanded(EModelRead, AssetsMixin):
     ion_channel_models: list[IonChannelModelWAssets]
+
+
+# we have to do this to avoid cyclic imports
+# source: https://github.com/fastapi/fastapi/issues/153#issuecomment-1095709747
+IonChannelModelExpanded.update_forward_refs(EModelRead=EModelRead)

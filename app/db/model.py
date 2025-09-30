@@ -1687,7 +1687,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
 
     Assets:
         - a .ipynb file.
-        - `pylock.toml` with the frozen packages as specified by PEP 751.
+        - requirements.txt produced with `pip freeze` if possible.
     """
 
     __tablename__ = EntityType.analysis_notebook_template.value
@@ -1708,7 +1708,7 @@ class AnalysisNotebookEnvironment(Entity):
             with schema RuntimeInfo.
 
     Assets:
-        - `pylock.toml` with the frozen packages as specified by PEP 751.
+        - requirements.txt produced with `pip freeze`.
     """
 
     __tablename__ = EntityType.analysis_notebook_environment.value

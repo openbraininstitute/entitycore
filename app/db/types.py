@@ -341,6 +341,7 @@ class ContentType(StrEnum):
     gzip = "application/gzip"
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
+    toml = "application/toml"
 
 
 class AssetLabel(StrEnum):
@@ -417,6 +418,7 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ),
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
+    ContentType.toml: (".toml",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
@@ -427,12 +429,12 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
         ],
         AssetLabel.requirements: [
-            LabelRequirements(content_type=ContentType.text, is_directory=False)
+            LabelRequirements(content_type=ContentType.toml, is_directory=False)
         ],
     },
     EntityType.analysis_notebook_environment: {
         AssetLabel.requirements: [
-            LabelRequirements(content_type=ContentType.text, is_directory=False)
+            LabelRequirements(content_type=ContentType.toml, is_directory=False)
         ],
     },
     EntityType.analysis_notebook_result: {

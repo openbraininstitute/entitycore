@@ -71,5 +71,4 @@ class EModelReadExpanded(EModelRead, AssetsMixin):
 
 
 # we have to do this to avoid cyclic imports
-# source: https://github.com/fastapi/fastapi/issues/153#issuecomment-1095709747
-IonChannelModelExpanded.update_forward_refs(EModelRead=EModelRead)
+IonChannelModelExpanded.model_rebuild()

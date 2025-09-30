@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import BrainRegionReadMixin, CreationMixin
+
+if TYPE_CHECKING:
+    from app.schemas.emodel import EModelRead
 from app.schemas.scientific_artifact import (
     NestedScientificArtifactRead,
     ScientificArtifactCreate,
@@ -74,8 +79,6 @@ class IonChannelModelExpanded(
     IonChannelModelBase,
     ScientificArtifactRead,
 ):
-    # ruff: noqa: PLC0415
-    # import from inside the class to avoid circular imports
-    from app.schemas.emodel import EModelRead
+    emodels: list["EModelRead"]   # use string type hint here to avoid cyclic import
 
-    emodels: list[EModelRead]
+IonChannelModelExpanded.model_rebuild()  # to avoid PydanticUserError

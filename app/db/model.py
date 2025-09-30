@@ -38,6 +38,7 @@ from app.db.types import (
     ActivityType,
     AgentType,
     AgePeriod,
+    AnalysisScale,
     AnnotationBodyType,
     AssetLabel,
     AssetStatus,
@@ -1671,5 +1672,104 @@ class EMCellMesh(ScientificArtifact):
         foreign_keys=[em_dense_reconstruction_dataset_id],
         uselist=False,
     )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
+    """Represents a notebook template that offers to analyze one or more types of entities.
+
+    Attributes:
+        id: (uuid.UUID): Primary key, referencing the entity ID.
+        scale: The overall scale of the analysis in the notebook. Used for filtering.
+        specifications: Definitions of required python version and inputs,
+            with schema AnalysisNotebookTemplateSpecifications.
+
+    Assets:
+        - a .ipynb file.
+        - `pylock.toml` with the frozen packages as specified by PEP 751.
+    """
+
+    __tablename__ = EntityType.analysis_notebook_template.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    scale: Mapped[AnalysisScale]
+    specifications: Mapped[JSON_DICT | None]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class AnalysisNotebookEnvironment(Entity):
+    """Represents the environment of the AnalysisNotebookExecution.
+
+    Attributes:
+        id: (uuid.UUID): Primary key, referencing the entity ID.
+        runtime_info: runtime variables associated with the environment,
+            with schema RuntimeInfo.
+
+    Assets:
+        - `pylock.toml` with the frozen packages as specified by PEP 751.
+    """
+
+    __tablename__ = EntityType.analysis_notebook_environment.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    runtime_info: Mapped[JSON_DICT | None]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class AnalysisNotebookExecution(Activity):
+    """Represents the execution of a Jupyter notebook to analyze entities and create a result.
+
+    Inputs (used):
+        - Analyzed entities
+    Outputs (generated):
+        - AnalysisNotebookResult
+
+    Attributes:
+        id (uuid.UUID): Primary key, referencing the activity ID.
+        analysis_notebook_template_id: References the AnalysisNotebookTemplate that was used.
+        analysis_notebook_environment_id: References the corresponding AnalysisNotebookEnvironment.
+    """
+
+    __tablename__ = ActivityType.analysis_notebook_execution.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    analysis_notebook_template_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("analysis_notebook_template.id")
+    )
+    analysis_notebook_environment_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("analysis_notebook_environment.id")
+    )
+
+    analysis_notebook_template: Mapped[AnalysisNotebookTemplate | None] = relationship(
+        foreign_keys=[analysis_notebook_template_id],
+        uselist=False,
+    )
+    analysis_notebook_environment: Mapped[AnalysisNotebookEnvironment] = relationship(
+        foreign_keys=[analysis_notebook_environment_id],
+        uselist=False,
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
+    """Represents the result of an analysis notebook in a digested format.
+
+    It should be associated with a .ipynb notebook, containing any number of results.
+    Valuable additional info is in the AnalysisNotebookExecution associated with this entity.
+
+    Attributes:
+        id (uuid.UUID): Primary key, referencing the entity ID.
+
+    Assets:
+        - a .ipynb file
+    """
+
+    __tablename__ = EntityType.analysis_notebook_result.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

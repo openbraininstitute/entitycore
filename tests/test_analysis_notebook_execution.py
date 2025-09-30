@@ -4,12 +4,13 @@ import pytest
 from pydantic import TypeAdapter
 
 from app.db.model import (
-    Calibration,
-    CellMorphology,
+    AnalysisNotebookEnvironment,
+    AnalysisNotebookExecution,
+    AnalysisNotebookResult,
+    AnalysisNotebookTemplate,
+    Circuit,
     Generation,
     Usage,
-    Validation,
-    ValidationResult,
 )
 from app.db.types import ActivityType
 
@@ -24,24 +25,30 @@ from .utils import (
     check_creation_fields,
     check_missing,
     check_pagination,
-    create_cell_morphology_id,
 )
 
 DateTimeAdapter = TypeAdapter(datetime)
 
-ROUTE = "calibration"
-ADMIN_ROUTE = "/admin/calibration"
-MODEL = Validation
-TYPE = str(ActivityType.calibration)
+ROUTE = "analysis-notebook-execution"
+ADMIN_ROUTE = "/admin/analysis-notebook-execution"
+CIRCUIT_ROUTE = "/circuit"
+MODEL = AnalysisNotebookExecution
 
 
 @pytest.fixture
-def json_data(morphology_id, validation_result_id):
+def json_data(
+    analysis_notebook_template,
+    analysis_notebook_environment,
+    analysis_notebook_result,
+    circuit,
+):
     return {
         "start_time": str(datetime.now(UTC)),
         "end_time": str(datetime.now(UTC)),
-        "used_ids": [str(morphology_id)],
-        "generated_ids": [str(validation_result_id)],
+        "used_ids": [str(circuit.id)],
+        "generated_ids": [str(analysis_notebook_result.id)],
+        "analysis_notebook_template_id": str(analysis_notebook_template.id),
+        "analysis_notebook_environment_id": str(analysis_notebook_environment.id),
     }
 
 
@@ -63,7 +70,7 @@ def _assert_read_response(data, json_data, *, empty_ids: bool = False):
         assert data["used"] == [
             {
                 "id": json_data["used_ids"][0],
-                "type": "cell_morphology",
+                "type": "circuit",
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": False,
             }
@@ -71,7 +78,7 @@ def _assert_read_response(data, json_data, *, empty_ids: bool = False):
         assert data["generated"] == [
             {
                 "id": json_data["generated_ids"][0],
-                "type": "validation_result",
+                "type": "analysis_notebook_result",
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": False,
             }
@@ -83,7 +90,11 @@ def _assert_read_response(data, json_data, *, empty_ids: bool = False):
     assert DateTimeAdapter.validate_python(data["end_time"]) == DateTimeAdapter.validate_python(
         json_data["end_time"]
     )
-    assert data["type"] == TYPE
+    assert data["type"] == ActivityType.analysis_notebook_execution
+    assert data["analysis_notebook_template"]["id"] == json_data["analysis_notebook_template_id"]
+    assert (
+        data["analysis_notebook_environment"]["id"] == json_data["analysis_notebook_environment_id"]
+    )
 
 
 def test_create_one(client, client_admin, json_data):
@@ -120,39 +131,26 @@ def test_create_one__unauthorized_entities(
     db,
     client_user_1,
     client_user_2,
+    circuit_json_data,
     json_data,
-    subject_id,
-    brain_region_id,
 ):
-    """Do not allow associations with entities that are not authorized to the user."""
-
-    user1_morph_id = create_cell_morphology_id(
-        client_user_1,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
-        authorized_public=False,
-    )
-    user2_morph_id = create_cell_morphology_id(
-        client_user_2,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
-        authorized_public=False,
-    )
-    user2_public_morph_id = create_cell_morphology_id(
-        client_user_2,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
-        authorized_public=True,
-    )
-
+    u1_private_entity = assert_request(
+        client_user_1.post, url=CIRCUIT_ROUTE, json=circuit_json_data | {"authorized_public": False}
+    ).json()["id"]
+    u2_private_entity = assert_request(
+        client_user_2.post, url=CIRCUIT_ROUTE, json=circuit_json_data | {"authorized_public": False}
+    ).json()["id"]
+    u2_public_entity = assert_request(
+        client_user_2.post, url=CIRCUIT_ROUTE, json=circuit_json_data | {"authorized_public": True}
+    ).json()["id"]
     check_activity_create_one__unauthorized_entities(
         db=db,
         route=ROUTE,
         client_user_1=client_user_1,
         json_data=json_data,
-        u1_private_entity_id=user1_morph_id,
-        u2_private_entity_id=user2_morph_id,
-        u2_public_entity_id=user2_public_morph_id,
+        u1_private_entity_id=u1_private_entity,
+        u2_private_entity_id=u2_private_entity,
+        u2_public_entity_id=u2_public_entity,
     )
 
 
@@ -165,100 +163,60 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(morphology_id, root_circuit, simulation_result, create_id):
+def models(root_circuit, analysis_notebook_result, create_id):
     return [
         create_id(
             used_ids=[str(root_circuit.id)],
             generated_ids=[],
-            status="done",
         ),
         create_id(
             used_ids=[str(root_circuit.id)],
-            generated_ids=[str(root_circuit.id)],
-            status="done",
+            generated_ids=[str(analysis_notebook_result.id)],
         ),
         create_id(
-            used_ids=[str(root_circuit.id)],
-            generated_ids=[str(simulation_result.id)],
-            status="error",
-        ),
-        create_id(
-            used_ids=[str(root_circuit.id), str(simulation_result.id)],
-            generated_ids=[str(root_circuit.id), str(simulation_result.id)],
-            status="pending",
-        ),
-        create_id(
-            used_ids=[str(morphology_id), str(root_circuit.id)],
-            generated_ids=[str(simulation_result.id)],
-            status="pending",
+            used_ids=[],
+            generated_ids=[str(analysis_notebook_result.id)],
         ),
     ]
 
 
-def test_filtering(client, models, root_circuit, simulation_result):
+def test_filtering(client, models, root_circuit, analysis_notebook_result):
     data = assert_request(client.get, url=ROUTE).json()["data"]
     assert len(data) == len(models)
 
     data = assert_request(client.get, url=ROUTE, params={"used__id": str(root_circuit.id)}).json()[
         "data"
     ]
-    assert len(data) == 5
+    assert len(data) == 2
 
     data = assert_request(
-        client.get, url=ROUTE, params={"generated__id": str(root_circuit.id)}
+        client.get, url=ROUTE, params={"generated__id": str(analysis_notebook_result.id)}
     ).json()["data"]
     assert len(data) == 2
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"used__id": str(root_circuit.id), "generated__id": str(root_circuit.id)},
-    ).json()["data"]
-    assert len(data) == 2
-
-    """
-    data = assert_request(
-        client.get,
-        url=ROUTE,
-        params={"used__id": str(root_circuit.id), "status": "error"},
+        params={
+            "used__id": str(root_circuit.id),
+            "generated__id": str(analysis_notebook_result.id),
+        },
     ).json()["data"]
     assert len(data) == 1
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"generated__id": str(simulation_result.id), "status": "pending"},
+        params={"used__id__in": [str(root_circuit.id), str(analysis_notebook_result.id)]},
     ).json()["data"]
     assert len(data) == 2
-    """
-
-    # backwards compat
-    data = assert_request(
-        client.get, url=ROUTE, params={"used__id__in": f"{root_circuit.id},{simulation_result.id}"}
-    ).json()["data"]
-    assert len(data) == 5
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"used__id__in": [str(root_circuit.id), str(simulation_result.id)]},
+        params={"generated__id__in": [str(root_circuit.id), str(analysis_notebook_result.id)]},
     ).json()["data"]
-    assert len(data) == 5
-
-    # backwards compat
-    data = assert_request(
-        client.get,
-        url=ROUTE,
-        params={"generated__id__in": f"{root_circuit.id},{simulation_result.id}"},
-    ).json()["data"]
-    assert len(data) == 4
-
-    data = assert_request(
-        client.get,
-        url=ROUTE,
-        params={"generated__id__in": [str(root_circuit.id), str(simulation_result.id)]},
-    ).json()["data"]
-    assert len(data) == 4
+    assert len(data) == 2
 
 
 def test_delete_one(db, clients, json_data):
@@ -269,69 +227,68 @@ def test_delete_one(db, clients, json_data):
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         expected_counts_before={
-            CellMorphology: 1,
-            ValidationResult: 1,
+            AnalysisNotebookTemplate: 1,
+            AnalysisNotebookEnvironment: 1,
+            AnalysisNotebookResult: 1,
+            Circuit: 2,  # include the root circuit
             Usage: 1,
             Generation: 1,
-            Calibration: 1,
+            AnalysisNotebookExecution: 1,
         },
         expected_counts_after={
-            CellMorphology: 1,
-            ValidationResult: 1,
+            AnalysisNotebookTemplate: 1,
+            AnalysisNotebookEnvironment: 1,
+            AnalysisNotebookResult: 1,
+            Circuit: 2,  # include the root circuit
             Usage: 0,
             Generation: 0,
-            Calibration: 0,
+            AnalysisNotebookExecution: 0,
         },
     )
 
 
-def test_update_one(client, client_admin, root_circuit, simulation_result, create_id):
+def test_update_one(client, client_admin, root_circuit, analysis_notebook_result, create_id):
     check_activity_update_one(
         client=client,
         client_admin=client_admin,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         used_id=root_circuit.id,
-        generated_id=simulation_result.id,
+        generated_id=analysis_notebook_result.id,
         constructor_func=create_id,
     )
 
 
 def test_update_one__fail_if_generated_ids_unauthorized(
-    db, client_user_1, client_user_2, json_data, subject_id, brain_region_id
+    db, client_user_1, client_user_2, json_data, circuit_json_data
 ):
     """Test that it is not allowed to update generated_ids with unauthorized entities."""
 
-    user1_morph_id = create_cell_morphology_id(
-        client_user_1,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
-        authorized_public=False,
-    )
-    user2_morph_id = create_cell_morphology_id(
-        client_user_2,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
-        authorized_public=False,
-    )
+    u1_private_entity = assert_request(
+        client_user_1.post, url=CIRCUIT_ROUTE, json=circuit_json_data | {"authorized_public": False}
+    ).json()["id"]
+    u2_private_entity = assert_request(
+        client_user_2.post, url=CIRCUIT_ROUTE, json=circuit_json_data | {"authorized_public": False}
+    ).json()["id"]
+
     check_activity_update_one__fail_if_generated_ids_unauthorized(
         db=db,
         route=ROUTE,
         client_user_1=client_user_1,
         json_data=json_data,
-        u1_private_entity_id=user1_morph_id,
-        u2_private_entity_id=user2_morph_id,
+        u1_private_entity_id=u1_private_entity,
+        u2_private_entity_id=u2_private_entity,
     )
 
 
 def test_update_one__fail_if_generated_ids_exists(
-    client, root_circuit, simulation_result, create_id
+    client, root_circuit, analysis_notebook_result, create_id
 ):
     """Test activity Generation associations cannot be updated if they already exist."""
     check_activity_update_one__fail_if_generated_ids_exists(
         client=client,
         route=ROUTE,
         entity_id_1=root_circuit.id,
-        entity_id_2=simulation_result.id,
+        entity_id_2=analysis_notebook_result.id,
         constructor_func=create_id,
     )

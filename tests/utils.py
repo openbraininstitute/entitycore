@@ -1,7 +1,7 @@
 import functools
 import uuid
 from collections.abc import Callable
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import NamedTuple
 from unittest.mock import ANY
@@ -9,6 +9,7 @@ from uuid import UUID
 
 import sqlalchemy as sa
 from httpx import Headers
+from pydantic import TypeAdapter
 from starlette.testclient import TestClient
 
 from app.db.model import (
@@ -18,6 +19,7 @@ from app.db.model import (
     Contribution,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
+    Entity,
     ETypeClass,
     ETypeClassification,
     IonChannelRecording,
@@ -31,6 +33,8 @@ from app.db.model import (
 from app.db.types import EntityType
 from app.routers.asset import EntityRoute
 from app.utils.uuid import create_uuid
+
+DateTimeAdapter = TypeAdapter(datetime)
 
 TEST_DATA_DIR = Path(__file__).parent / "data"
 
@@ -1093,3 +1097,175 @@ def check_global_delete_one(
 
     model_id = assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
     _req_count(clients.admin, admin_route, model_id)
+
+
+def _get_entity(db, entity_id) -> Entity:
+    q = sa.select(Entity).where(Entity.id == entity_id)
+    return db.execute(q).scalars().one()
+
+
+def check_activity_create_one__unauthorized_entities(
+    db,
+    route,
+    client_user_1,
+    json_data,
+    u1_private_entity_id,
+    u2_private_entity_id,
+    u2_public_entity_id,
+):
+    """Do not allow associations with entities that are not authorized to the user."""
+
+    # sanity check to ensure that authorized_project_id and authorized_public are consistent
+    e1 = _get_entity(db, entity_id=u1_private_entity_id)
+    e2 = _get_entity(db, entity_id=u2_private_entity_id)
+    e3 = _get_entity(db, entity_id=u2_public_entity_id)
+    assert e1.authorized_public is False
+    assert e2.authorized_public is False
+    assert e3.authorized_public is True
+    assert e1.authorized_project_id != e2.authorized_project_id
+    assert e2.authorized_project_id == e3.authorized_project_id
+
+    # user1 is forbidden to create Usage association with entity created by user2
+    unauthorized_used = json_data | {
+        "used_ids": [str(u2_private_entity_id)],
+        "generated_ids": [str(u1_private_entity_id)],
+    }
+    assert_request(client_user_1.post, url=route, json=unauthorized_used, expected_status_code=404)
+
+    # user1 is forbidden to create Generation association with entity created by user2
+    unauthorized_used = json_data | {
+        "used_ids": [str(u1_private_entity_id)],
+        "generated_ids": [str(u2_private_entity_id)],
+    }
+    assert_request(client_user_1.post, url=route, json=unauthorized_used, expected_status_code=404)
+
+    # user1 is forbidden to create both associations with entities created by user 2
+    unauthorized_used = json_data | {
+        "used_ids": [str(u2_private_entity_id)],
+        "generated_ids": [str(u2_private_entity_id)],
+    }
+    assert_request(client_user_1.post, url=route, json=unauthorized_used, expected_status_code=404)
+
+    # user 1 is allowed to create Usage with public entity created by user2
+    authorized_used = json_data | {
+        "used_ids": [str(u2_public_entity_id)],
+        "generated_ids": [str(u1_private_entity_id)],
+    }
+    assert_request(client_user_1.post, url=route, json=authorized_used, expected_status_code=200)
+
+    # user 1 is allowed to create Generation with public entity created by user2
+    authorized_used = json_data | {
+        "used_ids": [str(u1_private_entity_id)],
+        "generated_ids": [str(u2_public_entity_id)],
+    }
+    assert_request(client_user_1.post, url=route, json=authorized_used, expected_status_code=200)
+
+    # user 1 is allowed to create both with public entity created by user2
+    authorized_used = json_data | {
+        "used_ids": [str(u2_public_entity_id)],
+        "generated_ids": [str(u2_public_entity_id)],
+    }
+    assert_request(client_user_1.post, url=route, json=authorized_used, expected_status_code=200)
+
+
+def check_activity_update_one(
+    client, client_admin, route, admin_route, used_id, generated_id, constructor_func
+):
+    entity_id = constructor_func(
+        used_ids=[str(used_id)],
+        generated_ids=[],
+    )
+
+    end_time = datetime.now(UTC)
+
+    update_json = {
+        "end_time": str(end_time),
+        "generated_ids": [str(generated_id)],
+    }
+
+    data = assert_request(client.patch, url=f"{route}/{entity_id}", json=update_json).json()
+    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time
+    assert len(data["generated"]) == 1
+    assert data["generated"][0]["id"] == str(generated_id)
+
+    # only admin client can hit admin endpoint
+    data = assert_request(
+        client.patch,
+        url=f"{admin_route}/{entity_id}",
+        json=update_json,
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+    assert data["message"] == "Service admin role required"
+
+    entity_id = constructor_func(
+        used_ids=[str(used_id)],
+        generated_ids=[],
+    )
+
+    data = assert_request(
+        client_admin.patch,
+        url=f"{admin_route}/{entity_id}",
+        json=update_json,
+    ).json()
+
+    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time
+    assert len(data["generated"]) == 1
+    assert data["generated"][0]["id"] == str(generated_id)
+
+    # admin is treated as regular user for regular route (no project context)
+    data = assert_request(
+        client_admin.patch,
+        url=f"{route}/{entity_id}",
+        json=update_json,
+        expected_status_code=403,
+    ).json()
+    assert data["error_code"] == "NOT_AUTHORIZED"
+
+
+def check_activity_update_one__fail_if_generated_ids_unauthorized(
+    db,
+    route,
+    client_user_1,
+    json_data,
+    u1_private_entity_id,
+    u2_private_entity_id,
+):
+    """Test that it is not allowed to update generated_ids with unauthorized entities."""
+    # sanity check to ensure that authorized_project_id and authorized_public are consistent
+    e1 = _get_entity(db, entity_id=u1_private_entity_id)
+    e2 = _get_entity(db, entity_id=u2_private_entity_id)
+    assert e1.authorized_public is False
+    assert e2.authorized_public is False
+    assert e1.authorized_project_id != e2.authorized_project_id
+
+    json_data |= {
+        "used_ids": [str(u1_private_entity_id)],
+        "generated_ids": [],
+    }
+
+    data = assert_request(client_user_1.post, url=route, json=json_data).json()
+
+    update_json = {
+        "generated_ids": [str(u2_private_entity_id)],
+    }
+    data = assert_request(
+        client_user_1.patch, url=f"{route}/{data['id']}", json=update_json, expected_status_code=404
+    ).json()
+    assert data["details"] == f"Cannot access entities {u2_private_entity_id}"
+
+
+def check_activity_update_one__fail_if_generated_ids_exists(
+    client, route, entity_id_1, entity_id_2, constructor_func
+):
+    gen1 = constructor_func(
+        used_ids=[str(entity_id_1)],
+        generated_ids=[str(entity_id_2)],
+    )
+    update_json = {
+        "generated_ids": [str(entity_id_1)],
+    }
+    data = assert_request(
+        client.patch, url=f"{route}/{gen1}", json=update_json, expected_status_code=404
+    ).json()
+    assert data["details"] == "It is forbidden to update generated_ids if they exist."

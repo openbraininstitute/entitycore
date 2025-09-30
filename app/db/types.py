@@ -131,6 +131,9 @@ class EntityType(StrEnum):
     circuit = auto()
     em_dense_reconstruction_dataset = auto()
     em_cell_mesh = auto()
+    analysis_notebook_template = auto()
+    analysis_notebook_environment = auto()
+    analysis_notebook_result = auto()
 
 
 class AgentType(StrEnum):
@@ -179,6 +182,7 @@ class ActivityType(StrEnum):
     simulation_generation = auto()
     validation = auto()
     calibration = auto()
+    analysis_notebook_execution = auto()
 
 
 class DerivationType(StrEnum):
@@ -336,6 +340,8 @@ class ContentType(StrEnum):
     gltf_binary = "model/gltf-binary"
     gzip = "application/gzip"
     webp = "image/webp"
+    ipynb = "application/x-ipynb+json"
+    toml = "application/toml"
 
 
 class AssetLabel(StrEnum):
@@ -376,6 +382,8 @@ class AssetLabel(StrEnum):
     network_stats_a = auto()
     network_stats_b = auto()
     cell_surface_mesh = auto()
+    jupyter_notebook = auto()
+    requirements = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -409,11 +417,31 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
         ".tgz",
     ),
     ContentType.webp: (".webp",),
+    ContentType.ipynb: (".ipynb",),
+    ContentType.toml: (".toml",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType, dict[AssetLabel, list[LabelRequirements]] | None
 ] = dict.fromkeys(EntityType) | {
+    EntityType.analysis_notebook_template: {
+        AssetLabel.jupyter_notebook: [
+            LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
+        ],
+        AssetLabel.requirements: [
+            LabelRequirements(content_type=ContentType.toml, is_directory=False)
+        ],
+    },
+    EntityType.analysis_notebook_environment: {
+        AssetLabel.requirements: [
+            LabelRequirements(content_type=ContentType.toml, is_directory=False)
+        ],
+    },
+    EntityType.analysis_notebook_result: {
+        AssetLabel.jupyter_notebook: [
+            LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
+        ]
+    },
     EntityType.brain_atlas: {
         AssetLabel.brain_atlas_annotation: [
             LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
@@ -668,3 +696,12 @@ class EMCellMeshGenerationMethod(StrEnum):
     """
 
     marching_cubes = auto()
+
+
+class AnalysisScale(StrEnum):
+    """Rough scale that an activity takes place in. Note: Not equal to CircuitScale."""
+
+    subcellular = auto()
+    cellular = auto()
+    circuit = auto()
+    system = auto()

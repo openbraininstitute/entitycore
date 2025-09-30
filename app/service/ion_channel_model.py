@@ -55,6 +55,7 @@ def _load_expanded(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
         selectinload(IonChannelModel.contributions).selectinload(Contribution.agent),
         selectinload(IonChannelModel.contributions).selectinload(Contribution.role),
         selectinload(IonChannelModel.assets),
+        selectinload(IonChannelModel.emodels),
         raiseload("*"),
     )
 

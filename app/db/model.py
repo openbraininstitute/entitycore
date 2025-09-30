@@ -671,6 +671,7 @@ class EModel(
     ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
         primaryjoin="EModel.id == IonChannelModelToEModel.emodel_id",
         secondary="ion_channel_model__emodel",
+        back_populates="emodels",
         uselist=True,
         viewonly=True,
         order_by="IonChannelModel.creation_date",
@@ -1109,6 +1110,14 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     is_stochastic: Mapped[bool] = mapped_column(default=False)
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
+    emodels: Mapped[list["EModel"]] = relationship(
+        primaryjoin="IonChannelModel.id == IonChannelModelToEModel.ion_channel_model_id",
+        secondary="ion_channel_model__emodel",
+        back_populates="ion_channel_models",
+        uselist=True,
+        viewonly=True,
+        order_by="EModel.creation_date",
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

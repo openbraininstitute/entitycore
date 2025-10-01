@@ -15,6 +15,8 @@ from app.db.model import (
     Generation,
     Identifiable,
     IonChannel,
+    IonChannelModel,
+    IonChannelModelToEModel,
     MeasurementAnnotation,
     MeasurementItem,
     MeasurementKind,
@@ -80,6 +82,7 @@ def query_params_factory[I: Identifiable](
     circuit_alias = _get_alias(Circuit)
     ion_channel_alias = _get_alias(IonChannel)
     em_dense_reconstruction_dataset_alias = _get_alias(EMDenseReconstructionDataset)
+    ion_channel_model_alias = _get_alias(IonChannelModel, "ion_channel_model")
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -128,6 +131,10 @@ def query_params_factory[I: Identifiable](
         "em_dense_reconstruction_dataset": {
             "id": em_dense_reconstruction_dataset_alias.id,
             "label": em_dense_reconstruction_dataset_alias.name,
+        },
+        "ion_channel_model": {
+            "id": ion_channel_model_alias.id,
+            "label": ion_channel_model_alias.name,
         },
     }
     filter_joins = {
@@ -218,6 +225,13 @@ def query_params_factory[I: Identifiable](
             em_dense_reconstruction_dataset_alias,
             em_dense_reconstruction_dataset_alias.id
             == db_model_class.em_dense_reconstruction_dataset_id,
+        ),
+        "ion_channel_model": lambda q: q.outerjoin(
+            IonChannelModelToEModel,
+            db_model_class.id == IonChannelModelToEModel.emodel_id,
+        ).outerjoin(
+            ion_channel_model_alias,
+            IonChannelModelToEModel.ion_channel_model_id == ion_channel_model_alias.id,
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

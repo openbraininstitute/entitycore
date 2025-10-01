@@ -1,17 +1,13 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import IonChannelModel
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
     NameFilterMixin,
-    NestedBrainRegionFilter,
 )
 from app.filters.scientific_artifact import ScientificArtifactFilter
-from app.filters.subject import NestedSubjectFilter
 
 
 class NestedIonChannelModelFilter(
@@ -19,15 +15,6 @@ class NestedIonChannelModelFilter(
     NameFilterMixin,
     CustomFilter,
 ):
-    brain_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("morphology__brain_region", NestedBrainRegionFilter)),
-    ] = None
-    subject: Annotated[
-        NestedSubjectFilter | None,
-        FilterDepends(with_prefix("morphology__subject", NestedSubjectFilter)),
-    ] = None
-
     class Constants(CustomFilter.Constants):
         model = IonChannelModel
 

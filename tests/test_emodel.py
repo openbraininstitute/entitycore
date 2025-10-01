@@ -170,7 +170,7 @@ def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):
     assert [row["id"] for row in data] == [str(id_) for id_ in emodel_ids][:3]
 
 
-def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
+def test_facets(client: TestClient, faceted_emodel_ids: EModelIds, ion_channel_models):
     ids = faceted_emodel_ids
     response = client.get(ROUTE, params={"with_facets": True})
     assert response.status_code == 200
@@ -218,6 +218,20 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
                 "label": "test exemplar morphology 1",
                 "count": 4,
                 "type": "exemplar_morphology",
+            },
+        ],
+        "ion_channel_model": [
+            {
+                "count": 8,
+                "id": str(ion_channel_models[0].id),
+                "label": "i-0",
+                "type": "ion_channel_model",
+            },
+            {
+                "count": 8,
+                "id": str(ion_channel_models[1].id),
+                "label": "i-1",
+                "type": "ion_channel_model",
             },
         ],
     }
@@ -274,6 +288,20 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds):
                 "label": "test exemplar morphology 1",
                 "count": 2,
                 "type": "exemplar_morphology",
+            },
+        ],
+        "ion_channel_model": [
+            {
+                "count": 4,
+                "id": str(ion_channel_models[0].id),
+                "label": "i-0",
+                "type": "ion_channel_model",
+            },
+            {
+                "count": 4,
+                "id": str(ion_channel_models[1].id),
+                "label": "i-1",
+                "type": "ion_channel_model",
             },
         ],
     }
@@ -428,7 +456,7 @@ def test_pagination(client, create_emodel_ids):
     assert list(reversed(data_ids)) == list(range(total_items))
 
 
-def test_filtering_ordering(client, faceted_emodel_ids):
+def test_filtering_ordering(client, faceted_emodel_ids, ion_channel_models):
     n_models = len(faceted_emodel_ids.emodel_ids)
 
     def req(query):
@@ -465,3 +493,9 @@ def test_filtering_ordering(client, faceted_emodel_ids):
 
     data = req({"name__in": ["e-1", "e-2"], "order_by": "etype__pref_label"})
     assert len(data) == 2
+
+    data = req({"ion_channel_model__id": str(ion_channel_models[0].id)})
+    assert len(data) == n_models
+
+    data = req({"ion_channel_model__id": str(ion_channel_models[1].id)})
+    assert len(data) == n_models

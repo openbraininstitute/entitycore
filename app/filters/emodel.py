@@ -67,9 +67,9 @@ class EModelFilter(
         FilterDepends(with_prefix("exemplar_morphology", NestedCellMorphologyFilter)),
     ] = None
 
-    ion_channel_models: Annotated[
+    ion_channel_model: Annotated[
         NestedIonChannelModelFilter | None,
-        FilterDepends(with_prefix("ion_channel_models", NestedIonChannelModelFilter)),
+        FilterDepends(with_prefix("ion_channel_model", NestedIonChannelModelFilter)),
     ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

@@ -159,6 +159,7 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
+    ion_channel_model_alias = aliased(IonChannelModel, flat=True)
     aliases: Aliases = {
         CellMorphology: morphology_alias,
         Agent: {
@@ -166,6 +167,7 @@ def read_many(
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
+        IonChannelModel: ion_channel_model_alias,
     }
     facet_keys = filter_keys = [
         "brain_region",
@@ -176,6 +178,7 @@ def read_many(
         "contribution",
         "mtype",
         "etype",
+        "ion_channel_model",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=EModel,

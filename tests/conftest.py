@@ -33,6 +33,8 @@ from app.db.model import (
     ETypeClassification,
     ExternalUrl,
     IonChannel,
+    IonChannelModel,
+    IonChannelModelToEModel,
     MEModel,
     MTypeClass,
     MTypeClassification,
@@ -762,7 +764,30 @@ class MEModels:
 
 
 @pytest.fixture
-def faceted_emodel_ids(db: Session, client, person_id):
+def ion_channel_models(db, person_id, brain_region_id, subject_id):
+    return [
+        add_db(
+            db,
+            IonChannelModel(
+                description="Test ICM Description",
+                name=f"i-{i}",
+                nmodl_suffix="test_icm",
+                temperature_celsius=0,
+                neuron_block={},
+                brain_region_id=str(brain_region_id),
+                subject_id=str(subject_id),
+                authorized_public=False,
+                created_by_id=str(person_id),
+                updated_by_id=str(person_id),
+                authorized_project_id=PROJECT_ID,
+            ),
+        )
+        for i in range(2)
+    ]
+
+
+@pytest.fixture
+def faceted_emodel_ids(db: Session, client, person_id, ion_channel_models):
     subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
 
     hierarchy_name = utils.create_hiearchy_name(db, "test_hier", created_by_id=person_id)
@@ -809,6 +834,17 @@ def faceted_emodel_ids(db: Session, client, person_id):
         ).json()["id"]
 
         emodel_ids.append(str(emodel_id))
+
+    # associate emodel with ion_channel_model
+    for emodel_id in emodel_ids:
+        for ion_channel_model in ion_channel_models:
+            add_db(
+                db,
+                IonChannelModelToEModel(
+                    ion_channel_model_id=ion_channel_model.id,
+                    emodel_id=emodel_id,
+                ),
+            )
 
     return EModelIds(
         emodel_ids=emodel_ids,

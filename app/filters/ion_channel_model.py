@@ -2,8 +2,21 @@ from typing import Annotated
 
 from app.db.model import IonChannelModel
 from app.dependencies.filter import FilterDepends
-from app.filters.common import NameFilterMixin
+from app.filters.base import CustomFilter
+from app.filters.common import (
+    IdFilterMixin,
+    NameFilterMixin,
+)
 from app.filters.scientific_artifact import ScientificArtifactFilter
+
+
+class NestedIonChannelModelFilter(
+    IdFilterMixin,
+    NameFilterMixin,
+    CustomFilter,
+):
+    class Constants(CustomFilter.Constants):
+        model = IonChannelModel
 
 
 class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin):

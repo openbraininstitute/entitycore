@@ -18,6 +18,7 @@ from app.filters.common import (
     NestedMTypeClassFilter,
     SpeciesFilterMixin,
 )
+from app.filters.ion_channel_model import NestedIonChannelModelFilter
 
 
 class NestedEModelFilter(
@@ -64,6 +65,11 @@ class EModelFilter(
     exemplar_morphology: Annotated[
         NestedCellMorphologyFilter | None,
         FilterDepends(with_prefix("exemplar_morphology", NestedCellMorphologyFilter)),
+    ] = None
+
+    ion_channel_model: Annotated[
+        NestedIonChannelModelFilter | None,
+        FilterDepends(with_prefix("ion_channel_model", NestedIonChannelModelFilter)),
     ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

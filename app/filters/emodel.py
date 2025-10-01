@@ -18,7 +18,7 @@ from app.filters.common import (
     NestedMTypeClassFilter,
     SpeciesFilterMixin,
 )
-from app.filters.ion_channel_model import IonChannelModelFilter
+from app.filters.ion_channel_model import NestedIonChannelModelFilter
 
 
 class NestedEModelFilter(
@@ -68,8 +68,8 @@ class EModelFilter(
     ] = None
 
     ion_channel_model: Annotated[
-        IonChannelModelFilter | None,
-        FilterDepends(with_prefix("ion_channel_models", IonChannelModelFilter)),
+        NestedIonChannelModelFilter | None,
+        FilterDepends(with_prefix("ion_channel_models", NestedIonChannelModelFilter)),
     ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

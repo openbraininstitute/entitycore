@@ -67,7 +67,7 @@ class EModelFilter(
         FilterDepends(with_prefix("exemplar_morphology", NestedCellMorphologyFilter)),
     ] = None
 
-    ion_channel_model: Annotated[
+    ion_channel_models: Annotated[
         NestedIonChannelModelFilter | None,
         FilterDepends(with_prefix("ion_channel_models", NestedIonChannelModelFilter)),
     ] = None

@@ -383,6 +383,7 @@ class AssetLabel(StrEnum):
     cell_surface_mesh = auto()
     jupyter_notebook = auto()
     requirements = auto()
+    ion_channel_model_figure = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -507,6 +508,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType.ion_channel_model: {
         AssetLabel.neuron_mechanisms: [
             LabelRequirements(content_type=ContentType.mod, is_directory=False)
+        ],
+        AssetLabel.ion_channel_model_figure: [
+            LabelRequirements(content_type=ContentType.pdf, is_directory=False)
         ],
     },
     EntityType.ion_channel_recording: {

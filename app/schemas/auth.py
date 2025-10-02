@@ -10,7 +10,7 @@ from app.errors import AuthErrorReason
 from app.logger import L
 
 PROJECT_REGEX = re.compile(
-    r"/proj/(?P<vlab>[0-9a-fA-F-]+)/(?P<proj>[0-9a-fA-F-]+)/(?P<role>admin|member)"
+    r"^/proj/(?P<vlab>[0-9a-fA-F-]+)/(?P<proj>[0-9a-fA-F-]+)/(?P<role>admin|member)$"
 )
 
 

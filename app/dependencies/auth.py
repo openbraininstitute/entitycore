@@ -128,6 +128,11 @@ def _check_user_info(
 
     user_info_response = deserialize_response(response, model_class=UserInfoResponse)
 
+    if project_context.virtual_lab_id is None and project_context.project_id is not None:
+        project_context.virtual_lab_id = user_info_response.virtual_lab_from_project_id(
+            project_context.project_id
+        )
+
     is_authorized = user_info_response.is_authorized_for(
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,

@@ -23,6 +23,7 @@ TEST_USER_NAME = "John Doe"
 PROJECT_CONTEXTS = [
     OptionalProjectContext(virtual_lab_id=None, project_id=None),
     OptionalProjectContext(virtual_lab_id=VIRTUAL_LAB_ID, project_id=PROJECT_ID),
+    OptionalProjectContext(virtual_lab_id=None, project_id=PROJECT_ID),
 ]
 
 

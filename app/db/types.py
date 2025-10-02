@@ -383,6 +383,7 @@ class AssetLabel(StrEnum):
     cell_surface_mesh = auto()
     jupyter_notebook = auto()
     requirements = auto()
+    ion_channel_model_figure = auto()
 
 
 class LabelRequirements(BaseModel):

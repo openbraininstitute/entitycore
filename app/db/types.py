@@ -509,6 +509,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         AssetLabel.neuron_mechanisms: [
             LabelRequirements(content_type=ContentType.mod, is_directory=False)
         ],
+        AssetLabel.ion_channel_model_figure: [
+            LabelRequirements(content_type=ContentType.pdf, is_directory=False)
+        ],
     },
     EntityType.ion_channel_recording: {
         AssetLabel.nwb: [

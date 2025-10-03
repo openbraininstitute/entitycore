@@ -512,11 +512,11 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         ],
         AssetLabel.ion_channel_model_figure: [
             LabelRequirements(content_type=ContentType.pdf, is_directory=False),
-            LabelRequirements(content_type=ContentType.png, is_directory=False)
+            LabelRequirements(content_type=ContentType.png, is_directory=False),
         ],
         AssetLabel.figure_summary_json: [
             LabelRequirements(content_type=ContentType.json, is_directory=False)
-        ]
+        ],
     },
     EntityType.ion_channel_recording: {
         AssetLabel.nwb: [

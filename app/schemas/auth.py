@@ -9,6 +9,10 @@ from pydantic import BaseModel, ConfigDict
 from app.errors import AuthErrorReason
 from app.logger import L
 
+PROJECT_REGEX = re.compile(
+    r"^/proj/(?P<vlab>[0-9a-fA-F-]+)/(?P<proj>[0-9a-fA-F-]+)/(?P<role>admin|member)$"
+)
+
 
 class CacheKey(BaseModel):
     """Cache key for UserContext."""
@@ -106,16 +110,18 @@ class UserInfoResponse(UserInfoBase):
                     ]
                 )
 
+    def virtual_lab_from_project_id(self, project_id: UUID) -> UUID | None:
+        for s in self.groups:
+            if (match := PROJECT_REGEX.match(s)) and match.group("proj") == str(project_id):
+                return UUID(match.group("vlab"))
+        return None
+
     def user_project_ids(self) -> list[UUID]:
         """Return the the list if project_ids the user is authorized for."""
-        pattern = r"/proj/[0-9a-fA-F-]+/([0-9a-fA-F-]+)/(admin|member)"
-
         project_ids: set[UUID] = set()
-
         for s in self.groups:
-            match = re.match(pattern, s)
-            if match:
-                project_ids.add(UUID(match.group(1)))
+            if match := PROJECT_REGEX.match(s):
+                project_ids.add(UUID(match.group("proj")))
 
         return list(project_ids)
 

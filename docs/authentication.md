@@ -19,7 +19,18 @@
 
 ## Service Admin Group
 
-To call endpoints that modify global resources, the user must belong to a special Keycloak group: `/service/entitycore/admin`.
+The special Keycloak group `/service/entitycore/admin` allows users to:
+
+* call endpoints that modify global resources
+* call admin endpoints
+
+## Service Maintainer group
+
+The special Keycloak group `/service/entitycore/maintainer` allows users to:
+
+* update public entities within authorized projects
+* delete public entities within authorized projects
+* hard delete assets within authorized projects
 
 ## Caching
 

@@ -385,6 +385,7 @@ class AssetLabel(StrEnum):
     requirements = auto()
     ion_channel_model_figure = auto()
     figure_summary_json = auto()
+    thumbnail = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -511,8 +512,10 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.mod, is_directory=False)
         ],
         AssetLabel.ion_channel_model_figure: [
-            LabelRequirements(content_type=ContentType.pdf, is_directory=False),
-            LabelRequirements(content_type=ContentType.png, is_directory=False),
+            LabelRequirements(content_type=ContentType.pdf, is_directory=False)
+        ],
+        AssetLabel.thumbnail: [
+            LabelRequirements(content_type=ContentType.png, is_directory=False)
         ],
         AssetLabel.figure_summary_json: [
             LabelRequirements(content_type=ContentType.json, is_directory=False)

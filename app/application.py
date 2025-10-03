@@ -128,6 +128,7 @@ app = FastAPI(
         StarletteHTTPException: http_exception_handler,
     },
     root_path=settings.ROOT_PATH,
+    redirect_slashes=False,
 )
 app.add_middleware(
     CORSMiddleware,

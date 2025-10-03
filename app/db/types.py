@@ -530,8 +530,6 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.h5, is_directory=False),
         ],
         AssetLabel.morphology_with_spines: [
-            LabelRequirements(content_type=ContentType.asc, is_directory=False),
-            LabelRequirements(content_type=ContentType.swc, is_directory=False),
             LabelRequirements(content_type=ContentType.h5, is_directory=False),
         ],
     },

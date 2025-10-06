@@ -1,4 +1,5 @@
 import itertools
+from unittest.mock import ANY
 
 import pytest
 
@@ -38,6 +39,18 @@ def json_data(brain_region_id, subject_id, license_id, mtype_class_id):
         "post_region_id": brain_region_id,
         "pre_mtype_id": mtype_class_id,
         "post_mtype_id": mtype_class_id,
+        "measurements": [
+            {
+                "name": "minimum",
+                "unit": "μm",
+                "value": 1.23,
+            },
+            {
+                "name": "maximum",
+                "unit": "μm",
+                "value": 1.45,
+            },
+        ],
     }
 
 
@@ -53,6 +66,7 @@ def _assert_read_response(data, json_data):
     assert data["post_region"]["id"] == json_data["post_region_id"]
     assert data["type"] == EntityType.experimental_synapses_per_connection
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["measurements"] == [d | {"id": ANY} for d in json_data["measurements"]]
 
 
 @pytest.fixture

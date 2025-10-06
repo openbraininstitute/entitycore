@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import ANY
 
 import pytest
 
@@ -6,6 +7,7 @@ from app.db.model import (
     BrainRegion,
     Contribution,
     ExperimentalBoutonDensity,
+    Measurement,
     MTypeClass,
     MTypeClassification,
     Species,
@@ -33,13 +35,27 @@ ADMIN_ROUTE = "/admin/experimental-bouton-density"
 
 @pytest.fixture
 def json_data(brain_region_id, subject_id, license_id):
-    return ExperimentalBoutonDensityCreate(
-        name="my-name",
-        description="my-description",
-        brain_region_id=brain_region_id,
-        subject_id=subject_id,
-        legacy_id="Test Legacy ID",
-        license_id=license_id,
+    return ExperimentalBoutonDensityCreate.model_validate(
+        {
+            "name": "my-name",
+            "description": "my-description",
+            "brain_region_id": brain_region_id,
+            "subject_id": subject_id,
+            "legacy_id": "Test Legacy ID",
+            "license_id": license_id,
+            "measurements": [
+                {
+                    "name": "minimum",
+                    "unit": "μm",
+                    "value": 1.23,
+                },
+                {
+                    "name": "maximum",
+                    "unit": "μm",
+                    "value": 1.45,
+                },
+            ],
+        }
     ).model_dump(mode="json")
 
 
@@ -51,6 +67,7 @@ def _assert_read_response(data, json_data):
     assert data["license"]["name"] == "Test License"
     assert data["type"] == EntityType.experimental_bouton_density
     assert data["created_by"]["id"] == data["updated_by"]["id"]
+    assert data["measurements"] == [d | {"id": ANY} for d in json_data["measurements"]]
 
 
 @pytest.fixture
@@ -140,6 +157,8 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, 
 
 @pytest.fixture
 def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
+    json_data = json_data.copy()
+    measurements = json_data.pop("measurements")
     organization, person, role = agents
 
     species = add_all_db(
@@ -210,6 +229,20 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                     "brain_region_id": brain_regions[i].id,
                 }
             ),
+        )
+        # add measurements
+        add_all_db(
+            db,
+            [
+                Measurement(
+                    **m
+                    | {
+                        "value": m["value"] + i,
+                        "entity_id": density.id,
+                    }
+                )
+                for i, m in enumerate(measurements)
+            ],
         )
 
         # add contribution

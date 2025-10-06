@@ -58,6 +58,7 @@ from app.db.types import (
     EntityType,
     ExternalSource,
     GlobalType,
+    IonChannelModelingExecutionStatus,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -1123,6 +1124,130 @@ class IonChannelModelToEModel(Base):
     emodel_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.emodel}.id", ondelete="CASCADE"), primary_key=True
     )
+
+
+class IonChannelModelingCampaign(
+    NameDescriptionVectorMixin,
+    Entity,
+):
+    """Represents an ion channel modeling campaign entity in the database.
+
+    An ion channel modeling campaign represents the specification of a set of
+    ion channel model building tasks.
+
+    It has an asset which is the ion channel modeling campaign configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the ion channel modeling campaign,
+            referencing the entity ID.
+    """
+
+    __tablename__ = EntityType.ion_channel_modeling_campaign.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    input_recording_ids: Mapped[list[uuid.UUID]]
+
+    ion_channel_modelings = relationship(
+        "IonChannelModeling",
+        uselist=True,
+        back_populates="ion_channel_modeling_campaign",
+        foreign_keys="IonChannelModeling.ion_channel_modeling_campaign_id",
+    )
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
+class IonChannelModeling(Entity, NameDescriptionVectorMixin):
+    """Represents an ion channel model building entity in the database.
+
+    It represents the definition / configuration of a ion channel modeling.
+    It has an asset which is an obi-one ion channel modeling configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the simulation, referencing the entity ID.
+        ion_channel_modeling_campaign_id (uuid.UUID): Foreign key referencing
+            the ion channel modeling campaign ID.
+        ion_channel_modeling_campaign (IonChannelModelingCampaign):
+            The ion channel modeling campaign this simulation belongs to.
+        input_recording_ids (list[uuid.UUID]): Foreign key referencing
+            the input ion channel recording IDs.
+        input_recordings (list[IonChannelRecording]): The IonChannelRecording entities
+            this simulation is associated with.
+        scan_parameters (JSON_DICT): Scan parameters for the simulation.
+    """
+
+    __tablename__ = EntityType.simulation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    ion_channel_modeling_campaign_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ion_channel_modeling_campaign.id"), index=True
+    )
+    ion_channel_modeling_campaign: Mapped[IonChannelModelingCampaign] = relationship(
+        "IonChannelModelingCampaign",
+        uselist=False,
+        foreign_keys=[ion_channel_modeling_campaign_id],
+    )
+    input_recording_ids: Mapped[list[uuid.UUID]]
+    input_recordings: Mapped[IonChannelRecording] = relationship(
+        "IonChannelRecording",
+        uselist=False,
+        foreign_keys=[input_recording_ids],
+    )
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
+class IonChannelModelingExecution(Activity):
+    """Represents the execution of an ion channel modeling.
+
+    It stores the execution status of an ion channel modeling.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the an ion channel modeling execution,
+            referencing the ion channel recording IDs.
+        status (IonChannelModelingExecutionStatus): The status of the
+            ion channel modeling execution.
+    """
+
+    __tablename__ = ActivityType.ion_channel_modeling_execution.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    status: Mapped[IonChannelModelingExecutionStatus] = mapped_column(
+        Enum(IonChannelModelingExecutionStatus, name="ion_channel_modeling_execution_status"),
+        default=IonChannelModelingExecutionStatus.created,
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class IonChannelModelingGeneration(Activity):
+    """Represents an ion channel modeling generation activity in the database.
+
+    A ion channel modeling generation activity is responsible for generating
+    the configuration files for each ion channel modeling part of an ion channel modeling campaign.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the ion channel modeling generation,
+            referencing the activity ID.
+    """
+
+    __tablename__ = ActivityType.ion_channel_modeling_generation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class ValidationResult(Entity):

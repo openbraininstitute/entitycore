@@ -139,12 +139,14 @@ def _check_user_info(
     )
 
     is_service_admin = user_info_response.is_service_admin(settings.APP_NAME)
+    is_service_maintainer = user_info_response.is_service_maintainer(settings.APP_NAME)
 
     user_context = UserContext(
         profile=UserProfile.from_user_info(user_info_response),
         expiration=decoded.exp if decoded else None,
         is_authorized=is_authorized,
         is_service_admin=is_service_admin,
+        is_service_maintainer=is_service_maintainer,
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
         auth_error_reason=AuthErrorReason.NOT_AUTHORIZED_PROJECT if not is_authorized else None,

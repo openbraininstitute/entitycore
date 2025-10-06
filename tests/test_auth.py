@@ -59,8 +59,11 @@ def _get_token(exp):
 @pytest.mark.parametrize("project_context", PROJECT_CONTEXTS)
 @pytest.mark.parametrize("is_token_jwt", [True, False])
 @pytest.mark.parametrize("is_admin", [True, False])
+@pytest.mark.parametrize("is_maintainer", [True, False])
 @pytest.mark.usefixtures("freezer")
-def test_user_verified_ok(httpx_mock, request_mock, is_admin, is_token_jwt, project_context):
+def test_user_verified_ok(
+    httpx_mock, request_mock, is_maintainer, is_admin, is_token_jwt, project_context
+):
     if is_token_jwt:
         token_expiration = int(time.time() + 3600)
         token = _get_token(exp=token_expiration)
@@ -77,6 +80,7 @@ def test_user_verified_ok(httpx_mock, request_mock, is_admin, is_token_jwt, proj
             "preferred_username": TEST_USER_NAME,
             "groups": [
                 "/service/entitycore/admin" if is_admin else "/other",
+                "/service/entitycore/maintainer" if is_maintainer else "/other",
                 f"/proj/{VIRTUAL_LAB_ID}/{PROJECT_ID}/admin",
                 f"/vlab/{VIRTUAL_LAB_ID}/admin",
             ],
@@ -95,6 +99,7 @@ def test_user_verified_ok(httpx_mock, request_mock, is_admin, is_token_jwt, proj
         expiration=token_expiration,
         is_authorized=True,
         is_service_admin=is_admin,
+        is_service_maintainer=is_maintainer,
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
         user_project_ids=[uuid.UUID(PROJECT_ID)],
@@ -116,6 +121,7 @@ def test_user_verified_ok_when_auth_is_disabled(monkeypatch, request_mock, proje
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
+        is_service_maintainer=False,
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
     )

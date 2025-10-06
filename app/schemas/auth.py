@@ -86,6 +86,10 @@ class UserInfoResponse(UserInfoBase):
             ]
         )
 
+    def is_service_maintainer(self, service_name: str) -> bool:
+        """Return True if admin for the specified service."""
+        return f"/service/{service_name}/maintainer" in self.groups
+
     def is_authorized_for(self, virtual_lab_id: UUID | None, project_id: UUID | None) -> bool:
         """Return True if authorized for the specified virtual_lab_id and project_id."""
         match (virtual_lab_id, project_id):
@@ -157,6 +161,7 @@ class UserContextBase(BaseModel):
     expiration: float | None
     is_authorized: bool
     is_service_admin: bool = False
+    is_service_maintainer: bool = False
     auth_error_reason: AuthErrorReason | None = None
 
 

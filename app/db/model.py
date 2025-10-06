@@ -1054,6 +1054,8 @@ class MeasurementsMixin:
             "Measurement",
             foreign_keys=Measurement.entity_id,
             uselist=True,
+            cascade="all, delete-orphan",  # automatic deletion in case of reassignment
+            single_parent=True,  # ensures each Measurement belongs to exactly one parent
             passive_deletes=True,  # rely on PostgreSQL ON DELETE CASCADE to remove measurement rows
         )
 

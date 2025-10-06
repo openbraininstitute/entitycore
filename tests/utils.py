@@ -935,6 +935,32 @@ def check_global_update_one(
     _patch_compare(clients.admin.patch, f"{admin_route}/{model_id}", old_values)
 
 
+def _is_list_of_dicts(lst) -> bool:
+    return isinstance(lst, list) and len(lst) > 0 and isinstance(lst[0], dict)
+
+
+def _check_dict(actual_data, expected_data):
+    """Compare the given dicts recursively, ignoring non-significant keys."""
+    ignored_keys = {"id", "updated_by_id", "update_date"}
+    assert set(actual_data) - ignored_keys == set(expected_data) - ignored_keys, (
+        "Actual != Expected"
+    )
+    for key, new_value in actual_data.items():
+        if key in ignored_keys:
+            continue
+        expected_value = expected_data[key]
+        if isinstance(new_value, dict):
+            _check_dict(new_value, expected_value)
+        elif _is_list_of_dicts(new_value) and _is_list_of_dicts(expected_value):
+            assert len(new_value) == len(expected_value)
+            for v1, v2 in zip(new_value, expected_value, strict=True):
+                _check_dict(v1, v2)
+        else:
+            assert new_value == expected_value, (
+                f"Key {key} mismatch. Expected: {expected_value}, Actual: {new_value}"
+            )
+
+
 def check_entity_update_one(
     *,
     route: str,
@@ -950,11 +976,11 @@ def check_entity_update_one(
     def _patch_compare(client, url, patch_data):
         old_data = assert_request(client.get, url=url).json()
         new_data = assert_request(client.patch, url=url, json=patch_data).json()
-
-        for key, new_value in new_data.items():
-            if key not in {"updated_by_id", "update_date"}:
-                value = patch_data[key] if key in patch_data else old_data[key]
-                assert new_value == value, f"Key {key} Expected: {value} Actual: {new_value}"
+        # Filter out keys that are in old_data but not in new_data, since the read_one endpoint
+        # might return expanded data that aren't returned by update_one
+        # Examples: emodel, ion_channel_model
+        expected_data = {k: v for k, v in old_data.items() if k in new_data} | patch_data
+        _check_dict(new_data, expected_data)
 
     public_1_data = _create(clients.user_1, json_data | {"authorized_public": True})
     private_1_data = _create(clients.user_1, json_data | {"authorized_public": False})

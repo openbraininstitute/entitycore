@@ -112,6 +112,13 @@ def test_update_one(clients, json_data):
         patch_payload={
             "name": "name",
             "description": "description",
+            "measurements": [
+                {
+                    "name": "mean",
+                    "unit": "μm",
+                    "value": 1.34,
+                },
+            ],
         },
         optional_payload=None,
     )

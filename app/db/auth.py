@@ -15,38 +15,30 @@ def constrain_to_writable_entities[Q: Query | Select](
     user_context: UserContext,
     db_model_class: Any = Entity,
 ) -> Q:
-    if user_context.project_id:
-        return _constrain_to_writable_project_id(query, db_model_class, user_context)
+    """Constrain query to writable entities.
 
-    return _constrain_to_writable_project_ids(query, db_model_class, user_context)
+    Permisions:
+    - Users have acces to authorized private entities
+    - Maintainers have access to all authorized entities
+    - Admins are not handled by this function and will be treated as regular users
 
-
-def _constrain_to_writable_project_id[Q: Query | Select](
-    query: Q, db_model_class: Any, user_context: UserContext
-) -> Q:
-    if user_context.is_service_maintainer:
-        return query.where(
-            db_model_class.authorized_project_id == user_context.project_id,
-        )
-
-    return query.where(
-        db_model_class.authorized_public == false(),
-        db_model_class.authorized_project_id == user_context.project_id,
+    Note:
+        A project_id context has precedence over Keycloak-derived project ids.
+        If one is provided query will be constrained within that single project_id.
+    """
+    user_ids = (
+        [user_context.project_id] if user_context.project_id else user_context.user_project_ids
     )
 
-
-def _constrain_to_writable_project_ids[Q: Query | Select](
-    query: Q, db_model_class: Any, user_context: UserContext
-) -> Q:
     if user_context.is_service_maintainer:
         return query.where(
-            db_model_class.authorized_project_id.in_(user_context.user_project_ids),
+            db_model_class.authorized_project_id.in_(user_ids),
         )
 
     return query.where(
         and_(
             db_model_class.authorized_public == false(),
-            db_model_class.authorized_project_id.in_(user_context.user_project_ids),
+            db_model_class.authorized_project_id.in_(user_ids),
         )
     )
 

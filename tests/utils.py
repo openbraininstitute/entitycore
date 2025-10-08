@@ -45,10 +45,16 @@ USER_SUB_ID_2 = "00000000-0000-0000-0000-000000000002"
 TOKEN_ADMIN = "I'm admin"  # noqa: S105
 TOKEN_USER_1 = "I'm user 1"  # noqa: S105
 TOKEN_USER_2 = "I'm user 2"  # noqa: S105
+TOKEN_MAINTAINER_1 = "I'm maintainer 1"  # noqa: S105
+TOKEN_MAINTAINER_2 = "I'm maintainer 2"  # noqa: S105
+TOKEN_MAINTAINER_3 = "I'm maintainer 3"  # noqa: S105
 
 AUTH_HEADER_ADMIN = {"Authorization": f"Bearer {TOKEN_ADMIN}"}
 AUTH_HEADER_USER_1 = {"Authorization": f"Bearer {TOKEN_USER_1}"}
 AUTH_HEADER_USER_2 = {"Authorization": f"Bearer {TOKEN_USER_2}"}
+AUTH_HEADER_MAINTAINER_1 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_1}"}
+AUTH_HEADER_MAINTAINER_2 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_2}"}
+AUTH_HEADER_MAINTAINER_3 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_3}"}
 
 VIRTUAL_LAB_ID = "9c6fba01-2c6f-4eac-893f-f0dc665605c5"
 PROJECT_ID = "ee86d4a0-eaca-48ca-9788-ddc450250b15"
@@ -104,6 +110,9 @@ class ClientProxies(NamedTuple):
     user_2: ClientProxy
     no_project: ClientProxy
     admin: ClientProxy
+    maintainer_1: ClientProxy
+    maintainer_2: ClientProxy
+    maintainer_3: ClientProxy
 
 
 def create_cell_morphology_id(
@@ -1034,12 +1043,40 @@ def check_entity_update_one(
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
     # admin has no such restrictions
-    _patch_compare(clients.admin, f"{admin_route}/{public_1_id}", {"authorized_public": False})
+    _patch_compare(clients.admin, f"{admin_route}/{public_1_id}", patch_payload)
+
+    # neither does a maintainer that has access to the project
+    _patch_compare(clients.maintainer_1, f"{route}/{public_1_id}", patch_payload)
+    _patch_compare(clients.maintainer_3, f"{route}/{public_1_id}", patch_payload)
+
+    data = assert_request(
+        clients.maintainer_2.patch,
+        url=f"{route}/{public_1_id}",
+        json={},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def check_entity_delete_one(
     db, clients, route, admin_route, json_data, expected_counts_before, expected_counts_after
 ):
+    def _create_model_id(client, data):
+        return assert_request(client.post, url=route, json=data).json()["id"]
+
+    def _assert_not_found(client, model_id):
+        data = assert_request(
+            client.delete, url=f"{route}/{model_id}", expected_status_code=404
+        ).json()
+        assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    def _assert_no_admin_access(client, model_id):
+        data = assert_request(
+            client.delete, url=f"{admin_route}/{model_id}", expected_status_code=403
+        ).json()
+        assert data["error_code"] == "NOT_AUTHORIZED"
+        assert data["message"] == "Service admin role required"
+
     def _req_count(client, client_route, model_id):
         for db_class, count in expected_counts_before.items():
             assert count_db_class(db, db_class) == count
@@ -1050,40 +1087,54 @@ def check_entity_delete_one(
         for db_class, count in expected_counts_after.items():
             assert count_db_class(db, db_class) == count
 
-    model_id = assert_request(clients.user_1.post, url=route, json=json_data).json()["id"]
+    model_id = _create_model_id(clients.user_1, json_data)
 
     # user 2 has no access to project id
-    data = assert_request(
-        clients.user_2.delete, url=f"{route}/{model_id}", expected_status_code=404
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
+    _assert_not_found(clients.user_2, model_id)
+
+    # maintainer 2 has no access to project id
+    _assert_not_found(clients.maintainer_2, model_id)
 
     # user 1 can delete
     _req_count(clients.user_1, route, model_id)
 
-    model_id = assert_request(clients.user_1.post, url=route, json=json_data).json()["id"]
+    model_id = _create_model_id(clients.user_1, json_data)
+
+    # maintainer 1 can delete
+    _req_count(clients.maintainer_1, route, model_id)
+
+    model_id = _create_model_id(clients.user_1, json_data)
 
     # user cannot use admin route
-    data = assert_request(
-        clients.user_1.delete, url=f"{admin_route}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
+    _assert_no_admin_access(clients.user_1, model_id)
 
+    # maintainer cannot use admin route
+    _assert_no_admin_access(clients.maintainer_1, model_id)
+    _assert_no_admin_access(clients.maintainer_2, model_id)
+
+    # admin can delete via admin route
     _req_count(clients.admin, admin_route, model_id)
 
-    model_id = assert_request(
-        clients.user_1.post, url=route, json=json_data | {"authorized_public": True}
-    ).json()["id"]
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
 
     # users cannot delete public resources
-    data = assert_request(
-        clients.user_1.delete, url=f"{route}/{model_id}", expected_status_code=404
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
+    _assert_not_found(clients.user_1, model_id)
 
     # admins should be able to
     _req_count(clients.admin, admin_route, model_id)
+
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
+
+    # maintainers are also able to delete as long as they have access to the project
+    _assert_not_found(clients.maintainer_2, model_id)
+
+    # via project context header
+    _req_count(clients.maintainer_1, route, model_id)
+
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
+
+    # via user_project_ids
+    _req_count(clients.maintainer_3, route, model_id)
 
 
 # so far they don't differ

@@ -57,11 +57,17 @@ from . import utils
 from .utils import (
     ADMIN_SUB_ID,
     AUTH_HEADER_ADMIN,
+    AUTH_HEADER_MAINTAINER_1,
+    AUTH_HEADER_MAINTAINER_2,
+    AUTH_HEADER_MAINTAINER_3,
     AUTH_HEADER_USER_1,
     AUTH_HEADER_USER_2,
     PROJECT_HEADERS,
     PROJECT_ID,
     TOKEN_ADMIN,
+    TOKEN_MAINTAINER_1,
+    TOKEN_MAINTAINER_2,
+    TOKEN_MAINTAINER_3,
     TOKEN_USER_1,
     TOKEN_USER_2,
     UNRELATED_PROJECT_HEADERS,
@@ -185,6 +191,56 @@ def user_context_no_project():
 
 
 @pytest.fixture
+def user_context_maintainer_1():
+    return UserContext(
+        profile=UserProfile(
+            subject=UUID(USER_SUB_ID_1),
+            name="Maintainer With Project Id",
+        ),
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=False,
+        is_service_maintainer=True,
+        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
+        project_id=UUID(PROJECT_ID),
+        user_project_ids=[UUID(PROJECT_ID)],
+    )
+
+
+@pytest.fixture
+def user_context_maintainer_2():
+    """Maintainer with different project-id."""
+    return UserContext(
+        profile=UserProfile(
+            subject=UUID(USER_SUB_ID_2),
+            name="Maintainer With Different Project Id",
+        ),
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=False,
+        is_service_maintainer=True,
+        virtual_lab_id=UUID(UNRELATED_VIRTUAL_LAB_ID),
+        project_id=UUID(UNRELATED_PROJECT_ID),
+    )
+
+
+@pytest.fixture
+def user_context_maintainer_3():
+    """Maintainer ony with user_project_ids."""
+    return UserContext(
+        profile=UserProfile(
+            subject=UUID(USER_SUB_ID_1),
+            name="Maintainer With Project id from Groups",
+        ),
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=False,
+        is_service_maintainer=True,
+        user_project_ids=[UUID(PROJECT_ID)],
+    )
+
+
+@pytest.fixture
 def _override_check_user_info(
     monkeypatch,
     user_context_admin,
@@ -192,6 +248,9 @@ def _override_check_user_info(
     user_context_user_1,
     user_context_user_2,
     user_context_no_project,
+    user_context_maintainer_1,
+    user_context_maintainer_2,
+    user_context_maintainer_3,
 ):
     # map (token, project-id) to the expected user_context
     mapping = {
@@ -200,6 +259,9 @@ def _override_check_user_info(
         (TOKEN_USER_1, None): user_context_no_project,
         (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
+        (TOKEN_MAINTAINER_1, UUID(PROJECT_ID)): user_context_maintainer_1,
+        (TOKEN_MAINTAINER_2, UUID(UNRELATED_PROJECT_ID)): user_context_maintainer_2,
+        (TOKEN_MAINTAINER_3, None): user_context_maintainer_3,
     }
 
     def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
@@ -270,17 +332,46 @@ def client_no_project(client_no_auth):
 
 
 @pytest.fixture
+def client_maintainer_1(client_no_auth):
+    """Return a web client instance, authenticated as maintainer with a project-id"""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_MAINTAINER_1 | PROJECT_HEADERS)
+
+
+@pytest.fixture
+def client_maintainer_2(client_no_auth):
+    """Return a web client instance, authenticated as maintainer with a project-id"""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_MAINTAINER_2 | UNRELATED_PROJECT_HEADERS)
+
+
+@pytest.fixture
+def client_maintainer_3(client_no_auth):
+    """Return a web client instance, authenticated as maintainer with a project-id"""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_MAINTAINER_3)
+
+
+@pytest.fixture
 def client(client_user_1):
     return client_user_1
 
 
 @pytest.fixture
-def clients(client_user_1, client_user_2, client_no_project, client_admin):
+def clients(
+    client_user_1,
+    client_user_2,
+    client_no_project,
+    client_admin,
+    client_maintainer_1,
+    client_maintainer_2,
+    client_maintainer_3,
+):
     return ClientProxies(
         user_1=client_user_1,
         user_2=client_user_2,
         no_project=client_no_project,
         admin=client_admin,
+        maintainer_1=client_maintainer_1,
+        maintainer_2=client_maintainer_2,
+        maintainer_3=client_maintainer_3,
     )
 
 

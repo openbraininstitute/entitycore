@@ -75,11 +75,11 @@ def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recordi
     assert data[0]["id"] == str(trace_ids[5])
     assert data[0]["type"] == "electrical_cell_recording"
 
-    # TODO: Change this test to invalid reqeust when derivation_type parameter set to not optional
+    # Test error not derivation_type param
     response = client.get(url=f"/emodel/{generated_emodel_id}/derived-from")
-    assert_response(response, 200)
-    data = response.json()["data"]
-    assert len(data) == 6
+    assert_response(response, 422)
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
 
     # Test error invalid derivation_type param
     response = client.get(

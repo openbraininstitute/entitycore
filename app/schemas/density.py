@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import MeasurementUnit
+from app.db.types import MeasurementStatistic, MeasurementUnit
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.asset import AssetRead
@@ -21,12 +21,19 @@ from app.schemas.subject import SubjectReadMixin
 from app.schemas.utils import make_update_schema
 
 
-class MeasurementRead(BaseModel):
+class MeasurementRecordBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: int
-    name: str
+    name: MeasurementStatistic
     unit: MeasurementUnit
     value: float
+
+
+class MeasurementRecordCreate(MeasurementRecordBase):
+    pass
+
+
+class MeasurementRecordRead(MeasurementRecordBase):
+    id: int
 
 
 class ExperimentalDensityBase(BaseModel):
@@ -41,6 +48,7 @@ class ExperimentalDensityCreate(
     subject_id: uuid.UUID
     brain_region_id: uuid.UUID
     legacy_id: str | None
+    measurements: list[MeasurementRecordCreate]
 
 
 class ExperimentalDensityRead(
@@ -54,8 +62,8 @@ class ExperimentalDensityRead(
     ContributionReadWithoutEntityMixin,
     SubjectReadMixin,
 ):
-    measurements: list[MeasurementRead] | None
-    assets: list[AssetRead] | None
+    measurements: list[MeasurementRecordRead]
+    assets: list[AssetRead]
     brain_region: BrainRegionRead
 
 

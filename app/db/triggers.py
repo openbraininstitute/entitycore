@@ -44,7 +44,7 @@ def _check_name_length(s: str, max_len: int = 63) -> str:
 
 
 def _get_unauthorized_function_name(table: str, field_name: str) -> str:
-    return _check_name_length(f"auth_fn_{table}_{field_name}")
+    return _check_name_length(f"auth_fnc_{table}_{field_name}")
 
 
 def _get_unauthorized_trigger_name(table: str, field_name: str) -> str:
@@ -109,7 +109,7 @@ def unauthorized_private_reference_function(model: type[Entity], field_name: str
                         )
                     )
                 ) THEN
-                    RAISE EXCEPTION 'unauthorized private reference'
+                    RAISE EXCEPTION 'unauthorized private reference: {table}.{field_name}'
                         USING ERRCODE = '42501'; -- Insufficient Privilege
                 END IF;
                 RETURN NEW;

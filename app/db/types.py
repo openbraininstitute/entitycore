@@ -115,6 +115,9 @@ class EntityType(StrEnum):
     experimental_synapses_per_connection = auto()
     external_url = auto()
     ion_channel_model = auto()
+    ion_channel_modeling_campaign = auto()
+    ion_channel_modeling_campaign_generation = auto()
+    ion_channel_modeling_execution = auto()
     ion_channel_recording = auto()
     memodel = auto()
     memodel_calibration_result = auto()
@@ -183,6 +186,8 @@ class ActivityType(StrEnum):
     validation = auto()
     calibration = auto()
     analysis_notebook_execution = auto()
+    ion_channel_modeling_execution = auto()
+    ion_channel_modeling_generation = auto()
 
 
 class DerivationType(StrEnum):
@@ -225,6 +230,14 @@ class SingleNeuronSimulationStatus(StrEnum):
 
 
 class SimulationExecutionStatus(StrEnum):
+    created = auto()
+    pending = auto()
+    running = auto()
+    done = auto()
+    error = auto()
+
+
+class IonChannelModelingExecutionStatus(StrEnum):
     created = auto()
     pending = auto()
     running = auto()

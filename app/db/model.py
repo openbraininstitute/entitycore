@@ -1126,6 +1126,18 @@ class IonChannelModelToEModel(Base):
     )
 
 
+class IonChannelRecordingToIonChannelModelingCampaign(Base):
+    __tablename__ = "ion_channel_recording__ion_channel_modeling_campaign"
+
+    ion_channel_recording_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.ion_channel_recording}.id", ondelete="CASCADE"), primary_key=True
+    )
+    ion_channel_modeling_campaign_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.ion_channel_modeling_campaign}.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
 class IonChannelModelingCampaign(
     NameDescriptionVectorMixin,
     Entity,
@@ -1145,7 +1157,15 @@ class IonChannelModelingCampaign(
     __tablename__ = EntityType.ion_channel_modeling_campaign.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    input_recording_ids: Mapped[list[uuid.UUID]]
+    # input_recording_ids: Mapped[list[uuid.UUID]]
+    input_recordings: Mapped[list["IonChannelRecording"]] = relationship(
+        "IonChannelRecording",
+        primaryjoin=(
+            "IonChannelModelingCampaign.id == "
+            "IonChannelRecordingToIonChannelModelingCampaign.ion_channel_modeling_campaign_id"
+        ),
+        secondary="ion_channel_recording__ion_channel_modeling_campaign",
+    )
 
     ion_channel_modelings = relationship(
         "IonChannelModeling",
@@ -1183,7 +1203,7 @@ class IonChannelModeling(Entity, NameDescriptionVectorMixin):
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
     """
 
-    __tablename__ = EntityType.simulation.value
+    __tablename__ = EntityType.ion_channel_modeling.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     ion_channel_modeling_campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("ion_channel_modeling_campaign.id"), index=True
@@ -1193,13 +1213,13 @@ class IonChannelModeling(Entity, NameDescriptionVectorMixin):
         uselist=False,
         foreign_keys=[ion_channel_modeling_campaign_id],
     )
-    input_recording_ids: Mapped[list[uuid.UUID]] = mapped_column(
-        ForeignKey("input_recordings.id"), index=True
-    )
-    input_recordings: Mapped[IonChannelRecording] = relationship(
+    input_recordings: Mapped[list["IonChannelRecording"]] = relationship(
         "IonChannelRecording",
-        uselist=False,
-        foreign_keys=[input_recording_ids],
+        primaryjoin=(
+            "IonChannelModeling.ion_channel_modeling_campaign_id == "
+            "IonChannelRecordingToIonChannelModelingCampaign.ion_channel_modeling_campaign_id"
+        ),
+        secondary="ion_channel_recording__ion_channel_modeling_campaign",
     )
     scan_parameters: Mapped[JSON_DICT] = mapped_column(
         default={},

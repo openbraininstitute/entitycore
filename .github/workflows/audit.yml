@@ -23,12 +23,10 @@ jobs:
       - name: Install requirements
         run: make install
       - name: pip audit
-        id: pip-audit
-        run: |-
-          pip install pip-audit
-          pip-audit > audit.txt
+        run: |
+          uv run --all-groups --with pip-audit pip-audit -l > intermediate.txt 2>&1
+          tail -n +7 intermediate.txt > audit.txt
           cat audit.txt
-        continue-on-error: true
       - name: Comment with audit result
         uses: marocchino/sticky-pull-request-comment@v2
         if: github.event_name == 'pull_request'

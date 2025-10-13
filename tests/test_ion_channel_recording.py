@@ -369,8 +369,10 @@ def models(
         ElectricalRecordingOrigin.in_silico,
         ElectricalRecordingOrigin.in_silico,
     ]
-    for i, (subject, recordings_id, recording_type, recording_origin, ion_channel) in enumerate(
-        zip(subjects, recordings_ids, recording_types, recording_origins, ion_channels, strict=True)
+    temperatures = [25.0, 35.0, 15.0, 25.0, 35.0, 15.0]
+    cell_lines = ["CHO", "CHO_FT", "HEK", "CHO", "CHO_FT", "CHO"]
+    for i, (subject, recordings_id, recording_type, recording_origin, ion_channel, temp, cell_line) in enumerate(
+        zip(subjects, recordings_ids, recording_types, recording_origins, ion_channels, temperatures, cell_lines, strict=True)
     ):
         rec = add_db(
             db,
@@ -386,6 +388,8 @@ def models(
                     "recording_type": recording_type,
                     "recording_origin": recording_origin,
                     "ion_channel_id": ion_channel.id,
+                    "temperature": temp,
+                    "cell_line": cell_line,
                 }
             ),
         )
@@ -485,6 +489,16 @@ def test_filtering(client, models):
         },
     ).json()["data"]
     assert len(data) == 4
+
+    data = assert_request(
+        client.get, url=ROUTE, params=f"temperature=35.0"
+    ).json()["data"]
+    assert len(data) == 2
+
+    data = assert_request(
+        client.get, url=ROUTE, params=f"cell_line=CHO"
+    ).json()["data"]
+    assert len(data) == 3
 
 
 def test_sorting(client, models):

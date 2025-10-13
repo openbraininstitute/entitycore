@@ -15,7 +15,7 @@ class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin):
     recording_origin__in: list[ElectricalRecordingOrigin] | None = None
     temperature: float | None = None
     ion_channel: Annotated[NestedIonChannelFilter | None, NestedIonChannelFilterDep] = None
-    cell_line: str
+    cell_line: str | None = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
@@ -31,6 +31,8 @@ class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin):
             "ion_channel__name",
             "ion_channel__label",
             "ion_channel__gene",
+            "temperature",
+            "cell_line",
         ]
 
 

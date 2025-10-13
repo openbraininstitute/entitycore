@@ -1223,7 +1223,9 @@ class IonChannelModeling(Entity, NameDescriptionVectorMixin):
         uselist=False,
         foreign_keys=[ion_channel_modeling_campaign_id],
     )
-    input_recording_ids: Mapped[list[uuid.UUID]]
+    input_recording_ids: Mapped[list[uuid.UUID]] = mapped_column(
+        ForeignKey("input_recordings.id"), index=True
+    )
     input_recordings: Mapped[IonChannelRecording] = relationship(
         "IonChannelRecording",
         uselist=False,

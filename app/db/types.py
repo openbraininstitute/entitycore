@@ -115,6 +115,7 @@ class EntityType(StrEnum):
     experimental_synapses_per_connection = auto()
     external_url = auto()
     ion_channel_model = auto()
+    ion_channel_modeling = auto()
     ion_channel_modeling_campaign = auto()
     ion_channel_modeling_campaign_generation = auto()
     ion_channel_modeling_execution = auto()
@@ -376,6 +377,7 @@ class AssetLabel(StrEnum):
     emodel_optimization_output = auto()
     sonata_simulation_config = auto()
     simulation_generation_config = auto()
+    ion_channel_modeling_generation_config = auto()
     custom_node_sets = auto()
     campaign_generation_config = auto()
     campaign_summary = auto()
@@ -531,6 +533,19 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.png, is_directory=False)
         ],
         AssetLabel.ion_channel_model_figure_summary_json: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+    },
+    EntityType.ion_channel_modeling: {
+        AssetLabel.ion_channel_modeling_generation_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+    },
+    EntityType.ion_channel_modeling_campaign: {
+        AssetLabel.campaign_generation_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+        AssetLabel.campaign_summary: [
             LabelRequirements(content_type=ContentType.json, is_directory=False)
         ],
     },

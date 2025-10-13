@@ -12,5 +12,9 @@ create_one = router.post("")(app.service.ion_channel_modeling.create_one)
 update_one = router.patch("/{id_}")(app.service.ion_channel_modeling.update_one)
 delete_one = router.delete("/{id_}")(app.service.ion_channel_modeling.delete_one)
 
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.ion_channel_modeling.admin_read_one)
-admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.ion_channel_modeling.admin_update_one)
+admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
+    app.service.ion_channel_modeling.admin_read_one
+)
+admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
+    app.service.ion_channel_modeling.admin_update_one
+)

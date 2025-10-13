@@ -27,7 +27,9 @@ class IonChannelModelingCreate(IonChannelModelingBase, AuthorizationOptionalPubl
     pass
 
 
-IonChannelModelingUserUpdate = make_update_schema(IonChannelModelingCreate, "IonChannelModelingUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
+IonChannelModelingUserUpdate = make_update_schema(
+    IonChannelModelingCreate, "IonChannelModelingUserUpdate"
+)  # pyright: ignore [reportInvalidTypeForm]
 
 IonChannelModelingAdminUpdate = make_update_schema(
     IonChannelModelingCreate,

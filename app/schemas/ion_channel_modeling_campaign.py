@@ -1,5 +1,3 @@
-import uuid
-
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import JSON_DICT
@@ -12,7 +10,7 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
-from app.schemas.simulation import NestedSimulationRead
+from app.schemas.ion_channel_modeling import NestedIonChannelModelingRead
 from app.schemas.utils import make_update_schema
 
 
@@ -23,7 +21,9 @@ class IonChannelModelingCampaignBase(BaseModel):
     scan_parameters: JSON_DICT
 
 
-class IonChannelModelingCampaignCreate(IonChannelModelingCampaignBase, AuthorizationOptionalPublicMixin):
+class IonChannelModelingCampaignCreate(
+    IonChannelModelingCampaignBase, AuthorizationOptionalPublicMixin
+):
     pass
 
 
@@ -37,7 +37,9 @@ IonChannelModelingCampaignAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedIonChannelModelingCampaignRead(IonChannelModelingCampaignBase, EntityTypeMixin, IdentifiableMixin):
+class NestedIonChannelModelingCampaignRead(
+    IonChannelModelingCampaignBase, EntityTypeMixin, IdentifiableMixin
+):
     pass
 
 

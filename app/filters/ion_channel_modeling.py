@@ -29,5 +29,9 @@ class IonChannelModelingFilter(EntityFilterMixin, IonChannelModelingFilterBase):
         ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
 
 
-IonChannelModelingFilterDep = Annotated[IonChannelModelingFilter, FilterDepends(IonChannelModelingFilter)]
-NestedIonChannelModelingFilterDep = FilterDepends(with_prefix("ion_channel_modeling", NestedIonChannelModelingFilter))
+IonChannelModelingFilterDep = Annotated[
+    IonChannelModelingFilter, FilterDepends(IonChannelModelingFilter)
+]
+NestedIonChannelModelingFilterDep = FilterDepends(
+    with_prefix("ion_channel_modeling", NestedIonChannelModelingFilter)
+)

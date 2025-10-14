@@ -513,6 +513,18 @@ def test_filtering(client, models):
     data = assert_request(client.get, url=ROUTE, params="cell_line=CHO").json()["data"]
     assert len(data) == 3
 
+    data = assert_request(client.get, url=ROUTE, params="temperature__gte=20.0").json()["data"]
+    assert len(data) == 4
+    assert {d["temperature"] for d in data} == {25.0, 35.0}
+
+    data = assert_request(client.get, url=ROUTE, params="temperature__lte=30.0").json()["data"]
+    assert len(data) == 4
+    assert {d["temperature"] for d in data} == {15.0, 25.0}
+
+    data = assert_request(client.get, url=ROUTE, params="cell_line__ilike=CHO%").json()["data"]
+    assert len(data) == 5
+    assert {d["cell_line"] for d in data} == {"CHO", "CHO_FT"}
+
 
 def test_sorting(client, models):
     _, _, recordings = models

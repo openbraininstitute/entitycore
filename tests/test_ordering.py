@@ -1,5 +1,3 @@
-import pytest
-
 from app.db.model import CellMorphology, License
 
 from tests.utils import PROJECT_ID, add_all_db, check_sort_by_field
@@ -72,6 +70,10 @@ def test_cell_morphology_ordering(db, client, subject_id, license_id, brain_regi
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == count / 2
-    with pytest.raises(AssertionError, match="Items unsorted by id"):
-        check_sort_by_field(data, "id")
     check_sort_by_field(data, "name")
+
+    response = client.get(ROUTE_MORPHOLOGY, params={"name__ilike": "to_find", "order_by": "-name"})
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == count / 2
+    check_sort_by_field(data, "name", how="descending")

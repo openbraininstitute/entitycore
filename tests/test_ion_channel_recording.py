@@ -519,7 +519,7 @@ def test_filtering(client, models):
     data = assert_request(client.get, url=ROUTE, params="temperature__lte=30.0").json()["data"]
     assert len(data) == 4
 
-    data = assert_request(client.get, url=ROUTE, params="cell_line__ilike=CHO*").json()["data"]
+    data = assert_request(client.get, url=ROUTE, params="cell_line__ilike=CHO%").json()["data"]
     assert len(data) == 5
 
 

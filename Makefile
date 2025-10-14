@@ -46,6 +46,9 @@ lint:  ## Run linters
 	uv run -m ruff check
 	uv run -m pyright app
 
+pip-audit:
+	uv run --with pip-audit pip-audit -l
+
 build:  ## Build the Docker image
 	docker compose --profile "*" --progress=plain build app
 

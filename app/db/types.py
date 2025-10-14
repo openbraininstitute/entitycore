@@ -117,8 +117,6 @@ class EntityType(StrEnum):
     ion_channel_model = auto()
     ion_channel_modeling = auto()
     ion_channel_modeling_campaign = auto()
-    ion_channel_modeling_campaign_generation = auto()
-    ion_channel_modeling_execution = auto()
     ion_channel_recording = auto()
     memodel = auto()
     memodel_calibration_result = auto()

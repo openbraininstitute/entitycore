@@ -523,7 +523,6 @@ def test_filtering(client, models):
     assert len(data) == 5
 
 
-
 def test_sorting(client, models):
     _, _, recordings = models
 

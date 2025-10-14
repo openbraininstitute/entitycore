@@ -29,6 +29,8 @@ jobs:
         run: make lint
       - name: Run tests
         run: make test-docker
+      - name: Run pip-audit
+        run: make pip-audit
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:

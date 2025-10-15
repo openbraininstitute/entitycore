@@ -72,7 +72,7 @@ def _assert_read_response(data, json_data, *, empty_ids: bool = False):
                 "id": json_data["used_ids"][0],
                 "type": "circuit",
                 "authorized_project_id": PROJECT_ID,
-                "authorized_public": True,
+                "authorized_public": False,
             }
         ]
         assert data["generated"] == [

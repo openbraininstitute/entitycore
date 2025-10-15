@@ -34,6 +34,20 @@ def json_data(trace_id_minimal):
     }
 
 
+@pytest.fixture
+def public_json_data(public_trace_id_minimal):
+    return {
+        "name": "my-stimulus",
+        "description": "my-stimulus-description",
+        "dt": 0.1,
+        "injection_type": "current_clamp",
+        "shape": "sinusoidal",
+        "start_time": None,
+        "end_time": None,
+        "recording_id": str(public_trace_id_minimal),
+    }
+
+
 def _assert_read_response(data, json_data):
     assert data["description"] == json_data["description"]
     assert data["name"] == json_data["name"]
@@ -59,12 +73,12 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "name": "name",
             "description": "description",
@@ -103,22 +117,22 @@ def test_authorization(
     client_user_1,
     client_user_2,
     client_no_project,
-    json_data,
+    public_json_data,
 ):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
 def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             ElectricalRecordingStimulus: 1,
         },

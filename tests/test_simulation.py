@@ -26,6 +26,11 @@ def json_data(simulation_json_data):
 
 
 @pytest.fixture
+def public_json_data(public_simulation_json_data):
+    return public_simulation_json_data
+
+
+@pytest.fixture
 def model(simulation):
     return simulation
 
@@ -55,12 +60,12 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "name": "name",
             "description": "description",
@@ -82,13 +87,13 @@ def test_read_one(client, client_admin, model, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             Simulation: 1,
             SimulationCampaign: 1,
@@ -104,8 +109,8 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
 def test_pagination(client, create_id):

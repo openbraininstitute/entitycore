@@ -487,7 +487,7 @@ def subject_id(db, species_id, person_id, strain_id):
                 age_period="postnatal",
                 sex="female",
                 weight=1.5,
-                authorized_public=False,
+                authorized_public=True,
                 authorized_project_id=PROJECT_ID,
                 created_by_id=str(person_id),
                 updated_by_id=str(person_id),
@@ -538,7 +538,7 @@ def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id):
             species_id=species_id,
             hierarchy_id=brain_region_hierarchy_id,
             authorized_project_id=PROJECT_ID,
-            authorized_public=False,
+            authorized_public=True,
             created_by_id=person_id,
             updated_by_id=person_id,
         ),
@@ -551,7 +551,7 @@ def morphology_id(db, client, subject_id, brain_region_id, person_id):
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
-        authorized_public=False,
+        authorized_public=True,
     )
     mtype = add_db(
         db,
@@ -712,7 +712,7 @@ def create_emodel_ids(
                     "score": 10 * i,
                     "seed": -1,
                     "exemplar_morphology_id": str(morphology_id),
-                    "authorized_public": False,
+                    "authorized_public": True,
                 },
             ).json()["id"]
 
@@ -790,7 +790,7 @@ def create_memodel_ids(
                     strain_id=strain_id,
                     morphology_id=morphology_id,
                     emodel_id=emodel_id,
-                    authorized_public=False,
+                    authorized_public=True,
                     authorized_project_id=PROJECT_ID,
                     created_by_id=person_id,
                     updated_by_id=person_id,
@@ -809,7 +809,7 @@ def create_memodel_ids(
                     mtype_class_id=morphology.mtypes[0].id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
-                    authorized_public=False,
+                    authorized_public=True,
                     authorized_project_id=PROJECT_ID,
                 ),
             )
@@ -820,7 +820,7 @@ def create_memodel_ids(
                     etype_class_id=emodel.etypes[0].id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
-                    authorized_public=False,
+                    authorized_public=True,
                     authorized_project_id=PROJECT_ID,
                 ),
             )
@@ -1041,7 +1041,7 @@ def electrical_cell_recording_json_data(brain_region_id, subject_id, license_id)
         "recording_type": "intracellular",
         "recording_origin": "in_vivo",
         "ljp": 11.5,
-        "authorized_public": False,
+        "authorized_public": True,
     }
 
 
@@ -1131,7 +1131,7 @@ def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_
         "subject_id": str(subject_id),
         "build_category": "em_reconstruction",
         "authorized_project_id": PROJECT_ID,
-        "authorized_public": False,
+        "authorized_public": True,
         "created_by_id": str(person_id),
         "updated_by_id": str(person_id),
         "brain_region_id": str(brain_region_id),
@@ -1173,7 +1173,7 @@ def circuit_json_data(brain_atlas_id, root_circuit, subject_id, brain_region_id,
         "subject_id": str(subject_id),
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
-        "authorized_public": False,
+        "authorized_public": True,
     }
 
 
@@ -1213,6 +1213,7 @@ def simulation_campaign(db, simulation_campaign_json_data, person_id):
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -1239,6 +1240,7 @@ def simulation(db, simulation_json_data, person_id):
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -1350,6 +1352,7 @@ def em_dense_reconstruction_dataset(db, em_dense_reconstruction_dataset_json_dat
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
         ),

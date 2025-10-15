@@ -61,6 +61,7 @@ def synaptome_id(db, memodel_id, brain_region_id, person_id):
         memodel_id=memodel_id,
         brain_region_id=brain_region_id,
         created_by_id=person_id,
+        authorized_public=True,
     )
 
 

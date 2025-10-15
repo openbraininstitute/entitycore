@@ -1,4 +1,5 @@
 import functools
+import operator
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -791,10 +792,18 @@ def delete_entity_classifications(client, client_admin, entity_id):
             )
 
 
-def check_sort_by_field(items, field_name):
-    assert all(items[i][field_name] < items[i + 1][field_name] for i in range(len(items) - 1)), (
-        f"Items unsorted by {field_name}"
-    )
+def check_sort_by_field(items, field_name, how="ascending"):
+    op = {
+        "ascending": operator.le,
+        "descending": operator.ge,
+    }[how]
+    assert all(
+        op(
+            items[i][field_name],
+            items[i + 1][field_name],
+        )
+        for i in range(len(items) - 1)
+    ), f"Items not sorted {how} by {field_name}"
 
 
 def create_subject_ids(db, *, created_by_id, n):

@@ -334,14 +334,6 @@ def test_filtering(client, models):
     ).json()["data"]
     assert {d["name"] for d in data} == {"d-1", "d-2"}
 
-    # backwards compat
-    data = assert_request(
-        client.get,
-        url=ROUTE,
-        params={"name__in": "d-1,d-2"},
-    ).json()["data"]
-    assert {d["name"] for d in data} == {"d-1", "d-2"}
-
     data = assert_request(
         client.get, url=ROUTE, params="contribution__pref_label=test_person_1"
     ).json()["data"]

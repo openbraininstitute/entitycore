@@ -128,20 +128,6 @@ def test_admin_read_one(
     ]
 
 
-def _delete_stimuli(client_admin, trace_id):
-    data = assert_request(
-        client_admin.get,
-        url=f"{ROUTE}/{trace_id}",
-    ).json()
-
-    for stimulus in data["stimuli"]:
-        stimulus_id = stimulus["id"]
-        data = assert_request(
-            client_admin.delete,
-            url=f"/admin/electrical-recording-stimulus/{stimulus_id}",
-        ).json()
-
-
 def test_delete_one(db, clients, electrical_cell_recording_json_data):
     check_entity_delete_one(
         db=db,
@@ -366,6 +352,7 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
                     "name": f"e-{recordings_id}",
                     "created_by_id": str(person_id),
                     "updated_by_id": str(person_id),
+                    "authorized_public": False,
                     "authorized_project_id": PROJECT_ID,
                     "brain_region_id": brain_regions[i].id,
                     "recording_type": recording_type,

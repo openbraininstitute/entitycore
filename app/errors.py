@@ -140,6 +140,7 @@ def ensure_authorized_references(
         yield
     except ProgrammingError as err:
         if isinstance(err.orig, InsufficientPrivilege):
+            error_message = f"{error_message} [{err.orig}]"
             raise ApiError(
                 message=error_message, error_code=error_code, http_status_code=HTTPStatus.FORBIDDEN
             ) from err

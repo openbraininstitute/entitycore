@@ -23,6 +23,16 @@ def json_data(morphology_id):
 
 
 @pytest.fixture
+def public_json_data(public_morphology_id):
+    return {
+        "passed": True,
+        "validated_entity_id": str(public_morphology_id),
+        "name": "test_validation_result",
+        "authorized_public": True,
+    }
+
+
+@pytest.fixture
 def create(client, json_data):
     def _create(**kwargs):
         return assert_request(client.post, url=ROUTE, json=json_data | kwargs).json()
@@ -44,12 +54,12 @@ def _assert_read_response(data, json_data):
     assert "assets" in data
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "name": "name",
             "passed": False,
@@ -82,10 +92,9 @@ def test_create_one(client: TestClient, json_data):
     assert data["authorized_public"] is False
 
 
-def test_create_one__public(client, json_data):
-    data = assert_request(
-        client.post, url=ROUTE, json=json_data | {"authorized_public": True}
-    ).json()
+def test_create_one__public(client, public_json_data):
+    json_data = public_json_data
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
     assert data["authorized_public"] is True
 
@@ -98,13 +107,13 @@ def test_create_one__public(client, json_data):
     assert data["authorized_public"] is True
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             ValidationResult: 1,
         },

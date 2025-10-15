@@ -134,7 +134,7 @@ def hierarchy(db, root_circuits, models):
 
     ```mermaid
     flowchart TD
-        R[R-u1-private]
+        R[R-u1-public]
         R0[R0-u1-public]
         R1[R1-u2-public]
         R2[R2-u2-private]
@@ -216,7 +216,7 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
             },
             {
                 "authorized_project_id": str(PROJECT_ID),
-                "authorized_public": False,
+                "authorized_public": True,
                 "children": [],
                 "id": str(root_circuit.id),
                 "name": "root-circuit",
@@ -318,7 +318,7 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
             },
             {
                 "authorized_project_id": str(PROJECT_ID),
-                "authorized_public": False,
+                "authorized_public": True,
                 "children": [],
                 "id": str(root_circuit.id),
                 "name": "root-circuit",
@@ -365,6 +365,14 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
                 "children": [],
                 "id": str(models[7].id),
                 "name": "circuit-7",
+                "parent_id": None,
+            },
+            {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": True,
+                "children": [],
+                "id": str(root_circuit.id),
+                "name": "root-circuit",
                 "parent_id": None,
             },
             {
@@ -433,6 +441,14 @@ def test_hierarchy(db, client_user_1, client_user_2, root_circuit, root_circuits
                 "children": [],
                 "id": str(models[6].id),
                 "name": "circuit-6",
+                "parent_id": None,
+            },
+            {
+                "authorized_project_id": str(PROJECT_ID),
+                "authorized_public": True,
+                "children": [],
+                "id": str(root_circuit.id),
+                "name": "root-circuit",
                 "parent_id": None,
             },
             {

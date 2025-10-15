@@ -487,7 +487,7 @@ def subject_id(db, species_id, person_id, strain_id):
                 age_period="postnatal",
                 sex="female",
                 weight=1.5,
-                authorized_public=False,
+                authorized_public=True,
                 authorized_project_id=PROJECT_ID,
                 created_by_id=str(person_id),
                 updated_by_id=str(person_id),
@@ -538,7 +538,7 @@ def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id):
             species_id=species_id,
             hierarchy_id=brain_region_hierarchy_id,
             authorized_project_id=PROJECT_ID,
-            authorized_public=False,
+            authorized_public=True,
             created_by_id=person_id,
             updated_by_id=person_id,
         ),
@@ -696,7 +696,7 @@ def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id:
 def create_emodel_ids(
     client, db, morphology_id, brain_region_id, species_id, strain_id, agents, person_id
 ) -> CreateIds:
-    def _create_emodels(count: int):
+    def _create_emodels(count: int) -> list[str]:
         emodel_ids: list[str] = []
         for i in range(count):
             emodel_id = assert_request(
@@ -777,7 +777,7 @@ def public_emodel_id(client, brain_region_id, species_id, strain_id, public_morp
 def create_memodel_ids(
     db, morphology_id, brain_region_id, species_id, strain_id, emodel_id, agents, person_id
 ) -> CreateIds:
-    def _create_memodel_ids(count: int):
+    def _create_memodel_ids(count: int) -> list[str]:
         memodel_ids: list[str] = []
         for i in range(count):
             memodel_id = add_db(
@@ -835,6 +835,26 @@ def create_memodel_ids(
 @pytest.fixture
 def memodel_id(create_memodel_ids: CreateIds) -> str:
     return create_memodel_ids(1)[0]
+
+
+@pytest.fixture
+def public_memodel_id(
+    client, brain_region_id, species_id, strain_id, public_morphology_id, public_emodel_id
+):
+    return assert_request(
+        client.post,
+        url="/memodel",
+        json={
+            "name": "name",
+            "brain_region_id": str(brain_region_id),
+            "description": "description",
+            "species_id": str(species_id),
+            "strain_id": str(strain_id),
+            "morphology_id": str(public_morphology_id),
+            "emodel_id": str(public_emodel_id),
+            "authorized_public": True,
+        },
+    ).json()["id"]
 
 
 class EModelIds(BaseModel):
@@ -1051,6 +1071,13 @@ def trace_id_minimal(client, electrical_cell_recording_json_data):
 
 
 @pytest.fixture
+def public_trace_id_minimal(client, electrical_cell_recording_json_data):
+    return utils.create_electrical_cell_recording_id(
+        client, electrical_cell_recording_json_data | {"authorized_public": True}
+    )
+
+
+@pytest.fixture
 def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
     return create_electrical_cell_recording_id_with_assets(
         db, client, tmp_path, electrical_cell_recording_json_data
@@ -1131,7 +1158,7 @@ def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_
         "subject_id": str(subject_id),
         "build_category": "em_reconstruction",
         "authorized_project_id": PROJECT_ID,
-        "authorized_public": False,
+        "authorized_public": True,
         "created_by_id": str(person_id),
         "updated_by_id": str(person_id),
         "brain_region_id": str(brain_region_id),
@@ -1186,6 +1213,25 @@ def circuit(db, circuit_json_data, person_id, role_id):
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": False,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+    add_contribution(db, circuit.id, person_id, role_id, person_id)
+    return circuit
+
+
+@pytest.fixture
+def public_circuit(db, circuit_json_data, person_id, role_id):
+    circuit = add_db(
+        db,
+        Circuit(
+            **circuit_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -1205,6 +1251,16 @@ def simulation_campaign_json_data(circuit):
 
 
 @pytest.fixture
+def public_simulation_campaign_json_data(public_circuit):
+    return {
+        "name": "simulation-campaign",
+        "description": "simulation-campaign-description",
+        "scan_parameters": {"foo1": "bar2"},
+        "entity_id": str(public_circuit.id),
+    }
+
+
+@pytest.fixture
 def simulation_campaign(db, simulation_campaign_json_data, person_id):
     return add_db(
         db,
@@ -1213,6 +1269,23 @@ def simulation_campaign(db, simulation_campaign_json_data, person_id):
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": False,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def public_simulation_campaign(db, public_simulation_campaign_json_data, person_id):
+    return add_db(
+        db,
+        SimulationCampaign(
+            **public_simulation_campaign_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -1231,6 +1304,17 @@ def simulation_json_data(simulation_campaign, circuit):
 
 
 @pytest.fixture
+def public_simulation_json_data(public_simulation_campaign, public_circuit):
+    return {
+        "name": "simulation",
+        "description": "simulation-description",
+        "entity_id": str(public_circuit.id),
+        "simulation_campaign_id": str(public_simulation_campaign.id),
+        "scan_parameters": {"foo1": "bar1", "foo2": "bar2"},
+    }
+
+
+@pytest.fixture
 def simulation(db, simulation_json_data, person_id):
     return add_db(
         db,
@@ -1239,6 +1323,23 @@ def simulation(db, simulation_json_data, person_id):
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": False,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def public_simulation(db, public_simulation_json_data, person_id):
+    return add_db(
+        db,
+        Simulation(
+            **public_simulation_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
         ),
@@ -1255,6 +1356,15 @@ def simulation_result_json_data(simulation):
 
 
 @pytest.fixture
+def public_simulation_result_json_data(public_simulation):
+    return {
+        "name": "simulation-result",
+        "description": "simulation-result-description",
+        "simulation_id": str(public_simulation.id),
+    }
+
+
+@pytest.fixture
 def simulation_result(db, simulation_result_json_data, person_id):
     return add_db(
         db,
@@ -1263,6 +1373,23 @@ def simulation_result(db, simulation_result_json_data, person_id):
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": False,
+                "authorized_project_id": PROJECT_ID,
+            },
+        ),
+    )
+
+
+@pytest.fixture
+def public_simulation_result(db, public_simulation_result_json_data, person_id):
+    return add_db(
+        db,
+        SimulationResult(
+            **public_simulation_result_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             },
         ),
@@ -1350,6 +1477,7 @@ def em_dense_reconstruction_dataset(db, em_dense_reconstruction_dataset_json_dat
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
         ),

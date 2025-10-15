@@ -24,6 +24,17 @@ def json_data(memodel_id):
 
 
 @pytest.fixture
+def public_json_data(public_memodel_id):
+    return {
+        "calibrated_entity_id": str(public_memodel_id),
+        "authorized_public": False,
+        "threshold_current": 0.8,
+        "holding_current": 0.2,
+        "rin": 100.0,  # Optional field, can be None
+    }
+
+
+@pytest.fixture
 def create(client, json_data):
     def _create(**kwargs):
         return assert_request(client.post, url=ROUTE, json=json_data | kwargs).json()
@@ -41,12 +52,12 @@ def _assert_read_response(data, json_data):
     assert data["authorized_public"] is json_data["authorized_public"]
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "threshold_current": 1.2,
             "holding_current": 0.5,
@@ -78,13 +89,13 @@ def test_create_one(client: TestClient, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             MEModelCalibrationResult: 1,
         },

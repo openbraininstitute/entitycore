@@ -1720,6 +1720,113 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class CircuitExtractionCampaign(Entity, NameDescriptionVectorMixin):
+    """Represents a circuit extraction campaign entity in the database.
+
+    A circuit extraction campaign represents the specification of a set of circuit
+    extractions. It has an asset which is the campaign configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        scan_parameters (JSON_DICT): Scan parameters of the extraction campaign.
+
+    Note: All CircuitExtraction entities belonging to a CircuitExtractionCampaign are
+          accessible though its corresponding CircuitExtractionGeneration activity.
+    """
+
+    __tablename__ = EntityType.circuit_extraction_campaign.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
+class CircuitExtraction(Entity, NameDescriptionVectorMixin):
+    """Represents a circuit extraction entity in the database.
+
+    It represents the specification of a circuit extraction operation.
+    It has an asset which is the extraction configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        circuit_id (uuid.UUID): Foreign key referencing the parent (source) circuit ID.
+        circuit (Circuit): Parent (source) circuit entity this extraction is associated with.
+        scan_parameters (JSON_DICT): Scan parameters of the extraction.
+
+    Note: All CircuitExtraction entities belonging to a CircuitExtractionCampaign are
+          accessible though its corresponding CircuitExtractionGeneration activity.
+    """
+
+    __tablename__ = EntityType.simulation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True)
+    circuit: Mapped[Circuit] = relationship(
+        "Circuit",
+        uselist=False,
+        foreign_keys=[circuit_id],
+    )
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
+
+class CircuitExtractionGeneration(Activity):
+    """Represents a circuit extraction generation activity in the database.
+
+    A circuit extraction generation activity is responsible for generating the configuration
+    files for each circuit extraction operation that is part of an extraction campaign.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+
+    Note: The CircuitExtractionGeneration activity associates a number of CircuitExtraction entities
+          with their corresponding CircuitExtractionCampaign entity.
+    """
+
+    __tablename__ = ActivityType.simulation_generation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class CircuitExtractionExecution(Activity):
+    """Represents the execution of a circuit extraction.
+
+    It stores the execution status of a circuit extraction operation.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        status (CircuitExtractionExecutionStatus): The status of the circuit extraction execution.
+
+    Note: The CircuitExtractionExecution activity associates a CircuitExtraction entity with
+          its corresponding extracted output Circuit entity.
+    """
+
+    __tablename__ = ActivityType.simulation_execution.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    status: Mapped[CircuitExtractionExecutionStatus] = mapped_column(
+        Enum(CircuitExtractionExecutionStatus, name="circuit_extraction_execution_status"),
+        default=CircuitExtractionExecutionStatus.created,
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
 class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixin):
     """Dense EM reconstruction released in format compatible with 'Neuronglancer' and 'CAVE'.
 

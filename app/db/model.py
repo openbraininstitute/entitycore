@@ -1194,12 +1194,6 @@ class IonChannelModeling(Entity, NameDescriptionVectorMixin):
         id (uuid.UUID): Primary key for the simulation, referencing the entity ID.
         ion_channel_modeling_campaign_id (uuid.UUID): Foreign key referencing
             the ion channel modeling campaign ID.
-        ion_channel_modeling_campaign (IonChannelModelingCampaign):
-            The ion channel modeling campaign this simulation belongs to.
-        input_recording_ids (list[uuid.UUID]): Foreign key referencing
-            the input ion channel recording IDs.
-        input_recordings (list[IonChannelRecording]): The IonChannelRecording entities
-            this simulation is associated with.
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
     """
 
@@ -1207,19 +1201,6 @@ class IonChannelModeling(Entity, NameDescriptionVectorMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     ion_channel_modeling_campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("ion_channel_modeling_campaign.id"), index=True
-    )
-    ion_channel_modeling_campaign: Mapped[IonChannelModelingCampaign] = relationship(
-        "IonChannelModelingCampaign",
-        uselist=False,
-        foreign_keys=[ion_channel_modeling_campaign_id],
-    )
-    input_recordings: Mapped[list["IonChannelRecording"]] = relationship(
-        "IonChannelRecording",
-        primaryjoin=(
-            "IonChannelModeling.ion_channel_modeling_campaign_id == "
-            "IonChannelRecordingToIonChannelModelingCampaign.ion_channel_modeling_campaign_id"
-        ),
-        secondary="ion_channel_recording__ion_channel_modeling_campaign",
     )
     scan_parameters: Mapped[JSON_DICT] = mapped_column(
         default={},

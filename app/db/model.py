@@ -1675,18 +1675,16 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     Notes:
         - Inherits additional attributes from ScientificArtifact (e.g., name, description,
           brain_region).
-        - References to assets such as SONATA circuit folders, connectivity matrices,
-          figures, and statistics.
-        - Asset: folder containing SONATA circuit files.
+        - Assets: sonata_circuit ... Folder containing SONATA circuit files including circuit_config.json
+                  compressed_sonata_circuit ... Compressed circuit folder
+                  circuit_connectivity_matrices ... Connectivity matrix folder including matrix_config.json
+                  circuit_analysis_data ... Analysis data folder including analysis_config.json
+                  circuit_figures ... Figure folder including figure_config.json
+                  circuit_visualization, node_stats, network_stats_a, network_stats_b, simulation_designer_image ... Specific figures
     """
 
     __tablename__ = EntityType.circuit.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
-
-    # Still missing:
-    # - connectivity_matrices: Folder containing multiple .h5 files in ConnectomeUtilities format
-    # - circuit_figures: Folder containing all pre-computed overview figures
-    # - circuit_statistics: Folder containing all pre-computed circuit statistics
 
     root_circuit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("circuit.id"), index=True)
     atlas_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("brain_atlas.id"), index=True)

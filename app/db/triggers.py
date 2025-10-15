@@ -30,13 +30,16 @@ from app.db.model import (
 )
 
 
-def _check_name_length(s: str, max_len: int = 63) -> str:
+def _check_name_length(s: str, min_len: int = 1, max_len: int = 63) -> str:
     """Check that the length isn't greater than the maximum identifier length in PostgreSQL.
 
     If longer names are written in commands, they are truncated.
 
     See: https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
     """
+    if len(s) < min_len:
+        msg = f"Minimum identifier length is {min_len} bytes, but {s!r} is {len(s)}"
+        raise ValueError(msg)
     if len(s) > max_len:
         msg = f"Maximum identifier length is {max_len} bytes, but {s!r} is {len(s)}"
         raise ValueError(msg)
@@ -59,8 +62,8 @@ def description_vector_trigger(
         raise TypeError(msg)
 
     for field in [target_field, *fields]:
-        if not isinstance(getattr(model, field), InstrumentedAttribute):
-            msg = f"{field} is not a column of {model}"
+        if not isinstance(getattr(model, field, None), InstrumentedAttribute):
+            msg = f"{field!r} is not a column of {model.__name__}"
             raise TypeError(msg)
 
     return PGTrigger(

@@ -1,7 +1,10 @@
+import pytest
+from alembic_utils.pg_function import PGFunction
+from alembic_utils.pg_trigger import PGTrigger
 from sqlalchemy.orm import DeclarativeBase
 
 from app.db import triggers as test_module
-from app.db.model import Base, Entity
+from app.db.model import Base, Circuit, Entity, Subject
 
 
 def _get_tablename_to_class() -> dict[str, type[DeclarativeBase]]:
@@ -47,3 +50,58 @@ def test_protected_entity_relationships():
     assert missing == set()
     assert unexpected == set()
     assert len(actual) == len(expected)
+
+
+@pytest.mark.parametrize("name", ["a", "a" * 63])
+def test__check_name_length(name):
+    result = test_module._check_name_length(name)
+    assert result == name
+
+
+@pytest.mark.parametrize(
+    ("name", "expected_err"),
+    [
+        ("", "Minimum identifier length is 1 bytes, but .* is 0"),
+        ("a" * 64, "Maximum identifier length is 63 bytes, but .* is 64"),
+    ],
+)
+def test__check_name_length_raises(name, expected_err):
+    with pytest.raises(ValueError, match=expected_err):
+        test_module._check_name_length(name)
+
+
+def test_description_vector_trigger():
+    model = Subject
+    result = test_module.description_vector_trigger(
+        model=model,
+        signature=f"{model.__tablename__}_description_vector",
+        target_field="description_vector",
+        fields=["description", "name"],
+    )
+    assert isinstance(result, PGTrigger)
+
+    with pytest.raises(TypeError, match="At least one field required"):
+        test_module.description_vector_trigger(
+            model=model,
+            signature=f"{model.__tablename__}_description_vector",
+            target_field="description_vector",
+            fields=[],
+        )
+
+    with pytest.raises(TypeError, match="'unknown' is not a column of Subject"):
+        test_module.description_vector_trigger(
+            model=model,
+            signature=f"{model.__tablename__}_description_vector",
+            target_field="description_vector",
+            fields=["unknown"],
+        )
+
+
+def test_unauthorized_private_reference_function():
+    result = test_module.unauthorized_private_reference_function(Circuit, "atlas_id")
+    assert isinstance(result, PGFunction)
+
+
+def test_unauthorized_private_reference_trigger():
+    result = test_module.unauthorized_private_reference_trigger(Circuit, "atlas_id")
+    assert isinstance(result, PGTrigger)

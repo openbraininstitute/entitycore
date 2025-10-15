@@ -244,6 +244,14 @@ class IonChannelModelingExecutionStatus(StrEnum):
     error = auto()
 
 
+class CircuitExtractionExecutionStatus(StrEnum):
+    created = auto()
+    pending = auto()
+    running = auto()
+    done = auto()
+    error = auto()
+
+
 class ValidationStatus(StrEnum):
     created = auto()
     initialized = auto()

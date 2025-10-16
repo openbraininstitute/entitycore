@@ -1752,7 +1752,7 @@ class CircuitExtractionCampaign(Entity, NameDescriptionVectorMixin):
     }
 
 
-class CircuitExtraction(Entity, NameDescriptionVectorMixin):
+class CircuitExtractionConfig(Entity, NameDescriptionVectorMixin):
     """Represents a circuit extraction entity in the database.
 
     It represents the specification of a circuit extraction operation.
@@ -1764,11 +1764,11 @@ class CircuitExtraction(Entity, NameDescriptionVectorMixin):
         circuit (Circuit): Parent (source) circuit entity this extraction is associated with.
         scan_parameters (JSON_DICT): Scan parameters of the extraction.
 
-    Note: All CircuitExtraction entities belonging to a CircuitExtractionCampaign are
-          accessible though its corresponding CircuitExtractionGeneration activity.
+    Note: All CircuitExtractionConfig entities belonging to a CircuitExtractionCampaign are
+          accessible though its corresponding CircuitExtractionConfigGeneration activity.
     """
 
-    __tablename__ = EntityType.circuit_extraction.value
+    __tablename__ = EntityType.circuit_extraction_config.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True)
     circuit: Mapped[Circuit] = relationship(
@@ -1788,7 +1788,7 @@ class CircuitExtraction(Entity, NameDescriptionVectorMixin):
     }
 
 
-class CircuitExtractionGeneration(Activity):
+class CircuitExtractionConfigGeneration(Activity):
     """Represents a circuit extraction generation activity in the database.
 
     A circuit extraction generation activity is responsible for generating the configuration
@@ -1797,11 +1797,12 @@ class CircuitExtractionGeneration(Activity):
     Attributes:
         id (uuid.UUID): Primary key.
 
-    Note: The CircuitExtractionGeneration activity associates a number of CircuitExtraction entities
-          with their corresponding CircuitExtractionCampaign entity.
+    Note: The CircuitExtractionConfigGeneration activity associates a number of
+          CircuitExtractionConfig entities with their corresponding CircuitExtractionCampaign
+          entity.
     """
 
-    __tablename__ = ActivityType.circuit_extraction_generation.value
+    __tablename__ = ActivityType.circuit_extraction_config_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1816,7 +1817,7 @@ class CircuitExtractionExecution(Activity):
         id (uuid.UUID): Primary key.
         status (CircuitExtractionExecutionStatus): The status of the circuit extraction execution.
 
-    Note: The CircuitExtractionExecution activity associates a CircuitExtraction entity with
+    Note: The CircuitExtractionExecution activity associates a CircuitExtractionConfig entity with
           its corresponding extracted output Circuit entity.
     """
 

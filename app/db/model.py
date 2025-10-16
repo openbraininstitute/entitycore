@@ -1703,7 +1703,7 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     number_synapses: Mapped[int] = mapped_column(BigInteger)
     number_connections: Mapped[int | None] = mapped_column(BigInteger)
 
-    # To be added later:
+    # May be added later:
     # version: Mapped[str] = mapped_column(default="")
 
     # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id")
@@ -1764,7 +1764,7 @@ class CircuitExtraction(Entity, NameDescriptionVectorMixin):
           accessible though its corresponding CircuitExtractionGeneration activity.
     """
 
-    __tablename__ = EntityType.simulation.value
+    __tablename__ = EntityType.circuit_extraction.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True)
     circuit: Mapped[Circuit] = relationship(
@@ -1784,7 +1784,6 @@ class CircuitExtraction(Entity, NameDescriptionVectorMixin):
     }
 
 
-
 class CircuitExtractionGeneration(Activity):
     """Represents a circuit extraction generation activity in the database.
 
@@ -1798,7 +1797,7 @@ class CircuitExtractionGeneration(Activity):
           with their corresponding CircuitExtractionCampaign entity.
     """
 
-    __tablename__ = ActivityType.simulation_generation.value
+    __tablename__ = ActivityType.circuit_extraction_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1817,7 +1816,7 @@ class CircuitExtractionExecution(Activity):
           its corresponding extracted output Circuit entity.
     """
 
-    __tablename__ = ActivityType.simulation_execution.value
+    __tablename__ = ActivityType.circuit_extraction_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     status: Mapped[CircuitExtractionExecutionStatus] = mapped_column(
         Enum(CircuitExtractionExecutionStatus, name="circuit_extraction_execution_status"),

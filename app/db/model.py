@@ -1200,7 +1200,6 @@ class IonChannelModelingCampaign(
     ion_channel_modeling_configs = relationship(
         "IonChannelModelingConfig",
         uselist=True,
-        back_populates="ion_channel_modeling_campaign",
         foreign_keys="IonChannelModelingConfig.ion_channel_modeling_campaign_id",
     )
     scan_parameters: Mapped[JSON_DICT] = mapped_column(

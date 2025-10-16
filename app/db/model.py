@@ -46,6 +46,7 @@ from app.db.types import (
     CellMorphologyGenerationType,
     CellMorphologyProtocolDesign,
     CircuitBuildCategory,
+    CircuitExtractionExecutionStatus,
     CircuitScale,
     ContentType,
     DerivationType,
@@ -1675,14 +1676,17 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     Notes:
         - Inherits additional attributes from ScientificArtifact (e.g., name, description,
           brain_region).
-    
+
     Assets:
         - sonata_circuit ... Folder containing SONATA circuit files including circuit_config.json
         - compressed_sonata_circuit ... Compressed circuit folder
         - circuit_connectivity_matrices ... Connectivity matrix folder including matrix_config.json
         - circuit_analysis_data ... Analysis data folder including analysis_config.json
         - circuit_figures ... Figure folder including figure_config.json
-        - circuit_visualization, node_stats, network_stats_a, network_stats_b, simulation_designer_image ... Specific figures
+        - circuit_visualization ... Main circuit visualization
+        - node_stats ... Node statistics figure
+        - network_stats_a, network_stats_b ... Network statistics figures
+        - simulation_designer_image ... Simulation designer image
     """
 
     __tablename__ = EntityType.circuit.value

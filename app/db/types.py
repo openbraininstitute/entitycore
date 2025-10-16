@@ -133,8 +133,6 @@ class EntityType(StrEnum):
     circuit = auto()
     circuit_extraction_campaign = auto()
     circuit_extraction = auto()
-    circuit_extraction_generation = auto()
-    circuit_extraction_execution = auto()
     em_dense_reconstruction_dataset = auto()
     em_cell_mesh = auto()
     analysis_notebook_template = auto()
@@ -191,6 +189,8 @@ class ActivityType(StrEnum):
     analysis_notebook_execution = auto()
     ion_channel_modeling_execution = auto()
     ion_channel_modeling_config_generation = auto()
+    circuit_extraction_generation = auto()
+    circuit_extraction_execution = auto()
 
 
 class DerivationType(StrEnum):

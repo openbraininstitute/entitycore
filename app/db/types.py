@@ -115,8 +115,8 @@ class EntityType(StrEnum):
     experimental_synapses_per_connection = auto()
     external_url = auto()
     ion_channel_model = auto()
-    ion_channel_modeling = auto()
     ion_channel_modeling_campaign = auto()
+    ion_channel_modeling_config = auto()
     ion_channel_recording = auto()
     memodel = auto()
     memodel_calibration_result = auto()
@@ -186,7 +186,7 @@ class ActivityType(StrEnum):
     calibration = auto()
     analysis_notebook_execution = auto()
     ion_channel_modeling_execution = auto()
-    ion_channel_modeling_generation = auto()
+    ion_channel_modeling_config_generation = auto()
 
 
 class DerivationType(StrEnum):
@@ -534,7 +534,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.json, is_directory=False)
         ],
     },
-    EntityType.ion_channel_modeling: {
+    EntityType.ion_channel_modeling_config: {
         AssetLabel.ion_channel_modeling_generation_config: [
             LabelRequirements(content_type=ContentType.json, is_directory=False)
         ],

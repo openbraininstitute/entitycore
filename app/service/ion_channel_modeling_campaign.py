@@ -6,8 +6,8 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
-    IonChannelModeling,
     IonChannelModelingCampaign,
+    IonChannelModelingConfig,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -45,7 +45,7 @@ def _load(query: sa.Select):
         joinedload(IonChannelModelingCampaign.updated_by),
         selectinload(IonChannelModelingCampaign.assets),
         selectinload(IonChannelModelingCampaign.contributions),
-        selectinload(IonChannelModelingCampaign.ion_channel_modelings),
+        selectinload(IonChannelModelingCampaign.ion_channel_modeling_configs),
         raiseload("*"),
     )
 
@@ -139,20 +139,20 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
-    ion_channel_modeling_alias = aliased(IonChannelModeling, flat=True)
+    ion_channel_modeling_config_alias = aliased(IonChannelModelingConfig, flat=True)
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
-        IonChannelModeling: ion_channel_modeling_alias,
+        IonChannelModelingConfig: ion_channel_modeling_config_alias,
     }
     facet_keys = filter_keys = [
         "created_by",
         "updated_by",
         "contribution",
-        "ion_channel_modeling_alias",
+        "ion_channel_modeling_config_alias",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=IonChannelModelingCampaign,

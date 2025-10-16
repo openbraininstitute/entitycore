@@ -10,7 +10,7 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
-from app.schemas.ion_channel_modeling import NestedIonChannelModelingRead
+from app.schemas.ion_channel_modeling_config import NestedIonChannelModelingConfigRead
 from app.schemas.utils import make_update_schema
 
 
@@ -50,4 +50,4 @@ class IonChannelModelingCampaignRead(
     CreationMixin,
     AuthorizationMixin,
 ):
-    ion_channel_modelings: list[NestedIonChannelModelingRead]
+    ion_channel_modelings: list[NestedIonChannelModelingConfigRead]

@@ -6,7 +6,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
-    IonChannelModeling,
+    IonChannelModelingConfig,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -16,7 +16,7 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.ion_channel_modeling import IonChannelModelingFilterDep
+from app.filters.ion_channel_modeling_config import IonChannelModelingConfigFilterDep
 from app.queries.common import (
     router_create_one,
     router_delete_one,
@@ -25,11 +25,11 @@ from app.queries.common import (
     router_update_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.ion_channel_modeling import (
-    IonChannelModelingAdminUpdate,
-    IonChannelModelingCreate,
-    IonChannelModelingRead,
-    IonChannelModelingUserUpdate,
+from app.schemas.ion_channel_modeling_config import (
+    IonChannelModelingConfigAdminUpdate,
+    IonChannelModelingConfigCreate,
+    IonChannelModelingConfigRead,
+    IonChannelModelingConfigUserUpdate,
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
@@ -40,10 +40,10 @@ if TYPE_CHECKING:
 
 def _load(query: sa.Select):
     return query.options(
-        joinedload(IonChannelModeling.created_by),
-        joinedload(IonChannelModeling.updated_by),
-        selectinload(IonChannelModeling.assets),
-        selectinload(IonChannelModeling.contributions),
+        joinedload(IonChannelModelingConfig.created_by),
+        joinedload(IonChannelModelingConfig.updated_by),
+        selectinload(IonChannelModelingConfig.assets),
+        selectinload(IonChannelModelingConfig.contributions),
         raiseload("*"),
     )
 
@@ -52,13 +52,13 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> IonChannelModelingRead:
+) -> IonChannelModelingConfigRead:
     return router_read_one(
         db=db,
         id_=id_,
-        db_model_class=IonChannelModeling,
+        db_model_class=IonChannelModelingConfig,
         authorized_project_id=user_context.project_id,
-        response_schema_class=IonChannelModelingRead,
+        response_schema_class=IonChannelModelingConfigRead,
         apply_operations=_load,
     )
 
@@ -66,28 +66,28 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-) -> IonChannelModelingRead:
+) -> IonChannelModelingConfigRead:
     return router_read_one(
         db=db,
         id_=id_,
-        db_model_class=IonChannelModeling,
+        db_model_class=IonChannelModelingConfig,
         authorized_project_id=None,
-        response_schema_class=IonChannelModelingRead,
+        response_schema_class=IonChannelModelingConfigRead,
         apply_operations=_load,
     )
 
 
 def create_one(
     db: SessionDep,
-    json_model: IonChannelModelingCreate,
+    json_model: IonChannelModelingConfigCreate,
     user_context: UserContextWithProjectIdDep,
-) -> IonChannelModelingRead:
+) -> IonChannelModelingConfigRead:
     return router_create_one(
         db=db,
         json_model=json_model,
         user_context=user_context,
-        db_model_class=IonChannelModeling,
-        response_schema_class=IonChannelModelingRead,
+        db_model_class=IonChannelModelingConfig,
+        response_schema_class=IonChannelModelingConfigRead,
         apply_operations=_load,
     )
 
@@ -96,15 +96,15 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: IonChannelModelingUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> IonChannelModelingRead:
+    json_model: IonChannelModelingConfigUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> IonChannelModelingConfigRead:
     return router_update_one(
         id_=id_,
         db=db,
-        db_model_class=IonChannelModeling,
+        db_model_class=IonChannelModelingConfig,
         user_context=user_context,
         json_model=json_model,
-        response_schema_class=IonChannelModelingRead,
+        response_schema_class=IonChannelModelingConfigRead,
         apply_operations=_load,
     )
 
@@ -112,15 +112,15 @@ def update_one(
 def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: IonChannelModelingAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> IonChannelModelingRead:
+    json_model: IonChannelModelingConfigAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> IonChannelModelingConfigRead:
     return router_update_one(
         id_=id_,
         db=db,
-        db_model_class=IonChannelModeling,
+        db_model_class=IonChannelModelingConfig,
         user_context=None,
         json_model=json_model,
-        response_schema_class=IonChannelModelingRead,
+        response_schema_class=IonChannelModelingConfigRead,
         apply_operations=_load,
     )
 
@@ -129,11 +129,11 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: IonChannelModelingFilterDep,
+    filter_model: IonChannelModelingConfigFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[IonChannelModelingRead]:
+) -> ListResponse[IonChannelModelingConfigRead]:
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
@@ -151,7 +151,7 @@ def read_many(
         "contribution",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
-        db_model_class=IonChannelModeling,
+        db_model_class=IonChannelModelingConfig,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
         aliases=aliases,
@@ -159,7 +159,7 @@ def read_many(
     return router_read_many(
         db=db,
         filter_model=filter_model,
-        db_model_class=IonChannelModeling,
+        db_model_class=IonChannelModelingConfig,
         with_search=with_search,
         with_in_brain_region=in_brain_region,
         facets=facets,
@@ -168,7 +168,7 @@ def read_many(
         apply_data_query_operations=_load,
         aliases=aliases,
         pagination_request=pagination_request,
-        response_schema_class=IonChannelModelingRead,
+        response_schema_class=IonChannelModelingConfigRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
     )
@@ -182,6 +182,6 @@ def delete_one(
     return router_delete_one(
         id_=id_,
         db=db,
-        db_model_class=IonChannelModeling,
+        db_model_class=IonChannelModelingConfig,
         user_context=user_context,
     )

@@ -15,7 +15,7 @@ from app.schemas.base import (
 from app.schemas.utils import make_update_schema
 
 
-class IonChannelModelingBase(BaseModel):
+class IonChannelModelingConfigBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
@@ -23,27 +23,31 @@ class IonChannelModelingBase(BaseModel):
     scan_parameters: JSON_DICT
 
 
-class IonChannelModelingCreate(IonChannelModelingBase, AuthorizationOptionalPublicMixin):
+class IonChannelModelingConfigCreate(
+    IonChannelModelingConfigBase, AuthorizationOptionalPublicMixin
+):
     pass
 
 
-IonChannelModelingUserUpdate = make_update_schema(
-    IonChannelModelingCreate, "IonChannelModelingUserUpdate"
+IonChannelModelingConfigUserUpdate = make_update_schema(
+    IonChannelModelingConfigCreate, "IonChannelModelingConfigUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
 
-IonChannelModelingAdminUpdate = make_update_schema(
-    IonChannelModelingCreate,
-    "IonChannelModelingAdminUpdate",
+IonChannelModelingConfigAdminUpdate = make_update_schema(
+    IonChannelModelingConfigCreate,
+    "IonChannelModelingConfigAdminUpdate",
     excluded_fields=set(),
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedIonChannelModelingRead(IonChannelModelingBase, EntityTypeMixin, IdentifiableMixin):
+class NestedIonChannelModelingConfigRead(
+    IonChannelModelingConfigBase, EntityTypeMixin, IdentifiableMixin
+):
     pass
 
 
-class IonChannelModelingRead(
-    NestedIonChannelModelingRead,
+class IonChannelModelingConfigRead(
+    NestedIonChannelModelingConfigRead,
     AssetsMixin,
     CreatedByUpdatedByMixin,
     CreationMixin,

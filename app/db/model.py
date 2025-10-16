@@ -1167,11 +1167,11 @@ class IonChannelModelingCampaign(
         secondary="ion_channel_recording__ion_channel_modeling_campaign",
     )
 
-    ion_channel_modelings = relationship(
-        "IonChannelModeling",
+    ion_channel_modeling_configs = relationship(
+        "IonChannelModelingConfig",
         uselist=True,
         back_populates="ion_channel_modeling_campaign",
-        foreign_keys="IonChannelModeling.ion_channel_modeling_campaign_id",
+        foreign_keys="IonChannelModelingConfig.ion_channel_modeling_campaign_id",
     )
     scan_parameters: Mapped[JSON_DICT] = mapped_column(
         default={},
@@ -1184,7 +1184,7 @@ class IonChannelModelingCampaign(
     }
 
 
-class IonChannelModeling(Entity, NameDescriptionVectorMixin):
+class IonChannelModelingConfig(Entity, NameDescriptionVectorMixin):
     """Represents an ion channel model building entity in the database.
 
     It represents the definition / configuration of a ion channel modeling.
@@ -1197,7 +1197,7 @@ class IonChannelModeling(Entity, NameDescriptionVectorMixin):
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
     """
 
-    __tablename__ = EntityType.ion_channel_modeling.value
+    __tablename__ = EntityType.ion_channel_modeling_config.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     ion_channel_modeling_campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("ion_channel_modeling_campaign.id"), index=True
@@ -1236,7 +1236,7 @@ class IonChannelModelingExecution(Activity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class IonChannelModelingGeneration(Activity):
+class IonChannelModelingConfigGeneration(Activity):
     """Represents an ion channel modeling generation activity in the database.
 
     A ion channel modeling generation activity is responsible for generating
@@ -1247,7 +1247,7 @@ class IonChannelModelingGeneration(Activity):
             referencing the activity ID.
     """
 
-    __tablename__ = ActivityType.ion_channel_modeling_generation.value
+    __tablename__ = ActivityType.ion_channel_modeling_config_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

@@ -137,3 +137,6 @@ for model, field_name, target_model in [
         unauthorized_private_reference_function(model, field_name, target_model),
         unauthorized_private_reference_trigger(model, field_name, target_model),
     ]
+
+
+entities = []

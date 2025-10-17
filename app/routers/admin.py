@@ -19,6 +19,7 @@ from app.utils.routers import EntityRoute, ResourceRoute, entity_route_to_type, 
 router = APIRouter(
     prefix="/admin",
     tags=["admin"],
+    include_in_schema=False,
 )
 
 

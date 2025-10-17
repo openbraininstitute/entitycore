@@ -412,6 +412,7 @@ class AssetLabel(StrEnum):
     ion_channel_model_figure = auto()
     ion_channel_model_figure_summary_json = auto()
     ion_channel_model_thumbnail = auto()
+    circuit_extraction_config = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -640,6 +641,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.h5, is_directory=False),
             LabelRequirements(content_type=ContentType.obj, is_directory=False),
         ]
+    },
+    EntityType.circuit_extraction_campaign: {
+        AssetLabel.campaign_generation_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+    },
+    EntityType.circuit_extraction_config: {
+        AssetLabel.circuit_extraction_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
     },
 }
 

@@ -10,3 +10,4 @@ router = APIRouter(
 read_many = router.get("")(app.service.brain_region_hierarchy.read_many)
 read_one = router.get("/{id_}")(app.service.brain_region_hierarchy.read_one)
 read_hierarchy = router.get("/{id_}/hierarchy")(app.service.brain_region_hierarchy.read_hierarchy)
+create_one = router.post("")(app.service.brain_region_hierarchy.create_one)

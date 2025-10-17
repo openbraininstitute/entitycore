@@ -10,6 +10,10 @@ class BrainRegionHierarchyBase(BaseModel):
     name: str
 
 
+class BrainRegionHierarchyCreate(BrainRegionHierarchyBase):
+    pass
+
+
 class BrainRegionHierarchyRead(
     BrainRegionHierarchyBase, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
 ):

@@ -132,6 +132,30 @@ def create_cell_morphology_id(
     return response.json()["id"]
 
 
+def create_ion_channel_modeling_campaign_id(
+    client,
+    subject_id,
+    brain_region_id,
+    name="Test Ion Channel Modeling Campaign Name",
+    description="Test Ion Channel Modeling Campaign Description",
+    *,
+    authorized_public: bool = False,
+):
+    response = client.post(
+        ROUTES[CellMorphology],
+        json={
+            "name": name,
+            "description": description,
+            "brain_region_id": str(brain_region_id),
+            "subject_id": str(subject_id),
+            "authorized_public": authorized_public,
+        },
+    )
+
+    assert response.status_code == 200
+    return response.json()["id"]
+
+
 def add_db(db, row):
     """Add one row to the db and commit the transaction."""
     db.add(row)

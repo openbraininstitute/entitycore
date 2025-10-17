@@ -3,7 +3,13 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import TypeAdapter
 
-from app.db.model import IonChannelModelingCampaign, IonChannelModelingConfig, Generation, IonChannelModelingConfigGeneration, Usage
+from app.db.model import (
+    Generation,
+    IonChannelModelingCampaign,
+    IonChannelModelingConfig,
+    IonChannelModelingConfigGeneration,
+    Usage,
+)
 from app.db.types import ActivityType
 
 from .utils import (
@@ -172,7 +178,10 @@ def models(morphology_id, ion_channel_modeling_campaign, ion_channel_modeling_co
         ),
         create_id(
             used_ids=[str(ion_channel_modeling_campaign.id), str(ion_channel_modeling_config.id)],
-            generated_ids=[str(ion_channel_modeling_campaign.id), str(ion_channel_modeling_config.id)],
+            generated_ids=[
+                str(ion_channel_modeling_campaign.id),
+                str(ion_channel_modeling_config.id),
+            ],
         ),
         create_id(
             used_ids=[str(morphology_id), str(ion_channel_modeling_campaign.id)],
@@ -185,9 +194,9 @@ def test_filtering(client, models, ion_channel_modeling_campaign, ion_channel_mo
     data = assert_request(client.get, url=ROUTE).json()["data"]
     assert len(data) == len(models)
 
-    data = assert_request(client.get, url=ROUTE, params={"used__id": str(ion_channel_modeling_campaign.id)}).json()[
-        "data"
-    ]
+    data = assert_request(
+        client.get, url=ROUTE, params={"used__id": str(ion_channel_modeling_campaign.id)}
+    ).json()["data"]
     assert len(data) == 5
 
     data = assert_request(
@@ -198,20 +207,32 @@ def test_filtering(client, models, ion_channel_modeling_campaign, ion_channel_mo
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"used__id": str(ion_channel_modeling_campaign.id), "generated__id": str(ion_channel_modeling_campaign.id)},
+        params={
+            "used__id": str(ion_channel_modeling_campaign.id),
+            "generated__id": str(ion_channel_modeling_campaign.id),
+        },
     ).json()["data"]
     assert len(data) == 2
 
     # backwards compat
     data = assert_request(
-        client.get, url=ROUTE, params={"used__id__in": f"{ion_channel_modeling_campaign.id},{ion_channel_modeling_config.id}"}
+        client.get,
+        url=ROUTE,
+        params={
+            "used__id__in": f"{ion_channel_modeling_campaign.id},{ion_channel_modeling_config.id}"
+        },
     ).json()["data"]
     assert len(data) == 5
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"used__id__in": [str(ion_channel_modeling_campaign.id), str(ion_channel_modeling_config.id)]},
+        params={
+            "used__id__in": [
+                str(ion_channel_modeling_campaign.id),
+                str(ion_channel_modeling_config.id),
+            ]
+        },
     ).json()["data"]
     assert len(data) == 5
 
@@ -219,14 +240,23 @@ def test_filtering(client, models, ion_channel_modeling_campaign, ion_channel_mo
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"generated__id__in": f"{ion_channel_modeling_campaign.id},{ion_channel_modeling_config.id}"},
+        params={
+            "generated__id__in": (
+                f"{ion_channel_modeling_campaign.id},{ion_channel_modeling_config.id}"
+            )
+        },
     ).json()["data"]
     assert len(data) == 4
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"generated__id__in": [str(ion_channel_modeling_campaign.id), str(ion_channel_modeling_config.id)]},
+        params={
+            "generated__id__in": [
+                str(ion_channel_modeling_campaign.id),
+                str(ion_channel_modeling_config.id),
+            ]
+        },
     ).json()["data"]
     assert len(data) == 4
 
@@ -255,7 +285,9 @@ def test_delete_one(db, clients, json_data):
     )
 
 
-def test_update_one(client, client_admin, ion_channel_modeling_campaign, ion_channel_modeling_config, create_id):
+def test_update_one(
+    client, client_admin, ion_channel_modeling_campaign, ion_channel_modeling_config, create_id
+):
     check_activity_update_one(
         client=client,
         client_admin=client_admin,

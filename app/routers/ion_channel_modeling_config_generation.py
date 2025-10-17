@@ -3,7 +3,7 @@ from fastapi import APIRouter
 import app.service.ion_channel_modeling_config_generation
 from app.routers.admin import router as admin_router
 
-ROUTE = "ion-channel-modeling-generation"
+ROUTE = "ion-channel-modeling-config-generation"
 router = APIRouter(prefix=f"/{ROUTE}", tags=[ROUTE])
 
 read_many = router.get("")(app.service.ion_channel_modeling_config_generation.read_many)

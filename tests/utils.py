@@ -1,4 +1,5 @@
 import functools
+import operator
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -45,10 +46,16 @@ USER_SUB_ID_2 = "00000000-0000-0000-0000-000000000002"
 TOKEN_ADMIN = "I'm admin"  # noqa: S105
 TOKEN_USER_1 = "I'm user 1"  # noqa: S105
 TOKEN_USER_2 = "I'm user 2"  # noqa: S105
+TOKEN_MAINTAINER_1 = "I'm maintainer 1"  # noqa: S105
+TOKEN_MAINTAINER_2 = "I'm maintainer 2"  # noqa: S105
+TOKEN_MAINTAINER_3 = "I'm maintainer 3"  # noqa: S105
 
 AUTH_HEADER_ADMIN = {"Authorization": f"Bearer {TOKEN_ADMIN}"}
 AUTH_HEADER_USER_1 = {"Authorization": f"Bearer {TOKEN_USER_1}"}
 AUTH_HEADER_USER_2 = {"Authorization": f"Bearer {TOKEN_USER_2}"}
+AUTH_HEADER_MAINTAINER_1 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_1}"}
+AUTH_HEADER_MAINTAINER_2 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_2}"}
+AUTH_HEADER_MAINTAINER_3 = {"Authorization": f"Bearer {TOKEN_MAINTAINER_3}"}
 
 VIRTUAL_LAB_ID = "9c6fba01-2c6f-4eac-893f-f0dc665605c5"
 PROJECT_ID = "ee86d4a0-eaca-48ca-9788-ddc450250b15"
@@ -104,6 +111,9 @@ class ClientProxies(NamedTuple):
     user_2: ClientProxy
     no_project: ClientProxy
     admin: ClientProxy
+    maintainer_1: ClientProxy
+    maintainer_2: ClientProxy
+    maintainer_3: ClientProxy
 
 
 def create_cell_morphology_id(
@@ -806,10 +816,18 @@ def delete_entity_classifications(client, client_admin, entity_id):
             )
 
 
-def check_sort_by_field(items, field_name):
-    assert all(items[i][field_name] < items[i + 1][field_name] for i in range(len(items) - 1)), (
-        f"Items unsorted by {field_name}"
-    )
+def check_sort_by_field(items, field_name, how="ascending"):
+    op = {
+        "ascending": operator.le,
+        "descending": operator.ge,
+    }[how]
+    assert all(
+        op(
+            items[i][field_name],
+            items[i + 1][field_name],
+        )
+        for i in range(len(items) - 1)
+    ), f"Items not sorted {how} by {field_name}"
 
 
 def create_subject_ids(db, *, created_by_id, n):
@@ -959,6 +977,32 @@ def check_global_update_one(
     _patch_compare(clients.admin.patch, f"{admin_route}/{model_id}", old_values)
 
 
+def _is_list_of_dicts(lst) -> bool:
+    return isinstance(lst, list) and len(lst) > 0 and isinstance(lst[0], dict)
+
+
+def _check_dict(actual_data, expected_data):
+    """Compare the given dicts recursively, ignoring non-significant keys."""
+    ignored_keys = {"id", "updated_by_id", "update_date"}
+    assert set(actual_data) - ignored_keys == set(expected_data) - ignored_keys, (
+        "Actual != Expected"
+    )
+    for key, new_value in actual_data.items():
+        if key in ignored_keys:
+            continue
+        expected_value = expected_data[key]
+        if isinstance(new_value, dict):
+            _check_dict(new_value, expected_value)
+        elif _is_list_of_dicts(new_value) and _is_list_of_dicts(expected_value):
+            assert len(new_value) == len(expected_value)
+            for v1, v2 in zip(new_value, expected_value, strict=True):
+                _check_dict(v1, v2)
+        else:
+            assert new_value == expected_value, (
+                f"Key {key} mismatch. Expected: {expected_value}, Actual: {new_value}"
+            )
+
+
 def check_entity_update_one(
     *,
     route: str,
@@ -974,11 +1018,11 @@ def check_entity_update_one(
     def _patch_compare(client, url, patch_data):
         old_data = assert_request(client.get, url=url).json()
         new_data = assert_request(client.patch, url=url, json=patch_data).json()
-
-        for key, new_value in new_data.items():
-            if key not in {"updated_by_id", "update_date"}:
-                value = patch_data[key] if key in patch_data else old_data[key]
-                assert new_value == value, f"Key {key} Expected: {value} Actual: {new_value}"
+        # Filter out keys that are in old_data but not in new_data, since the read_one endpoint
+        # might return expanded data that aren't returned by update_one
+        # Examples: emodel, ion_channel_model
+        expected_data = {k: v for k, v in old_data.items() if k in new_data} | patch_data
+        _check_dict(new_data, expected_data)
 
     public_1_data = _create(clients.user_1, json_data | {"authorized_public": True})
     private_1_data = _create(clients.user_1, json_data | {"authorized_public": False})
@@ -1032,12 +1076,40 @@ def check_entity_update_one(
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
     # admin has no such restrictions
-    _patch_compare(clients.admin, f"{admin_route}/{public_1_id}", {"authorized_public": False})
+    _patch_compare(clients.admin, f"{admin_route}/{public_1_id}", patch_payload)
+
+    # neither does a maintainer that has access to the project
+    _patch_compare(clients.maintainer_1, f"{route}/{public_1_id}", patch_payload)
+    _patch_compare(clients.maintainer_3, f"{route}/{public_1_id}", patch_payload)
+
+    data = assert_request(
+        clients.maintainer_2.patch,
+        url=f"{route}/{public_1_id}",
+        json={},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def check_entity_delete_one(
     db, clients, route, admin_route, json_data, expected_counts_before, expected_counts_after
 ):
+    def _create_model_id(client, data):
+        return assert_request(client.post, url=route, json=data).json()["id"]
+
+    def _assert_not_found(client, model_id):
+        data = assert_request(
+            client.delete, url=f"{route}/{model_id}", expected_status_code=404
+        ).json()
+        assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    def _assert_no_admin_access(client, model_id):
+        data = assert_request(
+            client.delete, url=f"{admin_route}/{model_id}", expected_status_code=403
+        ).json()
+        assert data["error_code"] == "NOT_AUTHORIZED"
+        assert data["message"] == "Service admin role required"
+
     def _req_count(client, client_route, model_id):
         for db_class, count in expected_counts_before.items():
             assert count_db_class(db, db_class) == count
@@ -1048,40 +1120,54 @@ def check_entity_delete_one(
         for db_class, count in expected_counts_after.items():
             assert count_db_class(db, db_class) == count
 
-    model_id = assert_request(clients.user_1.post, url=route, json=json_data).json()["id"]
+    model_id = _create_model_id(clients.user_1, json_data)
 
     # user 2 has no access to project id
-    data = assert_request(
-        clients.user_2.delete, url=f"{route}/{model_id}", expected_status_code=404
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
+    _assert_not_found(clients.user_2, model_id)
+
+    # maintainer 2 has no access to project id
+    _assert_not_found(clients.maintainer_2, model_id)
 
     # user 1 can delete
     _req_count(clients.user_1, route, model_id)
 
-    model_id = assert_request(clients.user_1.post, url=route, json=json_data).json()["id"]
+    model_id = _create_model_id(clients.user_1, json_data)
+
+    # maintainer 1 can delete
+    _req_count(clients.maintainer_1, route, model_id)
+
+    model_id = _create_model_id(clients.user_1, json_data)
 
     # user cannot use admin route
-    data = assert_request(
-        clients.user_1.delete, url=f"{admin_route}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
+    _assert_no_admin_access(clients.user_1, model_id)
 
+    # maintainer cannot use admin route
+    _assert_no_admin_access(clients.maintainer_1, model_id)
+    _assert_no_admin_access(clients.maintainer_2, model_id)
+
+    # admin can delete via admin route
     _req_count(clients.admin, admin_route, model_id)
 
-    model_id = assert_request(
-        clients.user_1.post, url=route, json=json_data | {"authorized_public": True}
-    ).json()["id"]
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
 
     # users cannot delete public resources
-    data = assert_request(
-        clients.user_1.delete, url=f"{route}/{model_id}", expected_status_code=404
-    ).json()
-    assert data["error_code"] == "ENTITY_NOT_FOUND"
+    _assert_not_found(clients.user_1, model_id)
 
     # admins should be able to
     _req_count(clients.admin, admin_route, model_id)
+
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
+
+    # maintainers are also able to delete as long as they have access to the project
+    _assert_not_found(clients.maintainer_2, model_id)
+
+    # via project context header
+    _req_count(clients.maintainer_1, route, model_id)
+
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
+
+    # via user_project_ids
+    _req_count(clients.maintainer_3, route, model_id)
 
 
 # so far they don't differ

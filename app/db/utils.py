@@ -15,6 +15,7 @@ from app.db.model import (
 )
 from app.db.types import CellMorphologyGenerationType, EntityType, ResourceType
 from app.logger import L
+from app.schemas.utils import NOT_SET
 
 MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
     mapper.class_.__tablename__: mapper.class_
@@ -98,8 +99,8 @@ EntityTypeWithBrainRegion = StrEnum(
 )
 
 
-def construct_model[T: DeclarativeBase](model_cls: type[T], data: dict) -> T:
-    """Build and return a database model from a dict."""
+def _model_kwargs[T: DeclarativeBase](model_cls: type[T], data: dict) -> dict:
+    """Build the kwars needed to create or update a database model."""
     model_kwargs = {}
     for attr_name, attr_val in data.items():
         if not (attr := getattr(model_cls, attr_name, None)):
@@ -123,7 +124,29 @@ def construct_model[T: DeclarativeBase](model_cls: type[T], data: dict) -> T:
                 model_kwargs[attr_name] = attr_val
         else:
             model_kwargs[attr_name] = attr_val
+    return model_kwargs
+
+
+def construct_model[T: DeclarativeBase](model_cls: type[T], data: dict) -> T:
+    """Build and return a database model from a dict."""
+    model_kwargs = _model_kwargs(model_cls=model_cls, data=data)
     return model_cls(**model_kwargs)
+
+
+def update_model[T: DeclarativeBase](model: T, data: dict) -> T:
+    """Update a database model from a dict, in-place.
+
+    Nested objects are fully replaced, if specified in the given data.
+    Attributes set to the sentinel NOT_SET are ignored.
+    Unknown attibutes are ignored.
+    """
+    model_cls = model.__class__
+    # ignore attributes with NOT_SET sentinel
+    data = {key: value for key, value in data.items() if value != NOT_SET}
+    model_kwargs = _model_kwargs(model_cls=model_cls, data=data)
+    for key, value in model_kwargs.items():
+        setattr(model, key, value)
+    return model
 
 
 def load_db_model_from_pydantic[I: DeclarativeBase](

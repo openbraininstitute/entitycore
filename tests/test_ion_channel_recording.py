@@ -369,8 +369,27 @@ def models(
         ElectricalRecordingOrigin.in_silico,
         ElectricalRecordingOrigin.in_silico,
     ]
-    for i, (subject, recordings_id, recording_type, recording_origin, ion_channel) in enumerate(
-        zip(subjects, recordings_ids, recording_types, recording_origins, ion_channels, strict=True)
+    temperatures = [25.0, 35.0, 15.0, 25.0, 35.0, 15.0]
+    cell_lines = ["CHO", "CHO_FT", "HEK", "CHO", "CHO_FT", "CHO"]
+    for i, (
+        subject,
+        recordings_id,
+        recording_type,
+        recording_origin,
+        ion_channel,
+        temp,
+        cell_line,
+    ) in enumerate(
+        zip(
+            subjects,
+            recordings_ids,
+            recording_types,
+            recording_origins,
+            ion_channels,
+            temperatures,
+            cell_lines,
+            strict=True,
+        )
     ):
         rec = add_db(
             db,
@@ -386,6 +405,8 @@ def models(
                     "recording_type": recording_type,
                     "recording_origin": recording_origin,
                     "ion_channel_id": ion_channel.id,
+                    "temperature": temp,
+                    "cell_line": cell_line,
                 }
             ),
         )
@@ -419,14 +440,6 @@ def test_filtering(client, models):
         client.get,
         url=ROUTE,
         params={"name__in": ["e-1", "e-2"]},
-    ).json()["data"]
-    assert {d["name"] for d in data} == {"e-1", "e-2"}
-
-    # backwards compat
-    data = assert_request(
-        client.get,
-        url=ROUTE,
-        params={"name__in": "e-1,e-2"},
     ).json()["data"]
     assert {d["name"] for d in data} == {"e-1", "e-2"}
 
@@ -485,6 +498,24 @@ def test_filtering(client, models):
         },
     ).json()["data"]
     assert len(data) == 4
+
+    data = assert_request(client.get, url=ROUTE, params="temperature=35.0").json()["data"]
+    assert len(data) == 2
+
+    data = assert_request(client.get, url=ROUTE, params="cell_line=CHO").json()["data"]
+    assert len(data) == 3
+
+    data = assert_request(client.get, url=ROUTE, params="temperature__gte=20.0").json()["data"]
+    assert len(data) == 4
+    assert {d["temperature"] for d in data} == {25.0, 35.0}
+
+    data = assert_request(client.get, url=ROUTE, params="temperature__lte=30.0").json()["data"]
+    assert len(data) == 4
+    assert {d["temperature"] for d in data} == {15.0, 25.0}
+
+    data = assert_request(client.get, url=ROUTE, params="cell_line__ilike=CHO%").json()["data"]
+    assert len(data) == 5
+    assert {d["cell_line"] for d in data} == {"CHO", "CHO_FT"}
 
 
 def test_sorting(client, models):

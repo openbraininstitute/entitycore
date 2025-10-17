@@ -7,11 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.db.auth import (
     constrain_to_accessible_entities,
-    constrain_to_private_entities,
+    constrain_to_writable_entities,
     select_unauthorized_entities,
 )
 from app.db.model import Activity, Agent, Generation, Identifiable, Person, Usage
-from app.db.utils import get_declaring_class, load_db_model_from_pydantic
+from app.db.utils import get_declaring_class, load_db_model_from_pydantic, update_model
 from app.dependencies.common import (
     FacetQueryParams,
     InBrainRegionQuery,
@@ -367,18 +367,14 @@ def router_update_one[T: BaseModel, I: Identifiable](
     if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        query = constrain_to_private_entities(query, user_context, db_model_class=id_model_class)
+        query = constrain_to_writable_entities(query, user_context, db_model_class=id_model_class)
     if apply_operations:
         query = apply_operations(query)
 
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         obj = db.execute(query).unique().scalar_one()
 
-    # remove attributes with NOT_SET sentinel and leave only user set ones
-    update_data = {k: v for k, v in json_model.model_dump().items() if v != NOT_SET}
-
-    for key, value in update_data.items():
-        setattr(obj, key, value)
+    obj = update_model(model=obj, data=json_model.model_dump())
 
     db.flush()
     db.refresh(obj)
@@ -405,7 +401,7 @@ def router_delete_one[T: BaseModel, I: Identifiable](
     if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        query = constrain_to_private_entities(
+        query = constrain_to_writable_entities(
             query=query,
             user_context=user_context,
             db_model_class=id_model_class,

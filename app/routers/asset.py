@@ -266,18 +266,30 @@ def delete_entity_asset(
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
+    *,
+    hard: bool = False,
 ) -> AssetRead:
     """Delete an assets associated with a specific entity.
 
-    The asset record is not deleted from the database, but its status is changed.
+    if hard = True the asset is deleted from the database. Otherwise, its status
+    is changed. Only maintainers can hard delete assets.
     The file is actually deleted from S3, unless it's stored in open data storage.
     """
+    if hard and not (user_context.is_service_maintainer or user_context.is_service_admin):
+        msg = "Only service admins and maintainers can hard delete assets."
+        raise ApiError(
+            message=msg,
+            http_status_code=HTTPStatus.FORBIDDEN,
+            error_code=ApiErrorCode.NOT_AUTHORIZED,
+        )
+
     asset = asset_service.delete_entity_asset(
         repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
+        hard_delete=hard,
     )
     asset_service.delete_asset_storage_object(asset, storage_client_factory)
     return asset

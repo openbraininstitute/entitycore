@@ -1,8 +1,17 @@
 from unittest.mock import ANY
 
+import pytest
+
 from app.db.model import Agent, Person
 
-from tests.utils import ADMIN_SUB_ID, MISSING_ID, MISSING_ID_COMPACT, assert_request, count_db_class
+from tests.utils import (
+    ADMIN_SUB_ID,
+    MISSING_ID,
+    MISSING_ID_COMPACT,
+    add_all_db,
+    assert_request,
+    count_db_class,
+)
 
 ROUTE = "/person"
 ADMIN_ROUTE = "/admin/person"
@@ -106,3 +115,50 @@ def test_missing(client):
 
     response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
+
+
+@pytest.fixture
+def models(db, person_id):
+    return add_all_db(
+        db,
+        [
+            Person(
+                given_name="John",
+                family_name="Smith",
+                pref_label="John Smith",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+            Person(
+                given_name="john",
+                family_name="Cooper",
+                pref_label="John Cooper",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+            Person(
+                given_name="Beatrix",
+                family_name="John",
+                pref_label="Beatrix John",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+        ],
+    )
+
+
+def test_filtering(client, models):
+    def _req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = _req({"id__in": [str(m.id) for m in models]})
+    assert len(data) == len(models)
+
+    data = _req({"pref_label__ilike": "John"})
+    assert len(data) == 3
+
+    data = _req({"given_name__ilike": "John"})
+    assert len(data) == 2
+
+    data = _req({"family_name__ilike": "Smith"})
+    assert len(data) == 1

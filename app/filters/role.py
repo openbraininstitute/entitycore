@@ -3,10 +3,10 @@ from typing import Annotated
 from app.db.model import Role
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.common import NameFilterMixin
 
 
-class RoleFilter(CustomFilter):
-    name: str | None = None
+class RoleFilter(NameFilterMixin, CustomFilter):
     role_id: str | None = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

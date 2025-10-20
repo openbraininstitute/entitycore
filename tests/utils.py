@@ -484,19 +484,25 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
     assert public_u2_0["authorized_project_id"] == UNRELATED_PROJECT_ID
 
     private_u2_0 = assert_request(
-        client_user_2.post, url=route, json=json_data | {"name": "Private u2/0"}
+        client_user_2.post,
+        url=route,
+        json=json_data | {"name": "Private u2/0", "authorized_public": False},
     ).json()
     assert private_u2_0["authorized_public"] is False
     assert private_u2_0["authorized_project_id"] == UNRELATED_PROJECT_ID
 
     private_u1_0 = assert_request(
-        client_user_1.post, url=route, json=json_data | {"name": "Private u1/0"}
+        client_user_1.post,
+        url=route,
+        json=json_data | {"name": "Private u1/0", "authorized_public": False},
     ).json()
     assert private_u1_0["authorized_public"] is False
     assert private_u1_0["authorized_project_id"] == PROJECT_ID
 
     private_u1_1 = assert_request(
-        client_user_1.post, url=route, json=json_data | {"name": "Private u1/1"}
+        client_user_1.post,
+        url=route,
+        json=json_data | {"name": "Private u1/1", "authorized_public": False},
     ).json()
     assert private_u1_1["authorized_public"] is False
     assert private_u1_1["authorized_project_id"] == PROJECT_ID
@@ -1120,7 +1126,7 @@ def check_entity_delete_one(
         for db_class, count in expected_counts_after.items():
             assert count_db_class(db, db_class) == count
 
-    model_id = _create_model_id(clients.user_1, json_data)
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": False})
 
     # user 2 has no access to project id
     _assert_not_found(clients.user_2, model_id)
@@ -1131,12 +1137,12 @@ def check_entity_delete_one(
     # user 1 can delete
     _req_count(clients.user_1, route, model_id)
 
-    model_id = _create_model_id(clients.user_1, json_data)
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": False})
 
     # maintainer 1 can delete
     _req_count(clients.maintainer_1, route, model_id)
 
-    model_id = _create_model_id(clients.user_1, json_data)
+    model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": False})
 
     # user cannot use admin route
     _assert_no_admin_access(clients.user_1, model_id)

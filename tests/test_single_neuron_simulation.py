@@ -81,12 +81,27 @@ def json_data(brain_region_id, memodel_id):
     }
 
 
-def test_update_one(clients, json_data):
+@pytest.fixture
+def public_json_data(brain_region_id, public_memodel_id):
+    return {
+        "name": "original-sim",
+        "description": "original-description",
+        "injection_location": ["soma[0]"],
+        "recording_location": ["soma[0]_0.5"],
+        "me_model_id": public_memodel_id,
+        "status": "success",
+        "seed": 1,
+        "authorized_public": True,
+        "brain_region_id": str(brain_region_id),
+    }
+
+
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "name": "name",
             "description": "description",
@@ -160,32 +175,22 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_ne
     assert data["authorized_public"] is False
 
 
-def test_single_neuron_simulation__public(client, brain_region_id, memodel_id):
+def test_single_neuron_simulation__public(client, public_json_data):
     data = assert_request(
         client.post,
         url=ROUTE,
-        json={
-            "name": "foo",
-            "description": "my-description",
-            "injection_location": ["soma[0]"],
-            "recording_location": ["soma[0]_0.5"],
-            "me_model_id": memodel_id,
-            "status": "success",
-            "seed": 1,
-            "authorized_public": True,
-            "brain_region_id": str(brain_region_id),
-        },
+        json=public_json_data,
     ).json()
     assert data["authorized_public"] is True
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             SingleNeuronSimulation: 1,
             MEModel: 1,
@@ -214,20 +219,8 @@ def test_missing(client, route_id, expected_status_code):
     )
 
 
-def test_authorization(
-    client_user_1, client_user_2, client_no_project, memodel_id, brain_region_id
-):
-    json_data = {
-        "name": "foo",
-        "description": "my-description",
-        "injection_location": ["soma[0]"],
-        "recording_location": ["soma[0]_0.5"],
-        "me_model_id": memodel_id,
-        "status": "failure",
-        "seed": 1,
-        "brain_region_id": str(brain_region_id),
-    }
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
 def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, person_id):

@@ -6,6 +6,7 @@ from .utils import (
     PROJECT_ID,
     add_all_db,
     add_db,
+    assert_request,
     check_global_delete_one,
     check_global_read_one,
     check_global_update_one,
@@ -201,3 +202,44 @@ def test_morph_mtypes(db, client, subject_id, brain_region_id, person_id):
     assert facets["mtype"] == [
         {"id": str(mtype1.id), "label": "m1", "count": 1, "type": "mtype"},
     ]
+
+
+@pytest.fixture
+def models(db, person_id):
+    return add_all_db(
+        db,
+        [
+            MTypeClass(
+                pref_label="label_a",
+                alt_label="alt_label_a",
+                definition="definition_a",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+            MTypeClass(
+                pref_label="label_ab",
+                alt_label="alt_label_ab",
+                definition="definition_ab",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+            MTypeClass(
+                pref_label="label_b",
+                alt_label="alt_label_b",
+                definition="definition_b",
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+        ],
+    )
+
+
+def test_filtering(client, models):
+    def _req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = _req({"id__in": [str(m.id) for m in models]})
+    assert len(data) == len(models)
+
+    data = _req({"pref_label__ilike": "label_a"})
+    assert {d["pref_label"] for d in data} == {"label_ab", "label_a"}

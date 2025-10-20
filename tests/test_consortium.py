@@ -74,6 +74,9 @@ def test_filtering_sorting(client, models):
     data = req({"order_by": "creation_date"})
     assert len(data) == len(models)
 
+    data = req({"pref_label__ilike": "org"})
+    assert len(data) == len(models)
+
     data = req({"pref_label__in": ["org-1", "org-2"], "order_by": "-creation_date"})
     assert [d["pref_label"] for d in data] == ["org-2", "org-1"]
 

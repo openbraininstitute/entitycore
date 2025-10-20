@@ -128,20 +128,6 @@ def test_read_one(
     _assert_read_response(data, ion_channel_recording_json_data)
 
 
-def _delete_stimuli(client_admin, trace_id):
-    data = assert_request(
-        client_admin.get,
-        url=f"{ROUTE}/{trace_id}",
-    ).json()
-
-    for stimulus in data["stimuli"]:
-        stimulus_id = stimulus["id"]
-        data = assert_request(
-            client_admin.delete,
-            url=f"/admin/electrical-recording-stimulus/{stimulus_id}",
-        ).json()
-
-
 def test_delete_one(db, clients, ion_channel_recording_json_data):
     check_entity_delete_one(
         db=db,

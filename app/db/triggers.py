@@ -6,13 +6,52 @@ from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
 from app.db.model import (
     Base,
+    BrainAtlasRegion,
     CellMorphology,
-    CellMorphologyProtocol,
+    Circuit,
+    ElectricalRecordingStimulus,
+    EMCellMesh,
     EModel,
     Entity,
+    ExperimentalBoutonDensity,
+    ExperimentalNeuronDensity,
+    ExperimentalSynapsesPerConnection,
     MEModel,
+    MEModelCalibrationResult,
     NameDescriptionVectorMixin,
+    ScientificArtifact,
+    Simulation,
+    SimulationCampaign,
+    SimulationResult,
+    SingleNeuronSimulation,
+    SingleNeuronSynaptome,
+    SingleNeuronSynaptomeSimulation,
+    ValidationResult,
 )
+
+
+def _check_name_length(s: str, min_len: int = 1, max_len: int = 63) -> str:
+    """Check that the length isn't greater than the maximum identifier length in PostgreSQL.
+
+    If longer names are written in commands, they are truncated.
+
+    See: https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
+    """
+    if len(s) < min_len:
+        msg = f"Minimum identifier length is {min_len} bytes, but {s!r} is {len(s)}"
+        raise ValueError(msg)
+    if len(s) > max_len:
+        msg = f"Maximum identifier length is {max_len} bytes, but {s!r} is {len(s)}"
+        raise ValueError(msg)
+    return s
+
+
+def _get_unauthorized_function_name(table: str, field_name: str) -> str:
+    return _check_name_length(f"auth_fnc_{table}_{field_name}")
+
+
+def _get_unauthorized_trigger_name(table: str, field_name: str) -> str:
+    return _check_name_length(f"auth_trg_{table}_{field_name}")
 
 
 def description_vector_trigger(
@@ -23,13 +62,13 @@ def description_vector_trigger(
         raise TypeError(msg)
 
     for field in [target_field, *fields]:
-        if not isinstance(getattr(model, field), InstrumentedAttribute):
-            msg = f"{field} is not a column of {model}"
+        if not isinstance(getattr(model, field, None), InstrumentedAttribute):
+            msg = f"{field!r} is not a column of {model.__name__}"
             raise TypeError(msg)
 
     return PGTrigger(
         schema="public",
-        signature=signature,
+        signature=_check_name_length(signature),
         on_entity=model.__tablename__,
         definition=f"""
             BEFORE INSERT OR UPDATE ON {model.__tablename__}
@@ -39,11 +78,7 @@ def description_vector_trigger(
     )
 
 
-def unauthorized_private_reference_function(
-    model: type[Entity],
-    field_name: str,
-    target_model: type[Entity],
-):
+def unauthorized_private_reference_function(model: type[Entity], field_name: str) -> PGFunction:
     """Return a PGFunction that checks that the model is not linked to unaccessible entities.
 
     A linked entity is considered accessible if and only if any of the following is true:
@@ -56,15 +91,14 @@ def unauthorized_private_reference_function(
     A specific exception is raised if the linked entity is unaccessible.
     """
     table = model.__tablename__
-    target = target_model.__tablename__
-    signature = f"unauthorized_private_reference_function_{table}_{field_name}_{target}()"
+    function_name = _get_unauthorized_function_name(table, field_name)
     nullable = inspect(model).columns[field_name].nullable
     skip_if_null = f"IF NEW.{field_name} IS NULL THEN RETURN NEW; END IF;" if nullable else ""
 
     return PGFunction(
-        "public",
-        signature,
-        f"""
+        schema="public",
+        signature=f"{function_name}()",
+        definition=f"""
             RETURNS TRIGGER AS $$
             BEGIN
                 {skip_if_null}
@@ -78,7 +112,7 @@ def unauthorized_private_reference_function(
                         )
                     )
                 ) THEN
-                    RAISE EXCEPTION 'unauthorized private reference'
+                    RAISE EXCEPTION 'unauthorized private reference: {table}.{field_name}'
                         USING ERRCODE = '42501'; -- Insufficient Privilege
                 END IF;
                 RETURN NEW;
@@ -88,23 +122,46 @@ def unauthorized_private_reference_function(
     )
 
 
-def unauthorized_private_reference_trigger(
-    model: type[Entity], field_name: str, target_model: type[Entity]
-):
+def unauthorized_private_reference_trigger(model: type[Entity], field_name: str) -> PGTrigger:
     table = model.__tablename__
-    target = target_model.__tablename__
-    signature = f"unauthorized_private_reference_trigger_{table}_{field_name}_{target}"
-    function_ = f"unauthorized_private_reference_function_{table}_{field_name}_{target}"
+    trigger_name = _get_unauthorized_trigger_name(table, field_name)
+    function_name = _get_unauthorized_function_name(table, field_name)
 
     return PGTrigger(
         schema="public",
-        signature=signature,
+        signature=trigger_name,
         on_entity=table,
         definition=f"""BEFORE INSERT OR UPDATE ON {table}
-            FOR EACH ROW EXECUTE FUNCTION {function_}();
+            FOR EACH ROW EXECUTE FUNCTION {function_name}();
         """,
     )
 
+
+# list of protected relationships between entities as (model, field_name)
+protected_entity_relationships = [
+    (BrainAtlasRegion, "brain_atlas_id"),
+    (CellMorphology, "cell_morphology_protocol_id"),
+    (Circuit, "atlas_id"),
+    (Circuit, "root_circuit_id"),
+    (ElectricalRecordingStimulus, "recording_id"),
+    (EMCellMesh, "em_dense_reconstruction_dataset_id"),
+    (EModel, "exemplar_morphology_id"),
+    (ExperimentalBoutonDensity, "subject_id"),
+    (ExperimentalNeuronDensity, "subject_id"),
+    (ExperimentalSynapsesPerConnection, "subject_id"),
+    (MEModel, "emodel_id"),
+    (MEModel, "morphology_id"),
+    (MEModelCalibrationResult, "calibrated_entity_id"),
+    (ScientificArtifact, "subject_id"),
+    (Simulation, "entity_id"),
+    (Simulation, "simulation_campaign_id"),
+    (SimulationCampaign, "entity_id"),
+    (SimulationResult, "simulation_id"),
+    (SingleNeuronSimulation, "me_model_id"),
+    (SingleNeuronSynaptome, "me_model_id"),
+    (SingleNeuronSynaptomeSimulation, "synaptome_id"),
+    (ValidationResult, "validated_entity_id"),
+]
 
 entities = [
     description_vector_trigger(
@@ -122,20 +179,10 @@ entities += [
     PGExtension(schema="public", signature="vector"),
 ]
 
-for model, field_name, target_model in [
-    (EModel, "exemplar_morphology_id", CellMorphology),
-    (MEModel, "morphology_id", CellMorphology),
-    (MEModel, "emodel_id", EModel),
-    (CellMorphology, "cell_morphology_protocol_id", CellMorphologyProtocol),
-    # TODO: enable the following triggers for subject_id
-    # (ScientificArtifact, "subject_id", Subject),
-    # (ExperimentalNeuronDensity, "subject_id", Subject),
-    # (ExperimentalBoutonDensity, "subject_id", Subject),
-    # (ExperimentalSynapsesPerConnection, "subject_id", Subject),
-]:
+for model, field_name in protected_entity_relationships:
     entities += [
-        unauthorized_private_reference_function(model, field_name, target_model),
-        unauthorized_private_reference_trigger(model, field_name, target_model),
+        unauthorized_private_reference_function(model, field_name),
+        unauthorized_private_reference_trigger(model, field_name),
     ]
 
 

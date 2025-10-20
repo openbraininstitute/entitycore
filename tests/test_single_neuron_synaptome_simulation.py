@@ -61,6 +61,18 @@ def synaptome_id(db, memodel_id, brain_region_id, person_id):
         memodel_id=memodel_id,
         brain_region_id=brain_region_id,
         created_by_id=person_id,
+        authorized_public=False,
+    )
+
+
+@pytest.fixture
+def public_synaptome_id(db, public_memodel_id, brain_region_id, person_id):
+    return _create_synaptome_id(
+        db,
+        memodel_id=public_memodel_id,
+        brain_region_id=brain_region_id,
+        created_by_id=person_id,
+        authorized_public=True,
     )
 
 
@@ -76,6 +88,21 @@ def json_data(brain_region_id, synaptome_id):
         "synaptome_id": str(synaptome_id),
         "brain_region_id": str(brain_region_id),
         "authorized_public": False,
+    }
+
+
+@pytest.fixture
+def public_json_data(brain_region_id, public_synaptome_id):
+    return {
+        "name": "my-sim",
+        "description": "my-description",
+        "injection_location": ["soma[0]"],
+        "recording_location": ["soma[0]_0.5"],
+        "status": "success",
+        "seed": 1,
+        "synaptome_id": str(public_synaptome_id),
+        "brain_region_id": str(brain_region_id),
+        "authorized_public": True,
     }
 
 
@@ -139,12 +166,12 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["authorized_public"] is False
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "name": "name",
             "description": "description",
@@ -157,11 +184,11 @@ def test_update_one(clients, json_data):
     )
 
 
-def test_create_one__public(client, json_data):
+def test_create_one__public(client, public_json_data):
     data = assert_request(
         client.post,
         url=ROUTE,
-        json=json_data | {"authorized_public": True},
+        json=public_json_data,
     ).json()
     assert data["authorized_public"] is True
 
@@ -200,13 +227,13 @@ def test_read_one(client, client_admin, brain_region_id, synaptome_id, simulatio
     assert data["authorized_public"] is False
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             SingleNeuronSynaptomeSimulation: 1,
             SingleNeuronSynaptome: 1,
@@ -235,8 +262,8 @@ def test_missing(client, route_id, expected_status_code):
     )
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
 def test_pagination(db, client, brain_region_id, memodel_id, person_id):

@@ -115,6 +115,7 @@ migration:  ## Create or update the alembic migration
 	docker compose up --wait db
 	uv run -m alembic upgrade head
 	uv run -m alembic revision --autogenerate -m "$(MESSAGE)"
+	uv run -m alembic -x register_triggers="true" revision --autogenerate -m "Update triggers"
 
 dump:  ## Dump the local database to file
 	docker compose up --wait db

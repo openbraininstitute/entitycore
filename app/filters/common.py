@@ -37,6 +37,7 @@ class NameFilterMixin:
 class PrefLabelMixin:
     pref_label: str | None = None
     pref_label__in: list[str] | None = None
+    pref_label__ilike: str | None = None
 
 
 class NestedMTypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):

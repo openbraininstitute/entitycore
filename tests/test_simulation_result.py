@@ -23,6 +23,11 @@ def json_data(simulation_result_json_data):
 
 
 @pytest.fixture
+def public_json_data(public_simulation_result_json_data):
+    return public_simulation_result_json_data
+
+
+@pytest.fixture
 def model(simulation_result):
     return simulation_result
 
@@ -48,12 +53,12 @@ def _assert_read_response(data, json_data):
     check_creation_fields(data)
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "name": "name",
             "description": "description",
@@ -87,13 +92,13 @@ def test_read_many(client, model, json_data):
     _assert_read_response(data[0], json_data)
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             SimulationResult: 1,
         },
@@ -107,10 +112,10 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
     # using root_circuit_json_data to avoid the implication of creating two circuits
     # because of the root_circuit_id in circuit_json_data which messes up the check assumptions
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
 def test_pagination(client, create_id):

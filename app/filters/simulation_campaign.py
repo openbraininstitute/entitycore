@@ -1,18 +1,23 @@
 import uuid
 from typing import Annotated
+from fastapi_filter import with_prefix
 
 from app.db.model import SimulationCampaign
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import EntityFilterMixin, NameFilterMixin
 from app.filters.simulation import NestedSimulationFilter, NestedSimulationFilterDep
+from app.filters.circuit import NestedCircuitFilter
 
 
 class SimulationCampaignFilter(CustomFilter, EntityFilterMixin, NameFilterMixin):
     entity_id: uuid.UUID | None = None
     entity_id__in: list[uuid.UUID] | None = None
 
-    simulation: Annotated[NestedSimulationFilter | None, NestedSimulationFilterDep] = None
+    simulation: Annotated[
+        NestedSimulationFilter | None,
+        FilterDepends(with_prefix("simulation", NestedSimulationFilter)),
+    ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

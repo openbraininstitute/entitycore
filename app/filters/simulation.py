@@ -13,10 +13,15 @@ from app.filters.common import EntityFilterMixin, IdFilterMixin, NameFilterMixin
 class SimulationFilterBase(NameFilterMixin, IdFilterMixin, CustomFilter):
     entity_id: uuid.UUID | None = None
     entity_id__in: list[uuid.UUID] | None = None
-    circuit: Annotated[NestedCircuitFilter | None, NestedCircuitFilterDep] = None
 
 
 class NestedSimulationFilter(SimulationFilterBase):
+
+    circuit: Annotated[
+        NestedCircuitFilter | None,
+        FilterDepends(with_prefix("simulation__circuit", NestedCircuitFilter)),
+    ]
+
     class Constants(CustomFilter.Constants):
         model = Simulation
 
@@ -24,6 +29,8 @@ class NestedSimulationFilter(SimulationFilterBase):
 class SimulationFilter(EntityFilterMixin, SimulationFilterBase):
     simulation_campaign_id: uuid.UUID | None = None
     simulation_campaign_id__in: list[uuid.UUID] | None = None
+
+    circuit: Annotated[NestedCircuitFilter | None, NestedCircuitFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

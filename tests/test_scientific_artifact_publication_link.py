@@ -75,15 +75,16 @@ def test_authorization(
     root_circuit_json_data,
     publication,
 ):
+    circuit_json_data = root_circuit_json_data | {"authorized_public": False}
     circuit_1 = assert_request(
         client_user_1.post,
         url="/circuit",
-        json=root_circuit_json_data,
+        json=circuit_json_data,
     ).json()
     circuit_2 = assert_request(
         client_user_2.post,
         url="/circuit",
-        json=root_circuit_json_data,
+        json=circuit_json_data,
     ).json()
 
     # user 1 creates link between accessible entities

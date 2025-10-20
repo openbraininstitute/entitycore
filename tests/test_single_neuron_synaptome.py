@@ -38,6 +38,19 @@ def json_data(brain_region_id, memodel_id):
         "me_model_id": str(memodel_id),
         "seed": 1,
         "brain_region_id": str(brain_region_id),
+        "authorized_public": False,
+    }
+
+
+@pytest.fixture
+def public_json_data(brain_region_id, public_memodel_id):
+    return {
+        "name": "my-synaptome",
+        "description": "my-description",
+        "me_model_id": str(public_memodel_id),
+        "seed": 1,
+        "brain_region_id": str(brain_region_id),
+        "authorized_public": True,
     }
 
 
@@ -106,12 +119,12 @@ def test_create_one(client, json_data):
     _assert_create_response(data, json_data)
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "name": "name",
             "description": "description",
@@ -145,13 +158,13 @@ def test_read_many(client, model_id, json_data):
     _assert_read_response(items[0], json_data)
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             SingleNeuronSynaptome: 1,
             MEModel: 1,
@@ -180,8 +193,8 @@ def test_missing(client, route_id, expected_status_code):
     )
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
 
 
 def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, species_id, person_id):

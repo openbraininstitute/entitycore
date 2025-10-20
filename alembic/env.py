@@ -24,7 +24,9 @@ SERVER_SETTINGS = {
     "lock_timeout": "4000",
 }
 
-register_entities(triggers.entities)
+# register triggers only if alembic is run with `-x register_triggers="true"`
+if context.get_x_argument(as_dictionary=True).get("register_triggers") == "true":
+    register_entities(triggers.entities)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

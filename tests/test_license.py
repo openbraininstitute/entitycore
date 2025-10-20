@@ -103,14 +103,21 @@ def test_delete_one(db, clients, json_data):
 
 
 def test_filtering(clients, json_data):
+    def _req(query):
+        return assert_request(clients.user_1.get, url=ROUTE, params=query).json()["data"]
+
     assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n1", "label": "l"})
     assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n2", "label": "l"})
+    assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n3", "label": "l1"})
 
-    data = assert_request(clients.user_1.get, url=ROUTE, params={"name": "n1"}).json()["data"]
+    data = _req({"name": "n1"})
     assert len(data) == 1
     assert data[0]["name"] == "n1"
 
-    data = assert_request(clients.user_1.get, url=ROUTE, params={"label": "l"}).json()["data"]
+    data = _req({"label": "l"})
     assert len(data) == 2
     assert data[0]["label"] == "l"
     assert data[1]["label"] == "l"
+
+    data = _req({"label__ilike": "l"})
+    assert len(data) == 3

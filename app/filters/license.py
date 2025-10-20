@@ -3,11 +3,12 @@ from typing import Annotated
 from app.db.model import License
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.common import NameFilterMixin
 
 
-class LicenseFilter(CustomFilter):
-    name: str | None = None
+class LicenseFilter(NameFilterMixin, CustomFilter):
     label: str | None = None
+    label__ilike: str | None = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

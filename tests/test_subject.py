@@ -222,6 +222,9 @@ def test_filtering_sorting(client, models):
     data = req({"age_value": "99 days"})
     assert len(data) == 0
 
+    data = req({"name__ilike": "my-subject"})
+    assert len(data) == len(models)
+
     data = req({"name__in": ["my-subject-1", "my-subject-2"], "order_by": "creation_date"})
     assert [d["name"] for d in data] == ["my-subject-1", "my-subject-2"]
 

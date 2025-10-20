@@ -121,3 +121,6 @@ def test_filtering(clients):
     data = assert_request(clients.user_1.get, url=ROUTE, params={"role_id": "role1"}).json()["data"]
     assert len(data) == 1
     assert data[0]["role_id"] == "role1"
+
+    data = assert_request(clients.user_1.get, url=ROUTE, params={"name__ilike": "r"}).json()["data"]
+    assert {d["name"] for d in data} == {"r1", "r2"}

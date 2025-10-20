@@ -12,7 +12,12 @@ from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.brain_region_hierarchy import BrainRegionHierarchyFilterDep
-from app.schemas.brain_region_hierarchy import BrainRegionHierarchyCreate, BrainRegionHierarchyRead
+from app.schemas.brain_region_hierarchy import (
+    BrainRegionHierarchyAdminUpdate,
+    BrainRegionHierarchyCreate,
+    BrainRegionHierarchyRead,
+)
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 
@@ -69,6 +74,35 @@ def create_one(
         user_context=user_context,
         json_model=json_model,
         response_schema_class=BrainRegionHierarchyRead,
+    )
+
+
+def update_one(
+    db: SessionDep,
+    user_context: AdminContextDep,  # noqa: ARG001
+    id_: uuid.UUID,
+    json_model: BrainRegionHierarchyAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> BrainRegionHierarchyRead:
+    return app.queries.common.router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=BrainRegionHierarchy,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=BrainRegionHierarchyRead,
+    )
+
+
+def delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    user_context: AdminContextDep,  # noqa: ARG001
+) -> DeleteResponse:
+    return app.queries.common.router_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=BrainRegionHierarchy,
+        user_context=None,
     )
 
 

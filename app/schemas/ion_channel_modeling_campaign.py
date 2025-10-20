@@ -10,7 +10,9 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.ion_channel_modeling_config import NestedIonChannelModelingConfigRead
+from app.schemas.ion_channel_recording import NestedIonChannelRecordingRead
 from app.schemas.utils import make_update_schema
 
 
@@ -49,5 +51,7 @@ class IonChannelModelingCampaignRead(
     CreatedByUpdatedByMixin,
     CreationMixin,
     AuthorizationMixin,
+    ContributionReadWithoutEntityMixin,
 ):
+    input_recordings: list[NestedIonChannelRecordingRead]
     ion_channel_modeling_configs: list[NestedIonChannelModelingConfigRead]

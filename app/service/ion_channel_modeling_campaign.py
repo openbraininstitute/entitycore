@@ -46,6 +46,7 @@ def _load(query: sa.Select):
         selectinload(IonChannelModelingCampaign.assets),
         selectinload(IonChannelModelingCampaign.contributions),
         selectinload(IonChannelModelingCampaign.ion_channel_modeling_configs),
+        selectinload(IonChannelModelingCampaign.input_recordings),
         raiseload("*"),
     )
 
@@ -152,7 +153,7 @@ def read_many(
         "created_by",
         "updated_by",
         "contribution",
-        "ion_channel_modeling_config_alias",
+        "ion_channel_modeling_config",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=IonChannelModelingCampaign,

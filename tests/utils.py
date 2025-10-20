@@ -1012,6 +1012,19 @@ def _check_dict(actual_data, expected_data):
             )
 
 
+def check_entity_read_response(data, json_data, expected_entity_type):
+    assert "id" in data
+    assert "authorized_public" in data
+    assert "authorized_project_id" in data
+    assert "assets" in data
+    assert "contributions" in data
+    assert data["name"] == json_data["name"]
+    assert data["description"] == json_data["description"]
+    assert data["type"] == expected_entity_type
+
+    check_creation_fields(data)
+
+
 def check_entity_update_one(
     *,
     route: str,

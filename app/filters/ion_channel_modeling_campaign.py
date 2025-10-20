@@ -11,8 +11,9 @@ from app.filters.ion_channel_modeling_config import (
 
 
 class IonChannelModelingCampaignFilter(CustomFilter, EntityFilterMixin, NameFilterMixin):
-    ion_channel_modeling: Annotated[
-        NestedIonChannelModelingConfigFilter | None, NestedIonChannelModelingConfigFilterDep
+    ion_channel_modeling_config: Annotated[
+        NestedIonChannelModelingConfigFilter | None,
+        NestedIonChannelModelingConfigFilterDep,
     ] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

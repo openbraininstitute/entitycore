@@ -7,7 +7,10 @@ from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.electrical_cell_recording import ElectricalCellRecordingBase
 from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
 from app.schemas.ion_channel import NestedIonChannelRead
-from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
+from app.schemas.scientific_artifact import (
+    NestedScientificArtifactRead,
+    ScientificArtifactCreate,
+)
 from app.schemas.utils import make_update_schema
 
 
@@ -45,9 +48,14 @@ IonChannelRecordingAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class IonChannelRecordingRead(
+class NestedIonChannelRecordingRead(
     IonChannelRecordingBase,
-    ScientificArtifactRead,
+    NestedScientificArtifactRead,
+):
+    pass
+
+
+class IonChannelRecordingRead(
     ContributionReadWithoutEntityMixin,
 ):
     ion_channel: Annotated[

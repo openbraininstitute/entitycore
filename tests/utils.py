@@ -23,6 +23,7 @@ from app.db.model import (
     Entity,
     ETypeClass,
     ETypeClassification,
+    IonChannelModelingCampaign,
     IonChannelRecording,
     MTypeClass,
     MTypeClassification,
@@ -78,6 +79,7 @@ ROUTES = {
     CellMorphology: "/cell-morphology",
     ElectricalCellRecording: "/electrical-cell-recording",
     IonChannelRecording: "/ion-channel-recording",
+    IonChannelModelingCampaign: "/ion-channel-modeling-campaign",
 }
 
 
@@ -152,13 +154,14 @@ def create_ion_channel_modeling_campaign_id(
     authorized_public: bool = False,
 ):
     response = client.post(
-        ROUTES[CellMorphology],
+        ROUTES[IonChannelModelingCampaign],
         json={
             "name": name,
             "description": description,
             "brain_region_id": str(brain_region_id),
             "subject_id": str(subject_id),
             "authorized_public": authorized_public,
+            "scan_parameters": {"foo": "bar"},
         },
     )
 

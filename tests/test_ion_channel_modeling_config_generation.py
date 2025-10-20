@@ -34,12 +34,12 @@ MODEL = IonChannelModelingConfigGeneration
 
 
 @pytest.fixture
-def json_data(ion_channel_modeling_campaign_id, ion_channel_modeling_config_id):
+def json_data(ion_channel_modeling_campaign, ion_channel_modeling_config):
     return {
         "start_time": str(datetime.now(UTC)),
         "end_time": str(datetime.now(UTC)),
-        "used_ids": [str(ion_channel_modeling_campaign_id)],
-        "generated_ids": [str(ion_channel_modeling_config_id)],
+        "used_ids": [str(ion_channel_modeling_campaign.id)],
+        "generated_ids": [str(ion_channel_modeling_config.id)],
     }
 
 
@@ -49,6 +49,11 @@ def create_id(client, json_data):
         return assert_request(client.post, url=ROUTE, json=json_data | kwargs).json()["id"]
 
     return _create_id
+
+
+@pytest.fixture
+def model_id(create_id):
+    return create_id()
 
 
 def _assert_read_response(data, json_data, *, empty_ids=False):
@@ -84,17 +89,19 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
     assert data["type"] == ActivityType.ion_channel_modeling_config_generation.value
 
 
-def test_create_one(client, client_admin, json_data):
-    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+def test_create_one(clients, json_data):
+    data = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
 
-    data = assert_request(client.get, url=f"{ROUTE}/{data['id']}").json()
+
+def test_read_one(clients, json_data, model_id):
+    data = assert_request(clients.user_1.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
-    data = assert_request(client.get, url=ROUTE).json()["data"][0]
+    data = assert_request(clients.user_1.get, url=ROUTE).json()["data"][0]
     _assert_read_response(data, json_data)
 
-    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{data['id']}").json()
+    data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
 
@@ -214,16 +221,6 @@ def test_filtering(client, models, ion_channel_modeling_campaign, ion_channel_mo
     ).json()["data"]
     assert len(data) == 2
 
-    # backwards compat
-    data = assert_request(
-        client.get,
-        url=ROUTE,
-        params={
-            "used__id__in": f"{ion_channel_modeling_campaign.id},{ion_channel_modeling_config.id}"
-        },
-    ).json()["data"]
-    assert len(data) == 5
-
     data = assert_request(
         client.get,
         url=ROUTE,
@@ -235,18 +232,6 @@ def test_filtering(client, models, ion_channel_modeling_campaign, ion_channel_mo
         },
     ).json()["data"]
     assert len(data) == 5
-
-    # backwards compat
-    data = assert_request(
-        client.get,
-        url=ROUTE,
-        params={
-            "generated__id__in": (
-                f"{ion_channel_modeling_campaign.id},{ion_channel_modeling_config.id}"
-            )
-        },
-    ).json()["data"]
-    assert len(data) == 4
 
     data = assert_request(
         client.get,

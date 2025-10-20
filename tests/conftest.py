@@ -34,6 +34,8 @@ from app.db.model import (
     ExternalUrl,
     IonChannel,
     IonChannelModel,
+    IonChannelModelingCampaign,
+    IonChannelModelingConfig,
     IonChannelModelToEModel,
     MEModel,
     MTypeClass,
@@ -1638,5 +1640,56 @@ def analysis_notebook_result(db, analysis_notebook_result_json_data, person_id):
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
             },
+        ),
+    )
+
+
+@pytest.fixture
+def ion_channel_modeling_campaign_json_data():
+    return {
+        "name": "ion-channel-modeling-campaign",
+        "description": "my-ion-channel-modeling-campaign",
+        "scan_parameters": {"foo": "bar"},
+    }
+
+
+@pytest.fixture
+def ion_channel_modeling_campaign(db, ion_channel_modeling_campaign_json_data, person_id):
+    return add_db(
+        db,
+        IonChannelModelingCampaign(
+            **ion_channel_modeling_campaign_json_data
+            | {
+                "authorized_project_id": PROJECT_ID,
+                "authorized_public": False,
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def ion_channel_modeling_config_json_data(ion_channel_modeling_campaign):
+    return {
+        "name": "ion-channel-modeling-config",
+        "description": "my-ion-channel-modeling-config",
+        "ion_channel_modeling_campaign_id": str(ion_channel_modeling_campaign.id),
+        "scan_parameters": {"foo": "bar"},
+    }
+
+
+@pytest.fixture
+def ion_channel_modeling_config(db, ion_channel_modeling_config_json_data, person_id):
+    return add_db(
+        db,
+        IonChannelModelingConfig(
+            **ion_channel_modeling_config_json_data
+            | {
+                "authorized_project_id": PROJECT_ID,
+                "authorized_public": False,
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+            }
         ),
     )

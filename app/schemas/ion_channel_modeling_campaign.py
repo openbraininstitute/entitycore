@@ -50,4 +50,4 @@ class IonChannelModelingCampaignRead(
     CreationMixin,
     AuthorizationMixin,
 ):
-    ion_channel_modelings: list[NestedIonChannelModelingConfigRead]
+    ion_channel_modeling_configs: list[NestedIonChannelModelingConfigRead]

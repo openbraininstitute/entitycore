@@ -17,24 +17,33 @@ from .conftest import CreateIds, MEModels
 from .utils import (
     PROJECT_ID,
     assert_request,
+    check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
     check_entity_update_one,
     create_cell_morphology_id,
 )
+from tests.utils.api_create import create_emodel_id
+from tests.utils.check import check_auth_triggers
 
 ROUTE = "/memodel"
 ADMIN_ROUTE = "/admin/memodel"
 
 
 @pytest.fixture
-def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
+def common_json_data(brain_region_id, species_id, strain_id):
     return {
         "brain_region_id": str(brain_region_id),
         "species_id": species_id,
         "strain_id": strain_id,
         "description": "Test MEModel Description",
         "name": "Test MEModel Name",
+    }
+
+
+@pytest.fixture
+def json_data(common_json_data, morphology_id, emodel_id):
+    return common_json_data | {
         "morphology_id": morphology_id,
         "emodel_id": emodel_id,
         "authorized_public": False,
@@ -42,18 +51,11 @@ def json_data(brain_region_id, species_id, strain_id, morphology_id, emodel_id):
 
 
 @pytest.fixture
-def public_json_data(
-    brain_region_id, species_id, strain_id, public_morphology_id, public_emodel_id
-):
-    return {
-        "brain_region_id": str(brain_region_id),
-        "species_id": species_id,
-        "strain_id": strain_id,
-        "description": "Test MEModel Description",
-        "name": "Test MEModel Name",
+def public_json_data(common_json_data, public_morphology_id, public_emodel_id):
+    return common_json_data | {
         "morphology_id": str(public_morphology_id),
         "emodel_id": str(public_emodel_id),
-        "authorized_public": False,
+        "authorized_public": True,
     }
 
 
@@ -514,186 +516,75 @@ def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa
     assert all(d["description"] == "foo" for d in data)
 
 
-def test_authorization(
-    client_user_1: TestClient,
-    client_user_2: TestClient,
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
+    check_authorization(
+        ROUTE, client_user_1, client_user_2, client_no_project, json_data=public_json_data
+    )
+
+
+def test_auth_triggers(
+    client_user_1,
+    client_user_2,
+    public_json_data,
+    subject_id,
     species_id,
     strain_id,
     brain_region_id,
     morphology_id,
-    subject_id,
+    public_morphology_id,
     emodel_id,
+    public_emodel_id,
 ):
-    public_morphology_id = create_cell_morphology_id(
-        client_user_1,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
-        authorized_public=True,
-    )
-
-    # Different user but public accessible
-    public_emodel_id = client_user_2.post(
-        "/emodel",
-        json={
-            "brain_region_id": str(brain_region_id),
-            "description": "morph description",
-            "legacy_id": "Test Legacy ID",
-            "name": "Test Morphology Name",
-            "species_id": species_id,
-            "strain_id": strain_id,
-            "exemplar_morphology_id": public_morphology_id,
-            "score": 0,
-            "iteration": "0",
-            "seed": 0,
-            "authorized_public": True,
-        },
-    ).json()["id"]
-
-    json = {
-        "brain_region_id": str(brain_region_id),
-        "description": "description",
-        "legacy_id": "Test Legacy ID",
-        "name": "Test name",
-        "species_id": species_id,
-        "strain_id": strain_id,
-        "emodel_id": emodel_id,
-        "morphology_id": morphology_id,
-    }
-
-    public_obj = client_user_1.post(
-        ROUTE,
-        json=json
-        | {"emodel_id": public_emodel_id, "morphology_id": public_morphology_id}
-        | {
-            "name": "public obj",
-            "authorized_public": True,
-        },
-    )
-    assert public_obj.status_code == 200
-    public_obj = public_obj.json()
-
-    unauthorized_relations = client_user_2.post(
-        ROUTE,
-        json=json,
-    )
-
-    assert unauthorized_relations.status_code == 403
-
-    unauthorized_public_with_private_relations = client_user_1.post(
-        ROUTE,
-        json=json | {"authorized_public": True},
-    )
-
-    assert unauthorized_public_with_private_relations.status_code == 403
-
-    morphology_id = create_cell_morphology_id(
+    # check memodel.morphology_id
+    linked_private_u2 = create_cell_morphology_id(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
-
-    unauthorized_emodel = client_user_2.post(
-        ROUTE,
-        json=json | {"morphology_id": morphology_id},
+    linked_public_u2 = create_cell_morphology_id(
+        client_user_2,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
     )
-
-    assert unauthorized_emodel.status_code == 403
-
-    morphology_id_2 = (
-        client_user_2.post(
-            "/cell-morphology",
-            json={
-                "name": "test",
-                "description": "test",
-                "subject_id": str(subject_id),
-                "brain_region_id": str(brain_region_id),
-                "location": None,
-                "legacy_id": None,
-                "authorized_public": True,
-            },
-        )
-    ).json()["id"]
-
-    emodel_id = (
-        client_user_2.post(
-            "/emodel",
-            json={
-                "brain_region_id": str(brain_region_id),
-                "species_id": species_id,
-                "exemplar_morphology_id": morphology_id_2,
-                "description": "test",
-                "name": "test",
-                "iteration": "test",
-                "seed": 0,
-                "score": 0,
-                "authorized_public": True,
-            },
-        )
-    ).json()["id"]
-
-    inaccessible_obj = client_user_2.post(
+    check_auth_triggers(
         ROUTE,
-        json=json | {"morphology_id": morphology_id_2, "emodel_id": emodel_id},
+        client_user_1=client_user_1,
+        json_data=public_json_data,
+        link_key="morphology_id",
+        linked_private_u1_id=morphology_id,
+        linked_public_u1_id=public_morphology_id,
+        linked_private_u2_id=linked_private_u2,
+        linked_public_u2_id=linked_public_u2,
     )
-
-    assert inaccessible_obj.status_code == 200
-
-    inaccessible_obj = inaccessible_obj.json()
-
-    # Public reference from private entity authorized
-    private_obj0 = client_user_1.post(
+    # check memodel.emodel_id
+    linked_private_u2 = create_emodel_id(
+        client_user_2,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
+        morphology_id=public_morphology_id,
+        authorized_public=False,
+    )
+    linked_public_u2 = create_emodel_id(
+        client_user_2,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
+        morphology_id=public_morphology_id,
+        authorized_public=True,
+    )
+    check_auth_triggers(
         ROUTE,
-        json=json
-        | {
-            "name": "private obj 0",
-            "morphology_id": public_morphology_id,
-            "emodel_id": public_emodel_id,
-        },
+        client_user_1=client_user_1,
+        json_data=public_json_data,
+        link_key="emodel_id",
+        linked_private_u1_id=emodel_id,
+        linked_public_u1_id=public_emodel_id,
+        linked_private_u2_id=linked_private_u2,
+        linked_public_u2_id=linked_public_u2,
     )
-    assert private_obj0.status_code == 200
-    private_obj0 = private_obj0.json()
-
-    private_obj1 = client_user_1.post(
-        ROUTE,
-        json=json
-        | {
-            "name": "private obj 1",
-        },
-    )
-    assert private_obj1.status_code == 200
-    private_obj1 = private_obj1.json()
-
-    public_obj_diff_project = client_user_1.post(
-        ROUTE,
-        json=json
-        | {
-            "morphology_id": morphology_id_2,
-            "emodel_id": emodel_id,
-            "authorized_public": True,
-        },
-    )
-
-    assert public_obj_diff_project.status_code == 200
-
-    public_obj_diff_project = public_obj_diff_project.json()
-
-    # only return results that matches the desired project, and public ones
-    response = client_user_1.get(ROUTE)
-    data = response.json()["data"]
-    assert len(data) == 4
-
-    ids = {row["id"] for row in data}
-    assert ids == {
-        public_obj["id"],
-        private_obj0["id"],
-        private_obj1["id"],
-        public_obj_diff_project["id"],
-    }
-
-    response = client_user_1.get(f"{ROUTE}/{inaccessible_obj['id']}")
-
-    assert response.status_code == 404
 
 
 def test_brain_region_filter(

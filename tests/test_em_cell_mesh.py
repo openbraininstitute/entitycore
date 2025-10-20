@@ -1,10 +1,11 @@
 import pytest
 
-from app.db.model import EMCellMesh
+from app.db.model import EMCellMesh, EMDenseReconstructionDataset
 from app.db.types import EntityType
 
 from .utils import (
     PROJECT_ID,
+    UNRELATED_PROJECT_ID,
     add_all_db,
     assert_request,
     check_authorization,
@@ -13,6 +14,8 @@ from .utils import (
     check_missing,
     check_pagination,
 )
+from tests.utils.check import check_auth_triggers
+from tests.utils.db_create import create_entity
 
 ROUTE = "/em-cell-mesh"
 ADMIN_ROUTE = "/admin/em-cell-mesh"
@@ -22,6 +25,11 @@ MODEL = EMCellMesh
 @pytest.fixture
 def json_data(em_cell_mesh_json_data):
     return em_cell_mesh_json_data
+
+
+@pytest.fixture
+def public_json_data(public_em_cell_mesh_json_data):
+    return public_em_cell_mesh_json_data
 
 
 @pytest.fixture
@@ -68,8 +76,45 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
+
+
+def test_auth_triggers(
+    client_user_1,
+    db,
+    person_id,
+    public_json_data,
+    em_dense_reconstruction_dataset,
+    public_em_dense_reconstruction_dataset,
+    em_dense_reconstruction_dataset_json_data,
+):
+    linked_private_u2 = create_entity(
+        db,
+        EMDenseReconstructionDataset,
+        person_id=person_id,
+        authorized_public=False,
+        authorized_project_id=UNRELATED_PROJECT_ID,
+        json_data=em_dense_reconstruction_dataset_json_data,
+    )
+    linked_public_u2 = create_entity(
+        db,
+        EMDenseReconstructionDataset,
+        person_id=person_id,
+        authorized_public=True,
+        authorized_project_id=UNRELATED_PROJECT_ID,
+        json_data=em_dense_reconstruction_dataset_json_data,
+    )
+    check_auth_triggers(
+        ROUTE,
+        client_user_1=client_user_1,
+        json_data=public_json_data,
+        link_key="em_dense_reconstruction_dataset_id",
+        linked_private_u1_id=em_dense_reconstruction_dataset.id,
+        linked_public_u1_id=public_em_dense_reconstruction_dataset.id,
+        linked_private_u2_id=linked_private_u2.id,
+        linked_public_u2_id=linked_public_u2.id,
+    )
 
 
 def test_pagination(client, create_id):
@@ -151,13 +196,13 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     }
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={
             EMCellMesh: 1,
         },

@@ -12,7 +12,9 @@ from .utils import (
     check_entity_update_one,
     check_missing,
     check_pagination,
+    create_electrical_cell_recording_id,
 )
+from tests.utils.check import check_auth_triggers
 
 ROUTE = "/electrical-recording-stimulus"
 ADMIN_ROUTE = "/admin/electrical-recording-stimulus"
@@ -120,6 +122,32 @@ def test_authorization(
     public_json_data,
 ):
     check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
+
+
+def test_auth_triggers(
+    client_user_1,
+    client_user_2,
+    public_json_data,
+    trace_id_minimal,
+    public_trace_id_minimal,
+    electrical_cell_recording_json_data,
+):
+    linked_private_u2 = create_electrical_cell_recording_id(
+        client_user_2, electrical_cell_recording_json_data | {"authorized_public": False}
+    )
+    linked_public_u2 = create_electrical_cell_recording_id(
+        client_user_2, electrical_cell_recording_json_data | {"authorized_public": True}
+    )
+    check_auth_triggers(
+        ROUTE,
+        client_user_1=client_user_1,
+        json_data=public_json_data,
+        link_key="recording_id",
+        linked_private_u1_id=trace_id_minimal,
+        linked_public_u1_id=public_trace_id_minimal,
+        linked_private_u2_id=linked_private_u2,
+        linked_public_u2_id=linked_public_u2,
+    )
 
 
 def test_pagination(client, create_id):

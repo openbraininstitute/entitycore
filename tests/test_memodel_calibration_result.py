@@ -5,7 +5,14 @@ from fastapi.testclient import TestClient
 
 from app.db.model import MEModelCalibrationResult
 
-from .utils import assert_request, check_entity_delete_one, check_entity_update_one
+from .utils import (
+    assert_request,
+    check_authorization,
+    check_entity_delete_one,
+    check_entity_update_one,
+)
+from tests.utils.api_create import create_memodel_id
+from tests.utils.check import check_auth_triggers
 
 MODEL = MEModelCalibrationResult
 ROUTE = "/memodel-calibration-result"
@@ -111,6 +118,52 @@ def test_missing(client):
 
     response = client.get(f"{ROUTE}/notauuid")
     assert response.status_code == 422
+
+
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
+
+
+def test_auth_triggers(
+    client_user_1,
+    client_user_2,
+    species_id,
+    strain_id,
+    brain_region_id,
+    public_json_data,
+    memodel_id,
+    public_memodel_id,
+    public_morphology_id,
+    public_emodel_id,
+):
+    linked_private_u2_id = create_memodel_id(
+        client_user_2,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
+        morphology_id=public_morphology_id,
+        emodel_id=public_emodel_id,
+        authorized_public=False,
+    )
+    linked_public_u2_id = create_memodel_id(
+        client_user_2,
+        species_id=species_id,
+        strain_id=strain_id,
+        brain_region_id=brain_region_id,
+        morphology_id=public_morphology_id,
+        emodel_id=public_emodel_id,
+        authorized_public=True,
+    )
+    check_auth_triggers(
+        ROUTE,
+        client_user_1=client_user_1,
+        json_data=public_json_data,
+        link_key="calibrated_entity_id",
+        linked_private_u1_id=memodel_id,
+        linked_public_u1_id=public_memodel_id,
+        linked_private_u2_id=linked_private_u2_id,
+        linked_public_u2_id=linked_public_u2_id,
+    )
 
 
 def test_filtering__one_entry(client, memodel_calibration_result_id, memodel_id, morphology_id):

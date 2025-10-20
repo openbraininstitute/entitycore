@@ -155,6 +155,7 @@ def read_many(
         "created_by",
         "updated_by",
         "contribution",
+        "circuit",
         "simulation",
         "simulation.circuit",
     ]

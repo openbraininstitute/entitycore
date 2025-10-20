@@ -127,6 +127,7 @@ def query_params_factory[I: Identifiable](
         "post_region": {"id": post_region_alias.id, "label": post_region_alias.name},
         "simulation": {"id": simulation_alias.id, "label": simulation_alias.name},
         "simulation.circuit": {"id": circuit_alias.id, "label": circuit_alias.name},
+        "circuit": {"id": circuit_alias.id, "label": circuit_alias.name},
         "ion_channel": {"id": ion_channel_alias.id, "label": ion_channel_alias.label},
         "em_dense_reconstruction_dataset": {
             "id": em_dense_reconstruction_dataset_alias.id,
@@ -209,9 +210,10 @@ def query_params_factory[I: Identifiable](
         "simulation": lambda q: q.outerjoin(
             simulation_alias, db_model_class.id == simulation_alias.simulation_campaign_id
         ),
-        "simulation.circuit": lambda q: q.join(
+        "simulation.circuit": lambda q: q.outerjoin(
             circuit_alias, simulation_alias.entity_id == circuit_alias.id
         ),
+        "circuit": lambda q: q.join(circuit_alias, db_model_class.entity_id == circuit_alias.id),
         "used": lambda q: q.outerjoin(
             Usage, db_model_class.id == Usage.usage_activity_id
         ).outerjoin(used_alias, Usage.usage_entity_id == used_alias.id),

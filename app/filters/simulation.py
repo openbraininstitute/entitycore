@@ -16,7 +16,6 @@ class SimulationFilterBase(NameFilterMixin, IdFilterMixin, CustomFilter):
 
 
 class NestedSimulationFilter(SimulationFilterBase):
-
     circuit: Annotated[
         NestedCircuitFilter | None,
         FilterDepends(with_prefix("simulation__circuit", NestedCircuitFilter)),

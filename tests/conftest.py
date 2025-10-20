@@ -877,6 +877,26 @@ class MEModels:
 
 
 @pytest.fixture
+def ion_channel_model(db, person_id, brain_region_id, subject_id):
+    return add_db(
+        db,
+        IonChannelModel(
+            description="Test ICM Description",
+            name="ion-channel-model",
+            nmodl_suffix="test_icm",
+            temperature_celsius=0,
+            neuron_block={},
+            brain_region_id=str(brain_region_id),
+            subject_id=str(subject_id),
+            authorized_public=False,
+            created_by_id=str(person_id),
+            updated_by_id=str(person_id),
+            authorized_project_id=PROJECT_ID,
+        ),
+    )
+
+
+@pytest.fixture
 def ion_channel_models(db, person_id, brain_region_id, subject_id):
     return [
         add_db(

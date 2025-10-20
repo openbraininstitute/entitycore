@@ -10,6 +10,7 @@ from app.schemas.ion_channel import NestedIonChannelRead
 from app.schemas.scientific_artifact import (
     NestedScientificArtifactRead,
     ScientificArtifactCreate,
+    ScientificArtifactRead,
 )
 from app.schemas.utils import make_update_schema
 
@@ -56,6 +57,8 @@ class NestedIonChannelRecordingRead(
 
 
 class IonChannelRecordingRead(
+    IonChannelRecordingBase,
+    ScientificArtifactRead,
     ContributionReadWithoutEntityMixin,
 ):
     ion_channel: Annotated[

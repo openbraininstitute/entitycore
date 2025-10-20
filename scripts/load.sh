@@ -1,4 +1,6 @@
 #!/bin/bash
+# Automatically generated, do not edit!
+
 set -euo pipefail
 
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"

@@ -16,6 +16,8 @@ TABLES: dict[str, Mapper] = {
 SCRIPT_VERSION = 1
 SCRIPT_HEADER = """
 #!/bin/bash
+# Automatically generated, do not edit!
+
 set -euo pipefail
 
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
@@ -53,7 +55,7 @@ def get_queries() -> dict[str, str]:
     callables = {
         # alembic
         "alembic_version": lambda t: _export_all(t, skip_check=True),
-        # global tables
+        # global tables without authorized_public
         "agent": _export_all,
         "brain_region": _export_all,
         "brain_region_hierarchy": _export_all,
@@ -61,37 +63,45 @@ def get_queries() -> dict[str, str]:
         "consortium": _export_all,
         "datamaturity_annotation_body": _export_all,
         "etype_class": _export_all,
+        "external_url": _export_all,
         "ion": _export_all,
+        "ion_channel": _export_all,
         "license": _export_all,
         "mtype_class": _export_all,
         "organization": _export_all,
         "person": _export_all,
+        "publication": _export_all,
         "role": _export_all,
         "species": _export_all,
         "strain": _export_all,
-        # tables with authorized_public
+        # base tables with authorized_public
         "entity": _export_public,
         "activity": _export_public,
         # children of entity
+        "analysis_notebook_environment": lambda t: _export_child(t, "entity"),
+        "analysis_notebook_result": lambda t: _export_child(t, "entity"),
+        "analysis_notebook_template": lambda t: _export_child(t, "entity"),
         "analysis_software_source_code": lambda t: _export_child(t, "entity"),
         "brain_atlas": lambda t: _export_child(t, "entity"),
         "brain_atlas_region": lambda t: _export_child(t, "entity"),
         "cell_composition": lambda t: _export_child(t, "entity"),
+        "cell_morphology": lambda t: _export_child(t, "entity"),
+        "cell_morphology_protocol": lambda t: _export_child(t, "entity"),
         "circuit": lambda t: _export_child(t, "entity"),
         "electrical_cell_recording": lambda t: _export_child(t, "entity"),
+        "electrical_recording": lambda t: _export_child(t, "entity"),
         "electrical_recording_stimulus": lambda t: _export_child(t, "entity"),
+        "em_cell_mesh": lambda t: _export_child(t, "entity"),
+        "em_dense_reconstruction_dataset": lambda t: _export_child(t, "entity"),
         "emodel": lambda t: _export_child(t, "entity"),
         "scientific_artifact": lambda t: _export_child(t, "entity"),
-        "reconstruction_morphology": lambda t: _export_child(t, "entity"),
         "experimental_bouton_density": lambda t: _export_child(t, "entity"),
         "experimental_neuron_density": lambda t: _export_child(t, "entity"),
         "experimental_synapses_per_connection": lambda t: _export_child(t, "entity"),
         "ion_channel_model": lambda t: _export_child(t, "entity"),
+        "ion_channel_recording": lambda t: _export_child(t, "entity"),
         "me_type_density": lambda t: _export_child(t, "entity"),
         "memodel": lambda t: _export_child(t, "entity"),
-        "publication": lambda t: _export_child(
-            t, "entity"
-        ),  # TODO: publication will be global, see openbraininstitute/entitycore#313
         "simulation": lambda t: _export_child(t, "entity"),
         "simulation_campaign": lambda t: _export_child(t, "entity"),
         "simulation_result": lambda t: _export_child(t, "entity"),
@@ -100,9 +110,12 @@ def get_queries() -> dict[str, str]:
         "single_neuron_synaptome_simulation": lambda t: _export_child(t, "entity"),
         "subject": lambda t: _export_child(t, "entity"),
         # children of activity
+        "analysis_notebook_execution": lambda t: _export_child(t, "activity"),
+        "calibration": lambda t: _export_child(t, "activity"),
         "simulation_execution": lambda t: _export_child(t, "activity"),
         "simulation_generation": lambda t: _export_child(t, "activity"),
-        # other tables
+        "validation": lambda t: _export_child(t, "activity"),
+        # other tables and association tables
         "annotation": lambda t: _export_single_join(t, "entity", "entity_id"),
         "asset": lambda t: _export_single_join(t, "entity", "entity_id"),
         "contribution": lambda t: _export_single_join(t, "entity", "entity_id"),
@@ -149,9 +162,12 @@ def get_queries() -> dict[str, str]:
             WHERE {t}.authorized_public IS true
             AND e.authorized_public IS true
             """,  # noqa: S608
-        "scientific_artifact_publication_link": lambda t: _export_double_join(
-            t, ("entity", "publication_id"), ("entity", "scientific_artifact_id")
-        ),  # TODO: publication will be global, see openbraininstitute/entitycore#313
+        "scientific_artifact_external_url_link": lambda t: _export_single_join(
+            t, "entity", "scientific_artifact_id"
+        ),
+        "scientific_artifact_publication_link": lambda t: _export_single_join(
+            t, "entity", "scientific_artifact_id"
+        ),
         "usage": lambda t: _export_double_join(
             t, ("entity", "usage_entity_id"), ("activity", "usage_activity_id")
         ),
@@ -168,74 +184,91 @@ def get_queries() -> dict[str, str]:
     }
 
 
-def _export_all(table: str, *, skip_check: bool = False) -> str:
+def _ensure_table(tablename: str) -> Mapper:
+    if not (table := TABLES.get(tablename)):
+        msg = f"Table {tablename} doesn't exist"
+        raise ValueError(msg)
+    return table
+
+
+def _ensure_column(tablename: str, column: str, *, exist: bool) -> None:
+    table = _ensure_table(tablename)
+    if exist and column not in table.columns:
+        msg = f"Column {tablename}.{column} expected but not found"
+        raise ValueError(msg)
+    if not exist and column in table.columns:
+        msg = f"Column {tablename}.{column} not expected but found"
+        raise ValueError(msg)
+
+
+def _export_all(tablename: str, *, skip_check: bool = False) -> str:
     """Build and return the export query for global tables without authorized_public.
 
     Args:
-        table: table name.
+        tablename: table name.
         skip_check: True to skip the validation.
     """
     if not skip_check:
-        assert "authorized_public" not in TABLES[table].columns  # noqa: S101
-    return f"""SELECT {table}.* FROM {table}"""  # noqa: S608
+        _ensure_column(tablename, "authorized_public", exist=False)
+    return f"""SELECT {tablename}.* FROM {tablename}"""  # noqa: S608
 
 
-def _export_public(table: str) -> str:
+def _export_public(tablename: str) -> str:
     """Build and return the export query for base tables with authorized_public.
 
     Args:
-        table: table name.
+        tablename: table name.
     """
-    assert "authorized_public" in TABLES[table].columns  # noqa: S101
-    return f"""SELECT {table}.* from {table} WHERE authorized_public IS true"""  # noqa: S608
+    _ensure_column(tablename, "authorized_public", exist=True)
+    return f"""SELECT {tablename}.* from {tablename} WHERE authorized_public IS true"""  # noqa: S608
 
 
-def _export_child(table: str, parent: str) -> str:
+def _export_child(tablename: str, parent: str) -> str:
     """Build and return the export query for children tables.
 
     Args:
-        table: main table name.
+        tablename: main table name.
         parent: parent table to join.
     """
-    assert "authorized_public" in TABLES[table].columns  # noqa: S101
+    _ensure_column(tablename, "authorized_public", exist=True)
     return f"""
-        SELECT {table}.* from {table}
+        SELECT {tablename}.* from {tablename}
         JOIN {parent} USING (id)
         WHERE {parent}.authorized_public IS true
         """  # noqa: S608
 
 
-def _export_single_join(table: str, join: str, join_on: str) -> str:
+def _export_single_join(tablename: str, join: str, join_on: str) -> str:
     """Build and return the export query for linked tables (one to many).
 
     Args:
-        table: main table name.
+        tablename: main table name.
         join: table to join.
         join_on: the field in the main table to be used for the join.
     """
-    assert "authorized_public" not in TABLES[table].columns  # noqa: S101
+    assert "authorized_public" not in TABLES[tablename].columns  # noqa: S101
     return f"""
-        SELECT {table}.* FROM {table}
-        JOIN {join} AS t ON t.id={table}.{join_on}
+        SELECT {tablename}.* FROM {tablename}
+        JOIN {join} AS t ON t.id={tablename}.{join_on}
         WHERE t.authorized_public IS true
         """  # noqa: S608
 
 
-def _export_double_join(table: str, join_1: tuple[str, str], join_2: tuple[str, str]) -> str:
+def _export_double_join(tablename: str, join_1: tuple[str, str], join_2: tuple[str, str]) -> str:
     """Build and return the export query for association tables (many to many).
 
     Args:
-        table: main table name.
+        tablename: main table name.
         join_1: tuple (join, join_on), where join is the first table to join,
             and join_on is the field in the main table to be used for the join.
         join_2: tuple (join, join_on), where join is the second table to join,
             and join_on is the field in the main table to be used for the join.
     """
-    assert "authorized_public" not in TABLES[table].columns  # noqa: S101
+    assert "authorized_public" not in TABLES[tablename].columns  # noqa: S101
     return f"""
-        SELECT {table}.* FROM {table}
-        JOIN {join_1[0]} AS t1 ON t1.id={table}.{join_1[1]}
-        JOIN {join_2[0]} AS t2 ON t2.id={table}.{join_2[1]}
+        SELECT {tablename}.* FROM {tablename}
+        JOIN {join_1[0]} AS t1 ON t1.id={tablename}.{join_1[1]}
+        JOIN {join_2[0]} AS t2 ON t2.id={tablename}.{join_2[1]}
         WHERE t1.authorized_public IS true
         AND t2.authorized_public IS true
         """  # noqa: S608

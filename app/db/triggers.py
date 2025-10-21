@@ -1,3 +1,5 @@
+import hashlib
+
 from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
@@ -16,6 +18,7 @@ from app.db.model import (
     ExperimentalBoutonDensity,
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
+    IonChannelModelingConfig,
     MEModel,
     MEModelCalibrationResult,
     NameDescriptionVectorMixin,
@@ -28,6 +31,8 @@ from app.db.model import (
     SingleNeuronSynaptomeSimulation,
     ValidationResult,
 )
+
+MAX_IDENTIFIER_LENGTH = 59
 
 
 def _check_name_length(s: str, min_len: int = 1, max_len: int = 63) -> str:
@@ -46,12 +51,28 @@ def _check_name_length(s: str, min_len: int = 1, max_len: int = 63) -> str:
     return s
 
 
+def _truncate_identifier(name: str) -> str:
+    if len(name) <= MAX_IDENTIFIER_LENGTH:
+        return name
+
+    checksum = hashlib.sha1(name.encode()).hexdigest()[:8]  # noqa: S324
+
+    max_length = MAX_IDENTIFIER_LENGTH
+    truncated = name[: max_length - 9]
+
+    final_name = f"{truncated}_{checksum}"
+
+    return final_name
+
+
 def _get_unauthorized_function_name(table: str, field_name: str) -> str:
-    return _check_name_length(f"auth_fnc_{table}_{field_name}")
+    name = _truncate_identifier(f"auth_fnc_{table}_{field_name}")
+    return _check_name_length(name)
 
 
 def _get_unauthorized_trigger_name(table: str, field_name: str) -> str:
-    return _check_name_length(f"auth_trg_{table}_{field_name}")
+    name = _truncate_identifier(f"auth_trg_{table}_{field_name}")
+    return _check_name_length(name)
 
 
 def description_vector_trigger(
@@ -161,6 +182,7 @@ protected_entity_relationships = [
     (SingleNeuronSynaptome, "me_model_id"),
     (SingleNeuronSynaptomeSimulation, "synaptome_id"),
     (ValidationResult, "validated_entity_id"),
+    (IonChannelModelingConfig, "ion_channel_modeling_campaign_id"),
 ]
 
 entities = [

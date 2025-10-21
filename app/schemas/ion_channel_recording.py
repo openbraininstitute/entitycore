@@ -7,7 +7,11 @@ from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.electrical_cell_recording import ElectricalCellRecordingBase
 from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
 from app.schemas.ion_channel import NestedIonChannelRead
-from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
+from app.schemas.scientific_artifact import (
+    NestedScientificArtifactRead,
+    ScientificArtifactCreate,
+    ScientificArtifactRead,
+)
 from app.schemas.utils import make_update_schema
 
 
@@ -43,6 +47,13 @@ IonChannelRecordingAdminUpdate = make_update_schema(
     "IonChannelRecordingAdminUpdate",
     excluded_fields=set(),
 )  # pyright : ignore [reportInvalidTypeForm]
+
+
+class NestedIonChannelRecordingRead(
+    IonChannelRecordingBase,
+    NestedScientificArtifactRead,
+):
+    pass
 
 
 class IonChannelRecordingRead(

@@ -23,6 +23,7 @@ from app.db.model import (
     Entity,
     ETypeClass,
     ETypeClassification,
+    IonChannelModelingCampaign,
     IonChannelRecording,
     MTypeClass,
     MTypeClassification,
@@ -78,6 +79,7 @@ ROUTES = {
     CellMorphology: "/cell-morphology",
     ElectricalCellRecording: "/electrical-cell-recording",
     IonChannelRecording: "/ion-channel-recording",
+    IonChannelModelingCampaign: "/ion-channel-modeling-campaign",
 }
 
 
@@ -135,6 +137,31 @@ def create_cell_morphology_id(
             "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": ["Test Legacy ID"],
             "authorized_public": authorized_public,
+        },
+    )
+
+    assert response.status_code == 200
+    return response.json()["id"]
+
+
+def create_ion_channel_modeling_campaign_id(
+    client,
+    subject_id,
+    brain_region_id,
+    name="Test Ion Channel Modeling Campaign Name",
+    description="Test Ion Channel Modeling Campaign Description",
+    *,
+    authorized_public: bool = False,
+):
+    response = client.post(
+        ROUTES[IonChannelModelingCampaign],
+        json={
+            "name": name,
+            "description": description,
+            "brain_region_id": str(brain_region_id),
+            "subject_id": str(subject_id),
+            "authorized_public": authorized_public,
+            "scan_parameters": {"foo": "bar"},
         },
     )
 
@@ -983,6 +1010,19 @@ def _check_dict(actual_data, expected_data):
             assert new_value == expected_value, (
                 f"Key {key} mismatch. Expected: {expected_value}, Actual: {new_value}"
             )
+
+
+def check_entity_read_response(data, json_data, expected_entity_type):
+    assert "id" in data
+    assert "authorized_public" in data
+    assert "authorized_project_id" in data
+    assert "assets" in data
+    assert "contributions" in data
+    assert data["name"] == json_data["name"]
+    assert data["description"] == json_data["description"]
+    assert data["type"] == expected_entity_type
+
+    check_creation_fields(data)
 
 
 def check_entity_update_one(

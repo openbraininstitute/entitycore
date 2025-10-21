@@ -1,7 +1,10 @@
-import logging
+import logging  # noqa: INP001
 from pathlib import Path
 from textwrap import dedent
+from typing import Any
 
+from alembic.config import Config
+from alembic.script import ScriptDirectory
 from sqlalchemy.orm import Mapper
 
 from app.db.model import Base
@@ -13,45 +16,66 @@ TABLES: dict[str, Mapper] = {
     for mapper in Base.registry.mappers
     if mapper.class_.__tablename__
 }
+BUILD_SCRIPT = "build_database_archive.sh"
+LOAD_SCRIPT = "_load.sh"
+BOOTSTRAP_SCRIPT = "_bootstrap.sh"
+
 SCRIPT_VERSION = 1
-SCRIPT_HEADER = """
-#!/bin/bash
-# Automatically generated, do not edit!
-
-set -euo pipefail
-
+SETUP_PSQL = """
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 export PATH=/usr/pgsql-17/bin:$PATH
 
 export PGUSER="${PGUSER:-entitycore}"
 export PGHOST="${PGHOST:-127.0.0.1}"
-export PGPORT="${PGPORT:-5433}"
+export PGPORT="${PGPORT:-5432}"
 export PGDATABASE="${PGDATABASE:-entitycore}"
 
-PSQL="psql --echo-errors --set=ON_ERROR_STOP=on"
+PSQL_BIN="${PSQL_BIN:-psql}"
+PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
+PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
 
-WORKDIR=$(mktemp -d -t dump)
-DATE=$(date +%Y%m%d)
-
-DUMP_ARCHIVE="${DUMP_ARCHIVE:-dump_db_$DATE.tar.gz}"
-SCHEMA_PRE_DATA="$WORKDIR/schema_pre_data.sql"
-SCHEMA_POST_DATA="$WORKDIR/schema_post_data.sql"
-
-cleanup() {
-    echo -e "\\nCleaning up $WORKDIR"
-    rm -rf "$WORKDIR"
-}
-trap cleanup EXIT
+if ! command -v "$PSQL_BIN" &>/dev/null; then
+    echo "Error: psql not found in PATH, please set the correct PATH or the PSQL_BIN variable."
+    exit 1
+fi
 
 if [[ -z "${PGPASSWORD:-}" ]]; then
-    read -s -p "Enter password for postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE: " PGPASSWORD
+    read -r -s -p "Enter password for postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE: " PGPASSWORD
     echo
     export PGPASSWORD
 fi
 """
+SETUP_WORK_DIR = """
+WORK_DIR=$(mktemp -d -t dump)
+cleanup() {
+    printf '\\nCleaning up %s\\n' "$WORK_DIR"
+    rm -rf "$WORK_DIR"
+}
+trap cleanup EXIT
+export WORK_DIR
+export DATA_DIR="$WORK_DIR/data"
+export SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
+export SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
+"""
+
+
+def get_current_head() -> str:
+    """Return the current head revision from the migration files.
+
+    Assuming that the migration files are in sync with the db model,
+    the list of exported tables is consistent with that revision only.
+    """
+    config = Config("alembic.ini")
+    script = ScriptDirectory.from_config(config)
+    if not (head := script.get_current_head()):
+        msg = "Head revision not found"
+        raise RuntimeError(msg)
+    L.info("Alembic head revision: %s", head)
+    return head
 
 
 def get_queries() -> dict[str, str]:
+    """Return the mapping used to generate the export queries for each table."""
     callables = {
         # alembic
         "alembic_version": lambda t: _export_all(t, skip_check=True),
@@ -185,6 +209,7 @@ def get_queries() -> dict[str, str]:
 
 
 def _ensure_table(tablename: str) -> Mapper:
+    """Ensure that a table is defined in the base mapper."""
     if not (table := TABLES.get(tablename)):
         msg = f"Table {tablename} doesn't exist"
         raise ValueError(msg)
@@ -192,6 +217,7 @@ def _ensure_table(tablename: str) -> Mapper:
 
 
 def _ensure_column(tablename: str, column: str, *, exist: bool) -> None:
+    """Ensure that a column exists (or not) in the given table."""
     table = _ensure_table(tablename)
     if exist and column not in table.columns:
         msg = f"Column {tablename}.{column} expected but not found"
@@ -275,6 +301,7 @@ def _export_double_join(tablename: str, join_1: tuple[str, str], join_2: tuple[s
 
 
 def check_queries(queries: dict[str, str]) -> None:
+    """Verify the consistency of the export queries."""
     queries_set = set(queries)
     all_tables = set(Base.metadata.tables) | {"alembic_version"}
     if diff := all_tables - queries_set:
@@ -283,24 +310,132 @@ def check_queries(queries: dict[str, str]) -> None:
         L.warning("Extra tables in the configuration: %s", sorted(diff))
 
 
-def write_content(filename, content: str, params) -> None:
+def format_content(content: str, params: dict[str, Any]) -> str:
+    """Format the content after dedenting it."""
     content = dedent(content)
     content = content.format(**params).lstrip()
-    Path(filename).write_text(content, encoding="utf-8")
-    Path(filename).chmod(mode=0o755)  # make the file executable
+    return content
 
 
-def write_dump_script(filename: str, queries: dict[str, str]) -> None:
-    psql_commands = "\n".join(
-        # f"\\copy ({query}) TO '$WORKDIR/{name}.csv' BINARY;"
-        f"\\echo Dumping table {name}\n\\copy ({query}) TO '$WORKDIR/{name}.csv' WITH CSV HEADER;"
-        for name, query in queries.items()
-    )
+def write_script(filepath: Path, content: str) -> None:
+    """Write the content to file and make it executable."""
+    L.info("Writing %s", filepath)
+    filepath.write_text(content, encoding="utf-8")
+    filepath.chmod(mode=0o755)  # make the file executable
+
+
+def _get_bootstrap_script_content() -> str:
+    """Return the content of the bootstrap script."""
     content = r"""
-        {script_header}
-        echo "DB DUMP - version {script_version}"
+        #!/bin/bash
+        # Automatically generated, do not edit!
+        set -euo pipefail
+        {setup_work_dir}
+
+        ARCHIVE_LINE=$(awk '/^__ARCHIVE_BELOW__/ {{ print NR + 1; exit 0; }}' "$0")
+        tail -n +$ARCHIVE_LINE "$0" | tar -xzv -C "$WORK_DIR"
+        cd "$WORK_DIR"
+        ./{load_script}
+        exit 0
+        __ARCHIVE_BELOW__
+    """
+    return format_content(
+        content,
+        params={
+            "setup_work_dir": SETUP_WORK_DIR,
+            "load_script": LOAD_SCRIPT,
+        },
+    )
+
+
+def _get_load_script_content() -> str:
+    """Return the content of the load script."""
+    content = r"""
+        #!/bin/bash
+        # Automatically generated, do not edit!
+        set -euo pipefail
+        {setup_psql}
+
+        echo "DB LOAD (version {script_version})"
+        echo "Restore database $PGDATABASE to $PGHOST:$PGPORT"
+
+        if [[
+            ! -f "${{SCHEMA_PRE_DATA:-}}" ||
+            ! -f "${{SCHEMA_POST_DATA:-}}" ||
+            ! -d "${{DATA_DIR:-}}"
+        ]]; then
+            echo "Data to load not found."
+            exit 1
+        fi
+
+        read -r -p "Press Enter to continue or Ctrl+C to cancel..."
+
+        echo "Dropping and recreating database..."
+        dropdb --if-exists --force "$PGDATABASE"
+        createdb "$PGDATABASE"
+
+        echo "Restoring schema_pre_data to destination DB..."
+        $PSQL -f "$SCHEMA_PRE_DATA"
+
+        echo "Importing data..."
+        $PSQL <<EOF
+        BEGIN;
+        $(for FILE in "$DATA_DIR"/*.csv; do
+            TABLE=$(basename "$FILE" .csv)
+            printf '\\echo Restoring table %s\n' "$TABLE"
+            printf '\\copy %s FROM '%s' WITH CSV HEADER;\n' "$TABLE" "$FILE"
+        done)
+        COMMIT;
+        EOF
+
+        echo "Restoring schema_post_data to destination DB..."
+        $PSQL -f "$SCHEMA_POST_DATA"
+
+        echo "Running ANALYZE..."
+        $PSQL -c "ANALYZE;"
+
+        echo "All done."
+    """
+    return format_content(
+        content,
+        params={
+            "script_version": SCRIPT_VERSION,
+            "setup_psql": SETUP_PSQL,
+        },
+    )
+
+
+def _get_build_script_content(queries: dict[str, str], head: str) -> str:
+    """Return the content of the build script.
+
+    In detail:
+
+    - Dump the database schema and data to files, one per table.
+    - Create an archive containing the dumped files and the load script
+      (the dump and bootstrap scripts are included only for reference).
+    - Create an install script by concatenating the bootstrap script with the archive.
+    """
+    content = r"""
+        #!/bin/bash
+        # Automatically generated, do not edit!
+        set -euo pipefail
+        {setup_psql}
+        {setup_work_dir}
+
+        echo "DB DUMP (version {script_version} for db version {head})"
+
+        EXPECTED_DB_VERSION="{head}"
+        DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
+        if [[ "$DB_VERSION" != "$EXPECTED_DB_VERSION" ]]; then
+            echo "Database version ($DB_VERSION) != expected ($EXPECTED_DB_VERSION)"
+            exit 1
+        fi
+
+        SCRIPT_DIR="$(realpath "$(dirname "$0")")"
+        INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$EXPECTED_DB_VERSION.sh"
+
         echo "Dump database $PGDATABASE from $PGHOST:$PGPORT"
-        echo "WORKDIR=$WORKDIR"
+        mkdir -p "$DATA_DIR"
 
         echo "Dumping schema..."
         pg_dump --schema-only --format=p --section=pre-data > "$SCHEMA_PRE_DATA"
@@ -314,72 +449,56 @@ def write_dump_script(filename: str, queries: dict[str, str]) -> None:
         COMMIT;
         EOF
 
-        echo "Building archive..."
-        tar -czf "$DUMP_ARCHIVE" -C "$WORKDIR" .
+        echo "Building install script..."
+        INSTALL_SCRIPT_TMP="$INSTALL_SCRIPT.tmp"
+        cp "$SCRIPT_DIR/{bootstrap_script}" "$INSTALL_SCRIPT_TMP"
+
+        echo "Adding archive..."
+        tar -czvf - \
+            -C "$WORK_DIR" . \
+            -C "$SCRIPT_DIR" "{build_script}" "{load_script}" "{bootstrap_script}" \
+            >> "$INSTALL_SCRIPT_TMP"
+
+        mv "$INSTALL_SCRIPT_TMP" "$INSTALL_SCRIPT"
+        chmod +x "$INSTALL_SCRIPT"
+
+        echo -e "\nWritten file: $INSTALL_SCRIPT\n"
 
         echo "All done."
     """
-    write_content(
-        filename,
-        content,
-        params={
-            "script_version": SCRIPT_VERSION,
-            "script_header": SCRIPT_HEADER,
-            "psql_commands": psql_commands,
-        },
+    psql_commands = "\n".join(
+        # f"\\copy ({query}) TO '$DATA_DIR/{name}.csv' BINARY;"
+        f"\\echo Dumping table {name}\n\\copy ({query}) TO '$DATA_DIR/{name}.csv' WITH CSV HEADER;"
+        for name, query in queries.items()
     )
-
-
-def write_load_script(filename: str) -> None:
-    content = r"""
-        {script_header}
-        echo "DB LOAD - version {script_version}"
-        echo "Restore database $PGDATABASE to $PGHOST:$PGPORT"
-        echo "WORKDIR=$WORKDIR"
-
-        tar -xzf "$DUMP_ARCHIVE" -C "$WORKDIR"
-
-        echo "Dropping and recreating database..."
-        dropdb --if-exists --force "$PGDATABASE"
-        createdb "$PGDATABASE"
-
-        echo "Restoring schema to destination DB..."
-        $PSQL -f "$SCHEMA_PRE_DATA"
-
-        echo "Importing data..."
-        $PSQL <<EOF
-        BEGIN;
-        $(for FILE in "$WORKDIR"/*.csv; do
-            TABLE=$(basename "$FILE" .csv)
-            echo "\\echo Restoring table $TABLE"
-            echo "\\copy $TABLE FROM '$FILE' WITH CSV HEADER;"
-        done)
-        COMMIT;
-        EOF
-
-        echo "Restoring schema to destination DB..."
-        $PSQL -f "$SCHEMA_POST_DATA"
-
-        echo "Running ANALYZE..."
-        $PSQL -c "ANALYZE;"
-
-        echo "All done."
-    """
-    write_content(
-        filename,
+    return format_content(
         content,
         params={
             "script_version": SCRIPT_VERSION,
-            "script_header": SCRIPT_HEADER,
+            "setup_psql": SETUP_PSQL,
+            "setup_work_dir": SETUP_WORK_DIR,
+            "bootstrap_script": BOOTSTRAP_SCRIPT,
+            "build_script": BUILD_SCRIPT,
+            "load_script": LOAD_SCRIPT,
+            "psql_commands": psql_commands,
+            "head": head,
         },
     )
 
 
 def main():
+    """Main entry point."""
+    L.info("Updating scripts...")
+    head = get_current_head()
     queries = get_queries()
     check_queries(queries)
-    write_dump_script("scripts/dump.sh", queries)
-    write_load_script("scripts/load.sh")
+    scripts_dir = Path(__file__).parent
+    write_script(
+        scripts_dir / BUILD_SCRIPT,
+        content=_get_build_script_content(queries=queries, head=head),
+    )
+    write_script(scripts_dir / LOAD_SCRIPT, content=_get_load_script_content())
+    write_script(scripts_dir / BOOTSTRAP_SCRIPT, content=_get_bootstrap_script_content())
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ def read_many(
     icm_filter: IonChannelModelFilterDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
-) -> ListResponse[IonChannelModelRead]:
+) -> ListResponse[IonChannelModelExpanded]:
     subject_alias = aliased(Subject, flat=True)
     aliases: Aliases = {
         Subject: subject_alias,
@@ -97,10 +97,10 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
-        apply_data_query_operations=_load_minimal,
+        apply_data_query_operations=_load_expanded,
         apply_filter_query_operations=None,
         pagination_request=pagination_request,
-        response_schema_class=IonChannelModelRead,
+        response_schema_class=IonChannelModelExpanded,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=icm_filter,
         filter_joins=filter_joins,

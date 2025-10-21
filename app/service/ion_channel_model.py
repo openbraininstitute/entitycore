@@ -97,7 +97,7 @@ def read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
-        apply_data_query_operations=_load_minimal,
+        apply_data_query_operations=_load_expanded,
         apply_filter_query_operations=None,
         pagination_request=pagination_request,
         response_schema_class=IonChannelModelExpanded,

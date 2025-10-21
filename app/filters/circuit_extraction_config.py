@@ -13,7 +13,6 @@ from app.filters.common import EntityFilterMixin, IdFilterMixin, NameFilterMixin
 class CircuitExtractionConfigFilterBase(NameFilterMixin, IdFilterMixin, CustomFilter):
     circuit_id: uuid.UUID | None = None
     circuit_id__in: list[uuid.UUID] | None = None
-    circuit: Annotated[NestedCircuitFilter | None, NestedCircuitFilterDep] = None
 
 
 class NestedCircuitExtractionConfigFilter(CircuitExtractionConfigFilterBase):
@@ -24,6 +23,8 @@ class NestedCircuitExtractionConfigFilter(CircuitExtractionConfigFilterBase):
 class CircuitExtractionConfigFilter(EntityFilterMixin, CircuitExtractionConfigFilterBase):
     circuit_extraction_campaign_id: uuid.UUID | None = None
     circuit_extraction_campaign_id__in: list[uuid.UUID] | None = None
+
+    circuit: Annotated[NestedCircuitFilter | None, NestedCircuitFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

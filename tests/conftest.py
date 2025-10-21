@@ -1696,7 +1696,6 @@ def ion_channel_modeling_config_json_data(public_ion_channel_modeling_campaign_i
         "description": "my-ion-channel-modeling-config",
         "ion_channel_modeling_campaign_id": public_ion_channel_modeling_campaign_id,
         "scan_parameters": {"foo": "bar"},
-        "authorized_public": True,
     }
 
 

@@ -39,6 +39,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Organization,
+    Person,
     PlaceholderCellMorphologyProtocol,
     Publication,
     Role,
@@ -399,6 +400,12 @@ def _db_cleanup(db):
 
 @pytest.fixture
 def person_id(db):
+    # Check if person already exists
+    existing_person = db.query(Person).filter(Person.sub_id == USER_SUB_ID_1).first()
+    if existing_person:
+        return existing_person.id
+
+    # Create new person if it doesn't exist
     return utils.create_person(
         db,
         given_name="jd",
@@ -878,7 +885,7 @@ class MEModels:
 def ion_channel_model_id(client, brain_region_id, subject_id):
     data = assert_request(
         client.post,
-        url="/ion-channel/model",
+        url="/ion-channel-model",
         json={
             "name": "ion-channel-model",
             "description": "Test ICM Description",
@@ -888,7 +895,7 @@ def ion_channel_model_id(client, brain_region_id, subject_id):
             "brain_region_id": brain_region_id,
             "subject_id": subject_id,
         },
-    )
+    ).json()
     return data["id"]
 
 

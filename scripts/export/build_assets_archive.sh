@@ -8,8 +8,7 @@ DST_DIR="${DST_DIR:-data/assets-sync}"
 ARCHIVE="assets_${BUCKET_NAME}_$(date +%Y%m%d).tar.gz"
 
 SRC_PATHS=(
-    # public/
-    public/a98b7abc-fc46-4700-9e3d-37137812c730/0dbced5f-cc3d-488a-8c7f-cfb8ea039dc6/assets/electrical_cell_recording/0000cd5a-28a4-4bc5-8e62-d50c6bd42cbc
+    public/
 )
 
 printf "Sync public assets from s3://%s to %s with options: %s\n" \

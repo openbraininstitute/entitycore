@@ -142,6 +142,15 @@ def test_missing(client):
 def test_read_many(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):
     count = 11
     icm_res = [create(client, subject_id, brain_region_id) for _ in range(count)]
+    for icm in icm_res:
+        with FILE_EXAMPLE_PATH.open("rb") as f:
+            upload_entity_asset(
+                client,
+                EntityType.ion_channel_model,
+                uuid.UUID(icm.json().get("id")),
+                files={"file": ("c.mod", f, "application/mod")},
+                label="neuron_mechanisms",
+            )
 
     response = client.get(ROUTE, params={"page_size": 10})
     assert response.status_code == 200
@@ -155,6 +164,8 @@ def test_read_many(client: TestClient, subject_id: str, brain_region_id: uuid.UU
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 11
+    for single_data in data:
+        assert len(single_data["assets"]) == 1
 
     IonChannelModelRead.model_validate(icm_res[0].json())
 

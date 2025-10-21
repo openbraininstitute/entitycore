@@ -35,12 +35,12 @@ MODEL = IonChannelModelingConfigGeneration
 
 
 @pytest.fixture
-def json_data(ion_channel_modeling_config, ion_channel_model):
+def json_data(ion_channel_modeling_config_id, ion_channel_model_id):
     return {
         "start_time": str(datetime.now(UTC)),
         "end_time": str(datetime.now(UTC)),
-        "used_ids": [str(ion_channel_modeling_config.id)],
-        "generated_ids": [str(ion_channel_model.id)],
+        "used_ids": [str(ion_channel_modeling_config_id)],
+        "generated_ids": [str(ion_channel_model_id)],
         "status": "done",
     }
 
@@ -171,45 +171,45 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(morphology_id, ion_channel_modeling_config, ion_channel_model, create_id):
+def models(morphology_id, ion_channel_modeling_config_id, ion_channel_model_id, create_id):
     return [
         create_id(
-            used_ids=[str(ion_channel_modeling_config.id)],
+            used_ids=[ion_channel_modeling_config_id],
             generated_ids=[],
         ),
         create_id(
-            used_ids=[str(ion_channel_modeling_config.id)],
-            generated_ids=[str(ion_channel_modeling_config.id)],
+            used_ids=[ion_channel_modeling_config_id],
+            generated_ids=[ion_channel_modeling_config_id],
         ),
         create_id(
-            used_ids=[str(ion_channel_modeling_config.id)],
-            generated_ids=[str(ion_channel_model.id)],
+            used_ids=[ion_channel_modeling_config_id],
+            generated_ids=[ion_channel_model_id],
         ),
         create_id(
-            used_ids=[str(ion_channel_modeling_config.id), str(ion_channel_model.id)],
+            used_ids=[ion_channel_modeling_config_id, ion_channel_model_id],
             generated_ids=[
-                str(ion_channel_modeling_config.id),
-                str(ion_channel_model.id),
+                ion_channel_modeling_config_id,
+                ion_channel_model_id,
             ],
         ),
         create_id(
-            used_ids=[str(morphology_id), str(ion_channel_modeling_config.id)],
-            generated_ids=[str(ion_channel_model.id)],
+            used_ids=[str(morphology_id), ion_channel_modeling_config_id],
+            generated_ids=[ion_channel_model_id],
         ),
     ]
 
 
-def test_filtering(client, models, ion_channel_modeling_config, ion_channel_model):
+def test_filtering(client, models, ion_channel_modeling_config_id, ion_channel_model_id):
     data = assert_request(client.get, url=ROUTE).json()["data"]
     assert len(data) == len(models)
 
     data = assert_request(
-        client.get, url=ROUTE, params={"used__id": str(ion_channel_modeling_config.id)}
+        client.get, url=ROUTE, params={"used__id": ion_channel_modeling_config_id}
     ).json()["data"]
     assert len(data) == 5
 
     data = assert_request(
-        client.get, url=ROUTE, params={"generated__id": str(ion_channel_modeling_config.id)}
+        client.get, url=ROUTE, params={"generated__id": ion_channel_modeling_config_id}
     ).json()["data"]
     assert len(data) == 2
 
@@ -217,8 +217,8 @@ def test_filtering(client, models, ion_channel_modeling_config, ion_channel_mode
         client.get,
         url=ROUTE,
         params={
-            "used__id": str(ion_channel_modeling_config.id),
-            "generated__id": str(ion_channel_modeling_config.id),
+            "used__id": ion_channel_modeling_config_id,
+            "generated__id": ion_channel_modeling_config_id,
         },
     ).json()["data"]
     assert len(data) == 2
@@ -228,8 +228,8 @@ def test_filtering(client, models, ion_channel_modeling_config, ion_channel_mode
         url=ROUTE,
         params={
             "used__id__in": [
-                str(ion_channel_modeling_config.id),
-                str(ion_channel_model.id),
+                ion_channel_modeling_config_id,
+                ion_channel_model_id,
             ]
         },
     ).json()["data"]
@@ -240,8 +240,8 @@ def test_filtering(client, models, ion_channel_modeling_config, ion_channel_mode
         url=ROUTE,
         params={
             "generated__id__in": [
-                str(ion_channel_modeling_config.id),
-                str(ion_channel_model.id),
+                ion_channel_modeling_config_id,
+                ion_channel_model_id,
             ]
         },
     ).json()["data"]
@@ -273,15 +273,19 @@ def test_delete_one(db, clients, json_data):
 
 
 def test_update_one(
-    client, client_admin, ion_channel_modeling_campaign, ion_channel_modeling_config, create_id
+    client,
+    client_admin,
+    ion_channel_modeling_campaign_id,
+    ion_channel_modeling_config_id,
+    create_id,
 ):
     check_activity_update_one(
         client=client,
         client_admin=client_admin,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
-        used_id=ion_channel_modeling_campaign.id,
-        generated_id=ion_channel_modeling_config.id,
+        used_id=ion_channel_modeling_campaign_id,
+        generated_id=ion_channel_modeling_config_id,
         constructor_func=create_id,
     )
 
@@ -314,13 +318,13 @@ def test_update_one__fail_if_generated_ids_unauthorized(
 
 
 def test_update_one__fail_if_generated_ids_exists(
-    client, ion_channel_modeling_campaign, ion_channel_modeling_config, create_id
+    client, ion_channel_modeling_campaign_id, ion_channel_modeling_config_id, create_id
 ):
     """Test activity Generation associations cannot be updated if they already exist."""
     check_activity_update_one__fail_if_generated_ids_exists(
         client=client,
         route=ROUTE,
-        entity_id_1=ion_channel_modeling_campaign.id,
-        entity_id_2=ion_channel_modeling_config.id,
+        entity_id_1=ion_channel_modeling_campaign_id,
+        entity_id_2=ion_channel_modeling_config_id,
         constructor_func=create_id,
     )

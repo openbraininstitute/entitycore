@@ -34,8 +34,6 @@ from app.db.model import (
     ExternalUrl,
     IonChannel,
     IonChannelModel,
-    IonChannelModelingCampaign,
-    IonChannelModelingConfig,
     IonChannelModelToEModel,
     MEModel,
     MTypeClass,
@@ -877,23 +875,21 @@ class MEModels:
 
 
 @pytest.fixture
-def ion_channel_model(db, person_id, brain_region_id, subject_id):
-    return add_db(
-        db,
-        IonChannelModel(
-            description="Test ICM Description",
-            name="ion-channel-model",
-            nmodl_suffix="test_icm",
-            temperature_celsius=0,
-            neuron_block={},
-            brain_region_id=str(brain_region_id),
-            subject_id=str(subject_id),
-            authorized_public=False,
-            created_by_id=str(person_id),
-            updated_by_id=str(person_id),
-            authorized_project_id=PROJECT_ID,
-        ),
+def ion_channel_model_id(client, brain_region_id, subject_id):
+    data = assert_request(
+        client.post,
+        url="/ion-channel/model",
+        json={
+            "name": "ion-channel-model",
+            "description": "Test ICM Description",
+            "nmodl_suffix": "test_icm",
+            "temperature_celsius": 0,
+            "neuron_block": {},
+            "brain_region_id": brain_region_id,
+            "subject_id": subject_id,
+        },
     )
+    return data["id"]
 
 
 @pytest.fixture
@@ -1674,42 +1670,41 @@ def ion_channel_modeling_campaign_json_data():
 
 
 @pytest.fixture
-def ion_channel_modeling_campaign(db, ion_channel_modeling_campaign_json_data, person_id):
-    return add_db(
-        db,
-        IonChannelModelingCampaign(
-            **ion_channel_modeling_campaign_json_data
-            | {
-                "authorized_project_id": PROJECT_ID,
-                "authorized_public": False,
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
-            }
-        ),
-    )
+def ion_channel_modeling_campaign_id(client, ion_channel_modeling_campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/ion-channel-modeling-campaign",
+        json=ion_channel_modeling_campaign_json_data,
+    ).json()
+    return data["id"]
 
 
 @pytest.fixture
-def ion_channel_modeling_config_json_data(ion_channel_modeling_campaign):
+def public_ion_channel_modeling_campaign_id(client, ion_channel_modeling_campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/ion-channel-modeling-campaign",
+        json=ion_channel_modeling_campaign_json_data | {"authorized_public": True},
+    ).json()
+    return data["id"]
+
+
+@pytest.fixture
+def ion_channel_modeling_config_json_data(public_ion_channel_modeling_campaign_id):
     return {
         "name": "ion-channel-modeling-config",
         "description": "my-ion-channel-modeling-config",
-        "ion_channel_modeling_campaign_id": str(ion_channel_modeling_campaign.id),
+        "ion_channel_modeling_campaign_id": public_ion_channel_modeling_campaign_id,
         "scan_parameters": {"foo": "bar"},
+        "authorized_public": True,
     }
 
 
 @pytest.fixture
-def ion_channel_modeling_config(db, ion_channel_modeling_config_json_data, person_id):
-    return add_db(
-        db,
-        IonChannelModelingConfig(
-            **ion_channel_modeling_config_json_data
-            | {
-                "authorized_project_id": PROJECT_ID,
-                "authorized_public": False,
-                "created_by_id": person_id,
-                "updated_by_id": person_id,
-            }
-        ),
-    )
+def ion_channel_modeling_config_id(client, ion_channel_modeling_config_json_data):
+    data = assert_request(
+        client.post,
+        url="/ion-channel-modeling-config",
+        json=ion_channel_modeling_config_json_data,
+    ).json()
+    return data["id"]

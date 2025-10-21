@@ -1,8 +1,8 @@
-"""Default migration message
+"""ion_channel_modeling
 
-Revision ID: 07131f659eb8
+Revision ID: 36bff9397f44
 Revises: 70eff13c95d6
-Create Date: 2025-10-20 14:28:23.316990
+Create Date: 2025-10-21 09:25:32.855484
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "07131f659eb8"
+revision: str = "36bff9397f44"
 down_revision: Union[str, None] = "70eff13c95d6"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

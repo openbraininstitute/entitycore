@@ -4,8 +4,6 @@ from app.db.model import IonChannelModelingCampaign, IonChannelModelingConfig
 from app.db.types import EntityType
 
 from .utils import (
-    PROJECT_ID,
-    add_all_db,
     assert_request,
     check_authorization,
     check_entity_delete_one,
@@ -38,8 +36,8 @@ def create_id(client, json_data):
 
 
 @pytest.fixture
-def model(ion_channel_modeling_config):
-    return ion_channel_modeling_config
+def model_id(ion_channel_modeling_config_id):
+    return ion_channel_modeling_config_id
 
 
 def _assert_read_response(data, json_data):
@@ -53,15 +51,15 @@ def test_create_one(client, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_one(clients, model, json_data):
-    data = assert_request(clients.user_1.get, url=f"{ROUTE}/{model.id}").json()
+def test_read_one(clients, model_id, json_data):
+    data = assert_request(clients.user_1.get, url=f"{ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
     data = assert_request(clients.user_1.get, url=f"{ROUTE}").json()["data"]
     assert len(data) == 1
     _assert_read_response(data[0], json_data)
 
-    data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{model.id}").json()
+    data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
 
 
@@ -96,25 +94,11 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id):
-    return add_all_db(
-        db,
-        [
-            IonChannelModelingConfig(
-                **json_data
-                | {
-                    "name": f"config-{i}",
-                    "created_by_id": person_id,
-                    "updated_by_id": person_id,
-                    "authorized_project_id": PROJECT_ID,
-                }
-            )
-            for i in range(3)
-        ],
-    )
+def models(create_id):
+    return [create_id(name=f"config-{i}") for i in range(3)]
 
 
-def test_filtering_ordering(client, models, ion_channel_modeling_campaign):
+def test_filtering_ordering(client, models, public_ion_channel_modeling_campaign_id):
     def _req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -128,10 +112,10 @@ def test_filtering_ordering(client, models, ion_channel_modeling_campaign):
     assert len(data) == 1
     assert data[0]["name"] == "config-0"
 
-    data = _req({"ion_channel_modeling_campaign_id": str(ion_channel_modeling_campaign.id)})
+    data = _req({"ion_channel_modeling_campaign_id": public_ion_channel_modeling_campaign_id})
     assert len(data) == len(models)
 
-    data = _req({"ion_channel_modeling_campaign_id__in": [str(ion_channel_modeling_campaign.id)]})
+    data = _req({"ion_channel_modeling_campaign_id__in": [public_ion_channel_modeling_campaign_id]})
     assert len(data) == len(models)
 
     data = _req({"order_by": "-name"})

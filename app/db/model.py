@@ -1734,8 +1734,8 @@ class CircuitExtractionCampaign(Entity, NameDescriptionVectorMixin):
         id (uuid.UUID): Primary key.
         scan_parameters (JSON_DICT): Scan parameters of the extraction campaign.
 
-    Note: All CircuitExtraction entities belonging to a CircuitExtractionCampaign are
-          accessible though its corresponding CircuitExtractionGeneration activity.
+    Note: All CircuitExtractionConfig entities belonging to a CircuitExtractionCampaign are
+          accessible though its corresponding CircuitExtractionConfigGeneration activity.
     """
 
     __tablename__ = EntityType.circuit_extraction_campaign.value

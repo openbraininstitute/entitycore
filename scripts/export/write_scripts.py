@@ -123,6 +123,8 @@ def get_queries() -> dict[str, str]:
         "experimental_neuron_density": lambda t: _export_child(t, "entity"),
         "experimental_synapses_per_connection": lambda t: _export_child(t, "entity"),
         "ion_channel_model": lambda t: _export_child(t, "entity"),
+        "ion_channel_modeling_campaign": lambda t: _export_child(t, "entity"),
+        "ion_channel_modeling_config": lambda t: _export_child(t, "entity"),
         "ion_channel_recording": lambda t: _export_child(t, "entity"),
         "me_type_density": lambda t: _export_child(t, "entity"),
         "memodel": lambda t: _export_child(t, "entity"),
@@ -136,6 +138,8 @@ def get_queries() -> dict[str, str]:
         # children of activity
         "analysis_notebook_execution": lambda t: _export_child(t, "activity"),
         "calibration": lambda t: _export_child(t, "activity"),
+        "ion_channel_modeling_config_generation": lambda t: _export_child(t, "activity"),
+        "ion_channel_modeling_execution": lambda t: _export_child(t, "activity"),
         "simulation_execution": lambda t: _export_child(t, "activity"),
         "simulation_generation": lambda t: _export_child(t, "activity"),
         "validation": lambda t: _export_child(t, "activity"),
@@ -144,7 +148,9 @@ def get_queries() -> dict[str, str]:
         "asset": lambda t: _export_single_join(t, "entity", "entity_id"),
         "contribution": lambda t: _export_single_join(t, "entity", "entity_id"),
         "derivation": lambda t: _export_double_join(
-            t, ("entity", "used_id"), ("entity", "generated_id")
+            t,
+            ("entity", "used_id"),
+            ("entity", "generated_id"),
         ),
         "etype_classification": lambda t: f"""
             SELECT {t}.* FROM {t}
@@ -153,10 +159,19 @@ def get_queries() -> dict[str, str]:
             AND e.authorized_public IS true
             """,  # noqa: S608
         "generation": lambda t: _export_double_join(
-            t, ("entity", "generation_entity_id"), ("activity", "generation_activity_id")
+            t,
+            ("entity", "generation_entity_id"),
+            ("activity", "generation_activity_id"),
         ),
         "ion_channel_model__emodel": lambda t: _export_double_join(
-            t, ("entity", "ion_channel_model_id"), ("entity", "emodel_id")
+            t,
+            ("entity", "ion_channel_model_id"),
+            ("entity", "emodel_id"),
+        ),
+        "ion_channel_recording__ion_channel_modeling_campaign": lambda t: _export_double_join(
+            t,
+            ("entity", "ion_channel_recording_id"),
+            ("entity", "ion_channel_modeling_campaign_id"),
         ),
         "measurement_annotation": lambda t: _export_single_join(t, "entity", "entity_id"),
         "measurement_item": lambda t: f"""
@@ -193,7 +208,9 @@ def get_queries() -> dict[str, str]:
             t, "entity", "scientific_artifact_id"
         ),
         "usage": lambda t: _export_double_join(
-            t, ("entity", "usage_entity_id"), ("activity", "usage_activity_id")
+            t,
+            ("entity", "usage_entity_id"),
+            ("activity", "usage_activity_id"),
         ),
         "validation_result": lambda t: f"""
             SELECT {t}.* FROM {t}
@@ -304,10 +321,14 @@ def check_queries(queries: dict[str, str]) -> None:
     """Verify the consistency of the export queries."""
     queries_set = set(queries)
     all_tables = set(Base.metadata.tables) | {"alembic_version"}
+    errors = []
     if diff := all_tables - queries_set:
-        L.warning("Missing tables in the configuration: %s", sorted(diff))
+        errors.append(f"Missing tables in the configuration: {sorted(diff)}")
     if diff := queries_set - all_tables:
-        L.warning("Extra tables in the configuration: %s", sorted(diff))
+        errors.append(f"Extra tables in the configuration: {sorted(diff)}")
+    if errors:
+        msg = f"Inconsistent queries\n{'\n'.join(errors)}"
+        raise RuntimeError(msg)
 
 
 def format_content(content: str, params: dict[str, Any]) -> str:

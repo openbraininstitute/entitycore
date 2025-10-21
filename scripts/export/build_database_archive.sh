@@ -38,9 +38,9 @@ export SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
 export SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
 
 
-echo "DB DUMP (version 1 for db version 70eff13c95d6)"
+echo "DB DUMP (version 1 for db version 805fc8028f39)"
 
-EXPECTED_DB_VERSION="70eff13c95d6"
+EXPECTED_DB_VERSION="805fc8028f39"
 DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
 if [[ "$DB_VERSION" != "$EXPECTED_DB_VERSION" ]]; then
     echo "Database version ($DB_VERSION) != expected ($EXPECTED_DB_VERSION)"
@@ -145,6 +145,10 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT experimental_synapses_per_connection.* from experimental_synapses_per_connection JOIN entity USING (id) WHERE entity.authorized_public IS true) TO '$DATA_DIR/experimental_synapses_per_connection.csv' WITH CSV HEADER;
 \echo Dumping table ion_channel_model
 \copy (SELECT ion_channel_model.* from ion_channel_model JOIN entity USING (id) WHERE entity.authorized_public IS true) TO '$DATA_DIR/ion_channel_model.csv' WITH CSV HEADER;
+\echo Dumping table ion_channel_modeling_campaign
+\copy (SELECT ion_channel_modeling_campaign.* from ion_channel_modeling_campaign JOIN entity USING (id) WHERE entity.authorized_public IS true) TO '$DATA_DIR/ion_channel_modeling_campaign.csv' WITH CSV HEADER;
+\echo Dumping table ion_channel_modeling_config
+\copy (SELECT ion_channel_modeling_config.* from ion_channel_modeling_config JOIN entity USING (id) WHERE entity.authorized_public IS true) TO '$DATA_DIR/ion_channel_modeling_config.csv' WITH CSV HEADER;
 \echo Dumping table ion_channel_recording
 \copy (SELECT ion_channel_recording.* from ion_channel_recording JOIN entity USING (id) WHERE entity.authorized_public IS true) TO '$DATA_DIR/ion_channel_recording.csv' WITH CSV HEADER;
 \echo Dumping table me_type_density
@@ -169,6 +173,10 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT analysis_notebook_execution.* from analysis_notebook_execution JOIN activity USING (id) WHERE activity.authorized_public IS true) TO '$DATA_DIR/analysis_notebook_execution.csv' WITH CSV HEADER;
 \echo Dumping table calibration
 \copy (SELECT calibration.* from calibration JOIN activity USING (id) WHERE activity.authorized_public IS true) TO '$DATA_DIR/calibration.csv' WITH CSV HEADER;
+\echo Dumping table ion_channel_modeling_config_generation
+\copy (SELECT ion_channel_modeling_config_generation.* from ion_channel_modeling_config_generation JOIN activity USING (id) WHERE activity.authorized_public IS true) TO '$DATA_DIR/ion_channel_modeling_config_generation.csv' WITH CSV HEADER;
+\echo Dumping table ion_channel_modeling_execution
+\copy (SELECT ion_channel_modeling_execution.* from ion_channel_modeling_execution JOIN activity USING (id) WHERE activity.authorized_public IS true) TO '$DATA_DIR/ion_channel_modeling_execution.csv' WITH CSV HEADER;
 \echo Dumping table simulation_execution
 \copy (SELECT simulation_execution.* from simulation_execution JOIN activity USING (id) WHERE activity.authorized_public IS true) TO '$DATA_DIR/simulation_execution.csv' WITH CSV HEADER;
 \echo Dumping table simulation_generation
@@ -189,6 +197,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT generation.* FROM generation JOIN entity AS t1 ON t1.id=generation.generation_entity_id JOIN activity AS t2 ON t2.id=generation.generation_activity_id WHERE t1.authorized_public IS true AND t2.authorized_public IS true) TO '$DATA_DIR/generation.csv' WITH CSV HEADER;
 \echo Dumping table ion_channel_model__emodel
 \copy (SELECT ion_channel_model__emodel.* FROM ion_channel_model__emodel JOIN entity AS t1 ON t1.id=ion_channel_model__emodel.ion_channel_model_id JOIN entity AS t2 ON t2.id=ion_channel_model__emodel.emodel_id WHERE t1.authorized_public IS true AND t2.authorized_public IS true) TO '$DATA_DIR/ion_channel_model__emodel.csv' WITH CSV HEADER;
+\echo Dumping table ion_channel_recording__ion_channel_modeling_campaign
+\copy (SELECT ion_channel_recording__ion_channel_modeling_campaign.* FROM ion_channel_recording__ion_channel_modeling_campaign JOIN entity AS t1 ON t1.id=ion_channel_recording__ion_channel_modeling_campaign.ion_channel_recording_id JOIN entity AS t2 ON t2.id=ion_channel_recording__ion_channel_modeling_campaign.ion_channel_modeling_campaign_id WHERE t1.authorized_public IS true AND t2.authorized_public IS true) TO '$DATA_DIR/ion_channel_recording__ion_channel_modeling_campaign.csv' WITH CSV HEADER;
 \echo Dumping table measurement_annotation
 \copy (SELECT measurement_annotation.* FROM measurement_annotation JOIN entity AS t ON t.id=measurement_annotation.entity_id WHERE t.authorized_public IS true) TO '$DATA_DIR/measurement_annotation.csv' WITH CSV HEADER;
 \echo Dumping table measurement_item

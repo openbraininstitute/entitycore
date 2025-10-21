@@ -28,13 +28,15 @@ from .utils import (
     check_entity_update_one,
     create_cell_morphology_id,
 )
+from tests.utils.api_create import create_cell_morphology_protocol_id
+from tests.utils.check import check_auth_triggers
 
 ROUTE = "/cell-morphology"
 ADMIN_ROUTE = "/admin/cell-morphology"
 
 
 @pytest.fixture
-def json_data(subject_id, license_id, brain_region_id, cell_morphology_protocol):
+def common_json_data(subject_id, license_id, brain_region_id):
     return {
         "brain_region_id": str(brain_region_id),
         "subject_id": str(subject_id),
@@ -43,9 +45,22 @@ def json_data(subject_id, license_id, brain_region_id, cell_morphology_protocol)
         "location": {"x": 10, "y": 20, "z": 30},
         "legacy_id": ["Test Legacy ID"],
         "license_id": str(license_id),
-        "cell_morphology_protocol_id": str(cell_morphology_protocol.id),
         "contact_email": "test@example.com",
         "experiment_date": "2025-01-01T00:00:00",
+    }
+
+
+@pytest.fixture
+def json_data(common_json_data, cell_morphology_protocol):
+    return common_json_data | {
+        "cell_morphology_protocol_id": str(cell_morphology_protocol.id),
+    }
+
+
+@pytest.fixture
+def public_json_data(common_json_data, public_cell_morphology_protocol):
+    return common_json_data | {
+        "cell_morphology_protocol_id": str(public_cell_morphology_protocol.id),
     }
 
 
@@ -92,13 +107,13 @@ def test_create_one(
     assert data[0]["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
 
 
-def test_delete_one(db, clients, json_data):
+def test_delete_one(db, clients, public_json_data):
     check_entity_delete_one(
         db=db,
         clients=clients,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
-        json_data=json_data,
+        json_data=public_json_data,
         expected_counts_before={CellMorphology: 1, CellMorphologyProtocol: 1},
         expected_counts_after={
             CellMorphology: 0,
@@ -107,12 +122,12 @@ def test_delete_one(db, clients, json_data):
     )
 
 
-def test_update_one(clients, json_data):
+def test_update_one(clients, public_json_data):
     check_entity_update_one(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        json_data=public_json_data,
         patch_payload={
             "name": "name",
             "description": "description",
@@ -478,24 +493,35 @@ def test_query_cell_morphology_species_join(db, client, brain_region_id, subject
     }
 
 
-def test_authorization(
+def test_authorization(client_user_1, client_user_2, client_no_project, public_json_data):
+    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, public_json_data)
+
+
+def test_auth_triggers(
     client_user_1,
     client_user_2,
-    client_no_project,
-    subject_id,
-    license_id,
-    brain_region_id,
+    public_json_data,
+    cell_morphology_protocol,
+    public_cell_morphology_protocol,
 ):
-    json_data = {
-        "location": {"x": 10, "y": 20, "z": 30},
-        "brain_region_id": str(brain_region_id),
-        "description": "morph description",
-        "legacy_id": ["Test Legacy ID"],
-        "license_id": license_id,
-        "name": "Test Morphology Name",
-        "subject_id": str(subject_id),
-    }
-    check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+    linked_private_u2 = create_cell_morphology_protocol_id(
+        client_user_2,
+        authorized_public=False,
+    )
+    linked_public_u2 = create_cell_morphology_protocol_id(
+        client_user_2,
+        authorized_public=True,
+    )
+    check_auth_triggers(
+        ROUTE,
+        client_user_1=client_user_1,
+        json_data=public_json_data,
+        link_key="cell_morphology_protocol_id",
+        linked_private_u1_id=str(cell_morphology_protocol.id),
+        linked_public_u1_id=str(public_cell_morphology_protocol.id),
+        linked_private_u2_id=linked_private_u2,
+        linked_public_u2_id=linked_public_u2,
+    )
 
 
 def test_pagination(db, client, brain_region_id, person_id):

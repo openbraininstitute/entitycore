@@ -17,13 +17,17 @@ from app.db.model import (
     BrainRegion,
     BrainRegionHierarchy,
     CellMorphology,
+    CellMorphologyProtocol,
     Contribution,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
+    EMDenseReconstructionDataset,
+    EModel,
     Entity,
     ETypeClass,
     ETypeClassification,
     IonChannelRecording,
+    MEModel,
     MTypeClass,
     MTypeClassification,
     Person,
@@ -31,13 +35,13 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import EntityType
+from app.db.types import CellMorphologyGenerationType as CellMorphologyGenerationType, EntityType
 from app.routers.asset import EntityRoute
 from app.utils.uuid import create_uuid
 
 DateTimeAdapter = TypeAdapter(datetime)
 
-TEST_DATA_DIR = Path(__file__).parent / "data"
+TEST_DATA_DIR = Path(__file__).parent.parent / "data"
 
 ADMIN_SUB_ID = "00000000-0000-0000-0000-000000000000"
 USER_SUB_ID_1 = "00000000-0000-0000-0000-000000000001"
@@ -76,8 +80,12 @@ UNRELATED_PROJECT_HEADERS = {
 
 ROUTES = {
     CellMorphology: "/cell-morphology",
+    CellMorphologyProtocol: "/cell-morphology-protocol",
     ElectricalCellRecording: "/electrical-cell-recording",
+    EMDenseReconstructionDataset: "/em-dense-reconstruction-dataset",
+    EModel: "/emodel",
     IonChannelRecording: "/ion-channel-recording",
+    MEModel: "/memodel",
 }
 
 
@@ -118,11 +126,11 @@ class ClientProxies(NamedTuple):
 
 def create_cell_morphology_id(
     client,
+    *,
     subject_id,
     brain_region_id,
     name="Test Morphology Name",
     description="Test Morphology Description",
-    *,
     authorized_public: bool = False,
 ):
     response = client.post(

@@ -1477,6 +1477,24 @@ def em_dense_reconstruction_dataset(db, em_dense_reconstruction_dataset_json_dat
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
+                "authorized_public": False,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def public_em_dense_reconstruction_dataset(
+    db, em_dense_reconstruction_dataset_json_data, person_id
+):
+    return add_db(
+        db,
+        EMDenseReconstructionDataset(
+            **em_dense_reconstruction_dataset_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
                 "authorized_public": True,
                 "authorized_project_id": PROJECT_ID,
             }
@@ -1495,6 +1513,22 @@ def em_cell_mesh_json_data(em_dense_reconstruction_dataset, subject_id, brain_re
         "level_of_detail": 10,
         "mesh_type": "static",
         "em_dense_reconstruction_dataset_id": str(em_dense_reconstruction_dataset.id),
+    }
+
+
+@pytest.fixture
+def public_em_cell_mesh_json_data(
+    public_em_dense_reconstruction_dataset, subject_id, brain_region_id
+):
+    return {
+        "subject_id": str(subject_id),
+        "brain_region_id": str(brain_region_id),
+        "release_version": 1,
+        "dense_reconstruction_cell_id": 2**63 - 1,  # max signed bigint
+        "generation_method": "marching_cubes",
+        "level_of_detail": 10,
+        "mesh_type": "static",
+        "em_dense_reconstruction_dataset_id": str(public_em_dense_reconstruction_dataset.id),
     }
 
 
@@ -1523,6 +1557,22 @@ def cell_morphology_protocol_json_data():
 
 @pytest.fixture
 def cell_morphology_protocol(db, cell_morphology_protocol_json_data, person_id):
+    return add_db(
+        db,
+        PlaceholderCellMorphologyProtocol(
+            **cell_morphology_protocol_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+                "authorized_public": False,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def public_cell_morphology_protocol(db, cell_morphology_protocol_json_data, person_id):
     return add_db(
         db,
         PlaceholderCellMorphologyProtocol(

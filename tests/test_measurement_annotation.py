@@ -52,8 +52,8 @@ def test_update_one(clients, json_data, subject_id, brain_region_id):
 
     new_morph_id = create_cell_morphology_id(
         clients.user_1,
-        subject_id,
-        brain_region_id,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
         authorized_public=True,
     )
 

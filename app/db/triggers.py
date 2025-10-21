@@ -140,18 +140,18 @@ def unauthorized_private_reference_trigger(model: type[Entity], field_name: str)
 # list of protected relationships between entities as (model, field_name)
 protected_entity_relationships = [
     (BrainAtlasRegion, "brain_atlas_id"),
-    (CellMorphology, "cell_morphology_protocol_id"),
+    (CellMorphology, "cell_morphology_protocol_id"),  # tested
     (Circuit, "atlas_id"),
     (Circuit, "root_circuit_id"),
-    (ElectricalRecordingStimulus, "recording_id"),
-    (EMCellMesh, "em_dense_reconstruction_dataset_id"),
-    (EModel, "exemplar_morphology_id"),
+    (ElectricalRecordingStimulus, "recording_id"),  # tested
+    (EMCellMesh, "em_dense_reconstruction_dataset_id"),  # tested
+    (EModel, "exemplar_morphology_id"),  # tested
     (ExperimentalBoutonDensity, "subject_id"),
     (ExperimentalNeuronDensity, "subject_id"),
     (ExperimentalSynapsesPerConnection, "subject_id"),
-    (MEModel, "emodel_id"),
-    (MEModel, "morphology_id"),
-    (MEModelCalibrationResult, "calibrated_entity_id"),
+    (MEModel, "emodel_id"),  # tested
+    (MEModel, "morphology_id"),  # tested
+    (MEModelCalibrationResult, "calibrated_entity_id"),  # tested
     (ScientificArtifact, "subject_id"),
     (Simulation, "entity_id"),
     (Simulation, "simulation_campaign_id"),

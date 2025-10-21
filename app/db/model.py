@@ -1669,13 +1669,19 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
         has_point_neurons (bool): Indicates if the circuit includes point neurons.
         has_electrical_cell_models (bool): Indicates if the circuit includes electrical cell models.
         has_spines (bool): Indicates if the circuit includes spines.
-        number_neurons (int): Number of neurons in the circuit.
-        number_synapses (int): Number of synapses in the circuit.
-        number_connections (int | None): Number of connections in the circuit, if available.
+        number_neurons (int): Number of neurons in the circuit (see notes).
+        number_synapses (int): Number of synapses in the circuit (see notes).
+        number_connections (int | None): Number of connections in the circuit, if available (see
+            notes).
 
     Notes:
         - Inherits additional attributes from ScientificArtifact (e.g., name, description,
           brain_region).
+        - number_neurons should only include intrinsic neurons and no extrinsic (virtual) neurons.
+        - number_synapses should only include intrinsic synapses, except for circuit of scale
+              'single' in which case it should in particular include extrinsic synapses.
+        - number_connections should only include intrinsic connections, except for circuit of scale
+              'single' in which case it should in particular include extrinsic connections.
 
     Assets:
         - sonata_circuit ... Folder containing SONATA circuit files including circuit_config.json

@@ -1,6 +1,8 @@
 #!/bin/bash
 # Automatically generated, do not edit!
 set -euo pipefail
+echo "DB DUMP (version 1 for db version 805fc8028f39)"
+
 
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 export PATH=/usr/pgsql-17/bin:$PATH
@@ -15,7 +17,7 @@ PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
 PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
 
 if ! command -v "$PSQL_BIN" &>/dev/null; then
-    echo "Error: psql not found in PATH, please set the correct PATH or the PSQL_BIN variable."
+    echo "Error: psql not found in PATH, please set the correct PATH or the PSQL_BIN var."
     exit 1
 fi
 
@@ -26,19 +28,25 @@ if [[ -z "${PGPASSWORD:-}" ]]; then
 fi
 
 
+MAKESELF_BIN="${MAKESELF_BIN:-makeself}"
+if ! command -v "$MAKESELF_BIN" &>/dev/null; then
+    echo "Error: makeself not found in PATH, please set the correct PATH or the MAKESELF_BIN var."
+    exit 1
+fi
+MAKESELF_PARAMS="${MAKESELF_PARAMS:-}"
+MAKESELF="${MAKESELF_BIN} ${MAKESELF_PARAMS}"
+
+
 WORK_DIR=$(mktemp -d -t dump)
 cleanup() {
     printf '\nCleaning up %s\n' "$WORK_DIR"
     rm -rf "$WORK_DIR"
 }
 trap cleanup EXIT
-export WORK_DIR
-export DATA_DIR="$WORK_DIR/data"
-export SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
-export SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
 
-
-echo "DB DUMP (version 1 for db version 805fc8028f39)"
+DATA_DIR="$WORK_DIR/data"
+SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
+SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
 
 EXPECTED_DB_VERSION="805fc8028f39"
 DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
@@ -48,9 +56,10 @@ if [[ "$DB_VERSION" != "$EXPECTED_DB_VERSION" ]]; then
 fi
 
 SCRIPT_DIR="$(realpath "$(dirname "$0")")"
-INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$EXPECTED_DB_VERSION.sh"
+INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$EXPECTED_DB_VERSION.run"
 
 echo "Dump database $PGDATABASE from $PGHOST:$PGPORT"
+
 mkdir -p "$DATA_DIR"
 
 echo "Dumping schema..."
@@ -222,19 +231,9 @@ SET TRANSACTION READ ONLY;
 COMMIT;
 EOF
 
-echo "Building install script..."
-INSTALL_SCRIPT_TMP="$INSTALL_SCRIPT.tmp"
-cp "$SCRIPT_DIR/_bootstrap.sh" "$INSTALL_SCRIPT_TMP"
-
-echo "Adding archive..."
-tar -czvf - \
-    -C "$WORK_DIR" . \
-    -C "$SCRIPT_DIR" "build_database_archive.sh" "_load.sh" "_bootstrap.sh" \
-    >> "$INSTALL_SCRIPT_TMP"
-
-mv "$INSTALL_SCRIPT_TMP" "$INSTALL_SCRIPT"
-chmod +x "$INSTALL_SCRIPT"
-
-echo -e "\nWritten file: $INSTALL_SCRIPT\n"
+echo -e "\nBuilding install script..."
+cp "$SCRIPT_DIR/build_database_archive.sh" "$SCRIPT_DIR/_load.sh" "$WORK_DIR"
+LABEL="DB LOAD (version 1 for db version 805fc8028f39)"
+$MAKESELF "$WORK_DIR" "$INSTALL_SCRIPT" "$LABEL" "./_load.sh"
 
 echo "All done."

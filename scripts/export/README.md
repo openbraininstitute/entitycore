@@ -2,9 +2,9 @@
 
 ## Database
 
-### Update the bash scripts:
+### Update the bash scripts
 
-Update the scripts, as it should be done after any db migration.
+Update the scripts, as it should be done after any db migration:
 
 ```
 uv run ./scripts/export/write_scripts.py
@@ -12,7 +12,21 @@ uv run ./scripts/export/write_scripts.py
 
 ### Export the public data from the database
 
-This command requires a user with read-only access to the database.
+The following command requires read access to the database, and it builds a self-extracting archive.
+
+It requires [makeself](https://github.com/megastep/makeself) to be available in the build system.
+
+The env variables `PG*` must be set to read the source database:
+
+```
+PGUSER
+PGHOST
+PGPORT
+PGDATABASE
+PGPASSWORD
+```
+
+Example:
 
 ```
 PGPASSWORD=entitycore PGPORT=5433 PGDATABASE=entitycore \
@@ -21,12 +35,23 @@ PGPASSWORD=entitycore PGPORT=5433 PGDATABASE=entitycore \
 
 ### Import the public data into a new database
 
-This command drops the existing database and restores the data from the archive.
+The following command drops the defined database and restores the data from the archive.
+
+The env variables `PG*` must be set to write the target database:
+
+```
+PGUSER
+PGHOST
+PGPORT
+PGDATABASE
+PGPASSWORD
+```
+
+Example:
 
 ```
 PGPASSWORD=entitycore PGPORT=5433 PGDATABASE=entitycore_public \
-./install_db_20251021_805fc8028f39.sh
-
+./install_db_20251021_805fc8028f39.run
 ```
 
 ## Assets
@@ -43,8 +68,8 @@ AWS_PROFILE=staging-ro BUCKET_NAME=entitycore-data-staging SYNC_OPTIONS= \
 
 ### Import the public assets
 
-The public assets can be extracted and imported for example:
+The public assets can be extracted and imported, for example:
 
-- in a new S3 bucket by using `aws s3 sync`
+- in a new S3 bucket with `aws s3 sync`
 - in a new S3 bucket that is mounted r/w with `mount-s3`
 - in the local instance of minio, by mounting the directory as the `/data/aws_s3_internal` volume.

@@ -1,6 +1,8 @@
 #!/bin/bash
 # Automatically generated, do not edit!
 set -euo pipefail
+echo "DB LOAD (version 1 for db version 805fc8028f39)"
+
 
 export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 export PATH=/usr/pgsql-17/bin:$PATH
@@ -15,7 +17,7 @@ PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
 PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
 
 if ! command -v "$PSQL_BIN" &>/dev/null; then
-    echo "Error: psql not found in PATH, please set the correct PATH or the PSQL_BIN variable."
+    echo "Error: psql not found in PATH, please set the correct PATH or the PSQL_BIN var."
     exit 1
 fi
 
@@ -26,8 +28,11 @@ if [[ -z "${PGPASSWORD:-}" ]]; then
 fi
 
 
-echo "DB LOAD (version 1)"
 echo "Restore database $PGDATABASE to $PGHOST:$PGPORT"
+
+DATA_DIR="data"
+SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
+SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
 
 if [[
     ! -f "${SCHEMA_PRE_DATA:-}" ||

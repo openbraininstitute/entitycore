@@ -31,7 +31,7 @@ PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
 PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
 
 PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
-PG_DUMP_PARAMS="${PG_DUMP_PARAMS:-}"
+PG_DUMP_PARAMS="${PG_DUMP_PARAMS:---no-owner --no-privileges}"
 PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
 
 if ! command -v "$PSQL_BIN" &>/dev/null; then

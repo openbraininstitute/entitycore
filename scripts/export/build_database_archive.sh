@@ -4,8 +4,14 @@ set -euo pipefail
 echo "DB DUMP (version 1 for db version 805fc8028f39)"
 
 
-export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
-export PATH=/usr/pgsql-17/bin:$PATH
+MAKESELF_BIN="${MAKESELF_BIN:-makeself}"
+if ! command -v "$MAKESELF_BIN" &>/dev/null; then
+    echo "Error: makeself not found, please set the correct MAKESELF_BIN variable."
+    exit 1
+fi
+MAKESELF_PARAMS="${MAKESELF_PARAMS:-}"
+MAKESELF="${MAKESELF_BIN} ${MAKESELF_PARAMS}"
+
 
 export PGUSER="${PGUSER:-entitycore}"
 export PGHOST="${PGHOST:-127.0.0.1}"
@@ -16,8 +22,17 @@ PSQL_BIN="${PSQL_BIN:-psql}"
 PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
 PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
 
+PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
+PG_DUMP_PARAMS="${PG_DUMP_PARAMS:-}"
+PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
+
 if ! command -v "$PSQL_BIN" &>/dev/null; then
-    echo "Error: psql not found in PATH, please set the correct PATH or the PSQL_BIN var."
+    echo "Error: psql not found, please set the correct PSQL_BIN variable."
+    exit 1
+fi
+
+if ! command -v "$PG_DUMP_BIN" &>/dev/null; then
+    echo "Error: pg_dump not found, please set the correct PG_DUMP_BIN variable."
     exit 1
 fi
 
@@ -26,15 +41,6 @@ if [[ -z "${PGPASSWORD:-}" ]]; then
     echo
     export PGPASSWORD
 fi
-
-
-MAKESELF_BIN="${MAKESELF_BIN:-makeself}"
-if ! command -v "$MAKESELF_BIN" &>/dev/null; then
-    echo "Error: makeself not found in PATH, please set the correct PATH or the MAKESELF_BIN var."
-    exit 1
-fi
-MAKESELF_PARAMS="${MAKESELF_PARAMS:-}"
-MAKESELF="${MAKESELF_BIN} ${MAKESELF_PARAMS}"
 
 
 WORK_DIR=$(mktemp -d)
@@ -48,23 +54,23 @@ DATA_DIR="$WORK_DIR/data"
 SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
 SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
 
-EXPECTED_DB_VERSION="805fc8028f39"
+SCRIPT_DB_VERSION="805fc8028f39"
 DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
-if [[ "$DB_VERSION" != "$EXPECTED_DB_VERSION" ]]; then
-    echo "Database version ($DB_VERSION) != expected ($EXPECTED_DB_VERSION)"
+if [[ "$DB_VERSION" != "$SCRIPT_DB_VERSION" ]]; then
+    echo "Actual database version ($DB_VERSION) != script version ($SCRIPT_DB_VERSION)"
     exit 1
 fi
 
 SCRIPT_DIR="$(realpath "$(dirname "$0")")"
-INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$EXPECTED_DB_VERSION.run"
+INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$SCRIPT_DB_VERSION.run"
 
 echo "Dump database $PGDATABASE from $PGHOST:$PGPORT"
 
 mkdir -p "$DATA_DIR"
 
 echo "Dumping schema..."
-pg_dump --schema-only --format=p --section=pre-data > "$SCHEMA_PRE_DATA"
-pg_dump --schema-only --format=p --section=post-data > "$SCHEMA_POST_DATA"
+$PG_DUMP --schema-only --format=p --section=pre-data > "$SCHEMA_PRE_DATA"
+$PG_DUMP --schema-only --format=p --section=post-data > "$SCHEMA_POST_DATA"
 
 echo "Dumping data..."
 $PSQL <<EOF
@@ -240,9 +246,6 @@ set -euo pipefail
 echo "DB LOAD (version 1 for db version 805fc8028f39)"
 
 
-export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
-export PATH=/usr/pgsql-17/bin:$PATH
-
 export PGUSER="${PGUSER:-entitycore}"
 export PGHOST="${PGHOST:-127.0.0.1}"
 export PGPORT="${PGPORT:-5432}"
@@ -252,8 +255,17 @@ PSQL_BIN="${PSQL_BIN:-psql}"
 PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
 PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
 
+PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
+PG_DUMP_PARAMS="${PG_DUMP_PARAMS:-}"
+PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
+
 if ! command -v "$PSQL_BIN" &>/dev/null; then
-    echo "Error: psql not found in PATH, please set the correct PATH or the PSQL_BIN var."
+    echo "Error: psql not found, please set the correct PSQL_BIN variable."
+    exit 1
+fi
+
+if ! command -v "$PG_DUMP_BIN" &>/dev/null; then
+    echo "Error: pg_dump not found, please set the correct PG_DUMP_BIN variable."
     exit 1
 fi
 
@@ -263,8 +275,6 @@ if [[ -z "${PGPASSWORD:-}" ]]; then
     export PGPASSWORD
 fi
 
-
-echo "Restore database $PGDATABASE to $PGHOST:$PGPORT"
 
 DATA_DIR="data"
 SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
@@ -279,6 +289,7 @@ if [[
     exit 1
 fi
 
+echo "WARNING! All the data in the database $PGDATABASE at $PGHOST:$PGPORT will be deleted!"
 read -r -p "Press Enter to continue or Ctrl+C to cancel..."
 
 echo "Dropping and recreating database..."

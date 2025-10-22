@@ -10,6 +10,16 @@ After any db migration, the script `build_database_archive.sh` should be updated
 uv run ./scripts/export/write_scripts.py
 ```
 
+### Retrieve a specific version of the script
+
+If you need a specific version of the script that matches the version of the database to dump, you can retrieve it from the git history.
+
+For example:
+
+```
+curl -O 'https://raw.githubusercontent.com/openbraininstitute/entitycore/2025.10.8/scripts/export/build_database_archive.sh'
+```
+
 ### Export the public data from the database
 
 The script `build_database_archive.sh` requires access to read the database, and it builds a self-extracting archive named `install_db_{YYYYMMDD}_{DB_VERSION}.run` in the working directory.
@@ -28,12 +38,17 @@ PGHOST
 PGPORT
 PGDATABASE
 PGPASSWORD
+PSQL_BIN: specify the psql executable if not in the path.
+PG_DUMP_BIN: specify the pg_dump executable if not in the path.
+MAKESELF_BIN: specify the makeself executable if not in the path.
 ```
 
-Example:
+For example, if psql has been installed on Mac with brew and you need a specific version:
 
 ```
-PGPASSWORD=entitycore PGPORT=5433 PGDATABASE=entitycore \
+PGPORT=5433 PGDATABASE=entitycore \
+PSQL_BIN=/opt/homebrew/opt/postgresql@17/bin/psql \
+PG_DUMP_BIN=/opt/homebrew/opt/postgresql@17/bin/pg_dump \
 ./scripts/export/build_database_archive.sh
 ```
 
@@ -53,13 +68,15 @@ PGHOST
 PGPORT
 PGDATABASE
 PGPASSWORD
+PSQL_BIN: specify the psql executable if not in the path.
 ```
 
 Example:
 
 ```
-PGPASSWORD=entitycore PGPORT=5433 PGDATABASE=entitycore_public \
-./install_db_20251021_805fc8028f39.run
+PGPORT=5433 PGDATABASE=entitycore_public \
+PSQL_BIN=/opt/homebrew/opt/postgresql@17/bin/psql \
+./install_db_20251022_805fc8028f39.run
 ```
 
 ## Assets

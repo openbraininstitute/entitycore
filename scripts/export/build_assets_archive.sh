@@ -1,6 +1,6 @@
 #!/bin/bash
 # Manually created, it can be edited.
-set -euxo pipefail
+set -euo pipefail
 
 SYNC_OPTIONS="${SYNC_OPTIONS---dryrun}"
 BUCKET_NAME="${BUCKET_NAME:-entitycore-data-staging}"
@@ -11,7 +11,8 @@ SRC_PATHS=(
     public/
 )
 
-printf "Sync public assets from s3://%s to %s with options: %s\n" \
+printf "Sync public assets from s3://%s to %s with options: %s
+WARNING! All the data might be overwritten or deleted!\n" \
   "$BUCKET_NAME" "$DST_DIR" "$SYNC_OPTIONS"
 read -r -p "Press Enter to continue or Ctrl+C to cancel..."
 

@@ -21,9 +21,6 @@ LOAD_SCRIPT = "load.sh"
 
 SCRIPT_VERSION = 1
 SETUP_PSQL = """
-export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
-export PATH=/usr/pgsql-17/bin:$PATH
-
 export PGUSER="${PGUSER:-entitycore}"
 export PGHOST="${PGHOST:-127.0.0.1}"
 export PGPORT="${PGPORT:-5432}"
@@ -33,8 +30,17 @@ PSQL_BIN="${PSQL_BIN:-psql}"
 PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
 PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
 
+PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
+PG_DUMP_PARAMS="${PG_DUMP_PARAMS:-}"
+PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
+
 if ! command -v "$PSQL_BIN" &>/dev/null; then
-    echo "Error: psql not found in PATH, please set the correct PATH or the PSQL_BIN var."
+    echo "Error: psql not found, please set the correct PSQL_BIN variable."
+    exit 1
+fi
+
+if ! command -v "$PG_DUMP_BIN" &>/dev/null; then
+    echo "Error: pg_dump not found, please set the correct PG_DUMP_BIN variable."
     exit 1
 fi
 
@@ -47,7 +53,7 @@ fi
 SETUP_MAKESELF = """
 MAKESELF_BIN="${MAKESELF_BIN:-makeself}"
 if ! command -v "$MAKESELF_BIN" &>/dev/null; then
-    echo "Error: makeself not found in PATH, please set the correct PATH or the MAKESELF_BIN var."
+    echo "Error: makeself not found, please set the correct MAKESELF_BIN variable."
     exit 1
 fi
 MAKESELF_PARAMS="${MAKESELF_PARAMS:-}"
@@ -55,8 +61,8 @@ MAKESELF="${MAKESELF_BIN} ${MAKESELF_PARAMS}"
 """
 
 
-def get_current_head() -> str:
-    """Return the current head revision from the migration files.
+def get_current_db_version() -> str:
+    """Return the current db version from the migration files.
 
     Assuming that the migration files are in sync with the db model,
     the list of exported tables is consistent with that revision only.
@@ -341,17 +347,15 @@ def write_script(filepath: Path, content: str) -> None:
     filepath.chmod(mode=0o755)  # make the file executable
 
 
-def _get_load_script_content(head: str) -> str:
+def _get_load_script_content(db_version: str) -> str:
     """Return the content of the load script."""
     content = r"""
         #!/bin/bash
         # Automatically generated, do not edit!
         set -euo pipefail
-        echo "DB LOAD (version {script_version} for db version {head})"
+        echo "DB LOAD (version {script_version} for db version {db_version})"
 
         {setup_psql}
-
-        echo "Restore database $PGDATABASE to $PGHOST:$PGPORT"
 
         DATA_DIR="data"
         SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
@@ -366,6 +370,7 @@ def _get_load_script_content(head: str) -> str:
             exit 1
         fi
 
+        echo "WARNING! All the data in the database $PGDATABASE at $PGHOST:$PGPORT will be deleted!"
         read -r -p "Press Enter to continue or Ctrl+C to cancel..."
 
         echo "Dropping and recreating database..."
@@ -399,12 +404,12 @@ def _get_load_script_content(head: str) -> str:
         params={
             "script_version": SCRIPT_VERSION,
             "setup_psql": SETUP_PSQL,
-            "head": head,
+            "db_version": db_version,
         },
     )
 
 
-def _get_build_script_content(queries: dict[str, str], head: str) -> str:
+def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
     """Return the content of the build script.
 
     In detail:
@@ -412,16 +417,16 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
     - Dump the database schema and data to files, one per table.
     - Create an archive containing the dumped files and the load script
       (the dump script is included only for inspection).
-    - Create an install script by concatenating the bootstrap script with the archive.
+    - Create a self-extracting archive.
     """
     content = r"""
         #!/bin/bash
         # Automatically generated, do not edit!
         set -euo pipefail
-        echo "DB DUMP (version {script_version} for db version {head})"
+        echo "DB DUMP (version {script_version} for db version {db_version})"
 
-        {setup_psql}
         {setup_makeself}
+        {setup_psql}
 
         WORK_DIR=$(mktemp -d)
         cleanup() {{
@@ -434,23 +439,23 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
         SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
         SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
 
-        EXPECTED_DB_VERSION="{head}"
+        SCRIPT_DB_VERSION="{db_version}"
         DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
-        if [[ "$DB_VERSION" != "$EXPECTED_DB_VERSION" ]]; then
-            echo "Database version ($DB_VERSION) != expected ($EXPECTED_DB_VERSION)"
+        if [[ "$DB_VERSION" != "$SCRIPT_DB_VERSION" ]]; then
+            echo "Actual database version ($DB_VERSION) != script version ($SCRIPT_DB_VERSION)"
             exit 1
         fi
 
         SCRIPT_DIR="$(realpath "$(dirname "$0")")"
-        INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$EXPECTED_DB_VERSION.run"
+        INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$SCRIPT_DB_VERSION.run"
 
         echo "Dump database $PGDATABASE from $PGHOST:$PGPORT"
 
         mkdir -p "$DATA_DIR"
 
         echo "Dumping schema..."
-        pg_dump --schema-only --format=p --section=pre-data > "$SCHEMA_PRE_DATA"
-        pg_dump --schema-only --format=p --section=post-data > "$SCHEMA_POST_DATA"
+        $PG_DUMP --schema-only --format=p --section=pre-data > "$SCHEMA_PRE_DATA"
+        $PG_DUMP --schema-only --format=p --section=post-data > "$SCHEMA_POST_DATA"
 
         echo "Dumping data..."
         $PSQL <<EOF
@@ -467,7 +472,7 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
         EOF_LOAD_SCRIPT
 
         cp "$SCRIPT_DIR/{build_script}" "$WORK_DIR" # for inspection
-        LABEL="DB installer (version {script_version} for db version {head})"
+        LABEL="DB installer (version {script_version} for db version {db_version})"
         $MAKESELF "$WORK_DIR" "$INSTALL_SCRIPT" "$LABEL" "./{load_script}"
 
         echo "All done."
@@ -477,7 +482,7 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
         f"\\echo Dumping table {name}\n\\copy ({query}) TO '$DATA_DIR/{name}.csv' WITH CSV HEADER;"
         for name, query in queries.items()
     )
-    load_script_content = _get_load_script_content(head=head)
+    load_script_content = _get_load_script_content(db_version=db_version)
     return format_content(
         content,
         params={
@@ -488,7 +493,7 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
             "load_script": LOAD_SCRIPT,
             "load_script_content": load_script_content,
             "psql_commands": psql_commands,
-            "head": head,
+            "db_version": db_version,
         },
     )
 
@@ -496,13 +501,13 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
 def main():
     """Main entry point."""
     L.info("Updating scripts...")
-    head = get_current_head()
+    db_version = get_current_db_version()
     queries = get_queries()
     check_queries(queries)
     scripts_dir = Path(__file__).parent
     write_script(
         scripts_dir / BUILD_SCRIPT,
-        content=_get_build_script_content(queries=queries, head=head),
+        content=_get_build_script_content(queries=queries, db_version=db_version),
     )
 
 

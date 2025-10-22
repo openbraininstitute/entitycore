@@ -1,7 +1,9 @@
 #!/bin/bash
 # Automatically generated, do not edit!
 set -euo pipefail
-echo "DB DUMP (version 1 for db version 805fc8028f39)"
+SCRIPT_VERSION="1"
+SCRIPT_DB_VERSION="805fc8028f39"
+echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
 MAKESELF_BIN="${MAKESELF_BIN:-makeself}"
@@ -13,29 +15,28 @@ MAKESELF_PARAMS="${MAKESELF_PARAMS:-}"
 MAKESELF="${MAKESELF_BIN} ${MAKESELF_PARAMS}"
 
 
-export PGUSER="${PGUSER:-entitycore}"
-export PGHOST="${PGHOST:-127.0.0.1}"
-export PGPORT="${PGPORT:-5432}"
-export PGDATABASE="${PGDATABASE:-entitycore}"
-
 PSQL_BIN="${PSQL_BIN:-psql}"
 PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
 PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
-
-PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
-PG_DUMP_PARAMS="${PG_DUMP_PARAMS:-}"
-PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
-
 if ! command -v "$PSQL_BIN" &>/dev/null; then
     echo "Error: psql not found, please set the correct PSQL_BIN variable."
     exit 1
 fi
 
+
+PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
+PG_DUMP_PARAMS="${PG_DUMP_PARAMS:---no-owner --no-privileges}"
+PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
 if ! command -v "$PG_DUMP_BIN" &>/dev/null; then
     echo "Error: pg_dump not found, please set the correct PG_DUMP_BIN variable."
     exit 1
 fi
 
+
+export PGUSER="${PGUSER:-entitycore}"
+export PGHOST="${PGHOST:-127.0.0.1}"
+export PGPORT="${PGPORT:-5432}"
+export PGDATABASE="${PGDATABASE:-entitycore}"
 if [[ -z "${PGPASSWORD:-}" ]]; then
     read -r -s -p "Enter password for postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE: " PGPASSWORD
     echo
@@ -54,10 +55,9 @@ DATA_DIR="$WORK_DIR/data"
 SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
 SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
 
-SCRIPT_DB_VERSION="805fc8028f39"
-DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
-if [[ "$DB_VERSION" != "$SCRIPT_DB_VERSION" ]]; then
-    echo "Actual database version ($DB_VERSION) != script version ($SCRIPT_DB_VERSION)"
+ACTUAL_DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
+if [[ "$ACTUAL_DB_VERSION" != "$SCRIPT_DB_VERSION" ]]; then
+    echo "Actual db version ($ACTUAL_DB_VERSION) != script version ($SCRIPT_DB_VERSION)"
     exit 1
 fi
 
@@ -243,32 +243,24 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 #!/bin/bash
 # Automatically generated, do not edit!
 set -euo pipefail
-echo "DB LOAD (version 1 for db version 805fc8028f39)"
+SCRIPT_VERSION="1"
+SCRIPT_DB_VERSION="805fc8028f39"
+echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
+
+
+PSQL_BIN="${PSQL_BIN:-psql}"
+PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
+PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
+if ! command -v "$PSQL_BIN" &>/dev/null; then
+    echo "Error: psql not found, please set the correct PSQL_BIN variable."
+    exit 1
+fi
 
 
 export PGUSER="${PGUSER:-entitycore}"
 export PGHOST="${PGHOST:-127.0.0.1}"
 export PGPORT="${PGPORT:-5432}"
 export PGDATABASE="${PGDATABASE:-entitycore}"
-
-PSQL_BIN="${PSQL_BIN:-psql}"
-PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
-PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
-
-PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
-PG_DUMP_PARAMS="${PG_DUMP_PARAMS:-}"
-PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
-
-if ! command -v "$PSQL_BIN" &>/dev/null; then
-    echo "Error: psql not found, please set the correct PSQL_BIN variable."
-    exit 1
-fi
-
-if ! command -v "$PG_DUMP_BIN" &>/dev/null; then
-    echo "Error: pg_dump not found, please set the correct PG_DUMP_BIN variable."
-    exit 1
-fi
-
 if [[ -z "${PGPASSWORD:-}" ]]; then
     read -r -s -p "Enter password for postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE: " PGPASSWORD
     echo
@@ -321,7 +313,7 @@ echo "All done."
 EOF_LOAD_SCRIPT
 
 cp "$SCRIPT_DIR/build_database_archive.sh" "$WORK_DIR" # for inspection
-LABEL="DB installer (version 1 for db version 805fc8028f39)"
+LABEL="DB installer (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 $MAKESELF "$WORK_DIR" "$INSTALL_SCRIPT" "$LABEL" "./load.sh"
 
 echo "All done."

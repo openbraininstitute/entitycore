@@ -20,34 +20,33 @@ BUILD_SCRIPT = "build_database_archive.sh"
 LOAD_SCRIPT = "load.sh"
 
 SCRIPT_VERSION = 1
-SETUP_PSQL = """
+SETUP_PG_PARAMS = """
 export PGUSER="${PGUSER:-entitycore}"
 export PGHOST="${PGHOST:-127.0.0.1}"
 export PGPORT="${PGPORT:-5432}"
 export PGDATABASE="${PGDATABASE:-entitycore}"
-
-PSQL_BIN="${PSQL_BIN:-psql}"
-PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
-PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
-
-PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
-PG_DUMP_PARAMS="${PG_DUMP_PARAMS:---no-owner --no-privileges}"
-PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
-
-if ! command -v "$PSQL_BIN" &>/dev/null; then
-    echo "Error: psql not found, please set the correct PSQL_BIN variable."
-    exit 1
-fi
-
-if ! command -v "$PG_DUMP_BIN" &>/dev/null; then
-    echo "Error: pg_dump not found, please set the correct PG_DUMP_BIN variable."
-    exit 1
-fi
-
 if [[ -z "${PGPASSWORD:-}" ]]; then
     read -r -s -p "Enter password for postgresql://$PGUSER@$PGHOST:$PGPORT/$PGDATABASE: " PGPASSWORD
     echo
     export PGPASSWORD
+fi
+"""
+SETUP_PSQL = """
+PSQL_BIN="${PSQL_BIN:-psql}"
+PSQL_PARAMS="${PSQL_PARAMS:--q --echo-errors --set=ON_ERROR_STOP=on}"
+PSQL="${PSQL_BIN} ${PSQL_PARAMS}"
+if ! command -v "$PSQL_BIN" &>/dev/null; then
+    echo "Error: psql not found, please set the correct PSQL_BIN variable."
+    exit 1
+fi
+"""
+SETUP_PG_DUMP = """
+PG_DUMP_BIN="${PG_DUMP_BIN:-pg_dump}"
+PG_DUMP_PARAMS="${PG_DUMP_PARAMS:---no-owner --no-privileges}"
+PG_DUMP="${PG_DUMP_BIN} ${PG_DUMP_PARAMS}"
+if ! command -v "$PG_DUMP_BIN" &>/dev/null; then
+    echo "Error: pg_dump not found, please set the correct PG_DUMP_BIN variable."
+    exit 1
 fi
 """
 SETUP_MAKESELF = """
@@ -353,9 +352,12 @@ def _get_load_script_content(db_version: str) -> str:
         #!/bin/bash
         # Automatically generated, do not edit!
         set -euo pipefail
-        echo "DB LOAD (version {script_version} for db version {db_version})"
+        SCRIPT_VERSION="{script_version}"
+        SCRIPT_DB_VERSION="{db_version}"
+        echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
         {setup_psql}
+        {setup_pg_params}
 
         DATA_DIR="data"
         SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
@@ -403,6 +405,7 @@ def _get_load_script_content(db_version: str) -> str:
         content,
         params={
             "script_version": SCRIPT_VERSION,
+            "setup_pg_params": SETUP_PG_PARAMS,
             "setup_psql": SETUP_PSQL,
             "db_version": db_version,
         },
@@ -423,10 +426,14 @@ def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
         #!/bin/bash
         # Automatically generated, do not edit!
         set -euo pipefail
-        echo "DB DUMP (version {script_version} for db version {db_version})"
+        SCRIPT_VERSION="{script_version}"
+        SCRIPT_DB_VERSION="{db_version}"
+        echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
         {setup_makeself}
         {setup_psql}
+        {setup_pg_dump}
+        {setup_pg_params}
 
         WORK_DIR=$(mktemp -d)
         cleanup() {{
@@ -439,10 +446,9 @@ def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
         SCHEMA_PRE_DATA="$DATA_DIR/schema_pre_data.sql"
         SCHEMA_POST_DATA="$DATA_DIR/schema_post_data.sql"
 
-        SCRIPT_DB_VERSION="{db_version}"
-        DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
-        if [[ "$DB_VERSION" != "$SCRIPT_DB_VERSION" ]]; then
-            echo "Actual database version ($DB_VERSION) != script version ($SCRIPT_DB_VERSION)"
+        ACTUAL_DB_VERSION=$($PSQL -t -A -c "SELECT version_num FROM alembic_version")
+        if [[ "$ACTUAL_DB_VERSION" != "$SCRIPT_DB_VERSION" ]]; then
+            echo "Actual db version ($ACTUAL_DB_VERSION) != script version ($SCRIPT_DB_VERSION)"
             exit 1
         fi
 
@@ -472,7 +478,7 @@ def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
         EOF_LOAD_SCRIPT
 
         cp "$SCRIPT_DIR/{build_script}" "$WORK_DIR" # for inspection
-        LABEL="DB installer (version {script_version} for db version {db_version})"
+        LABEL="DB installer (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
         $MAKESELF "$WORK_DIR" "$INSTALL_SCRIPT" "$LABEL" "./{load_script}"
 
         echo "All done."
@@ -488,6 +494,8 @@ def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
         params={
             "script_version": SCRIPT_VERSION,
             "setup_psql": SETUP_PSQL,
+            "setup_pg_dump": SETUP_PG_DUMP,
+            "setup_pg_params": SETUP_PG_PARAMS,
             "setup_makeself": SETUP_MAKESELF,
             "build_script": BUILD_SCRIPT,
             "load_script": LOAD_SCRIPT,

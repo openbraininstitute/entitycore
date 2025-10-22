@@ -17,7 +17,7 @@ TABLES: dict[str, Mapper] = {
     if mapper.class_.__tablename__
 }
 BUILD_SCRIPT = "build_database_archive.sh"
-LOAD_SCRIPT = "_load.sh"
+LOAD_SCRIPT = "load.sh"
 
 SCRIPT_VERSION = 1
 SETUP_PSQL = """
@@ -461,8 +461,13 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
         EOF
 
         echo -e "\nBuilding install script..."
-        cp "$SCRIPT_DIR/{build_script}" "$SCRIPT_DIR/{load_script}" "$WORK_DIR"
-        LABEL="DB LOAD (version {script_version} for db version {head})"
+
+        install -m 755 /dev/stdin "$WORK_DIR/{load_script}" <<'EOF_LOAD_SCRIPT'
+        {load_script_content}
+        EOF_LOAD_SCRIPT
+
+        cp "$SCRIPT_DIR/{build_script}" "$WORK_DIR" # for inspection
+        LABEL="DB installer (version {script_version} for db version {head})"
         $MAKESELF "$WORK_DIR" "$INSTALL_SCRIPT" "$LABEL" "./{load_script}"
 
         echo "All done."
@@ -472,6 +477,7 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
         f"\\echo Dumping table {name}\n\\copy ({query}) TO '$DATA_DIR/{name}.csv' WITH CSV HEADER;"
         for name, query in queries.items()
     )
+    load_script_content = _get_load_script_content(head=head)
     return format_content(
         content,
         params={
@@ -480,6 +486,7 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
             "setup_makeself": SETUP_MAKESELF,
             "build_script": BUILD_SCRIPT,
             "load_script": LOAD_SCRIPT,
+            "load_script_content": load_script_content,
             "psql_commands": psql_commands,
             "head": head,
         },
@@ -496,10 +503,6 @@ def main():
     write_script(
         scripts_dir / BUILD_SCRIPT,
         content=_get_build_script_content(queries=queries, head=head),
-    )
-    write_script(
-        scripts_dir / LOAD_SCRIPT,
-        content=_get_load_script_content(head=head),
     )
 
 

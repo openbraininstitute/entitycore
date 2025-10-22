@@ -423,7 +423,7 @@ def _get_build_script_content(queries: dict[str, str], head: str) -> str:
         {setup_psql}
         {setup_makeself}
 
-        WORK_DIR=$(mktemp -d -t dump)
+        WORK_DIR=$(mktemp -d)
         cleanup() {{
             printf '\nCleaning up %s\n' "$WORK_DIR"
             rm -rf "$WORK_DIR"

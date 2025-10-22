@@ -37,7 +37,7 @@ MAKESELF_PARAMS="${MAKESELF_PARAMS:-}"
 MAKESELF="${MAKESELF_BIN} ${MAKESELF_PARAMS}"
 
 
-WORK_DIR=$(mktemp -d -t dump)
+WORK_DIR=$(mktemp -d)
 cleanup() {
     printf '\nCleaning up %s\n' "$WORK_DIR"
     rm -rf "$WORK_DIR"

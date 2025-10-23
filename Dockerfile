@@ -60,6 +60,7 @@ COPY --chown=app:app --from=builder /code/.venv/ .venv/
 COPY --chown=app:app alembic.ini docker-cmd.sh pyproject.toml ./
 COPY --chown=app:app alembic/ alembic/
 COPY --chown=app:app app/ app/
+COPY --chown=app:app scripts/ scripts/
 
 RUN python -m compileall .  # compile app files
 

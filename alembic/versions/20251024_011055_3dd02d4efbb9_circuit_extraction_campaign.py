@@ -1,8 +1,8 @@
 """circuit_extraction_campaign
 
-Revision ID: 1761fbab865c
+Revision ID: 3dd02d4efbb9
 Revises: 805fc8028f39
-Create Date: 2025-10-21 23:45:06.291600
+Create Date: 2025-10-24 01:10:55.777114
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "1761fbab865c"
+revision: str = "3dd02d4efbb9"
 down_revision: Union[str, None] = "805fc8028f39"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

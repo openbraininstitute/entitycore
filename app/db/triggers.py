@@ -30,6 +30,7 @@ from app.db.model import (
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
     ValidationResult,
+    CircuitExtractionConfig,
 )
 
 MAX_IDENTIFIER_LENGTH = 59
@@ -164,6 +165,7 @@ protected_entity_relationships = [
     (CellMorphology, "cell_morphology_protocol_id"),
     (Circuit, "atlas_id"),
     (Circuit, "root_circuit_id"),
+    (CircuitExtractionConfig, "circuit_id"),
     (ElectricalRecordingStimulus, "recording_id"),
     (EMCellMesh, "em_dense_reconstruction_dataset_id"),
     (EModel, "exemplar_morphology_id"),

@@ -1,4 +1,5 @@
 import logging  # noqa: INP001
+from collections.abc import Callable, Iterable
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
@@ -75,9 +76,9 @@ def get_current_db_version() -> str:
     return head
 
 
-def get_queries() -> dict[str, str]:
+def get_queries() -> dict[str, Callable]:
     """Return the mapping used to generate the export queries for each table."""
-    callables = {
+    return {
         # alembic
         "alembic_version": lambda t: _export_all(t, skip_check=True),
         # global tables without authorized_public
@@ -221,8 +222,14 @@ def get_queries() -> dict[str, str]:
             AND e2.authorized_public IS true
             """,  # noqa: S608
     }
+
+
+def get_resolved_queries() -> dict[str, str]:
+    """Return the queries resolved by executing each corresponding callable."""
+    queries = get_queries()
+    check_queries(queries)
     return {
-        table: dedent(func(table)).strip().replace("\n", " ") for table, func in callables.items()
+        table: dedent(func(table)).strip().replace("\n", " ") for table, func in queries.items()
     }
 
 
@@ -318,7 +325,7 @@ def _export_double_join(tablename: str, join_1: tuple[str, str], join_2: tuple[s
         """  # noqa: S608
 
 
-def check_queries(queries: dict[str, str]) -> None:
+def check_queries(queries: Iterable[str]) -> None:
     """Verify the consistency of the export queries."""
     queries_set = set(queries)
     all_tables = set(Base.metadata.tables) | {"alembic_version"}
@@ -510,8 +517,7 @@ def main():
     """Main entry point."""
     L.info("Updating scripts...")
     db_version = get_current_db_version()
-    queries = get_queries()
-    check_queries(queries)
+    queries = get_resolved_queries()
     scripts_dir = Path(__file__).parent
     write_script(
         scripts_dir / BUILD_SCRIPT,

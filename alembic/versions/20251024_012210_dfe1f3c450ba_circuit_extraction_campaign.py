@@ -1,8 +1,8 @@
 """circuit_extraction_campaign
 
-Revision ID: 3dd02d4efbb9
+Revision ID: dfe1f3c450ba
 Revises: 805fc8028f39
-Create Date: 2025-10-24 01:10:55.777114
+Create Date: 2025-10-24 01:22:10.138266
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "3dd02d4efbb9"
+revision: str = "dfe1f3c450ba"
 down_revision: Union[str, None] = "805fc8028f39"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -142,7 +142,6 @@ def upgrade() -> None:
             "analysis_notebook_execution",
             "ion_channel_modeling_execution",
             "ion_channel_modeling_config_generation",
-            "circuit_extraction_generation",
             "circuit_extraction_config_generation",
             "circuit_extraction_execution",
         ],

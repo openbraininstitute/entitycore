@@ -189,7 +189,6 @@ class ActivityType(StrEnum):
     analysis_notebook_execution = auto()
     ion_channel_modeling_execution = auto()
     ion_channel_modeling_config_generation = auto()
-    circuit_extraction_generation = auto()
     circuit_extraction_config_generation = auto()
     circuit_extraction_execution = auto()
 

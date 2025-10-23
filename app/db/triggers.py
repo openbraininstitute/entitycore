@@ -11,6 +11,7 @@ from app.db.model import (
     BrainAtlasRegion,
     CellMorphology,
     Circuit,
+    CircuitExtractionConfig,
     ElectricalRecordingStimulus,
     EMCellMesh,
     EModel,
@@ -30,7 +31,6 @@ from app.db.model import (
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
     ValidationResult,
-    CircuitExtractionConfig,
 )
 
 MAX_IDENTIFIER_LENGTH = 59

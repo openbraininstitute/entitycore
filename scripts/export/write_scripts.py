@@ -459,7 +459,6 @@ def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
             exit 1
         fi
 
-        SCRIPT_DIR="$(realpath "$(dirname "$0")")"
         INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$SCRIPT_DB_VERSION.run"
 
         echo "Dump database $PGDATABASE from $PGHOST:$PGPORT"
@@ -484,7 +483,7 @@ def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
         {load_script_content}
         EOF_LOAD_SCRIPT
 
-        cp "$SCRIPT_DIR/{build_script}" "$WORK_DIR" # for inspection
+        cp "$0" "$WORK_DIR" # for inspection
         LABEL="DB installer (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
         $MAKESELF "$WORK_DIR" "$INSTALL_SCRIPT" "$LABEL" "./{load_script}"
 
@@ -504,7 +503,6 @@ def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
             "setup_pg_dump": SETUP_PG_DUMP,
             "setup_pg_params": SETUP_PG_PARAMS,
             "setup_makeself": SETUP_MAKESELF,
-            "build_script": BUILD_SCRIPT,
             "load_script": LOAD_SCRIPT,
             "load_script_content": load_script_content,
             "psql_commands": psql_commands,

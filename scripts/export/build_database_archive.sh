@@ -61,7 +61,6 @@ if [[ "$ACTUAL_DB_VERSION" != "$SCRIPT_DB_VERSION" ]]; then
     exit 1
 fi
 
-SCRIPT_DIR="$(realpath "$(dirname "$0")")"
 INSTALL_SCRIPT="install_db_$(date +%Y%m%d)_$SCRIPT_DB_VERSION.run"
 
 echo "Dump database $PGDATABASE from $PGHOST:$PGPORT"
@@ -312,7 +311,7 @@ echo "All done."
 
 EOF_LOAD_SCRIPT
 
-cp "$SCRIPT_DIR/build_database_archive.sh" "$WORK_DIR" # for inspection
+cp "$0" "$WORK_DIR" # for inspection
 LABEL="DB installer (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 $MAKESELF "$WORK_DIR" "$INSTALL_SCRIPT" "$LABEL" "./load.sh"
 

@@ -32,7 +32,14 @@ class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin):
 
     class Constants(ScientificArtifactFilter.Constants):
         model = IonChannelModel
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "name",
+            "subject__species__name",
+            "brain_region__acronym",
+            "brain_region__name",
+        ]
 
 
 # Dependencies

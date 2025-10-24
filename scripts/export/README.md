@@ -79,6 +79,14 @@ PSQL_BIN=/opt/homebrew/opt/postgresql@17/bin/psql \
 ./install_db_20251022_805fc8028f39.run
 ```
 
+To inspect the content of the archive without running the load script, it's possible to pass the options `--noexec --target <target-directory>`.
+Example:
+
+```
+./install_db_20251022_805fc8028f39.run --noexec --target extracted
+```
+
+
 ## Assets
 
 ### Export the public assets from S3 to a local archive

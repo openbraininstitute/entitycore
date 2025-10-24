@@ -17,6 +17,7 @@ from app.db.model import (
     BrainRegion,
     BrainRegionHierarchy,
     CellMorphology,
+    CircuitExtractionCampaign,
     Contribution,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
@@ -80,6 +81,7 @@ ROUTES = {
     ElectricalCellRecording: "/electrical-cell-recording",
     IonChannelRecording: "/ion-channel-recording",
     IonChannelModelingCampaign: "/ion-channel-modeling-campaign",
+    CircuitExtractionCampaign: "/circuit-extraction-campaign",
 }
 
 
@@ -167,6 +169,25 @@ def create_ion_channel_modeling_campaign_id(
 
     assert response.status_code == 200
     return response.json()["id"]
+
+
+def create_circuit_extraction_campaign_id(
+    client,
+    *,
+    name="Circuit extraction campaign",
+    description: str | None = None,
+    authorized_public: bool = False,
+):
+    return assert_request(
+        client.post,
+        url=ROUTES[CircuitExtractionCampaign],
+        json={
+            "name": name,
+            "description": description or name,
+            "authorized_public": authorized_public,
+            "scan_parameters": {"foo": "bar"},
+        },
+    ).json()["id"]
 
 
 def add_db(db, row):
@@ -1116,8 +1137,12 @@ def check_entity_update_one(
 def check_entity_delete_one(
     db, clients, route, admin_route, json_data, expected_counts_before, expected_counts_after
 ):
+    def _assert_found(client, model_id):
+        assert_request(client.get, url=f"{route}/{model_id}")
+
     def _create_model_id(client, data):
-        return assert_request(client.post, url=route, json=data).json()["id"]
+        data = assert_request(client.post, url=route, json=data).json()
+        return data["id"]
 
     def _assert_not_found(client, model_id):
         data = assert_request(

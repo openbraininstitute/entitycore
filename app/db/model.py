@@ -46,6 +46,7 @@ from app.db.types import (
     CellMorphologyGenerationType,
     CellMorphologyProtocolDesign,
     CircuitBuildCategory,
+    CircuitExtractionExecutionStatus,
     CircuitScale,
     ContentType,
     DerivationType,
@@ -1668,25 +1669,34 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
         has_point_neurons (bool): Indicates if the circuit includes point neurons.
         has_electrical_cell_models (bool): Indicates if the circuit includes electrical cell models.
         has_spines (bool): Indicates if the circuit includes spines.
-        number_neurons (int): Number of neurons in the circuit.
-        number_synapses (int): Number of synapses in the circuit.
-        number_connections (int | None): Number of connections in the circuit, if available.
+        number_neurons (int): Number of neurons in the circuit (see notes).
+        number_synapses (int): Number of synapses in the circuit (see notes).
+        number_connections (int | None): Number of connections in the circuit, if available (see
+            notes).
 
     Notes:
         - Inherits additional attributes from ScientificArtifact (e.g., name, description,
           brain_region).
-        - References to assets such as SONATA circuit folders, connectivity matrices,
-          figures, and statistics.
-        - Asset: folder containing SONATA circuit files.
+        - number_neurons should only include intrinsic neurons and no extrinsic (virtual) neurons.
+        - number_synapses should only include intrinsic synapses, except for circuit of scale
+              'single' in which case it should in particular include extrinsic synapses.
+        - number_connections should only include intrinsic connections, except for circuit of scale
+              'single' in which case it should in particular include extrinsic connections.
+
+    Assets:
+        - sonata_circuit ... Folder containing SONATA circuit files including circuit_config.json
+        - compressed_sonata_circuit ... Compressed circuit folder
+        - circuit_connectivity_matrices ... Connectivity matrix folder including matrix_config.json
+        - circuit_analysis_data ... Analysis data folder including analysis_config.json
+        - circuit_figures ... Figure folder including figure_config.json
+        - circuit_visualization ... Main circuit visualization
+        - node_stats ... Node statistics figure
+        - network_stats_a, network_stats_b ... Network statistics figures
+        - simulation_designer_image ... Simulation designer image
     """
 
     __tablename__ = EntityType.circuit.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
-
-    # Still missing:
-    # - connectivity_matrices: Folder containing multiple .h5 files in ConnectomeUtilities format
-    # - circuit_figures: Folder containing all pre-computed overview figures
-    # - circuit_statistics: Folder containing all pre-computed circuit statistics
 
     root_circuit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("circuit.id"), index=True)
     atlas_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
@@ -1703,7 +1713,7 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     number_synapses: Mapped[int] = mapped_column(BigInteger)
     number_connections: Mapped[int | None] = mapped_column(BigInteger)
 
-    # To be added later:
+    # May be added later:
     # version: Mapped[str] = mapped_column(default="")
 
     # building_workflow_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("building_workflow.id")
@@ -1716,6 +1726,113 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     # flatmap: Mapped[FlatMap] = relationship("FlatMap", uselist=False, foreign_keys=[flatmap_id])
 
     # calibration_data (multiple entities): ...
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class CircuitExtractionCampaign(Entity, NameDescriptionVectorMixin):
+    """Represents a circuit extraction campaign entity in the database.
+
+    A circuit extraction campaign represents the specification of a set of circuit
+    extractions. It has an asset which is the campaign configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        scan_parameters (JSON_DICT): Scan parameters of the extraction campaign.
+
+    Note: All CircuitExtractionConfig entities belonging to a CircuitExtractionCampaign are
+          accessible though its corresponding CircuitExtractionConfigGeneration activity.
+    """
+
+    __tablename__ = EntityType.circuit_extraction_campaign.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
+class CircuitExtractionConfig(Entity, NameDescriptionVectorMixin):
+    """Represents a circuit extraction entity in the database.
+
+    It represents the specification of a circuit extraction operation.
+    It has an asset which is the extraction configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        circuit_id (uuid.UUID): Foreign key referencing the parent (source) circuit ID.
+        circuit (Circuit): Parent (source) circuit entity this extraction is associated with.
+        scan_parameters (JSON_DICT): Scan parameters of the extraction.
+
+    Note: All CircuitExtractionConfig entities belonging to a CircuitExtractionCampaign are
+          accessible though its corresponding CircuitExtractionConfigGeneration activity.
+    """
+
+    __tablename__ = EntityType.circuit_extraction_config.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True)
+    circuit: Mapped[Circuit] = relationship(
+        "Circuit",
+        uselist=False,
+        foreign_keys=[circuit_id],
+    )
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
+class CircuitExtractionConfigGeneration(Activity):
+    """Represents a circuit extraction generation activity in the database.
+
+    A circuit extraction generation activity is responsible for generating the configuration
+    files for each circuit extraction operation that is part of an extraction campaign.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+
+    Note: The CircuitExtractionConfigGeneration activity associates a number of
+          CircuitExtractionConfig entities with their corresponding CircuitExtractionCampaign
+          entity.
+    """
+
+    __tablename__ = ActivityType.circuit_extraction_config_generation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class CircuitExtractionExecution(Activity):
+    """Represents the execution of a circuit extraction.
+
+    It stores the execution status of a circuit extraction operation.
+
+    Attributes:
+        id (uuid.UUID): Primary key.
+        status (CircuitExtractionExecutionStatus): The status of the circuit extraction execution.
+
+    Note: The CircuitExtractionExecution activity associates a CircuitExtractionConfig entity with
+          its corresponding extracted output Circuit entity.
+    """
+
+    __tablename__ = ActivityType.circuit_extraction_execution.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    status: Mapped[CircuitExtractionExecutionStatus] = mapped_column(
+        Enum(CircuitExtractionExecutionStatus, name="circuit_extraction_execution_status"),
+        default=CircuitExtractionExecutionStatus.created,
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

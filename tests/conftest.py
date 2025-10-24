@@ -1714,3 +1714,42 @@ def ion_channel_modeling_config_id(client, ion_channel_modeling_config_json_data
         json=ion_channel_modeling_config_json_data,
     ).json()
     return data["id"]
+
+
+@pytest.fixture
+def circuit_extraction_campaign_json_data():
+    return {
+        "name": "circuit-extraction-campaign",
+        "description": "circuit-extraction-campaign",
+        "scan_parameters": {"foo": "bar"},
+    }
+
+
+@pytest.fixture
+def circuit_extraction_campaign_id(client, circuit_extraction_campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/circuit-extraction-campaign",
+        json=circuit_extraction_campaign_json_data,
+    ).json()
+    return data["id"]
+
+
+@pytest.fixture
+def circuit_extraction_config_json_data(root_circuit):
+    return {
+        "name": "extraction-config",
+        "description": "extraction-config",
+        "circuit_id": str(root_circuit.id),
+        "scan_parameters": {"foo": "bar"},
+    }
+
+
+@pytest.fixture
+def circuit_extraction_config_id(client, circuit_extraction_config_json_data):
+    data = assert_request(
+        client.post,
+        url="/circuit-extraction-config",
+        json=circuit_extraction_config_json_data,
+    ).json()
+    return data["id"]

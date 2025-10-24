@@ -131,6 +131,8 @@ class EntityType(StrEnum):
     subject = auto()
     validation_result = auto()
     circuit = auto()
+    circuit_extraction_campaign = auto()
+    circuit_extraction_config = auto()
     em_dense_reconstruction_dataset = auto()
     em_cell_mesh = auto()
     analysis_notebook_template = auto()
@@ -187,6 +189,8 @@ class ActivityType(StrEnum):
     analysis_notebook_execution = auto()
     ion_channel_modeling_execution = auto()
     ion_channel_modeling_config_generation = auto()
+    circuit_extraction_config_generation = auto()
+    circuit_extraction_execution = auto()
 
 
 class DerivationType(StrEnum):
@@ -237,6 +241,14 @@ class SimulationExecutionStatus(StrEnum):
 
 
 class IonChannelModelingExecutionStatus(StrEnum):
+    created = auto()
+    pending = auto()
+    running = auto()
+    done = auto()
+    error = auto()
+
+
+class CircuitExtractionExecutionStatus(StrEnum):
     created = auto()
     pending = auto()
     running = auto()
@@ -399,6 +411,7 @@ class AssetLabel(StrEnum):
     ion_channel_model_figure = auto()
     ion_channel_model_figure_summary_json = auto()
     ion_channel_model_thumbnail = auto()
+    circuit_extraction_config = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -627,6 +640,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(content_type=ContentType.h5, is_directory=False),
             LabelRequirements(content_type=ContentType.obj, is_directory=False),
         ]
+    },
+    EntityType.circuit_extraction_campaign: {
+        AssetLabel.campaign_generation_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
+    },
+    EntityType.circuit_extraction_config: {
+        AssetLabel.circuit_extraction_config: [
+            LabelRequirements(content_type=ContentType.json, is_directory=False)
+        ],
     },
 }
 

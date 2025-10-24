@@ -1,14 +1,15 @@
-import logging  # noqa: INP001
-from collections.abc import Callable, Iterable
+import logging
+from dataclasses import dataclass
 from pathlib import Path
 from textwrap import dedent
 from typing import Any
 
 from alembic.config import Config
 from alembic.script import ScriptDirectory
+from sqlalchemy import Table
 from sqlalchemy.orm import Mapper
 
-from app.db.model import Base
+from app.db.model import Activity, Base, Entity
 
 L = logging.getLogger()
 
@@ -61,6 +62,16 @@ MAKESELF="${MAKESELF_BIN} ${MAKESELF_PARAMS}"
 """
 
 
+@dataclass(kw_only=True)
+class JoinInfo:
+    """Information needed to build a join query between `main_table` and `joined_table`."""
+
+    joined_table: str
+    joined_table_col: str
+    main_table_col: str
+    nullable: bool
+
+
 def get_current_db_version() -> str:
     """Return the current db version from the migration files.
 
@@ -76,267 +87,103 @@ def get_current_db_version() -> str:
     return head
 
 
-def get_queries() -> dict[str, Callable]:
-    """Return the mapping used to generate the export queries for each table."""
+def _find_linked_authenticated_resources(table: Table) -> list[JoinInfo]:
+    """Iterate over the foreign keys and return the list of JoinInfo."""
+    linked: list[JoinInfo] = []
+    for column in table.columns:
+        assert column.nullable is not None  # noqa: S101
+        for fk in column.foreign_keys:
+            other = TABLES[fk.column.table.name].class_
+            if issubclass(other, Entity):
+                linked.append(
+                    JoinInfo(
+                        joined_table="entity",
+                        joined_table_col=fk.column.name,
+                        main_table_col=column.name,
+                        nullable=column.nullable,
+                    )
+                )
+            elif issubclass(other, Activity):
+                linked.append(
+                    JoinInfo(
+                        joined_table="activity",
+                        joined_table_col=fk.column.name,
+                        main_table_col=column.name,
+                        nullable=column.nullable,
+                    )
+                )
+    return linked
+
+
+def _export_with_joins(tablename: str, joins: list[JoinInfo], *, authorized: bool = False) -> str:
+    """Build and return the export query for tables with foreign keys.
+
+    Limitations:
+        - Only direct (one-level) relationships from the main table are supported.
+        - The joined column in the foreign tables is always assumed to be `id`.
+
+    Args:
+        tablename: Name of the main table.
+        joins: A list of JoinInfo defining the tables to join and the foreign key field.
+        authorized: If True, include the condition `authorized_public IS true`
+            on the main table as well as all joined tables.
+    """
+    join_clauses = " ".join(
+        f"{'LEFT JOIN' if join.nullable else 'JOIN'} {join.joined_table} AS t{i} "
+        f"ON t{i}.{join.joined_table_col}=t0.{join.main_table_col}"
+        for i, join in enumerate(joins, start=1)
+    )
+    where_clauses = " AND ".join(
+        (["t0.authorized_public IS true"] if authorized else [])
+        + [
+            # not false = true or null (for left joins)
+            f"t{i}.authorized_public IS NOT false"
+            for i, _ in enumerate(joins, start=1)
+        ]
+    )
+    return f"""
+        SELECT t0.* FROM {tablename} AS t0
+        {join_clauses}
+        WHERE {where_clauses or "TRUE"}
+        """  # noqa: S608
+
+
+def get_automatic_queries() -> dict[str, str]:
+    queries = {}
+    for tablename, table in sorted(Base.metadata.tables.items()):
+        authorized = "authorized_public" in table.columns
+        linked = _find_linked_authenticated_resources(table)
+        L.debug("Table %s: linked=%s, authorized=%s", table.name, linked, authorized)
+        queries[tablename] = _export_with_joins(tablename, linked, authorized=authorized)
+    return queries
+
+
+def get_manual_queries() -> dict[str, str]:
+    """Return the mapping used to generate the manual queries for each table."""
     return {
-        # alembic
-        "alembic_version": lambda t: _export_all(t, skip_check=True),
-        # global tables without authorized_public
-        "agent": _export_all,
-        "brain_region": _export_all,
-        "brain_region_hierarchy": _export_all,
-        "annotation_body": _export_all,
-        "consortium": _export_all,
-        "datamaturity_annotation_body": _export_all,
-        "etype_class": _export_all,
-        "external_url": _export_all,
-        "ion": _export_all,
-        "ion_channel": _export_all,
-        "license": _export_all,
-        "mtype_class": _export_all,
-        "organization": _export_all,
-        "person": _export_all,
-        "publication": _export_all,
-        "role": _export_all,
-        "species": _export_all,
-        "strain": _export_all,
-        # base tables with authorized_public
-        "entity": _export_public,
-        "activity": _export_public,
-        # children of entity
-        "analysis_notebook_environment": lambda t: _export_child(t, "entity"),
-        "analysis_notebook_result": lambda t: _export_child(t, "entity"),
-        "analysis_notebook_template": lambda t: _export_child(t, "entity"),
-        "analysis_software_source_code": lambda t: _export_child(t, "entity"),
-        "brain_atlas": lambda t: _export_child(t, "entity"),
-        "brain_atlas_region": lambda t: _export_child(t, "entity"),
-        "cell_composition": lambda t: _export_child(t, "entity"),
-        "cell_morphology": lambda t: _export_child(t, "entity"),
-        "cell_morphology_protocol": lambda t: _export_child(t, "entity"),
-        "circuit": lambda t: _export_child(t, "entity"),
-        "electrical_cell_recording": lambda t: _export_child(t, "entity"),
-        "electrical_recording": lambda t: _export_child(t, "entity"),
-        "electrical_recording_stimulus": lambda t: _export_child(t, "entity"),
-        "em_cell_mesh": lambda t: _export_child(t, "entity"),
-        "em_dense_reconstruction_dataset": lambda t: _export_child(t, "entity"),
-        "emodel": lambda t: _export_child(t, "entity"),
-        "scientific_artifact": lambda t: _export_child(t, "entity"),
-        "experimental_bouton_density": lambda t: _export_child(t, "entity"),
-        "experimental_neuron_density": lambda t: _export_child(t, "entity"),
-        "experimental_synapses_per_connection": lambda t: _export_child(t, "entity"),
-        "ion_channel_model": lambda t: _export_child(t, "entity"),
-        "ion_channel_modeling_campaign": lambda t: _export_child(t, "entity"),
-        "ion_channel_modeling_config": lambda t: _export_child(t, "entity"),
-        "ion_channel_recording": lambda t: _export_child(t, "entity"),
-        "me_type_density": lambda t: _export_child(t, "entity"),
-        "memodel": lambda t: _export_child(t, "entity"),
-        "simulation": lambda t: _export_child(t, "entity"),
-        "simulation_campaign": lambda t: _export_child(t, "entity"),
-        "simulation_result": lambda t: _export_child(t, "entity"),
-        "single_neuron_simulation": lambda t: _export_child(t, "entity"),
-        "single_neuron_synaptome": lambda t: _export_child(t, "entity"),
-        "single_neuron_synaptome_simulation": lambda t: _export_child(t, "entity"),
-        "subject": lambda t: _export_child(t, "entity"),
-        # children of activity
-        "analysis_notebook_execution": lambda t: _export_child(t, "activity"),
-        "calibration": lambda t: _export_child(t, "activity"),
-        "ion_channel_modeling_config_generation": lambda t: _export_child(t, "activity"),
-        "ion_channel_modeling_execution": lambda t: _export_child(t, "activity"),
-        "simulation_execution": lambda t: _export_child(t, "activity"),
-        "simulation_generation": lambda t: _export_child(t, "activity"),
-        "validation": lambda t: _export_child(t, "activity"),
-        # other tables and association tables
-        "annotation": lambda t: _export_single_join(t, "entity", "entity_id"),
-        "asset": lambda t: _export_single_join(t, "entity", "entity_id"),
-        "contribution": lambda t: _export_single_join(t, "entity", "entity_id"),
-        "derivation": lambda t: _export_double_join(
-            t,
-            ("entity", "used_id"),
-            ("entity", "generated_id"),
-        ),
-        "etype_classification": lambda t: f"""
-            SELECT {t}.* FROM {t}
-            JOIN entity AS e ON e.id={t}.entity_id
-            WHERE {t}.authorized_public IS true
-            AND e.authorized_public IS true
-            """,  # noqa: S608
-        "generation": lambda t: _export_double_join(
-            t,
-            ("entity", "generation_entity_id"),
-            ("activity", "generation_activity_id"),
-        ),
-        "ion_channel_model__emodel": lambda t: _export_double_join(
-            t,
-            ("entity", "ion_channel_model_id"),
-            ("entity", "emodel_id"),
-        ),
-        "ion_channel_recording__ion_channel_modeling_campaign": lambda t: _export_double_join(
-            t,
-            ("entity", "ion_channel_recording_id"),
-            ("entity", "ion_channel_modeling_campaign_id"),
-        ),
-        "measurement_annotation": lambda t: _export_single_join(t, "entity", "entity_id"),
-        "measurement_item": lambda t: f"""
-            SELECT {t}.* FROM {t}
-            JOIN measurement_kind AS mk ON mk.id={t}.measurement_kind_id
+        "alembic_version": """SELECT * FROM alembic_version""",
+        "measurement_item": """
+            SELECT t0.* FROM measurement_item AS t0
+            JOIN measurement_kind AS mk ON mk.id=t0.measurement_kind_id
             JOIN measurement_annotation AS ma ON ma.id=mk.measurement_annotation_id
             JOIN entity AS e ON e.id=ma.entity_id
             WHERE e.authorized_public IS true
-            """,  # noqa: S608
-        "measurement_kind": lambda t: f"""
-            SELECT {t}.* FROM {t}
-            JOIN measurement_annotation AS ma ON ma.id={t}.measurement_annotation_id
+            """,
+        "measurement_kind": """
+            SELECT t0.* FROM measurement_kind AS t0
+            JOIN measurement_annotation AS ma ON ma.id=t0.measurement_annotation_id
             JOIN entity AS e ON e.id=ma.entity_id
             WHERE e.authorized_public IS true
-            """,  # noqa: S608
-        "measurement_record": lambda t: _export_single_join(t, "entity", "entity_id"),
-        "memodel_calibration_result": lambda t: f"""
-            SELECT {t}.* FROM {t}
-            JOIN entity AS e1 ON e1.id={t}.id
-            JOIN entity AS e2 ON e2.id={t}.calibrated_entity_id
-            WHERE e1.authorized_public IS true
-            AND e2.authorized_public IS true
-            """,  # noqa: S608
-        "mtype_classification": lambda t: f"""
-            SELECT {t}.* FROM {t}
-            JOIN entity AS e ON e.id={t}.entity_id
-            WHERE {t}.authorized_public IS true
-            AND e.authorized_public IS true
-            """,  # noqa: S608
-        "scientific_artifact_external_url_link": lambda t: _export_single_join(
-            t, "entity", "scientific_artifact_id"
-        ),
-        "scientific_artifact_publication_link": lambda t: _export_single_join(
-            t, "entity", "scientific_artifact_id"
-        ),
-        "usage": lambda t: _export_double_join(
-            t,
-            ("entity", "usage_entity_id"),
-            ("activity", "usage_activity_id"),
-        ),
-        "validation_result": lambda t: f"""
-            SELECT {t}.* FROM {t}
-            JOIN entity AS e1 ON e1.id={t}.id
-            JOIN entity AS e2 ON e2.id={t}.validated_entity_id
-            WHERE e1.authorized_public IS true
-            AND e2.authorized_public IS true
-            """,  # noqa: S608
+            """,
     }
 
 
-def get_resolved_queries() -> dict[str, str]:
-    """Return the queries resolved by executing each corresponding callable."""
-    queries = get_queries()
-    check_queries(queries)
-    return {
-        table: dedent(func(table)).strip().replace("\n", " ") for table, func in queries.items()
-    }
-
-
-def _ensure_table(tablename: str) -> Mapper:
-    """Ensure that a table is defined in the base mapper."""
-    if not (table := TABLES.get(tablename)):
-        msg = f"Table {tablename} doesn't exist"
-        raise ValueError(msg)
-    return table
-
-
-def _ensure_column(tablename: str, column: str, *, exist: bool) -> None:
-    """Ensure that a column exists (or not) in the given table."""
-    table = _ensure_table(tablename)
-    if exist and column not in table.columns:
-        msg = f"Column {tablename}.{column} expected but not found"
-        raise ValueError(msg)
-    if not exist and column in table.columns:
-        msg = f"Column {tablename}.{column} not expected but found"
-        raise ValueError(msg)
-
-
-def _export_all(tablename: str, *, skip_check: bool = False) -> str:
-    """Build and return the export query for global tables without authorized_public.
-
-    Args:
-        tablename: table name.
-        skip_check: True to skip the validation.
-    """
-    if not skip_check:
-        _ensure_column(tablename, "authorized_public", exist=False)
-    return f"""SELECT {tablename}.* FROM {tablename}"""  # noqa: S608
-
-
-def _export_public(tablename: str) -> str:
-    """Build and return the export query for base tables with authorized_public.
-
-    Args:
-        tablename: table name.
-    """
-    _ensure_column(tablename, "authorized_public", exist=True)
-    return f"""SELECT {tablename}.* from {tablename} WHERE authorized_public IS true"""  # noqa: S608
-
-
-def _export_child(tablename: str, parent: str) -> str:
-    """Build and return the export query for children tables.
-
-    Args:
-        tablename: main table name.
-        parent: parent table to join.
-    """
-    _ensure_column(tablename, "authorized_public", exist=True)
-    return f"""
-        SELECT {tablename}.* from {tablename}
-        JOIN {parent} USING (id)
-        WHERE {parent}.authorized_public IS true
-        """  # noqa: S608
-
-
-def _export_single_join(tablename: str, join: str, join_on: str) -> str:
-    """Build and return the export query for linked tables (one to many).
-
-    Args:
-        tablename: main table name.
-        join: table to join.
-        join_on: the field in the main table to be used for the join.
-    """
-    assert "authorized_public" not in TABLES[tablename].columns  # noqa: S101
-    return f"""
-        SELECT {tablename}.* FROM {tablename}
-        JOIN {join} AS t ON t.id={tablename}.{join_on}
-        WHERE t.authorized_public IS true
-        """  # noqa: S608
-
-
-def _export_double_join(tablename: str, join_1: tuple[str, str], join_2: tuple[str, str]) -> str:
-    """Build and return the export query for association tables (many to many).
-
-    Args:
-        tablename: main table name.
-        join_1: tuple (join, join_on), where join is the first table to join,
-            and join_on is the field in the main table to be used for the join.
-        join_2: tuple (join, join_on), where join is the second table to join,
-            and join_on is the field in the main table to be used for the join.
-    """
-    assert "authorized_public" not in TABLES[tablename].columns  # noqa: S101
-    return f"""
-        SELECT {tablename}.* FROM {tablename}
-        JOIN {join_1[0]} AS t1 ON t1.id={tablename}.{join_1[1]}
-        JOIN {join_2[0]} AS t2 ON t2.id={tablename}.{join_2[1]}
-        WHERE t1.authorized_public IS true
-        AND t2.authorized_public IS true
-        """  # noqa: S608
-
-
-def check_queries(queries: Iterable[str]) -> None:
-    """Verify the consistency of the export queries."""
-    queries_set = set(queries)
-    all_tables = set(Base.metadata.tables) | {"alembic_version"}
-    errors = []
-    if diff := all_tables - queries_set:
-        errors.append(f"Missing tables in the configuration: {sorted(diff)}")
-    if diff := queries_set - all_tables:
-        errors.append(f"Extra tables in the configuration: {sorted(diff)}")
-    if errors:
-        msg = f"Inconsistent queries\n{'\n'.join(errors)}"
-        raise RuntimeError(msg)
+def get_formatted_queries() -> dict[str, str]:
+    """Return the formatted queries."""
+    manual_queries = get_manual_queries()
+    automatic_queries = get_automatic_queries()
+    queries = automatic_queries | manual_queries
+    return {table: dedent(q).strip().replace("\n", " ") for table, q in queries.items()}
 
 
 def format_content(content: str, params: dict[str, Any]) -> str:
@@ -490,7 +337,6 @@ def _get_build_script_content(queries: dict[str, str], db_version: str) -> str:
         echo "All done."
     """
     psql_commands = "\n".join(
-        # f"\\copy ({query}) TO '$DATA_DIR/{name}.csv' BINARY;"
         f"\\echo Dumping table {name}\n\\copy ({query}) TO '$DATA_DIR/{name}.csv' WITH CSV HEADER;"
         for name, query in queries.items()
     )
@@ -515,7 +361,7 @@ def main():
     """Main entry point."""
     L.info("Updating scripts...")
     db_version = get_current_db_version()
-    queries = get_resolved_queries()
+    queries = get_formatted_queries()
     scripts_dir = Path(__file__).parent
     write_script(
         scripts_dir / BUILD_SCRIPT,

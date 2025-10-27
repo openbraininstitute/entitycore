@@ -52,7 +52,7 @@ def read_one(user_context: UserContextDep, atlas_id: uuid.UUID, db: SessionDep) 
         id_=atlas_id,
         db=db,
         db_model_class=BrainAtlas,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
     )
@@ -63,7 +63,7 @@ def admin_read_one(db: SessionDep, atlas_id: uuid.UUID) -> BrainAtlasRead:
         id_=atlas_id,
         db=db,
         db_model_class=BrainAtlas,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
     )
@@ -102,7 +102,7 @@ def read_one_region(
         id_=atlas_region_id,
         db=db,
         db_model_class=BrainAtlasRegion,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=BrainAtlasRegionRead,
         apply_operations=lambda select: select.filter(
             BrainAtlasRegion.brain_atlas_id == atlas_id

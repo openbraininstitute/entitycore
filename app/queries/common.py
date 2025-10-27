@@ -41,7 +41,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    authorized_project_id: uuid.UUID | None,
+    user_context: UserContext | None,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations[I] | None,
 ) -> T:
@@ -51,7 +51,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
         id_: id of the entity to read.
         db: database session.
         db_model_class: database model class.
-        authorized_project_id: id of the authorized project.
+        user_context: the user context with project id and user information.
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
 
@@ -59,11 +59,13 @@ def router_read_one[T: BaseModel, I: Identifiable](
         the model data as a Pydantic model.
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if authorized_project_id and (
+    if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
         query = constrain_to_accessible_entities(
-            query, authorized_project_id, db_model_class=id_model_class
+            query=query,
+            project_id=user_context.project_id,
+            db_model_class=id_model_class,
         )
     if apply_operations:
         query = apply_operations(query)

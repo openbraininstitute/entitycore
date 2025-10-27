@@ -91,7 +91,7 @@ def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> ME
         id_=id_,
         db=db,
         db_model_class=MEModel,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=MEModelRead,
         apply_operations=_load,
     )
@@ -102,7 +102,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> MEModelRead:
         id_=id_,
         db=db,
         db_model_class=MEModel,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=MEModelRead,
         apply_operations=_load,
     )

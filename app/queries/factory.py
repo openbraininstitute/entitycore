@@ -25,6 +25,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Simulation,
+    SimulationCampaign,
     SingleNeuronSynaptome,
     Species,
     Strain,
@@ -143,10 +144,6 @@ def query_params_factory[I: Identifiable](
             "id": ion_channel_modeling_config_alias.id,
             "label": ion_channel_modeling_config_alias.name,
         },
-        "circuit": {
-            "id": circuit_alias.id,
-            "label": circuit_alias.name,
-        },
     }
     filter_joins = {
         "species": lambda q: q.join(Species, db_model_class.species_id == Species.id),
@@ -223,7 +220,15 @@ def query_params_factory[I: Identifiable](
         "simulation.circuit": lambda q: q.outerjoin(
             circuit_alias, simulation_alias.entity_id == circuit_alias.id
         ),
-        "circuit": lambda q: q.join(circuit_alias, db_model_class.entity_id == circuit_alias.id),
+        "circuit": lambda q: q.join(
+            circuit_alias,
+            (
+                db_model_class.entity_id
+                if db_model_class == SimulationCampaign
+                else db_model_class.circuit_id
+            )
+            == circuit_alias.id,
+        ),
         "used": lambda q: q.outerjoin(
             Usage, db_model_class.id == Usage.usage_activity_id
         ).outerjoin(used_alias, Usage.usage_entity_id == used_alias.id),
@@ -248,10 +253,6 @@ def query_params_factory[I: Identifiable](
         "ion_channel_modeling_config": lambda q: q.outerjoin(
             ion_channel_modeling_config_alias,
             db_model_class.id == ion_channel_modeling_config_alias.ion_channel_modeling_campaign_id,
-        ),
-        "circuit": lambda q: q.join(
-            circuit_alias,
-            db_model_class.circuit_id == circuit_alias.id,
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

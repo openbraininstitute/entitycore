@@ -113,7 +113,7 @@ def read_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # validated with apply_operations
+        user_context=None,  # validated with apply_operations
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
     )
@@ -131,7 +131,7 @@ def admin_read_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
     )
@@ -178,7 +178,7 @@ def delete_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # validated with apply_operations
+        user_context=None,  # validated with apply_operations
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
     )

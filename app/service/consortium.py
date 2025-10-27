@@ -72,7 +72,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> ConsortiumRead:
         id_=id_,
         db=db,
         db_model_class=Consortium,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ConsortiumRead,
         apply_operations=_load,
     )
@@ -83,7 +83,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> ConsortiumRead:
         id_=id_,
         db=db,
         db_model_class=Consortium,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ConsortiumRead,
         apply_operations=_load,
     )

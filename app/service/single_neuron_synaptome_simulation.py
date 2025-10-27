@@ -61,7 +61,7 @@ def read_one(
     return router_read_one(
         db=db,
         id_=id_,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
         apply_operations=_load,
@@ -75,7 +75,7 @@ def admin_read_one(
     return router_read_one(
         db=db,
         id_=id_,
-        authorized_project_id=None,
+        user_context=None,
         db_model_class=SingleNeuronSynaptomeSimulation,
         response_schema_class=SingleNeuronSynaptomeSimulationRead,
         apply_operations=_load,

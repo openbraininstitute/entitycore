@@ -508,6 +508,14 @@ def check_authorization(route, client_user_1, client_user_2, client_no_project, 
         public_u2_0["id"],
     }
 
+    # client_no_project cannot read a private entity
+    result = assert_request(
+        client_no_project.get,
+        url=f"{route}/{private_u1_1['id']}",
+        expected_status_code=404,
+    ).json()
+    assert result["error_code"] == "ENTITY_NOT_FOUND"
+
     # client_user_1 wants only public results
     data = assert_request(
         client_user_1.get,

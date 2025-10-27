@@ -98,7 +98,7 @@ def read_one(
         id_=id_,
         db=db,
         db_model_class=EMDenseReconstructionDataset,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=EMDenseReconstructionDatasetRead,
         apply_operations=_load,
     )

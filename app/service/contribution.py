@@ -90,7 +90,7 @@ def read_one(
         id_=id_,
         db=db,
         db_model_class=Contribution,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ContributionRead,
         apply_operations=lambda q: constrain_to_accessible_entities(
             _load(q), user_context.project_id
@@ -106,7 +106,7 @@ def admin_read_one(
         id_=id_,
         db=db,
         db_model_class=Contribution,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ContributionRead,
         apply_operations=_load,
     )

@@ -50,7 +50,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyRead:
         id_=id_,
         db=db,
         db_model_class=BrainRegionHierarchy,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=BrainRegionHierarchyRead,
         apply_operations=_load,
     )

@@ -58,7 +58,7 @@ def read_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphologyProtocol,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
     )
@@ -72,7 +72,7 @@ def admin_read_one(
         db=db,
         id_=id_,
         db_model_class=CellMorphologyProtocol,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
     )

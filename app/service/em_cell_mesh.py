@@ -109,7 +109,7 @@ def read_one(
         id_=id_,
         db=db,
         db_model_class=EMCellMesh,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=EMCellMeshRead,
         apply_operations=_load,
     )
@@ -123,7 +123,7 @@ def admin_read_one(
         id_=id_,
         db=db,
         db_model_class=EMCellMesh,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=EMCellMeshRead,
         apply_operations=_load,
     )

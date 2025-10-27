@@ -42,7 +42,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> LicenseRead:
         id_=id_,
         db=db,
         db_model_class=License,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=LicenseRead,
         apply_operations=None,
     )

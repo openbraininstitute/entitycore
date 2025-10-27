@@ -60,7 +60,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=IonChannelModelingCampaign,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         response_schema_class=IonChannelModelingCampaignRead,
         apply_operations=_load,
     )
@@ -74,7 +74,7 @@ def admin_read_one(
         db=db,
         id_=id_,
         db_model_class=IonChannelModelingCampaign,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=IonChannelModelingCampaignRead,
         apply_operations=_load,
     )

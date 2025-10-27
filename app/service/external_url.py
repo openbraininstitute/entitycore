@@ -42,7 +42,7 @@ def read_one(
         db=db,
         id_=id_,
         db_model_class=ExternalUrl,
-        authorized_project_id=None,
+        user_context=None,
         response_schema_class=ExternalUrlRead,
         apply_operations=_load,
     )

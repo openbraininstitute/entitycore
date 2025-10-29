@@ -142,7 +142,6 @@ def read_many(
     updated_by_alias = aliased(Agent, flat=True)
     simulation_alias = aliased(Simulation, flat=True)
     circuit_alias = aliased(Circuit, flat=True)
-
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,

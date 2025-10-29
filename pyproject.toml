@@ -146,6 +146,9 @@ builtins-ignorelist = ["license"]
     "S101",    # Use of `assert` detected
     "SLF001",  # private member access
 ]
+"app/db/model.py" = [
+    "A003",    # builtin-attribute-shadowing
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

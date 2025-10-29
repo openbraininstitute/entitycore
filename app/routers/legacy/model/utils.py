@@ -142,7 +142,7 @@ def get_facets(aggs, musts, db_type, db):
         models.append(aliased(db_type))
         cur_alias = aliased(next(iter(models)))
         initial_alias = cur_alias
-        property_group = PROPERTY_MAP.get(f"{target}.{property_}", None)
+        property_group = PROPERTY_MAP.get(f"{target}.{property_}")
         facet_q = db.query(getattr(initial_alias, property_group), func.count().label("count"))
         for model, join in zip(models[1:], joins, strict=False):
             prev_alias = cur_alias
@@ -255,7 +255,7 @@ def add_predicates_to_query(query, must_terms, db_type, alias=None):  # noqa: C9
                     cur_alias = initial_alias
                 else:
                     query_map = QUERY_PATH.get(target)
-                    property_ = PROPERTY_MAP.get(f"{target}.{property_}", None)
+                    property_ = PROPERTY_MAP.get(f"{target}.{property_}")
                     if not query_map or not property_:
                         raise HTTPException(
                             status_code=500,

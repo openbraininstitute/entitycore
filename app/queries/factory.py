@@ -81,7 +81,7 @@ def query_params_factory[I: Identifiable](
     simulation_alias = _get_alias(Simulation)
     used_alias = _get_alias(Entity, "used")
     generated_alias = _get_alias(Entity, "generated")
-    circuit_alias = _get_alias(Circuit, "circuit")
+    circuit_alias = _get_alias(Circuit)
     ion_channel_alias = _get_alias(IonChannel)
     em_dense_reconstruction_dataset_alias = _get_alias(EMDenseReconstructionDataset)
     ion_channel_model_alias = _get_alias(IonChannelModel, "ion_channel_model")

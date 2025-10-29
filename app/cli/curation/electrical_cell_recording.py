@@ -52,7 +52,7 @@ def curate_assets(
     assets_dict: dict[ContentType, Asset] = {k: v[0] for k, v in assets.items()}
     # Multiple assets: keep the nwb one if any.
     if len(assets_dict) > 1:
-        if asset := assets_dict.get(ContentType.nwb, None):
+        if asset := assets_dict.get(ContentType.nwb):
             msg = (
                 f"Multiple assets {sorted(assets_dict.keys())} for ElectricalCellRecording. "
                 f"{ContentType.nwb} was kept."

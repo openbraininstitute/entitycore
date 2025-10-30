@@ -150,3 +150,15 @@ def test_filtering(client, models, simulation_campaign, circuit):
         "data"
     ]
     assert len(data) == len(models)
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"circuit__id": str(circuit.id), "with_facets": True}
+    ).json()["data"]
+    assert len(data) == len(models)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"circuit__build_category": str(circuit.build_category), "with_facets": True},
+    ).json()["data"]
+    assert len(data) == len(models)

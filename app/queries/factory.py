@@ -220,7 +220,7 @@ def query_params_factory[I: Identifiable](
             circuit_alias,
             (
                 db_model_class.entity_id
-                if db_model_class == SimulationCampaign
+                if db_model_class in {SimulationCampaign, Simulation}
                 else db_model_class.circuit_id
             )
             == circuit_alias.id,

@@ -157,7 +157,6 @@ def read_many(
         "contribution",
         "circuit",
         "simulation",
-        "simulation.circuit",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=SimulationCampaign,

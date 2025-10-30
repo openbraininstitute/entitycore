@@ -129,7 +129,6 @@ def query_params_factory[I: Identifiable](
         "pre_region": {"id": pre_region_alias.id, "label": pre_region_alias.name},
         "post_region": {"id": post_region_alias.id, "label": post_region_alias.name},
         "simulation": {"id": simulation_alias.id, "label": simulation_alias.name},
-        "simulation.circuit": {"id": circuit_alias.id, "label": circuit_alias.name},
         "circuit": {"id": circuit_alias.id, "label": circuit_alias.name},
         "ion_channel": {"id": ion_channel_alias.id, "label": ion_channel_alias.label},
         "em_dense_reconstruction_dataset": {
@@ -216,9 +215,6 @@ def query_params_factory[I: Identifiable](
         ),
         "simulation": lambda q: q.outerjoin(
             simulation_alias, db_model_class.id == simulation_alias.simulation_campaign_id
-        ),
-        "simulation.circuit": lambda q: q.join(
-            circuit_alias, simulation_alias.entity_id == circuit_alias.id
         ),
         "circuit": lambda q: q.join(
             circuit_alias,

@@ -225,3 +225,23 @@ def test_filtering(client, root_circuit, models):
         },
     ).json()["data"]
     assert len(data) == 4
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "root_circuit_id": str(root_circuit.id),
+            "subject__species__name": "Test Species",
+        },
+    ).json()["data"]
+    assert len(data) == len(models)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "root_circuit_id": str(root_circuit.id),
+            "subject__species__name": "Unknown",
+        },
+    ).json()["data"]
+    assert len(data) == 0

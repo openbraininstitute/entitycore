@@ -43,13 +43,17 @@ if TYPE_CHECKING:
 def _load(query: sa.Select):
     return query.options(
         joinedload(Circuit.license),
-        joinedload(Circuit.subject).joinedload(Subject.species),
-        joinedload(Circuit.subject).joinedload(Subject.strain),
+        joinedload(Circuit.subject).options(
+            joinedload(Subject.species),
+            joinedload(Subject.strain),
+        ),
         joinedload(Circuit.brain_region),
         joinedload(Circuit.created_by),
         joinedload(Circuit.updated_by),
-        selectinload(Circuit.contributions).joinedload(Contribution.agent),
-        selectinload(Circuit.contributions).joinedload(Contribution.role),
+        selectinload(Circuit.contributions).options(
+            joinedload(Contribution.agent),
+            joinedload(Contribution.role),
+        ),
         selectinload(Circuit.assets),
         raiseload("*"),
     )
@@ -141,22 +145,30 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[CircuitRead]:
+    subject_alias = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
 
     aliases: Aliases = {
+        Subject: subject_alias,
         Agent: {
             "contribution": agent_alias,
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
-        }
+        },
     }
-    facet_keys = filter_keys = [
+    facet_keys = [
         "brain_region",
         "created_by",
         "updated_by",
         "contribution",
+        "subject.species",
+        "subject.strain",
+    ]
+    filter_keys = [
+        "subject",
+        *facet_keys,
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=Circuit,

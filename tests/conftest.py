@@ -1753,3 +1753,22 @@ def circuit_extraction_config_id(client, circuit_extraction_config_json_data):
         json=circuit_extraction_config_json_data,
     ).json()
     return data["id"]
+
+
+@pytest.fixture
+def skeletonization_config_json_data():
+    return {
+        "name": "skeletonization-config",
+        "description": "my-skeletonization-config",
+        "scan_parameters": {"foo": "bar"},
+    }
+
+
+@pytest.fixture
+def skeletonization_config_id(client, skeletonization_config_json_data):
+    data = assert_request(
+        client.post,
+        url="/skeletonization-config",
+        json=skeletonization_config_json_data,
+    ).json()
+    return data["id"]

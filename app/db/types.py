@@ -138,6 +138,7 @@ class EntityType(StrEnum):
     analysis_notebook_template = auto()
     analysis_notebook_environment = auto()
     analysis_notebook_result = auto()
+    skeletonization_config = auto()
 
 
 class AgentType(StrEnum):
@@ -191,6 +192,7 @@ class ActivityType(StrEnum):
     ion_channel_modeling_config_generation = auto()
     circuit_extraction_config_generation = auto()
     circuit_extraction_execution = auto()
+    skeletonization_execution = auto()
 
 
 class DerivationType(StrEnum):
@@ -241,6 +243,14 @@ class SimulationExecutionStatus(StrEnum):
 
 
 class IonChannelModelingExecutionStatus(StrEnum):
+    created = auto()
+    pending = auto()
+    running = auto()
+    done = auto()
+    error = auto()
+
+
+class SkeletonizationExecutionStatus(StrEnum):
     created = auto()
     pending = auto()
     running = auto()

@@ -69,6 +69,7 @@ from app.db.types import (
     Sex,
     SimulationExecutionStatus,
     SingleNeuronSimulationStatus,
+    SkeletonizationExecutionStatus,
     SlicingDirectionType,
     StainingType,
     StorageType,
@@ -2045,5 +2046,48 @@ class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.analysis_notebook_result.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
+    """Represents the configuration of a skeletonization in the database.
+
+    Assets:
+        - An obi-one skeletonization configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key referencing the entity ID.
+        scan_parameters (JSON_DICT): Scan parameters for the skeletonization.
+    """
+
+    __tablename__ = EntityType.skeletonization_config.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SkeletonizationExecution(Activity):
+    """Represents the execution of the skeletonization.
+
+    It stores the execution status of an ion channel modeling.
+
+    Inputs (used):
+        - SkeletonizationConfig
+    Outputs (generated):
+        - CellMorphology
+
+    Attributes:
+        id (uuid.UUID): Primary key referencing the activity ID.
+    """
+
+    __tablename__ = ActivityType.skeletonization_execution.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    status: Mapped[SkeletonizationExecutionStatus] = mapped_column(
+        default=SkeletonizationExecutionStatus.created,
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

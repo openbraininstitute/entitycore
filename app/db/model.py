@@ -2072,8 +2072,6 @@ class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
 class SkeletonizationExecution(Activity):
     """Represents the execution of the skeletonization.
 
-    It stores the execution status of an ion channel modeling.
-
     Inputs (used):
         - SkeletonizationConfig
     Outputs (generated):

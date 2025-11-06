@@ -7,7 +7,6 @@ from app.db.model import (
     Generation,
     IonChannelModel,
     IonChannelModelingConfig,
-    IonChannelModelingConfigGeneration,
     IonChannelModelingExecution,
     Usage,
 )
@@ -31,7 +30,6 @@ DateTimeAdapter = TypeAdapter(datetime)
 
 ROUTE = "ion-channel-modeling-execution"
 ADMIN_ROUTE = "/admin/ion-channel-modeling-execution"
-MODEL = IonChannelModelingConfigGeneration
 
 
 @pytest.fixture

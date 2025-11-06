@@ -27,6 +27,7 @@ from app.db.model import (
     Simulation,
     SimulationCampaign,
     SingleNeuronSynaptome,
+    SkeletonizationConfig,
     Species,
     Strain,
     Subject,
@@ -86,6 +87,7 @@ def query_params_factory[I: Identifiable](
     em_dense_reconstruction_dataset_alias = _get_alias(EMDenseReconstructionDataset)
     ion_channel_model_alias = _get_alias(IonChannelModel, "ion_channel_model")
     ion_channel_modeling_config_alias = _get_alias(IonChannelModelingConfig)
+    skeletonization_config_alias = _get_alias(SkeletonizationConfig)
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -142,6 +144,10 @@ def query_params_factory[I: Identifiable](
         "ion_channel_modeling_config": {
             "id": ion_channel_modeling_config_alias.id,
             "label": ion_channel_modeling_config_alias.name,
+        },
+        "skeletonization_config": {
+            "id": skeletonization_config_alias.id,
+            "label": skeletonization_config_alias.name,
         },
     }
     filter_joins = {
@@ -246,9 +252,13 @@ def query_params_factory[I: Identifiable](
             ion_channel_model_alias,
             IonChannelModelToEModel.ion_channel_model_id == ion_channel_model_alias.id,
         ),
-        "ion_channel_modeling_config": lambda q: q.outerjoin(
+        "ion_channel_modeling_config": lambda q: q.join(
             ion_channel_modeling_config_alias,
             db_model_class.id == ion_channel_modeling_config_alias.ion_channel_modeling_campaign_id,
+        ),
+        "skeletonization_config": lambda q: q.join(
+            skeletonization_config_alias,
+            db_model_class.id == skeletonization_config_alias.skeletonization_campaign_id,
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

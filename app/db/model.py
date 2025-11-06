@@ -2050,6 +2050,52 @@ class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class EmCellMeshToSkeletonizationCampaign(Base):
+    __tablename__ = "em_cell_mesh__skeletonization_campaign"
+
+    em_cell_mesh_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.em_cell_mesh}.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    skeletonization_campaign_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.skeletonization_campaign}.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
+class SkeletonizationCampaign(
+    NameDescriptionVectorMixin,
+    Entity,
+):
+    """Represents a skeletonization campaign entity in the database.
+
+    Assets:
+        - skeletonization campaign configuration file
+
+    Attributes:
+        id (uuid.UUID): Primary key referencing the entity ID.
+        scan_parameters (JSON_DICT): Scan parameters for the skeletonization campaign.
+    """
+
+    __tablename__ = EntityType.skeletonization_campaign.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
+
+    input_meshes: Mapped[list[EMCellMesh]] = relationship(
+        primaryjoin=(
+            "SkeletonizationCampaign.id == "
+            "EmCellMeshToSkeletonizationCampaign.skeletonization_campaign_id"
+        ),
+        secondary="em_cell_mesh__skeletonization_campaign",
+    )
+
+    skeletonization_configs: Mapped[list["SkeletonizationConfig"]] = relationship(
+        uselist=True,
+        foreign_keys="SkeletonizationConfig.skeletonization_campaign_id",
+    )
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
 class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
     """Represents the configuration of a skeletonization in the database.
 
@@ -2059,12 +2105,38 @@ class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
     Attributes:
         id (uuid.UUID): Primary key referencing the entity ID.
         scan_parameters (JSON_DICT): Scan parameters for the skeletonization.
+        skeletonization_campaign_id: id of the campaign that generated the config.
+        em_cell_mesh_id: id of the mesh used by this config.
     """
 
     __tablename__ = EntityType.skeletonization_config.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
+    skeletonization_campaign_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.skeletonization_campaign}.id"), index=True
+    )
+    em_cell_mesh_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.em_cell_mesh}.id"), index=True
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SkeletonizationConfigGeneration(Activity):
+    """Represents an activity generating the skeletonization configurations.
+
+    Inputs (used):
+        - SkeletonizationCampaign
+    Outputs (generated):
+        - SkeletonizationConfig
+
+    Attributes:
+        id (uuid.UUID): Primary key referencing the activity ID.
+    """
+
+    __tablename__ = ActivityType.skeletonization_config_generation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

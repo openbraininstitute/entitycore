@@ -14,7 +14,6 @@ from .utils import (
 
 ROUTE = "skeletonization-config"
 ADMIN_ROUTE = "/admin/skeletonization-config"
-MODEL = SkeletonizationConfig
 
 
 @pytest.fixture
@@ -42,6 +41,8 @@ def model_id(skeletonization_config_id):
 
 def _assert_read_response(data, json_data):
     check_entity_read_response(data, json_data, EntityType.skeletonization_config)
+    assert data["skeletonization_campaign_id"]
+    assert data["em_cell_mesh_id"]
     assert data["scan_parameters"] == json_data["scan_parameters"]
 
 
@@ -70,10 +71,10 @@ def test_delete_one(db, clients, public_json_data):
         clients=clients,
         json_data=public_json_data,
         expected_counts_before={
-            MODEL: 1,
+            SkeletonizationConfig: 1,
         },
         expected_counts_after={
-            MODEL: 0,
+            SkeletonizationConfig: 0,
         },
     )
 
@@ -95,7 +96,9 @@ def models(create_id):
     return [create_id(name=f"config-{i}") for i in range(3)]
 
 
-def test_filtering_ordering(client, models):
+def test_filtering_ordering(
+    client, models, public_skeletonization_campaign_id, public_em_cell_mesh
+):
     def _req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -108,6 +111,18 @@ def test_filtering_ordering(client, models):
     data = _req({"name": "config-0"})
     assert len(data) == 1
     assert data[0]["name"] == "config-0"
+
+    data = _req({"skeletonization_campaign_id": public_skeletonization_campaign_id})
+    assert len(data) == len(models)
+
+    data = _req({"skeletonization_campaign_id__in": [public_skeletonization_campaign_id]})
+    assert len(data) == len(models)
+
+    data = _req({"em_cell_mesh_id": str(public_em_cell_mesh.id)})
+    assert len(data) == len(models)
+
+    data = _req({"em_cell_mesh_id__in": [str(public_em_cell_mesh.id)]})
+    assert len(data) == len(models)
 
     data = _req({"order_by": "-name"})
     assert [d["name"] for d in data] == ["config-2", "config-1", "config-0"]

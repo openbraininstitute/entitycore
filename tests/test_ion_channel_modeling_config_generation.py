@@ -120,32 +120,19 @@ def test_create_one__empty_ids(client, client_admin, json_data):
     _assert_read_response(data, json_data, empty_ids=True)
 
 
-def test_create_one__unauthorized_entities(
-    db,
-    client_user_1,
-    client_user_2,
-    json_data,
-    subject_id,
-    brain_region_id,
-):
+def test_create_one__unauthorized_entities(db, client_user_1, client_user_2, json_data):
     """Do not allow associations with entities that are not authorized to the user."""
 
     user1_icmc_id = create_ion_channel_modeling_campaign_id(
         client_user_1,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
         authorized_public=False,
     )
     user2_icmc_id = create_ion_channel_modeling_campaign_id(
         client_user_2,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
         authorized_public=False,
     )
     user2_public_icmc_id = create_ion_channel_modeling_campaign_id(
         client_user_2,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
         authorized_public=True,
     )
     check_activity_create_one__unauthorized_entities(
@@ -292,20 +279,16 @@ def test_update_one(
 
 
 def test_update_one__fail_if_generated_ids_unauthorized(
-    db, client_user_1, client_user_2, json_data, subject_id, brain_region_id
+    db, client_user_1, client_user_2, json_data
 ):
     """Test that it is not allowed to update generated_ids with unauthorized entities."""
 
     user1_icmc_id = create_ion_channel_modeling_campaign_id(
         client_user_1,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
         authorized_public=False,
     )
     user2_icmc_id = create_ion_channel_modeling_campaign_id(
         client_user_2,
-        subject_id=subject_id,
-        brain_region_id=brain_region_id,
         authorized_public=False,
     )
     check_activity_update_one__fail_if_generated_ids_unauthorized(

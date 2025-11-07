@@ -1533,6 +1533,23 @@ def em_cell_mesh(db, em_cell_mesh_json_data, person_id):
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
+                "authorized_public": False,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def public_em_cell_mesh(db, em_cell_mesh_json_data, person_id):
+    return add_db(
+        db,
+        EMCellMesh(
+            **em_cell_mesh_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+                "authorized_public": True,
             }
         ),
     )
@@ -1756,10 +1773,41 @@ def circuit_extraction_config_id(client, circuit_extraction_config_json_data):
 
 
 @pytest.fixture
-def skeletonization_config_json_data():
+def skeletonization_campaign_json_data():
+    return {
+        "name": "skeletonization-campaign",
+        "description": "my-skeletonization-campaign",
+        "scan_parameters": {"foo": "bar"},
+    }
+
+
+@pytest.fixture
+def skeletonization_campaign_id(client, skeletonization_campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/skeletonization-campaign",
+        json=skeletonization_campaign_json_data | {"authorized_public": False},
+    ).json()
+    return data["id"]
+
+
+@pytest.fixture
+def public_skeletonization_campaign_id(client, skeletonization_campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/skeletonization-campaign",
+        json=skeletonization_campaign_json_data | {"authorized_public": True},
+    ).json()
+    return data["id"]
+
+
+@pytest.fixture
+def skeletonization_config_json_data(public_skeletonization_campaign_id, public_em_cell_mesh):
     return {
         "name": "skeletonization-config",
-        "description": "my-skeletonization-config",
+        "description": "skeletonization-config",
+        "skeletonization_campaign_id": public_skeletonization_campaign_id,
+        "em_cell_mesh_id": str(public_em_cell_mesh.id),
         "scan_parameters": {"foo": "bar"},
     }
 

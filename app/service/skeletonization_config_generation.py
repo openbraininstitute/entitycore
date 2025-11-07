@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.model import Agent, Entity, SkeletonizationExecution
+from app.db.model import Agent, Entity, SkeletonizationConfigGeneration
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -13,7 +13,9 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.skeletonization_execution import SkeletonizationExecutionFilterDep
+from app.filters.skeletonization_config_generation import (
+    SkeletonizationConfigGenerationFilterDep,
+)
 from app.queries.common import (
     router_create_activity_one,
     router_delete_one,
@@ -23,24 +25,23 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
-from app.schemas.skeletonization_execution import (
-    SkeletonizationExecutionAdminUpdate,
-    SkeletonizationExecutionCreate,
-    SkeletonizationExecutionRead,
-    SkeletonizationExecutionUserUpdate,
+from app.schemas.skeletonization_config_generation import (
+    SkeletonizationConfigGenerationAdminUpdate,
+    SkeletonizationConfigGenerationCreate,
+    SkeletonizationConfigGenerationRead,
+    SkeletonizationConfigGenerationUserUpdate,
 )
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
 
-
-DBModel = SkeletonizationExecution
-ReadSchema = SkeletonizationExecutionRead
-CreateSchema = SkeletonizationExecutionCreate
-UserUpdateSchema = SkeletonizationExecutionUserUpdate
-AdminUpdateSchema = SkeletonizationExecutionAdminUpdate
-FilterDep = SkeletonizationExecutionFilterDep
+DBModel = SkeletonizationConfigGeneration
+ReadSchema = SkeletonizationConfigGenerationRead
+CreateSchema = SkeletonizationConfigGenerationCreate
+UserUpdateSchema = SkeletonizationConfigGenerationUserUpdate
+AdminUpdateSchema = SkeletonizationConfigGenerationAdminUpdate
+FilterDep = SkeletonizationConfigGenerationFilterDep
 
 
 def _load(query: sa.Select):

@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="8fcbbd5d3184"
+SCRIPT_DB_VERSION="83185c2aca1c"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -137,6 +137,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM electrical_recording_stimulus AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.recording_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/electrical_recording_stimulus.csv' WITH CSV HEADER;
 \echo Dumping table em_cell_mesh
 \copy (SELECT t0.* FROM em_cell_mesh AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.em_dense_reconstruction_dataset_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/em_cell_mesh.csv' WITH CSV HEADER;
+\echo Dumping table em_cell_mesh__skeletonization_campaign
+\copy (SELECT t0.* FROM em_cell_mesh__skeletonization_campaign AS t0 JOIN entity AS t1 ON t1.id=t0.em_cell_mesh_id JOIN entity AS t2 ON t2.id=t0.skeletonization_campaign_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/em_cell_mesh__skeletonization_campaign.csv' WITH CSV HEADER;
 \echo Dumping table em_dense_reconstruction_dataset
 \copy (SELECT t0.* FROM em_dense_reconstruction_dataset AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/em_dense_reconstruction_dataset.csv' WITH CSV HEADER;
 \echo Dumping table emodel
@@ -227,8 +229,12 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM single_neuron_synaptome AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.me_model_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/single_neuron_synaptome.csv' WITH CSV HEADER;
 \echo Dumping table single_neuron_synaptome_simulation
 \copy (SELECT t0.* FROM single_neuron_synaptome_simulation AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.synaptome_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/single_neuron_synaptome_simulation.csv' WITH CSV HEADER;
+\echo Dumping table skeletonization_campaign
+\copy (SELECT t0.* FROM skeletonization_campaign AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/skeletonization_campaign.csv' WITH CSV HEADER;
 \echo Dumping table skeletonization_config
-\copy (SELECT t0.* FROM skeletonization_config AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/skeletonization_config.csv' WITH CSV HEADER;
+\copy (SELECT t0.* FROM skeletonization_config AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.skeletonization_campaign_id JOIN entity AS t3 ON t3.id=t0.em_cell_mesh_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false AND t3.authorized_public IS NOT false) TO '$DATA_DIR/skeletonization_config.csv' WITH CSV HEADER;
+\echo Dumping table skeletonization_config_generation
+\copy (SELECT t0.* FROM skeletonization_config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/skeletonization_config_generation.csv' WITH CSV HEADER;
 \echo Dumping table skeletonization_execution
 \copy (SELECT t0.* FROM skeletonization_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/skeletonization_execution.csv' WITH CSV HEADER;
 \echo Dumping table species
@@ -255,7 +261,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="8fcbbd5d3184"
+SCRIPT_DB_VERSION="83185c2aca1c"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

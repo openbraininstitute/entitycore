@@ -1,5 +1,3 @@
-import uuid
-
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import JSON_DICT
@@ -13,45 +11,45 @@ from app.schemas.base import (
     IdentifiableMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.em_cell_mesh import NestedEMCellMeshRead
+from app.schemas.skeletonization_config import NestedSkeletonizationConfigRead
 from app.schemas.utils import make_update_schema
 
 
-class SkeletonizationConfigBase(BaseModel):
+class SkeletonizationCampaignBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str
     description: str
-    skeletonization_campaign_id: uuid.UUID
-    em_cell_mesh_id: uuid.UUID
     scan_parameters: JSON_DICT
 
 
-class SkeletonizationConfigCreate(SkeletonizationConfigBase, AuthorizationOptionalPublicMixin):
+class SkeletonizationCampaignCreate(SkeletonizationCampaignBase, AuthorizationOptionalPublicMixin):
     pass
 
 
-SkeletonizationConfigUserUpdate = make_update_schema(
-    SkeletonizationConfigCreate, "SkeletonizationConfigUserUpdate"
+SkeletonizationCampaignUserUpdate = make_update_schema(
+    SkeletonizationCampaignCreate, "SkeletonizationCampaignUserUpdate"
 )  # pyright: ignore [reportInvalidTypeForm]
-
-SkeletonizationConfigAdminUpdate = make_update_schema(
-    SkeletonizationConfigCreate,
-    "SkeletonizationConfigAdminUpdate",
+SkeletonizationCampaignAdminUpdate = make_update_schema(
+    SkeletonizationCampaignCreate,
+    "SkeletonizationCampaignAdminUpdate",
     excluded_fields=set(),
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedSkeletonizationConfigRead(
-    SkeletonizationConfigBase, EntityTypeMixin, IdentifiableMixin
+class NestedSkeletonizationCampaignRead(
+    SkeletonizationCampaignBase, EntityTypeMixin, IdentifiableMixin
 ):
     pass
 
 
-class SkeletonizationConfigRead(
-    NestedSkeletonizationConfigRead,
+class SkeletonizationCampaignRead(
+    NestedSkeletonizationCampaignRead,
     AssetsMixin,
     CreatedByUpdatedByMixin,
     CreationMixin,
     AuthorizationMixin,
     ContributionReadWithoutEntityMixin,
 ):
-    pass
+    input_meshes: list[NestedEMCellMeshRead]
+    skeletonization_configs: list[NestedSkeletonizationConfigRead]

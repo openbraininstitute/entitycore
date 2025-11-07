@@ -139,6 +139,7 @@ class EntityType(StrEnum):
     analysis_notebook_environment = auto()
     analysis_notebook_result = auto()
     skeletonization_config = auto()
+    skeletonization_campaign = auto()
 
 
 class AgentType(StrEnum):
@@ -193,6 +194,7 @@ class ActivityType(StrEnum):
     circuit_extraction_config_generation = auto()
     circuit_extraction_execution = auto()
     skeletonization_execution = auto()
+    skeletonization_config_generation = auto()
 
 
 class DerivationType(StrEnum):

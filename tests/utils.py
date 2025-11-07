@@ -29,6 +29,8 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Person,
+    SkeletonizationCampaign,
+    SkeletonizationConfig,
     Species,
     Strain,
     Subject,
@@ -82,6 +84,8 @@ ROUTES = {
     IonChannelRecording: "/ion-channel-recording",
     IonChannelModelingCampaign: "/ion-channel-modeling-campaign",
     CircuitExtractionCampaign: "/circuit-extraction-campaign",
+    SkeletonizationCampaign: "/skeletonization-campaign",
+    SkeletonizationConfig: "/skeletonization-config",
 }
 
 
@@ -148,8 +152,6 @@ def create_cell_morphology_id(
 
 def create_ion_channel_modeling_campaign_id(
     client,
-    subject_id,
-    brain_region_id,
     name="Test Ion Channel Modeling Campaign Name",
     description="Test Ion Channel Modeling Campaign Description",
     *,
@@ -160,8 +162,52 @@ def create_ion_channel_modeling_campaign_id(
         json={
             "name": name,
             "description": description,
-            "brain_region_id": str(brain_region_id),
-            "subject_id": str(subject_id),
+            "authorized_public": authorized_public,
+            "scan_parameters": {"foo": "bar"},
+        },
+    )
+
+    assert response.status_code == 200
+    return response.json()["id"]
+
+
+def create_skeletonization_campaign_id(
+    client,
+    name="Test Skeletonization Campaign Name",
+    description="Test Skeletonization Campaign Description",
+    *,
+    authorized_public: bool = False,
+):
+    response = client.post(
+        ROUTES[SkeletonizationCampaign],
+        json={
+            "name": name,
+            "description": description,
+            "authorized_public": authorized_public,
+            "scan_parameters": {"foo": "bar"},
+        },
+    )
+
+    assert response.status_code == 200
+    return response.json()["id"]
+
+
+def create_skeletonization_config_id(
+    client,
+    skeletonization_campaign_id,
+    em_cell_mesh_id,
+    name="Test Skeletonization Config Name",
+    description="Test Skeletonization Config Description",
+    *,
+    authorized_public: bool = False,
+):
+    response = client.post(
+        ROUTES[SkeletonizationConfig],
+        json={
+            "name": name,
+            "description": description,
+            "skeletonization_campaign_id": str(skeletonization_campaign_id),
+            "em_cell_mesh_id": str(em_cell_mesh_id),
             "authorized_public": authorized_public,
             "scan_parameters": {"foo": "bar"},
         },

@@ -5,7 +5,11 @@ from pydantic import BaseModel
 
 from app.db.types import EMCellMeshGenerationMethod, EMCellMeshType
 from app.schemas.base import BasicEntityRead
-from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
+from app.schemas.scientific_artifact import (
+    NestedScientificArtifactRead,
+    ScientificArtifactCreate,
+    ScientificArtifactRead,
+)
 from app.schemas.utils import make_update_schema
 
 
@@ -16,6 +20,13 @@ class EMCellMeshBase(BaseModel):
     level_of_detail: int
     generation_parameters: dict[str, Any] | None = None
     mesh_type: EMCellMeshType
+
+
+class NestedEMCellMeshRead(
+    EMCellMeshBase,
+    NestedScientificArtifactRead,
+):
+    pass
 
 
 class EMCellMeshRead(

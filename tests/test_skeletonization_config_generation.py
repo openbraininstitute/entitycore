@@ -5,9 +5,9 @@ from pydantic import TypeAdapter
 
 from app.db.model import (
     Generation,
-    IonChannelModel,
-    IonChannelModelingConfig,
-    IonChannelModelingExecution,
+    SkeletonizationCampaign,
+    SkeletonizationConfig,
+    SkeletonizationConfigGeneration,
     Usage,
 )
 from app.db.types import ActivityType
@@ -23,23 +23,23 @@ from .utils import (
     check_creation_fields,
     check_missing,
     check_pagination,
-    create_ion_channel_modeling_campaign_id,
+    create_skeletonization_campaign_id,
+    create_skeletonization_config_id,
 )
 
 DateTimeAdapter = TypeAdapter(datetime)
 
-ROUTE = "ion-channel-modeling-execution"
-ADMIN_ROUTE = "/admin/ion-channel-modeling-execution"
+ROUTE = "skeletonization-config-generation"
+ADMIN_ROUTE = "/admin/skeletonization-config-generation"
 
 
 @pytest.fixture
-def json_data(ion_channel_modeling_config_id, ion_channel_model_id):
+def json_data(skeletonization_campaign_id, skeletonization_config_id):
     return {
         "start_time": str(datetime.now(UTC)),
         "end_time": str(datetime.now(UTC)),
-        "used_ids": [str(ion_channel_modeling_config_id)],
-        "generated_ids": [str(ion_channel_model_id)],
-        "status": "done",
+        "used_ids": [skeletonization_campaign_id],
+        "generated_ids": [skeletonization_config_id],
     }
 
 
@@ -66,7 +66,7 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
         assert data["used"] == [
             {
                 "id": json_data["used_ids"][0],
-                "type": "ion_channel_modeling_config",
+                "type": "skeletonization_campaign",
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": False,
             }
@@ -74,7 +74,7 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
         assert data["generated"] == [
             {
                 "id": json_data["generated_ids"][0],
-                "type": "ion_channel_model",
+                "type": "skeletonization_config",
                 "authorized_project_id": PROJECT_ID,
                 "authorized_public": False,
             }
@@ -86,7 +86,7 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
     assert DateTimeAdapter.validate_python(data["end_time"]) == DateTimeAdapter.validate_python(
         json_data["end_time"]
     )
-    assert data["type"] == ActivityType.ion_channel_modeling_execution
+    assert data["type"] == ActivityType.skeletonization_config_generation.value
 
 
 def test_create_one(clients, json_data):
@@ -121,23 +121,18 @@ def test_create_one__empty_ids(client, client_admin, json_data):
     _assert_read_response(data, json_data, empty_ids=True)
 
 
-def test_create_one__unauthorized_entities(
-    db,
-    client_user_1,
-    client_user_2,
-    json_data,
-):
+def test_create_one__unauthorized_entities(db, client_user_1, client_user_2, json_data):
     """Do not allow associations with entities that are not authorized to the user."""
 
-    user1_icmc_id = create_ion_channel_modeling_campaign_id(
+    user1_private_used_id = create_skeletonization_campaign_id(
         client_user_1,
         authorized_public=False,
     )
-    user2_icmc_id = create_ion_channel_modeling_campaign_id(
+    user2_private_used_id = create_skeletonization_campaign_id(
         client_user_2,
         authorized_public=False,
     )
-    user2_public_icmc_id = create_ion_channel_modeling_campaign_id(
+    user2_public_used_id = create_skeletonization_campaign_id(
         client_user_2,
         authorized_public=True,
     )
@@ -146,9 +141,9 @@ def test_create_one__unauthorized_entities(
         route=ROUTE,
         client_user_1=client_user_1,
         json_data=json_data,
-        u1_private_entity_id=user1_icmc_id,
-        u2_private_entity_id=user2_icmc_id,
-        u2_public_entity_id=user2_public_icmc_id,
+        u1_private_entity_id=user1_private_used_id,
+        u2_private_entity_id=user2_private_used_id,
+        u2_public_entity_id=user2_public_used_id,
     )
 
 
@@ -161,45 +156,70 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(morphology_id, ion_channel_modeling_config_id, ion_channel_model_id, create_id):
+def skeletonization_config_id_1(client, skeletonization_campaign_id, em_cell_mesh):
+    return create_skeletonization_config_id(
+        client=client,
+        skeletonization_campaign_id=skeletonization_campaign_id,
+        em_cell_mesh_id=em_cell_mesh.id,
+    )
+
+
+@pytest.fixture
+def skeletonization_config_id_2(client, skeletonization_campaign_id, em_cell_mesh):
+    return create_skeletonization_config_id(
+        client=client,
+        skeletonization_campaign_id=skeletonization_campaign_id,
+        em_cell_mesh_id=em_cell_mesh.id,
+    )
+
+
+@pytest.fixture
+def models(
+    create_id,
+    skeletonization_campaign_id,
+    skeletonization_config_id_1,
+    skeletonization_config_id_2,
+):
     return [
         create_id(
-            used_ids=[ion_channel_modeling_config_id],
+            used_ids=[skeletonization_campaign_id],
             generated_ids=[],
         ),
         create_id(
-            used_ids=[ion_channel_modeling_config_id],
-            generated_ids=[ion_channel_modeling_config_id],
+            used_ids=[skeletonization_campaign_id],
+            generated_ids=[skeletonization_config_id_1],
         ),
         create_id(
-            used_ids=[ion_channel_modeling_config_id],
-            generated_ids=[ion_channel_model_id],
-        ),
-        create_id(
-            used_ids=[ion_channel_modeling_config_id, ion_channel_model_id],
+            used_ids=[skeletonization_campaign_id],
             generated_ids=[
-                ion_channel_modeling_config_id,
-                ion_channel_model_id,
+                skeletonization_config_id_1,
+                skeletonization_config_id_2,
             ],
         ),
         create_id(
-            used_ids=[str(morphology_id), ion_channel_modeling_config_id],
-            generated_ids=[ion_channel_model_id],
+            used_ids=[],
+            generated_ids=[],
         ),
     ]
 
 
-def test_filtering(client, models, ion_channel_modeling_config_id, ion_channel_model_id):
+def test_filtering(
+    client,
+    models,
+    skeletonization_campaign_id,
+    skeletonization_config_id_1,
+    skeletonization_config_id_2,
+):
     data = assert_request(client.get, url=ROUTE).json()["data"]
     assert len(data) == len(models)
 
     data = assert_request(
-        client.get, url=ROUTE, params={"used__id": ion_channel_modeling_config_id}
+        client.get, url=ROUTE, params={"used__id": skeletonization_campaign_id}
     ).json()["data"]
-    assert len(data) == 5
+    assert len(data) == 3
 
     data = assert_request(
-        client.get, url=ROUTE, params={"generated__id": ion_channel_modeling_config_id}
+        client.get, url=ROUTE, params={"generated__id": skeletonization_config_id_1}
     ).json()["data"]
     assert len(data) == 2
 
@@ -207,35 +227,25 @@ def test_filtering(client, models, ion_channel_modeling_config_id, ion_channel_m
         client.get,
         url=ROUTE,
         params={
-            "used__id": ion_channel_modeling_config_id,
-            "generated__id": ion_channel_modeling_config_id,
+            "used__id": skeletonization_campaign_id,
+            "generated__id": skeletonization_config_id_2,
         },
     ).json()["data"]
-    assert len(data) == 2
+    assert len(data) == 1
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={
-            "used__id__in": [
-                ion_channel_modeling_config_id,
-                ion_channel_model_id,
-            ]
-        },
+        params={"used__id__in": [skeletonization_campaign_id]},
     ).json()["data"]
-    assert len(data) == 5
+    assert len(data) == 3
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={
-            "generated__id__in": [
-                ion_channel_modeling_config_id,
-                ion_channel_model_id,
-            ]
-        },
+        params={"generated__id__in": [skeletonization_config_id_2]},
     ).json()["data"]
-    assert len(data) == 4
+    assert len(data) == 1
 
 
 def test_delete_one(db, clients, json_data):
@@ -246,18 +256,18 @@ def test_delete_one(db, clients, json_data):
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         expected_counts_before={
-            IonChannelModelingConfig: 1,
-            IonChannelModel: 1,
+            SkeletonizationCampaign: 2,
+            SkeletonizationConfig: 1,
             Usage: 1,
             Generation: 1,
-            IonChannelModelingExecution: 1,
+            SkeletonizationConfigGeneration: 1,
         },
         expected_counts_after={
-            IonChannelModelingConfig: 1,
-            IonChannelModel: 1,
+            SkeletonizationCampaign: 2,
+            SkeletonizationConfig: 1,
             Usage: 0,
             Generation: 0,
-            IonChannelModelingExecution: 0,
+            SkeletonizationConfigGeneration: 0,
         },
     )
 
@@ -265,8 +275,8 @@ def test_delete_one(db, clients, json_data):
 def test_update_one(
     client,
     client_admin,
-    ion_channel_modeling_campaign_id,
-    ion_channel_modeling_config_id,
+    skeletonization_campaign_id,
+    skeletonization_config_id,
     create_id,
 ):
     check_activity_update_one(
@@ -274,8 +284,8 @@ def test_update_one(
         client_admin=client_admin,
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
-        used_id=ion_channel_modeling_campaign_id,
-        generated_id=ion_channel_modeling_config_id,
+        used_id=skeletonization_campaign_id,
+        generated_id=skeletonization_config_id,
         constructor_func=create_id,
     )
 
@@ -285,11 +295,11 @@ def test_update_one__fail_if_generated_ids_unauthorized(
 ):
     """Test that it is not allowed to update generated_ids with unauthorized entities."""
 
-    user1_icmc_id = create_ion_channel_modeling_campaign_id(
+    user1_private_used_id = create_skeletonization_campaign_id(
         client_user_1,
         authorized_public=False,
     )
-    user2_icmc_id = create_ion_channel_modeling_campaign_id(
+    user2_private_used_id = create_skeletonization_campaign_id(
         client_user_2,
         authorized_public=False,
     )
@@ -298,19 +308,19 @@ def test_update_one__fail_if_generated_ids_unauthorized(
         route=ROUTE,
         client_user_1=client_user_1,
         json_data=json_data,
-        u1_private_entity_id=user1_icmc_id,
-        u2_private_entity_id=user2_icmc_id,
+        u1_private_entity_id=user1_private_used_id,
+        u2_private_entity_id=user2_private_used_id,
     )
 
 
 def test_update_one__fail_if_generated_ids_exists(
-    client, ion_channel_modeling_campaign_id, ion_channel_modeling_config_id, create_id
+    client, skeletonization_campaign_id, skeletonization_config_id, create_id
 ):
     """Test activity Generation associations cannot be updated if they already exist."""
     check_activity_update_one__fail_if_generated_ids_exists(
         client=client,
         route=ROUTE,
-        entity_id_1=ion_channel_modeling_campaign_id,
-        entity_id_2=ion_channel_modeling_config_id,
+        entity_id_1=skeletonization_campaign_id,
+        entity_id_2=skeletonization_config_id,
         constructor_func=create_id,
     )

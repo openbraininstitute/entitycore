@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi_filter import with_prefix
@@ -18,6 +19,11 @@ class NestedSkeletonizationConfigFilter(SkeletonizationConfigFilterBase):
 
 
 class SkeletonizationConfigFilter(EntityFilterMixin, SkeletonizationConfigFilterBase):
+    skeletonization_campaign_id: uuid.UUID | None = None
+    skeletonization_campaign_id__in: list[uuid.UUID] | None = None
+    em_cell_mesh_id: uuid.UUID | None = None
+    em_cell_mesh_id__in: list[uuid.UUID] | None = None
+
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

@@ -2,9 +2,13 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, Entity, SkeletonizationExecution
+from app.db.model import (
+    Agent,
+    SkeletonizationCampaign,
+    SkeletonizationConfig,
+)
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -13,21 +17,21 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.skeletonization_execution import SkeletonizationExecutionFilterDep
+from app.filters.skeletonization_campaign import SkeletonizationCampaignFilterDep
 from app.queries.common import (
-    router_create_activity_one,
+    router_create_one,
     router_delete_one,
     router_read_many,
     router_read_one,
-    router_update_activity_one,
+    router_update_one,
 )
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
-from app.schemas.skeletonization_execution import (
-    SkeletonizationExecutionAdminUpdate,
-    SkeletonizationExecutionCreate,
-    SkeletonizationExecutionRead,
-    SkeletonizationExecutionUserUpdate,
+from app.schemas.skeletonization_campaign import (
+    SkeletonizationCampaignAdminUpdate,
+    SkeletonizationCampaignCreate,
+    SkeletonizationCampaignRead,
+    SkeletonizationCampaignUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -35,20 +39,22 @@ if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-DBModel = SkeletonizationExecution
-ReadSchema = SkeletonizationExecutionRead
-CreateSchema = SkeletonizationExecutionCreate
-UserUpdateSchema = SkeletonizationExecutionUserUpdate
-AdminUpdateSchema = SkeletonizationExecutionAdminUpdate
-FilterDep = SkeletonizationExecutionFilterDep
+DBModel = SkeletonizationCampaign
+ReadSchema = SkeletonizationCampaignRead
+CreateSchema = SkeletonizationCampaignCreate
+UserUpdateSchema = SkeletonizationCampaignUserUpdate
+AdminUpdateSchema = SkeletonizationCampaignAdminUpdate
+FilterDep = SkeletonizationCampaignFilterDep
 
 
 def _load(query: sa.Select):
     return query.options(
-        joinedload(DBModel.used),
-        joinedload(DBModel.generated),
         joinedload(DBModel.created_by),
         joinedload(DBModel.updated_by),
+        selectinload(DBModel.assets),
+        selectinload(DBModel.contributions),
+        selectinload(DBModel.skeletonization_configs),
+        selectinload(DBModel.input_meshes),
         raiseload("*"),
     )
 
@@ -87,11 +93,44 @@ def create_one(
     json_model: CreateSchema,
     user_context: UserContextWithProjectIdDep,
 ) -> ReadSchema:
-    return router_create_activity_one(
+    return router_create_one(
         db=db,
         json_model=json_model,
         user_context=user_context,
         db_model_class=DBModel,
+        response_schema_class=ReadSchema,
+        apply_operations=_load,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: UserUpdateSchema,  # pyright: ignore [reportInvalidTypeForm]
+) -> ReadSchema:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=DBModel,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=ReadSchema,
+        apply_operations=_load,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: AdminUpdateSchema,  # pyright: ignore [reportInvalidTypeForm]
+) -> ReadSchema:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=DBModel,
+        user_context=None,
+        json_model=json_model,
         response_schema_class=ReadSchema,
         apply_operations=_load,
     )
@@ -106,27 +145,23 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ReadSchema]:
+    agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Agent, flat=True)
     updated_by_alias = aliased(Agent, flat=True)
-    used_alias = aliased(Entity, flat=True)
-    generated_alias = aliased(Entity, flat=True)
-
+    skeletonization_config_alias = aliased(SkeletonizationConfig, flat=True)
     aliases: Aliases = {
         Agent: {
+            "contribution": agent_alias,
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
-        Entity: {
-            "used": used_alias,
-            "generated": generated_alias,
-        },
+        SkeletonizationConfig: skeletonization_config_alias,
     }
-    facet_keys = []
-    filter_keys = [
+    facet_keys = filter_keys = [
         "created_by",
         "updated_by",
-        "used",
-        "generated",
+        "contribution",
+        "skeletonization_config",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=DBModel,
@@ -162,37 +197,4 @@ def delete_one(
         db=db,
         db_model_class=DBModel,
         user_context=user_context,
-    )
-
-
-def update_one(
-    db: SessionDep,
-    id_: uuid.UUID,
-    json_model: UserUpdateSchema,  # pyright: ignore [reportInvalidTypeForm]
-    user_context: UserContextWithProjectIdDep,
-) -> ReadSchema:
-    return router_update_activity_one(
-        db=db,
-        id_=id_,
-        json_model=json_model,
-        user_context=user_context,
-        db_model_class=DBModel,
-        response_schema_class=ReadSchema,
-        apply_operations=_load,
-    )
-
-
-def admin_update_one(
-    db: SessionDep,
-    id_: uuid.UUID,
-    json_model: AdminUpdateSchema,  # pyright: ignore [reportInvalidTypeForm]
-) -> ReadSchema:
-    return router_update_activity_one(
-        db=db,
-        id_=id_,
-        json_model=json_model,
-        user_context=None,
-        db_model_class=DBModel,
-        response_schema_class=ReadSchema,
-        apply_operations=_load,
     )

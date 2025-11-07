@@ -242,6 +242,7 @@ class SimulationExecutionStatus(StrEnum):
     running = auto()
     done = auto()
     error = auto()
+    cancelled = auto()
 
 
 class IonChannelModelingExecutionStatus(StrEnum):

@@ -37,6 +37,7 @@ class CellMorphologyProtocolDesign(StrEnum):
     fluorophore = auto()
     kanari_synthesis = auto()
 
+
 class SlicingDirectionType(StrEnum):
     coronal = auto()
     sagittal = auto()

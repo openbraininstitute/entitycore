@@ -1450,6 +1450,9 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         entity_id (uuid.UUID): Foreign key referencing the entity ID.
         entity (Entity): The entity this simulation is associated with.
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
+        scan_indices (JSON_DICT): Dictionary where keys are the names of scan parameters,
+            and the integer values are the index of this Simulation's value of that scan parameter
+            in the SimulationCampaign scan_parameters dictionary for that key.
     """
 
     __tablename__ = EntityType.simulation.value
@@ -1469,6 +1472,11 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         foreign_keys=[entity_id],
     )
     scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
+    scan_indices: Mapped[JSON_DICT] = mapped_column(
         default={},
         nullable=False,
         server_default="{}",

@@ -260,6 +260,10 @@ def query_params_factory[I: Identifiable](
             skeletonization_config_alias,
             db_model_class.id == skeletonization_config_alias.skeletonization_campaign_id,
         ),
+        "simulation_campaign.entity": lambda q: q.join(
+            entity_alias,
+            db_model_class.entity_id == entity_alias.id,
+        ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}
     filter_joins = {k: filter_joins[k] for k in filter_keys}

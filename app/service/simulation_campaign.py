@@ -7,6 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 from app.db.model import (
     Agent,
     Circuit,
+    Entity,
     Simulation,
     SimulationCampaign,
 )
@@ -142,6 +143,7 @@ def read_many(
     updated_by_alias = aliased(Agent, flat=True)
     simulation_alias = aliased(Simulation, flat=True)
     circuit_alias = aliased(Circuit, flat=True)
+    entity_alias = aliased(Entity, flat=True)
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
@@ -150,14 +152,16 @@ def read_many(
         },
         Simulation: simulation_alias,
         Circuit: circuit_alias,
+        Entity: entity_alias,
     }
-    facet_keys = filter_keys = [
+    facet_keys = [
         "created_by",
         "updated_by",
         "contribution",
         "circuit",
         "simulation",
     ]
+    filter_keys = [*facet_keys, "entity"]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=SimulationCampaign,
         facet_keys=facet_keys,

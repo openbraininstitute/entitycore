@@ -1,19 +1,32 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi_filter import with_prefix
 
-from app.db.model import SimulationCampaign
+from app.db.model import Entity, SimulationCampaign
+from app.db.types import EntityType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.circuit import NestedCircuitFilter, NestedCircuitFilterDep
-from app.filters.common import EntityFilterMixin, NameFilterMixin
+from app.filters.common import EntityFilterMixin, IdFilterMixin, NameFilterMixin
 from app.filters.simulation import NestedSimulationFilter
+
+
+class NestedEntityFilter(IdFilterMixin, CustomFilter):
+    type: Literal[EntityType.circuit, EntityType.memodel] | None = None
+
+    class Constants(CustomFilter.Constants):
+        model = Entity
 
 
 class SimulationCampaignFilter(CustomFilter, EntityFilterMixin, NameFilterMixin):
     entity_id: uuid.UUID | None = None
     entity_id__in: list[uuid.UUID] | None = None
+
+    entity: Annotated[
+        NestedEntityFilter | None,
+        FilterDepends(with_prefix("entity", NestedEntityFilter)),
+    ] = None
 
     circuit: Annotated[
         NestedCircuitFilter | None,

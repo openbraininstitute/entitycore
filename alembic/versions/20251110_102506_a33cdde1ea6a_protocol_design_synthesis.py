@@ -1,8 +1,8 @@
 """protocol_design_synthesis
 
-Revision ID: b34687c0321c
+Revision ID: a33cdde1ea6a
 Revises: 40900849179f
-Create Date: 2025-11-10 09:54:13.080188
+Create Date: 2025-11-10 10:25:06.010374
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "b34687c0321c"
+revision: str = "a33cdde1ea6a"
 down_revision: Union[str, None] = "40900849179f"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

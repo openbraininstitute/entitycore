@@ -35,6 +35,7 @@ class CellMorphologyProtocolDesign(StrEnum):
     electron_microscopy = auto()
     cell_patch = auto()
     fluorophore = auto()
+    topological_synthesis = auto()
 
 
 class SlicingDirectionType(StrEnum):

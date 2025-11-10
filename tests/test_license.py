@@ -106,9 +106,15 @@ def test_filtering(clients, json_data):
     def _req(query):
         return assert_request(clients.user_1.get, url=ROUTE, params=query).json()["data"]
 
-    d1 = assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n1", "label": "l"}).json()
-    d2 = assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n2", "label": "l"}).json()
-    d3 = assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n3", "label": "l1"}).json()
+    d1 = assert_request(
+        clients.admin.post, url=ROUTE, json=json_data | {"name": "n1", "label": "l"}
+    ).json()
+    assert_request(
+        clients.admin.post, url=ROUTE, json=json_data | {"name": "n2", "label": "l"}
+    ).json()
+    d3 = assert_request(
+        clients.admin.post, url=ROUTE, json=json_data | {"name": "n3", "label": "l1"}
+    ).json()
 
     data = _req({"name": "n1"})
     assert len(data) == 1

@@ -431,7 +431,29 @@ def test_filter_by_entity_type(client, mixed_campaigns):
         url=ROUTE,
         params={
             "entity__type": "memodel",
+            "circuit__scale": "whole_brain",
+            "with_facets": True,
+        },
+    ).json()["data"]
+    assert len(data) == 0
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "entity__type": "memodel",
             "with_facets": True,
         },
     ).json()["data"]
     assert data[0]["entity_id"] == str(mixed_campaigns[1].entity_id)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "entity__type": "circuit",
+            "circuit__scale": "whole_brain",
+            "with_facets": True,
+        },
+    ).json()["data"]
+    assert len(data) == 1

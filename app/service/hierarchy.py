@@ -21,12 +21,22 @@ def _load_nodes(
     derivation_type: DerivationType,
 ) -> dict[uuid.UUID, HierarchyNode]:
     root = aliased(entity_class, flat=True, name="root")
+    root_parent = aliased(entity_class, flat=True, name="root_parent")
     parent = aliased(entity_class, flat=True, name="parent")
     child = aliased(entity_class, flat=True, name="child")
     order_by = ["name", "id"]
-    matching_derivation_for_root = sa.select(sa.literal(1)).where(
-        Derivation.generated_id == root.id,
-        Derivation.derivation_type == derivation_type,
+    matching_derivation_for_root = (
+        sa.select(sa.literal(1))
+        .select_from(Derivation)
+        .join(root_parent, root_parent.id == Derivation.used_id)
+        .where(
+            Derivation.generated_id == root.id,
+            Derivation.derivation_type == derivation_type,
+        )
+    )
+    # needed to consider as root also the children with private parents in a different project
+    matching_derivation_for_root = constrain_to_accessible_entities(
+        matching_derivation_for_root, project_id=project_id, db_model_class=root_parent
     )
     query_roots = (
         sa.select(

@@ -231,6 +231,7 @@ def test_create_with_authorization(client_user_1, client_user_2, root_circuit_js
         route, client_user_1, client_user_2, json_data=root_circuit_json_data
     )
 
+    # these calls are done with client_user_1, that can create derivations for u1 entitites only
     for i, (used_id, generated_id, expected_status) in enumerate(
         [
             (public_u1["id"], public_u1["id"], 200),

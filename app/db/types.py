@@ -379,6 +379,7 @@ class ContentType(StrEnum):
     gzip = "application/gzip"
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
+    zip = "application/zip"
 
 
 class AssetLabel(StrEnum):
@@ -422,6 +423,7 @@ class AssetLabel(StrEnum):
     cell_surface_mesh = auto()
     jupyter_notebook = auto()
     requirements = auto()
+    notebook_required_files = auto()
     ion_channel_model_figure = auto()
     ion_channel_model_figure_summary_json = auto()
     ion_channel_model_thumbnail = auto()
@@ -460,6 +462,7 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ),
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
+    ContentType.zip: (".zip",),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
@@ -468,6 +471,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType.analysis_notebook_template: {
         AssetLabel.jupyter_notebook: [
             LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
+        ],
+        AssetLabel.notebook_required_files: [
+            LabelRequirements(content_type=ContentType.zip, is_directory=False)
         ],
         AssetLabel.requirements: [
             LabelRequirements(content_type=ContentType.text, is_directory=False)
@@ -481,7 +487,10 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType.analysis_notebook_result: {
         AssetLabel.jupyter_notebook: [
             LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
-        ]
+        ],
+        AssetLabel.notebook_required_files: [
+            LabelRequirements(content_type=ContentType.zip, is_directory=False)
+        ],
     },
     EntityType.brain_atlas: {
         AssetLabel.brain_atlas_annotation: [

@@ -319,6 +319,17 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         )
 
     if apply_data_query_operations:
+        # Select the minimum set of columns needed in the subquery, always including the id
+        sort_columns = [getattr(c, "element", c) for c in data_query._order_by_clauses]  # noqa: SLF001
+        subq = data_query.with_only_columns(*sort_columns).subquery()
+        # Build the new data_query using the subquery because it's more performant,
+        # especially when using pagination and selecting a big offset.
+        # The rows selected in the outer query must be sorted again for deterministic results.
+        data_query = (
+            sa.select(db_model_class)
+            .join(subq, subq.c.id == db_model_class.id)
+            .order_by(*data_query._order_by_clauses)  # noqa: SLF001
+        )
         data_query = apply_data_query_operations(data_query)
 
     # unique is needed b/c it contains results that include joined eager loads against collections

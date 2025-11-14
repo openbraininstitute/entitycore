@@ -4,6 +4,7 @@ import sqlalchemy as sa
 from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import operators
 
 from app.db.auth import (
     constrain_to_accessible_entities,
@@ -235,6 +236,45 @@ def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
     return db_agent
 
 
+def _with_subquery[I: Identifiable](
+    data_query: sa.Select[tuple[I]],
+    db_model_class: type[I],
+) -> sa.Select[tuple[I]]:
+    """Build and return a new data_query using a subquery.
+
+    This is more performant when:
+
+    - using pagination and requesting a large offset, and
+    - needing many columns for building the results, but not all of them are needed for filtering.
+    """
+    order_by_clauses = data_query._order_by_clauses  # noqa: SLF001
+    # Get the plain columns needed in the subquery, without DESC/ASC if UnaryExpression
+    sort_columns = [getattr(obc, "element", obc) for obc in order_by_clauses]
+    subq = data_query.with_only_columns(*sort_columns).subquery()
+    # Dict of modifiers as found in UnaryExpression.
+    modifiers = {
+        operators.desc_op: lambda x: x.desc(),
+        operators.asc_op: lambda x: x.asc(),
+    }
+    # Ensure that the rows selected in the outer query are sorted again for deterministic results.
+    outer_order_by = []
+    for obc in order_by_clauses:
+        col = getattr(obc, "element", obc)
+        if not col.key:
+            msg = f"Can't determine column key for order-by expression: {col!r}"
+            raise RuntimeError(msg)
+        sub_col = subq.c[col.key]
+        if modifier := getattr(obc, "modifier", None):
+            sub_col = modifiers[modifier](sub_col)
+        outer_order_by.append(sub_col)
+    # Build the resulting query
+    return (
+        sa.select(db_model_class)
+        .join(subq, subq.c.id == db_model_class.id)
+        .order_by(*outer_order_by)
+    )
+
+
 def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     *,
     db: Session,
@@ -319,17 +359,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         )
 
     if apply_data_query_operations:
-        # Select the minimum set of columns needed in the subquery, always including the id
-        sort_columns = [getattr(c, "element", c) for c in data_query._order_by_clauses]  # noqa: SLF001
-        subq = data_query.with_only_columns(*sort_columns).subquery()
-        # Build the new data_query using the subquery because it's more performant,
-        # especially when using pagination and selecting a big offset.
-        # The rows selected in the outer query must be sorted again for deterministic results.
-        data_query = (
-            sa.select(db_model_class)
-            .join(subq, subq.c.id == db_model_class.id)
-            .order_by(*data_query._order_by_clauses)  # noqa: SLF001
-        )
+        data_query = _with_subquery(data_query=data_query, db_model_class=db_model_class)
         data_query = apply_data_query_operations(data_query)
 
     # unique is needed b/c it contains results that include joined eager loads against collections

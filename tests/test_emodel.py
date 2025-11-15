@@ -10,6 +10,7 @@ from app.db.types import EntityType
 from .conftest import CreateIds, EModelIds
 from .utils import (
     TEST_DATA_DIR,
+    USER_SUB_ID_1,
     assert_request,
     check_entity_delete_one,
     check_entity_update_one,
@@ -141,6 +142,13 @@ def test_query_emodel(client: TestClient, create_emodel_ids: CreateIds):
 
     assert "assets" in data[0]
     assert "ion_channel_models" in data[0]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == count
 
 
 def test_emodels_sorted(client: TestClient, create_emodel_ids: CreateIds):

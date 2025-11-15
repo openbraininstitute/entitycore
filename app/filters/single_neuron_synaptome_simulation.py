@@ -4,11 +4,11 @@ from app.db.model import SingleNeuronSynaptomeSimulation
 from app.db.types import SingleNeuronSimulationStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.common import (
-    BrainRegionFilterMixin,
-    EntityFilterMixin,
     NameFilterMixin,
 )
+from app.filters.entity import EntityFilterMixin
 from app.filters.single_neuron_synaptome import (
     NestedSingleNeuronSynaptomeFilter,
     NestedSingleNeuronSynaptomeFilterDep,

@@ -5,6 +5,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
+    Person,
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
 )
@@ -141,12 +142,14 @@ def read_many(
 ) -> ListResponse[SingleNeuronSynaptomeSimulationRead]:
     synaptome_alias = aliased(SingleNeuronSynaptome, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     aliases = {
         SingleNeuronSynaptome: synaptome_alias,
         Agent: {
             "contribution": agent_alias,
+        },
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

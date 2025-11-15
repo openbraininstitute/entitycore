@@ -5,13 +5,12 @@ from fastapi_filter import with_prefix
 from app.db.model import SingleNeuronSynaptome
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
 from app.filters.common import (
-    BrainRegionFilterMixin,
-    EntityFilterMixin,
     IdFilterMixin,
     NameFilterMixin,
-    NestedBrainRegionFilter,
 )
+from app.filters.entity import EntityFilterMixin
 from app.filters.memodel import NestedMEModelFilter, NestedMEModelFilterDep
 
 

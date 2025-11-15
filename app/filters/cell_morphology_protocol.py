@@ -6,7 +6,8 @@ from app.db.model import CellMorphologyProtocol
 from app.db.types import CellMorphologyGenerationType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import EntityFilterMixin, IdFilterMixin
+from app.filters.common import IdFilterMixin
+from app.filters.entity import EntityFilterMixin
 
 
 class CellMorphologyProtocolFilterBase(

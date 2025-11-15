@@ -10,6 +10,7 @@ from app.db.types import EntityType
 from app.filters.density import ExperimentalSynapsesPerConnectionFilter
 
 from .utils import (
+    USER_SUB_ID_1,
     assert_request,
     check_authorization,
     check_brain_region_filter,
@@ -365,3 +366,6 @@ def test_sorting_and_filtering(client, models):
 
         data = req({"post_mtype__pref_label": "post-m2", "order_by": ordering_field})
         assert [d["post_mtype"]["pref_label"] for d in data] == ["post-m2"] * len(data)
+
+        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        assert len(data) == n_models

@@ -1,9 +1,10 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.model import Subject
+from app.db.model import Person, Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
@@ -19,6 +20,9 @@ from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.subject import SubjectAdminUpdate, SubjectCreate, SubjectRead, SubjectUserUpdate
 from app.schemas.types import ListResponse
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -116,14 +120,23 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[SubjectRead]:
+    aliases: Aliases = {
+        Person: {
+            "created_by": aliased(Person, flat=True),
+            "updated_by": aliased(Person, flat=True),
+        }
+    }
+
     facet_keys = filter_keys = [
         "contribution",
+        "created_by",
+        "updated_by",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=Subject,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases={},
+        aliases=aliases,
     )
     return router_read_many(
         db=db,
@@ -135,7 +148,7 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=None,
         apply_data_query_operations=_load,
-        aliases={},
+        aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=SubjectRead,
         authorized_project_id=user_context.project_id,

@@ -651,7 +651,12 @@ CreateIds = Callable[[int], list[str]]
 
 
 @pytest.fixture
-def agents(db: Session, person_id):
+def custom_user_sub_id():
+    return "00000000-0000-0000-0000-000000000005"
+
+
+@pytest.fixture
+def agents(db: Session, person_id, custom_user_sub_id):
     organization_1 = add_db(
         db,
         Organization(
@@ -667,6 +672,7 @@ def agents(db: Session, person_id):
         given_name="given name 1",
         family_name="family name 1",
         created_by_id=person_id,
+        sub_id=custom_user_sub_id,
     )
     role = add_db(
         db, Role(role_id=1, name="test role", created_by_id=person_id, updated_by_id=person_id)

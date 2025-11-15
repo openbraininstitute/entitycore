@@ -11,6 +11,7 @@ from app.schemas.ion_channel_model import IonChannelModelRead
 from .utils import (
     PROJECT_ID,
     TEST_DATA_DIR,
+    USER_SUB_ID_1,
     add_all_db,
     assert_request,
     check_authorization,
@@ -344,3 +345,6 @@ def test_filtering(client, ion_channel_models, person_id):
 
     data = req({"temperature_celsius__gte": 1, "with_facets": True})
     assert len(data) == 0
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(ion_channel_models)

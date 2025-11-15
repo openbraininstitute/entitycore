@@ -16,6 +16,7 @@ from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType, Ent
 
 from .utils import (
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_all_db,
     add_db,
     assert_request,
@@ -471,6 +472,13 @@ def test_filtering(client, models):
         },
     ).json()["data"]
     assert len(data) == 4
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == len(recordings)
 
 
 def test_sorting(client, models):

@@ -7,6 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 from app.db.model import (
     Agent,
     CircuitExtractionCampaign,
+    Person,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -135,11 +136,13 @@ def read_many(
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[CircuitExtractionCampaignRead]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
+        },
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

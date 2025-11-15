@@ -4,7 +4,7 @@ from typing import Annotated
 from app.db.model import MEModelCalibrationResult
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import EntityFilterMixin
+from app.filters.entity import EntityFilterMixin
 
 
 class MEModelCalibrationResultFilter(

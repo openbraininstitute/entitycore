@@ -4,6 +4,7 @@ from app.db.model import SkeletonizationConfig
 from app.db.types import EntityType
 
 from .utils import (
+    USER_SUB_ID_1,
     assert_request,
     check_authorization,
     check_entity_delete_one,
@@ -129,3 +130,6 @@ def test_filtering_ordering(
 
     data = _req({"order_by": "-name", "name__in": ["config-1", "config-2"]})
     assert [d["name"] for d in data] == ["config-2", "config-1"]
+
+    data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

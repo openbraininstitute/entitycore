@@ -6,11 +6,11 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
 from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
-from app.db.model import Agent, Contribution, Entity
+from app.db.model import Agent, Contribution, Entity, Person
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.filters.common import ContributionFilterDep
+from app.filters.contribution import ContributionFilterDep
 from app.logger import L
 from app.queries.factory import query_params_factory
 from app.schemas.contribution import ContributionCreate, ContributionRead
@@ -36,12 +36,14 @@ def read_many(
 ) -> ListResponse[ContributionRead]:
     agent_alias = aliased(Agent, flat=True)
     entity_alias = aliased(Entity, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
 
     aliases = {
         Agent: {
             "agent": agent_alias,
+        },
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

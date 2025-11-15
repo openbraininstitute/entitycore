@@ -1,25 +1,29 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
-from app.db.model import Strain
+from app.db.model import Person, Strain
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.filters.common import StrainFilterDep
+from app.filters.species import StrainFilterDep
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.species import StrainAdminUpdate, StrainCreate, StrainRead
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
 
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
+
 
 def _load(query: sa.Select):
     return query.options(
-        joinedload(Strain.created_by),
-        joinedload(Strain.updated_by),
+        joinedload(Strain.created_by, innerjoin=True),
+        joinedload(Strain.updated_by, innerjoin=True),
         raiseload("*"),
     )
 
@@ -31,6 +35,13 @@ def read_many(
     strain_filter: StrainFilterDep,
     semantic_search: str | None = None,
 ) -> ListResponse[StrainRead]:
+    aliases: Aliases = {
+        Person: {
+            "created_by": aliased(Person, flat=True),
+            "updated_by": aliased(Person, flat=True),
+        }
+    }
+
     embedding = None
 
     if semantic_search is not None:
@@ -44,7 +55,7 @@ def read_many(
         db_model_class=Strain,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
-        aliases={},
+        aliases=aliases,
     )
     return app.queries.common.router_read_many(
         db=db,
@@ -53,7 +64,7 @@ def read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,

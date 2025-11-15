@@ -14,6 +14,7 @@ from app.db.types import ActivityType, EntityType
 
 from .utils import (
     PROJECT_ID,
+    USER_SUB_ID_1,
     assert_request,
     check_activity_create_one__unauthorized_entities,
     check_activity_delete_one,
@@ -231,6 +232,13 @@ def test_filtering(client, models, circuit_extraction_campaign_id, circuit_extra
         },
     ).json()["data"]
     assert len(data) == 4
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == len(models)
 
 
 def test_delete_one(db, clients, json_data):

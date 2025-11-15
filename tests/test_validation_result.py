@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.db.model import ValidationResult
 
-from .utils import assert_request, check_entity_delete_one, check_entity_update_one
+from .utils import USER_SUB_ID_1, assert_request, check_entity_delete_one, check_entity_update_one
 
 MODEL = ValidationResult
 ROUTE = "/validation-result"
@@ -197,3 +197,10 @@ def test_filtering__many_entries(client, models, morphology_id, emodel_id):
     assert len(data) == 2
     assert data[0]["validated_entity_id"] == models[2]["validated_entity_id"]
     assert data[1]["validated_entity_id"] == models[3]["validated_entity_id"]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == len(models)

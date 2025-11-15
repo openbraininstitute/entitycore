@@ -12,6 +12,7 @@ from app.db.model import (
     Agent,
     Contribution,
     ExperimentalBoutonDensity,
+    Person,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -69,12 +70,14 @@ def read_many(
 ) -> ListResponse[ExperimentalBoutonDensityRead]:
     subject = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     aliases = {
         Subject: subject,
         Agent: {
             "contribution": agent_alias,
+        },
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

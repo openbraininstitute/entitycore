@@ -24,6 +24,7 @@ from app.db.model import (
     MEModel,
     MTypeClass,
     MTypeClassification,
+    Person,
     Simulation,
     SimulationCampaign,
     SingleNeuronSynaptome,
@@ -71,8 +72,8 @@ def query_params_factory[I: Identifiable](
     subject_alias = _get_alias(Subject)
     agent_alias = _get_alias(Agent, "agent")
     contribution_alias = _get_alias(Agent, "contribution")
-    created_by_alias = _get_alias(Agent, "created_by")
-    updated_by_alias = _get_alias(Agent, "updated_by")
+    created_by_alias = _get_alias(Person, "created_by")
+    updated_by_alias = _get_alias(Person, "updated_by")
     pre_mtype_alias = _get_alias(MTypeClass, "pre_mtype")
     post_mtype_alias = _get_alias(MTypeClass, "post_mtype")
     brain_region_alias = _get_alias(BrainRegion, "brain_region")

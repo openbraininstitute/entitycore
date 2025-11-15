@@ -8,6 +8,7 @@ from tests.utils import (
     ADMIN_SUB_ID,
     MISSING_ID,
     MISSING_ID_COMPACT,
+    USER_SUB_ID_1,
     add_all_db,
     assert_request,
     count_db_class,
@@ -162,3 +163,6 @@ def test_filtering(client, models):
 
     data = _req({"family_name__ilike": "Smith"})
     assert len(data) == 1
+
+    data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models) + 1  # +1 for person_id

@@ -8,8 +8,8 @@ from app.db.auth import (
     constrain_to_accessible_entities,
 )
 from app.db.model import (
-    Agent,
     ExternalUrl,
+    Person,
     ScientificArtifact,
     ScientificArtifactExternalUrlLink,
 )
@@ -107,12 +107,12 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ScientificArtifactExternalUrlLinkRead]:
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
     external_url_alias = aliased(ExternalUrl, flat=True, name="external_url")
     aliases: Aliases = {
-        Agent: {
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
@@ -140,18 +140,9 @@ def read_many(
             scientific_artifact_alias,
             ScientificArtifactExternalUrlLink.scientific_artifact_id
             == scientific_artifact_alias.id,
-        )
-        .join(
+        ).join(
             external_url_alias,
             ScientificArtifactExternalUrlLink.external_url_id == external_url_alias.id,
-        )
-        .join(
-            created_by_alias,
-            ScientificArtifactExternalUrlLink.created_by_id == created_by_alias.id,
-        )
-        .join(
-            updated_by_alias,
-            ScientificArtifactExternalUrlLink.updated_by_id == updated_by_alias.id,
         ),
         project_id=user_context.project_id,
         db_model_class=scientific_artifact_alias,

@@ -716,7 +716,7 @@ def test_brain_region_filter(
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
 
 
-def test_sorting_filtering(client, faceted_memodels):
+def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
     n_models = len(faceted_memodels.memodels)
 
     def req(query):
@@ -746,6 +746,11 @@ def test_sorting_filtering(client, faceted_memodels):
 
         data = req({"brain_region__acronym": "", "order_by": ordering_field})
         assert len(data) == 0
+
+        data = req(
+            {"created_by__sub_id": custom_user_sub_id, "updated_by__sub_id": custom_user_sub_id}
+        )
+        assert len(data) == n_models
 
     data = req({"brain_region__name": "region0", "order_by": "-name"})
     assert all(d["brain_region"]["name"] == "region0" for d in data)

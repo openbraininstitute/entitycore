@@ -2,7 +2,14 @@ import pytest
 
 from app.db.model import Agent, Organization
 
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT, add_db, assert_request, count_db_class
+from tests.utils import (
+    MISSING_ID,
+    MISSING_ID_COMPACT,
+    USER_SUB_ID_1,
+    add_db,
+    assert_request,
+    count_db_class,
+)
 
 ROUTE = "/organization"
 ADMIN_ROUTE = "/admin/organization"
@@ -111,3 +118,6 @@ def test_filtering_sorting(client, models):
 
     data = req({"alternative_name": "alt-1", "order_by": "creation_date"})
     assert [d["alternative_name"] for d in data] == ["alt-1"]
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

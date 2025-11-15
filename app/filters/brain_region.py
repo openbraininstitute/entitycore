@@ -2,12 +2,13 @@ import uuid
 from typing import Annotated
 
 import sqlalchemy as sa
+from fastapi_filter import with_prefix
 from sqlalchemy.orm import aliased
 
 from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import NameFilterMixin
+from app.filters.common import IdFilterMixin, NameFilterMixin
 
 
 def get_family_query(
@@ -57,17 +58,26 @@ def filter_by_hierarchy_and_region(
     return query
 
 
-class BrainRegionFilter(NameFilterMixin, CustomFilter):
-    id: uuid.UUID | None = None
+class NestedBrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     acronym: str | None = None
+    acronym__in: list[str] | None = None
     annotation_value: int | None = None
     hierarchy_id: uuid.UUID | None = None
 
-    order_by: list[str] = ["name"]  # noqa: RUF012
-
     class Constants(CustomFilter.Constants):
         model = BrainRegion
+
+
+class BrainRegionFilter(NestedBrainRegionFilter):
+    order_by: list[str] = ["name"]  # noqa: RUF012
+
+    class Constants(NestedBrainRegionFilter.Constants):
         ordering_model_fields = ["name"]  # noqa: RUF012
 
 
 BrainRegionFilterDep = Annotated[BrainRegionFilter, FilterDepends(BrainRegionFilter)]
+NestedBrainRegionFilterDep = FilterDepends(with_prefix("brain_region", NestedBrainRegionFilter))
+
+
+class BrainRegionFilterMixin:
+    brain_region: Annotated[NestedBrainRegionFilter | None, NestedBrainRegionFilterDep] = None

@@ -3,7 +3,8 @@ from typing import Annotated
 from app.db.model import IonChannelModelingCampaign
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import EntityFilterMixin, NameFilterMixin
+from app.filters.common import NameFilterMixin
+from app.filters.entity import EntityFilterMixin
 from app.filters.ion_channel_modeling_config import (
     NestedIonChannelModelingConfigFilter,
     NestedIonChannelModelingConfigFilterDep,

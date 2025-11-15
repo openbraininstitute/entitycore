@@ -5,19 +5,18 @@ from fastapi_filter import with_prefix
 from app.db.model import CellMorphology
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
 from app.filters.cell_morphology_protocol import (
     NestedCellMorphologyProtocolFilter,
     NestedCellMorphologyProtocolFilterDep,
 )
 from app.filters.common import (
-    BrainRegionFilterMixin,
-    EntityFilterMixin,
     IdFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
-    NestedBrainRegionFilter,
     NestedMTypeClassFilter,
 )
+from app.filters.entity import EntityFilterMixin
 from app.filters.measurement_annotation import MeasurableFilterMixin
 from app.filters.subject import NestedSubjectFilter, SubjectFilterMixin
 

@@ -20,6 +20,7 @@ from app.schemas.density import ExperimentalBoutonDensityCreate
 
 from .utils import (
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_all_db,
     add_db,
     assert_request,
@@ -448,7 +449,9 @@ def test_sorting(client, models):
     assert [d["mtypes"][0]["pref_label"] for d in data] == [f"m{i}" for i in range(6)][::-1]
 
 
-def test_sorting_and_filtering(client, models):  # noqa: ARG001
+def test_sorting_and_filtering(client, models):
+    models = models[-1]
+
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -475,6 +478,9 @@ def test_sorting_and_filtering(client, models):  # noqa: ARG001
 
         data = req({"mtype__pref_label__in": ["m1", "m2"], "order_by": ordering_field})
         assert len(data) == 2
+
+        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        assert len(data) == len(models)
 
     data = req({"name": "d-1", "order_by": "-brain_region__acronym"})
     assert [d["name"] for d in data] == ["d-1", "d-1", "d-1"]

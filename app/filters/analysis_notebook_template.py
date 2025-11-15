@@ -4,10 +4,10 @@ from app.db.model import AnalysisNotebookTemplate
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    EntityFilterMixin,
     IdFilterMixin,
     NameFilterMixin,
 )
+from app.filters.entity import EntityFilterMixin
 
 
 class NestedAnalysisNotebookTemplateFilter(IdFilterMixin, NameFilterMixin, CustomFilter):

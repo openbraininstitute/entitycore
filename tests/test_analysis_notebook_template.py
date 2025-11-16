@@ -51,6 +51,7 @@ def _assert_read_response(data, json_data):
         data["specifications"]["docker"]["image_repository"]
         == json_data["specifications"]["docker"]["image_repository"]
     )
+    assert "contributions" in data
 
     check_creation_fields(data)
 

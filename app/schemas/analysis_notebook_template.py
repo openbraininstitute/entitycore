@@ -14,6 +14,7 @@ from app.schemas.base import (
 )
 from app.schemas.types import DockerDependency, PythonDependency
 from app.schemas.utils import make_update_schema
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 
 
 class AnalysisNotebookTemplateInputType(BaseModel):
@@ -74,5 +75,6 @@ class AnalysisNotebookTemplateRead(
     CreatedByUpdatedByMixin,
     CreationMixin,
     AuthorizationMixin,
+    ContributionReadWithoutEntityMixin,
 ):
     pass

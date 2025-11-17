@@ -1,9 +1,12 @@
 """Utility functions for generating embeddings using OpenAI API."""
 
+import random
+
 import openai
 from openai import APIConnectionError, APIStatusError
 
 from app.config import settings
+from app.db.model import EmbeddingMixin
 from app.errors import ApiError, ApiErrorCode
 
 
@@ -27,6 +30,8 @@ def generate_embedding(text: str, model: str = "text-embedding-3-small") -> list
             http_status_code=500,
         )
 
+    if settings.OPENAI_API_KEY == "random":
+        return [random.random() for _ in range(EmbeddingMixin.SIZE)]  # noqa: S311
     openai_api_key = settings.OPENAI_API_KEY.get_secret_value()
 
     try:

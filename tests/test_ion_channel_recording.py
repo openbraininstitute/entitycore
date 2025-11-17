@@ -5,6 +5,7 @@ import pytest
 
 from app.db.model import (
     BrainRegion,
+    EmbeddingMixin,
     IonChannel,
     IonChannelRecording,
     Species,
@@ -277,7 +278,7 @@ def models(
                 taxonomy_id=f"taxonomy-{i}",
                 created_by_id=person_id,
                 updated_by_id=person_id,
-                embedding=1536 * [0.1],
+                embedding=EmbeddingMixin.SIZE * [0.1],
             )
             for i in range(3)
         ],
@@ -315,7 +316,7 @@ def models(
                 hierarchy_id=brain_region_hierarchy_id,
                 created_by_id=person_id,
                 updated_by_id=person_id,
-                embedding=1536 * [0.1],
+                embedding=EmbeddingMixin.SIZE * [0.1],
             )
             for i in range(len(subjects))
         ],

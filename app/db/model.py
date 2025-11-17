@@ -483,6 +483,7 @@ class MTypesMixin:
             primaryjoin=f"{cls.__name__}.id == MTypeClassification.entity_id",
             secondary="mtype_classification",
             uselist=True,
+            order_by="MTypeClass.pref_label",
             passive_deletes=True,
         )
 
@@ -499,6 +500,7 @@ class ETypesMixin:
             primaryjoin=f"{cls.__name__}.id == ETypeClassification.entity_id",
             secondary="etype_classification",
             uselist=True,
+            order_by="ETypeClass.pref_label",
             passive_deletes=True,
         )
 
@@ -700,6 +702,7 @@ class EModel(
         secondary="ion_channel_model__emodel",
         uselist=True,
         viewonly=True,
+        order_by="IonChannelModel.creation_date",
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

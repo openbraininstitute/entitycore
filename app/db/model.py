@@ -1963,6 +1963,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     Assets:
         - a .ipynb file.
         - requirements.txt produced with `pip freeze` if possible.
+        - an optional zip archive with label `notebook_required_files`.
     """
 
     __tablename__ = EntityType.analysis_notebook_template.value
@@ -2040,7 +2041,8 @@ class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
         id (uuid.UUID): Primary key, referencing the entity ID.
 
     Assets:
-        - a .ipynb file
+        - a .ipynb file.
+        - an optional zip archive with label `notebook_required_files`.
     """
 
     __tablename__ = EntityType.analysis_notebook_result.value

@@ -4,6 +4,7 @@ import sqlalchemy as sa
 from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import operators
 
 from app.db.auth import (
     constrain_to_accessible_entities,
@@ -235,6 +236,55 @@ def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
     return db_agent
 
 
+def _with_subquery[I: Identifiable](
+    data_query: sa.Select[tuple[I]],
+    db_model_class: type[I],
+) -> sa.Select[tuple[I]]:
+    """Build and return a new data_query using a subquery.
+
+    This is more performant when:
+
+    - using pagination and requesting a large offset, and
+    - needing many columns for building the results, but not all of them are needed for filtering.
+    """
+    order_by_clauses = data_query._order_by_clauses  # noqa: SLF001
+    # dict of modifiers as found in UnaryExpression.
+    modifiers = {
+        operators.desc_op: lambda x: x.desc(),
+        operators.asc_op: lambda x: x.asc(),
+    }
+
+    # list of (label_name, element, modifier)
+    labeled_sort_columns = []
+    for i, ob in enumerate(order_by_clauses):
+        # element is the plain column needed in the subquery, without ASC/DESC if UnaryExpression
+        element = getattr(ob, "element", ob)
+        # modifier contains the ASC/DESC ordering
+        modifier = getattr(ob, "modifier", None)
+        # label_name is needed for ordering the outer query even in case of BinaryExpression
+        label_name = f"_s{i}"
+        labeled_sort_columns.append((label_name, element, modifier))
+
+    select_cols = [db_model_class.id] + [
+        element.label(label_name) for (label_name, element, _) in labeled_sort_columns
+    ]
+    subq = data_query.with_only_columns(*select_cols).subquery()
+
+    outer_order_bys = []
+    for label_name, _, modifier in labeled_sort_columns:
+        sub_col = subq.c[label_name]
+        if modifier:
+            sub_col = modifiers[modifier](sub_col)
+        outer_order_bys.append(sub_col)
+
+    # build the final query
+    return (
+        sa.select(db_model_class)
+        .join(subq, subq.c.id == db_model_class.id)
+        .order_by(*outer_order_bys)
+    )
+
+
 def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     *,
     db: Session,
@@ -319,6 +369,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         )
 
     if apply_data_query_operations:
+        data_query = _with_subquery(data_query=data_query, db_model_class=db_model_class)
         data_query = apply_data_query_operations(data_query)
 
     # unique is needed b/c it contains results that include joined eager loads against collections

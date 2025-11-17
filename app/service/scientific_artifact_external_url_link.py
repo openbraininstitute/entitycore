@@ -2,7 +2,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, contains_eager, joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import (
     constrain_to_accessible_entities,
@@ -44,26 +44,6 @@ def _load(query: sa.Select) -> sa.Select:
         joinedload(ScientificArtifactExternalUrlLink.external_url, innerjoin=True),
         joinedload(ScientificArtifactExternalUrlLink.created_by, innerjoin=True),
         joinedload(ScientificArtifactExternalUrlLink.updated_by, innerjoin=True),
-        raiseload("*"),
-    )
-
-
-def _load_with_eager(query: sa.Select, aliases):
-    return query.options(
-        contains_eager(
-            ScientificArtifactExternalUrlLink.scientific_artifact.of_type(
-                aliases[ScientificArtifact]
-            )
-        ),
-        contains_eager(
-            ScientificArtifactExternalUrlLink.external_url.of_type(aliases[ExternalUrl])
-        ),
-        contains_eager(
-            ScientificArtifactExternalUrlLink.created_by.of_type(aliases[Agent]["created_by"])
-        ),
-        contains_eager(
-            ScientificArtifactExternalUrlLink.updated_by.of_type(aliases[Agent]["updated_by"])
-        ),
         raiseload("*"),
     )
 
@@ -177,8 +157,6 @@ def read_many(
         db_model_class=scientific_artifact_alias,
     )
 
-    load_with_aliases = lambda q: _load_with_eager(q, aliases)
-
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -188,7 +166,7 @@ def read_many(
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=filter_query,
-        apply_data_query_operations=load_with_aliases,
+        apply_data_query_operations=_load,
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ScientificArtifactExternalUrlLinkRead,

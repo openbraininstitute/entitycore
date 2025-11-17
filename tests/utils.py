@@ -262,17 +262,17 @@ def add_all_db(db, rows, *, same_transaction=False):
     return rows
 
 
-def assert_response(response, expected_status_code=200):
+def assert_response(response, expected_status_code=200, context=None):
     assert response.status_code == expected_status_code, (
         f"Request {response.request.method} {response.request.url}: "
         f"expected={expected_status_code}, actual={response.status_code}, "
-        f"content={response.content}"
+        f"content={response.content}, context={context}"
     )
 
 
-def assert_request(client_method, *, expected_status_code=200, **kwargs):
+def assert_request(client_method, *, expected_status_code=200, context=None, **kwargs):
     response = client_method(**kwargs)
-    assert_response(response, expected_status_code=expected_status_code)
+    assert_response(response, expected_status_code=expected_status_code, context=context)
     return response
 
 

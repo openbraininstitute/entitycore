@@ -5,6 +5,8 @@ from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 
 from tests.utils import (
+    PROJECT_ID,
+    UNRELATED_PROJECT_ID,
     add_all_db,
     assert_request,
     assert_response,
@@ -12,9 +14,10 @@ from tests.utils import (
 )
 
 
-def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recording_json_data):
+def test_get_derived_from(
+    db, client, client_user_2, emodel_id, public_emodel_id, electrical_cell_recording_json_data
+):
     # create two emodels, one with derivations and one without
-    generated_emodel_id, other_emodel_id = create_emodel_ids(2)
     trace_ids = [
         create_electrical_cell_recording_id(
             client, json_data=electrical_cell_recording_json_data | {"name": f"name-{i}"}
@@ -25,21 +28,23 @@ def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recordi
         [
             Derivation(
                 used_id=ecr_id,
-                generated_id=generated_emodel_id,
+                generated_id=public_emodel_id,
                 derivation_type="circuit_extraction",
             )
             for ecr_id in trace_ids[:3]
         ]
         + [
             Derivation(
-                used_id=ecr_id, generated_id=generated_emodel_id, derivation_type="circuit_rewiring"
+                used_id=ecr_id,
+                generated_id=public_emodel_id,
+                derivation_type="circuit_rewiring",
             )
             for ecr_id in trace_ids[3:5]
         ]
         + [
             Derivation(
                 used_id=trace_ids[5],
-                generated_id=generated_emodel_id,
+                generated_id=emodel_id,  # private
                 derivation_type="unspecified",
             )
         ]
@@ -47,7 +52,7 @@ def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recordi
     add_all_db(db, derivations)
 
     response = client.get(
-        url=f"/emodel/{generated_emodel_id}/derived-from",
+        url=f"/emodel/{public_emodel_id}/derived-from",
         params={"derivation_type": "circuit_extraction"},
     )
     assert_response(response, 200)
@@ -57,7 +62,7 @@ def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recordi
     assert all(d["type"] == "electrical_cell_recording" for d in data)
 
     response = client.get(
-        url=f"/emodel/{generated_emodel_id}/derived-from",
+        url=f"/emodel/{public_emodel_id}/derived-from",
         params={"derivation_type": "circuit_rewiring"},
     )
     assert_response(response, 200)
@@ -67,7 +72,8 @@ def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recordi
     assert all(d["type"] == "electrical_cell_recording" for d in data)
 
     response = client.get(
-        url=f"/emodel/{generated_emodel_id}/derived-from", params={"derivation_type": "unspecified"}
+        url=f"/emodel/{emodel_id}/derived-from",
+        params={"derivation_type": "unspecified"},
     )
     assert_response(response, 200)
     data = response.json()["data"]
@@ -76,26 +82,44 @@ def test_get_derived_from(db, client, create_emodel_ids, electrical_cell_recordi
     assert data[0]["type"] == "electrical_cell_recording"
 
     # Test error not derivation_type param
-    response = client.get(url=f"/emodel/{generated_emodel_id}/derived-from")
+    response = client.get(url=f"/emodel/{public_emodel_id}/derived-from")
     assert_response(response, 422)
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.INVALID_REQUEST
 
     # Test error invalid derivation_type param
     response = client.get(
-        url=f"/emodel/{generated_emodel_id}/derived-from",
+        url=f"/emodel/{public_emodel_id}/derived-from",
         params={"derivation_type": "invalid_type"},
     )
     assert_response(response, 422)
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.INVALID_REQUEST
 
+    # Test empty result
     response = client.get(
-        url=f"/emodel/{other_emodel_id}/derived-from", params={"derivation_type": "unspecified"}
+        url=f"/emodel/{public_emodel_id}/derived-from",
+        params={"derivation_type": "unspecified"},
     )
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 0
+
+    # Test private unreadable entity
+    response = client_user_2.get(
+        url=f"/emodel/{emodel_id}/derived-from",
+        params={"derivation_type": "unspecified"},
+    )
+    assert_response(response, 404)
+    assert response.json()["error_code"] == "ENTITY_NOT_FOUND"
+
+    # Test non existing entity
+    response = client_user_2.get(
+        url="/emodel/00000000-0000-0000-0000-000000000000/derived-from",
+        params={"derivation_type": "unspecified"},
+    )
+    assert_response(response, 404)
+    assert response.json()["error_code"] == "ENTITY_NOT_FOUND"
 
 
 @pytest.mark.parametrize(
@@ -137,17 +161,10 @@ def test_create_invalid_data(client, root_circuit, circuit):
     assert data["error_code"] == "INVALID_REQUEST"
 
 
-@pytest.mark.parametrize(
-    ("client_fixture", "expected_status", "expected_error"),
-    [
-        ("client_user_2", 404, "ENTITY_NOT_FOUND"),
-        ("client_no_project", 403, "NOT_AUTHORIZED"),
-    ],
-)
-def test_create_non_authorized(
-    request, client_fixture, expected_status, expected_error, root_circuit, circuit
-):
-    client = request.getfixturevalue(client_fixture)
+def test_create_without_authorization(client_no_project, root_circuit, circuit):
+    client = client_no_project
+    expected_status = 403
+    expected_error = "NOT_AUTHORIZED"
 
     data = assert_request(
         client.post,
@@ -160,3 +177,94 @@ def test_create_non_authorized(
         expected_status_code=expected_status,
     ).json()
     assert data["error_code"] == expected_error
+
+
+def _create_entities(route, client_user_1, client_user_2, json_data):
+    """Create public and private entities.
+
+    Created entities:
+
+    public_u1 (PROJECT_ID)
+    private_u1 (PROJECT_ID)
+    public_u2 (UNRELATED_PROJECT_ID)
+    private_u2 (UNRELATED_PROJECT_ID)
+    """
+    public_u1 = assert_request(
+        client_user_1.post,
+        url=route,
+        json=json_data | {"name": "Public u1/0", "authorized_public": True},
+    ).json()
+    assert public_u1["authorized_public"] is True
+    assert public_u1["authorized_project_id"] == PROJECT_ID
+
+    private_u1 = assert_request(
+        client_user_1.post,
+        url=route,
+        json=json_data | {"name": "Private u1/0", "authorized_public": False},
+    ).json()
+    assert private_u1["authorized_public"] is False
+    assert private_u1["authorized_project_id"] == PROJECT_ID
+
+    public_u2 = assert_request(
+        client_user_2.post,
+        url=route,
+        json=json_data | {"name": "Public u2/0", "authorized_public": True},
+    ).json()
+    assert public_u2["authorized_public"] is True
+    assert public_u2["authorized_project_id"] == UNRELATED_PROJECT_ID
+
+    private_u2 = assert_request(
+        client_user_2.post,
+        url=route,
+        json=json_data | {"name": "Private u2/0", "authorized_public": False},
+    ).json()
+    assert private_u2["authorized_public"] is False
+    assert private_u2["authorized_project_id"] == UNRELATED_PROJECT_ID
+
+    return public_u1, private_u1, public_u2, private_u2
+
+
+def test_create_with_authorization(client_user_1, client_user_2, root_circuit_json_data):
+    """Check the authorization when trying to create the derivation."""
+    route = "/circuit"
+    public_u1, private_u1, public_u2, private_u2 = _create_entities(
+        route, client_user_1, client_user_2, json_data=root_circuit_json_data
+    )
+
+    # these calls are done with client_user_1, that can create derivations for u1 entitites only
+    for i, (used_id, generated_id, expected_status) in enumerate(
+        [
+            (public_u1["id"], public_u1["id"], 200),
+            (private_u1["id"], public_u1["id"], 200),
+            (public_u2["id"], public_u1["id"], 200),
+            (private_u2["id"], public_u1["id"], 404),  # used_id cannot be read
+            (public_u1["id"], private_u1["id"], 200),
+            (private_u1["id"], private_u1["id"], 200),
+            (public_u2["id"], private_u1["id"], 200),
+            (private_u2["id"], private_u1["id"], 404),  # used_id cannot be read
+            (public_u1["id"], public_u2["id"], 404),  # generated_id is in a different project
+            (private_u1["id"], public_u2["id"], 404),  # generated_id is in a different project
+            (public_u2["id"], public_u2["id"], 404),  # generated_id is in a different project
+            (private_u2["id"], public_u2["id"], 404),  # generated_id is in a different project
+            (public_u1["id"], private_u2["id"], 404),  # generated_id cannot be read
+            (private_u1["id"], private_u2["id"], 404),  # generated_id cannot be read
+            (public_u2["id"], private_u2["id"], 404),  # generated_id cannot be read
+            (private_u2["id"], private_u2["id"], 404),  # generated_id cannot be read
+        ]
+    ):
+        data = assert_request(
+            client_user_1.post,
+            url="/derivation",
+            json={
+                "used_id": used_id,
+                "generated_id": generated_id,
+                "derivation_type": "circuit_extraction",
+            },
+            expected_status_code=expected_status,
+            context=f"Test {i}",
+        ).json()
+        if expected_status == 200:
+            assert data["generated"]["id"] == generated_id, f"Error in test {i}"
+            assert data["used"]["id"] == used_id, f"Error in test {i}"
+        elif expected_status == 404:
+            assert data["error_code"] == "ENTITY_NOT_FOUND", f"Error in test {i}"

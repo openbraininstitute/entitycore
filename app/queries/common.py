@@ -248,30 +248,40 @@ def _with_subquery[I: Identifiable](
     - needing many columns for building the results, but not all of them are needed for filtering.
     """
     order_by_clauses = data_query._order_by_clauses  # noqa: SLF001
-    # Get the plain columns needed in the subquery, without DESC/ASC if UnaryExpression
-    sort_columns = [getattr(obc, "element", obc) for obc in order_by_clauses]
-    subq = data_query.with_only_columns(*sort_columns).subquery()
-    # Dict of modifiers as found in UnaryExpression.
+    # dict of modifiers as found in UnaryExpression.
     modifiers = {
         operators.desc_op: lambda x: x.desc(),
         operators.asc_op: lambda x: x.asc(),
     }
-    # Ensure that the rows selected in the outer query are sorted again for deterministic results.
-    outer_order_by = []
-    for obc in order_by_clauses:
-        col = getattr(obc, "element", obc)
-        if not col.key:
-            msg = f"Can't determine column key for order-by expression: {col!r}"
-            raise RuntimeError(msg)
-        sub_col = subq.c[col.key]
-        if modifier := getattr(obc, "modifier", None):
+
+    # list of (label_name, element, modifier)
+    labeled_sort_columns = []
+    for i, ob in enumerate(order_by_clauses):
+        # element is the plain column needed in the subquery, without ASC/DESC if UnaryExpression
+        element = getattr(ob, "element", ob)
+        # modifier contains the ASC/DESC ordering
+        modifier = getattr(ob, "modifier", None)
+        # label_name is needed for ordering the outer query even in case of BinaryExpression
+        label_name = f"_s{i}"
+        labeled_sort_columns.append((label_name, element, modifier))
+
+    select_cols = [db_model_class.id] + [
+        element.label(label_name) for (label_name, element, _) in labeled_sort_columns
+    ]
+    subq = data_query.with_only_columns(*select_cols).subquery()
+
+    outer_order_bys = []
+    for label_name, _, modifier in labeled_sort_columns:
+        sub_col = subq.c[label_name]
+        if modifier:
             sub_col = modifiers[modifier](sub_col)
-        outer_order_by.append(sub_col)
-    # Build the resulting query
+        outer_order_bys.append(sub_col)
+
+    # build the final query
     return (
         sa.select(db_model_class)
         .join(subq, subq.c.id == db_model_class.id)
-        .order_by(*outer_order_by)
+        .order_by(*outer_order_bys)
     )
 
 

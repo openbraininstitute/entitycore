@@ -12,9 +12,9 @@ from app.schemas.base import (
     EntityTypeMixin,
     IdentifiableMixin,
 )
+from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.types import DockerDependency, PythonDependency
 from app.schemas.utils import make_update_schema
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
 
 
 class AnalysisNotebookTemplateInputType(BaseModel):

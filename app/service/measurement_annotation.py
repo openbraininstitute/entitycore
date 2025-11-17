@@ -90,7 +90,7 @@ def read_many(
         facets=None,
         aliases=None,
         apply_filter_query_operations=apply_filter_query_operations,
-        apply_data_query_operations=_load_from_db,
+        apply_data_query_operations=_load_from_db_with_entity,
         pagination_request=pagination_request,
         response_schema_class=MeasurementAnnotationRead,
         name_to_facet_query_params=name_to_facet_query_params,

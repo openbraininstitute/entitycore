@@ -7,7 +7,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Derivation, DerivationType, Entity
-from app.db.utils import load_db_model_from_pydantic
+from app.db.utils import ENTITY_TYPE_TO_CLASS, load_db_model_from_pydantic
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -18,7 +18,7 @@ from app.errors import (
 )
 from app.filters.entity import BasicEntityFilterDep
 from app.queries.common import router_read_many
-from app.queries.entity import get_writable_entity
+from app.queries.entity import get_readable_entity, get_writable_entity
 from app.schemas.base import BasicEntityRead
 from app.schemas.derivation import DerivationCreate, DerivationRead
 from app.schemas.types import ListResponse
@@ -35,14 +35,26 @@ def read_many(
     pagination_request: PaginationQuery,
     entity_filter: BasicEntityFilterDep,
 ) -> ListResponse[BasicEntityRead]:
-    """Return a list of basic entities used to generate the specified entity."""
-    db_model_class = Entity
+    """Return a list of basic entities used to generate the specified entity.
+
+    Only the used entities that are accessible by the user are returned.
+    """
+    used_db_model_class = Entity
     generated_alias = aliased(Entity, flat=True, name="generated_alias")
     entity_type = entity_route_to_type(entity_route)
-    # always needed regardless of the filter, so they cannot go to filter_keys
+    generated_db_model_class = ENTITY_TYPE_TO_CLASS[entity_type]
 
+    # ensure that the requested entity is readable
+    _ = get_readable_entity(
+        db,
+        db_model_class=generated_db_model_class,
+        entity_id=entity_id,
+        project_id=user_context.project_id,
+    )
+
+    # always needed regardless of the filter, so it cannot go to filter_keys
     apply_filter_query_operations = (
-        lambda q: q.join(Derivation, db_model_class.id == Derivation.used_id)
+        lambda q: q.join(Derivation, used_db_model_class.id == Derivation.used_id)
         .join(generated_alias, Derivation.generated_id == generated_alias.id)
         .where(
             generated_alias.id == entity_id,
@@ -54,7 +66,7 @@ def read_many(
     name_to_facet_query_params = filter_joins = None
     return router_read_many(
         db=db,
-        db_model_class=db_model_class,
+        db_model_class=used_db_model_class,
         authorized_project_id=user_context.project_id,
         with_search=None,
         with_in_brain_region=None,
@@ -75,7 +87,16 @@ def create_one(
     json_model: DerivationCreate,
     user_context: UserContextWithProjectIdDep,
 ) -> DerivationRead:
-    used_entity = get_writable_entity(
+    """Create a new derivation from a readable entity (used) to a writable entity (generated).
+
+    Used entity: a readable entity (public in any project, or private in the same project).
+    Generated entity: a writable entity (public or private, in the same project).
+
+    Even when the parent (used) is private, the child (generated) can be either public or private.
+
+    See also https://github.com/openbraininstitute/entitycore/issues/427
+    """
+    used_entity = get_readable_entity(
         db,
         Entity,
         json_model.used_id,

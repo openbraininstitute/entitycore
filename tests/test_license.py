@@ -106,9 +106,15 @@ def test_filtering(clients, json_data):
     def _req(query):
         return assert_request(clients.user_1.get, url=ROUTE, params=query).json()["data"]
 
-    assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n1", "label": "l"})
-    assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n2", "label": "l"})
-    assert_request(clients.admin.post, url=ROUTE, json=json_data | {"name": "n3", "label": "l1"})
+    d1 = assert_request(
+        clients.admin.post, url=ROUTE, json=json_data | {"name": "n1", "label": "l"}
+    ).json()
+    assert_request(
+        clients.admin.post, url=ROUTE, json=json_data | {"name": "n2", "label": "l"}
+    ).json()
+    d3 = assert_request(
+        clients.admin.post, url=ROUTE, json=json_data | {"name": "n3", "label": "l1"}
+    ).json()
 
     data = _req({"name": "n1"})
     assert len(data) == 1
@@ -121,3 +127,11 @@ def test_filtering(clients, json_data):
 
     data = _req({"label__ilike": "l"})
     assert len(data) == 3
+
+    data = _req({"id": d1["id"]})
+    assert len(data) == 1
+    assert data[0]["id"] == d1["id"]
+
+    data = _req({"id__in": [d1["id"], d3["id"]]})
+    assert len(data) == 2
+    assert {d["id"] for d in data} == {d1["id"], d3["id"]}

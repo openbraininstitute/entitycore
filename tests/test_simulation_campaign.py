@@ -384,3 +384,76 @@ def test_filter_by_circuit_build_category(
     ).json()["data"]
 
     assert len(data) == 3
+
+
+@pytest.fixture
+def mixed_campaigns(db, json_data, person_id, root_circuit, memodel_id):
+    entity_ids = [root_circuit.id, memodel_id]
+
+    campaigns = []
+
+    for i, entity_id in enumerate(entity_ids):
+        campaign = add_db(
+            db,
+            MODEL(
+                **(
+                    json_data
+                    | {
+                        "entity_id": str(entity_id),
+                        "name": f"campaign-{i}",
+                        "description": f"Campaign for circuit {i}",
+                        "created_by_id": person_id,
+                        "updated_by_id": person_id,
+                        "authorized_project_id": PROJECT_ID,
+                    }
+                )
+            ),
+        )
+        campaigns.append(campaign)
+    return campaigns
+
+
+def test_filter_by_entity_type(client, mixed_campaigns):
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "entity__type": "circuit",
+            "with_facets": True,
+        },
+    ).json()["data"]
+
+    assert len(data) == 1
+    assert data[0]["entity_id"] == str(mixed_campaigns[0].entity_id)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "entity__type": "memodel",
+            "circuit__scale": "whole_brain",
+            "with_facets": True,
+        },
+    ).json()["data"]
+    assert len(data) == 0
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "entity__type": "memodel",
+            "with_facets": True,
+        },
+    ).json()["data"]
+    assert data[0]["entity_id"] == str(mixed_campaigns[1].entity_id)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "entity__type": "circuit",
+            "circuit__scale": "whole_brain",
+            "with_facets": True,
+        },
+    ).json()["data"]
+    assert len(data) == 1

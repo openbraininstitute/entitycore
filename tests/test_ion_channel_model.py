@@ -11,6 +11,8 @@ from app.schemas.ion_channel_model import IonChannelModelRead
 from .utils import (
     PROJECT_ID,
     TEST_DATA_DIR,
+    add_all_db,
+    assert_request,
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
@@ -284,3 +286,44 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, subject_id, 
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)
+
+
+@pytest.fixture
+def ion_channel_models(db, json_data, person_id):
+    return add_all_db(
+        db,
+        [
+            IonChannelModel(
+                **json_data
+                | {
+                    "name": "icm-0",
+                    "created_by_id": str(person_id),
+                    "updated_by_id": str(person_id),
+                    "authorized_project_id": PROJECT_ID,
+                }
+            ),
+            IonChannelModel(
+                **json_data
+                | {
+                    "name": "icm-1",
+                    "created_by_id": str(person_id),
+                    "updated_by_id": str(person_id),
+                    "authorized_project_id": PROJECT_ID,
+                }
+            ),
+        ],
+    )
+
+
+def test_filtering(client, ion_channel_models, person_id):
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req({})
+    assert len(data) == len(ion_channel_models)
+
+    data = req({"name": "icm-0", "with_facets": True})
+    assert len(data) == 1
+
+    data = req({"created_by__id": str(person_id), "with_facets": True})
+    assert len(data) == len(ion_channel_models)

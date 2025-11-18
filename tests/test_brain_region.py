@@ -207,44 +207,66 @@ def test_family_queries(db, client, subject_id, person_id):
         )
     assert len(client.get("/cell-morphology").json()["data"]) == 8
 
-    def get_response(hier, acronym, ascendents):
+    def get_response(hier, acronym, ascendants=False, direction=None):  # noqa: FBT002
         hierarchy_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
         brain_region_id = (
             brain_regions0[acronym].id if hier == "hier0" else brain_regions1[acronym].id
         )
 
-        return client.get(
-            "/cell-morphology",
-            params={
-                "within_brain_region_hierarchy_id": hierarchy_id,
-                "within_brain_region_brain_region_id": brain_region_id,
-                "within_brain_region_ascendants": ascendents,
-            },
-        )
+        params = {
+            "within_brain_region_hierarchy_id": hierarchy_id,
+            "within_brain_region_brain_region_id": brain_region_id,
+            "within_brain_region_ascendants": ascendants,
+        }
+        if direction is not None:
+            params["within_brain_region_direction"] = direction
+
+        return client.get("/cell-morphology", params=params).json()["data"]
 
     for hier in ("hier0", "hier1"):
-        # descendents
-        response = get_response(hier, "root", ascendents=False)
-        assert len(response.json()["data"]) == 4
+        # descendants
+        old = get_response(hier, "root", ascendants=False)
+        response = get_response(hier, "root", direction="descendants")
+        assert len(old) == len(response) == 4
 
-        response = get_response(hier, "grey", ascendents=False)
-        assert len(response.json()["data"]) == 1
+        old = get_response(hier, "grey", ascendants=False)
+        response = get_response(hier, "grey", direction="descendants")
+        assert len(old) == len(response) == 1
 
-        response = get_response(hier, "blue", ascendents=False)
-        assert len(response.json()["data"]) == 2
+        old = get_response(hier, "blue", ascendants=False)
+        response = get_response(hier, "blue", direction="descendants")
+        assert len(old) == len(response) == 2
 
-        response = get_response(hier, "red", ascendents=False)
-        assert len(response.json()["data"]) == 1
+        old = get_response(hier, "red", ascendants=False)
+        response = get_response(hier, "red", direction="descendants")
+        assert len(old) == len(response) == 1
 
-        # ascendents
-        response = get_response(hier, "root", ascendents=True)
-        assert len(response.json()["data"]) == 1
+        # ascendants
+        old = get_response(hier, "root", ascendants=True)
+        response = get_response(hier, "root", direction="ascendants")
+        assert len(old) == len(response) == 1
 
-        response = get_response(hier, "grey", ascendents=True)
-        assert len(response.json()["data"]) == 2
+        old = get_response(hier, "grey", ascendants=True)
+        response = get_response(hier, "grey", direction="ascendants")
+        assert len(old) == len(response) == 2
 
-        response = get_response(hier, "blue", ascendents=True)
-        assert len(response.json()["data"]) == 2
+        old = get_response(hier, "blue", ascendants=True)
+        response = get_response(hier, "blue", direction="ascendants")
+        assert len(old) == len(response) == 2
 
-        response = get_response(hier, "red", ascendents=True)
-        assert len(response.json()["data"]) == 3
+        old = get_response(hier, "red", ascendants=True)
+        response = get_response(hier, "red", direction="ascendants")
+        assert len(old) == len(response) == 3
+
+        # ascendants_and_descendants
+        response = get_response(hier, "root", direction="ascendants_and_descendants")
+        assert len(response) == 4
+
+        response = get_response(hier, "grey", direction="ascendants_and_descendants")
+        assert len(response) == 2
+
+        response = get_response(hier, "blue", direction="ascendants_and_descendants")
+        assert len(response) == 3
+
+        response = get_response(hier, "red", direction="ascendants_and_descendants")
+        assert len(response) == 3

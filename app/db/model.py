@@ -620,6 +620,8 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
         experiment_date (datetime | None): Date of the experiment associated with the artifact.
         contact_email (str | None): Optional string of a contact person's e-mail address.
         published_in (str | None): Optional string with short version of the source publication(s).
+        notice_text (str | None): Text provided by the data creators to inform users about data
+            caveats, limitations, or required attribution practices.
 
     Mapper Args:
         polymorphic_identity (str): Used for SQLAlchemy polymorphic inheritance.
@@ -632,6 +634,7 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     experiment_date: Mapped[datetime | None]
     contact_email: Mapped[str | None]
     published_in: Mapped[str | None]
+    notice_text: Mapped[str | None]
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,

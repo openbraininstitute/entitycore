@@ -45,6 +45,7 @@ def json_data(subject_id, license_id, brain_region_id, cell_morphology_protocol)
         "license_id": str(license_id),
         "cell_morphology_protocol_id": str(cell_morphology_protocol.id),
         "contact_email": "test@example.com",
+        "notice_text": "Notice text example",
         "experiment_date": "2025-01-01T00:00:00",
     }
 
@@ -80,6 +81,7 @@ def test_create_one(
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["contact_email"] == "test@example.com"
     assert data["experiment_date"] == "2025-01-01T00:00:00"
+    assert data["notice_text"] == "Notice text example"
     assert data["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
 
     response = client.get(ROUTE)

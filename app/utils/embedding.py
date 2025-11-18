@@ -1,6 +1,7 @@
 """Utility functions for generating embeddings using OpenAI API."""
 
-import random
+import hashlib
+import itertools
 
 import openai
 from openai import APIConnectionError, APIStatusError
@@ -30,9 +31,16 @@ def generate_embedding(text: str, model: str = "text-embedding-3-small") -> list
             http_status_code=500,
         )
 
-    if settings.OPENAI_API_KEY == "random":
-        return [random.random() for _ in range(EmbeddingMixin.SIZE)]  # noqa: S311
     openai_api_key = settings.OPENAI_API_KEY.get_secret_value()
+
+    if openai_api_key == "random":
+        h = hashlib.sha256(text.encode()).digest()
+        return [
+            (int.from_bytes(v) / 32767.5) - 1.0
+            for _, v in zip(
+                range(EmbeddingMixin.SIZE), itertools.pairwise(itertools.cycle(h)), strict=False
+            )
+        ]
 
     try:
         # Generate embedding using OpenAI API

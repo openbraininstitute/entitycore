@@ -99,6 +99,7 @@ def test_update_one(clients, json_data):
         },
         optional_payload={
             "contact_email": "foo.bar@zee.com",
+            "notice_text": "Notice text example",
         },
     )
 

@@ -26,6 +26,7 @@ from app.db.model import (
     CellMorphology,
     Circuit,
     Contribution,
+    EmbeddingMixin,
     EMCellMesh,
     EMDenseReconstructionDataset,
     EModel,
@@ -277,8 +278,7 @@ def _override_embedding_generation(monkeypatch):
 
     def mock_generate_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:  # noqa: ARG001
         """Return a fixed-size embedding vector filled with 0.1 values."""
-        # Return a 1536-dimensional vector (standard for text-embedding-3-small)
-        return [0.1] * 1536
+        return [0.1] * EmbeddingMixin.SIZE
 
     # Patch the function in each service module where it's used
     monkeypatch.setattr("app.service.species.generate_embedding", mock_generate_embedding)

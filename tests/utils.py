@@ -21,6 +21,7 @@ from app.db.model import (
     Contribution,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
+    EmbeddingMixin,
     Entity,
     ETypeClass,
     ETypeClassification,
@@ -303,7 +304,7 @@ def create_brain_region(
         hierarchy_id=hierarchy_id,
         created_by_id=created_by_id,
         updated_by_id=created_by_id or updated_by_id,
-        embedding=1536 * [0.1],
+        embedding=EmbeddingMixin.SIZE * [0.1],
     )
     return add_db(db, row)
 
@@ -758,7 +759,7 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
             hierarchy_id=hierarchy_id,
             created_by_id=db_hierarchy.created_by_id,
             updated_by_id=db_hierarchy.created_by_id,
-            embedding=1536 * [0.1],
+            embedding=EmbeddingMixin.SIZE * [0.1],
         )
         db_br = add_db(db, row)
         db.flush()
@@ -928,7 +929,7 @@ def create_subject_ids(db, *, created_by_id, n):
                     taxonomy_id=f"{i}",
                     created_by_id=created_by_id,
                     updated_by_id=created_by_id,
-                    embedding=[0.1] * 1536,  # Mocked embedding
+                    embedding=[0.1] * EmbeddingMixin.SIZE,
                 ),
             ).id
         )
@@ -941,7 +942,7 @@ def create_subject_ids(db, *, created_by_id, n):
                     species_id=species_id,
                     created_by_id=created_by_id,
                     updated_by_id=created_by_id,
-                    embedding=[0.1] * 1536,  # Mocked embedding
+                    embedding=[0.1] * EmbeddingMixin.SIZE,
                 ),
             ).id
         )

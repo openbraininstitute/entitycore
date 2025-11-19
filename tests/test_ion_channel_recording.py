@@ -37,6 +37,7 @@ def _assert_read_response(actual, expected):
         "authorized_project_id": PROJECT_ID,
         "brain_region": ANY,
         "contact_email": None,
+        "notice_text": None,
         "contributions": [],
         "created_by": ANY,
         "creation_date": ANY,

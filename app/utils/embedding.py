@@ -11,6 +11,16 @@ from app.db.model import EmbeddingMixin
 from app.errors import ApiError, ApiErrorCode
 
 
+def _pseudo_random_embedding(text: str) -> list[float]:
+    h = hashlib.sha256(text.encode()).digest()
+    return [
+        (int.from_bytes(v) / 32767.5) - 1.0
+        for _, v in zip(
+            range(EmbeddingMixin.SIZE), itertools.pairwise(itertools.cycle(h)), strict=False
+        )
+    ]
+
+
 def generate_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:
     """Generate an embedding for the given text using OpenAI API.
 
@@ -34,13 +44,7 @@ def generate_embedding(text: str, model: str = "text-embedding-3-small") -> list
     openai_api_key = settings.OPENAI_API_KEY.get_secret_value()
 
     if openai_api_key == "random":
-        h = hashlib.sha256(text.encode()).digest()
-        return [
-            (int.from_bytes(v) / 32767.5) - 1.0
-            for _, v in zip(
-                range(EmbeddingMixin.SIZE), itertools.pairwise(itertools.cycle(h)), strict=False
-            )
-        ]
+        return _pseudo_random_embedding(text)
 
     try:
         # Generate embedding using OpenAI API

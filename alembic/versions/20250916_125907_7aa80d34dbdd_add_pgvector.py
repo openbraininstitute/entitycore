@@ -16,6 +16,7 @@ from alembic_utils.pg_extension import PGExtension
 from pgvector.sqlalchemy import Vector
 import sqlalchemy as sa
 from sqlalchemy import text
+from app.utils.embedding import pseudo_random_embedding
 
 # revision identifiers, used by Alembic.
 revision: str = "7aa80d34dbdd"
@@ -59,23 +60,18 @@ def generate_embeddings_for_existing_data():
         all_entities.append(("strain", strain.id, strain.name))
 
     # Generate embeddings based on available API key
-
-    if api_key:
+    names = [entity[2] for entity in all_entities]
+    if api_key is None or api_key == "random":
+        embeddings = [pseudo_random_embedding(name) for name in names]
+    else:
         # Use OpenAI API for real embeddings
         client = openai.OpenAI(api_key=api_key)
 
         # Generate all embeddings in a single API call
-        names = [entity[2] for entity in all_entities]
         response = client.embeddings.create(model="text-embedding-3-small", input=names)
 
         # Extract embeddings from response
         embeddings = [embedding.embedding for embedding in response.data]
-    else:
-        # Use random vectors when OpenAI key is not provided
-        embeddings = []
-        for _ in all_entities:
-            random_embedding = [random.random() for _ in range(1536)]
-            embeddings.append(random_embedding)
 
     # Update database with generated embeddings (shared logic)
     for (table_name, entity_id, _), embedding in zip(all_entities, embeddings):

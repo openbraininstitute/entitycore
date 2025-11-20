@@ -138,7 +138,6 @@ def test_entity_route_methods(entity_routes):
     # why is external-url an entity?
     skip = {
         "brain-atlas",
-        "brain-atlas-region",
         "cell-composition",
         "em-dense-reconstruction-dataset",
         "external-url",

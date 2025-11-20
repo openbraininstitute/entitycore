@@ -76,7 +76,7 @@ def extract(source: Path, component: str | None, output: Path) -> None:
             response = data["response"]
 
             if request["method"] not in {"GET", "POST"}:
-                # ignore PATCH, DELETE
+                # ignore DELETE, PATCH, PUT
                 continue
             if response["status_code"] not in {200, 201}:
                 # ignore unsuccessful responses
@@ -84,18 +84,23 @@ def extract(source: Path, component: str | None, output: Path) -> None:
 
             parsed_url = parse.urlparse(request["url"])
             head, _, tail = parsed_url.path.strip("/").partition("/")
-            if head == "admin":
-                # ignore admin endpoints
+            if (
+                head == "admin"
+                or "/assets" in tail
+                or "/regions" in tail
+                or tail.endswith(("counts", "hierarchy", "derived-from"))
+            ):
+                # ignore undesired endpoints
                 continue
             if comp_regex and not comp_regex.search(head):
                 # ignore not matching requests if component has been specified
                 continue
-            if request["method"] == "POST":
-                request_type = "create_one"
+            if request["method"] == "POST" and not tail:
+                request_type = "one"
             elif not tail:
-                request_type = "read_many"
+                request_type = "many"
             elif UUID_RE.fullmatch(tail):
-                request_type = "read_one"
+                request_type = "one"
             else:
                 L.warning(f"Ignored {request['method']} {parsed_url.path}, skipping {path}")
                 continue

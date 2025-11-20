@@ -126,12 +126,12 @@ def test_generate_embedding_api_status_error(monkeypatch):
 
 
 def test__pseudo_random_embedding():
-    a = test_module._pseudo_random_embedding("test")
-    b = test_module._pseudo_random_embedding("test")
+    a = test_module.pseudo_random_embedding("test")
+    b = test_module.pseudo_random_embedding("test")
     assert all(-1.0 <= v <= 1.0 for v in a)
     assert len(a) == EmbeddingMixin.SIZE
     assert a == b
 
-    a = test_module._pseudo_random_embedding("")
+    a = test_module.pseudo_random_embedding("")
     assert all(-1.0 <= v <= 1.0 for v in a)
     assert len(a) == EmbeddingMixin.SIZE

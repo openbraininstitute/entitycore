@@ -312,6 +312,16 @@ def ion_channel_models(db, json_data, person_id):
                     "authorized_project_id": PROJECT_ID,
                 }
             ),
+            IonChannelModel(
+                **json_data
+                | {
+                    "name": "icm-2",
+                    "created_by_id": str(person_id),
+                    "updated_by_id": str(person_id),
+                    "authorized_project_id": PROJECT_ID,
+                    "temperature_celsius": None,
+                }
+            ),
         ],
     )
 
@@ -328,3 +338,9 @@ def test_filtering(client, ion_channel_models, person_id):
 
     data = req({"created_by__id": str(person_id), "with_facets": True})
     assert len(data) == len(ion_channel_models)
+
+    data = req({"temperature_celsius__lte": 1, "with_facets": True})
+    assert len(data) == 2
+
+    data = req({"temperature_celsius__gte": 1, "with_facets": True})
+    assert len(data) == 0

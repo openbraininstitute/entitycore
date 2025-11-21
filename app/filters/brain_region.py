@@ -34,9 +34,9 @@ def get_family_query(
 
     br_alias = aliased(BrainRegion)
 
-    if direction == WithinBrainRegionDirection.ascendants:
-        join_direction = br_alias.id == cte.c.parent_structure_id
-    elif direction == WithinBrainRegionDirection.descendants:
+    #  if direction == WithinBrainRegionDirection.ascendants:
+    join_direction = br_alias.id == cte.c.parent_structure_id
+    if direction == WithinBrainRegionDirection.descendants:
         join_direction = br_alias.parent_structure_id == cte.c.id
     elif direction == WithinBrainRegionDirection.ascendants_and_descendants:
         # union of ascendants and descendants

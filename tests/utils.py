@@ -1,5 +1,7 @@
 import functools
+import json
 import operator
+import os
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
@@ -8,6 +10,7 @@ from typing import NamedTuple
 from unittest.mock import ANY
 from uuid import UUID
 
+import httpx
 import sqlalchemy as sa
 from httpx import Headers
 from pydantic import TypeAdapter
@@ -90,11 +93,60 @@ ROUTES = {
 }
 
 
+class RequestTracer:
+    """Trace and save http requests and responses."""
+
+    def __init__(self, traces_dir="traces") -> None:
+        self._counter = 0
+        self._root_path = Path(traces_dir) / datetime.now(UTC).isoformat()
+
+    @staticmethod
+    def _try_json_loads(s) -> str | None:
+        try:
+            return json.loads(s)
+        except json.JSONDecodeError:
+            pass
+        return None
+
+    def save(self, response: httpx.Response, indent=None) -> None:
+        path = self._root_path
+        path.mkdir(parents=True, exist_ok=True)
+        request = response.request
+
+        (path / f"{self._counter:05}.json").write_text(
+            json.dumps(
+                {
+                    "request": {
+                        "method": request.method,
+                        "url": str(request.url),
+                        "headers": request.headers.multi_items(),
+                        "content_text": request.content.decode("utf-8"),
+                        "content_json": self._try_json_loads(request.content),
+                    },
+                    "response": {
+                        "headers": response.headers.multi_items(),
+                        "content_text": response.content.decode("utf-8"),
+                        "content_json": self._try_json_loads(response.content),
+                        "status_code": response.status_code,
+                    },
+                },
+                indent=indent,
+            ),
+            encoding="utf-8",
+        )
+        self._counter += 1
+
+
 class ClientProxy:
     """Proxy TestClient to pass default headers without creating a new instance.
 
     This can be used to avoid running the lifespan event multiple times.
+
+    The requests and responses can be saved by setting the env variable REQUEST_TRACER_ENABLE=1,
+    and optionally set REQUEST_TRACER_INDENT to the desired json indentation.
     """
+
+    _tracer = RequestTracer()
 
     def __init__(self, client: TestClient, headers: dict | None = None) -> None:
         self._client = client
@@ -107,7 +159,12 @@ class ClientProxy:
             def wrapper(*args, headers=None, **kwargs):
                 merged_headers = Headers(self._headers)
                 merged_headers.update(headers)
-                return f(*args, headers=merged_headers, **kwargs)
+                response = f(*args, headers=merged_headers, **kwargs)
+                if os.getenv("REQUEST_TRACER_ENABLE") == "1":
+                    self._tracer.save(
+                        response, indent=int(os.getenv("REQUEST_TRACER_INDENT", "0")) or None
+                    )
+                return response
 
             return wrapper
 

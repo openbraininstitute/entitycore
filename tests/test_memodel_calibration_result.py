@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.db.model import MEModelCalibrationResult
 
-from .utils import assert_request, check_entity_delete_one, check_entity_update_one
+from .utils import USER_SUB_ID_1, assert_request, check_entity_delete_one, check_entity_update_one
 
 MODEL = MEModelCalibrationResult
 ROUTE = "/memodel-calibration-result"
@@ -166,3 +166,10 @@ def test_filtering__many_entries(client, models, memodel_id):
     assert len(data) == 2
     assert data[0]["calibrated_entity_id"] == models[0]["calibrated_entity_id"]
     assert data[1]["calibrated_entity_id"] == models[1]["calibrated_entity_id"]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == len(models)

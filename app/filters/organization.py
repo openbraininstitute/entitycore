@@ -2,7 +2,8 @@ from typing import Annotated
 
 from app.db.model import Organization
 from app.dependencies.filter import FilterDepends
-from app.filters.common import AgentFilter, CreatorFilterMixin
+from app.filters.common import AgentFilter
+from app.filters.person import CreatorFilterMixin
 
 
 class OrganizationFilter(AgentFilter, CreatorFilterMixin):

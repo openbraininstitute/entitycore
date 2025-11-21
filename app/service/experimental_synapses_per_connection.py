@@ -14,6 +14,7 @@ from app.db.model import (
     Contribution,
     ExperimentalSynapsesPerConnection,
     MTypeClass,
+    Person,
     Subject,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
@@ -80,8 +81,8 @@ def read_many(
     pre_region_alias = aliased(BrainRegion, flat=True)
     post_region_alias = aliased(BrainRegion, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     aliases = {
         Subject: subject_alias,
         BrainRegion: {
@@ -95,6 +96,8 @@ def read_many(
         },
         Agent: {
             "contribution": agent_alias,
+        },
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

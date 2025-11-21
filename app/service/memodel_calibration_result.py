@@ -1,9 +1,10 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import aliased, joinedload
 
-from app.db.model import MEModelCalibrationResult, Subject
+from app.db.model import MEModelCalibrationResult, Person, Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -20,6 +21,7 @@ from app.queries.common import (
     router_read_one,
     router_update_one,
 )
+from app.queries.factory import query_params_factory
 from app.schemas.memodel_calibration_result import (
     MEModelCalibrationResultAdminUpdate,
     MEModelCalibrationResultCreate,
@@ -28,6 +30,9 @@ from app.schemas.memodel_calibration_result import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -121,8 +126,23 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[MEModelCalibrationResultRead]:
-    aliases = {}
-    name_to_facet_query_params = {}
+    aliases: Aliases = {
+        Person: {
+            "created_by": aliased(Person, flat=True),
+            "updated_by": aliased(Person, flat=True),
+        },
+    }
+    filter_keys = [
+        "created_by",
+        "updated_by",
+    ]
+
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=MEModelCalibrationResult,
+        filter_keys=filter_keys,
+        facet_keys=[],
+        aliases=aliases,
+    )
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -137,7 +157,7 @@ def read_many(
         pagination_request=pagination_request,
         response_schema_class=MEModelCalibrationResultRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=None,
+        filter_joins=filter_joins,
     )
 
 

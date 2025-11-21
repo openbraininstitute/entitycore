@@ -6,6 +6,9 @@ from app.db.model import (
 from app.db.types import EntityType
 
 from .utils import (
+    PROJECT_ID,
+    USER_SUB_ID_1,
+    add_all_db,
     assert_request,
     check_authorization,
     check_entity_delete_one,
@@ -140,3 +143,47 @@ def test_delete_one(db, clients, public_json_data):
             ElectricalRecordingStimulus: 0,
         },
     )
+
+
+@pytest.fixture
+def models(db, json_data, person_id):
+    return add_all_db(
+        db,
+        [
+            ElectricalRecordingStimulus(
+                **json_data
+                | {
+                    "name": "r-1",
+                    "created_by_id": person_id,
+                    "updated_by_id": person_id,
+                    "authorized_project_id": PROJECT_ID,
+                }
+            ),
+            ElectricalRecordingStimulus(
+                **json_data
+                | {
+                    "name": "r-2",
+                    "created_by_id": person_id,
+                    "updated_by_id": person_id,
+                    "authorized_project_id": PROJECT_ID,
+                }
+            ),
+            ElectricalRecordingStimulus(
+                **json_data
+                | {
+                    "name": "r-3",
+                    "created_by_id": person_id,
+                    "updated_by_id": person_id,
+                    "authorized_project_id": PROJECT_ID,
+                }
+            ),
+        ],
+    )
+
+
+def test_filtering(client, models):
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

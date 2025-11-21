@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.model import Agent, ExternalUrl
+from app.db.model import ExternalUrl, Person
 from app.dependencies.auth import UserContextDep
 from app.dependencies.common import (
     FacetsDep,
@@ -74,10 +74,10 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ExternalUrlRead]:
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     aliases: Aliases = {
-        Agent: {
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

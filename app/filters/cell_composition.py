@@ -4,9 +4,9 @@ from app.db.model import CellComposition
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    EntityFilterMixin,
     NameFilterMixin,
 )
+from app.filters.entity import EntityFilterMixin
 
 
 class CellCompositionFilter(

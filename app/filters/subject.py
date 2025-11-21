@@ -7,13 +7,11 @@ from app.db.model import Subject
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    EntityFilterMixin,
     IdFilterMixin,
     NameFilterMixin,
-    NestedSpeciesFilter,
-    NestedStrainFilter,
-    SpeciesFilterMixin,
 )
+from app.filters.entity import EntityFilterMixin
+from app.filters.species import NestedSpeciesFilter, NestedStrainFilter, SpeciesFilterMixin
 
 
 class NestedSubjectFilter(IdFilterMixin, NameFilterMixin, CustomFilter):

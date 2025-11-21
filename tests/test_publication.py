@@ -3,6 +3,7 @@ import pytest
 from app.db.model import Publication
 
 from .utils import (
+    USER_SUB_ID_1,
     add_db,
     assert_request,
     check_global_delete_one,
@@ -186,3 +187,6 @@ def test_filtering_sorting(client, models):
 
     data = req({"publication_year__lte": 2022, "order_by": "-title"})
     assert [d["publication_year"] for d in data] == [2022, 2021, 2020]
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

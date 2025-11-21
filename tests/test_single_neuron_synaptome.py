@@ -15,6 +15,7 @@ from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_db,
     assert_request,
     check_authorization,
@@ -413,6 +414,9 @@ def test_sorting_filtering(client, faceted_ids):
 
         data = req({"created_by__pref_label": "", "order_by": ordering_field})
         assert len(data) == 0
+
+        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        assert len(data) == n_models
 
         data = req({"brain_region__name": "region-1", "order_by": ordering_field})
         assert all(d["brain_region"]["name"] == "region-1" for d in data)

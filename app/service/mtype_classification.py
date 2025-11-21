@@ -7,9 +7,9 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import constrain_to_accessible_entities
 from app.db.model import (
-    Agent,
     Entity,
     MTypeClassification,
+    Person,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -107,10 +107,10 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
 ) -> ListResponse[MTypeClassificationRead]:
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     aliases: Aliases = {
-        Agent: {
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

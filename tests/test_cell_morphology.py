@@ -21,6 +21,7 @@ from .utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_db,
     assert_request,
     check_authorization,
@@ -696,6 +697,13 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id, subject_id):
         params={"mtype__pref_label__in": ["m1", "m2"], "order_by": "-mtype__pref_label"},
     ).json()["data"]
     assert [d["mtypes"][0]["pref_label"] for d in data] == ["m2", "m1"]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == 5
 
 
 def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, subject_id):

@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
-from app.db.model import Agent, Organization
+from app.db.model import Organization, Person
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -31,10 +31,10 @@ def read_many(
     pagination_request: PaginationQuery,
     filter_model: OrganizationFilterDep,
 ) -> ListResponse[OrganizationRead]:
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     aliases: Aliases = {
-        Agent: {
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         }

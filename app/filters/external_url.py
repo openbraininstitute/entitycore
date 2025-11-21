@@ -8,10 +8,10 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     CreationFilterMixin,
-    CreatorFilterMixin,
     IdFilterMixin,
     NameFilterMixin,
 )
+from app.filters.person import CreatorFilterMixin
 
 
 class NestedExternalUrlFilter(

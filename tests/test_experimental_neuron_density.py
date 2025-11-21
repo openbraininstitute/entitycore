@@ -21,6 +21,7 @@ from app.filters.density import ExperimentalNeuronDensityFilter
 
 from .utils import (
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_all_db,
     add_db,
     assert_request,
@@ -473,7 +474,9 @@ def test_sorting(client, models):
     assert [d["etypes"][0]["pref_label"] for d in data] == [f"e{i}" for i in range(6)][::-1]
 
 
-def test_sorting_and_filtering(client, models):  # noqa: ARG001
+def test_sorting_and_filtering(client, models):
+    models = models[-1]
+
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -503,6 +506,9 @@ def test_sorting_and_filtering(client, models):  # noqa: ARG001
 
         data = req({"etype__pref_label__in": ["e1", "e2"], "order_by": ordering_field})
         assert len(data) == 2
+
+        data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+        assert len(data) == len(models)
 
     data = req({"name": "d-1", "order_by": "-brain_region__acronym"})
     assert [d["name"] for d in data] == ["d-1", "d-1", "d-1"]

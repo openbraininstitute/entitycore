@@ -7,6 +7,7 @@ from app.schemas.subject import SubjectCreate
 
 from .utils import (
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_all_db,
     assert_request,
     check_authorization,
@@ -230,3 +231,6 @@ def test_filtering_sorting(client, models):
 
     data = req({"name__in": ["my-subject-1", "my-subject-2"], "order_by": "-creation_date"})
     assert [d["name"] for d in data] == ["my-subject-2", "my-subject-1"]
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

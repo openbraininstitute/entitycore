@@ -1,9 +1,10 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload, raiseload, selectinload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Subject, ValidationResult
+from app.db.model import Person, Subject, ValidationResult
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -20,6 +21,7 @@ from app.queries.common import (
     router_read_one,
     router_update_one,
 )
+from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.schemas.validation import (
@@ -28,6 +30,9 @@ from app.schemas.validation import (
     ValidationResultRead,
     ValidationResultUserUpdate,
 )
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load(query: sa.Select):
@@ -126,8 +131,22 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ValidationResultRead]:
-    aliases = {}
-    name_to_facet_query_params = {}
+    aliases: Aliases = {
+        Person: {
+            "created_by": aliased(Person, flat=True),
+            "updated_by": aliased(Person, flat=True),
+        }
+    }
+    filter_keys = [
+        "created_by",
+        "updated_by",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=ValidationResult,
+        facet_keys=[],
+        filter_keys=filter_keys,
+        aliases=aliases,
+    )
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -142,7 +161,7 @@ def read_many(
         pagination_request=pagination_request,
         response_schema_class=ValidationResultRead,
         authorized_project_id=user_context.project_id,
-        filter_joins=None,
+        filter_joins=filter_joins,
     )
 
 

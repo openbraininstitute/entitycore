@@ -3,7 +3,8 @@ from typing import Annotated
 from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin, NameFilterMixin, SpeciesFilterMixin
+from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.species import SpeciesFilterMixin
 
 
 class BrainAtlasFilter(IdFilterMixin, NameFilterMixin, SpeciesFilterMixin, CustomFilter):

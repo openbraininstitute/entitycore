@@ -6,10 +6,10 @@ from fastapi_filter import with_prefix
 from app.dependencies.filter import FilterDepends
 from app.filters.common import (
     CreationFilterMixin,
-    CreatorFilterMixin,
     IdFilterMixin,
-    NestedEntityFilter,
 )
+from app.filters.entity import NestedEntityFilter
+from app.filters.person import CreatorFilterMixin
 
 NestedUsedFilterDep = FilterDepends(with_prefix("used", NestedEntityFilter))
 NestedGeneratedFilterDep = FilterDepends(with_prefix("generated", NestedEntityFilter))

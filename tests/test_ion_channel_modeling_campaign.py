@@ -5,6 +5,7 @@ from app.db.types import EntityType
 
 from .utils import (
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_all_db,
     add_db,
     assert_request,
@@ -164,3 +165,6 @@ def test_filtering_ordering(client, models):
 
     data = _req({"ion_channel_modeling_config__name": "config-2", "order_by": "name"})
     assert [d["name"] for d in data] == ["campaign-1", "campaign-2"]
+
+    data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

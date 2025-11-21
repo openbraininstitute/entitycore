@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.model import Agent, Person
+from app.db.model import Person
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -32,14 +32,14 @@ def read_many(
     pagination_request: PaginationQuery,
     person_filter: PersonFilterDep,
 ) -> ListResponse[PersonRead]:
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
 
     aliases: Aliases = {
-        Agent: {
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
-        }
+        },
     }
 
     filter_keys = [
@@ -61,7 +61,7 @@ def read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=aliases,
+        aliases=aliases,  # Use the main alias for sorting
         apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,

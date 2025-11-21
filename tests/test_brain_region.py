@@ -15,32 +15,97 @@ HIERARCHY = {
     "id": 997,
     "acronym": "root",
     "name": "root",
-    "color_hex_triplet": "FFFFFF",
-    "parent_structure_id": None,
     "children": [
         {
             "id": 8,
             "acronym": "grey",
             "name": "Basic cell groups and regions",
-            "color_hex_triplet": "BFDAE3",
-            "parent_structure_id": 997,
             "children": [],
         },
         {
             "id": 42,
             "acronym": "blue",
             "name": "BlueRegion",
-            "color_hex_triplet": "0000FF",
-            "parent_structure_id": 997,
             "children": [
                 {
                     "id": 64,
                     "acronym": "red",
                     "name": "RedRegion",
-                    "color_hex_triplet": "FF0000",
-                    "parent_structure_id": 42,
                     "children": [],
                 }
+            ],
+        },
+    ],
+}
+
+# from the within-search-ascendants-and-descendants.png drawing
+SEARCH_HIERARCHY = {
+    "id": 997,
+    "acronym": "root",
+    "name": "root",
+    "children": [
+        {
+            "id": 7,
+            "acronym": "RegionA",
+            "name": "RegionA",
+            "children": [
+                {
+                    "id": 8,
+                    "acronym": "RegionA-1",
+                    "name": "RegionA-1",
+                    "children": [
+                        {
+                            "id": 9,
+                            "acronym": "RegionA-1-1",
+                            "name": "RegionA-1-1",
+                            "children": [],
+                        },
+                        {
+                            "id": 10,
+                            "acronym": "RegionA-1-2",
+                            "name": "RegionA-1-2",
+                            "children": [],
+                        },
+                    ],
+                },
+                {
+                    "id": 98,
+                    "acronym": "RegionA-2",
+                    "name": "RegionA-2",
+                    "children": [
+                        {
+                            "id": 99,
+                            "acronym": "RegionA-2-1",
+                            "name": "RegionA-2-1",
+                            "children": [],
+                        },
+                        {
+                            "id": 100,
+                            "acronym": "RegionA-2-2",
+                            "name": "RegionA-2-2",
+                            "children": [],
+                        },
+                    ],
+                },
+            ],
+        },
+        {
+            "id": 17,
+            "acronym": "RegionB",
+            "name": "RegionB",
+            "children": [
+                {
+                    "id": 18,
+                    "acronym": "RegionB-1",
+                    "name": "RegionB-1",
+                    "children": [],
+                },
+                {
+                    "id": 20,
+                    "acronym": "RegionB-2",
+                    "name": "RegionB-1",
+                    "children": [],
+                },
             ],
         },
     ],
@@ -119,7 +184,7 @@ def test_brain_region_id(db, client, client_admin, person_id):
     assert response["data"] == [
         {
             "acronym": "grey",
-            "color_hex_triplet": "BFDAE3",
+            "color_hex_triplet": ANY,
             "creation_date": ANY,
             "annotation_value": 8,
             "hierarchy_id": str(hierarchy_name.id),
@@ -130,7 +195,7 @@ def test_brain_region_id(db, client, client_admin, person_id):
         },
         {
             "acronym": "blue",
-            "color_hex_triplet": "0000FF",
+            "color_hex_triplet": ANY,
             "creation_date": ANY,
             "annotation_value": 42,
             "hierarchy_id": str(hierarchy_name.id),
@@ -141,7 +206,7 @@ def test_brain_region_id(db, client, client_admin, person_id):
         },
         {
             "acronym": "red",
-            "color_hex_triplet": "FF0000",
+            "color_hex_triplet": ANY,
             "creation_date": ANY,
             "annotation_value": 64,
             "hierarchy_id": str(hierarchy_name.id),
@@ -152,7 +217,7 @@ def test_brain_region_id(db, client, client_admin, person_id):
         },
         {
             "acronym": "root",
-            "color_hex_triplet": "FFFFFF",
+            "color_hex_triplet": ANY,
             "creation_date": ANY,
             "annotation_value": 997,
             "hierarchy_id": str(hierarchy_name.id),
@@ -193,7 +258,7 @@ def test_family_queries(db, client, subject_id, person_id):
     brain_regions0 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name0.id)
 
     hierarchy_name1 = utils.create_hiearchy_name(db, "hier1", created_by_id=person_id)
-    brain_regions1 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name1.id)
+    brain_regions1 = utils.add_brain_region_hierarchy(db, SEARCH_HIERARCHY, hierarchy_name1.id)
 
     for acronym, row in it.chain(brain_regions0.items(), brain_regions1.items()):
         hier = "hier0" if row.hierarchy_id == hierarchy_name0.id else "hier1"
@@ -205,7 +270,7 @@ def test_family_queries(db, client, subject_id, person_id):
             name=f"{acronym}-{hier}",
             description=f"Description {acronym}-{hier}",
         )
-    assert len(client.get("/cell-morphology").json()["data"]) == 8
+    assert len(client.get("/cell-morphology").json()["data"]) == 4 + 11
 
     def get_response(hier, acronym, ascendants=False, direction=None):  # noqa: FBT002
         hierarchy_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
@@ -223,50 +288,61 @@ def test_family_queries(db, client, subject_id, person_id):
 
         return client.get("/cell-morphology", params=params).json()["data"]
 
-    for hier in ("hier0", "hier1"):
-        # descendants
-        old = get_response(hier, "root", ascendants=False)
-        response = get_response(hier, "root", direction="descendants")
-        assert len(old) == len(response) == 4
+    for direction, region, expected in (
+        ("descendants", "root", 4),
+        ("descendants", "grey", 1),
+        ("descendants", "blue", 2),
+        ("descendants", "red", 1),
+        ("ascendants", "root", 1),
+        ("ascendants", "grey", 2),
+        ("ascendants", "blue", 2),
+        ("ascendants", "red", 3),
+        ("ascendants_and_descendants", "root", 4),
+        ("ascendants_and_descendants", "grey", 2),
+        ("ascendants_and_descendants", "blue", 3),
+        ("ascendants_and_descendants", "red", 3),
+    ):
+        response = get_response("hier0", region, direction=direction)
+        assert len(response) == expected
+        if direction != "ascendants_and_descendants":
+            ascendants = direction == "ascendants"
+            legacy = get_response("hier0", region, ascendants=ascendants)
+            assert len(legacy) == expected
 
-        old = get_response(hier, "grey", ascendants=False)
-        response = get_response(hier, "grey", direction="descendants")
-        assert len(old) == len(response) == 1
-
-        old = get_response(hier, "blue", ascendants=False)
-        response = get_response(hier, "blue", direction="descendants")
-        assert len(old) == len(response) == 2
-
-        old = get_response(hier, "red", ascendants=False)
-        response = get_response(hier, "red", direction="descendants")
-        assert len(old) == len(response) == 1
-
-        # ascendants
-        old = get_response(hier, "root", ascendants=True)
-        response = get_response(hier, "root", direction="ascendants")
-        assert len(old) == len(response) == 1
-
-        old = get_response(hier, "grey", ascendants=True)
-        response = get_response(hier, "grey", direction="ascendants")
-        assert len(old) == len(response) == 2
-
-        old = get_response(hier, "blue", ascendants=True)
-        response = get_response(hier, "blue", direction="ascendants")
-        assert len(old) == len(response) == 2
-
-        old = get_response(hier, "red", ascendants=True)
-        response = get_response(hier, "red", direction="ascendants")
-        assert len(old) == len(response) == 3
-
-        # ascendants_and_descendants
-        response = get_response(hier, "root", direction="ascendants_and_descendants")
-        assert len(response) == 4
-
-        response = get_response(hier, "grey", direction="ascendants_and_descendants")
-        assert len(response) == 2
-
-        response = get_response(hier, "blue", direction="ascendants_and_descendants")
-        assert len(response) == 3
-
-        response = get_response(hier, "red", direction="ascendants_and_descendants")
-        assert len(response) == 3
+    for direction, region, expected in (
+        ("descendants", "root", 11),
+        ("descendants", "RegionA", 7),
+        ("descendants", "RegionA-1", 3),
+        ("descendants", "RegionA-1-1", 1),
+        ("descendants", "RegionA-1-2", 1),
+        ("descendants", "RegionA-2", 3),
+        ("descendants", "RegionA-2-1", 1),
+        ("descendants", "RegionA-2-2", 1),
+        ("descendants", "RegionB", 3),
+        ("descendants", "RegionB-1", 1),
+        ("descendants", "RegionB-2", 1),
+        ("ascendants", "root", 1),
+        ("ascendants", "RegionA", 2),
+        ("ascendants", "RegionA-1", 3),
+        ("ascendants", "RegionA-1-1", 4),
+        ("ascendants", "RegionA-1-2", 4),
+        ("ascendants", "RegionA-2", 3),
+        ("ascendants", "RegionA-2-1", 4),
+        ("ascendants", "RegionA-2-2", 4),
+        ("ascendants", "RegionB", 2),
+        ("ascendants", "RegionB-1", 3),
+        ("ascendants", "RegionB-2", 3),
+        ("ascendants_and_descendants", "root", 11),
+        ("ascendants_and_descendants", "RegionA", 8),
+        ("ascendants_and_descendants", "RegionA-1", 5),
+        ("ascendants_and_descendants", "RegionA-1-1", 4),
+        ("ascendants_and_descendants", "RegionA-1-2", 4),
+        ("ascendants_and_descendants", "RegionA-2", 5),
+        ("ascendants_and_descendants", "RegionA-2-1", 4),
+        ("ascendants_and_descendants", "RegionA-2-2", 4),
+        ("ascendants_and_descendants", "RegionB", 4),
+        ("ascendants_and_descendants", "RegionB-1", 3),
+        ("ascendants_and_descendants", "RegionB-2", 3),
+    ):
+        response = get_response("hier1", region, direction=direction)
+        assert len(response) == expected

@@ -146,7 +146,10 @@ class CustomFilter[T: DeclarativeBase](Filter):
                     if aliases and self.Constants.model in aliases:
                         alias = aliases[self.Constants.model]
                         if isinstance(alias, dict):
-                            # When alias is a dict, we don't use it for direct field access
+                            # For example {Person: {"created_by": alias1, "updated_by": alias2}}
+                            # and self.Constants.model = Person
+                            # Given that here the parent non-nested filter is handled the correct
+                            # model to use is Person not the nested aliases.
                             model_field = getattr(self.Constants.model, field_name)
                         else:
                             model_field = getattr(alias, field_name)

@@ -94,7 +94,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
 
         return value
 
-    def filter[T: DeclarativeBase](self, query: Select[tuple[T]], aliases: Aliases | None = None):  # type:ignore[override]
+    def filter[T: DeclarativeBase](self, query: Select[tuple[T]], aliases: Aliases | None = None):  # type:ignore[override]  # noqa: PLR0912
         """Allow passing aliases to the filter.
 
         Due to the complications of handling the inheritance between models, sometimes an alias is
@@ -145,7 +145,14 @@ class CustomFilter[T: DeclarativeBase](Filter):
                     # { CODE is different from fastapi_filter here
                     if aliases and self.Constants.model in aliases:
                         alias = aliases[self.Constants.model]
-                        model_field = getattr(alias, field_name)
+                        if isinstance(alias, dict):
+                            # For example {Person: {"created_by": alias1, "updated_by": alias2}}
+                            # and self.Constants.model = Person
+                            # Given that here the parent non-nested filter is handled the correct
+                            # model to use is Person not the nested aliases.
+                            model_field = getattr(self.Constants.model, field_name)
+                        else:
+                            model_field = getattr(alias, field_name)
                     else:  # }
                         model_field = getattr(self.Constants.model, field_name)
 

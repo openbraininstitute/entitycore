@@ -3,6 +3,7 @@ import pytest
 from app.db.model import ScientificArtifactExternalUrlLink
 
 from .utils import (
+    USER_SUB_ID_1,
     add_all_db,
     assert_request,
     check_missing,
@@ -196,3 +197,6 @@ def test_filtering_sorting(client, models, external_url, root_circuit):
     data = req({"scientific_artifact__id": str(root_circuit.id)})
     assert len(data) == 1
     assert data[0]["scientific_artifact"]["id"] == str(root_circuit.id)
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

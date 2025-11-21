@@ -6,6 +6,9 @@ from .utils import check_creation_fields
 from tests.utils import (
     MISSING_ID,
     MISSING_ID_COMPACT,
+    USER_SUB_ID_1,
+    add_all_db,
+    assert_request,
     check_global_delete_one,
     check_global_read_one,
     check_global_update_one,
@@ -125,3 +128,30 @@ def test_missing(client):
 
     response = client.get(f"{ROUTE}/notanumber")
     assert response.status_code == 422
+
+
+@pytest.fixture
+def models(db, json_data, person_id):
+    objs = [
+        Species(
+            **json_data
+            | {
+                "name": f"s-{i}",
+                "taxonomy_id": f"NCBITaxon:{i}000",
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "embedding": [0.1] * 1536,
+            }
+        )
+        for i in range(3)
+    ]
+
+    return add_all_db(db, objs)
+
+
+def test_filtering(client, models):
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

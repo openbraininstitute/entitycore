@@ -15,6 +15,7 @@ from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType, Ent
 
 from .utils import (
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_all_db,
     add_db,
     assert_request,
@@ -504,6 +505,13 @@ def test_filtering(client, models):
     data = assert_request(client.get, url=ROUTE, params="cell_line__ilike=CHO%").json()["data"]
     assert len(data) == 5
     assert {d["cell_line"] for d in data} == {"CHO", "CHO_FT"}
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == len(recordings)
 
 
 def test_sorting(client, models):

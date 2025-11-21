@@ -5,22 +5,19 @@ from fastapi_filter import with_prefix
 from app.db.model import MEModel, ValidationStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
 from app.filters.cell_morphology import NestedCellMorphologyFilter
 from app.filters.common import (
-    BrainRegionFilterMixin,
-    EntityFilterMixin,
     ETypeClassFilterMixin,
     IdFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
-    NestedBrainRegionFilter,
     NestedETypeClassFilter,
     NestedMTypeClassFilter,
-    NestedSpeciesFilter,
-    NestedStrainFilter,
-    SpeciesFilterMixin,
 )
 from app.filters.emodel import NestedEModelFilter
+from app.filters.entity import EntityFilterMixin
+from app.filters.species import NestedSpeciesFilter, NestedStrainFilter, SpeciesFilterMixin
 
 
 class NestedMEModelFilter(

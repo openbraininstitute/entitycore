@@ -7,16 +7,15 @@ from app.db.model import (
 )
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
+from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
 from app.filters.common import (
-    BrainRegionFilterMixin,
-    EntityFilterMixin,
     ETypeClassFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
-    NestedBrainRegionFilter,
     NestedMTypeClassFilter,
     with_prefix,
 )
+from app.filters.entity import EntityFilterMixin
 from app.filters.subject import SubjectFilterMixin
 
 

@@ -3,7 +3,7 @@ import pytest
 from app.db.model import CellComposition
 from app.db.types import EntityType
 
-from .utils import PROJECT_ID, add_db, assert_request
+from .utils import PROJECT_ID, USER_SUB_ID_1, add_db, assert_request
 
 ROUTE = "cell-composition"
 ADMIN_ROUTE = "/admin/cell-composition"
@@ -76,3 +76,10 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
     assert data[0]["id"] == str(row1.id)
     assert "assets" in data[0]
     assert data[0]["type"] == EntityType.cell_composition
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == 2

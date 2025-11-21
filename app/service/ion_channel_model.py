@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from fastapi import Depends
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, Contribution, Ion, IonChannelModel, Subject
+from app.db.model import Agent, Contribution, Ion, IonChannelModel, Person, Subject
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -69,13 +69,15 @@ def read_many(
     facets: FacetsDep,
 ) -> ListResponse[IonChannelModelExpanded]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     subject_alias = aliased(Subject, flat=True)
     aliases: Aliases = {
         Subject: subject_alias,
         Agent: {
             "contribution": agent_alias,
+        },
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

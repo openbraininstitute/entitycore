@@ -5,7 +5,8 @@ from fastapi_filter import with_prefix
 from app.db.model import Publication
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import CreationFilterMixin, CreatorFilterMixin, IdFilterMixin
+from app.filters.common import CreationFilterMixin, IdFilterMixin
+from app.filters.person import CreatorFilterMixin
 
 
 class NestedPublicationFilter(

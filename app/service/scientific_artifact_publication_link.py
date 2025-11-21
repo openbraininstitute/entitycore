@@ -8,7 +8,7 @@ from app.db.auth import (
     constrain_to_accessible_entities,
 )
 from app.db.model import (
-    Agent,
+    Person,
     Publication,
     ScientificArtifact,
     ScientificArtifactPublicationLink,
@@ -107,12 +107,12 @@ def read_many(
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     scientific_artifact_alias = aliased(ScientificArtifact, flat=True, name="artifact")
     publication_alias = aliased(Publication, flat=True, name="publication")
     aliases: Aliases = {
-        Agent: {
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
@@ -140,18 +140,9 @@ def read_many(
             scientific_artifact_alias,
             ScientificArtifactPublicationLink.scientific_artifact_id
             == scientific_artifact_alias.id,
-        )
-        .join(
+        ).join(
             publication_alias,
             ScientificArtifactPublicationLink.publication_id == publication_alias.id,
-        )
-        .join(
-            created_by_alias,
-            ScientificArtifactPublicationLink.created_by_id == created_by_alias.id,
-        )
-        .join(
-            updated_by_alias,
-            ScientificArtifactPublicationLink.updated_by_id == updated_by_alias.id,
         ),
         project_id=user_context.project_id,
         db_model_class=scientific_artifact_alias,

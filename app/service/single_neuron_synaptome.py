@@ -3,7 +3,7 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, Contribution, MEModel, SingleNeuronSynaptome
+from app.db.model import Agent, Contribution, MEModel, Person, SingleNeuronSynaptome
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -133,15 +133,17 @@ def read_many(
 ) -> ListResponse[SingleNeuronSynaptomeRead]:
     me_model_alias = aliased(MEModel, flat=True)
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     aliases = {
         Agent: {
             "contribution": agent_alias,
+        },
+        MEModel: me_model_alias,
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },
-        MEModel: me_model_alias,
     }
     facet_keys = filter_keys = [
         "brain_region",

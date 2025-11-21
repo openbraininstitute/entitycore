@@ -4,9 +4,7 @@ from typing import Annotated
 from app.db.model import ETypeClassification, MTypeClassification
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import (
-    CreatorFilterMixin,
-)
+from app.filters.person import CreatorFilterMixin
 
 
 class MTypeClassificationFilter(CreatorFilterMixin, CustomFilter):

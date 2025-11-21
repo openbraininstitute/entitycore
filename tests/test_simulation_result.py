@@ -4,6 +4,9 @@ from app.db.model import SimulationResult
 from app.db.types import EntityType
 
 from .utils import (
+    PROJECT_ID,
+    USER_SUB_ID_1,
+    add_all_db,
     assert_request,
     check_authorization,
     check_creation_fields,
@@ -120,3 +123,28 @@ def test_authorization(client_user_1, client_user_2, client_no_project, public_j
 
 def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
+
+
+@pytest.fixture
+def models(db, json_data, person_id):
+    objs = [
+        SimulationResult(
+            **json_data
+            | {
+                "name": f"s-{i}",
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        )
+        for i in range(3)
+    ]
+    return add_all_db(db, objs)
+
+
+def test_filtering(client, models):
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
+    assert len(data) == len(models)

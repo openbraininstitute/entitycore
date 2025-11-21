@@ -8,6 +8,7 @@ from app.db.model import (
     Agent,
     Circuit,
     Entity,
+    Person,
     Simulation,
     SimulationCampaign,
 )
@@ -139,14 +140,16 @@ def read_many(
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[SimulationCampaignRead]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     simulation_alias = aliased(Simulation, flat=True)
     circuit_alias = aliased(Circuit, flat=True)
     entity_alias = aliased(Entity, flat=True)
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
+        },
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

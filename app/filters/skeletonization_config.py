@@ -6,7 +6,8 @@ from fastapi_filter import with_prefix
 from app.db.model import SkeletonizationConfig
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import EntityFilterMixin, IdFilterMixin, NameFilterMixin
+from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.entity import EntityFilterMixin
 
 
 class SkeletonizationConfigFilterBase(NameFilterMixin, IdFilterMixin, CustomFilter):

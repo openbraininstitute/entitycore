@@ -6,6 +6,7 @@ from app.db.model import ExternalUrl
 from app.db.types import EXTERNAL_SOURCE_INFO, ExternalSource
 
 from .utils import (
+    USER_SUB_ID_1,
     add_db,
     assert_request,
     check_missing,
@@ -162,6 +163,9 @@ def test_filtering_sorting(client, models, person_id):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
     data = req({"created_by__id": person_id})
+    assert len(data) == len(models)
+
+    data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
     data = req({"source": "channelpedia"})

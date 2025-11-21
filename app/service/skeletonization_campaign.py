@@ -6,6 +6,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
+    Person,
     SkeletonizationCampaign,
     SkeletonizationConfig,
 )
@@ -146,12 +147,14 @@ def read_many(
     in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ReadSchema]:
     agent_alias = aliased(Agent, flat=True)
-    created_by_alias = aliased(Agent, flat=True)
-    updated_by_alias = aliased(Agent, flat=True)
+    created_by_alias = aliased(Person, flat=True)
+    updated_by_alias = aliased(Person, flat=True)
     skeletonization_config_alias = aliased(SkeletonizationConfig, flat=True)
     aliases: Aliases = {
         Agent: {
             "contribution": agent_alias,
+        },
+        Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
         },

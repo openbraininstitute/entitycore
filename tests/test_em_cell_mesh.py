@@ -5,6 +5,7 @@ from app.db.types import EntityType
 
 from .utils import (
     PROJECT_ID,
+    USER_SUB_ID_1,
     add_all_db,
     assert_request,
     check_authorization,
@@ -149,6 +150,13 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
             },
         ],
     }
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+    assert len(data) == len(models)
 
 
 def test_delete_one(db, clients, json_data):

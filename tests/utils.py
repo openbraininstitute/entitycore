@@ -738,24 +738,24 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
 
     db_hierarchy = db.get(BrainRegionHierarchy, hierarchy_id)
 
-    def recurse(i):
+    def recurse(i, parent_id):
         children = []
         item = i | {"children": children}
         for child in i["children"]:
             children.append(child["id"])
-            recurse(child)
-        regions.append(item)
+            recurse(child, item["id"])
+        regions.append((item, parent_id))
 
-    recurse(hierarchy)
+    recurse(hierarchy, None)
 
     ids = {None: None}
-    for region in reversed(regions):
+    for region, parent_id in reversed(regions):
         row = BrainRegion(
             annotation_value=region["id"],
             acronym=region["acronym"],
             name=region["name"],
-            color_hex_triplet=region["color_hex_triplet"],
-            parent_structure_id=ids[region["parent_structure_id"]],
+            color_hex_triplet=region.get("color_hex_triplet", "BFDAE3"),
+            parent_structure_id=ids[parent_id],
             hierarchy_id=hierarchy_id,
             created_by_id=db_hierarchy.created_by_id,
             updated_by_id=db_hierarchy.created_by_id,
@@ -765,7 +765,12 @@ def add_brain_region_hierarchy(db, hierarchy, hierarchy_id):
         db.flush()
         ids[region["id"]] = db_br.id
 
-    ret = {row.acronym: row for row in db.execute(sa.select(BrainRegion)).scalars()}
+    ret = {
+        row.acronym: row
+        for row in db.execute(
+            sa.select(BrainRegion).where(BrainRegion.hierarchy_id == hierarchy_id)
+        ).scalars()
+    }
     return ret
 
 

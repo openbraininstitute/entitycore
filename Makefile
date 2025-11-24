@@ -146,10 +146,10 @@ extract-traces: export REQUEST_TRACER_INDENT=2
 extract-traces: export REQUEST_TRACER_OUTPUT=traces/latest
 extract-traces: export EXTRACTED_TRACES=extracted
 extract-traces:  ## Extract response payloads generated in unit tests
-	echo "Removing directory $${REQUEST_TRACER_OUTPUT}"
-	rm -Rf "$${REQUEST_TRACER_OUTPUT}"
-	echo "Removing directory $${EXTRACTED_TRACES}"
-	rm -Rf "$${EXTRACTED_TRACES}"
+	@echo "Removing directory: $${REQUEST_TRACER_OUTPUT}"
+	@rm -Rf "$${REQUEST_TRACER_OUTPUT}"
+	@echo "Removing directory: $${EXTRACTED_TRACES}"
+	@rm -Rf "$${EXTRACTED_TRACES}"
 	make test-local
 	uv run ./scripts/extract_traces/run.py \
 		--source "$${REQUEST_TRACER_OUTPUT}" \

@@ -1,21 +1,25 @@
 # Extract response payloads generated in unit tests
 
-### Dump the request and response payloads when running unit tests
-
-To save the payloads in the `traces` directory, execute:
+Execute:
 
 ```
-REQUEST_TRACER_ENABLE=1 REQUEST_TRACER_INDENT=2 make test-local
+make extract-traces
 ```
 
-### Extract the response payloads for the POST requests, and organize them in subfolders
+to:
 
-To extract all the response payloads to the `extracted` directory, remove any pre-existing directory and execute the following command, after replacing the source directory:
+1. Dump the request and response payloads when running unit tests the `traces/latest` directory.
+2. Extract the response payloads for some selected requests, and organize them in subfolders in the `extracted` directory.
+
+**Warning: the content of the above directories will be completely deleted before running the extraction!**
+
+
+Alternatively, you can define directories different from the default by executing:
 
 ```
-uv run ./scripts/extract_traces/run.py --source traces/2025-11-19T09:44:19.114166+00:00
+REQUEST_TRACER_OUTPUT=traces/latest \
+EXTRACTED_TRACES=extracted \
+make extract-traces
 ```
 
-### Copy the extracted directory to entitysdk
-
-Copy the extracted folder to `tests/unit/model/data/extracted` if desired.
+The extracted folder can be moved to `tests/unit/model/data/extracted` in entitysdk to update the data used during tests.

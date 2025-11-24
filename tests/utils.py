@@ -96,9 +96,18 @@ ROUTES = {
 class RequestTracer:
     """Trace and save http requests and responses."""
 
-    def __init__(self, traces_dir="traces") -> None:
+    def __init__(self, output_dir: str | Path | None = None) -> None:
+        """Init the request tracer.
+
+        Args:
+            output_dir: the output directory where to save the traces. The content isn't
+                automatically deleted, so it's recommended to provide an empty directory.
+                If None or empty string, the default is `traces/latest`.
+        """
+        if not output_dir:
+            output_dir = Path("traces") / datetime.now(UTC).isoformat()
         self._counter = 0
-        self._root_path = Path(traces_dir) / datetime.now(UTC).isoformat()
+        self._root_path = Path(output_dir)
 
     @staticmethod
     def _try_json_loads(s) -> str | None:
@@ -142,11 +151,14 @@ class ClientProxy:
 
     This can be used to avoid running the lifespan event multiple times.
 
-    The requests and responses can be saved by setting the env variable REQUEST_TRACER_ENABLE=1,
-    and optionally set REQUEST_TRACER_INDENT to the desired json indentation.
+    Optional env variables:
+
+    - REQUEST_TRACER_ENABLE=1 to save requests and responses to json files.
+    - REQUEST_TRACER_INDENT can be set to the desired json indentation.
+    - REQUEST_TRACER_OUTPUT can be set to the desired output directory, default: traces/<timestamp>
     """
 
-    _tracer = RequestTracer()
+    _tracer = RequestTracer(output_dir=os.getenv("REQUEST_TRACER_OUTPUT"))
 
     def __init__(self, client: TestClient, headers: dict | None = None) -> None:
         self._client = client

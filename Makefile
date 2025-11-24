@@ -140,3 +140,17 @@ restore:  ## Delete and restore the local database from file
 		dropdb --force $$PGDATABASE && createdb $$PGDATABASE && \
 		pg_restore --clean --if-exists --exit-on-error --no-owner --dbname $$PGDATABASE $$DUMPFILE \
 		&& psql -c "ANALYZE;"'
+
+extract-traces: export REQUEST_TRACER_ENABLE=1
+extract-traces: export REQUEST_TRACER_INDENT=2
+extract-traces: export REQUEST_TRACER_OUTPUT=traces/latest
+extract-traces: export EXTRACTED_TRACES=extracted
+extract-traces:  ## Extract response payloads generated in unit tests
+	echo "Removing directory $${REQUEST_TRACER_OUTPUT}"
+	rm -Rf "$${REQUEST_TRACER_OUTPUT}"
+	echo "Removing directory $${EXTRACTED_TRACES}"
+	rm -Rf "$${EXTRACTED_TRACES}"
+	make test-local
+	uv run ./scripts/extract_traces/run.py \
+		--source "$${REQUEST_TRACER_OUTPUT}" \
+		--output "$${EXTRACTED_TRACES}"

@@ -244,9 +244,7 @@ def test_facets(client: TestClient, faceted_emodel_ids: EModelIds, ion_channel_m
         ],
     }
 
-    response = client.get(
-        ROUTE, params={"species__name": "TestSpecies0", "with_facets": True}
-    )
+    response = client.get(ROUTE, params={"species__name": "TestSpecies0", "with_facets": True})
     assert response.status_code == 200
     data = response.json()
 

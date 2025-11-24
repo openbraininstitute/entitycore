@@ -19,30 +19,50 @@ UUID_RE = re.compile(
 
 TIMESTAMP_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\b")
 
+CHECKSUM_PLACEHOLDERS = {
+    "uuid": "__UUID__",
+    "timestamp": "__TIMESTAMP__",
+    "str": "__STR__",
+    "bool": "__BOOL__",
+    "number": "__NUMBER__",
+}
+OUTPUT_PLACEHOLDERS = {
+    "uuid": "00000000-0000-4000-8000-000001234678",
+    "timestamp": "2025-01-01T00:00:00.000000Z",
+}
 
-def normalize(obj):  # noqa: PLR0911
+
+def normalize(obj, placeholders):  # noqa: PLR0911
     # Replace volatile fields but keep structure
     if isinstance(obj, dict):
-        return {k: normalize(v) for k, v in obj.items()}
+        return {k: normalize(v, placeholders) for k, v in obj.items()}
     if isinstance(obj, list):
-        return [normalize(v) for v in obj]
+        return [normalize(v, placeholders) for v in obj]
     if isinstance(obj, str):
         if UUID_RE.fullmatch(obj):
-            return "__UUID__"
+            return placeholders.get("uuid", obj)
         if TIMESTAMP_RE.fullmatch(obj):
-            return "__TIMESTAMP__"
-        return "__STR__"
+            return placeholders.get("timestamp", obj)
+        return placeholders.get("str", obj)
     if isinstance(obj, bool):
-        return "__BOOL__"
+        return placeholders.get("bool", obj)
     if isinstance(obj, (int, float)):
-        return "__NUMBER__"
+        return placeholders.get("number", obj)
     return obj
 
 
 def compute_checksum(content, length: int) -> str:
-    norm = normalize(content)
+    norm = normalize(content, placeholders=CHECKSUM_PLACEHOLDERS)
     raw = json.dumps(norm, sort_keys=True).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()[:length]
+
+
+def dump_output(content) -> str:
+    return json.dumps(
+        normalize(content, placeholders=OUTPUT_PLACEHOLDERS),
+        sort_keys=True,
+        indent=2,
+    )
 
 
 @click.command()
@@ -105,7 +125,7 @@ def extract(source: Path, component: str | None, output: Path) -> None:
                 L.warning(f"Ignored {request['method']} {parsed_url.path}, skipping {path}")
                 continue
 
-            content = json.dumps(response["content_json"], sort_keys=True, indent=2)
+            content = dump_output(response["content_json"])
             checksum = compute_checksum(response["content_json"], length=6)
 
             out_path = output / request_type / head / f"content_{checksum}.json"

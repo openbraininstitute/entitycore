@@ -78,7 +78,7 @@ def count_entities_by_type(
         brain_region_cte = get_family_query(
             hierarchy_id=in_brain_region.within_brain_region_hierarchy_id,  # type: ignore[reportGeneralTypeIssues]
             brain_region_id=in_brain_region.within_brain_region_brain_region_id,  # type: ignore[reportGeneralTypeIssues]
-            with_ascendants=in_brain_region.within_brain_region_ascendants,
+            direction=in_brain_region.get_direction(),
         )
 
         for et in entity_types:

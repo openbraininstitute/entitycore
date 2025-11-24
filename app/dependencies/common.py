@@ -11,7 +11,7 @@ from starlette.requests import Request
 
 from app.errors import ApiError, ApiErrorCode
 from app.filters.base import CustomFilter
-from app.filters.brain_region import filter_by_hierarchy_and_region
+from app.filters.brain_region import WithinBrainRegionDirection, filter_by_hierarchy_and_region
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations
 from app.schemas.types import Facet, Facets, PaginationRequest
@@ -146,9 +146,19 @@ class Search[T: DeclarativeBase](BaseModel):
 
 
 class InBrainRegionQuery(BaseModel):
+    """Handle parameters for within_brain_region_* query params.
+
+    Using `within_brain_region_ascendants` will be deprecated; future usage
+    should only be through `within_brain_region_direction`.
+
+    During the transition, `within_brain_region_direction` will take precedence if it's there
+
+    """
+
     within_brain_region_hierarchy_id: uuid.UUID | None = None
     within_brain_region_brain_region_id: uuid.UUID | None = None
     within_brain_region_ascendants: bool = False
+    within_brain_region_direction: WithinBrainRegionDirection | None = None
 
     def __call__(self, query: sa.Select, db_model_class):
         if (
@@ -162,7 +172,17 @@ class InBrainRegionQuery(BaseModel):
             model=db_model_class,
             hierarchy_id=self.within_brain_region_hierarchy_id,
             brain_region_id=self.within_brain_region_brain_region_id,
-            with_ascendants=self.within_brain_region_ascendants,
+            direction=self.get_direction(),
+        )
+
+    def get_direction(self) -> WithinBrainRegionDirection:
+        # compatibility; will be deprecated
+        if self.within_brain_region_direction is not None:
+            return self.within_brain_region_direction
+        return (
+            WithinBrainRegionDirection.ascendants
+            if self.within_brain_region_ascendants
+            else WithinBrainRegionDirection.descendants
         )
 
 

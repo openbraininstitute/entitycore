@@ -263,15 +263,28 @@ Instead, one can use the following query parameters:
 ```
     within_brain_region_hierarchy_id: uuid.UUID | None = None
     within_brain_region_brain_region_id: uuid.UUID | None = None
-    within_brain_region_ascendants: bool = False
+    within_brain_region_direction: [ascendants, descendants, ascendants_and_descendants]
 ```
 
 ```
 GET /cell-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
 ```
 
-In other words, the name of the hierarchy, and the id which will be recursively included.
-This can happen in either by the `descendants` (the default) or by `ascendants`.
+In other words, the name of the hierarchy, and the id which will be recursively included:
+* If `ascendants` is chosen, the results from the regions upward to the root are returned, including the named one.
+* For `descendants`, all children are included, including the named one.
+* For `ascendants_and_descendants`, the path to the root, and all the children are included.
+
+For example, in the following, if `RegionA-1` is the target region, all the outlined in orange will be included in the `ascendants_and_descendants` query.
+
+![Tree showing semantics of ascendants and descendants](within-search-ascendants-and-descendants.png)
+
+
+Originally, there was a boolean: `within_brain_region_ascendants: bool = False`.
+If `within_brain_region_direction` is included, it overrides `within_brain_region_ascendants`.
+Otherwise, `within_brain_region_direction` is used, with the behavior that `within_brain_region_ascendants=True` is equivalent to `within_brain_region_direction=ascendants`, and `within_brain_region_ascendants=True`is equivalent to `within_brain_region_direction=descendants`.
+This will be deprecated.
+
 
 # Brain Atlas:
 

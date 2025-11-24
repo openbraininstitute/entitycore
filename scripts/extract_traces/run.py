@@ -39,10 +39,12 @@ def normalize(obj, placeholders):  # noqa: PLR0911
     if isinstance(obj, list):
         return [normalize(v, placeholders) for v in obj]
     if isinstance(obj, str):
-        if UUID_RE.fullmatch(obj):
-            return placeholders.get("uuid", obj)
-        if TIMESTAMP_RE.fullmatch(obj):
-            return placeholders.get("timestamp", obj)
+        number_of_subs_made = 0
+        for pattern, key in (UUID_RE, "uuid"), (TIMESTAMP_RE, "timestamp"):
+            obj, count = pattern.subn(placeholders[key], obj)
+            number_of_subs_made += count
+        if number_of_subs_made > 0:
+            return obj
         return placeholders.get("str", obj)
     if isinstance(obj, bool):
         return placeholders.get("bool", obj)

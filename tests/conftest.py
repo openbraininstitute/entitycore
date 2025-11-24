@@ -735,8 +735,8 @@ def create_emodel_ids(
             etype = add_db(
                 db,
                 ETypeClass(
-                    pref_label=f"e1-{emodel_id}",
-                    alt_label=f"e1-{emodel_id}",
+                    pref_label=f"etype-emodel-{i}",
+                    alt_label=f"etype-emodel-{i}",
                     definition="e1d",
                     created_by_id=person_id,
                     updated_by_id=person_id,
@@ -963,7 +963,7 @@ def faceted_emodel_ids(db: Session, client, person_id, ion_channel_models):
             json={
                 "name": f"e-{i}",
                 "brain_region_id": str(brain_region_id),
-                "description": f"species{species_id}, brain_region{brain_region_id}, ex_morphology{morphology_id}",  # noqa: E501
+                "description": f"emodel-desc-{i}",
                 "species_id": str(species_id),
                 "iteration": "test iteration",
                 "score": 10 * i,

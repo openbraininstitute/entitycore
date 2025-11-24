@@ -276,7 +276,7 @@ def faceted_ids(db, brain_region_hierarchy_id, create_memodel_ids: CreateIds, cr
     single_simulation_synaptome_ids = [
         create_id(
             name=f"synaptome-{i}",
-            description=f"brain-region-{brain_region_id} me-model-{memodel_id}",
+            description=f"sim-desc-{i}",
             me_model_id=str(memodel_id),
             seed=i,
             brain_region_id=str(brain_region_id),
@@ -340,7 +340,7 @@ def test_facets(db, client, faceted_ids):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"search": f"me-model-{memodel_ids[0]}", "with_facets": True},
+        params={"me_model__name": "0", "with_facets": True},
     ).json()
 
     assert "facets" in data

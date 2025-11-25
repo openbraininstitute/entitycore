@@ -6,9 +6,13 @@ import pytest
 
 from app.db.model import (
     Agent,
+    Annotation,
+    Asset,
     CellMorphology,
     CellMorphologyProtocol,
+    Contribution,
     EmbeddingMixin,
+    MeasurementAnnotation,
     MTypeClass,
     MTypeClassification,
     Species,
@@ -22,13 +26,19 @@ from .utils import (
     MISSING_ID_COMPACT,
     PROJECT_ID,
     USER_SUB_ID_1,
+    add_annotation,
+    add_contribution,
     add_db,
+    add_measurement_annotation,
     assert_request,
     check_authorization,
     check_brain_region_filter,
+    check_deletion_cascades,
     check_entity_delete_one,
     check_entity_update_one,
     create_cell_morphology_id,
+    create_mtype_classification,
+    upload_entity_asset,
 )
 
 ROUTE = "/cell-morphology"
@@ -110,6 +120,81 @@ def test_delete_one(db, clients, json_data):
         expected_counts_after={
             CellMorphology: 0,
             CellMorphologyProtocol: 1,
+        },
+    )
+
+
+@pytest.fixture
+def entity_id_cascades(db, clients, json_data, person_id, role_id, mtype_class_id):
+    entity_id = add_db(
+        db,
+        CellMorphology(
+            **json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    ).id
+    add_contribution(
+        db,
+        entity_id=entity_id,
+        agent_id=person_id,
+        role_id=role_id,
+        created_by_id=person_id,
+    )
+    create_mtype_classification(
+        db,
+        entity_id=entity_id,
+        mtype_class_id=mtype_class_id,
+        created_by_id=person_id,
+    )
+    add_annotation(
+        db,
+        entity_id=entity_id,
+        created_by_id=person_id,
+    )
+    add_measurement_annotation(
+        db,
+        entity_id=entity_id,
+        created_by_id=person_id,
+    )
+    upload_entity_asset(
+        client=clients.user_1,
+        entity_type=EntityType.cell_morphology,
+        entity_id=entity_id,
+        files={"file": ("cell.swc", b"foo", "application/swc")},
+        label="morphology",
+    )
+    return entity_id
+
+
+def test_deletion_cascades(db, clients, entity_id_cascades):
+    check_deletion_cascades(
+        db=db,
+        route=ROUTE,
+        clients=clients,
+        entity_id=entity_id_cascades,
+        expected_counts_before={
+            Annotation: 1,
+            Asset: 1,
+            CellMorphology: 1,
+            CellMorphologyProtocol: 1,
+            Contribution: 1,
+            MeasurementAnnotation: 1,
+            MTypeClass: 1,
+            MTypeClassification: 1,
+        },
+        expected_counts_after={
+            Annotation: 0,
+            Asset: 0,
+            CellMorphology: 0,
+            CellMorphologyProtocol: 1,
+            Contribution: 0,
+            MeasurementAnnotation: 0,
+            MTypeClass: 1,
+            MTypeClassification: 0,
         },
     )
 

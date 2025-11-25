@@ -268,3 +268,26 @@ def test_create_with_authorization(client_user_1, client_user_2, root_circuit_js
             assert data["used"]["id"] == used_id, f"Error in test {i}"
         elif expected_status == 404:
             assert data["error_code"] == "ENTITY_NOT_FOUND", f"Error in test {i}"
+
+
+def test_delete_one(client, root_circuit, circuit):
+    data = assert_request(
+        client.post,
+        url="/derivation",
+        json={
+            "used_id": str(root_circuit.id),
+            "generated_id": str(circuit.id),
+            "derivation_type": "circuit_extraction",
+        },
+    ).json()
+    data = assert_request(
+        client.delete,
+        url="/derivation",
+        params={
+            "used_id": str(root_circuit.id),
+            "generated_id": str(circuit.id),
+            "derivation_type": "circuit_extraction",
+        },
+    ).json()
+    assert data["used"]["id"] == str(root_circuit.id)
+    assert data["generated"]["id"] == str(circuit.id)

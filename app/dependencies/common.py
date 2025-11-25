@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
+from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.base import CustomFilter
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_hierarchy_and_region
@@ -186,7 +187,14 @@ class InBrainRegionQuery(BaseModel):
         )
 
 
+class DerivationQuery(BaseModel):
+    used_id: uuid.UUID
+    generated_id: uuid.UUID
+    derivation_type: DerivationType
+
+
 PaginationQuery = Annotated[PaginationRequest, Depends(PaginationRequest)]
 FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
 InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]
+DerivationQuery = Annotated[DerivationQuery, Depends()]

@@ -370,7 +370,7 @@ class Usage(Base):
 
     __tablename__ = "usage"
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"),
+        ForeignKey("entity.id"),
         primary_key=True,
     )
     usage_activity_id: Mapped[uuid.UUID] = mapped_column(
@@ -393,7 +393,8 @@ class Generation(Base):
 
     __tablename__ = "generation"
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id"), primary_key=True
+        ForeignKey("entity.id", ondelete="CASCADE"),
+        primary_key=True,
     )
     generation_activity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("activity.id", ondelete="CASCADE"),
@@ -488,7 +489,9 @@ class MTypeClassification(Identifiable):
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
     mtype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("mtype_class.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
 
     __table_args__ = (UniqueConstraint("entity_id", "mtype_class_id", name="uq_mtype_per_entity"),)
 
@@ -500,7 +503,9 @@ class ETypeClassification(Identifiable):
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
     etype_class_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("etype_class.id"), index=True)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
 
     __table_args__ = (UniqueConstraint("entity_id", "etype_class_id", name="uq_etype_per_entity"),)
 
@@ -551,8 +556,10 @@ class DataMaturityAnnotationBody(AnnotationBody):
 class Annotation(LegacyMixin, Identifiable):
     __tablename__ = "annotation"
     note: Mapped[str | None]
-    entity = relationship("Entity", back_populates="annotations")
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    entity = relationship("Entity", back_populates="annotations", passive_deletes=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
     annotation_body_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("annotation_body.id"), index=True
     )
@@ -563,7 +570,7 @@ class Entity(LegacyMixin, Identifiable):
     __tablename__ = "entity"
 
     type: Mapped[EntityType]
-    annotations = relationship("Annotation", back_populates="entity")
+    annotations = relationship("Annotation", back_populates="entity", passive_deletes=True)
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -704,8 +711,12 @@ class Contribution(Identifiable):
     agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
     role = relationship("Role", uselist=False)
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
-    entity = relationship("Entity", uselist=False, back_populates="contributions")
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
+    entity = relationship(
+        "Entity", uselist=False, back_populates="contributions", passive_deletes=True
+    )
 
     __table_args__ = (
         UniqueConstraint("entity_id", "role_id", "agent_id", name="unique_contribution_1"),
@@ -866,12 +877,14 @@ class CellMorphology(
 
 class MeasurementAnnotation(LegacyMixin, Identifiable):
     __tablename__ = GlobalType.measurement_annotation.value
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True, unique=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True, unique=True
+    )
     entity: Mapped["Entity"] = relationship(
-        viewonly=True,
         foreign_keys=[entity_id],
         primaryjoin=entity_id == Entity.id,
         lazy="raise",
+        passive_deletes=True,
     )
     measurement_kinds: Mapped[list["MeasurementKind"]] = relationship(
         back_populates="measurement_annotation", passive_deletes=True
@@ -910,7 +923,8 @@ class MeasurementKind(Base):
         index=True,
     )
     measurement_annotation: Mapped["MeasurementAnnotation"] = relationship(
-        back_populates="measurement_kinds", viewonly=True
+        back_populates="measurement_kinds",
+        passive_deletes=True,
     )
     measurement_items: Mapped[list["MeasurementItem"]] = relationship(
         back_populates="measurement_kind", passive_deletes=True
@@ -936,7 +950,8 @@ class MeasurementItem(Base):
         ForeignKey("measurement_kind.id", ondelete="CASCADE"), index=True
     )
     measurement_kind: Mapped["MeasurementKind"] = relationship(
-        back_populates="measurement_items", viewonly=True
+        back_populates="measurement_items",
+        passive_deletes=True,
     )
     __table_args__ = (
         UniqueConstraint(
@@ -1377,7 +1392,9 @@ class Asset(Identifiable):
     sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32))
     meta: Mapped[JSON_DICT]  # not used yet. can be useful?
     label: Mapped[AssetLabel]
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+    )
     storage_type: Mapped[StorageType]
 
     # partial unique index
@@ -1601,7 +1618,7 @@ class Derivation(Base):
         ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
     )
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
-    generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id])
+    generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id], passive_deletes=True)
     derivation_type: Mapped[DerivationType]
 
 
@@ -1629,7 +1646,7 @@ class ScientificArtifactPublicationLink(Identifiable):
     publication_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("publication.id"), index=True)
     publication_type: Mapped[PublicationType]
     scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("scientific_artifact.id"), index=True
+        ForeignKey("scientific_artifact.id", ondelete="CASCADE"), index=True
     )
 
     publication: Mapped["Publication"] = relationship(
@@ -1641,6 +1658,7 @@ class ScientificArtifactPublicationLink(Identifiable):
         "ScientificArtifact",
         foreign_keys=[scientific_artifact_id],
         uselist=False,
+        passive_deletes=True,
     )
 
     __table_args__ = (
@@ -1667,7 +1685,7 @@ class ScientificArtifactExternalUrlLink(Identifiable):
     __tablename__ = AssociationType.scientific_artifact_external_url_link.value
     external_url_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
     scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("scientific_artifact.id"), index=True
+        ForeignKey("scientific_artifact.id", ondelete="CASCADE"), index=True
     )
 
     external_url: Mapped["ExternalUrl"] = relationship(
@@ -1679,6 +1697,7 @@ class ScientificArtifactExternalUrlLink(Identifiable):
         "ScientificArtifact",
         foreign_keys=[scientific_artifact_id],
         uselist=False,
+        passive_deletes=True,
     )
 
     __table_args__ = (

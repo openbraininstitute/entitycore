@@ -13,7 +13,7 @@ from app.db.auth import (
     is_user_authorized_for_deletion,
     select_unauthorized_entities,
 )
-from app.db.model import Activity, Generation, Identifiable, Usage
+from app.db.model import Activity, Agent, Base, Generation, Identifiable, Person, Usage
 from app.db.utils import get_declaring_class, load_db_model_from_pydantic, update_model
 from app.dependencies.common import (
     FacetQueryParams,
@@ -443,25 +443,21 @@ def router_user_delete_one[T: BaseModel, I: Identifiable](
 
     crud.delete_one(db=db, row=obj)
 
+    delete_row(db=db, row=obj)
+
     return DeleteResponse(id=id_)
 
 
-def router_admin_delete_one[T: BaseModel, I: Identifiable](
-    *,
-    id_: uuid.UUID,
-    db: Session,
-    db_model_class: type[I],
-) -> DeleteResponse:
-    """Delete a model from the database as admin.
-
-    Args:
-        id_: id of the entity to read.
-        db: database session.
-        db_model_class: database model class.
-    """
-    obj = crud.get_identifiable_one(db=db, db_model_class=db_model_class, id_=id_)
-    crud.delete_one(db=db, row=obj)
-    return DeleteResponse(id=id_)
+def delete_row(db: Session, row: Base) -> DeleteResponse:
+    with ensure_foreign_keys_integrity(
+        error_message=(
+            f"{type(row).__name__} cannot be deleted because of foreign keys integrity violation"
+        )
+    ):
+        # Use ORM delete in order to ensure that ondelete cascades are triggered in parents  when
+        # subclasses are deleted as it is the case with Activity/SimulationGeneration.
+        db.delete(row)
+        db.flush()
 
 
 def router_update_activity_one[T: BaseModel, I: Activity](

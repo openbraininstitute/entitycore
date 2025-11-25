@@ -17,11 +17,13 @@ from pydantic import TypeAdapter
 from starlette.testclient import TestClient
 
 from app.db.model import (
+    Annotation,
     BrainRegion,
     BrainRegionHierarchy,
     CellMorphology,
     CircuitExtractionCampaign,
     Contribution,
+    DataMaturityAnnotationBody,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
     EmbeddingMixin,
@@ -30,6 +32,7 @@ from app.db.model import (
     ETypeClassification,
     IonChannelModelingCampaign,
     IonChannelRecording,
+    MeasurementAnnotation,
     MTypeClass,
     MTypeClassification,
     Person,
@@ -929,8 +932,53 @@ def add_contribution(db, entity_id, agent_id, role_id, created_by_id):
     )
 
 
+def add_annotation(db, *, entity_id, created_by_id, annotation_body_id=None):
+    if not annotation_body_id:
+        annotation_body_id = add_db(
+            db,
+            DataMaturityAnnotationBody(
+                pref_label="annotation_body",
+                created_by_id=created_by_id,
+                updated_by_id=created_by_id,
+            ),
+        ).id
+    return add_db(
+        db,
+        Annotation(
+            entity_id=entity_id,
+            annotation_body_id=annotation_body_id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+        ),
+    )
+
+
+def add_measurement_annotation(db, *, entity_id, created_by_id):
+    return add_db(
+        db,
+        MeasurementAnnotation(
+            entity_id=entity_id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+            measurement_kinds=[],
+        ),
+    )
+
+
 def count_db_class(db, db_class):
     return db.execute(sa.select(sa.func.count()).select_from(db_class)).scalar()
+
+
+def check_db_counts(db, expected):
+    fails = []
+    for db_cls, expected_count in expected.items():
+        count = count_db_class(db, db_cls)
+        if count != expected_count:
+            fails.append((db_cls, count, expected_count))
+
+    assert not fails, "Count mismatches (Model, Actual, Expected):\n\n".join(
+        f"{db_cls}, {actual}, {expected}" for db_cls, actual, expected in fails
+    )
 
 
 def delete_entity_contributions(client_admin, entity_route, entity_id):
@@ -1379,6 +1427,14 @@ def check_entity_delete_one(
 
 # so far they don't differ
 check_activity_delete_one = check_entity_delete_one
+
+
+def check_deletion_cascades(
+    db, entity_id, clients, route, expected_counts_before, expected_counts_after
+):
+    check_db_counts(db, expected_counts_before)
+    assert_request(clients.admin.delete, url=f"/admin{route}/{entity_id}")
+    check_db_counts(db, expected_counts_after)
 
 
 def check_global_delete_one(

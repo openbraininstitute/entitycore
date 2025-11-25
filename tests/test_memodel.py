@@ -8,7 +8,11 @@ from fastapi.testclient import TestClient
 from app.db.model import (
     CellMorphology,
     EModel,
+    ETypeClass,
+    ETypeClassification,
     MEModel,
+    MTypeClass,
+    MTypeClassification,
 )
 from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
@@ -18,6 +22,7 @@ from .utils import (
     PROJECT_ID,
     assert_request,
     check_brain_region_filter,
+    check_deletion_cascades,
     check_entity_delete_one,
     check_entity_update_one,
     create_cell_morphology_id,
@@ -140,6 +145,33 @@ def test_delete_one(db, clients, public_json_data):
             MEModel: 0,
             EModel: 1,
             CellMorphology: 1,
+        },
+    )
+
+
+def test_deletion_cascades(db, clients, memodel_id):
+    check_deletion_cascades(
+        db=db,
+        route=ROUTE,
+        clients=clients,
+        entity_id=memodel_id,
+        expected_counts_before={
+            MEModel: 1,
+            EModel: 1,
+            CellMorphology: 1,
+            MTypeClass: 1,
+            ETypeClass: 1,
+            MTypeClassification: 2,  # 1 on morphology
+            ETypeClassification: 2,  # 1 on emodel
+        },
+        expected_counts_after={
+            MEModel: 0,
+            EModel: 1,
+            CellMorphology: 1,
+            MTypeClass: 1,
+            ETypeClass: 1,
+            MTypeClassification: 1,
+            ETypeClassification: 1,
         },
     )
 

@@ -538,7 +538,7 @@ class Entity(LegacyMixin, Identifiable):
     __tablename__ = "entity"
 
     type: Mapped[EntityType]
-    annotations = relationship("Annotation", back_populates="entity")
+    annotations = relationship("Annotation", back_populates="entity", passive_deletes=True)
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)

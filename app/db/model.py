@@ -1491,8 +1491,9 @@ class SimulationExecution(Activity):
     It stores the execution status of a simulation.
 
     Attributes:
-        id (uuid.UUID): Primary key for the simulation execution, referencing the entity ID.
-        status (SimulationExecutionStatus): The status of the simulation execution.
+        id: Primary key for the simulation execution, referencing the entity ID.
+        status: The status of the simulation execution.
+        execution_id: An id assigned to the execution by the executor
     """
 
     __tablename__ = ActivityType.simulation_execution.value
@@ -1501,6 +1502,7 @@ class SimulationExecution(Activity):
         Enum(SimulationExecutionStatus, name="simulation_execution_status"),
         default=SimulationExecutionStatus.created,
     )
+    execution_id: Mapped[uuid.UUID | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

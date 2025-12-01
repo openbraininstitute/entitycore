@@ -785,3 +785,9 @@ class AnalysisScale(StrEnum):
     cellular = auto()
     circuit = auto()
     system = auto()
+
+
+class ExecutorType(StrEnum):
+    short_job = auto()
+    long_job = auto()
+    jupyter_notebook = auto()

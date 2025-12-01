@@ -24,6 +24,7 @@ class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin):
 
     is_ljp_corrected: bool | None = None
     is_temperature_dependent: bool | None = None
+    temperature_celsius: int | None = None
     temperature_celsius__lte: int | None = None
     temperature_celsius__gte: int | None = None
     is_stochastic: bool | None = None

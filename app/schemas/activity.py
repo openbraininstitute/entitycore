@@ -3,6 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.db.types import ExecutorType
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     ActivityTypeMixin,
@@ -39,3 +40,8 @@ class ActivityUpdate(BaseModel):
     start_time: datetime | NotSet | None = NOT_SET
     end_time: datetime | NotSet | None = NOT_SET
     generated_ids: list[uuid.UUID] | NotSet | None = NOT_SET
+
+
+class ExecutionActivityMixin:
+    executor: ExecutorType | None
+    execution_id: uuid.UUID | None

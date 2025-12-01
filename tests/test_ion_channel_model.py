@@ -340,6 +340,9 @@ def test_filtering(client, ion_channel_models, person_id):
     data = req({"created_by__id": str(person_id), "with_facets": True})
     assert len(data) == len(ion_channel_models)
 
+    data = req({"temperature_celsius": 0, "with_facets": True})
+    assert len(data) == 2
+
     data = req({"temperature_celsius__lte": 1, "with_facets": True})
     assert len(data) == 2
 

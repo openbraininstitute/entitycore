@@ -3,7 +3,7 @@ from typing import Annotated
 from app.db.model import License
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin, NameFilterMixin, ILikeSearchFilterMixin
+from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 
 
 class LicenseFilter(IdFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter):

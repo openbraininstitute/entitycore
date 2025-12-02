@@ -177,3 +177,17 @@ def test_filtering(client, models, simulation_campaign, circuit):
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "description"},
+    ).json()["data"]
+    assert len(data) == len(models)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "circuit-1"},
+    ).json()["data"]
+    assert len(data) == 1

@@ -3,12 +3,12 @@ from typing import Annotated
 from app.db.model import IonChannelRecording
 from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType
 from app.dependencies.filter import FilterDepends
-from app.filters.common import NameFilterMixin
+from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.ion_channel import NestedIonChannelFilter, NestedIonChannelFilterDep
 from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
-class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin):
+class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSearchFilterMixin):
     recording_type: ElectricalRecordingType | None = None
     recording_type__in: list[ElectricalRecordingType] | None = None
     recording_origin: ElectricalRecordingOrigin | None = None

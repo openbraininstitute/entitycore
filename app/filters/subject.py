@@ -9,6 +9,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
     NameFilterMixin,
+    ILikeSearchFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
 from app.filters.species import NestedSpeciesFilter, NestedStrainFilter, SpeciesFilterMixin
@@ -35,6 +36,7 @@ class SubjectFilter(
     EntityFilterMixin,
     SpeciesFilterMixin,
     NameFilterMixin,
+    ILikeSearchFilterMixin,
     CustomFilter,
 ):
     age_value: timedelta | None = None

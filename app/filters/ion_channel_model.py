@@ -5,6 +5,7 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.scientific_artifact import ScientificArtifactFilter
@@ -19,7 +20,7 @@ class NestedIonChannelModelFilter(
         model = IonChannelModel
 
 
-class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin):
+class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSearchFilterMixin):
     nmodl_suffix: str | None = None
 
     is_ljp_corrected: bool | None = None

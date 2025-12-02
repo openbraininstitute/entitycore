@@ -1813,7 +1813,7 @@ def public_skeletonization_campaign_id(client, skeletonization_campaign_json_dat
 def skeletonization_config_json_data(public_skeletonization_campaign_id, public_em_cell_mesh):
     return {
         "name": "skeletonization-config",
-        "description": "skeletonization-config",
+        "description": "skeletonization-config-description",
         "skeletonization_campaign_id": public_skeletonization_campaign_id,
         "em_cell_mesh_id": str(public_em_cell_mesh.id),
         "scan_parameters": {"foo": "bar"},

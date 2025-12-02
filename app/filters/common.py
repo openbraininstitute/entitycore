@@ -10,7 +10,7 @@ from app.db.model import (
     MTypeClass,
 )
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
+from app.filters.base import ILIKE_SEARCH_FIELD_NAME, ILIKE_SEARCH_FIELDS, CustomFilter
 
 
 class IdFilterMixin:
@@ -27,6 +27,20 @@ class NameFilterMixin:
     name: str | None = None
     name__in: list[str] | None = None
     name__ilike: str | None = None
+
+
+class ILikeSearchFilterMixin:
+    def __init_subclass__(cls, **kwargs):
+        """Add ilike search on multiple columns.
+        Ensure that this mixin is added to a filter corresponding to a model with
+        ILIKE_SEARCH_FIELDS available.
+        """
+        # Add field BEFORE Pydantic validation
+        cls.__annotations__[ILIKE_SEARCH_FIELD_NAME] = str | None
+        setattr(cls, ILIKE_SEARCH_FIELD_NAME, None)
+
+        cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME
+        cls.Constants.search_model_fields = ILIKE_SEARCH_FIELDS
 
 
 class PrefLabelMixin:

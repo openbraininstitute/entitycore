@@ -14,6 +14,8 @@ Aliases = dict[type[Identifiable], type[Identifiable] | dict[str, type[Identifia
 
 
 NESTED_SEPARATOR = "__"
+ILIKE_SEARCH_FIELDS = ["name", "description"]
+ILIKE_SEARCH_FIELD_NAME = "ilike_search"
 
 
 class CustomFilter[T: DeclarativeBase](Filter):

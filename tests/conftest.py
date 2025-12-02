@@ -1119,7 +1119,7 @@ def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_da
 def ion_channel_json_data():
     return {
         "name": "KCa1.1",
-        "description": "",
+        "description": "ion-channel-description",
         "label": "K<sub>Ca</sub>1.1",
         "gene": "Kcnma1",
         "synonyms": ["BK channel", "BK channel alpha subunit"],

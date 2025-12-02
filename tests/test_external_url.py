@@ -181,3 +181,9 @@ def test_filtering_sorting(client, models, person_id):
 
     data = req({"source": "channelpedia", "order_by": "-name"})
     assert [d["name"] for d in data] == ["name-3", "name-0"]
+
+    data = req({"ilike_search": "description"})
+    assert len(data) == len(models)
+
+    data = req({"ilike_search": "name-1"})
+    assert len(data) == 1

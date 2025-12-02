@@ -18,6 +18,7 @@ class CellMorphologyBase(BaseModel):
     description: str
     location: PointLocationBase | None
     legacy_id: list[str] | None = None
+    has_segmented_spines: bool = False
 
 
 class CellMorphologyCreate(

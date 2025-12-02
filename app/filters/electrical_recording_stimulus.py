@@ -6,12 +6,15 @@ from app.db.types import ElectricalRecordingStimulusShape, ElectricalRecordingSt
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
 
 
-class ElectricalRecordingStimulusFilter(EntityFilterMixin, NameFilterMixin, CustomFilter):
+class ElectricalRecordingStimulusFilter(
+    EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter
+):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     shape: ElectricalRecordingStimulusShape | None = None

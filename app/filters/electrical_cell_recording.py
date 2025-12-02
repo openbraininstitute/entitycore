@@ -5,6 +5,7 @@ from app.db.types import ElectricalRecordingOrigin, ElectricalRecordingType
 from app.dependencies.filter import FilterDepends
 from app.filters.common import (
     ETypeClassFilterMixin,
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.scientific_artifact import ScientificArtifactFilter
@@ -14,6 +15,7 @@ class ElectricalCellRecordingFilter(
     ScientificArtifactFilter,
     NameFilterMixin,
     ETypeClassFilterMixin,
+    ILikeSearchFilterMixin,
 ):
     recording_type: ElectricalRecordingType | None = None
     recording_type__in: list[ElectricalRecordingType] | None = None

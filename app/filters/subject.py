@@ -8,8 +8,8 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
-    NameFilterMixin,
     ILikeSearchFilterMixin,
+    NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
 from app.filters.species import NestedSpeciesFilter, NestedStrainFilter, SpeciesFilterMixin

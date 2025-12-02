@@ -3,11 +3,13 @@ from typing import Annotated
 from app.db.model import CircuitExtractionCampaign
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import NameFilterMixin
+from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
 
 
-class CircuitExtractionCampaignFilter(CustomFilter, EntityFilterMixin, NameFilterMixin):
+class CircuitExtractionCampaignFilter(
+    CustomFilter, EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin
+):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

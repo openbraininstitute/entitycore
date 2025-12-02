@@ -5,6 +5,7 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
@@ -15,7 +16,9 @@ class NestedAnalysisNotebookResultFilter(IdFilterMixin, NameFilterMixin, CustomF
         model = AnalysisNotebookResult
 
 
-class AnalysisNotebookResultFilter(EntityFilterMixin, NameFilterMixin, CustomFilter):
+class AnalysisNotebookResultFilter(
+    EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter
+):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

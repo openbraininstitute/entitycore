@@ -48,7 +48,7 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
         db,
         CellComposition(
             name="my-composition-1",
-            description="my-composition-1",
+            description="my-description-1",
             brain_region_id=brain_region_id,
             species_id=species_id,
             created_by_id=person_id,
@@ -60,7 +60,7 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
         db,
         CellComposition(
             name="my-composition-2",
-            description="my-composition-2",
+            description="my-description-2",
             brain_region_id=brain_region_id,
             species_id=species_id,
             created_by_id=person_id,
@@ -83,3 +83,17 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == 2
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "description"},
+    ).json()["data"]
+    assert len(data) == 2
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "composition-1"},
+    ).json()["data"]
+    assert len(data) == 1

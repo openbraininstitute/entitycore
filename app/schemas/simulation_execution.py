@@ -1,17 +1,22 @@
 from app.db.types import SimulationExecutionStatus
-from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
+from app.schemas.activity import (
+    ActivityCreate,
+    ActivityRead,
+    ActivityUpdate,
+    ExecutionActivityMixin,
+)
 from app.schemas.utils import make_update_schema
 
 
-class SimulationExecutionCreate(ActivityCreate):
+class SimulationExecutionCreate(ActivityCreate, ExecutionActivityMixin):
     status: SimulationExecutionStatus
 
 
-class SimulationExecutionRead(ActivityRead):
+class SimulationExecutionRead(ActivityRead, ExecutionActivityMixin):
     status: SimulationExecutionStatus
 
 
-class SimulationExecutionUserUpdate(ActivityUpdate):
+class SimulationExecutionUserUpdate(ActivityUpdate, ExecutionActivityMixin):
     status: SimulationExecutionStatus | None = None
 
 

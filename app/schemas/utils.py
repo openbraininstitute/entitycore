@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field, create_model
 
 type NotSet = Literal["<NOT_SET>"]
 
+
+# Attributes set to the sentinel NOT_SET are ignored on model updates by user
 NOT_SET = "<NOT_SET>"
 
 EXCLUDED_FIELDS = {

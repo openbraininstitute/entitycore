@@ -12,7 +12,7 @@ from app.db.model import (
     Generation,
     Usage,
 )
-from app.db.types import ActivityType
+from app.db.types import ActivityType, ExecutorType
 
 from .utils import (
     PROJECT_ID,
@@ -50,6 +50,8 @@ def json_data(
         "generated_ids": [str(analysis_notebook_result.id)],
         "analysis_notebook_template_id": str(analysis_notebook_template.id),
         "analysis_notebook_environment_id": str(analysis_notebook_environment.id),
+        "executor": str(ExecutorType.jupyter_notebook),
+        "execution_id": "1739b817-26bb-4dad-93f4-0279a1b2cf6e",
     }
 
 
@@ -224,6 +226,17 @@ def test_filtering(client, models, root_circuit, analysis_notebook_result):
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
+
+    for executor, count in (
+        (ExecutorType.jupyter_notebook, len(models)),
+        (ExecutorType.long_job, 0),
+    ):
+        data = assert_request(
+            client.get,
+            url=ROUTE,
+            params={"executor": str(executor)},
+        ).json()["data"]
+        assert len(data) == count
 
 
 def test_delete_one(db, clients, json_data):

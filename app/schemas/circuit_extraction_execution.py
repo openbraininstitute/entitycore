@@ -1,17 +1,22 @@
 from app.db.types import CircuitExtractionExecutionStatus
-from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
+from app.schemas.activity import (
+    ActivityCreate,
+    ActivityRead,
+    ActivityUpdate,
+    ExecutionActivityMixin,
+)
 from app.schemas.utils import make_update_schema
 
 
-class CircuitExtractionExecutionCreate(ActivityCreate):
+class CircuitExtractionExecutionCreate(ActivityCreate, ExecutionActivityMixin):
     status: CircuitExtractionExecutionStatus
 
 
-class CircuitExtractionExecutionRead(ActivityRead):
+class CircuitExtractionExecutionRead(ActivityRead, ExecutionActivityMixin):
     status: CircuitExtractionExecutionStatus
 
 
-class CircuitExtractionExecutionUserUpdate(ActivityUpdate):
+class CircuitExtractionExecutionUserUpdate(ActivityUpdate, ExecutionActivityMixin):
     status: CircuitExtractionExecutionStatus | None = None
 
 

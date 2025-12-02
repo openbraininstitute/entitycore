@@ -3,11 +3,13 @@ from typing import Annotated
 from app.db.model import CircuitExtractionExecution
 from app.db.types import CircuitExtractionExecutionStatus
 from app.dependencies.filter import FilterDepends
-from app.filters.activity import ActivityFilterMixin
+from app.filters.activity import ActivityFilterMixin, ExecutionActivityFilterMixin
 from app.filters.base import CustomFilter
 
 
-class CircuitExtractionExecutionFilter(CustomFilter, ActivityFilterMixin):
+class CircuitExtractionExecutionFilter(
+    CustomFilter, ActivityFilterMixin, ExecutionActivityFilterMixin
+):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     status: CircuitExtractionExecutionStatus | None = None

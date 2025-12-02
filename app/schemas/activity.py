@@ -43,5 +43,5 @@ class ActivityUpdate(BaseModel):
 
 
 class ExecutionActivityMixin:
-    executor: ExecutorType | None
-    execution_id: uuid.UUID | None
+    executor: ExecutorType | None = None
+    execution_id: uuid.UUID | None = None

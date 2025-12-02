@@ -4,7 +4,7 @@ import pytest
 from pydantic import TypeAdapter
 
 from app.db.model import CellMorphology, EModel, Generation, SimulationExecution, Usage
-from app.db.types import ActivityType
+from app.db.types import ActivityType, ExecutorType
 
 from .utils import (
     PROJECT_ID,
@@ -36,6 +36,8 @@ def json_data(morphology_id, emodel_id):
         "used_ids": [str(morphology_id)],
         "generated_ids": [str(emodel_id)],
         "status": "done",
+        "executor": str(ExecutorType.long_job),
+        "execution_id": "1739b817-26bb-4dad-93f4-0279a1b2cf6e",
     }
 
 
@@ -244,6 +246,17 @@ def test_filtering(client, models, root_circuit, simulation_result):
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
+
+    for executor, count in (
+        (ExecutorType.jupyter_notebook, 0),
+        (ExecutorType.long_job, len(models)),
+    ):
+        data = assert_request(
+            client.get,
+            url=ROUTE,
+            params={"executor": str(executor)},
+        ).json()["data"]
+        assert len(data) == count
 
 
 def test_delete_one(db, clients, json_data):

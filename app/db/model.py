@@ -435,6 +435,7 @@ class ExecutionActivityMixin:
     executor: What executed the activity
     execution_id: The ID stored by whatever executed
     """
+
     executor: Mapped[ExecutorType | None]
     execution_id: Mapped[uuid.UUID | None]
 
@@ -2013,7 +2014,7 @@ class AnalysisNotebookEnvironment(Entity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class AnalysisNotebookEAnalysisNotebookExecutionxecution(Activity, ExecutionActivityMixin):
+class AnalysisNotebookExecution(Activity, ExecutionActivityMixin):
     """Represents the execution of a Jupyter notebook to analyze entities and create a result.
 
     Inputs (used):

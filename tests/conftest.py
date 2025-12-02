@@ -1764,7 +1764,7 @@ def circuit_extraction_campaign_id(client, circuit_extraction_campaign_json_data
 def circuit_extraction_config_json_data(root_circuit):
     return {
         "name": "extraction-config",
-        "description": "extraction-config",
+        "description": "extraction-config-description",
         "circuit_id": str(root_circuit.id),
         "scan_parameters": {"foo": "bar"},
     }

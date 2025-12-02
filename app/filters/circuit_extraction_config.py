@@ -7,7 +7,7 @@ from app.db.model import CircuitExtractionConfig
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.circuit import NestedCircuitFilter, NestedCircuitFilterDep
-from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
 
 
@@ -21,7 +21,9 @@ class NestedCircuitExtractionConfigFilter(CircuitExtractionConfigFilterBase):
         model = CircuitExtractionConfig
 
 
-class CircuitExtractionConfigFilter(EntityFilterMixin, CircuitExtractionConfigFilterBase):
+class CircuitExtractionConfigFilter(
+    EntityFilterMixin, CircuitExtractionConfigFilterBase, ILikeSearchFilterMixin
+):
     circuit_extraction_campaign_id: uuid.UUID | None = None
     circuit_extraction_campaign_id__in: list[uuid.UUID] | None = None
 

@@ -3,10 +3,10 @@ from typing import Annotated
 from app.db.model import License
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.common import IdFilterMixin, NameFilterMixin, ILikeSearchFilterMixin
 
 
-class LicenseFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
+class LicenseFilter(IdFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter):
     label: str | None = None
     label__ilike: str | None = None
 

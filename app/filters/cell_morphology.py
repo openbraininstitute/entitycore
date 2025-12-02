@@ -12,6 +12,7 @@ from app.filters.cell_morphology_protocol import (
 )
 from app.filters.common import (
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
     NestedMTypeClassFilter,
@@ -72,6 +73,7 @@ class CellMorphologyFilter(
     MTypeClassFilterMixin,
     MeasurableFilterMixin,
     NameFilterMixin,
+    ILikeSearchFilterMixin,
     CustomFilter,
 ):
     cell_morphology_protocol: Annotated[

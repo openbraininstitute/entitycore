@@ -234,3 +234,9 @@ def test_filtering_sorting(client, models):
 
     data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models)
+
+    data = req({"ilike_search": "description"})
+    assert len(data) == len(models)
+
+    data = req({"ilike_search": "subject-1"})
+    assert len(data) == 1

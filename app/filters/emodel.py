@@ -10,6 +10,7 @@ from app.filters.cell_morphology import NestedCellMorphologyFilter
 from app.filters.common import (
     ETypeClassFilterMixin,
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
     NestedETypeClassFilter,
@@ -56,6 +57,7 @@ class EModelFilter(
     ETypeClassFilterMixin,
     SpeciesFilterMixin,
     NameFilterMixin,
+    ILikeSearchFilterMixin,
     CustomFilter,
 ):
     score__lte: float | None = None

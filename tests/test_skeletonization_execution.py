@@ -40,7 +40,7 @@ def json_data(skeletonization_config_id, morphology_id):
         "used_ids": [str(skeletonization_config_id)],
         "generated_ids": [str(morphology_id)],
         "status": "done",
-        "executor": str(ExecutorType.short_job),
+        "executor": str(ExecutorType.single_node_job),
         "execution_id": "1739b817-26bb-4dad-93f4-0279a1b2cf6e",
     }
 
@@ -259,7 +259,10 @@ def test_filtering(client, models, skeletonization_config_id, morphology_id_1, m
     ).json()["data"]
     assert len(data) == len(models)
 
-    for executor, count in ((ExecutorType.short_job, len(models)), (ExecutorType.long_job, 0)):
+    for executor, count in (
+        (ExecutorType.single_node_job, len(models)),
+        (ExecutorType.distributed_job, 0),
+    ):
         data = assert_request(
             client.get,
             url=ROUTE,

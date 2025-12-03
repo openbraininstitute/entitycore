@@ -229,7 +229,7 @@ def test_filtering(client, models, root_circuit, analysis_notebook_result):
 
     for executor, count in (
         (ExecutorType.jupyter_notebook, len(models)),
-        (ExecutorType.long_job, 0),
+        (ExecutorType.single_node_job, 0),
     ):
         data = assert_request(
             client.get,

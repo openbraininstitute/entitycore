@@ -788,6 +788,6 @@ class AnalysisScale(StrEnum):
 
 
 class ExecutorType(StrEnum):
-    short_job = auto()
-    long_job = auto()
+    single_node_job = auto()
+    distributed_job = auto()
     jupyter_notebook = auto()

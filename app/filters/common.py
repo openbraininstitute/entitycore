@@ -42,8 +42,8 @@ class ILikeSearchFilterMixin:
 
         # Set fastapi-filter custom serach name and fields
         # See example: https://github.com/arthurio/fastapi-filter/blob/8c07dd55dfa63f09ae70eb980d51714323809906/examples/fastapi_filter_mongoengine.py#L91-L92
-        cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME
-        cls.Constants.search_model_fields = ILIKE_SEARCH_FIELDS
+        cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME  # pyright: ignore [reportAttributeAccessIssue]
+        cls.Constants.search_model_fields = ILIKE_SEARCH_FIELDS  # pyright: ignore [reportAttributeAccessIssue]
 
 
 class PrefLabelMixin:

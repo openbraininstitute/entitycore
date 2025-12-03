@@ -1,8 +1,10 @@
+import uuid
 from datetime import datetime
 from typing import Annotated
 
 from fastapi_filter import with_prefix
 
+from app.db.types import ExecutorType
 from app.dependencies.filter import FilterDepends
 from app.filters.common import (
     CreationFilterMixin,
@@ -21,3 +23,8 @@ class ActivityFilterMixin(IdFilterMixin, CreatorFilterMixin, CreationFilterMixin
 
     used: Annotated[NestedEntityFilter | None, NestedUsedFilterDep] = None
     generated: Annotated[NestedEntityFilter | None, NestedGeneratedFilterDep] = None
+
+
+class ExecutionActivityFilterMixin:
+    executor: ExecutorType | None = None
+    execution_id: uuid.UUID | None = None

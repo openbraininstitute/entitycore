@@ -57,6 +57,7 @@ from app.db.types import (
     EMCellMeshGenerationMethod,
     EMCellMeshType,
     EntityType,
+    ExecutorType,
     ExternalSource,
     GlobalType,
     IonChannelModelingExecutionStatus,
@@ -402,8 +403,10 @@ class Activity(Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
     type: Mapped[ActivityType]
+
     start_time: Mapped[datetime | None]
     end_time: Mapped[datetime | None]
+
     used: Mapped[list["Entity"]] = relationship(
         "Entity",
         secondary="usage",
@@ -424,6 +427,17 @@ class Activity(Identifiable):
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
+
+
+class ExecutionActivityMixin:
+    """Metatdata on the where the execution took place.
+
+    executor: What executed the activity
+    execution_id: The ID stored by whatever executed
+    """
+
+    executor: Mapped[ExecutorType | None]
+    execution_id: Mapped[uuid.UUID | None]
 
 
 class AnnotationBody(LegacyMixin, Identifiable):
@@ -1250,7 +1264,7 @@ class IonChannelModelingConfig(Entity, NameDescriptionVectorMixin):
     }
 
 
-class IonChannelModelingExecution(Activity):
+class IonChannelModelingExecution(Activity, ExecutionActivityMixin):
     """Represents the execution of an ion channel modeling.
 
     It stores the execution status of an ion channel modeling.
@@ -1485,14 +1499,14 @@ class Simulation(Entity, NameDescriptionVectorMixin):
     }
 
 
-class SimulationExecution(Activity):
+class SimulationExecution(Activity, ExecutionActivityMixin):
     """Represents the execution of a simulation.
 
     It stores the execution status of a simulation.
 
     Attributes:
-        id (uuid.UUID): Primary key for the simulation execution, referencing the entity ID.
-        status (SimulationExecutionStatus): The status of the simulation execution.
+        id: Primary key for the simulation execution, referencing the entity ID.
+        status: The status of the simulation execution.
     """
 
     __tablename__ = ActivityType.simulation_execution.value
@@ -1820,7 +1834,7 @@ class CircuitExtractionConfigGeneration(Activity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class CircuitExtractionExecution(Activity):
+class CircuitExtractionExecution(Activity, ExecutionActivityMixin):
     """Represents the execution of a circuit extraction.
 
     It stores the execution status of a circuit extraction operation.
@@ -2000,7 +2014,7 @@ class AnalysisNotebookEnvironment(Entity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class AnalysisNotebookExecution(Activity):
+class AnalysisNotebookExecution(Activity, ExecutionActivityMixin):
     """Represents the execution of a Jupyter notebook to analyze entities and create a result.
 
     Inputs (used):
@@ -2148,7 +2162,7 @@ class SkeletonizationConfigGeneration(Activity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class SkeletonizationExecution(Activity):
+class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     """Represents the execution of the skeletonization.
 
     Inputs (used):

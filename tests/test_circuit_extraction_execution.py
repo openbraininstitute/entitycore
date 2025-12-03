@@ -10,7 +10,7 @@ from app.db.model import (
     Generation,
     Usage,
 )
-from app.db.types import ActivityType
+from app.db.types import ActivityType, ExecutorType
 
 from .utils import (
     PROJECT_ID,
@@ -42,6 +42,8 @@ def json_data(circuit_extraction_config_id, root_circuit):
         "used_ids": [str(circuit_extraction_config_id)],
         "generated_ids": [str(root_circuit.id)],
         "status": "done",
+        "executor": str(ExecutorType.single_node_job),
+        "execution_id": "1739b817-26bb-4dad-93f4-0279a1b2cf6e",
     }
 
 
@@ -245,6 +247,17 @@ def test_filtering(client, models, circuit_extraction_config_id, ion_channel_mod
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
+
+    for executor, count in (
+        (ExecutorType.jupyter_notebook, 0),
+        (ExecutorType.single_node_job, len(models)),
+    ):
+        data = assert_request(
+            client.get,
+            url=ROUTE,
+            params={"executor": str(executor)},
+        ).json()["data"]
+        assert len(data) == count
 
 
 def test_delete_one(db, clients, json_data):

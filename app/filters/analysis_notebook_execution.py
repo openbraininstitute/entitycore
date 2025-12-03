@@ -2,11 +2,13 @@ from typing import Annotated
 
 from app.db.model import AnalysisNotebookExecution
 from app.dependencies.filter import FilterDepends
-from app.filters.activity import ActivityFilterMixin
+from app.filters.activity import ActivityFilterMixin, ExecutionActivityFilterMixin
 from app.filters.base import CustomFilter
 
 
-class AnalysisNotebookExecutionFilter(CustomFilter, ActivityFilterMixin):
+class AnalysisNotebookExecutionFilter(
+    CustomFilter, ActivityFilterMixin, ExecutionActivityFilterMixin
+):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     status: str | None = None

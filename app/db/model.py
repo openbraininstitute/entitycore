@@ -841,6 +841,8 @@ class CellMorphology(
         uselist=False,
     )
 
+    has_segmented_spines: Mapped[bool] = mapped_column(default=False, server_default="false")
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

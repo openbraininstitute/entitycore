@@ -8,6 +8,7 @@ from app.db.types import (
     ElectricalRecordingType,
 )
 from app.schemas.annotation import ETypeClassRead
+from app.schemas.base import NameDescriptionMixin
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.electrical_recording_stimulus import NestedElectricalRecordingStimulusRead
 from app.schemas.scientific_artifact import (
@@ -17,10 +18,8 @@ from app.schemas.scientific_artifact import (
 from app.schemas.utils import make_update_schema
 
 
-class ElectricalCellRecordingBase(BaseModel):
+class ElectricalCellRecordingBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     ljp: Annotated[
         float,
         Field(

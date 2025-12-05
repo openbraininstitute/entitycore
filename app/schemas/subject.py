@@ -11,16 +11,15 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     CreationMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 from app.schemas.utils import make_update_schema
 
 
-class SubjectBase(BaseModel):
+class SubjectBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="float")
 
-    name: str
-    description: str
     sex: Annotated[
         Sex,
         Field(title="Sex", description="Sex of the subject"),

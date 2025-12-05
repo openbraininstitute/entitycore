@@ -39,6 +39,11 @@ class IdentifiableMixin(BaseModel):
     id: uuid.UUID
 
 
+class NameDescriptionMixin:
+    name: str
+    description: str
+
+
 class CreationMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     creation_date: datetime
@@ -53,10 +58,8 @@ class CreationMixin(BaseModel):
         return result
 
 
-class LicenseCreate(BaseModel):
+class LicenseCreate(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     label: str
 
 

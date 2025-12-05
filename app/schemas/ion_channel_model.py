@@ -1,7 +1,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import BrainRegionReadMixin, CreationMixin
+from app.schemas.base import BrainRegionReadMixin, CreationMixin, NameDescriptionMixin
 from app.schemas.scientific_artifact import (
     NestedScientificArtifactRead,
     ScientificArtifactCreate,
@@ -26,10 +26,8 @@ class NeuronBlock(BaseModel):
     nonspecific: list[dict[str, str | None]] = []
 
 
-class IonChannelModelBase(BaseModel):
+class IonChannelModelBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    description: str
-    name: str
     nmodl_suffix: str
     is_ljp_corrected: bool = False
     is_temperature_dependent: bool = False

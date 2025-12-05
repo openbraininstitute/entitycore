@@ -3,15 +3,13 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import CircuitBuildCategory, CircuitScale
+from app.schemas.base import NameDescriptionMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.utils import make_update_schema
 
 
-class CircuitBase(BaseModel):
+class CircuitBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-
-    name: str
-    description: str
 
     has_morphologies: bool = False
     has_point_neurons: bool = False

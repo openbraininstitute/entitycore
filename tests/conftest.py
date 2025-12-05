@@ -1564,6 +1564,8 @@ def public_em_cell_mesh(db, em_cell_mesh_json_data, person_id):
 @pytest.fixture
 def cell_morphology_protocol_json_data():
     return {
+        "name": "Placeholder Protocol Test",
+        "description": "Description Test",
         "type": EntityType.cell_morphology_protocol,
         "generation_type": CellMorphologyGenerationType.placeholder,
     }

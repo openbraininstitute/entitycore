@@ -4,6 +4,7 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 
@@ -15,6 +16,6 @@ class CellCompositionRead(
     EntityTypeMixin,
     ContributionReadWithoutEntityMixin,
     AssetsMixin,
+    NameDescriptionMixin,
 ):
-    name: str
-    description: str
+    pass

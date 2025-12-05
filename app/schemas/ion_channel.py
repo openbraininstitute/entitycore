@@ -4,15 +4,14 @@ from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.utils import make_update_schema
 
 
-class IonChannelBase(BaseModel):
+class IonChannelBase(BaseModel, NameDescriptionMixin):
     """Base model for ion channel."""
 
-    name: str
-    description: str
     label: str
     gene: str
     synonyms: list[str]

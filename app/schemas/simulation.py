@@ -13,16 +13,15 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.me_model import NestedMEModel
 from app.schemas.synaptome import NestedSynaptome
 from app.schemas.utils import make_update_schema
 
 
-class SingleNeuronSimulationBase(BaseModel):
+class SingleNeuronSimulationBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     seed: int
     status: SingleNeuronSimulationStatus
     injection_location: list[str]
@@ -93,10 +92,8 @@ class SingleNeuronSynaptomeSimulationRead(
     synaptome: NestedSynaptome
 
 
-class SimulationBase(BaseModel):
+class SimulationBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     simulation_campaign_id: uuid.UUID
     entity_id: uuid.UUID
     scan_parameters: JSON_DICT

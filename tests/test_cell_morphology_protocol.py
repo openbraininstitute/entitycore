@@ -39,6 +39,8 @@ ADMIN_ROUTE = "/admin/cell-morphology-protocol"
 def json_data_digital_reconstruction():
     return DigitalReconstructionCellMorphologyProtocolCreate.model_validate(
         {
+            "name": "Digital Reconstruction Protocol Test",
+            "description": "Description Test",
             "generation_type": CellMorphologyGenerationType.digital_reconstruction,
             "protocol_design": CellMorphologyProtocolDesign.cell_patch,
             "protocol_document": "https://example.com",
@@ -52,6 +54,8 @@ def json_data_digital_reconstruction():
 def json_data_modified_reconstruction():
     return ModifiedReconstructionCellMorphologyProtocolCreate.model_validate(
         {
+            "name": "Modified Reconstruction Protocol Test",
+            "description": "Description Test",
             "generation_type": CellMorphologyGenerationType.modified_reconstruction,
             "protocol_design": CellMorphologyProtocolDesign.fluorophore,
             "method_type": ModifiedMorphologyMethodType.cloned,
@@ -63,6 +67,8 @@ def json_data_modified_reconstruction():
 def json_data_computationally_synthesized():
     return ComputationallySynthesizedCellMorphologyProtocolCreate.model_validate(
         {
+            "name": "Computationally Synthesized Protocol Test",
+            "description": "Description Test",
             "generation_type": CellMorphologyGenerationType.computationally_synthesized,
             "protocol_design": CellMorphologyProtocolDesign.electron_microscopy,
             "method_type": "free-text",
@@ -74,6 +80,8 @@ def json_data_computationally_synthesized():
 def json_data_placeholder():
     return PlaceholderCellMorphologyProtocolCreate.model_validate(
         {
+            "name": "Placeholder Test",
+            "description": "Description Test",
             "generation_type": CellMorphologyGenerationType.placeholder,
         }
     ).model_dump(mode="json")

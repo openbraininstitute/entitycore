@@ -6,16 +6,15 @@ from app.db.types import (
     PointLocationBase,
 )
 from app.schemas.annotation import MTypeClassRead
+from app.schemas.base import NameDescriptionMixin
 from app.schemas.cell_morphology_protocol import NestedCellMorphologyProtocolRead
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.utils import make_update_schema
 
 
-class CellMorphologyBase(BaseModel):
+class CellMorphologyBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     location: PointLocationBase | None
     legacy_id: list[str] | None = None
     has_segmented_spines: bool = False

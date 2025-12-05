@@ -13,13 +13,12 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.utils import make_update_schema
 
 
-class ElectricalRecordingStimulusBase(BaseModel):
-    name: str
-    description: str
+class ElectricalRecordingStimulusBase(BaseModel, NameDescriptionMixin):
     dt: float | None = None
     injection_type: ElectricalRecordingStimulusType
     shape: ElectricalRecordingStimulusShape

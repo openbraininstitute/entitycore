@@ -7,18 +7,16 @@ from pydantic import (
 
 from app.db.types import EXTERNAL_SOURCE_INFO, ExternalSource
 from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.base import CreationMixin, IdentifiableMixin, NameDescriptionMixin
 from app.schemas.types import SerializableHttpUrl
 
 
-class ExternalUrlBase(BaseModel):
+class ExternalUrlBase(BaseModel, NameDescriptionMixin):
     """Base model for external url."""
 
     model_config = ConfigDict(from_attributes=True)
     source: ExternalSource
     url: SerializableHttpUrl
-    name: str
-    description: str
 
 
 class ExternalUrlCreate(ExternalUrlBase):

@@ -15,6 +15,7 @@ from app.schemas.base import (
     IdentifiableMixin,
     LicensedCreateMixin,
     LicensedReadMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.subject import SubjectReadMixin
@@ -36,10 +37,8 @@ class MeasurementRecordRead(MeasurementRecordBase):
     id: int
 
 
-class ExperimentalDensityBase(BaseModel):
+class ExperimentalDensityBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
 
 
 class ExperimentalDensityCreate(

@@ -16,6 +16,7 @@ from app.schemas.base import (
     AuthorizationOptionalPublicMixin,
     CreationMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.types import SerializableHttpUrl
 from app.schemas.utils import NOT_SET, make_update_schema
@@ -45,7 +46,7 @@ class CellMorphologyProtocolMixin:
 # Base Models
 
 
-class CellMorphologyProtocolBase(BaseModel):
+class CellMorphologyProtocolBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
     type: Literal[EntityType.cell_morphology_protocol] = EntityType.cell_morphology_protocol
 

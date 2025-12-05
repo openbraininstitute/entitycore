@@ -770,7 +770,7 @@ class MeasurableEntityMixin:
         )
 
 
-class CellMorphologyProtocol(Entity):
+class CellMorphologyProtocol(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.cell_morphology_protocol.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     protocol_document: Mapped[str | None]

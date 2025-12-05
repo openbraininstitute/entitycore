@@ -12,6 +12,7 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.cell_morphology import CellMorphologyRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
@@ -21,10 +22,8 @@ from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 from app.schemas.utils import make_update_schema
 
 
-class MEModelBase(BaseModel):
+class MEModelBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     validation_status: ValidationStatus = ValidationStatus.created
 
 

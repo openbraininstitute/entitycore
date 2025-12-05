@@ -11,6 +11,7 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.types import DockerDependency, PythonDependency
@@ -36,10 +37,8 @@ class AnalysisNotebookTemplateSpecifications(BaseModel):
     inputs: list[AnalysisNotebookTemplateInputType] = []
 
 
-class AnalysisNotebookTemplateBase(BaseModel):
+class AnalysisNotebookTemplateBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     specifications: AnalysisNotebookTemplateSpecifications | None = None
     scale: AnalysisScale
 

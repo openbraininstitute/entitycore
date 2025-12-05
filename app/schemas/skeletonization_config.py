@@ -11,15 +11,14 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.utils import make_update_schema
 
 
-class SkeletonizationConfigBase(BaseModel):
+class SkeletonizationConfigBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     skeletonization_campaign_id: uuid.UUID
     em_cell_mesh_id: uuid.UUID
     scan_parameters: JSON_DICT

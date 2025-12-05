@@ -1,14 +1,12 @@
 from pydantic import BaseModel
 
 from app.db.types import SlicingDirectionType
+from app.schemas.base import NameDescriptionMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.types import SerializableAnyUrl, SerializableHttpUrl
 
 
-class EMDenseReconstructionDatasetBase(BaseModel):
-    name: str
-    description: str
-
+class EMDenseReconstructionDatasetBase(BaseModel, NameDescriptionMixin):
     protocol_document: SerializableHttpUrl | None = None
     fixation: str | None = None
     staining_type: str | None = None  # TODO: controlled vocabulary

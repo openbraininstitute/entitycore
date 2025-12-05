@@ -6,12 +6,13 @@ from app.db.model import CellMorphologyProtocol
 from app.db.types import CellMorphologyGenerationType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin
+from app.filters.common import IdFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
 
 
 class CellMorphologyProtocolFilterBase(
     IdFilterMixin,
+    NameFilterMixin,
     CustomFilter,
 ):
     generation_type: CellMorphologyGenerationType | None = None

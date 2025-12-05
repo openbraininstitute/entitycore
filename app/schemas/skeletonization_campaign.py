@@ -9,6 +9,7 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.em_cell_mesh import NestedEMCellMeshRead
@@ -16,10 +17,8 @@ from app.schemas.skeletonization_config import NestedSkeletonizationConfigRead
 from app.schemas.utils import make_update_schema
 
 
-class SkeletonizationCampaignBase(BaseModel):
+class SkeletonizationCampaignBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     scan_parameters: JSON_DICT
 
 

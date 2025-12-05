@@ -12,6 +12,7 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.cell_morphology import CellMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
@@ -24,10 +25,8 @@ class ExemplarMorphology(CreationMixin, CellMorphologyBase, IdentifiableMixin):
     pass
 
 
-class EModelBase(BaseModel):
+class EModelBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    description: str
-    name: str
     iteration: str
     score: float
     seed: int

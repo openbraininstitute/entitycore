@@ -11,15 +11,14 @@ from app.schemas.base import (
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
+    NameDescriptionMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.utils import make_update_schema
 
 
-class CircuitExtractionConfigBase(BaseModel):
+class CircuitExtractionConfigBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    name: str
-    description: str
     circuit_id: uuid.UUID
     scan_parameters: JSON_DICT
 

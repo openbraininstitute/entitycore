@@ -9,6 +9,7 @@ from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
 from app.db.model import Identifiable
+from app.utils.pattern import convert_to_ilike_pattern
 
 Aliases = dict[type[Identifiable], type[Identifiable] | dict[str, type[Identifiable]]]
 
@@ -138,8 +139,9 @@ class CustomFilter[T: DeclarativeBase](Filter):
                 if field_name == self.Constants.search_field_name and hasattr(
                     self.Constants, "search_model_fields"
                 ):
+                    pattern = convert_to_ilike_pattern(value)
                     search_filters = [
-                        getattr(self.Constants.model, field).ilike(f"%{value}%")
+                        getattr(self.Constants.model, field).ilike(pattern, escape="\\")
                         for field in self.Constants.search_model_fields
                     ]
                     query = query.filter(or_(*search_filters))

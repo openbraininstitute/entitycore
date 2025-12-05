@@ -181,7 +181,7 @@ def test_filtering(client, models, simulation_campaign, circuit):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"ilike_search": "description"},
+        params={"ilike_search": "*description*"},
     ).json()["data"]
     assert len(data) == len(models)
 

@@ -144,7 +144,7 @@ def test_filtering_sorting(client, models):
         "name-0",
     ]
 
-    data = req({"ilike_search": "description"})
+    data = req({"ilike_search": "*description*"})
     assert len(data) == len(models)
 
     data = req({"ilike_search": "name-1"})

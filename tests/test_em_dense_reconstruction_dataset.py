@@ -150,7 +150,7 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"ilike_search": "description"},
+        params={"ilike_search": "*description*"},
     ).json()["data"]
     assert len(data) == len(models)
 

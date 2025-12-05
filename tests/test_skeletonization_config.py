@@ -134,7 +134,7 @@ def test_filtering_ordering(
     data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
-    data = _req({"ilike_search": "description"})
+    data = _req({"ilike_search": "*description*"})
     assert len(data) == len(models)
 
     data = _req({"ilike_search": "config-1"})

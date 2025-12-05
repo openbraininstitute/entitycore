@@ -40,7 +40,7 @@ class ILikeSearchFilterMixin:
         cls.__annotations__[ILIKE_SEARCH_FIELD_NAME] = str | None
         setattr(cls, ILIKE_SEARCH_FIELD_NAME, None)
 
-        # Set fastapi-filter custom serach name and fields
+        # Set fastapi-filter custom search name and fields
         # See example: https://github.com/arthurio/fastapi-filter/blob/8c07dd55dfa63f09ae70eb980d51714323809906/examples/fastapi_filter_mongoengine.py#L91-L92
         cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME  # pyright: ignore [reportAttributeAccessIssue]
 

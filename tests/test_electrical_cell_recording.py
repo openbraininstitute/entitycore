@@ -635,10 +635,10 @@ def test_ilike_search(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
-    data = req({"ilike_search": "e"})
+    data = req({"ilike_search": "e*"})
     assert len(data) == n_recordings
 
-    data = req({"ilike_search": "d"})
+    data = req({"ilike_search": "d*"})
     assert len(data) == n_recordings
 
     data = req({"ilike_search": "e-2"})

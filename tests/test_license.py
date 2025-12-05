@@ -136,7 +136,7 @@ def test_filtering(clients, json_data):
     assert len(data) == 2
     assert {d["id"] for d in data} == {d1["id"], d3["id"]}
 
-    data = _req({"ilike_search": "license"})
+    data = _req({"ilike_search": "*license*"})
     assert len(data) == 3
 
     data = _req({"ilike_search": "n1"})

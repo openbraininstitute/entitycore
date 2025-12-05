@@ -87,13 +87,13 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"ilike_search": "description"},
+        params={"ilike_search": "*description*"},
     ).json()["data"]
     assert len(data) == 2
 
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"ilike_search": "composition-1"},
+        params={"ilike_search": "*composition-1"},
     ).json()["data"]
     assert len(data) == 1

@@ -128,7 +128,7 @@ def test_filtering_ordering(client, models, public_ion_channel_modeling_campaign
     data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models)
 
-    data = _req({"ilike_search": "modeling-config"})
+    data = _req({"ilike_search": "*modeling-config*"})
     assert len(data) == len(models)
 
     data = _req({"ilike_search": "config-1"})

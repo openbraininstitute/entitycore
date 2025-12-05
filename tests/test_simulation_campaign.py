@@ -470,7 +470,7 @@ def test_filter_by_entity_type(client, mixed_campaigns):
         client.get,
         url=ROUTE,
         params={
-            "ilike_search": "Campaign",
+            "ilike_search": "Campaign*",
         },
     ).json()["data"]
     assert len(data) == len(mixed_campaigns)

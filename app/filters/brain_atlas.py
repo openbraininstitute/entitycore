@@ -3,11 +3,13 @@ from typing import Annotated
 from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.species import SpeciesFilterMixin
 
 
-class BrainAtlasFilter(IdFilterMixin, NameFilterMixin, SpeciesFilterMixin, CustomFilter):
+class BrainAtlasFilter(
+    IdFilterMixin, NameFilterMixin, SpeciesFilterMixin, ILikeSearchFilterMixin, CustomFilter
+):
     order_by: list[str] = ["name"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

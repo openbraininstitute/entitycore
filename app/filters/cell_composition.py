@@ -4,6 +4,7 @@ from app.db.model import CellComposition
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
@@ -13,6 +14,7 @@ class CellCompositionFilter(
     CustomFilter,
     EntityFilterMixin,
     NameFilterMixin,
+    ILikeSearchFilterMixin,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

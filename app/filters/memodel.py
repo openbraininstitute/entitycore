@@ -10,6 +10,7 @@ from app.filters.cell_morphology import NestedCellMorphologyFilter
 from app.filters.common import (
     ETypeClassFilterMixin,
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
     NestedETypeClassFilter,
@@ -67,6 +68,7 @@ class MEModelFilter(
     MTypeClassFilterMixin,
     ETypeClassFilterMixin,
     BrainRegionFilterMixin,
+    ILikeSearchFilterMixin,
     CustomFilter,
 ):
     morphology: Annotated[

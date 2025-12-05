@@ -10,6 +10,7 @@ from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
 from app.filters.common import (
     ETypeClassFilterMixin,
+    ILikeSearchFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
     NestedMTypeClassFilter,
@@ -24,6 +25,7 @@ class DensityFilterBase(
     BrainRegionFilterMixin,
     SubjectFilterMixin,
     NameFilterMixin,
+    ILikeSearchFilterMixin,
     CustomFilter,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012

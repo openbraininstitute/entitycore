@@ -6,7 +6,7 @@ from fastapi_filter import with_prefix
 from app.db.model import IonChannelModelingConfig
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
 
 
@@ -19,7 +19,9 @@ class NestedIonChannelModelingConfigFilter(IonChannelModelingConfigFilterBase):
         model = IonChannelModelingConfig
 
 
-class IonChannelModelingConfigFilter(EntityFilterMixin, IonChannelModelingConfigFilterBase):
+class IonChannelModelingConfigFilter(
+    EntityFilterMixin, IonChannelModelingConfigFilterBase, ILikeSearchFilterMixin
+):
     ion_channel_modeling_campaign_id: uuid.UUID | None = None
     ion_channel_modeling_campaign_id__in: list[uuid.UUID] | None = None
 

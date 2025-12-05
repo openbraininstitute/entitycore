@@ -7,7 +7,7 @@ from app.db.model import Circuit
 from app.db.types import CircuitBuildCategory, CircuitScale
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
 
 
@@ -35,6 +35,7 @@ class CircuitFilter(
     ScientificArtifactFilter,
     NameFilterMixin,
     CircuitFilterMixin,
+    ILikeSearchFilterMixin,
 ):
     atlas_id: uuid.UUID | None = None
     root_circuit_id: uuid.UUID | None = None

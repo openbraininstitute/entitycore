@@ -10,7 +10,7 @@ from app.db.model import (
     MTypeClass,
 )
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
+from app.filters.base import ILIKE_SEARCH_FIELD_NAME, ILIKE_SEARCH_FIELDS, CustomFilter
 
 
 class IdFilterMixin:
@@ -27,6 +27,29 @@ class NameFilterMixin:
     name: str | None = None
     name__in: list[str] | None = None
     name__ilike: str | None = None
+
+
+class ILikeSearchFilterMixin:
+    def __init_subclass__(cls, **kwargs):
+        """Add ilike search on multiple columns.
+
+        Ensure that this mixin is added to a filter corresponding to a model with
+        ILIKE_SEARCH_FIELDS available.
+        """
+        # Add filter key and annotation for ilike_search
+        cls.__annotations__[ILIKE_SEARCH_FIELD_NAME] = str | None
+        setattr(cls, ILIKE_SEARCH_FIELD_NAME, None)
+
+        # Set fastapi-filter custom search name and fields
+        # See example: https://github.com/arthurio/fastapi-filter/blob/8c07dd55dfa63f09ae70eb980d51714323809906/examples/fastapi_filter_mongoengine.py#L91-L92
+        cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME  # pyright: ignore [reportAttributeAccessIssue]
+
+        # allow search_model_fields overrides
+        if getattr(cls.Constants, "search_model_fields", None):
+            return
+
+        # otherwise set default fields
+        cls.Constants.search_model_fields = ILIKE_SEARCH_FIELDS  # pyright: ignore [reportAttributeAccessIssue]
 
 
 class PrefLabelMixin:

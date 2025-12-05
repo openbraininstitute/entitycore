@@ -186,10 +186,18 @@ def test_schema_constraints(client, json_data):
 
 @pytest.fixture
 def models(db, person_id, species_id):
+    names = [
+        "foo",
+        "boo",
+        "foo_boo",
+        "foo-foo",
+        "boo-boo",
+    ]
+
     rows = [
         Subject(
             sex="female",
-            name=f"my-subject-{i}",
+            name=names[i],
             description="my-description-{i}",
             species_id=species_id,
             age_value=timedelta(days=i + 1),
@@ -211,7 +219,7 @@ def test_filtering_sorting(client, models):
     data = req({})
     assert len(data) == len(models)
 
-    data = req({"name": "my-subject-1"})
+    data = req({"name": "foo"})
     assert len(data) == 1
 
     data = req({"name": "my-subject"})
@@ -223,14 +231,45 @@ def test_filtering_sorting(client, models):
     data = req({"age_value": "99 days"})
     assert len(data) == 0
 
-    data = req({"name__ilike": "my-subject"})
-    assert len(data) == len(models)
+    data = req({"name__ilike": "foo"})
+    assert len(data) == 3
 
-    data = req({"name__in": ["my-subject-1", "my-subject-2"], "order_by": "creation_date"})
-    assert [d["name"] for d in data] == ["my-subject-1", "my-subject-2"]
+    data = req({"name__in": ["foo", "boo"], "order_by": "creation_date"})
+    assert [d["name"] for d in data] == ["foo", "boo"]
 
-    data = req({"name__in": ["my-subject-1", "my-subject-2"], "order_by": "-creation_date"})
-    assert [d["name"] for d in data] == ["my-subject-2", "my-subject-1"]
+    data = req({"name__in": ["foo", "boo"], "order_by": "-creation_date"})
+    assert [d["name"] for d in data] == ["boo", "foo"]
 
     data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models)
+
+    data = req({"ilike_search": "*description*"})
+    assert len(data) == len(models)
+
+    data = req({"ilike_search": "*"})
+    assert len(data) == len(models)
+
+    data = req({"ilike_search": "foo"})
+    assert len(data) == 1
+    assert data[0]["name"] == "foo"
+
+    data = req({"ilike_search": "?oo"})
+    assert {d["name"] for d in data} == {"foo", "boo"}
+
+    data = req({"ilike_search": "???"})
+    assert {d["name"] for d in data} == {"foo", "boo"}
+
+    data = req({"ilike_search": "foo*"})
+    assert {d["name"] for d in data} == {"foo", "foo-foo", "foo_boo"}
+
+    data = req({"ilike_search": "?oo*"})
+    assert {d["name"] for d in data} == {"foo", "foo-foo", "foo_boo", "boo", "boo-boo"}
+
+    data = req({"ilike_search": "foo_boo*"})
+    assert {d["name"] for d in data} == {"foo_boo"}
+
+    data = req({"ilike_search": "*foo"})
+    assert {d["name"] for d in data} == {"foo", "foo-foo"}
+
+    data = req({"ilike_search": "?oo-?oo"})
+    assert {d["name"] for d in data} == {"foo-foo", "boo-boo"}

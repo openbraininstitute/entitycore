@@ -245,3 +245,17 @@ def test_filtering(client, root_circuit, models):
         },
     ).json()["data"]
     assert len(data) == 0
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "*circuit-description*"},
+    ).json()["data"]
+    assert len(data) == len(models) + 1  # root circuit
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "circuit-2"},
+    ).json()["data"]
+    assert len(data) == 1

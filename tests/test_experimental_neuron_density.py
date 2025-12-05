@@ -510,6 +510,12 @@ def test_sorting_and_filtering(client, models):
         data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
         assert len(data) == len(models)
 
+        data = req({"ilike_search": "*description*"})
+        assert len(data) == len(models)
+
+        data = req({"ilike_search": "d-1"})
+        assert len(data) == 3
+
     data = req({"name": "d-1", "order_by": "-brain_region__acronym"})
     assert [d["name"] for d in data] == ["d-1", "d-1", "d-1"]
     assert [d["brain_region"]["acronym"] for d in data] == ["acronym-3", "acronym-2", "acronym-1"]

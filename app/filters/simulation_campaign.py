@@ -8,7 +8,7 @@ from app.db.types import EntityType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.circuit import NestedCircuitFilter, NestedCircuitFilterDep
-from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
 from app.filters.simulation import NestedSimulationFilter
 
@@ -20,7 +20,9 @@ class NestedEntityFilter(IdFilterMixin, CustomFilter):
         model = Entity
 
 
-class SimulationCampaignFilter(CustomFilter, EntityFilterMixin, NameFilterMixin):
+class SimulationCampaignFilter(
+    CustomFilter, EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin
+):
     entity_id: uuid.UUID | None = None
     entity_id__in: list[uuid.UUID] | None = None
 

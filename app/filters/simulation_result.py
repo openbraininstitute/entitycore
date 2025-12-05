@@ -7,6 +7,7 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
@@ -17,7 +18,9 @@ class NestedSimulationResultFilter(IdFilterMixin, NameFilterMixin, CustomFilter)
         model = SimulationResult
 
 
-class SimulationResultFilter(EntityFilterMixin, NameFilterMixin, CustomFilter):
+class SimulationResultFilter(
+    EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter
+):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

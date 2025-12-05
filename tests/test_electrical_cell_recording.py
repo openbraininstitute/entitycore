@@ -352,6 +352,7 @@ def models(db, electrical_cell_recording_json_data, person_id, brain_region_hier
                 | {
                     "subject_id": str(subject.id),
                     "name": f"e-{recordings_id}",
+                    "description": f"d-{recordings_id}",
                     "created_by_id": str(person_id),
                     "updated_by_id": str(person_id),
                     "authorized_public": False,
@@ -626,3 +627,27 @@ def test_sorting_and_filtering(client, models):  # noqa: ARG001
         "acronym-2",
         "acronym-1",
     ]
+
+
+def test_ilike_search(client, models):
+    n_recordings = len(models[-1])
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req({"ilike_search": "e*"})
+    assert len(data) == n_recordings
+
+    data = req({"ilike_search": "d*"})
+    assert len(data) == n_recordings
+
+    data = req({"ilike_search": "e-2"})
+    assert len(data) == 2
+    assert data[0]["name"] == "e-2"
+    assert data[1]["name"] == "e-2"
+
+    data = req({"ilike_search": "d-1"})
+    assert len(data) == 3
+    assert data[0]["description"] == "d-1"
+    assert data[1]["description"] == "d-1"
+    assert data[2]["description"] == "d-1"

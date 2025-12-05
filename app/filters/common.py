@@ -45,7 +45,7 @@ class ILikeSearchFilterMixin:
         cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME  # pyright: ignore [reportAttributeAccessIssue]
 
         # allow search_model_fields overrides
-        if hasattr(cls.Constants, "search_model_fields") and cls.Constants.search_model_fields:  # pyright: ignore [reportAttributeAccessIssue]
+        if getattr(cls.Constants, "search_model_fields", None):
             return
 
         # otherwise set default fields

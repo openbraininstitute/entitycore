@@ -40,11 +40,6 @@ class CellMorphologyProtocolFilter(
             "creation_date",
             "update_date",
         ]
-        search_model_fields = [  # noqa: RUF012
-            "name",
-            "description",
-            "protocol_document",
-        ]
 
 
 # Dependencies

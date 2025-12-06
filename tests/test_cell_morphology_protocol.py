@@ -290,7 +290,7 @@ def test_filtering(client, models):
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"ilike_search": "https://example.com/"},
+        params={"ilike_search": "*Placeholder*"},
     ).json()["data"]
     assert len(data) == 1
 

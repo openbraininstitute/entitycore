@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
+from fastapi import Query
 from fastapi_filter import with_prefix
+from pydantic import Field
 
 from app.db.model import (
     Agent,
@@ -38,14 +40,28 @@ class ILikeSearchFilterMixin:
         """
         # Add filter key and annotation for ilike_search
         cls.__annotations__[ILIKE_SEARCH_FIELD_NAME] = str | None
-        setattr(cls, ILIKE_SEARCH_FIELD_NAME, None)
+        setattr(
+            cls,
+            ILIKE_SEARCH_FIELD_NAME,
+            Field(
+                Query(
+                    description=(
+                        "Search text with wildcard support. Use * for zero or more characters "
+                        "and ? for exactly one character. All other characters are treated as "
+                        "literals. "
+                        "Examples: 'test*' matches 'testing', 'file?.txt' matches 'file1.txt'"
+                    ),
+                    default=None,
+                ),
+            ),
+        )
 
         # Set fastapi-filter custom search name and fields
         # See example: https://github.com/arthurio/fastapi-filter/blob/8c07dd55dfa63f09ae70eb980d51714323809906/examples/fastapi_filter_mongoengine.py#L91-L92
         cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME  # pyright: ignore [reportAttributeAccessIssue]
 
         # allow search_model_fields overrides
-        if getattr(cls.Constants, "search_model_fields", None):
+        if getattr(cls.Constants, "search_model_fields", None):  # pyright: ignore [reportAttributeAccessIssue]
             return
 
         # otherwise set default fields

@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.db.types import (
     PointLocationBase,
+    RepairPipelineType,
 )
 from app.schemas.annotation import MTypeClassRead
 from app.schemas.base import NameDescriptionMixin
@@ -18,6 +19,7 @@ class CellMorphologyBase(BaseModel, NameDescriptionMixin):
     location: PointLocationBase | None
     legacy_id: list[str] | None = None
     has_segmented_spines: bool = False
+    repair_pipeline_state: RepairPipelineType | None = None
 
 
 class CellMorphologyCreate(

@@ -49,6 +49,7 @@ def json_data(subject_id, license_id, brain_region_id, cell_morphology_protocol)
         "contact_email": "test@example.com",
         "notice_text": "Notice text example",
         "experiment_date": "2025-01-01T00:00:00",
+        "repair_pipeline_state": "raw",
     }
 
 
@@ -86,6 +87,7 @@ def test_create_one(
     assert data["notice_text"] == "Notice text example"
     assert data["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
     assert not data["has_segmented_spines"]
+    assert data["repair_pipeline_state"] == "raw"
 
     response = client.get(ROUTE)
     assert response.status_code == 200, f"Failed to get cell morphologies: {response.text}"

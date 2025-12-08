@@ -38,8 +38,18 @@ class ILikeSearchFilterMixin:
         Ensure that this mixin is added to a filter corresponding to a model with
         ILIKE_SEARCH_FIELDS available.
         """
+        # Set fastapi-filter custom search name and fields
+        # See example: https://github.com/arthurio/fastapi-filter/blob/8c07dd55dfa63f09ae70eb980d51714323809906/examples/fastapi_filter_mongoengine.py#L91-L92
+        cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME  # pyright: ignore [reportAttributeAccessIssue]
+
+        # allow search_model_fields overrides
+        if not getattr(cls.Constants, "search_model_fields", None):  # pyright: ignore [reportAttributeAccessIssue]
+            # otherwise set default fields
+            cls.Constants.search_model_fields = ILIKE_SEARCH_FIELDS  # pyright: ignore [reportAttributeAccessIssue]
+
         # Add filter key and annotation for ilike_search
         cls.__annotations__[ILIKE_SEARCH_FIELD_NAME] = str | None
+
         setattr(
             cls,
             ILIKE_SEARCH_FIELD_NAME,
@@ -49,23 +59,13 @@ class ILikeSearchFilterMixin:
                         "Search text with wildcard support. Use * for zero or more characters "
                         "and ? for exactly one character. All other characters are treated as "
                         "literals. "
-                        "Examples: 'test*' matches 'testing', 'file?.txt' matches 'file1.txt'"
+                        "Examples: 'test*' matches 'testing', 'file?.txt' matches 'file1.txt'. "
+                        f"search_model_fields: {', '.join(cls.Constants.search_model_fields)}"
                     ),
                     default=None,
                 ),
             ),
         )
-
-        # Set fastapi-filter custom search name and fields
-        # See example: https://github.com/arthurio/fastapi-filter/blob/8c07dd55dfa63f09ae70eb980d51714323809906/examples/fastapi_filter_mongoengine.py#L91-L92
-        cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME  # pyright: ignore [reportAttributeAccessIssue]
-
-        # allow search_model_fields overrides
-        if getattr(cls.Constants, "search_model_fields", None):  # pyright: ignore [reportAttributeAccessIssue]
-            return
-
-        # otherwise set default fields
-        cls.Constants.search_model_fields = ILIKE_SEARCH_FIELDS  # pyright: ignore [reportAttributeAccessIssue]
 
 
 class PrefLabelMixin:

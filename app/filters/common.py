@@ -47,6 +47,8 @@ class ILikeSearchFilterMixin:
             # otherwise set default fields
             cls.Constants.search_model_fields = ILIKE_SEARCH_FIELDS  # pyright: ignore [reportAttributeAccessIssue]
 
+        search_model_fields = cls.Constants.search_model_fields  # pyright: ignore [reportAttributeAccessIssue]
+
         # Add filter key and annotation for ilike_search
         cls.__annotations__[ILIKE_SEARCH_FIELD_NAME] = str | None
 
@@ -60,7 +62,7 @@ class ILikeSearchFilterMixin:
                         "and ? for exactly one character. All other characters are treated as "
                         "literals. "
                         "Examples: 'test*' matches 'testing', 'file?.txt' matches 'file1.txt'. "
-                        f"search_model_fields: {', '.join(cls.Constants.search_model_fields)}"
+                        f"search_model_fields: {', '.join(search_model_fields)}"
                     ),
                     default=None,
                 ),

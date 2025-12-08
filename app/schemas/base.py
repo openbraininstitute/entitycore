@@ -94,7 +94,8 @@ class BrainRegionBase(BaseModel):
 
 
 class BrainRegionRead(BrainRegionBase, IdentifiableMixin, CreationMixin):
-    pass
+    species_id: uuid.UUID
+    strain_id: uuid.UUID | None = None
 
 
 class BrainRegionCreate(BrainRegionBase):

@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
@@ -9,6 +11,8 @@ class BrainRegionHierarchyBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: str
+    species_id: uuid.UUID
+    strain_id: uuid.UUID | None = None
 
 
 class BrainRegionHierarchyCreate(BrainRegionHierarchyBase):

@@ -130,6 +130,12 @@ def test_create(client, client_admin, species_id):
     assert data == [items[1]]
     check_creation_fields(data[0])
 
+    response = client.get(ROUTE, params={"species__id": str(species_id)})
+    assert len(response.json()["data"]) == 3
+
+    response = client.get(ROUTE, params={"species__id": "00000000-7000-4000-0000-000000000000"})
+    assert len(response.json()["data"]) == 0
+
 
 def test_read_one(clients, json_data):
     check_global_read_one(

@@ -268,6 +268,13 @@ def test_brain_region_id(db, client, client_admin, person_id, species_id):
     data = response.json()["data"]
     assert len(data) == 4  # semantic search just reorders - it does not filter out
 
+    # test search by species
+    response = client.get(ROUTE, params={"species__id": str(species_id)})
+    assert len(response.json()["data"]) == 4
+
+    response = client.get(ROUTE, params={"species__id": "00000000-7000-4000-0000-000000000000"})
+    assert len(response.json()["data"]) == 0
+
 
 def test_family_queries(db, client, subject_id, person_id, species_id):
     hierarchy_name0 = utils.create_hiearchy_name(

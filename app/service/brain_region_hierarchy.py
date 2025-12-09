@@ -7,7 +7,7 @@ from fastapi import HTTPException, Response
 from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
-from app.db.model import BrainRegion, BrainRegionHierarchy
+from app.db.model import BrainRegion, BrainRegionHierarchy, Species, Strain
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -34,9 +34,14 @@ def read_many(
     pagination_request: PaginationQuery,
     brain_region_name_filter: BrainRegionHierarchyFilterDep,
 ) -> ListResponse[BrainRegionHierarchyRead]:
+    db_model_class = BrainRegionHierarchy
+    filter_joins = {
+        "species": lambda q: q.join(Species, db_model_class.species_id == Species.id),
+        "strain": lambda q: q.outerjoin(Strain, db_model_class.strain_id == Strain.id),
+    }
     return app.queries.common.router_read_many(
         db=db,
-        db_model_class=BrainRegionHierarchy,
+        db_model_class=db_model_class,
         authorized_project_id=None,
         with_search=None,
         with_in_brain_region=None,
@@ -48,6 +53,7 @@ def read_many(
         response_schema_class=BrainRegionHierarchyRead,
         name_to_facet_query_params=None,
         filter_model=brain_region_name_filter,
+        filter_joins=filter_joins,
     )
 
 

@@ -1,18 +1,28 @@
 import uuid
 
 import sqlalchemy as sa
+from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
-from app.db.model import BrainRegion
+from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_result
 from app.filters.brain_region import BrainRegionFilterDep
-from app.schemas.base import BrainRegionAdminUpdate, BrainRegionCreate, BrainRegionRead
+from app.schemas.brain_region import BrainRegionAdminUpdate, BrainRegionCreate, BrainRegionReadFull
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
+
+
+def _load(select: sa.Select):
+    return select.options(
+        joinedload(BrainRegion.hierarchy_id).options(
+            joinedload(BrainRegionHierarchy.species), joinedload(BrainRegionHierarchy.strain)
+        ),
+        raiseload("*"),
+    )
 
 
 def read_many(
@@ -21,7 +31,7 @@ def read_many(
     pagination_request: PaginationQuery,
     brain_region_filter: BrainRegionFilterDep,
     semantic_search: str | None = None,
-) -> ListResponse[BrainRegionRead]:
+) -> ListResponse[BrainRegionReadFull]:
     embedding = None
 
     if semantic_search is not None:
@@ -36,23 +46,23 @@ def read_many(
         facets=None,
         aliases=None,
         apply_filter_query_operations=None,
-        apply_data_query_operations=None,
+        apply_data_query_operations=None, #_load,
         pagination_request=pagination_request,
-        response_schema_class=BrainRegionRead,
+        response_schema_class=BrainRegionReadFull,
         name_to_facet_query_params=None,
         filter_model=brain_region_filter,
         embedding=embedding,
     )
 
 
-def read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionRead:
+def read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionReadFull:
     with ensure_result(error_message="Brain region not found"):
         stmt = sa.select(BrainRegion).filter(BrainRegion.id == id_)
         row = db.execute(stmt).scalar_one()
-    return BrainRegionRead.model_validate(row)
+    return BrainRegionReadFull.model_validate(row)
 
 
-def admin_read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionRead:
+def admin_read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionReadFull:
     return read_one(db, id_)
 
 
@@ -61,7 +71,7 @@ def create_one(
     db: SessionDep,
     json_model: BrainRegionCreate,
     user_context: AdminContextDep,
-) -> BrainRegionRead:
+) -> BrainRegionReadFull:
     embedding = generate_embedding(json_model.name)
 
     return app.queries.common.router_create_one(
@@ -69,7 +79,7 @@ def create_one(
         db_model_class=BrainRegion,
         user_context=user_context,
         json_model=json_model,
-        response_schema_class=BrainRegionRead,
+        response_schema_class=BrainRegionReadFull,
         embedding=embedding,
     )
 
@@ -79,14 +89,14 @@ def update_one(
     user_context: AdminContextDep,  # noqa: ARG001
     id_: uuid.UUID,
     json_model: BrainRegionAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> BrainRegionRead:
+) -> BrainRegionReadFull:
     return app.queries.common.router_update_one(
         id_=id_,
         db=db,
         db_model_class=BrainRegion,
         user_context=None,
         json_model=json_model,
-        response_schema_class=BrainRegionRead,
+        response_schema_class=BrainRegionReadFull,
     )
 
 
@@ -94,14 +104,14 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: BrainRegionAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> BrainRegionRead:
+) -> BrainRegionReadFull:
     return app.queries.common.router_update_one(
         id_=id_,
         db=db,
         db_model_class=BrainRegion,
         user_context=None,
         json_model=json_model,
-        response_schema_class=BrainRegionRead,
+        response_schema_class=BrainRegionReadFull,
     )
 
 

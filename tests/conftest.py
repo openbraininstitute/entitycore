@@ -1127,7 +1127,7 @@ def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_da
 def ion_channel_json_data():
     return {
         "name": "KCa1.1",
-        "description": "",
+        "description": "ion-channel-description",
         "label": "K<sub>Ca</sub>1.1",
         "gene": "Kcnma1",
         "synonyms": ["BK channel", "BK channel alpha subunit"],
@@ -1772,7 +1772,7 @@ def circuit_extraction_campaign_id(client, circuit_extraction_campaign_json_data
 def circuit_extraction_config_json_data(root_circuit):
     return {
         "name": "extraction-config",
-        "description": "extraction-config",
+        "description": "extraction-config-description",
         "circuit_id": str(root_circuit.id),
         "scan_parameters": {"foo": "bar"},
     }
@@ -1821,7 +1821,7 @@ def public_skeletonization_campaign_id(client, skeletonization_campaign_json_dat
 def skeletonization_config_json_data(public_skeletonization_campaign_id, public_em_cell_mesh):
     return {
         "name": "skeletonization-config",
-        "description": "skeletonization-config",
+        "description": "skeletonization-config-description",
         "skeletonization_campaign_id": public_skeletonization_campaign_id,
         "em_cell_mesh_id": str(public_em_cell_mesh.id),
         "scan_parameters": {"foo": "bar"},

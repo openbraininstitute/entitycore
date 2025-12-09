@@ -6,7 +6,7 @@ from app.db.model import CellMorphologyProtocol
 from app.db.types import CellMorphologyGenerationType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
 
 
@@ -31,6 +31,7 @@ class NestedCellMorphologyProtocolFilter(
 class CellMorphologyProtocolFilter(
     EntityFilterMixin,
     CellMorphologyProtocolFilterBase,
+    ILikeSearchFilterMixin,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

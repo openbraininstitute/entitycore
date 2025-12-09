@@ -3,7 +3,7 @@ from typing import Annotated
 from app.db.model import IonChannelModelingCampaign
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import NameFilterMixin
+from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.entity import EntityFilterMixin
 from app.filters.ion_channel_modeling_config import (
     NestedIonChannelModelingConfigFilter,
@@ -11,7 +11,9 @@ from app.filters.ion_channel_modeling_config import (
 )
 
 
-class IonChannelModelingCampaignFilter(CustomFilter, EntityFilterMixin, NameFilterMixin):
+class IonChannelModelingCampaignFilter(
+    CustomFilter, EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin
+):
     ion_channel_modeling_config: Annotated[
         NestedIonChannelModelingConfigFilter | None,
         NestedIonChannelModelingConfigFilterDep,

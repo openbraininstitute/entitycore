@@ -8,6 +8,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     CreationFilterMixin,
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.person import CreatorFilterMixin
@@ -34,6 +35,7 @@ class IonChannelFilter(
     IonChannelFilterMixin,
     CreatorFilterMixin,
     CreationFilterMixin,
+    ILikeSearchFilterMixin,
 ):
     order_by: list[str] = ["label"]  # noqa: RUF012
 

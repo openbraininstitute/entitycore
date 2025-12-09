@@ -465,3 +465,21 @@ def test_filter_by_entity_type(client, mixed_campaigns):
         },
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "ilike_search": "Campaign*",
+        },
+    ).json()["data"]
+    assert len(data) == len(mixed_campaigns)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "ilike_search": "campaign-1",
+        },
+    ).json()["data"]
+    assert len(data) == 1

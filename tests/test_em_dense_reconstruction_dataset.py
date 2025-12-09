@@ -85,7 +85,7 @@ def models(db, json_data, person_id):
                 json_data
                 | {
                     "name": f"name-{i}",
-                    "description": f"name-{i}",
+                    "description": f"description-{i}",
                     "created_by_id": person_id,
                     "updated_by_id": person_id,
                     "authorized_project_id": PROJECT_ID,
@@ -146,4 +146,17 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
         url=ROUTE,
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "*description*"},
+    ).json()["data"]
     assert len(data) == len(models)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "name-1"},
+    ).json()["data"]
+    assert len(data) == 1

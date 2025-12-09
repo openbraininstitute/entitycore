@@ -513,6 +513,14 @@ def test_filtering(client, models):
     ).json()["data"]
     assert len(data) == len(recordings)
 
+    data = assert_request(client.get, url=ROUTE, params={"ilike_search": "*description*"}).json()[
+        "data"
+    ]
+    assert len(data) == len(recordings)
+
+    data = assert_request(client.get, url=ROUTE, params={"ilike_search": "e-1"}).json()["data"]
+    assert len(data) == 3
+
 
 def test_sorting(client, models):
     _, _, recordings = models

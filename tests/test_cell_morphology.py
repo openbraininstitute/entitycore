@@ -708,6 +708,34 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id, subject_id):
     ).json()["data"]
     assert len(data) == 5
 
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "*Description*"},
+    ).json()["data"]
+    assert len(data) == 5
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "*Morphology 2"},
+    ).json()["data"]
+    assert len(data) == 1
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "*Filter*Morphology*"},
+    ).json()["data"]
+    assert len(data) == 5
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "Filter Morphology_2"},
+    ).json()["data"]
+    assert len(data) == 0
+
 
 def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, subject_id):
     def create_model_function(_db, name, brain_region_id):

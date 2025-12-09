@@ -9,6 +9,7 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     CreationFilterMixin,
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.person import CreatorFilterMixin
@@ -30,6 +31,7 @@ class ExternalUrlFilter(
     CreatorFilterMixin,
     CreationFilterMixin,
     NestedExternalUrlFilter,
+    ILikeSearchFilterMixin,
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

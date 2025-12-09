@@ -755,3 +755,9 @@ def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
     data = req({"brain_region__name": "region0", "order_by": "-name"})
     assert all(d["brain_region"]["name"] == "region0" for d in data)
     assert [d["name"] for d in data] == ["m-9", "m-8", "m-3", "m-2", "m-11", "m-10", "m-1", "m-0"]
+
+    data = req({"ilike_search": "foo"})
+    assert {d["description"] for d in data} == {"foo"}
+
+    data = req({"ilike_search": "m-10"})
+    assert {d["name"] for d in data} == {"m-10"}

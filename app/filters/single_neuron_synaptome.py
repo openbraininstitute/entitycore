@@ -8,6 +8,7 @@ from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
 from app.filters.common import (
     IdFilterMixin,
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
@@ -37,6 +38,7 @@ class SingleNeuronSynaptomeFilter(
     EntityFilterMixin,
     NameFilterMixin,
     BrainRegionFilterMixin,
+    ILikeSearchFilterMixin,
     CustomFilter,
 ):
     me_model: Annotated[NestedMEModelFilter | None, NestedMEModelFilterDep] = None

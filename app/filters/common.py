@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Annotated
 
+from fastapi import Query
 from fastapi_filter import with_prefix
+from pydantic import Field
 
 from app.db.model import (
     Agent,
@@ -10,7 +12,7 @@ from app.db.model import (
     MTypeClass,
 )
 from app.dependencies.filter import FilterDepends
-from app.filters.base import CustomFilter
+from app.filters.base import ILIKE_SEARCH_FIELD_NAME, ILIKE_SEARCH_FIELDS, CustomFilter
 
 
 class IdFilterMixin:
@@ -27,6 +29,45 @@ class NameFilterMixin:
     name: str | None = None
     name__in: list[str] | None = None
     name__ilike: str | None = None
+
+
+class ILikeSearchFilterMixin:
+    def __init_subclass__(cls, **kwargs):
+        """Add ilike search on multiple columns.
+
+        Ensure that this mixin is added to a filter corresponding to a model with
+        ILIKE_SEARCH_FIELDS available.
+        """
+        # Set fastapi-filter custom search name and fields
+        # See example: https://github.com/arthurio/fastapi-filter/blob/8c07dd55dfa63f09ae70eb980d51714323809906/examples/fastapi_filter_mongoengine.py#L91-L92
+        cls.Constants.search_field_name = ILIKE_SEARCH_FIELD_NAME  # pyright: ignore [reportAttributeAccessIssue]
+
+        # allow search_model_fields overrides
+        if not getattr(cls.Constants, "search_model_fields", None):  # pyright: ignore [reportAttributeAccessIssue]
+            # otherwise set default fields
+            cls.Constants.search_model_fields = ILIKE_SEARCH_FIELDS  # pyright: ignore [reportAttributeAccessIssue]
+
+        search_model_fields = cls.Constants.search_model_fields  # pyright: ignore [reportAttributeAccessIssue]
+
+        # Add filter key and annotation for ilike_search
+        cls.__annotations__[ILIKE_SEARCH_FIELD_NAME] = str | None
+
+        setattr(
+            cls,
+            ILIKE_SEARCH_FIELD_NAME,
+            Field(
+                Query(
+                    description=(
+                        "Search text with wildcard support. Use * for zero or more characters "
+                        "and ? for exactly one character. All other characters are treated as "
+                        "literals. "
+                        "Examples: 'test*' matches 'testing', 'file?.txt' matches 'file1.txt'. "
+                        f"search_model_fields: {', '.join(search_model_fields)}"
+                    ),
+                    default=None,
+                ),
+            ),
+        )
 
 
 class PrefLabelMixin:

@@ -6,6 +6,7 @@ from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.common import (
+    ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
@@ -20,6 +21,7 @@ class SingleNeuronSynaptomeSimulationFilter(
     EntityFilterMixin,
     BrainRegionFilterMixin,
     NameFilterMixin,
+    ILikeSearchFilterMixin,
 ):
     status: SingleNeuronSimulationStatus | None = None
 

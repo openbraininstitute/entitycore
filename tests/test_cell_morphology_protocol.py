@@ -281,6 +281,19 @@ def test_filtering(client, models):
     ).json()["data"]
     assert len(data) == len(models)
 
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
+    ).json()["data"]
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"ilike_search": "*Placeholder*"},
+    ).json()["data"]
+    assert len(data) == 1
+
 
 def test_sorting(client, models):
     def req(query):

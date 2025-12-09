@@ -522,8 +522,10 @@ def license_id(client_admin, person_id):
 
 
 @pytest.fixture
-def brain_region_hierarchy_id(db, person_id):
-    return utils.create_hiearchy_name(db, "AIBS", created_by_id=person_id).id
+def brain_region_hierarchy_id(db, person_id, species_id):
+    return utils.create_hiearchy_name(
+        db, name="AIBS", species_id=species_id, created_by_id=person_id
+    ).id
 
 
 @pytest.fixture
@@ -929,10 +931,12 @@ def ion_channel_models(db, person_id, brain_region_id, subject_id):
 
 
 @pytest.fixture
-def faceted_emodel_ids(db: Session, client, person_id, ion_channel_models):
+def faceted_emodel_ids(db: Session, client, person_id, species_id, ion_channel_models):
     subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
 
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hier", created_by_id=person_id)
+    hierarchy_name = utils.create_hiearchy_name(
+        db, name="test_hier", species_id=species_id, created_by_id=person_id
+    )
     brain_region_ids = [
         utils.create_brain_region(
             db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
@@ -954,7 +958,7 @@ def faceted_emodel_ids(db: Session, client, person_id, ion_channel_models):
     ]
 
     emodel_ids = []
-    for i, (species_id, brain_region_id, morphology_id) in enumerate(
+    for i, (local_species_id, brain_region_id, morphology_id) in enumerate(
         it.product(species_ids, brain_region_ids, morphology_ids)
     ):
         emodel_id = assert_request(
@@ -964,7 +968,7 @@ def faceted_emodel_ids(db: Session, client, person_id, ion_channel_models):
                 "name": f"e-{i}",
                 "brain_region_id": str(brain_region_id),
                 "description": f"emodel-desc-{i}",
-                "species_id": str(species_id),
+                "species_id": str(local_species_id),
                 "iteration": "test iteration",
                 "score": 10 * i,
                 "seed": -1,
@@ -997,12 +1001,16 @@ def faceted_emodel_ids(db: Session, client, person_id, ion_channel_models):
 
 
 @pytest.fixture
-def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent, Role]):
+def faceted_memodels(
+    db: Session, client: TestClient, species_id, agents: tuple[Agent, Agent, Role]
+):
     person_id = agents[1].id
 
     subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
 
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hier", created_by_id=person_id)
+    hierarchy_name = utils.create_hiearchy_name(
+        db, name="test_hier", species_id=species_id, created_by_id=person_id
+    )
     brain_region_ids = [
         utils.create_brain_region(
             db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
@@ -1046,16 +1054,16 @@ def faceted_memodels(db: Session, client: TestClient, agents: tuple[Agent, Agent
 
     memodels = []
 
-    for i, (species_id, brain_region_id, morphology_id, emodel_id) in enumerate(
+    for i, (local_species_id, brain_region_id, morphology_id, emodel_id) in enumerate(
         it.product(species_ids, brain_region_ids, morphology_ids, emodel_ids)
     ):
         memodel = add_db(
             db,
             MEModel(
                 name=f"m-{i}",
-                description="foo" if species_id == species_ids[0] else "bar",
+                description="foo" if local_species_id == species_ids[0] else "bar",
                 brain_region_id=brain_region_id,
-                species_id=species_id,
+                species_id=local_species_id,
                 strain_id=None,
                 morphology_id=morphology_id,
                 emodel_id=emodel_id,

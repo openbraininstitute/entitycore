@@ -8,12 +8,12 @@ from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainRegionRead,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
     NameDescriptionMixin,
 )
+from app.schemas.brain_region import BrainRegionRead
 from app.schemas.cell_morphology import CellMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.ion_channel_model import IonChannelModelWAssets

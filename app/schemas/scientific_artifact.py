@@ -8,14 +8,13 @@ from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainRegionCreateMixin,
-    BrainRegionReadMixin,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
     LicenseCreateMixin,
     LicenseReadMixin,
 )
+from app.schemas.brain_region import BrainRegionCreateMixin, BrainRegionReadMixin
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.subject import SubjectCreateMixin, SubjectReadMixin
 

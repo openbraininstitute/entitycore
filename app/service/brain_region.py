@@ -46,7 +46,7 @@ def read_many(
         facets=None,
         aliases=None,
         apply_filter_query_operations=None,
-        apply_data_query_operations=None, #_load,
+        apply_data_query_operations=None,  # _load,
         pagination_request=pagination_request,
         response_schema_class=BrainRegionReadFull,
         name_to_facet_query_params=None,

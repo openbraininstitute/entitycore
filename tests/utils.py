@@ -347,10 +347,18 @@ def assert_request(client_method, *, expected_status_code=200, context=None, **k
 
 
 def create_hiearchy_name(
-    db, name: str, created_by_id: uuid.UUID, updated_by_id: uuid.UUID | None = None
+    db,
+    *,
+    name: str,
+    species_id: uuid.UUID,
+    created_by_id: uuid.UUID,
+    updated_by_id: uuid.UUID | None = None,
 ):
     row = BrainRegionHierarchy(
-        name=name, created_by_id=created_by_id, updated_by_id=updated_by_id or created_by_id
+        name=name,
+        species_id=species_id,
+        created_by_id=created_by_id,
+        updated_by_id=updated_by_id or created_by_id,
     )
     return add_db(db, row)
 

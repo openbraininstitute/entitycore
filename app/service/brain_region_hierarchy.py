@@ -124,7 +124,7 @@ def read_hierarchy(
     if id_ in HIERARCHY_CACHE:
         return HIERARCHY_CACHE[id_]
 
-    query = sa.select(BrainRegion).filter(BrainRegion.id == id_)
+    query = sa.select(BrainRegion).filter(BrainRegion.hierarchy_id == id_)
 
     data = db.execute(query).scalars().fetchall()
 

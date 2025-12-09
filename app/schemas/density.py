@@ -9,7 +9,6 @@ from app.schemas.asset import AssetRead
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainRegionRead,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
@@ -17,6 +16,7 @@ from app.schemas.base import (
     LicensedReadMixin,
     NameDescriptionMixin,
 )
+from app.schemas.brain_region import BrainRegionRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.subject import SubjectReadMixin
 from app.schemas.utils import make_update_schema

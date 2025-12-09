@@ -286,6 +286,26 @@ class BrainRegion(EmbeddingMixin, Identifiable):
         ForeignKey("brain_region_hierarchy.id"), index=True
     )
 
+    species = relationship(
+        "Species",
+        secondary=BrainRegionHierarchy.__table__,
+        primaryjoin="BrainRegion.hierarchy_id == BrainRegionHierarchy.id",
+        secondaryjoin="BrainRegionHierarchy.species_id == Species.id",
+        viewonly=True,
+        uselist=False,
+        lazy="joined",
+    )
+
+    strain = relationship(
+        "Strain",
+        secondary=BrainRegionHierarchy.__table__,
+        primaryjoin="BrainRegion.hierarchy_id == BrainRegionHierarchy.id",
+        secondaryjoin="BrainRegionHierarchy.strain_id == Strain.id",
+        viewonly=True,
+        uselist=False,
+        lazy="joined",
+    )
+
 
 class Agent(LegacyMixin, Identifiable):
     __tablename__ = "agent"

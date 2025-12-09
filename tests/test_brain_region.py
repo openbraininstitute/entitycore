@@ -173,14 +173,40 @@ def test_delete_one(db, clients, json_data):
     )
 
 
-def test_brain_region_id(db, client, client_admin, person_id):
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy", created_by_id=person_id)
+def test_brain_region_id(db, client, client_admin, person_id, species_id):
+    hierarchy_name = utils.create_hiearchy_name(
+        db, name="test_hierarchy", species_id=species_id, created_by_id=person_id
+    )
     utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
     response = client.get(ROUTE)
     assert response.status_code == 200
     response = response.json()
     assert len(response["data"]) == 4
+    species = {
+        "created_by": {
+            "family_name": None,
+            "given_name": None,
+            "id": ANY,
+            "pref_label": "Admin User",
+            "sub_id": "00000000-0000-0000-0000-000000000000",
+            "type": "person",
+        },
+        "creation_date": ANY,
+        "id": ANY,
+        "name": "Test Species",
+        "taxonomy_id": "12345",
+        "update_date": ANY,
+        "updated_by": {
+            "family_name": None,
+            "given_name": None,
+            "id": ANY,
+            "pref_label": "Admin User",
+            "sub_id": "00000000-0000-0000-0000-000000000000",
+            "type": "person",
+        },
+    }
+
     assert response["data"] == [
         {
             "acronym": "grey",
@@ -192,6 +218,8 @@ def test_brain_region_id(db, client, client_admin, person_id):
             "name": "Basic cell groups and regions",
             "parent_structure_id": ANY,
             "update_date": ANY,
+            "species": species,
+            "strain": None,
         },
         {
             "acronym": "blue",
@@ -203,6 +231,8 @@ def test_brain_region_id(db, client, client_admin, person_id):
             "name": "BlueRegion",
             "parent_structure_id": ANY,
             "update_date": ANY,
+            "species": species,
+            "strain": None,
         },
         {
             "acronym": "red",
@@ -214,6 +244,8 @@ def test_brain_region_id(db, client, client_admin, person_id):
             "name": "RedRegion",
             "parent_structure_id": ANY,
             "update_date": ANY,
+            "species": species,
+            "strain": None,
         },
         {
             "acronym": "root",
@@ -225,6 +257,8 @@ def test_brain_region_id(db, client, client_admin, person_id):
             "name": "root",
             "parent_structure_id": None,
             "update_date": ANY,
+            "species": species,
+            "strain": None,
         },
     ]
 
@@ -253,11 +287,15 @@ def test_brain_region_id(db, client, client_admin, person_id):
     assert len(data) == 4  # semantic search just reorders - it does not filter out
 
 
-def test_family_queries(db, client, subject_id, person_id):
-    hierarchy_name0 = utils.create_hiearchy_name(db, "hier0", created_by_id=person_id)
+def test_family_queries(db, client, subject_id, person_id, species_id):
+    hierarchy_name0 = utils.create_hiearchy_name(
+        db, name="hier0", species_id=species_id, created_by_id=person_id
+    )
     brain_regions0 = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name0.id)
 
-    hierarchy_name1 = utils.create_hiearchy_name(db, "hier1", created_by_id=person_id)
+    hierarchy_name1 = utils.create_hiearchy_name(
+        db, name="hier1", species_id=species_id, created_by_id=person_id
+    )
     brain_regions1 = utils.add_brain_region_hierarchy(db, SEARCH_HIERARCHY, hierarchy_name1.id)
 
     for acronym, row in it.chain(brain_regions0.items(), brain_regions1.items()):

@@ -17,9 +17,10 @@ ADMIN_ROUTE = "/admin/brain-region-hierarchy"
 
 
 @pytest.fixture
-def json_data():
+def json_data(species_id):
     return {
         "name": "my-hierarchy",
+        "species_id": species_id,
     }
 
 
@@ -95,12 +96,12 @@ def test_hierarchy_tree(db, client, brain_region_hierarchy_id):
     compare_hier(test_brain_region.HIERARCHY, data)
 
 
-def test_create(client, client_admin):
+def test_create(client, client_admin, species_id):
     count = 3
     items = []
     for i in range(count):
         name = f"Test brain-region-hierarchy {i}"
-        response = client_admin.post(ROUTE, json={"name": name})
+        response = client_admin.post(ROUTE, json={"name": name, "species_id": species_id})
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == name

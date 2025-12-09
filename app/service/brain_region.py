@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload
 
 import app.queries.common
-from app.db.model import BrainRegion, BrainRegionHierarchy
+from app.db.model import BrainRegion
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -18,9 +18,8 @@ from app.utils.embedding import generate_embedding
 
 def _load(select: sa.Select):
     return select.options(
-        joinedload(BrainRegion.hierarchy_id).options(
-            joinedload(BrainRegionHierarchy.species), joinedload(BrainRegionHierarchy.strain)
-        ),
+        joinedload(BrainRegion.species),
+        joinedload(BrainRegion.strain),
         raiseload("*"),
     )
 
@@ -46,7 +45,7 @@ def read_many(
         facets=None,
         aliases=None,
         apply_filter_query_operations=None,
-        apply_data_query_operations=None,  # _load,
+        apply_data_query_operations=_load,
         pagination_request=pagination_request,
         response_schema_class=BrainRegionReadFull,
         name_to_facet_query_params=None,
@@ -80,6 +79,7 @@ def create_one(
         user_context=user_context,
         json_model=json_model,
         response_schema_class=BrainRegionReadFull,
+        apply_operations=_load,
         embedding=embedding,
     )
 

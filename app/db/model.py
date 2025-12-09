@@ -293,7 +293,7 @@ class BrainRegion(EmbeddingMixin, Identifiable):
         secondaryjoin="BrainRegionHierarchy.species_id == Species.id",
         viewonly=True,
         uselist=False,
-        lazy="joined",
+        lazy="raise",
     )
 
     strain = relationship(
@@ -303,7 +303,7 @@ class BrainRegion(EmbeddingMixin, Identifiable):
         secondaryjoin="BrainRegionHierarchy.strain_id == Strain.id",
         viewonly=True,
         uselist=False,
-        lazy="joined",
+        lazy="raise",
     )
 
 

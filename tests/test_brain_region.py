@@ -184,27 +184,9 @@ def test_brain_region_id(db, client, client_admin, person_id, species_id):
     response = response.json()
     assert len(response["data"]) == 4
     species = {
-        "created_by": {
-            "family_name": None,
-            "given_name": None,
-            "id": ANY,
-            "pref_label": "Admin User",
-            "sub_id": "00000000-0000-0000-0000-000000000000",
-            "type": "person",
-        },
-        "creation_date": ANY,
         "id": ANY,
         "name": "Test Species",
         "taxonomy_id": "12345",
-        "update_date": ANY,
-        "updated_by": {
-            "family_name": None,
-            "given_name": None,
-            "id": ANY,
-            "pref_label": "Admin User",
-            "sub_id": "00000000-0000-0000-0000-000000000000",
-            "type": "person",
-        },
     }
 
     assert response["data"] == [

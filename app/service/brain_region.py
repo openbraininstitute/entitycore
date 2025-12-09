@@ -57,7 +57,7 @@ def read_many(
 def read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionReadFull:
     with ensure_result(error_message="Brain region not found"):
         stmt = sa.select(BrainRegion).filter(BrainRegion.id == id_)
-        row = db.execute(stmt).scalar_one()
+        row = db.execute(_load(stmt)).scalar_one()
     return BrainRegionReadFull.model_validate(row)
 
 
@@ -97,6 +97,7 @@ def update_one(
         user_context=None,
         json_model=json_model,
         response_schema_class=BrainRegionReadFull,
+        apply_operations=_load,
     )
 
 
@@ -112,6 +113,7 @@ def admin_update_one(
         user_context=None,
         json_model=json_model,
         response_schema_class=BrainRegionReadFull,
+        apply_operations=_load,
     )
 
 

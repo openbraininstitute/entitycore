@@ -3,7 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.base import CreationMixin, IdentifiableMixin, make_update_schema
-from app.schemas.species import SpeciesRead, StrainRead
+from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 
 
 class BrainRegionBase(BaseModel):
@@ -22,8 +22,8 @@ class BrainRegionRead(BrainRegionBase, IdentifiableMixin, CreationMixin):
 
 
 class BrainRegionReadFull(BrainRegionRead):
-    species: SpeciesRead
-    strain: StrainRead | None = None
+    species: NestedSpeciesRead
+    strain: NestedStrainRead | None = None
 
 
 class BrainRegionCreate(BrainRegionBase):

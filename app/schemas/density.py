@@ -16,7 +16,7 @@ from app.schemas.base import (
     LicensedReadMixin,
     NameDescriptionMixin,
 )
-from app.schemas.brain_region import BrainRegionRead
+from app.schemas.brain_region import BrainRegionReadMixin, BrainRegionReadNested
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.subject import SubjectReadMixin
 from app.schemas.utils import make_update_schema
@@ -60,10 +60,10 @@ class ExperimentalDensityRead(
     CreatedByUpdatedByMixin,
     ContributionReadWithoutEntityMixin,
     SubjectReadMixin,
+    BrainRegionReadMixin,
 ):
     measurements: list[MeasurementRecordRead]
     assets: list[AssetRead]
-    brain_region: BrainRegionRead
 
 
 class ExperimentalNeuronDensityCreate(ExperimentalDensityCreate):
@@ -124,5 +124,5 @@ class ExperimentalBoutonDensityRead(ExperimentalDensityRead):
 class ExperimentalSynapsesPerConnectionRead(ExperimentalDensityRead):
     pre_mtype: MTypeClassRead
     post_mtype: MTypeClassRead
-    pre_region: BrainRegionRead
-    post_region: BrainRegionRead
+    pre_region: BrainRegionReadNested
+    post_region: BrainRegionReadNested

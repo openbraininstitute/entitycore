@@ -13,7 +13,7 @@ from app.schemas.base import (
     IdentifiableMixin,
     NameDescriptionMixin,
 )
-from app.schemas.brain_region import BrainRegionRead
+from app.schemas.brain_region import BrainRegionReadMixin
 from app.schemas.cell_morphology import CellMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.ion_channel_model import IonChannelModelWAssets
@@ -55,11 +55,11 @@ class EModelRead(
     AssetsMixin,
     CreatedByUpdatedByMixin,
     ContributionReadWithoutEntityMixin,
+    BrainRegionReadMixin,
 ):
     id: uuid.UUID
     species: NestedSpeciesRead
     strain: NestedStrainRead | None
-    brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology

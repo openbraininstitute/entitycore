@@ -93,12 +93,12 @@ def upload_entity_asset(
 ) -> AssetRead:
     """Upload an asset to be associated with the specified entity.
 
-    To be used only for small files. Use delegation for big files.
+    To be used only for small files.
     """
     storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
     s3_client = storage_client_factory(storage)
-    if not file.size or not validate_filesize(file.size):
-        msg = f"File bigger than {settings.API_ASSET_POST_MAX_SIZE}, please use delegation"
+    if file.size and not validate_filesize(file.size):
+        msg = f"File not allowed because empty or bigger than {settings.API_ASSET_POST_MAX_SIZE}"
         raise ApiError(
             message=msg,
             error_code=ApiErrorCode.ASSET_INVALID_FILE,
@@ -134,7 +134,7 @@ def upload_entity_asset(
         entity_id=entity_id,
         filename=file.filename,
         content_type=content_type,
-        size=file.size,
+        size=file.size or 0,
         sha256_digest=sha256_digest,
         meta=meta,
         label=label,

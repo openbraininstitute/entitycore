@@ -1,21 +1,35 @@
 import pytest
 
-from app.db.model import Circuit
-from app.db.types import CircuitBuildCategory, CircuitScale, EntityType
+from app.db.model import (
+    Circuit,
+    ExternalUrl,
+    Publication,
+    ScientificArtifactExternalUrlLink,
+    ScientificArtifactPublicationLink,
+)
+from app.db.types import (
+    CircuitBuildCategory,
+    CircuitScale,
+    EntityType,
+    ExternalSource,
+    PublicationType,
+)
 
 from .utils import (
     PROJECT_ID,
     add_all_db,
+    add_db,
     assert_request,
     check_authorization,
     check_creation_fields,
+    check_deletion_cascades,
     check_entity_delete_one,
     check_entity_update_one,
     check_missing,
     check_pagination,
 )
 
-ROUTE = "circuit"
+ROUTE = "/circuit"
 ADMIN_ROUTE = "/admin/circuit"
 
 
@@ -95,6 +109,82 @@ def test_delete_one(db, clients, root_circuit_json_data):
         },
         expected_counts_after={
             Circuit: 0,
+        },
+    )
+
+
+@pytest.fixture
+def entity_id_cascades(db, root_circuit_json_data, person_id):
+    entity_id = add_db(
+        db,
+        Circuit(
+            **root_circuit_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    ).id
+    external_url_id = add_db(
+        db,
+        ExternalUrl(
+            name="url",
+            source=ExternalSource.channelpedia,
+            url="https://foo.bar",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    ).id
+    add_db(
+        db,
+        ScientificArtifactExternalUrlLink(
+            scientific_artifact_id=entity_id,
+            external_url_id=external_url_id,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    publication_id = add_db(
+        db,
+        Publication(
+            DOI="foo",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    ).id
+    add_db(
+        db,
+        ScientificArtifactPublicationLink(
+            scientific_artifact_id=entity_id,
+            publication_id=publication_id,
+            publication_type=PublicationType.entity_source,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+    return entity_id
+
+
+def test_deletion_cascades(db, clients, entity_id_cascades):
+    check_deletion_cascades(
+        db=db,
+        route=ROUTE,
+        clients=clients,
+        entity_id=entity_id_cascades,
+        expected_counts_before={
+            Circuit: 1,
+            ExternalUrl: 1,
+            Publication: 1,
+            ScientificArtifactExternalUrlLink: 1,
+            ScientificArtifactPublicationLink: 1,
+        },
+        expected_counts_after={
+            Circuit: 0,
+            ExternalUrl: 1,
+            Publication: 1,
+            ScientificArtifactExternalUrlLink: 0,
+            ScientificArtifactPublicationLink: 0,
         },
     )
 

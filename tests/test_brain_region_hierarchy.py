@@ -4,7 +4,7 @@ import pytest
 
 from app.db.model import BrainRegionHierarchy
 
-from .utils import check_creation_fields
+from .utils import check_creation_fields, assert_request
 from tests import test_brain_region, utils
 from tests.utils import (
     check_global_delete_one,
@@ -46,6 +46,15 @@ def test_brain_region_hierarchy(client, brain_region_hierarchy_id):
     assert data[0]["name"] == "AIBS"
     assert data[0]["id"] == str(brain_region_hierarchy_id)
     utils.check_creation_fields(data[0])
+
+    response = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"with_facets": True},
+    )
+    response_json = response.json()
+    assert "facets" in response_json
+
 
 
 def test_missing(client):

@@ -1,10 +1,11 @@
 import operator
+from unittest.mock import ANY
 
 import pytest
 
 from app.db.model import BrainRegionHierarchy
 
-from .utils import check_creation_fields, assert_request
+from .utils import assert_request, check_creation_fields
 from tests import test_brain_region, utils
 from tests.utils import (
     check_global_delete_one,
@@ -54,7 +55,11 @@ def test_brain_region_hierarchy(client, brain_region_hierarchy_id):
     )
     response_json = response.json()
     assert "facets" in response_json
-
+    assert response_json["facets"] == {
+        "species": [{"count": 1, "id": ANY, "label": "Test Species", "type": "species"}],
+        "strain": [],
+    }
+    assert response_json["pagination"] == {"page": 1, "page_size": 100, "total_items": 1}
 
 
 def test_missing(client):

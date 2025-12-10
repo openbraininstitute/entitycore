@@ -10,10 +10,7 @@ from sqlalchemy.orm import joinedload, raiseload
 import app.queries.common
 from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.dependencies.auth import AdminContextDep
-from app.dependencies.common import (
-    FacetsDep,
-    PaginationQuery,
-)
+from app.dependencies.common import FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.brain_region_hierarchy import BrainRegionHierarchyFilterDep
 from app.queries.factory import query_params_factory
@@ -64,7 +61,7 @@ def read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=facets,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,

@@ -23,6 +23,8 @@ from app.schemas.types import ListResponse
 
 def _load(query: sa.Select):
     return query.options(
+        joinedload(BrainRegionHierarchy.species),
+        joinedload(BrainRegionHierarchy.strain),
         joinedload(BrainRegionHierarchy.created_by),
         joinedload(BrainRegionHierarchy.updated_by),
         raiseload("*"),
@@ -80,6 +82,7 @@ def create_one(
         user_context=user_context,
         json_model=json_model,
         response_schema_class=BrainRegionHierarchyRead,
+        apply_operations=_load,
     )
 
 
@@ -96,6 +99,7 @@ def update_one(
         user_context=None,
         json_model=json_model,
         response_schema_class=BrainRegionHierarchyRead,
+        apply_operations=_load,
     )
 
 

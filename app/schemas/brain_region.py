@@ -17,11 +17,11 @@ class BrainRegionBase(BaseModel):
     hierarchy_id: uuid.UUID
 
 
-class BrainRegionReadNested(BrainRegionBase, IdentifiableMixin, CreationMixin):
+class NestedBrainRegionRead(BrainRegionBase, IdentifiableMixin):
     pass
 
 
-class BrainRegionRead(BrainRegionReadNested):
+class BrainRegionRead(NestedBrainRegionRead, CreationMixin):
     species: NestedSpeciesRead
     strain: NestedStrainRead | None = None
 
@@ -44,4 +44,4 @@ class BrainRegionCreateMixin(BaseModel):
 
 class BrainRegionReadMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    brain_region: BrainRegionReadNested
+    brain_region: NestedBrainRegionRead

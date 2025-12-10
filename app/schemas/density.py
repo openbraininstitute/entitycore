@@ -16,7 +16,7 @@ from app.schemas.base import (
     LicensedReadMixin,
     NameDescriptionMixin,
 )
-from app.schemas.brain_region import BrainRegionReadMixin, BrainRegionReadNested
+from app.schemas.brain_region import BrainRegionReadMixin, NestedBrainRegionRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.subject import SubjectReadMixin
 from app.schemas.utils import make_update_schema
@@ -124,5 +124,5 @@ class ExperimentalBoutonDensityRead(ExperimentalDensityRead):
 class ExperimentalSynapsesPerConnectionRead(ExperimentalDensityRead):
     pre_mtype: MTypeClassRead
     post_mtype: MTypeClassRead
-    pre_region: BrainRegionReadNested
-    post_region: BrainRegionReadNested
+    pre_region: NestedBrainRegionRead
+    post_region: NestedBrainRegionRead

@@ -433,6 +433,7 @@ class AssetLabel(StrEnum):
 class LabelRequirements(BaseModel):
     content_type: ContentType | None
     is_directory: bool
+    description: str = ""
 
 
 CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
@@ -467,213 +468,459 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType, dict[AssetLabel, list[LabelRequirements]] | None
-] = dict.fromkeys(EntityType) | {
+] = {
     EntityType.analysis_notebook_template: {
         AssetLabel.jupyter_notebook: [
-            LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.ipynb,
+                is_directory=False,
+                description="Jupyter notebook file.",
+            )
         ],
         AssetLabel.notebook_required_files: [
-            LabelRequirements(content_type=ContentType.zip, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.zip,
+                is_directory=False,
+                description=(
+                    "Optional archive for additional required files not available as entities."
+                ),
+            )
         ],
         AssetLabel.requirements: [
-            LabelRequirements(content_type=ContentType.text, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.text,
+                is_directory=False,
+                description="requirements.txt file with the required packages, frozen if possible.",
+            )
         ],
     },
     EntityType.analysis_notebook_environment: {
         AssetLabel.requirements: [
-            LabelRequirements(content_type=ContentType.text, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.text,
+                is_directory=False,
+                description="requirements.txt file with the frozen packages.",
+            )
         ],
     },
     EntityType.analysis_notebook_result: {
         AssetLabel.jupyter_notebook: [
-            LabelRequirements(content_type=ContentType.ipynb, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.ipynb,
+                is_directory=False,
+                description="Jupyter notebook file.",
+            )
         ],
         AssetLabel.notebook_required_files: [
-            LabelRequirements(content_type=ContentType.zip, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.zip,
+                is_directory=False,
+                description=(
+                    "Optional archive for additional required files not available as entities."
+                ),
+            )
         ],
     },
     EntityType.brain_atlas: {
         AssetLabel.brain_atlas_annotation: [
-            LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.nrrd,
+                is_directory=False,
+                description="Brain atlas annotation nrrd volume.",
+            )
         ],
     },
     EntityType.brain_atlas_region: {
         AssetLabel.brain_atlas_region_mesh: [
-            LabelRequirements(content_type=ContentType.obj, is_directory=False),
-            LabelRequirements(content_type=ContentType.gltf_binary, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.obj,
+                is_directory=False,
+                description="Brain atlas region mesh geometry object.",
+            ),
+            LabelRequirements(
+                content_type=ContentType.gltf_binary,
+                is_directory=False,
+                description="FIXME",
+            ),
         ],
     },
     EntityType.cell_composition: {
         AssetLabel.cell_composition_summary: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Region/mtype/etype densities summary.",
+            )
         ],
         AssetLabel.cell_composition_volumes: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="mtype/etype voxel densities composition.",
+            )
         ],
     },
     EntityType.circuit: {
         AssetLabel.sonata_circuit: [
-            LabelRequirements(content_type=None, is_directory=True),
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "SONATA circuit, but have a circuit_config.json in the root of the directory."
+                ),
+            ),
         ],
         AssetLabel.compressed_sonata_circuit: [
-            LabelRequirements(content_type=ContentType.gzip, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.gzip,
+                is_directory=False,
+                description="Compressed SONATA circuit in GZIP format.",
+            ),
         ],
         AssetLabel.circuit_figures: [
-            LabelRequirements(content_type=None, is_directory=True),
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "Circuit figures with a figure_config.json in the root of the directory."
+                ),
+            ),
         ],
         AssetLabel.circuit_analysis_data: [
-            LabelRequirements(content_type=None, is_directory=True),
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "Circuit analysis data with an analysis_config.json "
+                    "in the root of the directory."
+                ),
+            ),
         ],
         AssetLabel.circuit_connectivity_matrices: [
-            LabelRequirements(content_type=None, is_directory=True),
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description=(
+                    "Connectivity matrices in ConnectomeUtilities format, "
+                    "with a matrix_config.json in the root of the directory."
+                ),
+            ),
         ],
         AssetLabel.simulation_designer_image: [
-            LabelRequirements(content_type=ContentType.png, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.png,
+                is_directory=False,
+                description="Circuit image used by simulation designer GUI",
+            )
         ],
         AssetLabel.circuit_visualization: [
-            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.webp,
+                is_directory=False,
+                description="Circuit visualization image",
+            )
         ],
         AssetLabel.node_stats: [
-            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.webp,
+                is_directory=False,
+                description="Circuit node statistics image.",
+            )
         ],
         AssetLabel.network_stats_a: [
-            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.webp,
+                is_directory=False,
+                description="Circuit network statistics image a",
+            )
         ],
         AssetLabel.network_stats_b: [
-            LabelRequirements(content_type=ContentType.webp, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.webp,
+                is_directory=False,
+                description="Circuit network statistics image b",
+            )
         ],
     },
     EntityType.electrical_cell_recording: {
         AssetLabel.nwb: [
-            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="Electrophysiological timeseries data",
+            ),
         ]
     },
     EntityType.emodel: {
         AssetLabel.emodel_optimization_output: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description=(
+                    "Electrical model optimized parameters, and electrical feature: "
+                    "values and scores."
+                ),
+            )
         ],
         AssetLabel.neuron_hoc: [
-            LabelRequirements(content_type=ContentType.hoc, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.hoc,
+                is_directory=False,
+                description="Electrical model NEURON template",
+            )
         ],
     },
     EntityType.ion_channel_model: {
         AssetLabel.neuron_mechanisms: [
-            LabelRequirements(content_type=ContentType.mod, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.mod,
+                is_directory=False,
+                description="Ionic mechanisms file",
+            )
         ],
         AssetLabel.ion_channel_model_figure: [
-            LabelRequirements(content_type=ContentType.pdf, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.pdf,
+                is_directory=False,
+                description="FIXME",
+            )
         ],
         AssetLabel.ion_channel_model_thumbnail: [
-            LabelRequirements(content_type=ContentType.png, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.png,
+                is_directory=False,
+                description="FIXME",
+            )
         ],
         AssetLabel.ion_channel_model_figure_summary_json: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="FIXME",
+            )
         ],
     },
     EntityType.ion_channel_modeling_config: {
         AssetLabel.ion_channel_modeling_generation_config: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="FIXME",
+            )
         ],
     },
     EntityType.ion_channel_modeling_campaign: {
         AssetLabel.campaign_generation_config: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="FIXME",
+            )
         ],
         AssetLabel.campaign_summary: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="FIXME",
+            )
         ],
     },
     EntityType.ion_channel_recording: {
         AssetLabel.nwb: [
-            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="FIXME",
+            ),
         ]
     },
     EntityType.me_type_density: {
         AssetLabel.voxel_densities: [
-            LabelRequirements(content_type=ContentType.nrrd, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.nrrd,
+                is_directory=False,
+                description="Morpho-electric cell voxel densities",
+            )
         ],
     },
     EntityType.cell_morphology: {
         AssetLabel.morphology: [
-            LabelRequirements(content_type=ContentType.asc, is_directory=False),
-            LabelRequirements(content_type=ContentType.swc, is_directory=False),
-            LabelRequirements(content_type=ContentType.h5, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.asc,
+                is_directory=False,
+                description="Morphology in Neurolucida ASCII format",
+            ),
+            LabelRequirements(
+                content_type=ContentType.swc,
+                is_directory=False,
+                description="Morphology in SWC format",
+            ),
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="Morphology in HDF5 format",
+            ),
         ],
         AssetLabel.morphology_with_spines: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="FIXME",
+            ),
         ],
     },
     EntityType.simulation: {
         AssetLabel.custom_node_sets: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Node set groups for regions, mtypes, etc.",
+            )
         ],
         AssetLabel.replay_spikes: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="FIXME",
+            )
         ],
         AssetLabel.simulation_generation_config: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="FIXME",
+            )
         ],
         AssetLabel.sonata_simulation_config: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Simulation SONATA configuration",
+            )
         ],
     },
     EntityType.simulation_campaign: {
         AssetLabel.campaign_generation_config: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Campaign configuration",
+            )
         ],
         AssetLabel.campaign_summary: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Summary of generated campaign listing all created simulation configs",
+            )
         ],
     },
     EntityType.simulation_result: {
         AssetLabel.spike_report: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="Simulation spikes report",
+            )
         ],
         AssetLabel.voltage_report: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False),
-            LabelRequirements(content_type=ContentType.nwb, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="Simulation voltage report",
+            ),
+            LabelRequirements(
+                content_type=ContentType.nwb,
+                is_directory=False,
+                description="Simulation voltage report in NWB format",
+            ),
         ],
     },
     EntityType.single_neuron_synaptome: {
         AssetLabel.single_neuron_synaptome_config: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="single neuron synaptome configuration",
+            )
         ]
     },
     EntityType.single_neuron_synaptome_simulation: {
         AssetLabel.single_neuron_synaptome_simulation_data: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description=(
+                    "single neuron synaptome simulation configuration and timeseries output"
+                ),
+            )
         ]
     },
     EntityType.single_neuron_simulation: {
         AssetLabel.single_neuron_simulation_data: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="single neuron simulation configuration and timeseries output",
+            )
         ]
     },
     EntityType.validation_result: {
         AssetLabel.validation_result_figure: [
-            LabelRequirements(content_type=ContentType.pdf, is_directory=False),
-            LabelRequirements(content_type=ContentType.png, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.pdf,
+                is_directory=False,
+                description="Validation result figure, pdf",
+            ),
+            LabelRequirements(
+                content_type=ContentType.png,
+                is_directory=False,
+                description="Validation result figure, png (legacy)",
+            ),
         ],
         AssetLabel.validation_result_details: [
-            LabelRequirements(content_type=ContentType.text, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.text,
+                is_directory=False,
+                description="Log and details about the validation execution.",
+            )
         ],
     },
     EntityType.em_cell_mesh: {
         AssetLabel.cell_surface_mesh: [
-            LabelRequirements(content_type=ContentType.h5, is_directory=False),
-            LabelRequirements(content_type=ContentType.obj, is_directory=False),
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="a triangle mesh describing the surface of a cell in h5 format",
+            ),
+            LabelRequirements(
+                content_type=ContentType.obj,
+                is_directory=False,
+                description="a triangle mesh describing the surface of a cell in obj format.",
+            ),
         ]
     },
     EntityType.circuit_extraction_campaign: {
         AssetLabel.campaign_generation_config: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Circuit extraction campaign configuration",
+            )
         ],
     },
     EntityType.circuit_extraction_config: {
         AssetLabel.circuit_extraction_config: [
-            LabelRequirements(content_type=ContentType.json, is_directory=False)
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Single circuit extraction configuration",
+            )
         ],
     },
+}
+ALLOWED_ASSET_LABELS_PER_ENTITY |= {
+    k: None for k in EntityType if k not in ALLOWED_ASSET_LABELS_PER_ENTITY
 }
 
 

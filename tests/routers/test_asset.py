@@ -4,7 +4,7 @@ from unittest.mock import ANY, patch
 import pytest
 from moto import mock_aws
 
-from app.config import storages
+from app.config import settings, storages
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, EntityType, StorageType
 from app.errors import ApiErrorCode
@@ -120,7 +120,7 @@ def asset_directory(db, root_circuit, person_id) -> Asset:
     return asset
 
 
-def test_upload_entity_asset(client, entity):
+def test_upload_entity_asset(client, entity, monkeypatch):
     response = _upload_entity_asset(
         client,
         entity_type=entity.type,
@@ -199,6 +199,7 @@ def test_upload_entity_asset(client, entity):
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
 
+    # try to upload a file w/ an invalid content type
     response = _upload_entity_asset(
         client,
         entity_type=entity.type,
@@ -238,6 +239,23 @@ def test_upload_entity_asset(client, entity):
         "label": "morphology",
         "storage_type": StorageType.aws_s3_internal,
     }
+
+    # try to upload a file too big
+    with monkeypatch.context() as m:
+        m.setattr(settings, "API_ASSET_POST_MAX_SIZE", 1)
+        response = _upload_entity_asset(
+            client,
+            entity_type=entity.type,
+            entity_id=entity.id,
+            label="morphology",
+            file_upload_name="big_morph.asc",
+            content_type="application/asc",
+        )
+        assert response.status_code == 422, (
+            f"Asset creation didn't fail as expected: {response.text}"
+        )
+        error = ErrorResponse.model_validate(response.json())
+        assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
 
 
 @pytest.mark.parametrize(

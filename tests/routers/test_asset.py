@@ -4,7 +4,7 @@ from unittest.mock import ANY, patch
 import pytest
 from moto import mock_aws
 
-from app.config import storages
+from app.config import settings, storages
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, EntityType, StorageType
 from app.errors import ApiErrorCode
@@ -29,6 +29,10 @@ DIFFERENT_ENTITY_TYPE = "experimental_bouton_density"
 FILE_EXAMPLE_PATH = TEST_DATA_DIR / "example.json"
 FILE_EXAMPLE_DIGEST = "a8124f083a58b9a8ff80cb327dd6895a10d0bc92bb918506da0c9c75906d3f91"
 FILE_EXAMPLE_SIZE = 31
+
+EMPTY_FILE_PATH = TEST_DATA_DIR / "empty.txt"
+EMPTY_FILE_DIGEST = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+EMPTY_FILE_SIZE = 0
 
 
 def _get_expected_full_path(entity, path):
@@ -55,9 +59,16 @@ def entity(client, subject_id, brain_region_id) -> Entity:
 
 
 def _upload_entity_asset(
-    client, entity_type, entity_id, label, file_upload_name, content_type, expected_status=None
+    client,
+    entity_type,
+    entity_id,
+    label,
+    file_upload_name,
+    content_type,
+    expected_status=None,
+    filepath=FILE_EXAMPLE_PATH,
 ):
-    with FILE_EXAMPLE_PATH.open("rb") as f:
+    with filepath.open("rb") as f:
         files = {
             # (filename, file (or bytes), content_type, headers)
             "file": (file_upload_name, f, content_type)
@@ -109,7 +120,7 @@ def asset_directory(db, root_circuit, person_id) -> Asset:
     return asset
 
 
-def test_upload_entity_asset(client, entity):
+def test_upload_entity_asset(client, entity, monkeypatch):
     response = _upload_entity_asset(
         client,
         entity_type=entity.type,
@@ -188,6 +199,7 @@ def test_upload_entity_asset(client, entity):
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
 
+    # try to upload a file w/ an invalid content type
     response = _upload_entity_asset(
         client,
         entity_type=entity.type,
@@ -199,6 +211,51 @@ def test_upload_entity_asset(client, entity):
     assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
+
+    # upload an empty file
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="empty_morph.asc",
+        content_type="application/asc",
+        filepath=EMPTY_FILE_PATH,
+    )
+    assert response.status_code == 201, f"Failed to create asset: {response.text}"
+    data = response.json()
+
+    expected_full_path = _get_expected_full_path(entity, path="empty_morph.asc")
+    assert data == {
+        "id": ANY,
+        "path": "empty_morph.asc",
+        "full_path": expected_full_path,
+        "is_directory": False,
+        "content_type": "application/asc",
+        "size": EMPTY_FILE_SIZE,
+        "sha256_digest": EMPTY_FILE_DIGEST,
+        "meta": {},
+        "status": "created",
+        "label": "morphology",
+        "storage_type": StorageType.aws_s3_internal,
+    }
+
+    # try to upload a file too big
+    with monkeypatch.context() as m:
+        m.setattr(settings, "API_ASSET_POST_MAX_SIZE", 1)
+        response = _upload_entity_asset(
+            client,
+            entity_type=entity.type,
+            entity_id=entity.id,
+            label="morphology",
+            file_upload_name="big_morph.asc",
+            content_type="application/asc",
+        )
+        assert response.status_code == 422, (
+            f"Asset creation didn't fail as expected: {response.text}"
+        )
+        error = ErrorResponse.model_validate(response.json())
+        assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
 
 
 @pytest.mark.parametrize(

@@ -14,9 +14,11 @@ import httpx
 import sqlalchemy as sa
 from httpx import Headers
 from pydantic import TypeAdapter
+from sqlalchemy.orm import Session
 from starlette.testclient import TestClient
 
 from app.db.model import (
+    Agent,
     BrainRegion,
     BrainRegionHierarchy,
     CellMorphology,
@@ -33,6 +35,7 @@ from app.db.model import (
     MTypeClass,
     MTypeClassification,
     Person,
+    Role,
     SkeletonizationCampaign,
     SkeletonizationConfig,
     Species,
@@ -1563,3 +1566,27 @@ def check_activity_update_one__fail_if_generated_ids_exists(
         client.patch, url=f"{route}/{gen1}", json=update_json, expected_status_code=404
     ).json()
     assert data["details"] == "It is forbidden to update generated_ids if they exist."
+
+
+def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID):
+    agent_1, agent_2, role = agents
+    add_db(
+        db,
+        Contribution(
+            agent_id=agent_1.id,
+            role_id=role.id,
+            entity_id=entity_id,
+            created_by_id=agent_2.id,
+            updated_by_id=agent_2.id,
+        ),
+    )
+    add_db(
+        db,
+        Contribution(
+            agent_id=agent_2.id,
+            role_id=role.id,
+            entity_id=entity_id,
+            created_by_id=agent_2.id,
+            updated_by_id=agent_2.id,
+        ),
+    )

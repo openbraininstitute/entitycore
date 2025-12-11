@@ -17,7 +17,6 @@ from sqlalchemy.orm import Session
 from app.application import app
 from app.config import storages
 from app.db.model import (
-    Agent,
     AnalysisNotebookEnvironment,
     AnalysisNotebookResult,
     AnalysisNotebookTemplate,
@@ -25,7 +24,6 @@ from app.db.model import (
     BrainAtlas,
     CellMorphology,
     Circuit,
-    Contribution,
     EmbeddingMixin,
     EMCellMesh,
     EMDenseReconstructionDataset,
@@ -683,30 +681,6 @@ def agents(db: Session, person_id, custom_user_sub_id):
     return organization_1, person_1, role
 
 
-def add_contributions(db: Session, agents: tuple[Agent, Agent, Role], entity_id: uuid.UUID):
-    agent_1, agent_2, role = agents
-    add_db(
-        db,
-        Contribution(
-            agent_id=agent_1.id,
-            role_id=role.id,
-            entity_id=entity_id,
-            created_by_id=agent_2.id,
-            updated_by_id=agent_2.id,
-        ),
-    )
-    add_db(
-        db,
-        Contribution(
-            agent_id=agent_2.id,
-            role_id=role.id,
-            entity_id=entity_id,
-            created_by_id=agent_2.id,
-            updated_by_id=agent_2.id,
-        ),
-    )
-
-
 @pytest.fixture
 def create_emodel_ids(
     client, db, morphology_id, brain_region_id, species_id, strain_id, agents, person_id
@@ -731,7 +705,7 @@ def create_emodel_ids(
                 },
             ).json()["id"]
 
-            add_contributions(db, agents, emodel_id)
+            utils.add_contributions(db, agents, emodel_id)
 
             # create a unique etype for each emodel
             etype = add_db(
@@ -812,7 +786,7 @@ def create_memodel_ids(
                 ),
             ).id
 
-            add_contributions(db, agents, memodel_id)
+            utils.add_contributions(db, agents, memodel_id)
 
             emodel = db.get(EModel, emodel_id)
             morphology = db.get(CellMorphology, morphology_id)
@@ -997,94 +971,6 @@ def faceted_emodel_ids(db: Session, client, person_id, species_id, ion_channel_m
         species_ids=species_ids,
         brain_region_ids=brain_region_ids,
         morphology_ids=morphology_ids,
-    )
-
-
-@pytest.fixture
-def faceted_memodels(
-    db: Session, client: TestClient, species_id, agents: tuple[Agent, Agent, Role]
-):
-    person_id = agents[1].id
-
-    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
-
-    hierarchy_name = utils.create_hiearchy_name(
-        db, name="test_hier", species_id=species_id, created_by_id=person_id
-    )
-    brain_region_ids = [
-        utils.create_brain_region(
-            db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
-        ).id
-        for i in range(2)
-    ]
-
-    morphology_ids = [
-        str(
-            utils.create_cell_morphology_id(
-                client,
-                subject_id=subject_ids[i],
-                brain_region_id=brain_region_ids[i],
-                authorized_public=False,
-                name=f"test morphology {i}",
-            )
-        )
-        for i in range(2)
-    ]
-
-    emodel_ids = [
-        str(
-            add_db(
-                db,
-                EModel(
-                    name=f"{i}",
-                    brain_region_id=brain_region_ids[i],
-                    species_id=species_ids[i],
-                    exemplar_morphology_id=morphology_ids[i],
-                    authorized_public=False,
-                    authorized_project_id=PROJECT_ID,
-                    created_by_id=person_id,
-                    updated_by_id=person_id,
-                ),
-            ).id
-        )
-        for i in range(2)
-    ]
-
-    agent_ids = [str(agents[0].id), str(agents[1].id)]
-
-    memodels = []
-
-    for i, (local_species_id, brain_region_id, morphology_id, emodel_id) in enumerate(
-        it.product(species_ids, brain_region_ids, morphology_ids, emodel_ids)
-    ):
-        memodel = add_db(
-            db,
-            MEModel(
-                name=f"m-{i}",
-                description="foo" if local_species_id == species_ids[0] else "bar",
-                brain_region_id=brain_region_id,
-                species_id=local_species_id,
-                strain_id=None,
-                morphology_id=morphology_id,
-                emodel_id=emodel_id,
-                authorized_public=False,
-                authorized_project_id=PROJECT_ID,
-                created_by_id=person_id,
-                updated_by_id=person_id,
-            ),
-        )
-
-        add_contributions(db, agents, memodel.id)
-
-        memodels.append(memodel)
-
-    return MEModels(
-        memodels=memodels,
-        emodel_ids=emodel_ids,
-        morphology_ids=morphology_ids,
-        species_ids=species_ids,
-        brain_region_ids=brain_region_ids,
-        agent_ids=agent_ids,
     )
 
 

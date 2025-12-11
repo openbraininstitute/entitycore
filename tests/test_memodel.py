@@ -1,18 +1,23 @@
+import itertools as it
 import operator as op
 import uuid
 from unittest.mock import ANY
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from app.db.model import (
+    Agent,
     CellMorphology,
     EModel,
     MEModel,
+    Role,
 )
 from app.filters.memodel import MEModelFilter
 from app.schemas.me_model import MEModelRead
 
+from . import utils
 from .conftest import CreateIds, MEModels
 from .utils import (
     PROJECT_ID,
@@ -55,6 +60,94 @@ def public_json_data(
         "emodel_id": str(public_emodel_id),
         "authorized_public": False,
     }
+
+
+@pytest.fixture
+def faceted_memodels(
+    db: Session, client: TestClient, species_id, agents: tuple[Agent, Agent, Role]
+):
+    person_id = agents[1].id
+
+    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
+
+    hierarchy_name = utils.create_hiearchy_name(
+        db, name="test_hier", species_id=species_id, created_by_id=person_id
+    )
+    brain_region_ids = [
+        utils.create_brain_region(
+            db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
+        ).id
+        for i in range(2)
+    ]
+
+    morphology_ids = [
+        str(
+            utils.create_cell_morphology_id(
+                client,
+                subject_id=subject_ids[i],
+                brain_region_id=brain_region_ids[i],
+                authorized_public=False,
+                name=f"test morphology {i}",
+            )
+        )
+        for i in range(2)
+    ]
+
+    emodel_ids = [
+        str(
+            utils.add_db(
+                db,
+                EModel(
+                    name=f"{i}",
+                    brain_region_id=brain_region_ids[i],
+                    species_id=species_ids[i],
+                    exemplar_morphology_id=morphology_ids[i],
+                    authorized_public=False,
+                    authorized_project_id=PROJECT_ID,
+                    created_by_id=person_id,
+                    updated_by_id=person_id,
+                ),
+            ).id
+        )
+        for i in range(2)
+    ]
+
+    agent_ids = [str(agents[0].id), str(agents[1].id)]
+
+    memodels = []
+
+    for i, (local_species_id, brain_region_id, morphology_id, emodel_id) in enumerate(
+        it.product(species_ids, brain_region_ids, morphology_ids, emodel_ids)
+    ):
+        memodel = utils.add_db(
+            db,
+            MEModel(
+                name=f"m-{i}",
+                description="foo" if local_species_id == species_ids[0] else "bar",
+                brain_region_id=brain_region_id,
+                species_id=local_species_id,
+                strain_id=None,
+                morphology_id=morphology_id,
+                emodel_id=emodel_id,
+                authorized_public=False,
+                authorized_project_id=PROJECT_ID,
+                created_by_id=person_id,
+                updated_by_id=person_id,
+            ),
+        )
+
+        utils.add_contributions(db, agents, memodel.id)
+
+        memodels.append(memodel)
+
+    return MEModels(
+        memodels=memodels,
+        emodel_ids=emodel_ids,
+        morphology_ids=morphology_ids,
+        species_ids=species_ids,
+        brain_region_ids=brain_region_ids,
+        agent_ids=agent_ids,
+    )
 
 
 def test_update_one(clients, public_json_data):

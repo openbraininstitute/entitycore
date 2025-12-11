@@ -3,10 +3,12 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
-from app.db.model import EModel
+from app.db.model import EModel, IonChannelModelToEModel
 from app.db.types import EntityType
 
+from . import utils
 from .conftest import CreateIds, EModelIds
 from .utils import (
     TEST_DATA_DIR,
@@ -36,6 +38,76 @@ def json_data(species_id, strain_id, brain_region_id, morphology_id):
         "seed": -1,
         "exemplar_morphology_id": morphology_id,
     }
+
+
+@pytest.fixture
+def faceted_emodel_ids(db: Session, client, person_id, species_id, ion_channel_models):
+    subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
+
+    hierarchy_name = utils.create_hiearchy_name(
+        db, name="test_hier", species_id=species_id, created_by_id=person_id
+    )
+    brain_region_ids = [
+        utils.create_brain_region(
+            db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
+        ).id
+        for i in range(2)
+    ]
+
+    morphology_ids = [
+        str(
+            utils.create_cell_morphology_id(
+                client,
+                subject_id=subject_ids[i],
+                brain_region_id=brain_region_ids[i],
+                authorized_public=False,
+                name=f"test exemplar morphology {i}",
+            )
+        )
+        for i in range(2)
+    ]
+
+    emodel_ids = []
+    for i, (local_species_id, brain_region_id, morphology_id) in enumerate(
+        it.product(species_ids, brain_region_ids, morphology_ids)
+    ):
+        emodel_id = assert_request(
+            client.post,
+            url="/emodel",
+            json={
+                "name": f"e-{i}",
+                "brain_region_id": str(brain_region_id),
+                "description": f"emodel-desc-{i}",
+                "species_id": str(local_species_id),
+                "iteration": "test iteration",
+                "score": 10 * i,
+                "seed": -1,
+                "exemplar_morphology_id": str(morphology_id),
+                "authorized_public": False,
+                "created_by_id": str(person_id),
+                "updated_by_id": str(person_id),
+            },
+        ).json()["id"]
+
+        emodel_ids.append(str(emodel_id))
+
+    # associate emodel with ion_channel_model
+    for emodel_id in emodel_ids:
+        for ion_channel_model in ion_channel_models:
+            utils.add_db(
+                db,
+                IonChannelModelToEModel(
+                    ion_channel_model_id=ion_channel_model.id,
+                    emodel_id=emodel_id,
+                ),
+            )
+
+    return EModelIds(
+        emodel_ids=emodel_ids,
+        species_ids=species_ids,
+        brain_region_ids=brain_region_ids,
+        morphology_ids=morphology_ids,
+    )
 
 
 def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, json_data):

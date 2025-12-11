@@ -22,8 +22,55 @@ MODEL = SimulationCampaign
 
 
 @pytest.fixture
-def json_data(simulation_campaign_json_data):
-    return simulation_campaign_json_data
+def public_simulation_campaign_json_data(public_circuit):
+    return {
+        "name": "simulation-campaign",
+        "description": "simulation-campaign-description",
+        "scan_parameters": {"foo1": "bar2"},
+        "entity_id": str(public_circuit.id),
+    }
+
+
+@pytest.fixture
+def simulation_campaign(db, simulation_campaign_json_data, person_id):
+    return add_db(
+        db,
+        SimulationCampaign(
+            **simulation_campaign_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": False,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def public_simulation_campaign(db, public_simulation_campaign_json_data, person_id):
+    return add_db(
+        db,
+        SimulationCampaign(
+            **public_simulation_campaign_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": True,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
+
+
+@pytest.fixture
+def simulation_campaign_json_data(circuit):
+    return {
+        "name": "simulation-campaign",
+        "description": "simulation-campaign-description",
+        "scan_parameters": {"foo1": "bar2"},
+        "entity_id": str(circuit.id),
+    }
 
 
 @pytest.fixture
@@ -37,42 +84,44 @@ def model(simulation_campaign):
 
 
 @pytest.fixture
-def create_id(client, json_data):
+def create_id(client, simulation_campaign_json_data):
     def _create_id(**kwargs):
-        return assert_request(client.post, url=ROUTE, json=json_data | kwargs).json()["id"]
+        return assert_request(
+            client.post, url=ROUTE, json=simulation_campaign_json_data | kwargs
+        ).json()["id"]
 
     return _create_id
 
 
-def _assert_read_response(data, json_data):
+def _assert_read_response(data, simulation_campaign_json_data):
     assert "id" in data
     assert "authorized_public" in data
     assert "authorized_project_id" in data
     assert "assets" in data
-    assert data["name"] == json_data["name"]
-    assert data["description"] == json_data["description"]
+    assert data["name"] == simulation_campaign_json_data["name"]
+    assert data["description"] == simulation_campaign_json_data["description"]
     assert data["type"] == EntityType.simulation_campaign
     assert "simulations" in data
-    assert data["scan_parameters"] == json_data["scan_parameters"]
+    assert data["scan_parameters"] == simulation_campaign_json_data["scan_parameters"]
 
     check_creation_fields(data)
 
 
-def test_create_one(client, json_data):
-    data = assert_request(client.post, url=ROUTE, json=json_data).json()
-    _assert_read_response(data, json_data)
+def test_create_one(client, simulation_campaign_json_data):
+    data = assert_request(client.post, url=ROUTE, json=simulation_campaign_json_data).json()
+    _assert_read_response(data, simulation_campaign_json_data)
 
 
-def test_read_one(client, client_admin, model, json_data):
+def test_read_one(client, client_admin, model, simulation_campaign_json_data):
     data = assert_request(client.get, url=f"{ROUTE}/{model.id}").json()
-    _assert_read_response(data, json_data)
+    _assert_read_response(data, simulation_campaign_json_data)
 
     data = assert_request(client.get, url=f"{ROUTE}").json()["data"]
     assert len(data) == 1
-    _assert_read_response(data[0], json_data)
+    _assert_read_response(data[0], simulation_campaign_json_data)
 
     data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model.id}").json()
-    _assert_read_response(data, json_data)
+    _assert_read_response(data, simulation_campaign_json_data)
 
 
 def test_delete_one(db, clients, public_json_data):
@@ -104,11 +153,11 @@ def test_pagination(client, create_id):
 
 
 @pytest.fixture
-def models(db, json_data, person_id, simulation_json_data, circuit):
+def models(db, simulation_campaign_json_data, person_id, simulation_json_data, circuit):
     db_campaigns = [
         MODEL(
             **(
-                json_data
+                simulation_campaign_json_data
                 | {
                     "name": f"circuit-{i}",
                     "description": f"circuit-description-{i}",
@@ -234,7 +283,9 @@ def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_i
 
 
 @pytest.fixture
-def campaigns_with_different_circuits(db, json_data, person_id, multiple_circuits):
+def campaigns_with_different_circuits(
+    db, simulation_campaign_json_data, person_id, multiple_circuits
+):
     campaigns = []
 
     for i, circuit in enumerate(multiple_circuits):
@@ -242,7 +293,7 @@ def campaigns_with_different_circuits(db, json_data, person_id, multiple_circuit
             db,
             MODEL(
                 **(
-                    json_data
+                    simulation_campaign_json_data
                     | {
                         "entity_id": str(circuit.id),
                         "name": f"campaign-circuit-{i}",
@@ -395,7 +446,7 @@ def test_filter_by_circuit_build_category(
 
 
 @pytest.fixture
-def mixed_campaigns(db, json_data, person_id, root_circuit, memodel_id):
+def mixed_campaigns(db, simulation_campaign_json_data, person_id, root_circuit, memodel_id):
     entity_ids = [root_circuit.id, memodel_id]
 
     campaigns = []
@@ -405,7 +456,7 @@ def mixed_campaigns(db, json_data, person_id, root_circuit, memodel_id):
             db,
             MODEL(
                 **(
-                    json_data
+                    simulation_campaign_json_data
                     | {
                         "entity_id": str(entity_id),
                         "name": f"campaign-{i}",

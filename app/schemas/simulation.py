@@ -8,13 +8,12 @@ from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainRegionCreateMixin,
-    BrainRegionReadMixin,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
     NameDescriptionMixin,
 )
+from app.schemas.brain_region import BrainRegionCreateMixin, BrainRegionReadMixin
 from app.schemas.me_model import NestedMEModel
 from app.schemas.synaptome import NestedSynaptome
 from app.schemas.utils import make_update_schema

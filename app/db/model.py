@@ -188,28 +188,6 @@ class EmbeddingMixin(Base):
     embedding: Mapped[Vector] = mapped_column(Vector(1536), nullable=False, deferred=True)
 
 
-class BrainRegionHierarchy(Identifiable):
-    __tablename__ = GlobalType.brain_region_hierarchy.value
-
-    name: Mapped[str] = mapped_column(unique=True, index=True)
-
-
-class BrainRegion(EmbeddingMixin, Identifiable):
-    __tablename__ = GlobalType.brain_region.value
-
-    annotation_value: Mapped[int] = mapped_column(BigInteger, index=True)
-    name: Mapped[str] = mapped_column(index=True)
-    acronym: Mapped[str] = mapped_column(index=True)
-    color_hex_triplet: Mapped[str] = mapped_column(String(6))
-    parent_structure_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("brain_region.id"), index=True, nullable=True
-    )
-
-    hierarchy_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("brain_region_hierarchy.id"), index=True
-    )
-
-
 class Species(EmbeddingMixin, Identifiable):
     __tablename__ = GlobalType.species.value
     name: Mapped[str] = mapped_column(unique=True, index=True)
@@ -285,6 +263,46 @@ class SpeciesMixin(Base):
             ),
             *getattr(super(), "__table_args__", ()),
         )
+
+
+class BrainRegionHierarchy(SpeciesMixin, Identifiable):
+    __tablename__ = GlobalType.brain_region_hierarchy.value
+
+    name: Mapped[str] = mapped_column(unique=True, index=True)
+
+
+class BrainRegion(EmbeddingMixin, Identifiable):
+    __tablename__ = GlobalType.brain_region.value
+
+    annotation_value: Mapped[int] = mapped_column(BigInteger, index=True)
+    name: Mapped[str] = mapped_column(index=True)
+    acronym: Mapped[str] = mapped_column(index=True)
+    color_hex_triplet: Mapped[str] = mapped_column(String(6))
+    parent_structure_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_region.id"), index=True, nullable=True
+    )
+
+    hierarchy_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("brain_region_hierarchy.id"), index=True
+    )
+
+    species = relationship(
+        "Species",
+        secondary=BrainRegionHierarchy.__table__,
+        primaryjoin="BrainRegion.hierarchy_id == BrainRegionHierarchy.id",
+        secondaryjoin="BrainRegionHierarchy.species_id == Species.id",
+        viewonly=True,
+        uselist=False,
+    )
+
+    strain = relationship(
+        "Strain",
+        secondary=BrainRegionHierarchy.__table__,
+        primaryjoin="BrainRegion.hierarchy_id == BrainRegionHierarchy.id",
+        secondaryjoin="BrainRegionHierarchy.strain_id == Strain.id",
+        viewonly=True,
+        uselist=False,
+    )
 
 
 class Agent(LegacyMixin, Identifiable):

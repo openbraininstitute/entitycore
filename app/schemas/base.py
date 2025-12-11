@@ -82,42 +82,6 @@ class LicenseCreateMixin:
     license_id: uuid.UUID | None = None
 
 
-class BrainRegionBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    annotation_value: int
-    name: str
-    acronym: str
-    color_hex_triplet: str
-    parent_structure_id: uuid.UUID | None = None
-    hierarchy_id: uuid.UUID
-
-
-class BrainRegionRead(BrainRegionBase, IdentifiableMixin, CreationMixin):
-    pass
-
-
-class BrainRegionCreate(BrainRegionBase):
-    pass
-
-
-BrainRegionAdminUpdate = make_update_schema(
-    BrainRegionCreate,
-    "BrainRegionAdminUpdate",
-    excluded_fields=set(),
-)  # pyright : ignore [reportInvalidTypeForm]
-
-
-class BrainRegionCreateMixin(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    brain_region_id: uuid.UUID
-
-
-class BrainRegionReadMixin(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    brain_region: BrainRegionRead
-
-
 class LicensedCreateMixin(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     license_id: uuid.UUID | None = None

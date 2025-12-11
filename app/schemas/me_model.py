@@ -8,12 +8,12 @@ from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    BrainRegionRead,
     CreationMixin,
     EntityTypeMixin,
     IdentifiableMixin,
     NameDescriptionMixin,
 )
+from app.schemas.brain_region import BrainRegionReadMixin
 from app.schemas.cell_morphology import CellMorphologyRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.emodel import EModelRead
@@ -57,11 +57,11 @@ class MEModelRead(
     EntityTypeMixin,
     CreatedByUpdatedByMixin,
     ContributionReadWithoutEntityMixin,
+    BrainRegionReadMixin,
 ):
     id: uuid.UUID
     species: NestedSpeciesRead
     strain: NestedStrainRead | None
-    brain_region: BrainRegionRead
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     morphology: CellMorphologyRead

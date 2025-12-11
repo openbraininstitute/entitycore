@@ -1,10 +1,11 @@
 import operator
+from unittest.mock import ANY
 
 import pytest
 
 from app.db.model import BrainRegionHierarchy
 
-from .utils import check_creation_fields
+from .utils import assert_request, check_creation_fields
 from tests import test_brain_region, utils
 from tests.utils import (
     check_global_delete_one,
@@ -17,9 +18,10 @@ ADMIN_ROUTE = "/admin/brain-region-hierarchy"
 
 
 @pytest.fixture
-def json_data():
+def json_data(species_id):
     return {
         "name": "my-hierarchy",
+        "species_id": species_id,
     }
 
 
@@ -45,6 +47,19 @@ def test_brain_region_hierarchy(client, brain_region_hierarchy_id):
     assert data[0]["name"] == "AIBS"
     assert data[0]["id"] == str(brain_region_hierarchy_id)
     utils.check_creation_fields(data[0])
+
+    response = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"with_facets": True},
+    )
+    response_json = response.json()
+    assert "facets" in response_json
+    assert response_json["facets"] == {
+        "species": [{"count": 1, "id": ANY, "label": "Test Species", "type": "species"}],
+        "strain": [],
+    }
+    assert response_json["pagination"] == {"page": 1, "page_size": 100, "total_items": 1}
 
 
 def test_missing(client):
@@ -95,12 +110,12 @@ def test_hierarchy_tree(db, client, brain_region_hierarchy_id):
     compare_hier(test_brain_region.HIERARCHY, data)
 
 
-def test_create(client, client_admin):
+def test_create(client, client_admin, species_id):
     count = 3
     items = []
     for i in range(count):
         name = f"Test brain-region-hierarchy {i}"
-        response = client_admin.post(ROUTE, json={"name": name})
+        response = client_admin.post(ROUTE, json={"name": name, "species_id": species_id})
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == name
@@ -128,6 +143,12 @@ def test_create(client, client_admin):
     assert len(data) == 1
     assert data == [items[1]]
     check_creation_fields(data[0])
+
+    response = client.get(ROUTE, params={"species__id": str(species_id)})
+    assert len(response.json()["data"]) == 3
+
+    response = client.get(ROUTE, params={"species__id": "00000000-7000-4000-0000-000000000000"})
+    assert len(response.json()["data"]) == 0
 
 
 def test_read_one(clients, json_data):

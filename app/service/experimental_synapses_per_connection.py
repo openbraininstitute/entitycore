@@ -47,7 +47,8 @@ from app.schemas.types import ListResponse
 def _load(q: sa.Select):
     db_cls = ExperimentalSynapsesPerConnection
     return q.options(
-        joinedload(db_cls.brain_region),
+        joinedload(db_cls.brain_region).joinedload(BrainRegion.species),
+        joinedload(db_cls.brain_region).joinedload(BrainRegion.strain),
         selectinload(db_cls.contributions).selectinload(Contribution.agent),
         selectinload(db_cls.contributions).selectinload(Contribution.role),
         joinedload(db_cls.license),

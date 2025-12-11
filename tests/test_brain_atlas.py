@@ -47,7 +47,9 @@ HIERARCHY = {
 
 
 def test_brain_atlas(db, client, species_id, person_id):
-    hierarchy_name = utils.create_hiearchy_name(db, "test_hierarchy", created_by_id=person_id)
+    hierarchy_name = utils.create_hiearchy_name(
+        db, name="test_hierarchy", created_by_id=person_id, species_id=species_id
+    )
     regions = utils.add_brain_region_hierarchy(db, HIERARCHY, hierarchy_name.id)
 
     brain_atlas0 = utils.add_db(

@@ -209,6 +209,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
         db_model_instance = db.execute(q).unique().scalar_one()
     else:
         db.refresh(db_model_instance)
+
     return response_schema_class.model_validate(db_model_instance)
 
 

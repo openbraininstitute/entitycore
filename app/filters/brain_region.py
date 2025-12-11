@@ -10,6 +10,7 @@ from app.db.model import BrainRegion, BrainRegionHierarchy
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, NameFilterMixin
+from app.filters.species import SpeciesFilterMixin
 
 
 class WithinBrainRegionDirection(StrEnum):
@@ -99,7 +100,7 @@ class NestedBrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
         model = BrainRegion
 
 
-class BrainRegionFilter(NestedBrainRegionFilter):
+class BrainRegionFilter(SpeciesFilterMixin, NestedBrainRegionFilter):
     order_by: list[str] = ["name"]  # noqa: RUF012
 
     class Constants(NestedBrainRegionFilter.Constants):

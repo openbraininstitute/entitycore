@@ -7,6 +7,7 @@ from .utils import (
     PROJECT_ID,
     USER_SUB_ID_1,
     add_all_db,
+    add_db,
     assert_request,
     check_creation_fields,
     check_missing,
@@ -18,13 +19,37 @@ MODEL = EMDenseReconstructionDataset
 
 
 @pytest.fixture
-def json_data(em_dense_reconstruction_dataset_json_data):
-    return em_dense_reconstruction_dataset_json_data
+def json_data(subject_id, brain_region_id):
+    return {
+        "name": "MICrONS",
+        "description": "",
+        "subject_id": str(subject_id),
+        "brain_region_id": str(brain_region_id),
+        "volume_resolution_x_nm": 4.0,
+        "volume_resolution_y_nm": 4.0,
+        "volume_resolution_z_nm": 40.0,
+        "release_url": "http://microns-explorer.org",
+        "cave_client_url": "https://global.daf-apis.com",
+        "cave_datastack": "minnie65_public",
+        "precomputed_mesh_url": "precomputed://gs://iarpa_microns/minnie/minnie65/seg_m1300/",
+        "cell_identifying_property": "pt_root_id",
+    }
 
 
 @pytest.fixture
-def model(em_dense_reconstruction_dataset):
-    return em_dense_reconstruction_dataset
+def model(db, em_dense_reconstruction_dataset_json_data, person_id):
+    return add_db(
+        db,
+        EMDenseReconstructionDataset(
+            **em_dense_reconstruction_dataset_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": True,
+                "authorized_project_id": PROJECT_ID,
+            }
+        ),
+    )
 
 
 @pytest.fixture

@@ -3,7 +3,6 @@ import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import timedelta
-from uuid import UUID
 
 import boto3
 import pytest
@@ -111,7 +110,7 @@ def user_context_admin():
     """Admin authenticated user."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(ADMIN_SUB_ID),
+            subject=uuid.UUID(ADMIN_SUB_ID),
             name="Admin User",
         ),
         expiration=None,
@@ -127,15 +126,15 @@ def user_context_admin_with_project():
     """Admin authenticated user with project-id."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(ADMIN_SUB_ID),
+            subject=uuid.UUID(ADMIN_SUB_ID),
             name="Admin User With Project Id",
         ),
         expiration=None,
         is_authorized=True,
         is_service_admin=True,
-        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
-        project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        virtual_lab_id=uuid.UUID(VIRTUAL_LAB_ID),
+        project_id=uuid.UUID(PROJECT_ID),
+        user_project_ids=[uuid.UUID(PROJECT_ID)],
     )
 
 
@@ -144,15 +143,15 @@ def user_context_user_1():
     """Regular authenticated user with project-id."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(USER_SUB_ID_1),
+            subject=uuid.UUID(USER_SUB_ID_1),
             name="Regular User With Project Id",
         ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
-        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
-        project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        virtual_lab_id=uuid.UUID(VIRTUAL_LAB_ID),
+        project_id=uuid.UUID(PROJECT_ID),
+        user_project_ids=[uuid.UUID(PROJECT_ID)],
     )
 
 
@@ -161,14 +160,14 @@ def user_context_user_2():
     """Regular authenticated user with different project-id."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(USER_SUB_ID_2),
+            subject=uuid.UUID(USER_SUB_ID_2),
             name="Regular User With Different Project Id",
         ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
-        virtual_lab_id=UUID(UNRELATED_VIRTUAL_LAB_ID),
-        project_id=UUID(UNRELATED_PROJECT_ID),
+        virtual_lab_id=uuid.UUID(UNRELATED_VIRTUAL_LAB_ID),
+        project_id=uuid.UUID(UNRELATED_PROJECT_ID),
     )
 
 
@@ -177,7 +176,7 @@ def user_context_no_project():
     """Regular authenticated user without project-id."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(int=3),
+            subject=uuid.UUID(int=3),
             name="Regular User Without Project Id",
         ),
         expiration=None,
@@ -192,16 +191,16 @@ def user_context_no_project():
 def user_context_maintainer_1():
     return UserContext(
         profile=UserProfile(
-            subject=UUID(USER_SUB_ID_1),
+            subject=uuid.UUID(USER_SUB_ID_1),
             name="Maintainer With Project Id",
         ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
         is_service_maintainer=True,
-        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
-        project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        virtual_lab_id=uuid.UUID(VIRTUAL_LAB_ID),
+        project_id=uuid.UUID(PROJECT_ID),
+        user_project_ids=[uuid.UUID(PROJECT_ID)],
     )
 
 
@@ -210,15 +209,15 @@ def user_context_maintainer_2():
     """Maintainer with different project-id."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(USER_SUB_ID_2),
+            subject=uuid.UUID(USER_SUB_ID_2),
             name="Maintainer With Different Project Id",
         ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
         is_service_maintainer=True,
-        virtual_lab_id=UUID(UNRELATED_VIRTUAL_LAB_ID),
-        project_id=UUID(UNRELATED_PROJECT_ID),
+        virtual_lab_id=uuid.UUID(UNRELATED_VIRTUAL_LAB_ID),
+        project_id=uuid.UUID(UNRELATED_PROJECT_ID),
     )
 
 
@@ -227,14 +226,14 @@ def user_context_maintainer_3():
     """Maintainer ony with user_project_ids."""
     return UserContext(
         profile=UserProfile(
-            subject=UUID(USER_SUB_ID_1),
+            subject=uuid.UUID(USER_SUB_ID_1),
             name="Maintainer With Project id from Groups",
         ),
         expiration=None,
         is_authorized=True,
         is_service_admin=False,
         is_service_maintainer=True,
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_ids=[uuid.UUID(PROJECT_ID)],
     )
 
 
@@ -253,12 +252,12 @@ def _override_check_user_info(
     # map (token, project-id) to the expected user_context
     mapping = {
         (TOKEN_ADMIN, None): user_context_admin,
-        (TOKEN_ADMIN, UUID(PROJECT_ID)): user_context_admin_with_project,
+        (TOKEN_ADMIN, uuid.UUID(PROJECT_ID)): user_context_admin_with_project,
         (TOKEN_USER_1, None): user_context_no_project,
-        (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
-        (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
-        (TOKEN_MAINTAINER_1, UUID(PROJECT_ID)): user_context_maintainer_1,
-        (TOKEN_MAINTAINER_2, UUID(UNRELATED_PROJECT_ID)): user_context_maintainer_2,
+        (TOKEN_USER_1, uuid.UUID(PROJECT_ID)): user_context_user_1,
+        (TOKEN_USER_2, uuid.UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
+        (TOKEN_MAINTAINER_1, uuid.UUID(PROJECT_ID)): user_context_maintainer_1,
+        (TOKEN_MAINTAINER_2, uuid.UUID(UNRELATED_PROJECT_ID)): user_context_maintainer_2,
         (TOKEN_MAINTAINER_3, None): user_context_maintainer_3,
     }
 
@@ -419,24 +418,18 @@ def organization_id(db, person_id):
         created_by_id=person_id,
         updated_by_id=person_id,
     )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row.id
+    return add_db(db, row).id
 
 
 @pytest.fixture
-def role_id(db, person_id):
+def role_id(db, person_id) -> uuid.UUID:
     row = Role(
         name="important role",
         role_id="important role id",
         created_by_id=person_id,
         updated_by_id=person_id,
     )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-    return row.id
+    return add_db(db, row).id
 
 
 @pytest.fixture
@@ -477,7 +470,7 @@ def strain_id(client_admin, species_id, person_id):
 
 
 @pytest.fixture
-def subject_id(db, species_id, person_id, strain_id):
+def subject_id(db, species_id, person_id, strain_id) -> str:
     return str(
         add_db(
             db,
@@ -518,14 +511,14 @@ def license_id(client_admin, person_id):
 
 
 @pytest.fixture
-def brain_region_hierarchy_id(db, person_id, species_id):
+def brain_region_hierarchy_id(db, person_id, species_id) -> uuid.UUID:
     return utils.create_hiearchy_name(
         db, name="AIBS", species_id=species_id, created_by_id=person_id
     ).id
 
 
 @pytest.fixture
-def brain_region_id(db, brain_region_hierarchy_id, person_id):
+def brain_region_id(db, brain_region_hierarchy_id, person_id) -> str:
     return str(
         utils.create_brain_region(
             db, brain_region_hierarchy_id, 64, "RedRegion", created_by_id=person_id
@@ -534,7 +527,7 @@ def brain_region_id(db, brain_region_hierarchy_id, person_id):
 
 
 @pytest.fixture
-def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id):
+def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id) -> uuid.UUID:
     return add_db(
         db,
         BrainAtlas(

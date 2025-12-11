@@ -28,10 +28,30 @@ from .utils import (
     create_brain_region,
     create_electrical_cell_recording_db,
     create_electrical_cell_recording_id,
+    create_electrical_cell_recording_id_with_assets,
 )
 
 ROUTE = "/electrical-cell-recording"
 ADMIN_ROUTE = f"/admin{ROUTE}"
+
+
+@pytest.fixture
+def trace_id_minimal(client, electrical_cell_recording_json_data):
+    return create_electrical_cell_recording_id(client, electrical_cell_recording_json_data)
+
+
+@pytest.fixture
+def public_trace_id_minimal(client, electrical_cell_recording_json_data):
+    return create_electrical_cell_recording_id(
+        client, electrical_cell_recording_json_data | {"authorized_public": True}
+    )
+
+
+@pytest.fixture
+def trace_id_with_assets(db, client, tmp_path, electrical_cell_recording_json_data):
+    return create_electrical_cell_recording_id_with_assets(
+        db, client, tmp_path, electrical_cell_recording_json_data
+    )
 
 
 def test_create_one(

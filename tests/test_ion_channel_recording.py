@@ -27,6 +27,7 @@ from .utils import (
     create_brain_region,
     create_ion_channel_recording_db,
     create_ion_channel_recording_id,
+    create_ion_channel_recording_id_with_assets,
 )
 
 ROUTE = "/ion-channel-recording"
@@ -62,6 +63,37 @@ def _assert_read_response(actual, expected):
     }
     assert set(actual) == set(expected)
     assert actual == expected
+
+
+@pytest.fixture
+def ion_channel_recording_json_data(brain_region_id, subject_id, license_id, ion_channel):
+    return {
+        "name": "my-name",
+        "description": "my-description",
+        "subject_id": subject_id,
+        "brain_region_id": str(brain_region_id),
+        "license_id": str(license_id),
+        "recording_location": ["soma[0]_0.5"],
+        "recording_type": "intracellular",
+        "recording_origin": "in_vivo",
+        "ljp": 11.5,
+        "cell_line": "CHO",
+        "comment": "test comment",
+        "authorized_public": False,
+        "ion_channel_id": str(ion_channel.id),
+    }
+
+
+@pytest.fixture
+def ion_channel_recording_id_minimal(client, ion_channel_recording_json_data):
+    return create_ion_channel_recording_id(client, ion_channel_recording_json_data)
+
+
+@pytest.fixture
+def ion_channel_recording_id_with_assets(db, client, tmp_path, ion_channel_recording_json_data):
+    return create_ion_channel_recording_id_with_assets(
+        db, client, tmp_path, ion_channel_recording_json_data
+    )
 
 
 def test_create_one(

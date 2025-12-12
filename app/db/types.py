@@ -631,14 +631,19 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.webp,
                 is_directory=False,
-                description="Circuit network statistics image A with global network statistics or visualizations.",
+                description=(
+                    "Circuit network statistics image A "
+                    "with global network statistics or visualizations."
+                ),
             )
         ],
         AssetLabel.network_stats_b: [
             LabelRequirements(
                 content_type=ContentType.webp,
                 is_directory=False,
-                description="Circuit network statistics image B with pathway statistics or visualizations.",
+                description=(
+                    "Circuit network statistics image B with pathway statistics or visualizations."
+                ),
             )
         ],
     },
@@ -682,21 +687,21 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.pdf,
                 is_directory=False,
-                description="FIXME",
+                description="Ionic mechanism activation protocol responses.",
             )
         ],
         AssetLabel.ion_channel_model_thumbnail: [
             LabelRequirements(
                 content_type=ContentType.png,
                 is_directory=False,
-                description="FIXME",
+                description="Thumbnail showing activation protocol responses.",
             )
         ],
         AssetLabel.ion_channel_model_figure_summary_json: [
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="FIXME",
+                description="Figure summary for page ordering.",
             )
         ],
     },
@@ -705,7 +710,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="FIXME",
+                description="Obi-One model generation workflow configuration.",
             )
         ],
     },
@@ -714,14 +719,14 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="FIXME",
+                description="Obi-One modeling campaign configuration.",
             )
         ],
         AssetLabel.campaign_summary: [
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="FIXME",
+                description="Obi-One modeling campaign summary.",
             )
         ],
     },
@@ -730,7 +735,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.nwb,
                 is_directory=False,
-                description="FIXME",
+                description="Ion channel experimental electrophysiology recording.",
             ),
         ]
     },

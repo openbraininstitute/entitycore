@@ -7,6 +7,30 @@ import click
 from app.db.types import ALLOWED_ASSET_LABELS_PER_ENTITY, CONTENT_TYPE_TO_SUFFIX
 
 
+def fix_description(description: str) -> str:
+    """Fix description format: capitalize first letter, ensure it ends with period."""
+    if not description or not description.strip():
+        click.echo("Warning: Empty description found, using 'FIXME'")
+        return "FIXME"
+
+    if description == "FIXME":
+        return description
+
+    fixed = description.strip()
+
+    # Capitalize first letter
+    if not fixed[0].isupper():
+        click.echo(f"Warning: Description doesn't start with capital letter: '{description}'")
+        fixed = fixed[0].upper() + fixed[1:]
+
+    # Ensure it ends with period
+    if not fixed.endswith("."):
+        click.echo(f"Warning: Description doesn't end with period: '{description}'")
+        fixed += "."
+
+    return fixed
+
+
 def generate_markdown_table() -> str:
     """Generate markdown table from ALLOWED_ASSET_LABELS_PER_ENTITY."""
     # Collect all data first to calculate column widths
@@ -35,7 +59,7 @@ def generate_markdown_table() -> str:
                 # Entity type column (only for first row of each asset label)
                 entity_col = entity_type.value if first_row else ""
 
-                description = requirements.description
+                description = fix_description(requirements.description)
                 data.append((entity_col, asset_label.value, content_type_str, suffix, description))
                 first_row = False
 
@@ -60,9 +84,9 @@ def generate_markdown_table() -> str:
     comment = [
         "<!-- This file is auto-generated from app/db/types.py -->",
         "<!-- Do not edit manually. Run 'make generate-asset-labels' to update -->",
-        ""
+        "",
     ]
-    
+
     return "\n".join(comment + rows)
 
 

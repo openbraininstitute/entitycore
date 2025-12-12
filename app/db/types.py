@@ -490,7 +490,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.text,
                 is_directory=False,
-                description="requirements.txt file with the required packages, frozen if possible.",
+                description="Requirements.txt file with the required packages, frozen if possible.",
             )
         ],
     },
@@ -499,7 +499,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.text,
                 is_directory=False,
-                description="requirements.txt file with the frozen packages.",
+                description="Requirements.txt file with the frozen packages.",
             )
         ],
     },
@@ -556,7 +556,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="mtype/etype voxel densities composition.",
+                description="Mtype/etype voxel densities composition.",
             )
         ],
     },
@@ -610,14 +610,14 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.png,
                 is_directory=False,
-                description="Circuit image used by simulation designer GUI",
+                description="Circuit image used by simulation designer GUI.",
             )
         ],
         AssetLabel.circuit_visualization: [
             LabelRequirements(
                 content_type=ContentType.webp,
                 is_directory=False,
-                description="Circuit visualization image",
+                description="Circuit visualization image.",
             )
         ],
         AssetLabel.node_stats: [
@@ -631,14 +631,14 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.webp,
                 is_directory=False,
-                description="Circuit network statistics image a",
+                description="Circuit network statistics image a.",
             )
         ],
         AssetLabel.network_stats_b: [
             LabelRequirements(
                 content_type=ContentType.webp,
                 is_directory=False,
-                description="Circuit network statistics image b",
+                description="Circuit network statistics image b.",
             )
         ],
     },
@@ -647,7 +647,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.nwb,
                 is_directory=False,
-                description="Electrophysiological timeseries data",
+                description="Electrophysiological timeseries data.",
             ),
         ]
     },
@@ -666,7 +666,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.hoc,
                 is_directory=False,
-                description="Electrical model NEURON template",
+                description="Electrical model NEURON template.",
             )
         ],
     },
@@ -675,7 +675,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.mod,
                 is_directory=False,
-                description="Ionic mechanisms file",
+                description="Ionic mechanisms file.",
             )
         ],
         AssetLabel.ion_channel_model_figure: [
@@ -739,7 +739,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.nrrd,
                 is_directory=False,
-                description="Morpho-electric cell voxel densities",
+                description="Morpho-electric cell voxel densities.",
             )
         ],
     },
@@ -748,17 +748,17 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.asc,
                 is_directory=False,
-                description="Morphology in Neurolucida ASCII format",
+                description="Morphology in Neurolucida ASCII format.",
             ),
             LabelRequirements(
                 content_type=ContentType.swc,
                 is_directory=False,
-                description="Morphology in SWC format",
+                description="Morphology in SWC format.",
             ),
             LabelRequirements(
                 content_type=ContentType.h5,
                 is_directory=False,
-                description="Morphology in HDF5 format",
+                description="Morphology in HDF5 format.",
             ),
         ],
         AssetLabel.morphology_with_spines: [
@@ -795,7 +795,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="Simulation SONATA configuration",
+                description="Simulation SONATA configuration.",
             )
         ],
     },
@@ -804,14 +804,14 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="Campaign configuration",
+                description="Campaign configuration.",
             )
         ],
         AssetLabel.campaign_summary: [
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="Summary of generated campaign listing all created simulation configs",
+                description="Summary of generated campaign listing all created simulation configs.",
             )
         ],
     },
@@ -820,19 +820,19 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.h5,
                 is_directory=False,
-                description="Simulation spikes report",
+                description="Simulation spikes report.",
             )
         ],
         AssetLabel.voltage_report: [
             LabelRequirements(
                 content_type=ContentType.h5,
                 is_directory=False,
-                description="Simulation voltage report",
+                description="Simulation voltage report.",
             ),
             LabelRequirements(
                 content_type=ContentType.nwb,
                 is_directory=False,
-                description="Simulation voltage report in NWB format",
+                description="Simulation voltage report in NWB format.",
             ),
         ],
     },
@@ -841,7 +841,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="single neuron synaptome configuration",
+                description="Single neuron synaptome configuration.",
             )
         ]
     },
@@ -851,7 +851,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.json,
                 is_directory=False,
                 description=(
-                    "single neuron synaptome simulation configuration and timeseries output"
+                    "Single neuron synaptome simulation configuration and timeseries output."
                 ),
             )
         ]
@@ -861,7 +861,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="single neuron simulation configuration and timeseries output",
+                description="Single neuron simulation configuration and timeseries output.",
             )
         ]
     },
@@ -870,12 +870,12 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.pdf,
                 is_directory=False,
-                description="Validation result figure, pdf",
+                description="Validation result figure, pdf.",
             ),
             LabelRequirements(
                 content_type=ContentType.png,
                 is_directory=False,
-                description="Validation result figure, png (legacy)",
+                description="Validation result figure, png (legacy).",
             ),
         ],
         AssetLabel.validation_result_details: [
@@ -891,12 +891,12 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.h5,
                 is_directory=False,
-                description="a triangle mesh describing the surface of a cell in h5 format",
+                description="A triangle mesh describing the surface of a cell in h5 format.",
             ),
             LabelRequirements(
                 content_type=ContentType.obj,
                 is_directory=False,
-                description="a triangle mesh describing the surface of a cell in obj format.",
+                description="A triangle mesh describing the surface of a cell in obj format.",
             ),
         ]
     },
@@ -905,7 +905,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="Circuit extraction campaign configuration",
+                description="Circuit extraction campaign configuration.",
             )
         ],
     },
@@ -914,7 +914,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="Single circuit extraction configuration",
+                description="Single circuit extraction configuration.",
             )
         ],
     },

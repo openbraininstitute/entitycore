@@ -765,7 +765,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.h5,
                 is_directory=False,
-                description="FIXME",
+                description="H5 file containing mesh and skeletons of spines.  Also includes soma mesh, and morphology skeleton.",
             ),
         ],
     },

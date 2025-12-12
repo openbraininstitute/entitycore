@@ -631,14 +631,14 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.webp,
                 is_directory=False,
-                description="Circuit network statistics image a.",
+                description="Circuit network statistics image A with global network statistics or visualizations.",
             )
         ],
         AssetLabel.network_stats_b: [
             LabelRequirements(
                 content_type=ContentType.webp,
                 is_directory=False,
-                description="Circuit network statistics image b.",
+                description="Circuit network statistics image B with pathway statistics or visualizations.",
             )
         ],
     },
@@ -791,7 +791,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,
-                description="FIXME",
+                description="Single simulation generation configuration.",
             )
         ],
         AssetLabel.sonata_simulation_config: [

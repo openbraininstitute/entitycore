@@ -781,7 +781,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.h5,
                 is_directory=False,
-                description="FIXME",
+                description="SONATA spike report used for spike replay during simulation.",
             )
         ],
         AssetLabel.simulation_generation_config: [

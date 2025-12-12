@@ -566,7 +566,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=None,
                 is_directory=True,
                 description=(
-                    "SONATA circuit, but have a circuit_config.json in the root of the directory."
+                    "SONATA circuit, with a circuit_config.json in the root of the directory."
                 ),
             ),
         ],

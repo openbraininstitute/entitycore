@@ -574,7 +574,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.gzip,
                 is_directory=False,
-                description="Compressed SONATA circuit in GZIP format.",
+                description="Compressed SONATA circuit in tarred gzip format.",
             ),
         ],
         AssetLabel.circuit_figures: [

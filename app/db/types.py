@@ -540,7 +540,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.gltf_binary,
                 is_directory=False,
-                description="FIXME",
+                description="Brain atlas region mesh geometry object.",
             ),
         ],
     },

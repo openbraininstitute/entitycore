@@ -444,11 +444,10 @@ def router_user_delete_one[T: BaseModel, I: Identifiable](
     crud.delete_one(db=db, row=obj)
 
     delete_row(db=db, row=obj)
-
     return DeleteResponse(id=id_)
 
 
-def delete_row(db: Session, row: Base) -> DeleteResponse:
+def delete_row(db: Session, row: Base) -> None:
     with ensure_foreign_keys_integrity(
         error_message=(
             f"{type(row).__name__} cannot be deleted because of foreign keys integrity violation"

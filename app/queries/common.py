@@ -1,4 +1,5 @@
 import uuid
+from http import HTTPStatus
 
 import sqlalchemy as sa
 from fastapi import HTTPException
@@ -21,6 +22,8 @@ from app.dependencies.common import (
     WithFacets,
 )
 from app.errors import (
+    ApiError,
+    ApiErrorCode,
     ensure_authorized_references,
     ensure_foreign_keys_integrity,
     ensure_result,
@@ -214,9 +217,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
 
 
 def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
-    query = sa.select(Person).where(Person.sub_id == user_profile.subject)
-
-    if db_agent := db.execute(query).scalars().first():
+    if db_agent := get_user(db, user_profile.subject):
         return db_agent
 
     agent_id = create_uuid()
@@ -235,6 +236,11 @@ def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
     db.flush()
 
     return db_agent
+
+
+def get_user(db: Session, subject_id: uuid.UUID) -> Person | None:
+    query = sa.select(Person).where(Person.sub_id == subject_id)
+    return db.execute(query).scalars().first()
 
 
 def _with_subquery[I: Identifiable](
@@ -452,17 +458,15 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         user_context: the user context
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if user_context and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
-    ):
-        query = constrain_to_writable_entities(
-            query=query,
-            user_context=user_context,
-            db_model_class=id_model_class,
-        )
-
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         obj = db.execute(query).scalars().one()
+
+    if user_context and not _is_authorized_for_deletion(db, user_context, obj):
+        raise ApiError(
+            message="User is not authorized to access resource.",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
 
     with ensure_foreign_keys_integrity(
         error_message=(
@@ -476,6 +480,36 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         db.flush()
 
     return DeleteResponse(id=id_)
+
+
+def _is_authorized_for_deletion(db: Session, user_context: UserContext, obj: Identifiable) -> bool:  # noqa: PLR0911
+    # Service admins have access to all resources
+    if user_context.is_service_admin:
+        return True
+
+    # if there is no authorized_project_id it is a global resource
+    if not (project_id := getattr(obj, "authorized_project_id", None)):
+        return False
+
+    # Project maintainers may delete public/private entities within their projects.
+    if user_context.is_service_maintainer:
+        return project_id in user_context.user_project_ids
+
+    # from here and below public entities cannot be deleted
+    if obj.authorized_public:  # pyright: ignore [reportAttributeAccessIssue]
+        return False
+
+    # Project admins may delete private entities within their projects
+    if project_id in user_context.project_admin_ids:
+        return True
+
+    # Project members may delete only the private entities they themselves created
+    if project_id in user_context.project_member_ids and (
+        db_user := get_user(db, user_context.profile.subject)
+    ):
+        return db_user.created_by_id == obj.created_by_id
+
+    return False
 
 
 def router_update_activity_one[T: BaseModel, I: Activity](

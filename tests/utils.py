@@ -1283,9 +1283,9 @@ def check_entity_delete_one(
 
     def _assert_not_found(client, model_id):
         data = assert_request(
-            client.delete, url=f"{route}/{model_id}", expected_status_code=404
+            client.delete, url=f"{route}/{model_id}", expected_status_code=403
         ).json()
-        assert data["error_code"] == "ENTITY_NOT_FOUND"
+        assert data["error_code"] == "ENTITY_FORBIDDEN"
 
     def _assert_no_admin_access(client, model_id):
         data = assert_request(

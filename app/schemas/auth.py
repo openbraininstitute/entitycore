@@ -154,9 +154,9 @@ class UserInfoResponse(UserInfoBase):
         """Return the keycloak groups the user is authorized for."""
         return {
             UserProjectGroup(
-                virtual_lab_id=match.group("vlab"),
-                project_id=match.group("proj"),
-                role=match.group("role"),
+                virtual_lab_id=UUID(match.group("vlab")),
+                project_id=UUID(match.group("proj")),
+                role=UserRole(match.group("role")),
             )
             for s in self.groups
             if (match := PROJECT_REGEX.match(s))

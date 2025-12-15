@@ -13,6 +13,9 @@ from app.config import settings
 from app.db import triggers
 from app.db.model import Base
 
+# from sqlalchemy_continuum.dialects.postgresql import sync_trigger
+# sync_trigger(conn, 'article_version')
+
 L = logging.getLogger("alembic.env")
 
 # server settings to reduce possible service disruptions while running the migration

@@ -16,7 +16,8 @@ L = logging.getLogger()
 TABLES: dict[str, Mapper] = {
     mapper.class_.__tablename__: mapper
     for mapper in Base.registry.mappers
-    if mapper.class_.__tablename__
+    # if mapper.class_.__tablename__
+    if hasattr(mapper.class_, "__tablename__")
 }
 BUILD_SCRIPT = "build_database_archive.sh"
 LOAD_SCRIPT = "load.sh"

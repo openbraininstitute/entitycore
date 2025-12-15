@@ -490,7 +490,9 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.text,
                 is_directory=False,
-                description="Requirements.txt file with the required packages, frozen if possible.",
+                description=(
+                    "File `requirements.txt` containing the required packages, frozen if possible."
+                ),
             )
         ],
     },
@@ -499,7 +501,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.text,
                 is_directory=False,
-                description="Requirements.txt file with the frozen packages.",
+                description="File `requirements.txt` containing the frozen packages.",
             )
         ],
     },

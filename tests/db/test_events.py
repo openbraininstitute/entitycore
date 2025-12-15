@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+from loguru import logger
 
 from app.db import events
 from app.db.model import Asset
@@ -170,3 +171,31 @@ def test_partial_s3_failure_does_not_stop_others(db, asset1, asset2, mock_storag
 
     # Both assets attempted
     assert mock_storage_delete.call_count == 2
+
+
+@pytest.fixture
+def capture_loguru_messages():
+    """Capture log messages emitted by Loguru during a test."""
+    messages = []
+
+    # Add a sink that appends formatted messages to the list
+    handler_id = logger.add(messages.append, level="ERROR")
+    yield messages
+    logger.remove(handler_id)
+
+
+def test_loguru_logging_on_s3_deletion_error(db, asset1, capture_loguru_messages):
+    """Check that Loguru records the exception when S3 deletion fails."""
+    with patch("app.db.events.delete_asset_storage_object") as mock_delete:
+        mock_delete.side_effect = RuntimeError("Simulated S3 failure")
+
+        db.delete(asset1)
+        db.commit()  # triggers after_commit
+
+    # Now capture_loguru_messages contains the logged messages
+    assert len(capture_loguru_messages) == 1
+
+    log_msg = capture_loguru_messages[0]
+    assert "Failed to delete storage object" in log_msg
+    assert str(asset1.id) in log_msg
+    assert "Simulated S3 failure" in log_msg

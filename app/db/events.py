@@ -28,8 +28,8 @@ def delete_assets_from_storage(session: Session):
                 storage_client_factory=get_s3_client,
             )
         except Exception as e:  # noqa: BLE001
-            L.error(
-                "Failed to delete storage object for Asset id=%s full_path=%s storage_type=%s",
+            L.exception(
+                "Failed to delete storage object for Asset id={} full_path={} storage_type={}",
                 asset.id,
                 asset.full_path,
                 asset.storage_type,

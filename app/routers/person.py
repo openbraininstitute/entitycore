@@ -14,5 +14,6 @@ router = APIRouter(
 read_many = router.get("")(app.service.person.read_many)
 read_one = router.get("/{id_}")(app.service.person.read_one)
 create_one = router.post("")(app.service.person.create_one)
+delete_one = router.delete("/{id_}")(app.service.person.delete_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.person.admin_read_one)

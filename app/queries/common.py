@@ -30,6 +30,7 @@ from app.errors import (
     ensure_uniqueness,
 )
 from app.filters.base import Aliases, CustomFilter
+from app.queries import crud
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations, SupportsModelValidate
 from app.schemas.activity import ActivityCreate, ActivityUpdate
@@ -442,12 +443,12 @@ def router_update_one[T: BaseModel, I: Identifiable](
     return response_schema_class.model_validate(obj)
 
 
-def router_delete_one[T: BaseModel, I: Identifiable](
+def router_user_delete_one[T: BaseModel, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext | None,
+    user_context: UserContext,
 ) -> DeleteResponse:
     """Delete a model from the database.
 
@@ -457,9 +458,7 @@ def router_delete_one[T: BaseModel, I: Identifiable](
         db_model_class: database model class.
         user_context: the user context
     """
-    query = sa.select(db_model_class).where(db_model_class.id == id_)
-    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
-        obj = db.execute(query).scalars().one()
+    obj = crud.get_identifiable_one(db=db, db_model_class=db_model_class, id_=id_)
 
     if user_context and not _is_authorized_for_deletion(db, user_context, obj):
         raise ApiError(
@@ -468,25 +467,30 @@ def router_delete_one[T: BaseModel, I: Identifiable](
             http_status_code=HTTPStatus.FORBIDDEN,
         )
 
-    with ensure_foreign_keys_integrity(
-        error_message=(
-            f"{db_model_class.__name__} cannot be deleted "
-            f"because of foreign keys integrity violation"
-        )
-    ):
-        # Use ORM delete in order to ensure that ondelete cascades are triggered in parents  when
-        # subclasses are deleted as it is the case with Activity/SimulationGeneration.
-        db.delete(obj)
-        db.flush()
+    crud.delete_one(db=db, row=obj)
 
     return DeleteResponse(id=id_)
 
 
-def _is_authorized_for_deletion(db: Session, user_context: UserContext, obj: Identifiable) -> bool:  # noqa: PLR0911
-    # Service admins have access to all resources
-    if user_context.is_service_admin:
-        return True
+def router_admin_delete_one[T: BaseModel, I: Identifiable](
+    *,
+    id_: uuid.UUID,
+    db: Session,
+    db_model_class: type[I],
+) -> DeleteResponse:
+    """Delete a model from the database as admin.
 
+    Args:
+        id_: id of the entity to read.
+        db: database session.
+        db_model_class: database model class.
+    """
+    obj = crud.get_identifiable_one(db=db, db_model_class=db_model_class, id_=id_)
+    crud.delete_one(db=db, row=obj)
+    return DeleteResponse(id=id_)
+
+
+def _is_authorized_for_deletion(db: Session, user_context: UserContext, obj: Identifiable) -> bool:
     # if there is no authorized_project_id it is a global resource
     if not (project_id := getattr(obj, "authorized_project_id", None)):
         return False

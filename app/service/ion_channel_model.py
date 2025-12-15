@@ -18,10 +18,10 @@ from app.errors import ApiError, ApiErrorCode
 from app.filters.ion_channel_model import IonChannelModelFilterDep
 from app.queries.common import (
     router_create_one,
-    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
+    router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
 from app.schemas.ion_channel_model import (
@@ -220,7 +220,7 @@ def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> DeleteResponse:
-    return router_delete_one(
+    return router_user_delete_one(
         id_=id_,
         db=db,
         db_model_class=IonChannelModel,

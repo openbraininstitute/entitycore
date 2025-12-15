@@ -9,9 +9,15 @@ from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.person import PersonFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_admin_delete_one,
+    router_create_one,
+    router_read_many,
+    router_read_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.agent import PersonCreate, PersonRead
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -102,4 +108,16 @@ def create_one(person: PersonCreate, db: SessionDep, user_context: AdminContextD
         response_schema_class=PersonRead,
         user_context=user_context,
         apply_operations=_load,
+    )
+
+
+def delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    user_context: AdminContextDep,  # noqa: ARG001
+) -> DeleteResponse:
+    return router_admin_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=Person,
     )

@@ -154,9 +154,8 @@ def delete_one(
     id_: uuid.UUID,
     user_context: AdminContextDep,  # noqa: ARG001
 ) -> DeleteResponse:
-    return app.queries.common.router_delete_one(
+    return app.queries.common.router_admin_delete_one(
         id_=id_,
         db=db,
         db_model_class=Species,
-        user_context=None,
     )

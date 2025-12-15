@@ -10,7 +10,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from app.config import settings
 from app.dependencies import auth as test_module
 from app.errors import ApiError, ApiErrorCode, AuthErrorReason
-from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
+from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile, UserProjectGroup
 from app.schemas.base import OptionalProjectContext
 
 from tests.utils import PROJECT_ID, UNRELATED_PROJECT_ID, UNRELATED_VIRTUAL_LAB_ID, VIRTUAL_LAB_ID
@@ -102,7 +102,13 @@ def test_user_verified_ok(
         is_service_maintainer=is_maintainer,
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
-        user_project_ids=[uuid.UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            )
+        ],
     )
 
 

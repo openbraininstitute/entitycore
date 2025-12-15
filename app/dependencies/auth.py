@@ -150,7 +150,7 @@ def _check_user_info(
         virtual_lab_id=project_context.virtual_lab_id,
         project_id=project_context.project_id,
         auth_error_reason=AuthErrorReason.NOT_AUTHORIZED_PROJECT if not is_authorized else None,
-        user_project_ids=user_info_response.user_project_ids(),
+        user_project_groups=list(user_info_response.user_project_groups()),
     )
 
     if not user_context.is_authorized:

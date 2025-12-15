@@ -52,7 +52,7 @@ from app.db.model import (
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.db.types import CellMorphologyGenerationType, EntityType, StorageType
 from app.dependencies import auth
-from app.schemas.auth import UserContext, UserProfile
+from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
 from app.schemas.external_url import ExternalUrlCreate
 
 from . import utils
@@ -139,7 +139,13 @@ def user_context_admin_with_project():
         is_service_admin=True,
         virtual_lab_id=UUID(VIRTUAL_LAB_ID),
         project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
     )
 
 
@@ -156,7 +162,13 @@ def user_context_user_1():
         is_service_admin=False,
         virtual_lab_id=UUID(VIRTUAL_LAB_ID),
         project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
     )
 
 
@@ -205,7 +217,13 @@ def user_context_maintainer_1():
         is_service_maintainer=True,
         virtual_lab_id=UUID(VIRTUAL_LAB_ID),
         project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
     )
 
 
@@ -238,7 +256,13 @@ def user_context_maintainer_3():
         is_authorized=True,
         is_service_admin=False,
         is_service_maintainer=True,
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
     )
 
 

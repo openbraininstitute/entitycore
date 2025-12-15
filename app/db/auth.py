@@ -18,8 +18,6 @@ def constrain_to_writable_entities[Q: Query | Select](
     """Constrain query to writable entities.
 
     Permisions:
-    - Users have access to authorized private entities
-    - Project admins have access to
     - Maintainers have access to all authorized entities
     - Admins are not handled by this function and will be treated as regular users
 

@@ -428,6 +428,7 @@ class AssetLabel(StrEnum):
     ion_channel_model_figure_summary_json = auto()
     ion_channel_model_thumbnail = auto()
     circuit_extraction_config = auto()
+    skeletonization_config = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -925,6 +926,24 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.json,
                 is_directory=False,
                 description="Single circuit extraction configuration.",
+            )
+        ],
+    },
+    EntityType.skeletonization_campaign: {
+        AssetLabel.campaign_generation_config: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Skeletonization campaign configuration.",
+            )
+        ],
+    },
+    EntityType.skeletonization_config: {
+        AssetLabel.skeletonization_config: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Single skeletonization configuration.",
             )
         ],
     },

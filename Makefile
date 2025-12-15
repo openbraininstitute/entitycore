@@ -154,3 +154,6 @@ extract-traces:  ## Extract response payloads generated in unit tests
 	uv run ./scripts/extract_traces/run.py \
 		--source "$${REQUEST_TRACER_OUTPUT}" \
 		--output "$${EXTRACTED_TRACES}"
+
+generate-asset-labels-table:  ## Update asset-labels.md
+	uv run ./scripts/generate_asset_labels_table.py -o ./docs/asset-labels.md

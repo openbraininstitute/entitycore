@@ -11,6 +11,7 @@ from app.db.model import (
     ETypeClass,
     MTypeClass,
 )
+from app.db.types import AgentType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import ILIKE_SEARCH_FIELD_NAME, ILIKE_SEARCH_FIELDS, CustomFilter
 
@@ -101,6 +102,8 @@ class ETypeClassFilter(NestedETypeClassFilter):
 
 
 class NestedAgentFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
+    type: AgentType | None = None
+
     class Constants(CustomFilter.Constants):
         model = Agent
 

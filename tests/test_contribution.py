@@ -410,3 +410,6 @@ def test_filtering(client, models):
 
     data = req({"entity__id__in": [models["morphology_ids"][0], models["morphology_ids"][1]]})
     assert len(data) == 3
+
+    data = req({"agent__type": "organization", "agent__pref_label__ilike": "pref_label"})
+    assert len(data) == 6

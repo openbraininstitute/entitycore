@@ -460,7 +460,7 @@ def router_user_delete_one[T: BaseModel, I: Identifiable](
     """
     obj = crud.get_identifiable_one(db=db, db_model_class=db_model_class, id_=id_)
 
-    if user_context and not _is_authorized_for_deletion(db, user_context, obj):
+    if user_context and not _is_user_authorized_for_deletion(db, user_context, obj):
         raise ApiError(
             message="User is not authorized to access resource.",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
@@ -490,7 +490,9 @@ def router_admin_delete_one[T: BaseModel, I: Identifiable](
     return DeleteResponse(id=id_)
 
 
-def _is_authorized_for_deletion(db: Session, user_context: UserContext, obj: Identifiable) -> bool:
+def _is_user_authorized_for_deletion(
+    db: Session, user_context: UserContext, obj: Identifiable
+) -> bool:
     # if there is no authorized_project_id it is a global resource
     if not (project_id := getattr(obj, "authorized_project_id", None)):
         return False
@@ -504,11 +506,11 @@ def _is_authorized_for_deletion(db: Session, user_context: UserContext, obj: Ide
         return False
 
     # Project admins may delete private entities within their projects
-    if project_id in user_context.project_admin_ids:
+    if project_id in user_context.admin_project_ids:
         return True
 
     # Project members may delete only the private entities they themselves created
-    if project_id in user_context.project_member_ids and (
+    if project_id in user_context.member_project_ids and (
         db_user := get_user(db, user_context.profile.subject)
     ):
         return db_user.created_by_id == obj.created_by_id

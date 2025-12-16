@@ -211,14 +211,14 @@ class UserContext(UserContextBase):
         return [g.project_id for g in self.user_project_groups]
 
     @property
-    def project_member_ids(self):
+    def member_project_ids(self) -> set[UUID]:
         """Return the project ids for which the user is a member."""
-        return [g.project_id for g in self.user_project_groups if g.role == UserProjectRole.member]
+        return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.member}
 
     @property
-    def project_admin_ids(self):
+    def admin_project_ids(self) -> set[UUID]:
         """Return the project ids for which the user is an admin."""
-        return [g.project_id for g in self.user_project_groups if g.role == UserProjectRole.admin]
+        return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.admin}
 
 
 class UserContextWithProjectId(UserContextBase):

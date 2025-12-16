@@ -175,7 +175,7 @@ def query_params_factory[I: Identifiable](
         "brain_region": lambda q: q.join(
             brain_region_alias, db_model_class.brain_region_id == brain_region_alias.id
         ),
-        "agent": lambda q: q.join(Agent, db_model_class.agent_id == Agent.id),
+        "agent": lambda q: q.join(agent_alias, db_model_class.agent_id == agent_alias.id),
         "contribution": lambda q: q.outerjoin(
             Contribution, db_model_class.id == Contribution.entity_id
         ).outerjoin(contribution_alias, Contribution.agent_id == contribution_alias.id),

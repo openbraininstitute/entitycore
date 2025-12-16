@@ -1,3 +1,5 @@
+import pytest
+
 from app.db.model import CellMorphology, Contribution, Organization, Role, Subject
 
 from .utils import (
@@ -251,17 +253,8 @@ def test_authorization(
     assert data[0]["id"] == public_obj["id"]
 
 
-def test_contribution_facets(
-    db,
-    client,
-    subject_id,
-    brain_region_id,
-    person_id,
-):
-    subject = db.get(Subject, subject_id)
-    species_id = str(subject.species.id)
-    strain_id = str(subject.strain.id)
-
+@pytest.fixture
+def models(client, db, subject_id, brain_region_id, person_id):
     person = create_person(
         db,
         given_name="GivenName",
@@ -300,6 +293,7 @@ def test_contribution_facets(
     )
 
     morphology_ids = []
+    contribution_ids = []
     contribution_sizes = []  # len of contributions for each morphology
     for i, contributions in enumerate(
         [
@@ -327,7 +321,7 @@ def test_contribution_facets(
         morphology_ids.append(cell_morphology_id)
         contribution_sizes.append(len(contributions))
         for agent, agent_role in contributions:
-            add_db(
+            res = add_db(
                 db,
                 Contribution(
                     agent_id=agent.id,
@@ -337,11 +331,31 @@ def test_contribution_facets(
                     updated_by_id=person_id,
                 ),
             )
+            contribution_ids.append(res.id)
 
     assert len(morphology_ids) == 12
     assert contribution_sizes == [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2]
 
-    agent = db.get(CellMorphology, morphology_ids[0]).created_by
+    return {
+        "morphology_ids": morphology_ids,
+        "person_id": str(person.id),
+        "contribution_sizes": contribution_sizes,
+        "contribution_ids": contribution_ids,
+    }
+
+
+def test_contribution_facets(
+    db,
+    client,
+    subject_id,
+    brain_region_id,
+    models,
+):
+    subject = db.get(Subject, subject_id)
+    species_id = str(subject.species.id)
+    strain_id = str(subject.strain.id)
+
+    agent = db.get(CellMorphology, models["morphology_ids"][0]).created_by
 
     response = client.get(
         f"{ROUTE_MORPH}",
@@ -355,7 +369,7 @@ def test_contribution_facets(
             {"count": 9, "id": str(brain_region_id), "label": "RedRegion", "type": "brain_region"},
         ],
         "contribution": [
-            {"count": 9, "id": str(person.id), "label": "person_pref_label", "type": "person"}
+            {"count": 9, "id": models["person_id"], "label": "person_pref_label", "type": "person"}
         ],
         "mtype": [],
         "species": [
@@ -375,8 +389,24 @@ def test_contribution_facets(
     assert len(data["data"]) == 9
     expected_indexes = [11, 10, 6, 5, 4, 3, 2, 1, 0]
 
-    expected_morphology_ids = [morphology_ids[i] for i in expected_indexes]
+    expected_morphology_ids = [models["morphology_ids"][i] for i in expected_indexes]
     assert [item["id"] for item in data["data"]] == expected_morphology_ids
 
-    expected_contribution_sizes = [contribution_sizes[i] for i in expected_indexes]
+    expected_contribution_sizes = [models["contribution_sizes"][i] for i in expected_indexes]
     assert [len(item["contributions"]) for item in data["data"]] == expected_contribution_sizes
+
+
+def test_filtering(client, models):
+    n_contributions = len(models["contribution_ids"])
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    data = req({"agent__pref_label": "person_pref_label"})
+    assert len(data) == 9
+
+    data = req({"agent__pref_label__ilike": "pref_label"})
+    assert len(data) == n_contributions
+
+    data = req({"entity__id__in": [models["morphology_ids"][0], models["morphology_ids"][1]]})
+    assert len(data) == 3

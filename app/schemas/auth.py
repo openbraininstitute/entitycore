@@ -53,7 +53,7 @@ class DecodedToken(UserInfoBase):
         return None
 
 
-class UserRole(StrEnum):
+class UserProjectRole(StrEnum):
     """Keycloak user role."""
 
     admin = auto()
@@ -67,7 +67,7 @@ class UserProjectGroup(BaseModel):
 
     virtual_lab_id: UUID
     project_id: UUID
-    role: UserRole
+    role: UserProjectRole
 
     def __repr__(self):
         """Return the keycloak str group."""
@@ -156,7 +156,7 @@ class UserInfoResponse(UserInfoBase):
             UserProjectGroup(
                 virtual_lab_id=UUID(match.group("vlab")),
                 project_id=UUID(match.group("proj")),
-                role=UserRole(match.group("role")),
+                role=UserProjectRole(match.group("role")),
             )
             for s in self.groups
             if (match := PROJECT_REGEX.match(s))
@@ -213,12 +213,12 @@ class UserContext(UserContextBase):
     @property
     def project_member_ids(self):
         """Return the project ids for which the user is a member."""
-        return [g.project_id for g in self.user_project_groups if g.role == UserRole.member]
+        return [g.project_id for g in self.user_project_groups if g.role == UserProjectRole.member]
 
     @property
     def project_admin_ids(self):
         """Return the project ids for which the user is an admin."""
-        return [g.project_id for g in self.user_project_groups if g.role == UserRole.admin]
+        return [g.project_id for g in self.user_project_groups if g.role == UserProjectRole.admin]
 
 
 class UserContextWithProjectId(UserContextBase):

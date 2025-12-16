@@ -69,18 +69,6 @@ class UserProjectGroup(BaseModel):
     project_id: UUID
     role: UserProjectRole
 
-    def __repr__(self):
-        """Return the keycloak str group."""
-        return f"/{self.virtual_lab_id}/{self.project_id}/{self.role}"
-
-    def __hash__(self):
-        """Return hash."""
-        return hash(self.__repr__())
-
-    def __eq__(self, other):
-        """Return true if groups are the same."""
-        return self.__repr__() == other.__repr__()
-
 
 class UserInfoResponse(UserInfoBase):
     """UserInfoResponse model received from KeyCloak.
@@ -157,7 +145,7 @@ class UserInfoResponse(UserInfoBase):
                 virtual_lab_id=UUID(match.group("vlab")),
                 project_id=UUID(match.group("proj")),
                 role=UserProjectRole(match.group("role")),
-            )
+            )  # pyright: ignore[reportUnhashable]
             for s in self.groups
             if (match := PROJECT_REGEX.match(s))
         }

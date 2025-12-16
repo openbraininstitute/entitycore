@@ -495,7 +495,7 @@ def _is_authorized_for_deletion(db: Session, user_context: UserContext, obj: Ide
     if not (project_id := getattr(obj, "authorized_project_id", None)):
         return False
 
-    # Project maintainers may delete public/private entities within their projects.
+    # Service maintainers may delete public/private entities within their projects.
     if user_context.is_service_maintainer:
         return project_id in user_context.user_project_ids
 

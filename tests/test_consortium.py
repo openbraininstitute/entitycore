@@ -2,30 +2,41 @@ import pytest
 
 from app.db.model import Consortium
 
-from tests.utils import MISSING_ID, MISSING_ID_COMPACT, USER_SUB_ID_1, add_db, assert_request
+from tests.utils import (
+    MISSING_ID,
+    MISSING_ID_COMPACT,
+    USER_SUB_ID_1,
+    add_db,
+    assert_request,
+    check_global_delete_one,
+)
 
 ROUTE = "/consortium"
+ADMIN_ROUTE = "/admin/consortium"
 
 
-def test_create(client, client_admin):
-    label = "test consortium label"
-    alternative_name = "test consortium alternative name"
-    response = client_admin.post(
-        ROUTE,
-        json={"pref_label": label, "alternative_name": alternative_name},
-    )
+@pytest.fixture
+def json_data():
+    return {
+        "pref_label": "test consortium label",
+        "alternative_name": "test consortium alternative name",
+    }
+
+
+def test_create(client, client_admin, json_data):
+    response = client_admin.post(ROUTE, json=json_data)
     assert response.status_code == 200
     data = response.json()
-    assert data["pref_label"] == label
-    assert data["alternative_name"] == alternative_name
+    assert data["pref_label"] == json_data["pref_label"]
+    assert data["alternative_name"] == json_data["alternative_name"]
     assert "id" in data
     id_ = data["id"]
 
     response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
-    assert data["pref_label"] == label
-    assert data["alternative_name"] == alternative_name
+    assert data["pref_label"] == json_data["pref_label"]
+    assert data["alternative_name"] == json_data["alternative_name"]
     assert data["id"] == id_
 
     response = client.get(ROUTE)
@@ -34,6 +45,22 @@ def test_create(client, client_admin):
     data = response.json()["data"]
     assert data[0]["id"] == id_
     assert len(data) == 1
+
+
+def test_delete_one(db, clients, json_data):
+    check_global_delete_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        expected_counts_before={
+            Consortium: 1,
+        },
+        expected_counts_after={
+            Consortium: 0,
+        },
+    )
 
 
 def test_missing(client):

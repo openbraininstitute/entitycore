@@ -11,22 +11,28 @@ from tests.utils import (
     USER_SUB_ID_1,
     add_all_db,
     assert_request,
-    count_db_class,
+    check_global_delete_one,
 )
 
 ROUTE = "/person"
 ADMIN_ROUTE = "/admin/person"
 
 
-def test_create_person(client, client_admin):
-    response = client_admin.post(
-        ROUTE,
-        json={"given_name": "jd", "family_name": "courcol", "pref_label": "jd courcol"},
-    )
+@pytest.fixture
+def json_data():
+    return {
+        "given_name": "jd",
+        "family_name": "courcol",
+        "pref_label": "jd courcol",
+    }
+
+
+def test_create_person(client, client_admin, json_data):
+    response = client_admin.post(ROUTE, json=json_data)
     assert response.status_code == 200
     data = response.json()
-    assert data["given_name"] == "jd"
-    assert data["family_name"] == "courcol"
+    assert data["given_name"] == json_data["given_name"]
+    assert data["family_name"] == json_data["family_name"]
     assert "id" in data
     id_ = data["id"]
     assert data["sub_id"] == ANY
@@ -34,7 +40,7 @@ def test_create_person(client, client_admin):
     response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
-    assert data["given_name"] == "jd"
+    assert data["given_name"] == json_data["given_name"]
     assert data["id"] == id_
     assert data["sub_id"] == ANY
 
@@ -48,7 +54,7 @@ def test_create_person(client, client_admin):
 
     created_from_data, created_from_token = _classify_agents(data)
 
-    assert created_from_data["given_name"] == "jd"
+    assert created_from_data["given_name"] == json_data["given_name"]
     assert created_from_data["id"] == id_
     assert created_from_data["sub_id"] is None
 
@@ -58,7 +64,7 @@ def test_create_person(client, client_admin):
     # If register again only the data agent added and the token agent is reused
     response = client_admin.post(
         ROUTE,
-        json={"given_name": "jd", "family_name": "courcol", "pref_label": "jd courcol"},
+        json=json_data,
     )
     assert response.status_code == 200
 
@@ -70,31 +76,22 @@ def test_create_person(client, client_admin):
     assert sum(1 for d in data if d["sub_id"] is not None) == 1
 
 
-def test_delete_one(db, client, client_admin):
-    response = client_admin.post(
-        ROUTE,
-        json={"given_name": "jd", "family_name": "courcol", "pref_label": "jd courcol"},
+def test_delete_one(db, clients, json_data):
+    check_global_delete_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        expected_counts_before={
+            Person: 2,
+            Agent: 2,
+        },
+        expected_counts_after={
+            Person: 1,
+            Agent: 1,
+        },
     )
-    assert response.status_code == 200
-    data = response.json()
-
-    model_id = data["id"]
-
-    # 1 created_by/updated_by 1 Person
-    assert count_db_class(db, Person) == 2
-    assert count_db_class(db, Agent) == 2
-
-    data = assert_request(
-        client.delete, url=f"{ADMIN_ROUTE}/{model_id}", expected_status_code=403
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
-    assert data["message"] == "Service admin role required"
-
-    data = assert_request(client_admin.delete, url=f"{ADMIN_ROUTE}/{model_id}").json()
-    assert data["id"] == str(model_id)
-
-    assert count_db_class(db, Person) == 1
-    assert count_db_class(db, Agent) == 1
 
 
 def _classify_agents(data):

@@ -1281,7 +1281,7 @@ def check_entity_delete_one(
         data = assert_request(client.post, url=route, json=data).json()
         return data["id"]
 
-    def _assert_not_found(client, model_id):
+    def _assert_forbidden(client, model_id):
         data = assert_request(
             client.delete, url=f"{route}/{model_id}", expected_status_code=403
         ).json()
@@ -1307,10 +1307,10 @@ def check_entity_delete_one(
     model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": False})
 
     # user 2 has no access to project id
-    _assert_not_found(clients.user_2, model_id)
+    _assert_forbidden(clients.user_2, model_id)
 
     # maintainer 2 has no access to project id
-    _assert_not_found(clients.maintainer_2, model_id)
+    _assert_forbidden(clients.maintainer_2, model_id)
 
     # user 1 can delete
     _req_count(clients.user_1, route, model_id)
@@ -1335,7 +1335,7 @@ def check_entity_delete_one(
     model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
 
     # users cannot delete public resources
-    _assert_not_found(clients.user_1, model_id)
+    _assert_forbidden(clients.user_1, model_id)
 
     # admins should be able to
     _req_count(clients.admin, admin_route, model_id)
@@ -1343,7 +1343,7 @@ def check_entity_delete_one(
     model_id = _create_model_id(clients.user_1, json_data | {"authorized_public": True})
 
     # maintainers are also able to delete as long as they have access to the project
-    _assert_not_found(clients.maintainer_2, model_id)
+    _assert_forbidden(clients.maintainer_2, model_id)
 
     # via project context header
     _req_count(clients.maintainer_1, route, model_id)

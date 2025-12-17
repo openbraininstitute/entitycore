@@ -1,10 +1,22 @@
 import hashlib
+import re
+from typing import TYPE_CHECKING
 
 from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
-from sqlalchemy import inspect
+from alembic_utils.replaceable_entity import ReplaceableEntity, register_entities
+from sqlalchemy import Table, inspect
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
+from sqlalchemy_continuum import versioning_manager
+from sqlalchemy_continuum.dialects.postgresql import (
+    CreateTemporaryTransactionTableSQL,
+    CreateTriggerFunctionSQL,
+    CreateTriggerSQL,
+    InsertTemporaryTransactionSQL,
+    TransactionTriggerSQL,
+)
+from sqlalchemy_continuum.transaction import procedure_sql as temporary_transaction_procedure_sql
 
 from app.db.model import (
     Base,
@@ -34,7 +46,16 @@ from app.db.model import (
     ValidationResult,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 MAX_IDENTIFIER_LENGTH = 59
+FUNCTION_PATTERN = re.compile(
+    r"^\s*CREATE OR REPLACE FUNCTION (?P<signature>[\w]+\(\))\s+(?P<body>.*)$", flags=re.DOTALL
+)
+TRIGGER_PATTERN = re.compile(
+    r"^\s*CREATE TRIGGER (?P<signature>[\w]+)\s+(?P<body>.*)$", flags=re.DOTALL
+)
 
 
 def _check_name_length(s: str, min_len: int = 1, max_len: int = 63) -> str:
@@ -160,54 +181,154 @@ def unauthorized_private_reference_trigger(model: type[Entity], field_name: str)
     )
 
 
-# list of protected relationships between entities as (model, field_name)
-protected_entity_relationships = [
-    (BrainAtlasRegion, "brain_atlas_id"),
-    (CellMorphology, "cell_morphology_protocol_id"),
-    (Circuit, "atlas_id"),
-    (Circuit, "root_circuit_id"),
-    (CircuitExtractionConfig, "circuit_id"),
-    (ElectricalRecordingStimulus, "recording_id"),
-    (EMCellMesh, "em_dense_reconstruction_dataset_id"),
-    (EModel, "exemplar_morphology_id"),
-    (ExperimentalBoutonDensity, "subject_id"),
-    (ExperimentalNeuronDensity, "subject_id"),
-    (ExperimentalSynapsesPerConnection, "subject_id"),
-    (MEModel, "emodel_id"),
-    (MEModel, "morphology_id"),
-    (MEModelCalibrationResult, "calibrated_entity_id"),
-    (ScientificArtifact, "subject_id"),
-    (Simulation, "entity_id"),
-    (Simulation, "simulation_campaign_id"),
-    (SimulationCampaign, "entity_id"),
-    (SimulationResult, "simulation_id"),
-    (SingleNeuronSimulation, "me_model_id"),
-    (SingleNeuronSynaptome, "me_model_id"),
-    (SingleNeuronSynaptomeSimulation, "synaptome_id"),
-    (ValidationResult, "validated_entity_id"),
-    (IonChannelModelingConfig, "ion_channel_modeling_campaign_id"),
-    (SkeletonizationConfig, "skeletonization_campaign_id"),
-    (SkeletonizationConfig, "em_cell_mesh_id"),
-]
+def create_transaction_trigger() -> tuple[PGFunction, PGTrigger]:
+    """Return function and trigger needed for the transaction table used by sqlalchemy-continuum.
 
-entities = [
-    description_vector_trigger(
-        model=mapper.class_,
-        signature=f"{mapper.class_.__tablename__}_description_vector",
-        target_field="description_vector",
-        fields=["description", "name"],
+    Based on ``sqlalchemy_continuum.transaction.create_triggers``
+    to integrate with alembic_utils.
+    """
+    cls = versioning_manager.transaction_cls
+    tablename = cls.__tablename__  # pyright: ignore[reportAttributeAccessIssue]
+
+    if not (
+        function_match := FUNCTION_PATTERN.fullmatch(
+            s := temporary_transaction_procedure_sql.format(
+                temporary_transaction_sql=CreateTemporaryTransactionTableSQL(),
+                insert_temporary_transaction_sql=(
+                    InsertTemporaryTransactionSQL(transaction_id_values="NEW.id")
+                ),
+            )
+        )
+    ):
+        msg = f"Could not parse function definition: {s!r}"
+        raise ValueError(msg)
+    if not (trigger_match := TRIGGER_PATTERN.fullmatch(s := str(TransactionTriggerSQL(cls)))):
+        msg = f"Could not parse trigger definition: {s!r}"
+        raise ValueError(msg)
+    sql_function = PGFunction(
+        schema="public",
+        signature=function_match.group("signature"),
+        definition=function_match.group("body"),
     )
-    for mapper in Base.registry.mappers
-    if issubclass(mapper.class_, NameDescriptionVectorMixin)
-    and "description_vector" in mapper.class_.__table__.c  # exclude children
-]
+    sql_trigger = PGTrigger(
+        schema="public",
+        signature=trigger_match.group("signature"),
+        on_entity=tablename,
+        definition=trigger_match.group("body"),
+    )
+    return sql_function, sql_trigger
 
-entities += [
-    PGExtension(schema="public", signature="vector"),
-]
 
-for model, field_name in protected_entity_relationships:
-    entities += [
-        unauthorized_private_reference_function(model, field_name),
-        unauthorized_private_reference_trigger(model, field_name),
+def create_versioned_trigger(
+    table: Table,
+    *,
+    transaction_column_name="transaction_id",
+    operation_type_column_name="operation_type",
+    version_table_name_format="%s_version",
+    excluded_columns=None,
+    use_property_mod_tracking=True,
+    end_transaction_column_name=None,
+) -> tuple[PGFunction, PGTrigger]:
+    """Return function and trigger needed by sqlalchemy-continuum.
+
+    Based on ``sqlalchemy_continuum.dialects.postgresql.create_trigger``
+    to integrate with alembic_utils.
+    """
+    params = {
+        "table": table,
+        "update_validity_for_tables": [],
+        "transaction_column_name": transaction_column_name,
+        "operation_type_column_name": operation_type_column_name,
+        "version_table_name_format": version_table_name_format,
+        "excluded_columns": excluded_columns,
+        "use_property_mod_tracking": use_property_mod_tracking,
+        "end_transaction_column_name": end_transaction_column_name,
+    }
+    if not (
+        function_match := FUNCTION_PATTERN.fullmatch(s := str(CreateTriggerFunctionSQL(**params)))
+    ):
+        msg = f"Could not parse function definition: {s!r}"
+        raise ValueError(msg)
+    if not (trigger_match := TRIGGER_PATTERN.fullmatch(s := str(CreateTriggerSQL(**params)))):
+        msg = f"Could not parse trigger definition: {s!r}"
+        raise ValueError(msg)
+    sql_function = PGFunction(
+        schema="public",
+        signature=function_match.group("signature"),
+        definition=function_match.group("body"),
+    )
+    sql_trigger = PGTrigger(
+        schema="public",
+        signature=trigger_match.group("signature"),
+        on_entity=table.name,
+        definition=trigger_match.group("body"),
+    )
+    return sql_function, sql_trigger
+
+
+def register_all():
+    # list of protected relationships between entities as (model, field_name)
+    protected_entity_relationships = [
+        (BrainAtlasRegion, "brain_atlas_id"),
+        (CellMorphology, "cell_morphology_protocol_id"),
+        (Circuit, "atlas_id"),
+        (Circuit, "root_circuit_id"),
+        (CircuitExtractionConfig, "circuit_id"),
+        (ElectricalRecordingStimulus, "recording_id"),
+        (EMCellMesh, "em_dense_reconstruction_dataset_id"),
+        (EModel, "exemplar_morphology_id"),
+        (ExperimentalBoutonDensity, "subject_id"),
+        (ExperimentalNeuronDensity, "subject_id"),
+        (ExperimentalSynapsesPerConnection, "subject_id"),
+        (MEModel, "emodel_id"),
+        (MEModel, "morphology_id"),
+        (MEModelCalibrationResult, "calibrated_entity_id"),
+        (ScientificArtifact, "subject_id"),
+        (Simulation, "entity_id"),
+        (Simulation, "simulation_campaign_id"),
+        (SimulationCampaign, "entity_id"),
+        (SimulationResult, "simulation_id"),
+        (SingleNeuronSimulation, "me_model_id"),
+        (SingleNeuronSynaptome, "me_model_id"),
+        (SingleNeuronSynaptomeSimulation, "synaptome_id"),
+        (ValidationResult, "validated_entity_id"),
+        (IonChannelModelingConfig, "ion_channel_modeling_campaign_id"),
+        (SkeletonizationConfig, "skeletonization_campaign_id"),
+        (SkeletonizationConfig, "em_cell_mesh_id"),
     ]
+
+    entities: Iterable[ReplaceableEntity] = []
+
+    entities += [
+        description_vector_trigger(
+            model=mapper.class_,
+            signature=f"{mapper.class_.__tablename__}_description_vector",
+            target_field="description_vector",
+            fields=["description", "name"],
+        )
+        for mapper in Base.registry.mappers
+        if issubclass(mapper.class_, NameDescriptionVectorMixin)
+        and "description_vector" in mapper.class_.__table__.c  # exclude children
+    ]
+
+    entities += [
+        PGExtension(schema="public", signature="vector"),
+        PGExtension(schema="public", signature="hstore"),  # for versioning updates
+    ]
+
+    for model, field_name in protected_entity_relationships:
+        entities += [
+            unauthorized_private_reference_function(model, field_name),
+            unauthorized_private_reference_trigger(model, field_name),
+        ]
+
+    entities += create_transaction_trigger()
+
+    for mapper in Base.registry.mappers:
+        if hasattr(mapper.class_, "__versioned__"):
+            entities += create_versioned_trigger(
+                table=mapper.class_.__table__,
+                use_property_mod_tracking=False,
+            )
+
+    register_entities(entities=entities)

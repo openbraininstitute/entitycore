@@ -32,9 +32,7 @@ from sqlalchemy.orm import (
     relationship,
     validates,
 )
-
-# from sqlalchemy_continuum import make_versioned
-from sqlalchemy_history import make_versioned
+from sqlalchemy_continuum import make_versioned
 
 from app.db.types import (
     BIGINT,
@@ -86,15 +84,8 @@ from app.schemas.publication import Author
 from app.utils.events import register_model_events
 from app.utils.uuid import create_uuid
 
-# create_tables=False and create_models=False
-make_versioned(
-    user_cls=None,
-    options={
-        # "native_versioning": True,
-        # "create_models": True,
-        # "create_tables": True,
-    },
-)
+# enable versioning
+make_versioned(user_cls=None, options={"native_versioning": True})
 
 
 class Base(DeclarativeBase):
@@ -997,7 +988,7 @@ class MeasurementLabel(Identifiable):
 
 class MeasurementKind(Base):
     __tablename__ = "measurement_kind"
-    __versioned__: ClassVar[dict] = {}
+    # __versioned__: ClassVar[dict] = {}
 
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
@@ -1047,7 +1038,7 @@ class MeasurementKind(Base):
 
 class MeasurementItem(Base):
     __tablename__ = "measurement_item"
-    __versioned__: ClassVar[dict] = {}
+    # __versioned__: ClassVar[dict] = {}
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[MeasurementStatistic]
@@ -1214,10 +1205,8 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
 
 class Measurement(Base):
     __tablename__ = "measurement_record"
-    __versioned__: ClassVar[dict] = {}
+    # __versioned__: ClassVar[dict] = {}
 
-    # id: Mapped[BIGINT] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    # id: Mapped[BIGINT] = mapped_column(BigInteger, Identity(always=False), primary_key=True)
     id: Mapped[BIGINT] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[MeasurementStatistic]
     unit: Mapped[MeasurementUnit]

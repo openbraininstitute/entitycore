@@ -321,6 +321,7 @@ dependencies = [
     { name = "pyjwt" },
     { name = "python-multipart" },
     { name = "sqlalchemy" },
+    { name = "sqlalchemy-continuum" },
     { name = "tqdm" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -364,6 +365,7 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "python-multipart", specifier = ">=0.0.20" },
     { name = "sqlalchemy" },
+    { name = "sqlalchemy-continuum", specifier = ">=1.5.2" },
     { name = "tqdm", specifier = ">=4.67.1" },
     { name = "uvicorn", extras = ["standard"] },
 ]

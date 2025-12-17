@@ -61,34 +61,6 @@ class AssetRepository(BaseRepository):
         )
         return self.db.execute(query).scalar_one()
 
-    def update_entity_asset_status(
-        self,
-        entity_type: EntityType,
-        entity_id: uuid.UUID,
-        asset_id: uuid.UUID,
-        asset_status: AssetStatus,
-    ) -> Asset:
-        """Update the status of the given asset.
-
-        Raise an error if any of the following is true:
-
-        - the asset doesn't exist for the given entity
-        - the status is already set with the same requested value
-        """
-        query = (
-            sa.update(Asset)
-            .values(status=asset_status)
-            .where(
-                Asset.entity_id == entity_id,
-                Asset.id == asset_id,
-                Asset.status != asset_status,
-                Entity.type == entity_type.name,
-                Entity.id == Asset.entity_id,
-            )
-            .returning(Asset)
-        )
-        return self.db.execute(query).scalar_one()
-
     def delete_entity_asset(
         self,
         entity_type: EntityType,

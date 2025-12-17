@@ -96,14 +96,12 @@ class AssetRepository(BaseRepository):
         asset_id: uuid.UUID,
     ) -> Asset:
         """Delete an entity asset."""
-        query = (
-            sa.delete(Asset)
-            .where(
-                Asset.entity_id == entity_id,
-                Asset.id == asset_id,
-                Entity.type == entity_type.name,
-                Entity.id == Asset.entity_id,
-            )
-            .returning(Asset)
+        query = sa.select(Asset).where(
+            Asset.entity_id == entity_id,
+            Asset.id == asset_id,
+            Entity.type == entity_type.name,
+            Entity.id == Asset.entity_id,
         )
-        return self.db.execute(query).scalar_one()
+        asset = self.db.execute(query).scalar_one()
+        self.db.delete(asset)
+        return asset

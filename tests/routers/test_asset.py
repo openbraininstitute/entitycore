@@ -805,6 +805,31 @@ def test_delete_entity_asset__authorization__admin(
         assert ErrorResponse.model_validate(data).error_code == expected_error
 
 
+@pytest.mark.parametrize(
+    ("is_public", "expected_status_code", "expected_error"),
+    [
+        (False, 200, None),
+        (True, 403, ApiErrorCode.ENTITY_FORBIDDEN),
+    ],
+)
+def test_delete_entity_asset__authorization__user_own(
+    clients, create_entity_asset, is_public, expected_status_code, expected_error
+):
+    """Test project member may deleted their own private assets."""
+    entity_id, entity_type, asset_id = create_entity_asset(
+        clients.user_3, authorized_public=is_public
+    )
+
+    data = assert_request(
+        client_method=clients.user_3.delete,
+        url=f"{route(entity_type)}/{entity_id}/assets/{asset_id}",
+        expected_status_code=expected_status_code,
+    ).json()
+
+    if expected_error is not None:
+        assert ErrorResponse.model_validate(data).error_code == expected_error
+
+
 def test_delete_entity_asset(client, entity, asset):
     response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
     assert response.status_code == 200, f"Failed to delete asset: {response.text}"

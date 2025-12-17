@@ -88,7 +88,6 @@ def delete_entity_asset(
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
-        hard_delete=True,
     )
     asset_service.delete_asset_storage_object(asset, storage_client_factory)
     return asset

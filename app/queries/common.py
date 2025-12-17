@@ -10,9 +10,10 @@ from sqlalchemy.sql import operators
 from app.db.auth import (
     constrain_to_accessible_entities,
     constrain_to_writable_entities,
+    is_user_authorized_for_deletion,
     select_unauthorized_entities,
 )
-from app.db.model import Activity, Agent, Generation, Identifiable, Person, Usage
+from app.db.model import Activity, Generation, Identifiable, Usage
 from app.db.utils import get_declaring_class, load_db_model_from_pydantic, update_model
 from app.dependencies.common import (
     FacetQueryParams,
@@ -33,12 +34,12 @@ from app.filters.base import Aliases, CustomFilter
 from app.queries import crud
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations, SupportsModelValidate
+from app.queries.utils import get_or_create_user_agent
 from app.schemas.activity import ActivityCreate, ActivityUpdate
-from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile
+from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, PaginationResponse
 from app.schemas.utils import NOT_SET
-from app.utils.uuid import create_uuid
 
 
 def router_read_one[T: BaseModel, I: Identifiable](
@@ -215,33 +216,6 @@ def router_create_one[T: BaseModel, I: Identifiable](
         db.refresh(db_model_instance)
 
     return response_schema_class.model_validate(db_model_instance)
-
-
-def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Agent:
-    if db_agent := get_user(db, user_profile.subject):
-        return db_agent
-
-    agent_id = create_uuid()
-
-    db_agent = Person(
-        id=agent_id,
-        pref_label=user_profile.name,
-        given_name=user_profile.given_name,
-        family_name=user_profile.family_name,
-        sub_id=user_profile.subject,
-        created_by_id=agent_id,
-        updated_by_id=agent_id,
-    )
-
-    db.add(db_agent)
-    db.flush()
-
-    return db_agent
-
-
-def get_user(db: Session, subject_id: uuid.UUID) -> Person | None:
-    query = sa.select(Person).where(Person.sub_id == subject_id)
-    return db.execute(query).scalars().first()
 
 
 def _with_subquery[I: Identifiable](
@@ -460,7 +434,7 @@ def router_user_delete_one[T: BaseModel, I: Identifiable](
     """
     obj = crud.get_identifiable_one(db=db, db_model_class=db_model_class, id_=id_)
 
-    if not _is_user_authorized_for_deletion(db, user_context, obj):
+    if not is_user_authorized_for_deletion(db, user_context, obj):
         raise ApiError(
             message="User is not authorized to access resource.",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,
@@ -488,34 +462,6 @@ def router_admin_delete_one[T: BaseModel, I: Identifiable](
     obj = crud.get_identifiable_one(db=db, db_model_class=db_model_class, id_=id_)
     crud.delete_one(db=db, row=obj)
     return DeleteResponse(id=id_)
-
-
-def _is_user_authorized_for_deletion(
-    db: Session, user_context: UserContext, obj: Identifiable
-) -> bool:
-    # if there is no authorized_project_id it is a global resource
-    if not (project_id := getattr(obj, "authorized_project_id", None)):
-        return False
-
-    # Service maintainers may delete public/private entities within their projects.
-    if user_context.is_service_maintainer:
-        return project_id in user_context.user_project_ids
-
-    # from here and below public entities cannot be deleted
-    if obj.authorized_public:  # pyright: ignore [reportAttributeAccessIssue]
-        return False
-
-    # Project admins may delete private entities within their projects
-    if project_id in user_context.admin_project_ids:
-        return True
-
-    # Project members may delete only the private entities they themselves created
-    if project_id in user_context.member_project_ids and (
-        db_user := get_user(db, user_context.profile.subject)
-    ):
-        return db_user.created_by_id == obj.created_by_id
-
-    return False
 
 
 def router_update_activity_one[T: BaseModel, I: Activity](

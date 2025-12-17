@@ -8,11 +8,13 @@ from pydantic.networks import AnyUrl
 from types_boto3_s3 import S3Client
 
 from app.config import StorageUnion, storages
+from app.db.auth import is_user_authorized_for_deletion
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, StorageType
 from app.dependencies.common import PaginationQuery
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.filters.asset import AssetFilterDep
+from app.queries import crud
 from app.queries.common import get_or_create_user_agent, router_read_many
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import (
@@ -162,22 +164,27 @@ def create_entity_asset(  # noqa: PLR0913
 
 def delete_entity_asset(
     repos: RepositoryGroup,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
-    *,
-    hard_delete: bool = False,
 ) -> AssetRead:
     """Delete or mark an entity asset as deleted."""
-    _ = entity_service.get_writable_entity(
-        repos,
-        user_context=user_context,
-        entity_type=entity_type,
-        entity_id=entity_id,
+    entity = crud.get_identifiable_one(
+        db=repos.db,
+        db_model_class=Entity,
+        id_=entity_id,
     )
+
+    if not is_user_authorized_for_deletion(repos.db, user_context, entity):
+        raise ApiError(
+            message="User is not authorized to access resource.",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
-        asset = delete_asset(repos, entity_type, entity_id, asset_id, hard_delete=hard_delete)
+        asset = delete_asset(repos, entity_type, entity_id, asset_id)
     return AssetRead.model_validate(asset)
 
 
@@ -186,30 +193,14 @@ def delete_asset(
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
-    *,
-    hard_delete: bool = False,
 ) -> AssetRead:
-    """Soft or hard delete an asset based on hard_delete flag.
-
-    If hard_delete = False the asset will be marked as deleted.
-    If hard_delete = True the asset will be removed from the database.
-
-    In both cases the s3 file will be deleted.
-    """
+    """Delete asset and associated s3 file."""
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
-        if hard_delete:
-            asset = repos.asset.delete_entity_asset(
-                entity_type=entity_type,
-                entity_id=entity_id,
-                asset_id=asset_id,
-            )
-        else:
-            asset = repos.asset.update_entity_asset_status(
-                entity_type=entity_type,
-                entity_id=entity_id,
-                asset_id=asset_id,
-                asset_status=AssetStatus.DELETED,
-            )
+        asset = repos.asset.delete_entity_asset(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            asset_id=asset_id,
+        )
     return AssetRead.model_validate(asset)
 
 

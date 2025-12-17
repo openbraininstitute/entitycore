@@ -6,7 +6,7 @@ from moto import mock_aws
 
 from app.config import settings, storages
 from app.db.model import Asset, Entity
-from app.db.types import AssetLabel, AssetStatus, EntityType, StorageType
+from app.db.types import AssetLabel, EntityType, StorageType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
@@ -44,6 +44,36 @@ def _get_expected_full_path(entity, path):
         filename=path,
         is_public=False,
     )
+
+
+@pytest.fixture
+def create_entity_asset(subject_id, brain_region_id):
+    def _create_entity_asset(
+        client,
+        authorized_public,
+    ):
+        entity_type = EntityType.cell_morphology
+        entity_id = create_cell_morphology_id(
+            client,
+            subject_id=subject_id,
+            brain_region_id=brain_region_id,
+            authorized_public=authorized_public,
+        )
+        data = (
+            _upload_entity_asset(
+                client,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                label="morphology",
+                file_upload_name="morph.asc",
+                content_type="application/asc",
+            )
+            .raise_for_status()
+            .json()
+        )
+        return entity_id, entity_type, data["id"]
+
+    return _create_entity_asset
 
 
 @pytest.fixture
@@ -573,7 +603,7 @@ def test_get_entity_assets(client, entity, asset):
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
 
-def test_get_deleted_entity_assets__admin(client, client_admin, entity, asset):
+def test_get_deleted_entity_assets__admin(db, client_admin, entity, asset):
     """Test that a service admin can fetch marked as deleted assets."""
 
     response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
@@ -599,9 +629,10 @@ def test_get_deleted_entity_assets__admin(client, client_admin, entity, asset):
 
     assert data == [expected_asset_payload]
 
-    # mark as deleted, ensure that admin can get the deleted asset
-    response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
-    assert response.status_code == 200, f"Failed to delete asset: {response.text}"
+    # mark as deleted
+    asset = db.get(Asset, asset.id)
+    asset.status = "deleted"
+    db.commit()
 
     response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}")
     assert response.status_code == 200, f"Failed to delete asset: {response.text}"
@@ -621,16 +652,6 @@ def test_get_deleted_entity_assets__admin(client, client_admin, entity, asset):
     assert response.status_code == 200, f"Failed to get asset: {response.text}"
     data = response.json()["data"]
     assert data == []
-
-
-@pytest.mark.parametrize("client_fixture", ["client_user_2", "client_no_project"])
-def test_get_entity_assets_non_authorized(request, client_fixture, entity):
-    client = request.getfixturevalue(client_fixture)
-
-    response = client.get(f"{route(entity.type)}/{entity.id}/assets")
-    assert response.status_code == 404, f"Unexpected result: {response.text}"
-    error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
 
 def test_download_entity_asset(client, entity, asset):
@@ -678,11 +699,140 @@ def test_download_entity_asset_non_authorized(request, client_fixture, entity, a
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
 
+@pytest.mark.parametrize(
+    ("is_public", "client_name", "expected_status_code", "expected_error"),
+    [
+        (False, "user_1", 200, None),  # project admin, same project
+        (
+            True,
+            "user_1",
+            403,
+            ApiErrorCode.ENTITY_FORBIDDEN,
+        ),  # project admin cannot delete public ones
+        (
+            False,
+            "user_2",
+            403,
+            ApiErrorCode.ENTITY_FORBIDDEN,
+        ),  # project admin, diff project, no creator
+        (
+            True,
+            "user_2",
+            403,
+            ApiErrorCode.ENTITY_FORBIDDEN,
+        ),  # project admin, diff project, no creator
+        (
+            False,
+            "user_3",
+            403,
+            ApiErrorCode.ENTITY_FORBIDDEN,
+        ),  # project member, same project, no creator
+        (
+            True,
+            "user_3",
+            403,
+            ApiErrorCode.ENTITY_FORBIDDEN,
+        ),  # project member, same project, no creator
+        (False, "no_project", 403, ApiErrorCode.ENTITY_FORBIDDEN),  # no project ids
+        (True, "no_project", 403, ApiErrorCode.ENTITY_FORBIDDEN),  # no project ids
+        (False, "maintainer_1", 200, None),  # same project
+        (True, "maintainer_1", 200, None),  # same project
+        (False, "maintainer_2", 403, ApiErrorCode.ENTITY_FORBIDDEN),  # diff project,
+        (True, "maintainer_2", 403, ApiErrorCode.ENTITY_FORBIDDEN),  # diff project,
+        (
+            False,
+            "admin",
+            403,
+            ApiErrorCode.ENTITY_FORBIDDEN,
+        ),  # regular route, admin is treated as a user
+        (
+            True,
+            "admin",
+            403,
+            ApiErrorCode.ENTITY_FORBIDDEN,
+        ),  # regular route, admin is treated as a user
+    ],
+)
+def test_delete_entity_asset__authorization__user(
+    clients, create_entity_asset, is_public, client_name, expected_status_code, expected_error
+):
+    entity_id, entity_type, asset_id = create_entity_asset(
+        clients.user_1, authorized_public=is_public
+    )
+
+    data = assert_request(
+        client_method=getattr(clients, client_name).delete,
+        url=f"{route(entity_type)}/{entity_id}/assets/{asset_id}",
+        expected_status_code=expected_status_code,
+    ).json()
+
+    if expected_error is not None:
+        assert ErrorResponse.model_validate(data).error_code == expected_error
+
+
+@pytest.mark.parametrize(
+    ("is_public", "client_name", "expected_status_code", "expected_error"),
+    [
+        (True, "admin", 200, None),
+        (False, "admin", 200, None),
+        (True, "user_1", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (False, "user_2", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (True, "user_2", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (False, "user_3", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (True, "user_3", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (False, "no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (True, "no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (False, "maintainer_1", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (True, "maintainer_1", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (False, "maintainer_2", 403, ApiErrorCode.NOT_AUTHORIZED),
+        (True, "maintainer_2", 403, ApiErrorCode.NOT_AUTHORIZED),
+    ],
+)
+def test_delete_entity_asset__authorization__admin(
+    clients, create_entity_asset, is_public, client_name, expected_status_code, expected_error
+):
+    entity_id, entity_type, asset_id = create_entity_asset(
+        clients.user_1, authorized_public=is_public
+    )
+
+    data = assert_request(
+        client_method=getattr(clients, client_name).delete,
+        url=f"admin{route(entity_type)}/{entity_id}/assets/{asset_id}",
+        expected_status_code=expected_status_code,
+    ).json()
+
+    if expected_error is not None:
+        assert ErrorResponse.model_validate(data).error_code == expected_error
+
+
+@pytest.mark.parametrize(
+    ("is_public", "expected_status_code", "expected_error"),
+    [
+        (False, 200, None),
+        (True, 403, ApiErrorCode.ENTITY_FORBIDDEN),
+    ],
+)
+def test_delete_entity_asset__authorization__user_own(
+    clients, create_entity_asset, is_public, expected_status_code, expected_error
+):
+    """Test project member may deleted their own private assets."""
+    entity_id, entity_type, asset_id = create_entity_asset(
+        clients.user_3, authorized_public=is_public
+    )
+
+    data = assert_request(
+        client_method=clients.user_3.delete,
+        url=f"{route(entity_type)}/{entity_id}/assets/{asset_id}",
+        expected_status_code=expected_status_code,
+    ).json()
+
+    if expected_error is not None:
+        assert ErrorResponse.model_validate(data).error_code == expected_error
+
+
 def test_delete_entity_asset(client, entity, asset):
     response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
     assert response.status_code == 200, f"Failed to delete asset: {response.text}"
-    data = response.json()
-    assert data == asset.model_copy(update={"status": AssetStatus.DELETED}).model_dump(mode="json")
 
     # try to delete again the same asset
     response = client.delete(f"{route(entity.type)}/{entity.id}/assets/{asset.id}")
@@ -701,67 +851,6 @@ def test_delete_entity_asset(client, entity, asset):
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
-
-
-def test_hard_delete(clients, entity, asset):
-    assets_url = f"{route(entity.type)}/{entity.id}/assets"
-
-    data = assert_request(
-        clients.admin.get,
-        url=f"/admin{assets_url}",
-    ).json()["data"]
-
-    assert len(data) == 1
-
-    # hard = False, soft delete
-    data = assert_request(
-        clients.maintainer_1.delete,
-        url=f"{assets_url}/{asset.id}",
-    ).json()
-
-    data = assert_request(
-        clients.admin.get,
-        url=f"/admin{assets_url}",
-    ).json()["data"]
-
-    assert len(data) == 1
-
-    # hard = True, hard delete
-    data = assert_request(
-        clients.maintainer_1.delete,
-        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}",
-        params={"hard": True},
-    ).json()
-
-    data = assert_request(clients.admin.get, url=f"/admin{assets_url}").json()["data"]
-
-    assert len(data) == 0
-
-
-@pytest.mark.parametrize(
-    ("client_fixture", "expected_status", "is_hard_delete", "expected_error"),
-    [
-        ("client_user_1", 403, True, ApiErrorCode.NOT_AUTHORIZED),
-        ("client_user_2", 404, False, ApiErrorCode.ENTITY_NOT_FOUND),
-        ("client_user_2", 403, True, ApiErrorCode.NOT_AUTHORIZED),
-        ("client_no_project", 403, False, ApiErrorCode.NOT_AUTHORIZED),
-        ("client_no_project", 403, True, ApiErrorCode.NOT_AUTHORIZED),
-        ("client_maintainer_2", 404, False, ApiErrorCode.ENTITY_NOT_FOUND),
-        ("client_maintainer_2", 404, True, ApiErrorCode.ENTITY_NOT_FOUND),
-    ],
-)
-def test_delete_entity_asset_non_authorized(
-    request, client_fixture, expected_status, is_hard_delete, expected_error, entity, asset
-):
-    client = request.getfixturevalue(client_fixture)
-
-    response = client.delete(
-        f"{route(entity.type)}/{entity.id}/assets/{asset.id}",
-        params={"hard": is_hard_delete},
-    )
-    assert response.status_code == expected_status, f"Unexpected result: {response.text}"
-    error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == expected_error
 
 
 def test_upload_delete_upload_entity_asset(client, entity):

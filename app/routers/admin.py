@@ -7,7 +7,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.filters.asset import AssetFilterDep
-from app.queries.common import router_delete_one
+from app.queries.common import router_admin_delete_one
 from app.schemas.asset import (
     AssetRead,
 )
@@ -30,11 +30,10 @@ def delete_one(
     id_: uuid.UUID,
 ) -> DeleteResponse:
     resource_type = route_to_type(route)
-    return router_delete_one(
+    return router_admin_delete_one(
         id_=id_,
         db=db,
         db_model_class=RESOURCE_TYPE_TO_CLASS[resource_type],
-        user_context=None,
     )
 
 
@@ -89,7 +88,6 @@ def delete_entity_asset(
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
         asset_id=asset_id,
-        hard_delete=True,
     )
     asset_service.delete_asset_storage_object(asset, storage_client_factory)
     return asset

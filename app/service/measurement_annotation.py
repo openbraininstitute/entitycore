@@ -22,8 +22,8 @@ from app.filters.measurement_annotation import (
     MeasurementAnnotationFilterDep,
 )
 from app.queries.common import (
+    router_admin_delete_one,
     router_create_one,
-    router_delete_one,
     router_read_many,
     router_read_one,
     router_update_one,
@@ -182,11 +182,10 @@ def delete_one(
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
     )
-    router_delete_one(
+    router_admin_delete_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        user_context=None,  # already validated
     )
     return one
 

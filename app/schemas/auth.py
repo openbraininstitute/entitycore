@@ -1,4 +1,5 @@
 import re
+from enum import StrEnum, auto
 from typing import Self
 from uuid import UUID
 
@@ -50,6 +51,23 @@ class DecodedToken(UserInfoBase):
         except Exception as e:  # noqa: BLE001
             L.info("Unable to decode token as JWT [{}]", e)
         return None
+
+
+class UserProjectRole(StrEnum):
+    """Keycloak user role."""
+
+    admin = auto()
+    member = auto()
+
+
+class UserProjectGroup(BaseModel):
+    """Keycloak user group."""
+
+    model_config = ConfigDict(frozen=True)
+
+    virtual_lab_id: UUID
+    project_id: UUID
+    role: UserProjectRole
 
 
 class UserInfoResponse(UserInfoBase):
@@ -120,14 +138,17 @@ class UserInfoResponse(UserInfoBase):
                 return UUID(match.group("vlab"))
         return None
 
-    def user_project_ids(self) -> list[UUID]:
-        """Return the the list if project_ids the user is authorized for."""
-        project_ids: set[UUID] = set()
-        for s in self.groups:
-            if match := PROJECT_REGEX.match(s):
-                project_ids.add(UUID(match.group("proj")))
-
-        return list(project_ids)
+    def user_project_groups(self) -> set[UserProjectGroup]:
+        """Return the keycloak groups the user is authorized for."""
+        return {
+            UserProjectGroup(
+                virtual_lab_id=UUID(match.group("vlab")),
+                project_id=UUID(match.group("proj")),
+                role=UserProjectRole(match.group("role")),
+            )  # pyright: ignore[reportUnhashable]
+            for s in self.groups
+            if (match := PROJECT_REGEX.match(s))
+        }
 
 
 class UserProfile(BaseModel):
@@ -156,7 +177,7 @@ class UserProfile(BaseModel):
 
 
 class UserContextBase(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(frozen=True, extra="forbid")
     profile: UserProfile
     expiration: float | None
     is_authorized: bool
@@ -170,7 +191,22 @@ class UserContext(UserContextBase):
 
     virtual_lab_id: UUID | None = None
     project_id: UUID | None = None
-    user_project_ids: list[UUID] = []
+    user_project_groups: list[UserProjectGroup] = []
+
+    @property
+    def user_project_ids(self) -> list[UUID]:
+        """Return all projects that the user has access to regardless of role."""
+        return [g.project_id for g in self.user_project_groups]
+
+    @property
+    def member_project_ids(self) -> set[UUID]:
+        """Return the project ids for which the user is a member."""
+        return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.member}
+
+    @property
+    def admin_project_ids(self) -> set[UUID]:
+        """Return the project ids for which the user is an admin."""
+        return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.admin}
 
 
 class UserContextWithProjectId(UserContextBase):

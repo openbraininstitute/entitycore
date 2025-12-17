@@ -12,6 +12,7 @@ from app.dependencies.db import SessionDep
 from app.filters.consortium import ConsortiumFilterDep
 from app.queries.factory import query_params_factory
 from app.schemas.agent import ConsortiumCreate, ConsortiumRead
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -99,4 +100,16 @@ def create_one(
         response_schema_class=ConsortiumRead,
         user_context=user_context,
         apply_operations=_load,
+    )
+
+
+def delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    user_context: AdminContextDep,  # noqa: ARG001
+) -> DeleteResponse:
+    return app.queries.common.router_admin_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=Consortium,
     )

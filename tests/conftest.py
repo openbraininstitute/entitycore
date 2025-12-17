@@ -52,7 +52,7 @@ from app.db.model import (
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.db.types import CellMorphologyGenerationType, EntityType, StorageType
 from app.dependencies import auth
-from app.schemas.auth import UserContext, UserProfile
+from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
 from app.schemas.external_url import ExternalUrlCreate
 
 from . import utils
@@ -64,6 +64,7 @@ from .utils import (
     AUTH_HEADER_MAINTAINER_3,
     AUTH_HEADER_USER_1,
     AUTH_HEADER_USER_2,
+    AUTH_HEADER_USER_3,
     PROJECT_HEADERS,
     PROJECT_ID,
     TOKEN_ADMIN,
@@ -72,11 +73,13 @@ from .utils import (
     TOKEN_MAINTAINER_3,
     TOKEN_USER_1,
     TOKEN_USER_2,
+    TOKEN_USER_3,
     UNRELATED_PROJECT_HEADERS,
     UNRELATED_PROJECT_ID,
     UNRELATED_VIRTUAL_LAB_ID,
     USER_SUB_ID_1,
     USER_SUB_ID_2,
+    USER_SUB_ID_3,
     VIRTUAL_LAB_ID,
     ClientProxies,
     ClientProxy,
@@ -139,7 +142,13 @@ def user_context_admin_with_project():
         is_service_admin=True,
         virtual_lab_id=UUID(VIRTUAL_LAB_ID),
         project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
     )
 
 
@@ -156,7 +165,13 @@ def user_context_user_1():
         is_service_admin=False,
         virtual_lab_id=UUID(VIRTUAL_LAB_ID),
         project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
     )
 
 
@@ -173,6 +188,29 @@ def user_context_user_2():
         is_service_admin=False,
         virtual_lab_id=UUID(UNRELATED_VIRTUAL_LAB_ID),
         project_id=UUID(UNRELATED_PROJECT_ID),
+    )
+
+
+@pytest.fixture
+def user_context_user_3():
+    """Regular authenticated user with same project as user 1 but a member."""
+    return UserContext(
+        profile=UserProfile(
+            subject=UUID(USER_SUB_ID_3),
+            name="Regular User With Different Project Id",
+        ),
+        expiration=None,
+        is_authorized=True,
+        is_service_admin=False,
+        virtual_lab_id=UUID(VIRTUAL_LAB_ID),
+        project_id=UUID(PROJECT_ID),
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="member",
+            ),
+        ],
     )
 
 
@@ -205,7 +243,13 @@ def user_context_maintainer_1():
         is_service_maintainer=True,
         virtual_lab_id=UUID(VIRTUAL_LAB_ID),
         project_id=UUID(PROJECT_ID),
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
     )
 
 
@@ -238,7 +282,13 @@ def user_context_maintainer_3():
         is_authorized=True,
         is_service_admin=False,
         is_service_maintainer=True,
-        user_project_ids=[UUID(PROJECT_ID)],
+        user_project_groups=[
+            UserProjectGroup(
+                virtual_lab_id=VIRTUAL_LAB_ID,
+                project_id=PROJECT_ID,
+                role="admin",
+            ),
+        ],
     )
 
 
@@ -249,6 +299,7 @@ def _override_check_user_info(
     user_context_admin_with_project,
     user_context_user_1,
     user_context_user_2,
+    user_context_user_3,
     user_context_no_project,
     user_context_maintainer_1,
     user_context_maintainer_2,
@@ -261,6 +312,7 @@ def _override_check_user_info(
         (TOKEN_USER_1, None): user_context_no_project,
         (TOKEN_USER_1, UUID(PROJECT_ID)): user_context_user_1,
         (TOKEN_USER_2, UUID(UNRELATED_PROJECT_ID)): user_context_user_2,
+        (TOKEN_USER_3, UUID(PROJECT_ID)): user_context_user_3,
         (TOKEN_MAINTAINER_1, UUID(PROJECT_ID)): user_context_maintainer_1,
         (TOKEN_MAINTAINER_2, UUID(UNRELATED_PROJECT_ID)): user_context_maintainer_2,
         (TOKEN_MAINTAINER_3, None): user_context_maintainer_3,
@@ -327,6 +379,12 @@ def client_user_2(client_no_auth):
 
 
 @pytest.fixture
+def client_user_3(client_no_auth):
+    """Return a web client instance, authenticated as regular user with a member role."""
+    return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_3 | PROJECT_HEADERS)
+
+
+@pytest.fixture
 def client_no_project(client_no_auth):
     """Return a web client instance, authenticated as regular user without a project-id."""
     return ClientProxy(client_no_auth, headers=AUTH_HEADER_USER_1)
@@ -359,6 +417,7 @@ def client(client_user_1):
 def clients(
     client_user_1,
     client_user_2,
+    client_user_3,
     client_no_project,
     client_admin,
     client_maintainer_1,
@@ -368,6 +427,7 @@ def clients(
     return ClientProxies(
         user_1=client_user_1,
         user_2=client_user_2,
+        user_3=client_user_3,
         no_project=client_no_project,
         admin=client_admin,
         maintainer_1=client_maintainer_1,

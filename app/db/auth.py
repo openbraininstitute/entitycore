@@ -4,9 +4,10 @@ from typing import Any
 
 from pydantic import UUID4
 from sqlalchemy import Delete, Select, and_, false, not_, or_, select, true
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import Query, Session
 
-from app.db.model import Entity
+from app.db.model import Entity, Identifiable
+from app.queries.utils import get_user
 from app.schemas.auth import UserContext
 
 
@@ -18,27 +19,26 @@ def constrain_to_writable_entities[Q: Query | Select](
     """Constrain query to writable entities.
 
     Permisions:
-    - Users have acces to authorized private entities
-    - Maintainers have access to all authorized entities
+    - Service maintainers have write access to all the entities in the allowed projects
     - Admins are not handled by this function and will be treated as regular users
 
     Note:
         A project_id context has precedence over Keycloak-derived project ids.
         If one is provided query will be constrained within that single project_id.
     """
-    user_ids = (
+    project_ids = (
         [user_context.project_id] if user_context.project_id else user_context.user_project_ids
     )
 
     if user_context.is_service_maintainer:
         return query.where(
-            db_model_class.authorized_project_id.in_(user_ids),
+            db_model_class.authorized_project_id.in_(project_ids),
         )
 
     return query.where(
         and_(
             db_model_class.authorized_public == false(),
-            db_model_class.authorized_project_id.in_(user_ids),
+            db_model_class.authorized_project_id.in_(project_ids),
         )
     )
 
@@ -92,3 +92,31 @@ def select_unauthorized_entities(ids: list[UUID4], project_id: UUID4 | None) -> 
             ),
         )
     )
+
+
+def is_user_authorized_for_deletion(
+    db: Session, user_context: UserContext, obj: Identifiable
+) -> bool:
+    # if there is no authorized_project_id it is a global resource
+    if not (project_id := getattr(obj, "authorized_project_id", None)):
+        return False
+
+    # Service maintainers may delete public/private entities within their projects.
+    if user_context.is_service_maintainer:
+        return project_id in user_context.user_project_ids
+
+    # from here and below public entities cannot be deleted
+    if obj.authorized_public:  # pyright: ignore [reportAttributeAccessIssue]
+        return False
+
+    # Project admins may delete private entities within their projects
+    if project_id in user_context.admin_project_ids:
+        return True
+
+    # Project members may delete only the private entities they themselves created
+    if project_id in user_context.member_project_ids and (
+        db_user := get_user(db, user_context.profile.subject)
+    ):
+        return db_user.created_by_id == obj.created_by_id
+
+    return False

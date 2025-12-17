@@ -460,7 +460,7 @@ def router_user_delete_one[T: BaseModel, I: Identifiable](
     """
     obj = crud.get_identifiable_one(db=db, db_model_class=db_model_class, id_=id_)
 
-    if user_context and not _is_user_authorized_for_deletion(db, user_context, obj):
+    if not _is_user_authorized_for_deletion(db, user_context, obj):
         raise ApiError(
             message="User is not authorized to access resource.",
             error_code=ApiErrorCode.ENTITY_FORBIDDEN,

@@ -2,8 +2,10 @@ from unittest.mock import Mock, patch
 
 import pytest
 from loguru import logger
+from sqlalchemy.orm.session import object_session
 
-from app.db import events
+from app.db import events, events as test_module
+from app.db.events import ASSETS_TO_DELETE_KEY
 from app.db.model import Asset
 from app.db.types import StorageType
 
@@ -54,6 +56,48 @@ def asset2(db, morphology_id, person_id):
             storage_type=StorageType.aws_s3_internal,
         ),
     )
+
+
+def test_asset_before_delete__adds_asset_to_session_info(db, asset1):
+    """Asset attached to a session is added to ASSETS_TO_DELETE_KEY."""
+
+    # Sanity: asset is attached to a session
+    session = object_session(asset1)
+    assert session is db
+
+    # Act
+    test_module.asset_before_delete(None, None, asset1)
+
+    # Assert
+    assert ASSETS_TO_DELETE_KEY in db.info
+    assert asset1 in db.info[ASSETS_TO_DELETE_KEY]
+
+
+def test_asset_before_delete__logs_warning_when_no_session():
+    """Logs a warning if the asset is not attached to a session."""
+
+    asset = Asset(
+        path="foo",
+        full_path="/foo",
+        status="created",
+        is_directory=False,
+        content_type="application/swc",
+        size=0,
+        sha256_digest=None,
+        meta={},
+        entity_id=1,
+        created_by_id=1,
+        updated_by_id=1,
+        label="morphology",
+        storage_type=StorageType.aws_s3_internal,
+    )
+
+    with patch("app.db.events.L.warning") as mock_warning:
+        test_module.asset_before_delete(None, None, asset)
+
+        mock_warning.assert_called_once()
+        args, _ = mock_warning.call_args
+        assert "not attached to a session" in args[0]
 
 
 @pytest.fixture

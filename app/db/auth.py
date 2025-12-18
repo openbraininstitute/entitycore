@@ -6,6 +6,7 @@ from pydantic import UUID4
 from sqlalchemy import Delete, Select, and_, false, not_, or_, select, true
 from sqlalchemy.orm import Query, Session
 
+from app.config import settings
 from app.db.model import Entity, Identifiable
 from app.queries.utils import get_user
 from app.schemas.auth import UserContext
@@ -94,9 +95,12 @@ def select_unauthorized_entities(ids: list[UUID4], project_id: UUID4 | None) -> 
     )
 
 
-def is_user_authorized_for_deletion(
+def is_user_authorized_for_deletion(  # noqa: PLR0911
     db: Session, user_context: UserContext, obj: Identifiable
 ) -> bool:
+    if settings.APP_DISABLE_AUTH:
+        return True
+
     # if there is no authorized_project_id it is a global resource
     if not (project_id := getattr(obj, "authorized_project_id", None)):
         return False

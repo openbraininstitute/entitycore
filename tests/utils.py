@@ -10,12 +10,14 @@ from typing import NamedTuple
 from unittest.mock import ANY
 from uuid import UUID
 
+import botocore.exceptions
 import httpx
 import sqlalchemy as sa
 from httpx import Headers
 from pydantic import TypeAdapter
 from starlette.testclient import TestClient
 
+from app.config import storages
 from app.db.model import (
     Annotation,
     BrainRegion,
@@ -42,7 +44,7 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import EntityType
+from app.db.types import EntityType, StorageType
 from app.routers.asset import EntityRoute
 from app.utils.uuid import create_uuid
 
@@ -1642,3 +1644,17 @@ def check_activity_update_one__fail_if_generated_ids_exists(
         client.patch, url=f"{route}/{gen1}", json=update_json, expected_status_code=404
     ).json()
     assert data["details"] == "It is forbidden to update generated_ids if they exist."
+
+
+def s3_key_exists(s3_client, key: str, storage_type=StorageType.aws_s3_internal) -> bool:
+    bucket = storages[storage_type].bucket
+
+    try:
+        s3_client.head_object(Bucket=bucket, Key=key)
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            return False
+        msg = "Unexpected error"
+        raise RuntimeError(msg) from e
+
+    return True

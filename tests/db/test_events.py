@@ -68,14 +68,13 @@ def mock_storage_delete():
 
 def test_asset_s3_deleted_after_commit(db, asset1, mock_storage_delete):
     """Hard delete removes the S3 object after commit."""
-    asset_id = asset1.id
 
     db.delete(asset1)
     db.flush()
     db.commit()
 
     mock_storage_delete.assert_called_once()
-    assert mock_storage_delete.call_args.kwargs["asset"].id == asset_id
+    assert mock_storage_delete.call_args.kwargs["s3_key"] == asset1.full_path
 
 
 def test_asset_delete_rollback_does_not_delete_s3(db, asset1, mock_storage_delete):
@@ -94,8 +93,8 @@ def test_multiple_assets_deleted_in_single_transaction(db, asset1, asset2, mock_
     db.commit()
 
     assert mock_storage_delete.call_count == 2
-    deleted_ids = {call.kwargs["asset"].id for call in mock_storage_delete.call_args_list}
-    assert deleted_ids == {asset1.id, asset2.id}
+    deleted_ids = {call.kwargs["s3_key"] for call in mock_storage_delete.call_args_list}
+    assert deleted_ids == {asset1.full_path, asset2.full_path}
 
 
 def test_s3_error_does_not_break_transaction(db, asset1, mock_storage_delete):
@@ -120,8 +119,8 @@ def test_multiple_flushes_accumulate_assets(db, asset1, asset2, mock_storage_del
     db.delete(asset2)
     db.commit()
 
-    deleted_ids = {call.kwargs["asset"].id for call in mock_storage_delete.call_args_list}
-    assert deleted_ids == {asset1.id, asset2.id}
+    deleted_ids = {call.kwargs["s3_key"] for call in mock_storage_delete.call_args_list}
+    assert deleted_ids == {asset1.full_path, asset2.full_path}
 
 
 def test_after_rollback_clears_assets_to_delete_key(db, asset1, mock_storage_delete):

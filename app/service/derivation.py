@@ -18,7 +18,8 @@ from app.errors import (
     ensure_uniqueness,
 )
 from app.filters.entity import BasicEntityFilterDep
-from app.queries.common import delete_row, router_read_many
+from app.queries import crud
+from app.queries.common import router_read_many
 from app.queries.entity import get_readable_entity, get_writable_entity
 from app.schemas.base import BasicEntityRead
 from app.schemas.derivation import DerivationCreate, DerivationRead
@@ -171,6 +172,6 @@ def delete_one(
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         obj = db.execute(q).scalars().one()
 
-    delete_row(db=db, row=obj)
+    crud.delete_one(db=db, row=obj)
 
     return DerivationRead.model_validate(obj)

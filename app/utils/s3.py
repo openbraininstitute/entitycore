@@ -9,11 +9,12 @@ import boto3
 import botocore.client
 from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
+from fastapi import HTTPException
 from types_boto3_s3 import S3Client
 from types_boto3_s3.type_defs import PaginatorConfigTypeDef
 
-from app.config import StorageUnion, settings
-from app.db.types import EntityType
+from app.config import StorageUnion, settings, storages
+from app.db.types import EntityType, StorageType
 from app.logger import L
 from app.schemas.asset import validate_path
 
@@ -124,6 +125,19 @@ def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:
         "File deleted successfully from s3://{}/{}?versionId={}", bucket_name, s3_key, version_id
     )
     return True
+
+
+def delete_asset_storage_object(
+    *, storage_type: StorageType, s3_key: str, storage_client_factory: StorageClientFactory
+):
+    """Delete asset storage object."""
+    # TODO: Handle directories. See https://github.com/openbraininstitute/entitycore/issues/256
+    storage = storages[storage_type]
+    # delete the file from S3 only if not using an open data storage
+    if not storage.is_open:
+        s3_client = storage_client_factory(storage)
+        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=s3_key):
+            raise HTTPException(status_code=500, detail="Failed to delete object")
 
 
 def generate_presigned_url(

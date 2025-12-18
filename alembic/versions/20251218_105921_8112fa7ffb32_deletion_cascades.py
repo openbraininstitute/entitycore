@@ -1,8 +1,8 @@
 """deletion_cascades
 
-Revision ID: 0e71c9bda768
-Revises: a5789f03b002
-Create Date: 2025-12-14 00:48:19.180598
+Revision ID: 8112fa7ffb32
+Revises: 4ff95da5bdf2
+Create Date: 2025-12-18 10:59:21.650527
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "0e71c9bda768"
-down_revision: Union[str, None] = "a5789f03b002"
+revision: str = "8112fa7ffb32"
+down_revision: Union[str, None] = "4ff95da5bdf2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

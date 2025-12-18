@@ -584,7 +584,8 @@ class Entity(LegacyMixin, Identifiable):
         primaryjoin=lambda: sa.and_(
             Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
         ),
-        passive_deletes=True,
+        cascade="all, delete-orphan",  # triggers ORM cascade for events
+        passive_deletes=False,
     )
 
     __mapper_args__ = {  # noqa: RUF012
@@ -2221,3 +2222,7 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+# register model events
+import app.db.events  # noqa: F401, E402

@@ -261,7 +261,7 @@ def download_entity_asset(
 @router.delete("/{entity_route}/{entity_id}/assets/{asset_id}")
 def delete_entity_asset(
     repos: RepoGroupDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,

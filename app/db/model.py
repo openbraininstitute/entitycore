@@ -85,7 +85,14 @@ from app.utils.events import register_model_events
 from app.utils.uuid import create_uuid
 
 # enable versioning
-make_versioned(user_cls=None, options={"native_versioning": True})
+make_versioned(
+    user_cls=None,
+    options={
+        "native_versioning": True,
+        "create_tables": True,
+        "create_models": True,
+    },
+)
 
 
 class Base(DeclarativeBase):

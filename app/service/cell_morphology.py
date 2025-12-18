@@ -11,6 +11,7 @@ from sqlalchemy.orm import (
     raiseload,
     selectinload,
 )
+from sqlalchemy_continuum.utils import transaction_class, version_class
 
 from app.db.model import (
     Agent,
@@ -19,6 +20,7 @@ from app.db.model import (
     Contribution,
     MeasurementAnnotation,
     MeasurementKind,
+    MTypeClassification,
     Person,
     Subject,
 )
@@ -31,6 +33,7 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.cell_morphology import CellMorphologyFilterDep
+from app.logger import L
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -46,6 +49,7 @@ from app.schemas.cell_morphology import (
     CellMorphologyRead,
     CellMorphologyUserUpdate,
 )
+from app.schemas.classification import MTypeClassificationRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
@@ -251,3 +255,31 @@ def delete_one(
         db_model_class=CellMorphology,
         user_context=user_context,
     )
+
+
+def read_mtypes_history(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> dict:
+    # query = sa.select(CellMorphology).where(CellMorphology.id == id_)
+    # row = db.execute(query).scalar_one()
+    # Transaction = transaction_class(MTypeClassification)
+    MTypeClassificationVersion = version_class(MTypeClassification)
+    query = sa.select(MTypeClassificationVersion).where(MTypeClassificationVersion.entity_id == id_)
+    rows = db.execute(query).scalars().all()
+    data = [
+        {
+            "operation_type": row.operation_type,
+            "transaction": {
+                "id": row.transaction.id,
+                "issued_at": row.transaction.issued_at,
+            },
+            "changeset": row.changeset,
+            "record": MTypeClassificationRead.model_validate(row),
+        }
+        for row in rows
+    ]
+    return {
+        "data": data,
+    }

@@ -4,8 +4,7 @@ import pytest
 from loguru import logger
 from sqlalchemy.orm.session import object_session
 
-from app.db import events, events as test_module
-from app.db.events import ASSETS_TO_DELETE_KEY
+from app.db import events as test_module
 from app.db.model import Asset
 from app.db.types import StorageType
 
@@ -69,8 +68,8 @@ def test_collect_asset_for_storage_deletion__adds_asset_to_session_info(db, asse
     test_module.collect_asset_for_storage_deletion(None, None, asset1)
 
     # Assert
-    assert ASSETS_TO_DELETE_KEY in db.info
-    assert asset1 in db.info[ASSETS_TO_DELETE_KEY]
+    assert test_module.ASSETS_TO_DELETE_KEY in db.info
+    assert asset1 in db.info[test_module.ASSETS_TO_DELETE_KEY]
 
 
 def test_collect_asset_for_storage_deletion__logs_warning_when_no_session():
@@ -173,7 +172,7 @@ def test_after_rollback_clears_assets_to_delete_key(db, asset1, mock_storage_del
     db.rollback()
 
     # The info dict should no longer have the key
-    assert events.ASSETS_TO_DELETE_KEY not in db.info
+    assert test_module.ASSETS_TO_DELETE_KEY not in db.info
 
     # Deleting a new asset after rollback works normally
     db.delete(asset1)

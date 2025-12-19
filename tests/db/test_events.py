@@ -58,7 +58,7 @@ def asset2(db, morphology_id, person_id):
     )
 
 
-def test_asset_before_delete__adds_asset_to_session_info(db, asset1):
+def test_collect_asset_for_storage_deletion__adds_asset_to_session_info(db, asset1):
     """Asset attached to a session is added to ASSETS_TO_DELETE_KEY."""
 
     # Sanity: asset is attached to a session
@@ -66,14 +66,14 @@ def test_asset_before_delete__adds_asset_to_session_info(db, asset1):
     assert session is db
 
     # Act
-    test_module.asset_before_delete(None, None, asset1)
+    test_module.collect_asset_for_storage_deletion(None, None, asset1)
 
     # Assert
     assert ASSETS_TO_DELETE_KEY in db.info
     assert asset1 in db.info[ASSETS_TO_DELETE_KEY]
 
 
-def test_asset_before_delete__logs_warning_when_no_session():
+def test_collect_asset_for_storage_deletion__logs_warning_when_no_session():
     """Logs a warning if the asset is not attached to a session."""
 
     asset = Asset(
@@ -93,7 +93,7 @@ def test_asset_before_delete__logs_warning_when_no_session():
     )
 
     with patch("app.db.events.L.warning") as mock_warning:
-        test_module.asset_before_delete(None, None, asset)
+        test_module.collect_asset_for_storage_deletion(None, None, asset)
 
         mock_warning.assert_called_once()
         args, _ = mock_warning.call_args

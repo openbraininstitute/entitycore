@@ -10,7 +10,8 @@ ASSETS_TO_DELETE_KEY = "assets_to_delete_from_storage"
 
 
 @event.listens_for(Asset, "before_delete")
-def asset_before_delete(_mapper, _connection, target: Asset):
+def collect_asset_for_storage_deletion(_mapper, _connection, target: Asset):
+    """Collect Asset for S3 object cleanup after database deletion."""
     session = object_session(target)
 
     if session is not None:

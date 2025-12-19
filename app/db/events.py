@@ -6,8 +6,6 @@ from app.db.model import Asset
 from app.logger import L
 from app.utils.s3 import delete_asset_storage_object, get_s3_client
 
-# from app.service.asset import delete_asset_storage_object
-
 ASSETS_TO_DELETE_KEY = "assets_to_delete_from_storage"
 
 

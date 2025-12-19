@@ -89,7 +89,7 @@ test-local:  ## Run tests locally
 	@$(call load_env,test-local)
 	docker compose up --wait db-test
 	uv run -m alembic upgrade head
-	uv run -m pytest tests/routers/test_asset.py::test_delete_entity_cascades
+	uv run -m pytest
 	uv run -m coverage xml
 	uv run -m coverage html
 

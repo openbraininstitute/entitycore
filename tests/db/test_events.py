@@ -104,7 +104,7 @@ def mock_storage_delete():
     """Patch storage deletion and S3 client creation."""
     with (
         patch("app.db.events.delete_asset_storage_object") as mock_delete,
-        patch("app.utils.s3.get_s3_client", return_value=Mock()),
+        patch("app.db.events.get_s3_client", return_value=Mock()),
     ):
         yield mock_delete
 

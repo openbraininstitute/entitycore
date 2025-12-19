@@ -87,5 +87,5 @@ def delete_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    # Note: Asset storage object is deleted in app.db.events.delete_asset_storage_object_event
+    # Note: Asset storage object is deleted via app.db.events
     return asset

@@ -78,6 +78,7 @@ from app.db.types import (
     ValidationStatus,
 )
 from app.schemas.publication import Author
+from app.utils.events import register_model_events
 from app.utils.uuid import create_uuid
 
 
@@ -2224,5 +2225,4 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-# register model events
-import app.db.events  # noqa: F401, E402
+register_model_events()

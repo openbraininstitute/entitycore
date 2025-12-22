@@ -29,6 +29,7 @@ class MeasurementKindRead(MeasurementKindBase):
 
 
 class MeasurementKindCreate(MeasurementKindBase):
+    # hidden in the schema because set in the create endpoint
     measurement_label_id: SkipJsonSchema[uuid.UUID | None] = None
 
 

@@ -52,10 +52,10 @@ def _update_measurement_label_ids(
     Any existing ``measurement_kind.measurement_label_id`` is ignored and overridden if present.
     """
     labels = {kind.pref_label for kind in measurement_annotation.measurement_kinds}
-    query = sa.select(MeasurementLabel.name, MeasurementLabel.id).where(
+    query = sa.select(MeasurementLabel.pref_label, MeasurementLabel.id).where(
         MeasurementLabel.entity_type == measurement_annotation.entity_type,
     )
-    allowed_labels = {row.name: row.id for row in db.execute(query)}
+    allowed_labels = {row.pref_label: row.id for row in db.execute(query)}
     if invalid_labels := labels.difference(allowed_labels):
         raise ApiError(
             message=(

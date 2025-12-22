@@ -1,12 +1,13 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 from app.db.utils import MeasurableEntityType
 from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin, NameDescriptionMixin
+from app.schemas.annotation import AnnotationBase
+from app.schemas.base import CreationMixin, IdentifiableMixin
 from app.schemas.utils import make_update_schema
 
 
-class MeasurementLabelBase(BaseModel, NameDescriptionMixin):
+class MeasurementLabelBase(AnnotationBase):
     model_config = ConfigDict(from_attributes=True)
     entity_type: MeasurableEntityType
 

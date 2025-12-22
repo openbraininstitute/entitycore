@@ -8,15 +8,14 @@ from app.filters.base import CustomFilter
 from app.filters.common import (
     CreationFilterMixin,
     IdFilterMixin,
-    ILikeSearchFilterMixin,
-    NameFilterMixin,
+    PrefLabelMixin,
 )
 from app.filters.person import CreatorFilterMixin
 
 
 class NestedMeasurementLabelFilter(
     IdFilterMixin,
-    NameFilterMixin,
+    PrefLabelMixin,
     CustomFilter,
 ):
     """MeasurementLabel filter with limited fields for nesting."""
@@ -28,7 +27,6 @@ class NestedMeasurementLabelFilter(
 class MeasurementLabelFilter(
     CreationFilterMixin,
     CreatorFilterMixin,
-    ILikeSearchFilterMixin,
     NestedMeasurementLabelFilter,
 ):
     """Full MeasurementLabel filter."""
@@ -39,7 +37,7 @@ class MeasurementLabelFilter(
         ordering_model_fields = [  # noqa: RUF012
             "creation_date",
             "update_date",
-            "name",
+            "pref_label",
         ]
 
 

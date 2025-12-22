@@ -21,15 +21,15 @@ ADMIN_ROUTE = "/admin/measurement-label"
 def json_data():
     return {
         "entity_type": EntityType.cell_morphology,
-        "name": "my_label",
-        "description": "my_description",
+        "pref_label": "my_label",
+        "definition": "my_definition",
     }
 
 
 def _assert_read_response(data, json_data):
     assert "id" in data
-    assert data["name"] == json_data["name"]
-    assert data["description"] == json_data["description"]
+    assert data["pref_label"] == json_data["pref_label"]
+    assert data["definition"] == json_data["definition"]
     assert "created_by" in data
     assert "updated_by" in data
 
@@ -40,8 +40,8 @@ def test_create_one(client, client_admin):
     for i in range(count):
         request_payload = {
             "entity_type": EntityType.cell_morphology,
-            "name": f"test_name_{i}",
-            "description": f"Test description {i}",
+            "pref_label": f"test_pref_label_{i}",
+            "definition": f"Test definition {i}",
         }
         response = client_admin.post(ROUTE, json=request_payload)
         assert response.status_code == 200
@@ -65,7 +65,7 @@ def test_create_one(client, client_admin):
     check_creation_fields(data[0])
 
     # test filter
-    response = client.get(ROUTE, params={"name": "test_name_1"})
+    response = client.get(ROUTE, params={"pref_label": "test_pref_label_1"})
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 1
@@ -90,8 +90,8 @@ def test_update_one(clients, json_data):
         clients=clients,
         json_data=json_data,
         patch_payload={
-            "name": "my-new-label",
-            "description": "",
+            "pref_label": "my-new-label",
+            "definition": "",
         },
     )
 
@@ -122,8 +122,8 @@ def models(db, json_data, person_id):
         MeasurementLabel(
             **json_data
             | {
-                "name": f"label_{i}",
-                "description": f"Description {i}",
+                "pref_label": f"label_{i}",
+                "definition": f"Definition {i}",
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
             }

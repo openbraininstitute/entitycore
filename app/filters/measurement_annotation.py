@@ -31,7 +31,6 @@ NestedMeasurementItemFilterDep = FilterDepends(
 
 
 class MeasurementKindFilter(CustomFilter):
-    definition: str | None = None
     structural_domain: StructuralDomain | None = None
     measurement_item: Annotated[MeasurementItemFilter | None, NestedMeasurementItemFilterDep] = None
     measurement_label: Annotated[

@@ -916,24 +916,22 @@ class MeasurementAnnotation(LegacyMixin, Identifiable):
         )
 
 
-class MeasurementLabel(Identifiable, NameDescriptionVectorMixin):
+class MeasurementLabel(Identifiable):
     __tablename__ = GlobalType.measurement_label.value
 
     entity_type: Mapped[EntityType]
+    pref_label: Mapped[str] = mapped_column(index=True)
+    definition: Mapped[str] = mapped_column(default="", server_default="")
+    alt_label: Mapped[str | None]
 
-    @declared_attr.directive
-    @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
-        super_table_args = getattr(super(), "__table_args__", ())
-        return (
-            Index(
-                f"ix_{cls.__tablename__}_entity_type_name",
-                "entity_type",
-                "name",
-                unique=True,
-            ),
-            *super_table_args,
-        )
+    __table_args__ = (
+        Index(
+            f"ix_{__tablename__}_entity_type_pref_label",
+            "entity_type",
+            "pref_label",
+            unique=True,
+        ),
+    )
 
 
 class MeasurementKind(Base):
@@ -962,7 +960,7 @@ class MeasurementKind(Base):
 
     @hybrid_property
     def pref_label(self) -> str:
-        return self.measurement_label.name
+        return self.measurement_label.pref_label
 
     __table_args__ = (
         UniqueConstraint(

@@ -1,8 +1,8 @@
 """Add measurement_label
 
-Revision ID: c313def86e58
+Revision ID: 3f43728354a6
 Revises: fa068879e345
-Create Date: 2025-12-22 14:32:54.542745
+Create Date: 2025-12-22 17:36:16.051100
 
 """
 
@@ -19,7 +19,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "c313def86e58"
+revision: str = "3f43728354a6"
 down_revision: Union[str, None] = "fa068879e345"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -53,8 +53,7 @@ def _migrate_data() -> None:
     data = [
         {
             "id": _make_uuid(f"{entity_type}:{row[0]}"),
-            "name": row[0],
-            "description": "",
+            "pref_label": row[0],
             "entity_type": entity_type,
             "created_by_id": ADMIN_ID,
             "updated_by_id": ADMIN_ID,
@@ -67,8 +66,7 @@ def _migrate_data() -> None:
         measurement_label = sa.table(
             "measurement_label",
             sa.column("id", sa.Uuid()),
-            sa.column("name", sa.String()),
-            sa.column("description", sa.String()),
+            sa.column("pref_label", sa.String()),
             sa.column("entity_type"),
             sa.column("created_by_id", sa.Uuid()),
             sa.column("updated_by_id", sa.Uuid()),
@@ -82,7 +80,7 @@ def _migrate_data() -> None:
             SET measurement_label_id = ml.id
             FROM measurement_label ml
             WHERE ml.entity_type = '{entity_type}'::entitytype
-            AND ml.name = measurement_kind.pref_label
+            AND ml.pref_label = measurement_kind.pref_label
         """)
     )
 
@@ -95,7 +93,7 @@ def _restore_data() -> None:
     conn.execute(
         sa.text("""
             UPDATE measurement_kind
-            SET pref_label = ml.name
+            SET pref_label = ml.pref_label
             FROM measurement_label ml
             WHERE ml.id = measurement_kind.measurement_label_id
         """)
@@ -154,6 +152,9 @@ def upgrade() -> None:
             ),
             nullable=False,
         ),
+        sa.Column("pref_label", sa.String(), nullable=False),
+        sa.Column("definition", sa.String(), server_default="", nullable=False),
+        sa.Column("alt_label", sa.String(), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column("created_by_id", sa.Uuid(), nullable=False),
         sa.Column("updated_by_id", sa.Uuid(), nullable=False),
@@ -169,9 +170,6 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(
             ["created_by_id"], ["agent.id"], name=op.f("fk_measurement_label_created_by_id_agent")
         ),
@@ -193,19 +191,14 @@ def upgrade() -> None:
         unique=False,
     )
     op.create_index(
-        "ix_measurement_label_description_vector",
+        "ix_measurement_label_entity_type_pref_label",
         "measurement_label",
-        ["description_vector"],
-        unique=False,
-        postgresql_using="gin",
-    )
-    op.create_index(
-        "ix_measurement_label_entity_type_name",
-        "measurement_label",
-        ["entity_type", "name"],
+        ["entity_type", "pref_label"],
         unique=True,
     )
-    op.create_index(op.f("ix_measurement_label_name"), "measurement_label", ["name"], unique=False)
+    op.create_index(
+        op.f("ix_measurement_label_pref_label"), "measurement_label", ["pref_label"], unique=False
+    )
     op.create_index(
         op.f("ix_measurement_label_updated_by_id"),
         "measurement_label",
@@ -328,13 +321,8 @@ def downgrade() -> None:
     )
     op.drop_column("measurement_kind", "measurement_label_id")
     op.drop_index(op.f("ix_measurement_label_updated_by_id"), table_name="measurement_label")
-    op.drop_index(op.f("ix_measurement_label_name"), table_name="measurement_label")
-    op.drop_index("ix_measurement_label_entity_type_name", table_name="measurement_label")
-    op.drop_index(
-        "ix_measurement_label_description_vector",
-        table_name="measurement_label",
-        postgresql_using="gin",
-    )
+    op.drop_index(op.f("ix_measurement_label_pref_label"), table_name="measurement_label")
+    op.drop_index("ix_measurement_label_entity_type_pref_label", table_name="measurement_label")
     op.drop_index(op.f("ix_measurement_label_creation_date"), table_name="measurement_label")
     op.drop_index(op.f("ix_measurement_label_created_by_id"), table_name="measurement_label")
     op.drop_table("measurement_label")

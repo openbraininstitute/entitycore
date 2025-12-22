@@ -1395,7 +1395,8 @@ class Asset(Identifiable):
     meta: Mapped[JSON_DICT]  # not used yet. can be useful?
     label: Mapped[AssetLabel]
     entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), index=True
+        ForeignKey("entity.id"),  # Asset deletion cascades through ORM app.db.events
+        index=True,
     )
     storage_type: Mapped[StorageType]
 

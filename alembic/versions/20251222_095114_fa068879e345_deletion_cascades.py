@@ -1,8 +1,8 @@
 """deletion_cascades
 
-Revision ID: 8112fa7ffb32
+Revision ID: fa068879e345
 Revises: 4ff95da5bdf2
-Create Date: 2025-12-18 10:59:21.650527
+Create Date: 2025-12-22 09:51:14.816400
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "8112fa7ffb32"
+revision: str = "fa068879e345"
 down_revision: Union[str, None] = "4ff95da5bdf2"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,15 +28,6 @@ def upgrade() -> None:
     op.create_foreign_key(
         op.f("fk_annotation_entity_id_entity"),
         "annotation",
-        "entity",
-        ["entity_id"],
-        ["id"],
-        ondelete="CASCADE",
-    )
-    op.drop_constraint(op.f("fk_asset_entity_id_entity"), "asset", type_="foreignkey")
-    op.create_foreign_key(
-        op.f("fk_asset_entity_id_entity"),
-        "asset",
         "entity",
         ["entity_id"],
         ["id"],
@@ -210,10 +201,6 @@ def downgrade() -> None:
     op.drop_constraint(op.f("fk_contribution_entity_id_entity"), "contribution", type_="foreignkey")
     op.create_foreign_key(
         op.f("fk_contribution_entity_id_entity"), "contribution", "entity", ["entity_id"], ["id"]
-    )
-    op.drop_constraint(op.f("fk_asset_entity_id_entity"), "asset", type_="foreignkey")
-    op.create_foreign_key(
-        op.f("fk_asset_entity_id_entity"), "asset", "entity", ["entity_id"], ["id"]
     )
     op.drop_constraint(op.f("fk_annotation_entity_id_entity"), "annotation", type_="foreignkey")
     op.create_foreign_key(

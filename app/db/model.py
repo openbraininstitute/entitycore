@@ -14,6 +14,7 @@ from sqlalchemy import (
     Index,
     LargeBinary,
     MetaData,
+    SQLColumnExpression,
     String,
     UniqueConstraint,
     func,
@@ -902,7 +903,7 @@ class MeasurementAnnotation(LegacyMixin, Identifiable):
 
     @entity_type.inplace.expression
     @classmethod
-    def _entity_type(cls):
+    def _entity_type(cls) -> SQLColumnExpression[str]:
         """SQL expression for the entity_type hybrid property.
 
         Allow the use of entity_type in SQL queries by selecting the type of the associated Entity.
@@ -915,14 +916,41 @@ class MeasurementAnnotation(LegacyMixin, Identifiable):
         )
 
 
+class MeasurementLabel(Identifiable, NameDescriptionVectorMixin):
+    __tablename__ = GlobalType.measurement_label.value
+
+    entity_type: Mapped[EntityType]
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        super_table_args = getattr(super(), "__table_args__", ())
+        return (
+            Index(
+                f"ix_{cls.__tablename__}_entity_type_name",
+                "entity_type",
+                "name",
+                unique=True,
+            ),
+            *super_table_args,
+        )
+
+
 class MeasurementKind(Base):
     __tablename__ = "measurement_kind"
+
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    pref_label: Mapped[str] = mapped_column(index=True)
     structural_domain: Mapped[StructuralDomain | None]
+    measurement_label_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("measurement_label.id"), index=True
+    )
     measurement_annotation_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("measurement_annotation.id", ondelete="CASCADE"),
         index=True,
+    )
+    measurement_label: Mapped["MeasurementLabel"] = relationship(
+        foreign_keys=[measurement_label_id],
+        viewonly=True,
     )
     measurement_annotation: Mapped["MeasurementAnnotation"] = relationship(
         back_populates="measurement_kinds",
@@ -931,10 +959,15 @@ class MeasurementKind(Base):
     measurement_items: Mapped[list["MeasurementItem"]] = relationship(
         back_populates="measurement_kind", passive_deletes=True
     )
+
+    @hybrid_property
+    def pref_label(self) -> str:
+        return self.measurement_label.name
+
     __table_args__ = (
         UniqueConstraint(
             "measurement_annotation_id",
-            "pref_label",
+            "measurement_label_id",
             "structural_domain",
             name=f"uq_{__tablename__}_measurement_annotation_id",
             postgresql_nulls_not_distinct=True,
@@ -1970,7 +2003,11 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class EMCellMesh(ScientificArtifact):
+class EMCellMesh(
+    ScientificArtifact,
+    MTypesMixin,
+    MeasurableEntityMixin,
+):
     """Cell surface mesh created from a dense EM reconstruction.
 
     Attributes:

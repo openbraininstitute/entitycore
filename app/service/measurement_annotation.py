@@ -1,6 +1,9 @@
 import uuid
+from http import HTTPStatus
+from typing import Annotated
 
 import sqlalchemy as sa
+from fastapi import Depends
 from sqlalchemy.orm import (
     aliased,
     contains_eager,
@@ -13,11 +16,13 @@ from app.db.model import (
     Entity,
     MeasurementAnnotation,
     MeasurementKind,
+    MeasurementLabel,
 )
 from app.db.utils import MEASURABLE_ENTITIES
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import InBrainRegionDep, PaginationQuery
 from app.dependencies.db import SessionDep
+from app.errors import ApiError, ApiErrorCode
 from app.filters.measurement_annotation import (
     MeasurementAnnotationFilterDep,
 )
@@ -39,10 +44,40 @@ from app.schemas.measurement_annotation import (
 from app.schemas.types import ListResponse
 
 
+def _update_measurement_label_ids(
+    db: SessionDep, measurement_annotation: MeasurementAnnotationCreate
+) -> MeasurementAnnotationCreate:
+    """Update measurement_label_id for each measurement_kind, based on the provided pref_label.
+
+    Any existing ``measurement_kind.measurement_label_id`` is ignored and overridden if present.
+    """
+    labels = {kind.pref_label for kind in measurement_annotation.measurement_kinds}
+    query = sa.select(MeasurementLabel.name, MeasurementLabel.id).where(
+        MeasurementLabel.entity_type == measurement_annotation.entity_type,
+    )
+    allowed_labels = {row.name: row.id for row in db.execute(query)}
+    if invalid_labels := labels.difference(allowed_labels):
+        raise ApiError(
+            message=(
+                f"Invalid measurement labels for entity type {measurement_annotation.entity_type}"
+            ),
+            error_code=ApiErrorCode.INVALID_REQUEST,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            details={
+                "invalid_labels": sorted(invalid_labels),
+                "allowed_labels": sorted(allowed_labels),
+            },
+        )
+    for measurement_kind in measurement_annotation.measurement_kinds:
+        measurement_kind.measurement_label_id = allowed_labels[measurement_kind.pref_label]
+    return measurement_annotation
+
+
 def _load_from_db(q: sa.Select) -> sa.Select:
     return q.options(
-        selectinload(MeasurementAnnotation.measurement_kinds).selectinload(
-            MeasurementKind.measurement_items
+        selectinload(MeasurementAnnotation.measurement_kinds).options(
+            selectinload(MeasurementKind.measurement_items),
+            selectinload(MeasurementKind.measurement_label),
         ),
         contains_eager(MeasurementAnnotation.entity),
         raiseload("*"),
@@ -51,8 +86,9 @@ def _load_from_db(q: sa.Select) -> sa.Select:
 
 def _load_from_db_with_entity(q: sa.Select) -> sa.Select:
     return q.options(
-        selectinload(MeasurementAnnotation.measurement_kinds).selectinload(
-            MeasurementKind.measurement_items
+        selectinload(MeasurementAnnotation.measurement_kinds).options(
+            selectinload(MeasurementKind.measurement_items),
+            selectinload(MeasurementKind.measurement_label),
         ),
         selectinload(MeasurementAnnotation.entity),
         raiseload("*"),
@@ -74,6 +110,7 @@ def read_many(
     filter_keys = [
         "measurement_kind",
         "measurement_kind.measurement_item",
+        "measurement_kind.measurement_label",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=MeasurementAnnotation,
@@ -140,7 +177,10 @@ def admin_read_one(
 def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
-    measurement_annotation: MeasurementAnnotationCreate,
+    measurement_annotation: Annotated[
+        MeasurementAnnotationCreate,
+        Depends(_update_measurement_label_ids),
+    ],
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)

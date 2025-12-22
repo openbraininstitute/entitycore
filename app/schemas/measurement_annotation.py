@@ -2,6 +2,7 @@ import uuid
 from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
+from pydantic.json_schema import SkipJsonSchema
 
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
@@ -28,7 +29,7 @@ class MeasurementKindRead(MeasurementKindBase):
 
 
 class MeasurementKindCreate(MeasurementKindBase):
-    pass
+    measurement_label_id: SkipJsonSchema[uuid.UUID | None] = None
 
 
 class MeasurementAnnotationBase(BaseModel):

@@ -21,6 +21,7 @@ from app.db.model import (
     MeasurementAnnotation,
     MeasurementItem,
     MeasurementKind,
+    MeasurementLabel,
     MEModel,
     MTypeClass,
     MTypeClassification,
@@ -198,6 +199,7 @@ def query_params_factory[I: Identifiable](
         "subject.strain": lambda q: q.outerjoin(Strain, subject_alias.strain_id == Strain.id),
         "measurement_kind": lambda q: q.join(MeasurementKind),
         "measurement_kind.measurement_item": lambda q: q.join(MeasurementItem),
+        "measurement_kind.measurement_label": lambda q: q.join(MeasurementLabel),
         "measurement_annotation": lambda q: q.outerjoin(
             MeasurementAnnotation, MeasurementAnnotation.entity_id == db_model_class.id
         ),
@@ -207,6 +209,9 @@ def query_params_factory[I: Identifiable](
         ),
         "measurement_annotation.measurement_kind.measurement_item": lambda q: q.outerjoin(
             MeasurementItem, MeasurementItem.measurement_kind_id == MeasurementKind.id
+        ),
+        "measurement_annotation.measurement_kind.measurement_label": lambda q: q.outerjoin(
+            MeasurementLabel, MeasurementLabel.id == MeasurementKind.measurement_label_id
         ),
         "pre_mtype": lambda q: q.join(
             pre_mtype_alias, db_model_class.pre_mtype_id == pre_mtype_alias.id

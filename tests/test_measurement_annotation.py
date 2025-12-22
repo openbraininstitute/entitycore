@@ -12,23 +12,39 @@ from .utils import (
 
 ROUTE = "/measurement-annotation"
 ADMIN_ROUTE = "/admin/measurement-annotation"
+LABEL_ROUTE = "/measurement-label"
 MORPHOLOGY_ROUTE = "/cell-morphology"
 ENTITY_TYPE = "cell_morphology"
 
 
 @pytest.fixture
-def measurement_labels():
-    return [f"pref_label_{i}" for i in range(5)]
+def measurement_labels(client_admin, person_id):
+    labels = []
+    for i in range(2):
+        response = client_admin.post(
+            LABEL_ROUTE,
+            json={
+                "entity_type": ENTITY_TYPE,
+                "name": f"pref_label_{i}",
+                "description": "",
+                "created_by_id": str(person_id),
+                "updated_by_id": str(person_id),
+            },
+        )
+        assert response.status_code == 200, f"Failed to create measurement label: {response.text}"
+        data = response.json()
+        labels.append(data["name"])
+    return labels
 
 
 @pytest.fixture
-def json_data(morphology_id):
+def json_data(morphology_id, measurement_labels):
     return {
         "entity_type": ENTITY_TYPE,
         "entity_id": str(morphology_id),
         "measurement_kinds": [
             {
-                "pref_label": "pref_label_0",
+                "pref_label": measurement_labels[0],
                 "structural_domain": "axon",
                 "measurement_items": [
                     {
@@ -175,7 +191,6 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
     expected_payload_1 = _get_return_payload(request_payload=request_payload_1)
 
     response = client.post(ROUTE, json=request_payload_1)
-
     assert_response(response, expected_status_code=200)
     data = response.json()
     assert data == expected_payload_1
@@ -231,7 +246,7 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
 
     # filter the annotations
     query_params = {
-        "measurement_kind__pref_label": measurement_labels[0],
+        "measurement_label__name": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 154,
         "measurement_item__value__lte": 155,
@@ -251,7 +266,7 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
 
     # filter the morphology by annotation
     query_params = {
-        "measurement_kind__pref_label": measurement_labels[0],
+        "measurement_label__name": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 154,
         "measurement_item__value__lte": 155,
@@ -264,7 +279,7 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
 
     # filter the morphology by annotation, no results
     query_params = {
-        "measurement_kind__pref_label": measurement_labels[0],
+        "measurement_label__name": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 54,
         "measurement_item__value__lte": 55,

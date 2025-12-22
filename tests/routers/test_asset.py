@@ -21,6 +21,7 @@ from tests.utils import (
     assert_request,
     create_cell_morphology_id,
     route,
+    s3_key_exists,
     upload_entity_asset,
 )
 
@@ -851,6 +852,22 @@ def test_delete_entity_asset(client, entity, asset):
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
+
+
+def test_asset_deletion_cascade(db, client, create_entity_asset, s3):
+    """Test that the deletion of an entity triggers Asset and s3 file deletions."""
+
+    entity_id, entity_type, asset_id = create_entity_asset(client, authorized_public=False)
+
+    assert db.get(Entity, entity_id)
+    db_asset = db.get(Asset, asset_id)
+    assert s3_key_exists(s3, key=db_asset.full_path)
+
+    assert_request(client.delete, url=f"{route(entity_type)}/{entity_id}")
+
+    assert not db.get(Entity, entity_id)
+    assert not db.get(Asset, asset_id)
+    assert not s3_key_exists(s3, key=db_asset.full_path)
 
 
 def test_upload_delete_upload_entity_asset(client, entity):

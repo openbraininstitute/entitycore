@@ -9,14 +9,16 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 from app.db.model import Derivation, DerivationType, Entity
 from app.db.utils import ENTITY_TYPE_TO_CLASS, load_db_model_from_pydantic
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import DerivationQueryDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import (
     ensure_authorized_references,
     ensure_foreign_keys_integrity,
+    ensure_result,
     ensure_uniqueness,
 )
 from app.filters.entity import BasicEntityFilterDep
+from app.queries import crud
 from app.queries.common import router_read_many
 from app.queries.entity import get_readable_entity, get_writable_entity
 from app.schemas.base import BasicEntityRead
@@ -138,3 +140,38 @@ def create_one(
     db_model_instance = db.execute(q).unique().scalar_one()
 
     return DerivationRead.model_validate(db_model_instance)
+
+
+def delete_one(
+    *,
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    params: DerivationQueryDep,
+) -> DerivationRead:
+    used_entity = get_readable_entity(
+        db,
+        Entity,
+        params.used_id,
+        user_context.project_id,
+    )
+    generated_entity = get_writable_entity(
+        db,
+        Entity,
+        params.generated_id,
+        user_context.project_id,
+    )
+    db_model_class = Derivation
+
+    q = sa.select(db_model_class).where(
+        and_(
+            db_model_class.used_id == used_entity.id,
+            db_model_class.generated_id == generated_entity.id,
+            db_model_class.derivation_type == params.derivation_type,
+        )
+    )
+    with ensure_result(error_message=f"{db_model_class.__name__} not found"):
+        obj = db.execute(q).scalars().one()
+
+    crud.delete_one(db=db, row=obj)
+
+    return DerivationRead.model_validate(obj)

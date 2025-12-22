@@ -10,18 +10,22 @@ from typing import NamedTuple
 from unittest.mock import ANY
 from uuid import UUID
 
+import botocore.exceptions
 import httpx
 import sqlalchemy as sa
 from httpx import Headers
 from pydantic import TypeAdapter
 from starlette.testclient import TestClient
 
+from app.config import storages
 from app.db.model import (
+    Annotation,
     BrainRegion,
     BrainRegionHierarchy,
     CellMorphology,
     CircuitExtractionCampaign,
     Contribution,
+    DataMaturityAnnotationBody,
     ElectricalCellRecording,
     ElectricalRecordingStimulus,
     EmbeddingMixin,
@@ -30,6 +34,7 @@ from app.db.model import (
     ETypeClassification,
     IonChannelModelingCampaign,
     IonChannelRecording,
+    MeasurementAnnotation,
     MTypeClass,
     MTypeClassification,
     Person,
@@ -39,7 +44,7 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import EntityType
+from app.db.types import EntityType, StorageType
 from app.routers.asset import EntityRoute
 from app.utils.uuid import create_uuid
 
@@ -929,8 +934,53 @@ def add_contribution(db, entity_id, agent_id, role_id, created_by_id):
     )
 
 
+def add_annotation(db, *, entity_id, created_by_id, annotation_body_id=None):
+    if not annotation_body_id:
+        annotation_body_id = add_db(
+            db,
+            DataMaturityAnnotationBody(
+                pref_label="annotation_body",
+                created_by_id=created_by_id,
+                updated_by_id=created_by_id,
+            ),
+        ).id
+    return add_db(
+        db,
+        Annotation(
+            entity_id=entity_id,
+            annotation_body_id=annotation_body_id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+        ),
+    )
+
+
+def add_measurement_annotation(db, *, entity_id, created_by_id):
+    return add_db(
+        db,
+        MeasurementAnnotation(
+            entity_id=entity_id,
+            created_by_id=created_by_id,
+            updated_by_id=created_by_id,
+            measurement_kinds=[],
+        ),
+    )
+
+
 def count_db_class(db, db_class):
     return db.execute(sa.select(sa.func.count()).select_from(db_class)).scalar()
+
+
+def check_db_counts(db, expected):
+    fails = []
+    for db_cls, expected_count in expected.items():
+        count = count_db_class(db, db_cls)
+        if count != expected_count:
+            fails.append((db_cls, count, expected_count))
+
+    assert not fails, "Count mismatches (Model, Actual, Expected):\n\n".join(
+        f"{db_cls}, {actual}, {expected}" for db_cls, actual, expected in fails
+    )
 
 
 def delete_entity_contributions(client_admin, entity_route, entity_id):
@@ -1381,6 +1431,14 @@ def check_entity_delete_one(
 check_activity_delete_one = check_entity_delete_one
 
 
+def check_deletion_cascades(
+    db, entity_id, clients, route, expected_counts_before, expected_counts_after
+):
+    check_db_counts(db, expected_counts_before)
+    assert_request(clients.admin.delete, url=f"/admin{route}/{entity_id}")
+    check_db_counts(db, expected_counts_after)
+
+
 def check_global_delete_one(
     db, clients, route, admin_route, json_data, expected_counts_before, expected_counts_after
 ):
@@ -1586,3 +1644,17 @@ def check_activity_update_one__fail_if_generated_ids_exists(
         client.patch, url=f"{route}/{gen1}", json=update_json, expected_status_code=404
     ).json()
     assert data["details"] == "It is forbidden to update generated_ids if they exist."
+
+
+def s3_key_exists(s3_client, key: str, storage_type=StorageType.aws_s3_internal) -> bool:
+    bucket = storages[storage_type].bucket
+
+    try:
+        s3_client.head_object(Bucket=bucket, Key=key)
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            return False
+        msg = "Unexpected error"
+        raise RuntimeError(msg) from e
+
+    return True

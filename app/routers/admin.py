@@ -5,7 +5,6 @@ from fastapi import APIRouter
 from app.db.utils import RESOURCE_TYPE_TO_CLASS
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
-from app.dependencies.s3 import StorageClientFactoryDep
 from app.filters.asset import AssetFilterDep
 from app.queries.common import router_admin_delete_one
 from app.schemas.asset import (
@@ -73,7 +72,6 @@ def get_entity_assets(
 @router.delete("/{entity_route}/{entity_id}/assets/{asset_id}")
 def delete_entity_asset(
     repos: RepoGroupDep,
-    storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -89,5 +87,5 @@ def delete_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    asset_service.delete_asset_storage_object(asset, storage_client_factory)
+    # Note: Asset storage object is deleted via app.db.events
     return asset

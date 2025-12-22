@@ -262,7 +262,6 @@ def download_entity_asset(
 def delete_entity_asset(
     repos: RepoGroupDep,
     user_context: UserContextDep,
-    storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -278,7 +277,9 @@ def delete_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
-    asset_service.delete_asset_storage_object(asset, storage_client_factory)
+
+    # Note: Asset storage object is deleted via app.db.events
+
     return asset
 
 

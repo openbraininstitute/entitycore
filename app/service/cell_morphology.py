@@ -76,7 +76,10 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
         query = query.options(
             joinedload(CellMorphology.measurement_annotation)
             .selectinload(MeasurementAnnotation.measurement_kinds)
-            .selectinload(MeasurementKind.measurement_items),
+            .options(
+                selectinload(MeasurementKind.measurement_items),
+                selectinload(MeasurementKind.measurement_label),
+            ),
             joinedload(CellMorphology.measurement_annotation).contains_eager(
                 MeasurementAnnotation.entity
             ),
@@ -210,6 +213,7 @@ def read_many(
         "measurement_annotation",
         "measurement_annotation.measurement_kind",
         "measurement_annotation.measurement_kind.measurement_item",
+        "measurement_annotation.measurement_kind.pref_label",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=CellMorphology,

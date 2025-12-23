@@ -171,6 +171,7 @@ class GlobalType(StrEnum):
     ion = auto()
     ion_channel = auto()
     measurement_annotation = auto()
+    measurement_label = auto()
 
 
 class AssociationType(StrEnum):
@@ -344,10 +345,12 @@ class MeasurementStatistic(StrEnum):
 class MeasurementUnit(StrEnum):
     dimensionless = auto()
     linear_density__1_um = "1/μm"
+    area_density__1_um2 = "1/μm²"
     volume_density__1_mm3 = "1/mm³"
     linear__um = "μm"
     area__um2 = "μm²"
-    volume__mm3 = "μm³"
+    volume__um3 = "μm³"
+    volume__mm3 = "mm³"
     angle__radian = "radian"
 
 

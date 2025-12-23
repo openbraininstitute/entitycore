@@ -12,23 +12,39 @@ from .utils import (
 
 ROUTE = "/measurement-annotation"
 ADMIN_ROUTE = "/admin/measurement-annotation"
+LABEL_ROUTE = "/measurement-label"
 MORPHOLOGY_ROUTE = "/cell-morphology"
 ENTITY_TYPE = "cell_morphology"
 
 
 @pytest.fixture
-def measurement_labels():
-    return [f"pref_label_{i}" for i in range(5)]
+def measurement_labels(client_admin, person_id):
+    labels = []
+    for i in range(2):
+        response = client_admin.post(
+            LABEL_ROUTE,
+            json={
+                "entity_type": ENTITY_TYPE,
+                "pref_label": f"pref_label_{i}",
+                "definition": "",
+                "created_by_id": str(person_id),
+                "updated_by_id": str(person_id),
+            },
+        )
+        assert response.status_code == 200, f"Failed to create measurement label: {response.text}"
+        data = response.json()
+        labels.append(data["pref_label"])
+    return labels
 
 
 @pytest.fixture
-def json_data(morphology_id):
+def json_data(morphology_id, measurement_labels):
     return {
         "entity_type": ENTITY_TYPE,
         "entity_id": str(morphology_id),
         "measurement_kinds": [
             {
-                "pref_label": "pref_label_0",
+                "pref_label": measurement_labels[0],
                 "structural_domain": "axon",
                 "measurement_items": [
                     {
@@ -174,8 +190,8 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
     request_payload_1 = _get_request_payload_1(entity_id=morphology_id, labels=measurement_labels)
     expected_payload_1 = _get_return_payload(request_payload=request_payload_1)
 
+    # create a valid measurement annotation
     response = client.post(ROUTE, json=request_payload_1)
-
     assert_response(response, expected_status_code=200)
     data = response.json()
     assert data == expected_payload_1
@@ -273,6 +289,22 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
     assert_response(response, expected_status_code=200)
     data = response.json()
     assert len(data["data"]) == 0
+
+    invalid_labels = ["pref_label_0", "invalid_label_0"]
+    invalid_payload = _get_request_payload_1(entity_id=morphology_id, labels=invalid_labels)
+
+    # try to create an annotation with invalid labels
+    response = client.post(ROUTE, json=invalid_payload)
+    assert_response(response, expected_status_code=422)
+    data = response.json()
+    assert data == {
+        "error_code": "INVALID_REQUEST",
+        "message": "Invalid measurement labels for entity type cell_morphology",
+        "details": {
+            "allowed_labels": ["pref_label_0", "pref_label_1"],
+            "invalid_labels": ["invalid_label_0"],
+        },
+    }
 
 
 def test_missing(client):

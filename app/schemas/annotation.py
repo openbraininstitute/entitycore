@@ -6,7 +6,7 @@ from app.schemas.utils import make_update_schema
 
 class AnnotationBase(BaseModel):
     pref_label: str
-    alt_label: str
+    alt_label: str | None = None
     definition: str
 
 

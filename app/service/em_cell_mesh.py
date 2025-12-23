@@ -1,9 +1,20 @@
 import uuid
-from typing import TYPE_CHECKING
+from enum import StrEnum, auto
+from functools import partial
+from typing import TYPE_CHECKING, Annotated
 
+from fastapi import Query
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Contribution, EMCellMesh, EMDenseReconstructionDataset, Person, Subject
+from app.db.model import (
+    Contribution,
+    EMCellMesh,
+    EMDenseReconstructionDataset,
+    MeasurementAnnotation,
+    MeasurementKind,
+    Person,
+    Subject,
+)
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -21,7 +32,12 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.em_cell_mesh import EMCellMeshCreate, EMCellMeshRead, EMCellMeshUserUpdate
+from app.schemas.em_cell_mesh import (
+    EMCellMeshAnnotationExpandedRead,
+    EMCellMeshCreate,
+    EMCellMeshRead,
+    EMCellMeshUserUpdate,
+)
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, Select
 
@@ -29,9 +45,14 @@ if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-def _load(q: Select[EMCellMesh]) -> Select[EMCellMesh]:
+class Expandable(StrEnum):
+    measurement_annotation = auto()
+
+
+def _load(q: Select[EMCellMesh], *, expand: set[Expandable] | None = None) -> Select[EMCellMesh]:
+    """Return the query with the required options to load the data."""
     db_model_class = EMCellMesh
-    return q.options(
+    query = q.options(
         joinedload(db_model_class.subject, innerjoin=True).options(
             selectinload(Subject.species), selectinload(Subject.strain)
         ),
@@ -40,12 +61,26 @@ def _load(q: Select[EMCellMesh]) -> Select[EMCellMesh]:
         joinedload(db_model_class.updated_by, innerjoin=True),
         joinedload(db_model_class.license),
         joinedload(db_model_class.em_dense_reconstruction_dataset, innerjoin=True),
+        joinedload(db_model_class.mtypes),
         selectinload(db_model_class.contributions).options(
             selectinload(Contribution.agent), selectinload(Contribution.role)
         ),
         selectinload(db_model_class.assets),
         raiseload("*"),
     )
+    if expand and Expandable.measurement_annotation in expand:
+        query = query.options(
+            joinedload(db_model_class.measurement_annotation)
+            .selectinload(MeasurementAnnotation.measurement_kinds)
+            .options(
+                selectinload(MeasurementKind.measurement_items),
+                selectinload(MeasurementKind.measurement_label),
+            ),
+            joinedload(db_model_class.measurement_annotation).contains_eager(
+                MeasurementAnnotation.entity
+            ),
+        )
+    return query
 
 
 def read_many(
@@ -71,16 +106,18 @@ def read_many(
         "brain_region",
         "subject.species",
         "subject.strain",
-        "em_dense_reconstruction_dataset",
-    ]
-    filter_keys = [
         "created_by",
         "updated_by",
-        "brain_region",
-        "subject",
-        "subject.species",
-        "subject.strain",
         "em_dense_reconstruction_dataset",
+        "mtype",
+    ]
+    filter_keys = [
+        "subject",
+        *facet_keys,
+        "measurement_annotation",
+        "measurement_annotation.measurement_kind",
+        "measurement_annotation.measurement_kind.measurement_item",
+        "measurement_annotation.measurement_kind.pref_label",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=EMCellMesh,
@@ -110,14 +147,17 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> EMCellMeshRead:
+    expand: Annotated[set[Expandable] | None, Query()] = None,
+) -> EMCellMeshRead | EMCellMeshAnnotationExpandedRead:
+    response_schema_class = EMCellMeshAnnotationExpandedRead if expand else EMCellMeshRead
+    apply_operations = partial(_load, expand=expand)
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=EMCellMesh,
         user_context=user_context,
-        response_schema_class=EMCellMeshRead,
-        apply_operations=_load,
+        response_schema_class=response_schema_class,
+        apply_operations=apply_operations,
     )
 
 

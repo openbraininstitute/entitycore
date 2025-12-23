@@ -4,7 +4,9 @@ from typing import Any
 from pydantic import BaseModel
 
 from app.db.types import EMCellMeshGenerationMethod, EMCellMeshType
+from app.schemas.annotation import MTypeClassRead
 from app.schemas.base import BasicEntityRead
+from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.scientific_artifact import (
     NestedScientificArtifactRead,
     ScientificArtifactCreate,
@@ -34,6 +36,7 @@ class EMCellMeshRead(
     ScientificArtifactRead,
 ):
     em_dense_reconstruction_dataset: BasicEntityRead
+    mtypes: list[MTypeClassRead] | None
 
 
 class EMCellMeshCreate(
@@ -46,3 +49,7 @@ class EMCellMeshCreate(
 EMCellMeshUserUpdate = make_update_schema(
     EMCellMeshCreate, "EMCellMeshUserUpdate"
 )  # pyright : ignore [reportInvalidTypeForm]
+
+
+class EMCellMeshAnnotationExpandedRead(EMCellMeshRead):
+    measurement_annotation: MeasurementAnnotationRead | None

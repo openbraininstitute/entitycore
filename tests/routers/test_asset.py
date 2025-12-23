@@ -361,9 +361,11 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
         "error_code": "ASSET_INVALID_SCHEMA",
         "message": "Asset schema is invalid",
         "details": [
-            f"Value error, Asset label '{AssetLabel.morphology}' is not allowed for "
-            f"entity type '{entity.type}'. "
-            f"Allowed asset labels: ['{AssetLabel.cell_composition_summary}']"
+            (
+                f"Value error, Asset label '{AssetLabel.morphology}' is not allowed for "
+                f"entity type '{entity.type}'. "
+                f"Allowed asset labels: ['{AssetLabel.cell_composition_summary}']"
+            )
         ],
     }
 

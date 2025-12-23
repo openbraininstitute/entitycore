@@ -86,7 +86,7 @@ from app.utils.uuid import create_uuid
 
 # enable versioning
 make_versioned(
-    user_cls=None,
+    user_cls=None,  # pyright: ignore[reportArgumentType]
     options={
         "native_versioning": True,
         "create_tables": True,
@@ -996,7 +996,6 @@ class MeasurementLabel(Identifiable):
 class MeasurementKind(Base):
     __tablename__ = "measurement_kind"
     # __versioned__: ClassVar[dict] = {}
-
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     structural_domain: Mapped[StructuralDomain | None]

@@ -1,7 +1,7 @@
 import uuid
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 import sqlalchemy as sa
 from fastapi import Query
@@ -11,7 +11,7 @@ from sqlalchemy.orm import (
     raiseload,
     selectinload,
 )
-from sqlalchemy_continuum.utils import transaction_class, version_class
+from sqlalchemy_continuum.utils import version_class
 
 from app.db.model import (
     Agent,
@@ -33,7 +33,6 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.cell_morphology import CellMorphologyFilterDep
-from app.logger import L
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -258,14 +257,14 @@ def delete_one(
 
 
 def read_mtypes_history(
-    user_context: UserContextDep,
+    user_context: UserContextDep,  # noqa: ARG001
     db: SessionDep,
     id_: uuid.UUID,
 ) -> dict:
     # query = sa.select(CellMorphology).where(CellMorphology.id == id_)
     # row = db.execute(query).scalar_one()
     # Transaction = transaction_class(MTypeClassification)
-    MTypeClassificationVersion = version_class(MTypeClassification)
+    MTypeClassificationVersion: Any = version_class(MTypeClassification)  # noqa: N806
     query = sa.select(MTypeClassificationVersion).where(MTypeClassificationVersion.entity_id == id_)
     rows = db.execute(query).scalars().all()
     data = [

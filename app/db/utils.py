@@ -22,7 +22,7 @@ MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
     for mapper in Base.registry.mappers
     if issubclass(mapper.class_, MeasurableEntityMixin)
     and issubclass(mapper.class_, Entity)
-    and hasattr(mapper.class_, "__tablename__")
+    and getattr(mapper.class_, "__tablename__", None)
 }
 MeasurableEntityType = StrEnum("MeasurableEntity", sorted(MEASURABLE_ENTITIES))
 

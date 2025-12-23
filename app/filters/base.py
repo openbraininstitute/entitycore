@@ -226,6 +226,17 @@ class CustomFilter[T: DeclarativeBase](Filter):
                 return True
         return False
 
+    def has_nested_filtering_field(self, name: str) -> bool:
+        """Return True if the specified nested field is not None.
+
+        Args:
+            name: The name of the nested filtering field. It's possible to specify deeply nested
+            filtering fields using the dot notation, e.g. "measurement_kind.pref_label".
+        """
+        attr = attrgetter(name)(self)
+        # ignore nested filters because they are not valid fields
+        return not isinstance(attr, CustomFilter) and attr is not None
+
     def get_nested_filter(self, name: str) -> "CustomFilter[T] | None":
         """Return the nested filter if it has filtering fields, or None otherwise.
 

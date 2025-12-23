@@ -247,7 +247,7 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
 
     # filter the annotations
     query_params = {
-        "measurement_label__pref_label": measurement_labels[0],
+        "measurement_kind__pref_label": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 154,
         "measurement_item__value__lte": 155,
@@ -267,7 +267,7 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
 
     # filter the morphology by annotation
     query_params = {
-        "measurement_label__pref_label": measurement_labels[0],
+        "measurement_kind__pref_label": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 154,
         "measurement_item__value__lte": 155,
@@ -280,7 +280,7 @@ def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_l
 
     # filter the morphology by annotation, no results
     query_params = {
-        "measurement_label__pref_label": measurement_labels[0],
+        "measurement_kind__pref_label": measurement_labels[0],
         "measurement_item__name": "mean",
         "measurement_item__value__gte": 54,
         "measurement_item__value__lte": 55,

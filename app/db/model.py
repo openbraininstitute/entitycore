@@ -962,6 +962,15 @@ class MeasurementKind(Base):
     def pref_label(self) -> str:
         return self.measurement_label.pref_label
 
+    @pref_label.inplace.expression
+    @classmethod
+    def _pref_label(cls) -> SQLColumnExpression[str]:
+        """SQL expression for the pref_label hybrid property.
+
+        Allow the use of pref_label in SQL queries if joined correctly with MeasurementLabel.
+        """
+        return MeasurementLabel.pref_label
+
     __table_args__ = (
         UniqueConstraint(
             "measurement_annotation_id",

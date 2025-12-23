@@ -9,10 +9,6 @@ from app.db.utils import MeasurableEntityType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import CreationFilterMixin
-from app.filters.measurement_label import (
-    NestedMeasurementLabelFilter,
-    NestedMeasurementLabelFilterDep,
-)
 
 
 class MeasurementItemFilter(CustomFilter):
@@ -31,11 +27,9 @@ NestedMeasurementItemFilterDep = FilterDepends(
 
 
 class MeasurementKindFilter(CustomFilter):
+    pref_label: str | None = None
     structural_domain: StructuralDomain | None = None
     measurement_item: Annotated[MeasurementItemFilter | None, NestedMeasurementItemFilterDep] = None
-    measurement_label: Annotated[
-        NestedMeasurementLabelFilter | None, NestedMeasurementLabelFilterDep
-    ] = None
 
     class Constants(CustomFilter.Constants):
         model = MeasurementKind

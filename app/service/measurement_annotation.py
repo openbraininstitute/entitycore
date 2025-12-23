@@ -109,8 +109,8 @@ def read_many(
     facet_keys = []
     filter_keys = [
         "measurement_kind",
+        "measurement_kind.pref_label",
         "measurement_kind.measurement_item",
-        "measurement_kind.measurement_label",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=MeasurementAnnotation,

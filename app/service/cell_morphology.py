@@ -213,7 +213,7 @@ def read_many(
         "measurement_annotation",
         "measurement_annotation.measurement_kind",
         "measurement_annotation.measurement_kind.measurement_item",
-        "measurement_annotation.measurement_kind.measurement_label",
+        "measurement_annotation.measurement_kind.pref_label",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=CellMorphology,

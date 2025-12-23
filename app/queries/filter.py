@@ -56,7 +56,11 @@ def filter_from_db[I: Identifiable](
     )
 
     for name, func in filter_joins.items():
-        to_be_applied = filter_model.get_nested_filter(name) or name in ordering_joins
+        to_be_applied = (
+            name in ordering_joins
+            or filter_model.get_nested_filter(name)
+            or filter_model.has_nested_filtering_field(name)
+        )
         if (to_be_applied and not forced_joins) or (not to_be_applied and name in forced_joins):
             L.debug("Applying join filter for {!r}", name)
             query = func(query)

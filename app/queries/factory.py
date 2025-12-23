@@ -51,6 +51,8 @@ def query_params_factory[I: Identifiable](
         filter_keys: List of filter keys, used to build the dict of ApplyOperations.
             The order of the keys is important to apply joins operations correctly and efficiently.
             In general, joins should be applied before left joins.
+            The keys should correspond to nested filters or nested fields in the FastAPI filter,
+            and should be specified using the dot-separated format.
         aliases: Dict of aliases. It can be empty if aliases are not needed.
 
     Returns:
@@ -199,7 +201,7 @@ def query_params_factory[I: Identifiable](
         "subject.strain": lambda q: q.outerjoin(Strain, subject_alias.strain_id == Strain.id),
         "measurement_kind": lambda q: q.join(MeasurementKind),
         "measurement_kind.measurement_item": lambda q: q.join(MeasurementItem),
-        "measurement_kind.measurement_label": lambda q: q.join(MeasurementLabel),
+        "measurement_kind.pref_label": lambda q: q.join(MeasurementLabel),
         "measurement_annotation": lambda q: q.outerjoin(
             MeasurementAnnotation, MeasurementAnnotation.entity_id == db_model_class.id
         ),
@@ -210,7 +212,7 @@ def query_params_factory[I: Identifiable](
         "measurement_annotation.measurement_kind.measurement_item": lambda q: q.outerjoin(
             MeasurementItem, MeasurementItem.measurement_kind_id == MeasurementKind.id
         ),
-        "measurement_annotation.measurement_kind.measurement_label": lambda q: q.outerjoin(
+        "measurement_annotation.measurement_kind.pref_label": lambda q: q.outerjoin(
             MeasurementLabel, MeasurementLabel.id == MeasurementKind.measurement_label_id
         ),
         "pre_mtype": lambda q: q.join(

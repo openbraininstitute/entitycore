@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 import pytest
 
 from app.db.model import EMCellMesh
@@ -48,6 +50,7 @@ def _assert_read_response(data, json_data):
         "id": json_data["em_dense_reconstruction_dataset_id"],
         "type": EntityType.em_dense_reconstruction_dataset,
     }
+    assert data["mtypes"] == []
     check_creation_fields(data)
 
 
@@ -63,6 +66,12 @@ def test_read_one(client, model, json_data):
     data = assert_request(client.get, url=f"{ROUTE}").json()["data"]
     assert len(data) == 1
     _assert_read_response(data[0], json_data)
+
+    params = {"expand": "measurement_annotation"}
+    data = assert_request(client.get, url=f"{ROUTE}/{model.id}", params=params).json()
+    _assert_read_response(data, json_data)
+    assert "measurement_annotation" in data
+    assert data["measurement_annotation"] is None
 
 
 def test_missing(client):
@@ -149,6 +158,23 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
                 "type": "subject.strain",
             },
         ],
+        "created_by": [
+            {
+                "count": 1,
+                "id": ANY,
+                "label": ANY,
+                "type": "person",
+            },
+        ],
+        "updated_by": [
+            {
+                "count": 1,
+                "id": ANY,
+                "label": ANY,
+                "type": "person",
+            },
+        ],
+        "mtype": [],
     }
 
     data = assert_request(

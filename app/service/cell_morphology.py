@@ -1,4 +1,5 @@
 import uuid
+from enum import StrEnum, auto
 from functools import partial
 from typing import TYPE_CHECKING, Annotated
 
@@ -52,7 +53,11 @@ if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = False) -> sa.Select:
+class ExpandableAttribute(StrEnum):
+    measurement_annotation = auto()
+
+
+def _load_from_db(query: sa.Select, *, expand: set[ExpandableAttribute] | None = None) -> sa.Select:
     """Return the query with the required options to load the data."""
     query = query.options(
         joinedload(CellMorphology.brain_region, innerjoin=True),
@@ -72,7 +77,7 @@ def _load_from_db(query: sa.Select, *, expand_measurement_annotation: bool = Fal
         joinedload(CellMorphology.updated_by, innerjoin=True),
         raiseload("*"),
     )
-    if expand_measurement_annotation:
+    if expand and ExpandableAttribute.measurement_annotation in expand:
         query = query.options(
             joinedload(CellMorphology.measurement_annotation)
             .selectinload(MeasurementAnnotation.measurement_kinds)
@@ -91,14 +96,10 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    expand: Annotated[set[str] | None, Query()] = None,
+    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
 ) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
-    if expand and "measurement_annotation" in expand:
-        response_schema_class = CellMorphologyAnnotationExpandedRead
-        apply_operations = partial(_load_from_db, expand_measurement_annotation=True)
-    else:
-        response_schema_class = CellMorphologyRead
-        apply_operations = partial(_load_from_db, expand_measurement_annotation=False)
+    response_schema_class = CellMorphologyAnnotationExpandedRead if expand else CellMorphologyRead
+    apply_operations = partial(_load_from_db, expand=expand)
     return router_read_one(
         id_=id_,
         db=db,

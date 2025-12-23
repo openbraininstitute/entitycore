@@ -267,6 +267,7 @@ def campaigns_with_different_circuits(db, json_data, person_id, multiple_circuit
                 updated_by_id=person_id,
                 authorized_project_id=PROJECT_ID,
                 scan_parameters={"foo1": "bar1", "foo2": "bar2"},
+                number_neurons=42,
             ),
         )
 

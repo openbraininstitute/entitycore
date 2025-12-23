@@ -266,9 +266,9 @@ def create_versioned_trigger(
     return sql_function, sql_trigger
 
 
-def register_all():
-    # list of protected relationships between entities as (model, field_name)
-    protected_entity_relationships = [
+def _get_protected_entity_relationships() -> list[tuple[type[Entity], str]]:
+    """List of entities with protected relationships, given as (model_class, field_name)."""
+    return [
         (BrainAtlasRegion, "brain_atlas_id"),
         (CellMorphology, "cell_morphology_protocol_id"),
         (Circuit, "atlas_id"),
@@ -297,8 +297,14 @@ def register_all():
         (SkeletonizationConfig, "em_cell_mesh_id"),
     ]
 
-    entities: Iterable[ReplaceableEntity] = []
 
+def register_all() -> None:
+    entities: Iterable[ReplaceableEntity] = []
+    entities += [
+        PGExtension(schema="public", signature="vector"),
+        PGExtension(schema="public", signature="hstore"),  # for versioning updates
+    ]
+    # triggers for description_vector
     entities += [
         description_vector_trigger(
             model=mapper.class_,
@@ -310,25 +316,20 @@ def register_all():
         if issubclass(mapper.class_, NameDescriptionVectorMixin)
         and "description_vector" in mapper.class_.__table__.c  # exclude children
     ]
-
-    entities += [
-        PGExtension(schema="public", signature="vector"),
-        PGExtension(schema="public", signature="hstore"),  # for versioning updates
-    ]
-
-    for model, field_name in protected_entity_relationships:
+    # triggers for protected relationships
+    for model, field_name in _get_protected_entity_relationships():
         entities += [
             unauthorized_private_reference_function(model, field_name),
             unauthorized_private_reference_trigger(model, field_name),
         ]
-
+    # trigger on the trasansaction table
     entities += create_transaction_trigger()
-
+    # triggers to write the versioned tables
     for mapper in Base.registry.mappers:
         if hasattr(mapper.class_, "__versioned__"):
             entities += create_versioned_trigger(
                 table=mapper.class_.__table__,
                 use_property_mod_tracking=False,
             )
-
+    # register everything
     register_entities(entities=entities)

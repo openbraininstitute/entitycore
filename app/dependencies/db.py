@@ -19,5 +19,9 @@ def _get_repo_group(db: "SessionDep") -> RepositoryGroup:
     return RepositoryGroup(db=db)
 
 
-SessionDep = Annotated[Session, Depends(get_db)]
+# Using Depends(scope="function"), the exit code after yield is executed right after the path
+# operation function is finished, before the response is sent back to the client.
+# In this way, the commit of the db transaction and the associated events
+# are executed before the response is sent back to the client.
+SessionDep = Annotated[Session, Depends(get_db, scope="function")]
 RepoGroupDep = Annotated[RepositoryGroup, Depends(_get_repo_group)]

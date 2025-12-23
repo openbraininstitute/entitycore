@@ -350,7 +350,6 @@ class MeasurementUnit(StrEnum):
     linear__um = "μm"
     area__um2 = "μm²"
     volume__um3 = "μm³"
-    volume__mm3 = "mm³"
     angle__radian = "radian"
 
 

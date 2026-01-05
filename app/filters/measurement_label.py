@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi_filter import with_prefix
 
 from app.db.model import MeasurementLabel
+from app.db.utils import MeasurableEntityType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
@@ -31,6 +32,7 @@ class MeasurementLabelFilter(
 ):
     """Full MeasurementLabel filter."""
 
+    entity_type: MeasurableEntityType | None = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(NestedMeasurementLabelFilter.Constants):

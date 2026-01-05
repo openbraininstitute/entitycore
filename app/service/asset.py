@@ -20,8 +20,12 @@ from app.repository.group import RepositoryGroup
 from app.schemas.asset import (
     AssetCreate,
     AssetRead,
+    AssetReadWithUploadMeta,
     DetailedFileList,
     DirectoryUpload,
+    ToUploadPart,
+    UploadMeta,
+    UploadMetaRead,
 )
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.types import ListResponse
@@ -33,6 +37,11 @@ from app.utils.s3 import (
     delete_from_s3,
     generate_presigned_url,
     list_directory_with_details,
+    multipart_compute_upload_plan,
+    multipart_upload_complete,
+    multipart_upload_create_part_presigned_url,
+    multipart_upload_initiate,
+    multipart_upload_list_parts,
     sanitize_directory_traversal,
 )
 
@@ -99,6 +108,28 @@ def get_entity_asset(
     return AssetRead.model_validate(asset)
 
 
+def get_writable_entity_db_asset(
+    repos: RepositoryGroup,
+    user_context: UserContextWithProjectId,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> Asset:
+    """Return an asset associated with a specific entity."""
+    _ = entity_service.get_writable_entity(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset = repos.asset.get_entity_asset(
+            entity_type=entity_type, entity_id=entity_id, asset_id=asset_id
+        )
+
+    return asset
+
+
 def create_entity_asset(  # noqa: PLR0913
     repos: RepositoryGroup,
     *,
@@ -114,6 +145,7 @@ def create_entity_asset(  # noqa: PLR0913
     is_directory: bool,
     storage_type: StorageType,
     full_path: str | None = None,
+    status: AssetStatus = AssetStatus.CREATED,
 ) -> AssetRead:
     """Create an asset for an entity."""
     entity = entity_service.get_writable_entity(
@@ -158,6 +190,7 @@ def create_entity_asset(  # noqa: PLR0913
         asset_db = repos.asset.create_entity_asset(
             entity_id=entity_id,
             asset=asset_create,
+            status=status,
         )
     return AssetRead.model_validate(asset_db)
 
@@ -344,3 +377,144 @@ def list_directory(
     )
 
     return DetailedFileList.model_validate({"files": ret})
+
+
+def entity_asset_upload_initiate(
+    *,
+    repos: RepositoryGroup,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    s3_client: S3Client,
+    s3_key: str,
+    bucket: str,
+    filesize: int,
+    content_type: str,
+    preferred_part_count: int,
+) -> AssetReadWithUploadMeta:
+    """Initiate multipart upload.
+
+    Note: This function does not check user permissions.
+    """
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset = repos.asset.get_entity_asset(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            asset_id=asset_id,
+        )
+
+    storage = storages[asset.storage_type]
+
+    upload_id = multipart_upload_initiate(
+        s3_client=s3_client,
+        s3_key=s3_key,
+        bucket=bucket,
+        content_type=content_type,
+    )
+    part_size, part_count = multipart_compute_upload_plan(
+        filesize=filesize,
+        preferred_part_count=preferred_part_count,
+    )
+    parts = [
+        ToUploadPart(
+            part_number=part_number,
+            url=multipart_upload_create_part_presigned_url(
+                s3_client=s3_client,
+                bucket=storage.bucket,
+                s3_key=asset.full_path,
+                upload_id=upload_id,
+                part_number=part_number,
+            ),
+        )
+        for part_number in range(1, part_count + 1)
+    ]
+    asset.status = AssetStatus.UPLOADING
+    asset.upload_meta = UploadMeta(
+        upload_id=upload_id,
+        part_size=part_size,
+        part_count=part_count,
+    ).model_dump()
+    repos.db.flush()
+
+    # The presigned urls are not stored in the db because not needed and potentially too numerous
+    # The upload_id is not provided in the response because it is not needed by the client
+
+    base_asset_read = AssetRead.model_validate(asset)
+    upload_meta = UploadMetaRead(part_size=part_size, parts=parts)
+    return AssetReadWithUploadMeta.model_validate(
+        {**base_asset_read.model_dump(), "upload_meta": upload_meta.model_dump()}
+    )
+
+
+def entity_asset_upload_complete(
+    *,
+    repos: RepositoryGroup,
+    user_context: UserContextWithProjectId,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    storage: StorageUnion,
+    s3_client: S3Client,
+) -> AssetRead:
+    asset_db = get_writable_entity_db_asset(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+    upload_meta = UploadMeta.model_validate(asset_db.upload_meta) if asset_db.upload_meta else None
+
+    if asset_db.status != AssetStatus.UPLOADING or upload_meta is None:
+        raise ApiError(
+            message="Asset is not uploading. Operation cannot be performed.",
+            error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    # parts that have been already uploaded to s3
+    uploaded_parts = multipart_upload_list_parts(
+        s3_client=s3_client,
+        bucket=storage.bucket,
+        s3_key=asset_db.full_path,
+        upload_id=upload_meta.upload_id,
+    )
+
+    # verify that expected and uploaded agree
+    uploaded_part_numbers = {p["PartNumber"] for p in uploaded_parts}
+    expected_part_numbers = set(range(1, upload_meta.part_count + 1))
+
+    if uploaded_part_numbers != expected_part_numbers:
+        raise ApiError(
+            message=(
+                "Expected parts are not uploaded. "
+                f"Expected: {len(expected_part_numbers)}, Actual: {len(uploaded_part_numbers)}"
+            ),
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+
+    upload_size = sum(p["Size"] for p in uploaded_parts)
+    upload_expected_size = asset_db.size
+
+    if upload_size != upload_expected_size:
+        raise ApiError(
+            message=(
+                "Total from multipart upload parts sizes does not match expected size."
+                f"Expected: {upload_expected_size}, Actual: {upload_size}"
+            ),
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCONSISTENT_SIZE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+
+    multipart_upload_complete(
+        s3_client=s3_client,
+        s3_key=asset_db.full_path,
+        upload_id=upload_meta.upload_id,
+        bucket=storage.bucket,
+        parts=uploaded_parts,
+    )
+
+    asset_db.status = AssetStatus.CREATED
+    repos.db.flush()
+    return AssetRead.model_validate(asset_db)

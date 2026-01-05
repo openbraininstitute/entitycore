@@ -3,10 +3,10 @@ import uuid
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.networks import AnyUrl
 
-from app.config import storages
+from app.config import settings, storages
 from app.db.types import (
     ALLOWED_ASSET_LABELS_PER_ENTITY,
     CONTENT_TYPE_TO_SUFFIX,
@@ -70,6 +70,30 @@ class AssetRead(AssetBase, SizeAndDigestMixin):
 
     id: uuid.UUID
     status: AssetStatus
+
+
+class ToUploadPart(BaseModel):
+    part_number: Annotated[int, Field(description="Index of this part in the multipart upload.")]
+    url: Annotated[str, Field(description="Presigned url to upload file part.")]
+
+
+class UploadMeta(BaseModel):
+    """Database schema."""
+
+    upload_id: Annotated[str, Field(description="Unique ID for this multipart upload session.")]
+    part_size: Annotated[int, Field(description="Size in bytes for each part.")]
+    part_count: Annotated[int, Field(description="Total number of parts.")]
+
+
+class UploadMetaRead(BaseModel):
+    """Response schema."""
+
+    parts: list[ToUploadPart]
+    part_size: Annotated[int, Field(description="Size in bytes for each part.")]
+
+
+class AssetReadWithUploadMeta(AssetRead):
+    upload_meta: UploadMetaRead | None = None
 
 
 def _raise_on_label_requirement(asset, label_reqs):
@@ -175,3 +199,22 @@ class DetailedFileList(BaseModel):
 class AssetAndPresignedURLS(BaseModel):
     asset: AssetRead
     files: dict[Path, AnyUrl]
+
+
+class InitiateUploadRequest(BaseModel):
+    filename: Annotated[str, Field(description="File name to be uploaded.")]
+    filesize: Annotated[int, Field(description="File size to be uploaded in bytes.", gt=0)]
+    sha256_digest: str
+    content_type: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Content type of file. "
+                "If not provided it will be deduced from the file's extension."
+            )
+        ),
+    ] = None
+    label: AssetLabel
+    preferred_part_count: Annotated[int, Field(description="Hint of desired part count.")] = (
+        settings.S3_MULTIPART_UPLOAD_DEFAULT_PARTS
+    )

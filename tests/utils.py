@@ -1663,3 +1663,9 @@ def s3_key_exists(s3_client, key: str, storage_type=StorageType.aws_s3_internal)
         raise RuntimeError(msg) from e
 
     return True
+
+
+def s3_multipart_upload_exists(s3_client, upload_id, bucket):
+    response = s3_client.list_multipart_uploads(Bucket=bucket)
+    upload_ids = {u["UploadId"] for u in response.get("Uploads", [])}
+    return upload_id in upload_ids

@@ -359,6 +359,7 @@ class StructuralDomain(StrEnum):
     axon = auto()
     soma = auto()
     neuron_morphology = auto()
+    not_applicable = auto()
 
 
 class ContentType(StrEnum):

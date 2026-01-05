@@ -998,7 +998,7 @@ class MeasurementKind(Base):
     # __versioned__: ClassVar[dict] = {}
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    structural_domain: Mapped[StructuralDomain | None]
+    structural_domain: Mapped[StructuralDomain]
     measurement_label_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("measurement_label.id"), index=True
     )
@@ -1037,7 +1037,6 @@ class MeasurementKind(Base):
             "measurement_label_id",
             "structural_domain",
             name=f"uq_{__tablename__}_measurement_annotation_id",
-            postgresql_nulls_not_distinct=True,
         ),
     )
 
@@ -1062,7 +1061,6 @@ class MeasurementItem(Base):
             "measurement_kind_id",
             "name",
             name=f"uq_{__tablename__}_measurement_kind_id",
-            postgresql_nulls_not_distinct=True,
         ),
     )
 

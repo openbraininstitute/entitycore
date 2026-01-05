@@ -1,4 +1,5 @@
 import logging
+import os
 from collections.abc import Iterable
 from logging.config import fileConfig
 
@@ -14,13 +15,14 @@ from app.db.model import Base
 
 L = logging.getLogger("alembic.env")
 
-# server settings to reduce possible service disruptions while running the migration
-SERVER_SETTINGS = {
+# Connection settings to reduce possible service disruptions while running the migration.
+# See https://www.postgresql.org/docs/17/runtime-config-client.html
+CONNECTION_SETTINGS = {
     # Abort any statement that takes more than the specified amount of time
-    "statement_timeout": "6000",
+    "statement_timeout": os.getenv("DB_MIGRATION_STATEMENT_TIMEOUT_MS", "30000"),
     # Abort any statement that waits longer than the specified amount of time while
     # attempting to acquire a lock on a table, index, row, or other database object
-    "lock_timeout": "4000",
+    "lock_timeout": os.getenv("DB_MIGRATION_LOCK_TIMEOUT_MS", "5000"),
 }
 
 # register triggers only if alembic is run with `-x register_triggers="true"`
@@ -101,7 +103,7 @@ def run_migrations_online() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
         connect_args={
-            "options": " ".join(f"-c {key}={value}" for key, value in SERVER_SETTINGS.items()),
+            "options": " ".join(f"-c {key}={value}" for key, value in CONNECTION_SETTINGS.items()),
             "application_name": "alembic",
         },
     )

@@ -1,8 +1,8 @@
 """Add versioning tables
 
-Revision ID: d7ea49e97d8d
-Revises: 813756ebc22d
-Create Date: 2025-12-23 17:06:17.309329
+Revision ID: 536766be2107
+Revises: c0c539e43701
+Create Date: 2026-01-05 18:18:58.435534
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "d7ea49e97d8d"
-down_revision: Union[str, None] = "813756ebc22d"
+revision: str = "536766be2107"
+down_revision: Union[str, None] = "c0c539e43701"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

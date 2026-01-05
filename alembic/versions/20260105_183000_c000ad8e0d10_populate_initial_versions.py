@@ -1,8 +1,8 @@
 """Populate initial versions
 
 Revision ID: c000ad8e0d10
-Revises: 060149884c38
-Create Date: 2025-12-24 12:00:00.000000
+Revises: a02492c47a31
+Create Date: 2026-01-05 18:30:00.000000
 
 """
 
@@ -19,7 +19,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "c000ad8e0d10"
-down_revision: Union[str, None] = "060149884c38"
+down_revision: Union[str, None] = "a02492c47a31"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

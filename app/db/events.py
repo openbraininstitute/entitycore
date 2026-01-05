@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import object_session
 
 from app.db.model import Asset
+from app.db.types import AssetStatus
 from app.logger import L
-from app.utils.s3 import delete_asset_storage_object, get_s3_client
+from app.utils.s3 import delete_asset_storage_object, get_s3_client, multipart_upload_abort
 
 ASSETS_TO_DELETE_KEY = "assets_to_delete_from_storage"
 
@@ -25,19 +26,43 @@ def delete_assets_from_storage(session: Session):
     """Delete storage objects for assets removed in a committed transaction."""
     to_delete = session.info.pop(ASSETS_TO_DELETE_KEY, set())
     for asset in to_delete:
-        try:
-            delete_asset_storage_object(
-                storage_type=asset.storage_type,
-                s3_key=asset.full_path,
-                storage_client_factory=get_s3_client,
-            )
-        except Exception:  # noqa: BLE001
-            L.exception(
-                "Failed to delete storage object for Asset id={} full_path={} storage_type={}",
-                asset.id,
-                asset.full_path,
-                asset.storage_type,
-            )
+        match asset.status:
+            case AssetStatus.UPLOADING:
+                try:
+                    multipart_upload_abort(
+                        upload_id=asset.upload_meta["upload_id"],
+                        storage_type=asset.storage_type,
+                        s3_key=asset.full_path,
+                        storage_client_factory=get_s3_client,
+                    )
+                except Exception:  # noqa: BLE001
+                    L.exception(
+                        (
+                            "Failed to abort multipart upload for Asset "
+                            "id={} full_path={} storage_type={}"
+                        ),
+                        asset.id,
+                        asset.full_path,
+                        asset.storage_type,
+                    )
+
+            case _:
+                try:
+                    delete_asset_storage_object(
+                        storage_type=asset.storage_type,
+                        s3_key=asset.full_path,
+                        storage_client_factory=get_s3_client,
+                    )
+                except Exception:  # noqa: BLE001
+                    L.exception(
+                        (
+                            "Failed to delete storage object for Asset "
+                            "id={} full_path={} storage_type={}"
+                        ),
+                        asset.id,
+                        asset.full_path,
+                        asset.storage_type,
+                    )
 
 
 @event.listens_for(Session, "after_rollback")

@@ -3,10 +3,10 @@ import uuid
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.networks import AnyUrl
 
-from app.config import storages
+from app.config import settings, storages
 from app.db.types import (
     ALLOWED_ASSET_LABELS_PER_ENTITY,
     CONTENT_TYPE_TO_SUFFIX,
@@ -38,6 +38,17 @@ def validate_full_path(s: str) -> str:
     return s
 
 
+class ToUploadPart(BaseModel):
+    part_number: int
+    url: Annotated[str, Field(description="Presigned url to upload file part.")]
+
+
+class UploadMeta(BaseModel):
+    upload_id: str
+    part_size: int
+    parts: list[ToUploadPart]
+
+
 class AssetBase(BaseModel):
     """Asset model with common attributes."""
 
@@ -49,6 +60,7 @@ class AssetBase(BaseModel):
     meta: dict = {}
     label: AssetLabel
     storage_type: StorageType
+    upload_meta: UploadMeta | None = None
 
 
 class SizeAndDigestMixin(BaseModel):
@@ -175,3 +187,27 @@ class DetailedFileList(BaseModel):
 class AssetAndPresignedURLS(BaseModel):
     asset: AssetRead
     files: dict[Path, AnyUrl]
+
+
+class InitiateUploadRequest(BaseModel):
+    filename: Annotated[str, Field(description="File name to be uploaded.")]
+    filesize: Annotated[int, Field(description="File size to be uploaded in bytes.")]
+    sha256_digest: str
+    content_type: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Content type of file. "
+                "If not provided it will be deduced from the file's extension."
+            )
+        ),
+    ] = None
+    label: AssetLabel
+    preferred_part_count: Annotated[int, Field(description="Hint of desired part count.")] = (
+        settings.S3_MULTIPART_UPLOAD_DEFAULT_PARTS
+    )
+
+
+class UploadedPart(BaseModel):
+    part_number: int
+    etag: str

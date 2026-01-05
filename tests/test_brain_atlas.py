@@ -104,6 +104,7 @@ def test_brain_atlas(db, client, species_id, person_id):
                 "size": 31,
                 "status": "created",
                 "storage_type": StorageType.aws_s3_internal,
+                "upload_meta": None,
             }
         ],
         "creation_date": ANY,
@@ -177,6 +178,7 @@ def test_brain_atlas(db, client, species_id, person_id):
         "size": 31,
         "status": "created",
         "storage_type": StorageType.aws_s3_internal,
+        "upload_meta": None,
     }
     assert response.json()["data"] == [
         {

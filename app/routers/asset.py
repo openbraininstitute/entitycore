@@ -9,7 +9,7 @@ from fastapi import APIRouter, Form, HTTPException, UploadFile, status
 from starlette.responses import RedirectResponse
 
 from app.config import settings, storages
-from app.db.types import AssetLabel, ContentType, StorageType
+from app.db.types import AssetLabel, AssetStatus, ContentType, StorageType
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep
@@ -22,7 +22,9 @@ from app.schemas.asset import (
     AssetRegister,
     DetailedFileList,
     DirectoryUpload,
+    InitiateUploadRequest,
 )
+from app.schemas.auth import UserContext
 from app.schemas.types import ListResponse
 from app.service import asset as asset_service
 from app.utils.files import calculate_sha256_digest, get_content_type
@@ -34,6 +36,7 @@ from app.utils.s3 import (
     upload_to_s3,
     validate_filename,
     validate_filesize,
+    validate_multipart_filesize,
 )
 
 router = APIRouter(
@@ -225,6 +228,12 @@ def download_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
+    if asset.status == AssetStatus.UPLOADING:
+        raise ApiError(
+            message="Cannot download an uploading asset, because it is incomplete.",
+            error_code=ApiErrorCode.ASSET_INCOMPLETE,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
     if asset.is_directory:
         if asset_path is None:
             msg = "Missing required parameter for downloading a directory file: asset_path"
@@ -335,23 +344,105 @@ def entity_asset_directory_list(
     return files
 
 
-@router.post("/{entity_route}/{entity_id}/assets/upload/initiate", include_in_schema=False)
+@router.post("/{entity_route}/{entity_id}/assets/upload/initiate")
 def initiate_entity_asset_upload(
     repos: RepoGroupDep,
+    storage_client_factory: StorageClientFactoryDep,
     user_context: UserContextWithProjectIdDep,
     entity_route: EntityRoute,
-    entity_id: int,
-):
+    entity_id: uuid.UUID,
+    json_model: InitiateUploadRequest,
+) -> AssetRead:
     """Generate a signed URL with expiration that can be used to upload the file directly to S3."""
-    raise NotImplementedError
+    if not validate_multipart_filesize(json_model.filesize):
+        msg = f"File not allowed because bigger than {settings.S3_MULTIPART_UPLOAD_MAX_SIZE}"
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_FILE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    if not validate_filename(json_model.filename):
+        msg = f"Invalid file name {json_model.filename!r}"
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    try:
+        content_type = get_content_type(json_model)
+    except ValueError as e:
+        msg = (
+            f"Invalid content type for file {json_model.filename}. "
+            f"Supported content types: {sorted(c.value for c in ContentType)}.\n"
+            f"Exception: {e}"
+        )
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        ) from None
+
+    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+    s3_client = storage_client_factory(storage)
+
+    entity_type = entity_route_to_type(entity_route)
+
+    # create asset to fail early if full path already in progress or registered
+    asset_read = asset_service.create_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        filename=json_model.filename,
+        content_type=content_type,
+        size=json_model.filesize,
+        sha256_digest=json_model.sha256_digest,
+        meta=None,
+        label=json_model.label,
+        is_directory=False,
+        storage_type=storage.type,
+        status=AssetStatus.UPLOADING,
+    )
+
+    # create presigned urls using the part count hint and filesize
+    # asset schemas is updated with the upload metadata
+    asset_read = asset_service.entity_asset_upload_initiate(
+        repos=repos,
+        user_context=UserContext.model_validate(user_context, from_attributes=True),
+        s3_client=s3_client,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        asset_id=asset_read.id,
+        bucket=storage.bucket,
+        s3_key=asset_read.full_path,
+        filesize=json_model.filesize,
+        content_type=content_type,
+        preferred_part_count=json_model.preferred_part_count,
+    )
+
+    return asset_read
 
 
-@router.post("/{entity_route}/{entity_id}/assets/upload/complete", include_in_schema=False)
+@router.post("/{entity_route}/{entity_id}/assets/{asset_id}/upload/complete")
 def complete_entity_asset_upload(
     repos: RepoGroupDep,
+    storage_client_factory: StorageClientFactoryDep,
     user_context: UserContextDep,
     entity_route: EntityRoute,
-    entity_id: int,
-):
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> AssetRead:
     """Register the uploaded file."""
-    raise NotImplementedError
+    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+
+    return asset_service.entity_asset_upload_complete(
+        repos=repos,
+        user_context=user_context,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+        storage=storage,
+        s3_client=storage_client_factory(storage),
+    )

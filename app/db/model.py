@@ -1546,6 +1546,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
           belongs to.
         entity_id (uuid.UUID): Foreign key referencing the entity ID.
         entity (Entity): The entity this simulation is associated with.
+        number_neurons (int): Number of neurons to be simulated
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
     """
 
@@ -1565,6 +1566,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         uselist=False,
         foreign_keys=[entity_id],
     )
+    number_neurons: Mapped[int] = mapped_column(BigInteger)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(
         default={},
         nullable=False,

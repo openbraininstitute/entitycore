@@ -6,12 +6,12 @@ from .utils import (
     PROJECT_ID,
     add_all_db,
     add_db,
+    assert_request,
     check_global_delete_one,
     check_global_read_one,
     check_global_update_one,
     check_missing,
     with_creation_fields,
-    assert_request
 )
 
 ROUTE = "/etype"

@@ -25,12 +25,14 @@ from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     MappedColumn,
+    configure_mappers,
     declared_attr,
     foreign,
     mapped_column,
     relationship,
     validates,
 )
+from sqlalchemy_continuum import make_versioned
 
 from app.db.types import (
     BIGINT,
@@ -81,6 +83,16 @@ from app.db.types import (
 from app.schemas.publication import Author
 from app.utils.events import register_model_events
 from app.utils.uuid import create_uuid
+
+# enable versioning
+make_versioned(
+    user_cls=None,  # pyright: ignore[reportArgumentType]
+    options={
+        "native_versioning": True,
+        "create_tables": True,
+        "create_models": True,
+    },
+)
 
 
 class Base(DeclarativeBase):
@@ -192,12 +204,15 @@ class EmbeddingMixin(Base):
 
 class Species(EmbeddingMixin, Identifiable):
     __tablename__ = GlobalType.species.value
+    __versioned__: ClassVar[dict] = {}
+
     name: Mapped[str] = mapped_column(unique=True, index=True)
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class Strain(EmbeddingMixin, Identifiable):
     __tablename__ = GlobalType.strain.value
+    __versioned__: ClassVar[dict] = {}
 
     name: Mapped[str] = mapped_column(unique=True, index=True)
     taxonomy_id: Mapped[str] = mapped_column(unique=True, index=True)
@@ -212,6 +227,8 @@ class Strain(EmbeddingMixin, Identifiable):
 
 class License(LegacyMixin, Identifiable, NameDescriptionVectorMixin):
     __tablename__ = GlobalType.license.value
+    __versioned__: ClassVar[dict] = {}
+
     name: Mapped[str] = mapped_column(unique=True, index=True)
     description: Mapped[str]
     label: Mapped[str]
@@ -269,12 +286,14 @@ class SpeciesMixin(Base):
 
 class BrainRegionHierarchy(SpeciesMixin, Identifiable):
     __tablename__ = GlobalType.brain_region_hierarchy.value
+    __versioned__: ClassVar[dict] = {}
 
     name: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class BrainRegion(EmbeddingMixin, Identifiable):
     __tablename__ = GlobalType.brain_region.value
+    __versioned__: ClassVar[dict] = {}
 
     annotation_value: Mapped[int] = mapped_column(BigInteger, index=True)
     name: Mapped[str] = mapped_column(index=True)
@@ -309,6 +328,8 @@ class BrainRegion(EmbeddingMixin, Identifiable):
 
 class Agent(LegacyMixin, Identifiable):
     __tablename__ = "agent"
+    __versioned__: ClassVar[dict] = {}
+
     type: Mapped[AgentType]
     pref_label: Mapped[str] = mapped_column(index=True)
     __mapper_args__ = {  # noqa: RUF012
@@ -319,6 +340,7 @@ class Agent(LegacyMixin, Identifiable):
 
 class Person(Agent):
     __tablename__ = AgentType.person.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     given_name: Mapped[str | None]
@@ -333,6 +355,7 @@ class Person(Agent):
 
 class Organization(Agent):
     __tablename__ = AgentType.organization.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     # what is the difference between name and label here ?
@@ -346,6 +369,7 @@ class Organization(Agent):
 
 class Consortium(Agent):
     __tablename__ = AgentType.consortium.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), primary_key=True)
     # what is the difference between name and label here ?
@@ -371,6 +395,8 @@ class Usage(Base):
     """
 
     __tablename__ = "usage"
+    __versioned__: ClassVar[dict] = {}
+
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id"),
         primary_key=True,
@@ -394,6 +420,8 @@ class Generation(Base):
     """
 
     __tablename__ = "generation"
+    __versioned__: ClassVar[dict] = {}
+
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,
@@ -420,6 +448,7 @@ class Activity(Identifiable):
     """
 
     __tablename__ = "activity"
+    __versioned__: ClassVar[dict] = {}
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -463,6 +492,8 @@ class ExecutionActivityMixin:
 
 class AnnotationBody(LegacyMixin, Identifiable):
     __tablename__ = "annotation_body"
+    __versioned__: ClassVar[dict] = {}
+
     type: Mapped[AnnotationBodyType]
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
@@ -478,14 +509,17 @@ class AnnotationMixin:
 
 class MTypeClass(AnnotationMixin, LegacyMixin, Identifiable):
     __tablename__ = GlobalType.mtype_class.value
+    __versioned__: ClassVar[dict] = {}
 
 
 class ETypeClass(AnnotationMixin, LegacyMixin, Identifiable):
     __tablename__ = GlobalType.etype_class.value
+    __versioned__: ClassVar[dict] = {}
 
 
 class MTypeClassification(Identifiable):
     __tablename__ = AssociationType.mtype_classification.value
+    __versioned__: ClassVar[dict] = {}
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -500,6 +534,7 @@ class MTypeClassification(Identifiable):
 
 class ETypeClassification(Identifiable):
     __tablename__ = AssociationType.etype_classification.value
+    __versioned__: ClassVar[dict] = {}
 
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
@@ -548,6 +583,8 @@ class ETypesMixin:
 
 class DataMaturityAnnotationBody(AnnotationBody):
     __tablename__ = AnnotationBodyType.datamaturity_annotation_body.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("annotation_body.id"), primary_key=True)
     pref_label: Mapped[str] = mapped_column(unique=True, index=True)
     __mapper_args__ = {  # noqa: RUF012
@@ -557,6 +594,8 @@ class DataMaturityAnnotationBody(AnnotationBody):
 
 class Annotation(LegacyMixin, Identifiable):
     __tablename__ = "annotation"
+    __versioned__: ClassVar[dict] = {}
+
     note: Mapped[str | None]
     entity = relationship("Entity", back_populates="annotations", passive_deletes=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(
@@ -570,6 +609,7 @@ class Annotation(LegacyMixin, Identifiable):
 
 class Entity(LegacyMixin, Identifiable):
     __tablename__ = "entity"
+    __versioned__: ClassVar[dict] = {}
 
     type: Mapped[EntityType]
     annotations = relationship("Annotation", back_populates="entity", passive_deletes=True)
@@ -598,6 +638,8 @@ class Entity(LegacyMixin, Identifiable):
 
 class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.subject.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     age_value: Mapped[timedelta | None]
     age_min: Mapped[timedelta | None]
@@ -632,6 +674,8 @@ class Publication(Identifiable):
     """
 
     __tablename__ = GlobalType.publication.value
+    __versioned__: ClassVar[dict] = {}
+
     DOI: Mapped[str] = mapped_column()  # explicit for the case insensitive index
     title: Mapped[str | None]
     authors: Mapped[list[Author] | None] = mapped_column(JSONB)
@@ -651,6 +695,8 @@ class ExternalUrl(Identifiable, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.external_url.value
+    __versioned__: ClassVar[dict] = {}
+
     source: Mapped[ExternalSource]
     url: Mapped[str] = mapped_column(String, index=True, unique=True)
 
@@ -672,6 +718,7 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     """
 
     __tablename__ = EntityType.scientific_artifact.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -688,6 +735,8 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.analysis_software_source_code.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     # TODO: identify what is mandatory
     branch: Mapped[str] = mapped_column(default="")
@@ -710,6 +759,8 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
 
 class Contribution(Identifiable):
     __tablename__ = AssociationType.contribution.value
+    __versioned__: ClassVar[dict] = {}
+
     agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent.id"), index=True)
     agent = relationship("Agent", uselist=False, foreign_keys=agent_id)
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("role.id"), index=True)
@@ -730,6 +781,8 @@ class EModel(
     MTypesMixin, ETypesMixin, SpeciesMixin, LocationMixin, NameDescriptionVectorMixin, Entity
 ):
     __tablename__ = EntityType.emodel.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     # what is this
     eModel: Mapped[str] = mapped_column(default="")
@@ -763,8 +816,9 @@ class MEModel(
     MTypesMixin, ETypesMixin, SpeciesMixin, LocationMixin, NameDescriptionVectorMixin, Entity
 ):
     __tablename__ = EntityType.memodel.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    __versioned__: ClassVar[dict] = {}
 
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     validation_status: Mapped[ValidationStatus] = mapped_column(
         Enum(ValidationStatus, name="me_model_validation_status"),
         default=ValidationStatus.created,
@@ -804,6 +858,8 @@ class MeasurableEntityMixin:
 
 class CellMorphologyProtocol(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.cell_morphology_protocol.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     protocol_document: Mapped[str | None]
     protocol_design: Mapped[CellMorphologyProtocolDesign | None]
@@ -858,6 +914,7 @@ class CellMorphology(
     MeasurableEntityMixin,
 ):
     __tablename__ = EntityType.cell_morphology.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
@@ -880,6 +937,8 @@ class CellMorphology(
 
 class MeasurementAnnotation(LegacyMixin, Identifiable):
     __tablename__ = GlobalType.measurement_annotation.value
+    __versioned__: ClassVar[dict] = {}
+
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"), index=True, unique=True
     )
@@ -936,6 +995,7 @@ class MeasurementLabel(Identifiable):
 
 class MeasurementKind(Base):
     __tablename__ = "measurement_kind"
+    # __versioned__: ClassVar[dict] = {}
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     structural_domain: Mapped[StructuralDomain]
@@ -983,6 +1043,8 @@ class MeasurementKind(Base):
 
 class MeasurementItem(Base):
     __tablename__ = "measurement_item"
+    # __versioned__: ClassVar[dict] = {}
+
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[MeasurementStatistic]
     unit: Mapped[MeasurementUnit]
@@ -1005,12 +1067,16 @@ class MeasurementItem(Base):
 
 class Role(LegacyMixin, Identifiable):
     __tablename__ = GlobalType.role.value
+    __versioned__: ClassVar[dict] = {}
+
     name: Mapped[str] = mapped_column(unique=True, index=True)
     role_id: Mapped[str] = mapped_column(unique=True, index=True)
 
 
 class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.electrical_recording_stimulus.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     dt: Mapped[float | None]
@@ -1034,6 +1100,7 @@ class ElectricalRecording(
     """Base table for all the electrical recordings."""
 
     __tablename__ = EntityType.electrical_recording.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     recording_type: Mapped[ElectricalRecordingType]
@@ -1057,6 +1124,7 @@ class ElectricalCellRecording(
     ETypesMixin,
 ):
     __tablename__ = EntityType.electrical_cell_recording.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
 
@@ -1065,6 +1133,7 @@ class ElectricalCellRecording(
 
 class IonChannel(NameDescriptionVectorMixin, Identifiable):
     __tablename__ = GlobalType.ion_channel.value
+    __versioned__: ClassVar[dict] = {}
 
     label: Mapped[str] = mapped_column(unique=True, index=True)
     gene: Mapped[str]
@@ -1075,6 +1144,7 @@ class IonChannelRecording(
     ElectricalRecording,
 ):
     __tablename__ = EntityType.ion_channel_recording.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
     cell_line: Mapped[str]
@@ -1093,6 +1163,8 @@ class IonChannelRecording(
 
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_synaptome.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
     me_model_id: Mapped[uuid.UUID] = mapped_column(
@@ -1104,6 +1176,8 @@ class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
 
 class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_simulation.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
     injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
@@ -1119,6 +1193,8 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
 
 class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     __tablename__ = EntityType.single_neuron_synaptome_simulation.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     seed: Mapped[int]
     injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
@@ -1133,6 +1209,7 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
 
 class Measurement(Base):
     __tablename__ = "measurement_record"
+    # __versioned__: ClassVar[dict] = {}
 
     id: Mapped[BIGINT] = mapped_column(BigInteger, Identity(), primary_key=True)
     name: Mapped[MeasurementStatistic]
@@ -1168,6 +1245,8 @@ class ExperimentalNeuronDensity(
     Entity,
 ):
     __tablename__ = EntityType.experimental_neuron_density.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1182,6 +1261,7 @@ class ExperimentalBoutonDensity(
     Entity,
 ):
     __tablename__ = EntityType.experimental_bouton_density.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1197,6 +1277,7 @@ class ExperimentalSynapsesPerConnection(
     Entity,
 ):
     __tablename__ = EntityType.experimental_synapses_per_connection.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1217,6 +1298,8 @@ class ExperimentalSynapsesPerConnection(
 
 class Ion(Identifiable):
     __tablename__ = GlobalType.ion.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=create_uuid)
     name: Mapped[str] = mapped_column(unique=True, index=True)
     ontology_id: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
@@ -1228,6 +1311,7 @@ class Ion(Identifiable):
 
 class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     __tablename__ = EntityType.ion_channel_model.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
@@ -1243,6 +1327,7 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
 
 class IonChannelModelToEModel(Base):
     __tablename__ = "ion_channel_model__emodel"
+    __versioned__: ClassVar[dict] = {}
 
     ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
@@ -1254,6 +1339,7 @@ class IonChannelModelToEModel(Base):
 
 class IonChannelRecordingToIonChannelModelingCampaign(Base):
     __tablename__ = "ion_channel_recording__ion_channel_modeling_campaign"
+    __versioned__: ClassVar[dict] = {}
 
     ion_channel_recording_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.ion_channel_recording}.id", ondelete="CASCADE"), primary_key=True
@@ -1281,6 +1367,8 @@ class IonChannelModelingCampaign(
     """
 
     __tablename__ = EntityType.ion_channel_modeling_campaign.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     # input_recording_ids: Mapped[list[uuid.UUID]]
@@ -1323,6 +1411,8 @@ class IonChannelModelingConfig(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.ion_channel_modeling_config.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     ion_channel_modeling_campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("ion_channel_modeling_campaign.id"), index=True
@@ -1352,6 +1442,8 @@ class IonChannelModelingExecution(Activity, ExecutionActivityMixin):
     """
 
     __tablename__ = ActivityType.ion_channel_modeling_execution.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     status: Mapped[IonChannelModelingExecutionStatus] = mapped_column(
         Enum(IonChannelModelingExecutionStatus, name="ion_channel_modeling_execution_status"),
@@ -1373,6 +1465,8 @@ class IonChannelModelingConfigGeneration(Activity):
     """
 
     __tablename__ = ActivityType.ion_channel_modeling_config_generation.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1380,6 +1474,8 @@ class IonChannelModelingConfigGeneration(Activity):
 
 class ValidationResult(Entity):
     __tablename__ = EntityType.validation_result.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     passed: Mapped[bool] = mapped_column(default=False)
 
@@ -1400,6 +1496,8 @@ class ValidationResult(Entity):
 
 class MEModelCalibrationResult(Entity):
     __tablename__ = EntityType.memodel_calibration_result.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     holding_current: Mapped[float]
     threshold_current: Mapped[float]
@@ -1421,6 +1519,8 @@ class Asset(Identifiable):
     """Asset table."""
 
     __tablename__ = "asset"
+    __versioned__: ClassVar[dict] = {}
+
     status: Mapped[AssetStatus] = mapped_column()
     path: Mapped[str]  # relative path
     full_path: Mapped[str]  # full path on S3
@@ -1460,12 +1560,15 @@ class METypeDensity(
     NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, MTypesMixin, ETypesMixin, Entity
 ):
     __tablename__ = EntityType.me_type_density.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.brain_atlas.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1478,6 +1581,7 @@ class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
 
 class BrainAtlasRegion(Entity, LocationMixin):
     __tablename__ = EntityType.brain_atlas_region.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -1493,6 +1597,8 @@ class BrainAtlasRegion(Entity, LocationMixin):
 
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.cell_composition.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1512,6 +1618,8 @@ class SimulationCampaign(
     """
 
     __tablename__ = EntityType.simulation_campaign.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
@@ -1550,6 +1658,8 @@ class Simulation(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.simulation.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     simulation_campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("simulation_campaign.id"), index=True
@@ -1588,6 +1698,8 @@ class SimulationExecution(Activity, ExecutionActivityMixin):
     """
 
     __tablename__ = ActivityType.simulation_execution.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     status: Mapped[SimulationExecutionStatus] = mapped_column(
         Enum(SimulationExecutionStatus, name="simulation_execution_status"),
@@ -1607,6 +1719,8 @@ class SimulationResult(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.simulation_result.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     simulation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("simulation.id"), index=True)
@@ -1625,6 +1739,8 @@ class SimulationGeneration(Activity):
     """
 
     __tablename__ = ActivityType.simulation_generation.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1632,6 +1748,7 @@ class SimulationGeneration(Activity):
 
 class Validation(Activity):
     __tablename__ = ActivityType.validation.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
@@ -1643,6 +1760,7 @@ class Validation(Activity):
 
 class Calibration(Activity):
     __tablename__ = ActivityType.calibration.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
@@ -1654,6 +1772,8 @@ class Calibration(Activity):
 
 class Derivation(Base):
     __tablename__ = AssociationType.derivation.value
+    __versioned__: ClassVar[dict] = {}
+
     used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     generated_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
@@ -1684,6 +1804,8 @@ class ScientificArtifactPublicationLink(Identifiable):
     """
 
     __tablename__ = AssociationType.scientific_artifact_publication_link.value
+    __versioned__: ClassVar[dict] = {}
+
     publication_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("publication.id"), index=True)
     publication_type: Mapped[PublicationType]
     scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
@@ -1724,6 +1846,8 @@ class ScientificArtifactExternalUrlLink(Identifiable):
     """
 
     __tablename__ = AssociationType.scientific_artifact_external_url_link.value
+    __versioned__: ClassVar[dict] = {}
+
     external_url_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("external_url.id"), index=True)
     scientific_artifact_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("scientific_artifact.id", ondelete="CASCADE"), index=True
@@ -1796,6 +1920,8 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.circuit.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
     root_circuit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("circuit.id"), index=True)
@@ -1845,6 +1971,8 @@ class CircuitExtractionCampaign(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.circuit_extraction_campaign.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     scan_parameters: Mapped[JSON_DICT] = mapped_column(
@@ -1875,6 +2003,8 @@ class CircuitExtractionConfig(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.circuit_extraction_config.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("circuit.id"), index=True)
     circuit: Mapped[Circuit] = relationship(
@@ -1909,6 +2039,8 @@ class CircuitExtractionConfigGeneration(Activity):
     """
 
     __tablename__ = ActivityType.circuit_extraction_config_generation.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -1928,6 +2060,8 @@ class CircuitExtractionExecution(Activity, ExecutionActivityMixin):
     """
 
     __tablename__ = ActivityType.circuit_extraction_execution.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     status: Mapped[CircuitExtractionExecutionStatus] = mapped_column(
         Enum(CircuitExtractionExecutionStatus, name="circuit_extraction_execution_status"),
@@ -1980,6 +2114,8 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
     """
 
     __tablename__ = EntityType.em_dense_reconstruction_dataset.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
 
     protocol_document: Mapped[str | None]
@@ -2034,6 +2170,7 @@ class EMCellMesh(
     """
 
     __tablename__ = EntityType.em_cell_mesh.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
     em_dense_reconstruction_dataset_id: Mapped[uuid.UUID] = mapped_column(
@@ -2070,6 +2207,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.analysis_notebook_template.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scale: Mapped[AnalysisScale]
@@ -2091,6 +2229,7 @@ class AnalysisNotebookEnvironment(Entity):
     """
 
     __tablename__ = EntityType.analysis_notebook_environment.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     runtime_info: Mapped[JSON_DICT | None]
@@ -2113,6 +2252,7 @@ class AnalysisNotebookExecution(Activity, ExecutionActivityMixin):
     """
 
     __tablename__ = ActivityType.analysis_notebook_execution.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     analysis_notebook_template_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -2149,6 +2289,7 @@ class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.analysis_notebook_result.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
@@ -2157,6 +2298,7 @@ class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
 
 class EmCellMeshToSkeletonizationCampaign(Base):
     __tablename__ = "em_cell_mesh__skeletonization_campaign"
+    __versioned__: ClassVar[dict] = {}
 
     em_cell_mesh_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.em_cell_mesh}.id", ondelete="CASCADE"),
@@ -2183,6 +2325,8 @@ class SkeletonizationCampaign(
     """
 
     __tablename__ = EntityType.skeletonization_campaign.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
 
@@ -2215,6 +2359,7 @@ class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
     """
 
     __tablename__ = EntityType.skeletonization_config.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
@@ -2241,6 +2386,8 @@ class SkeletonizationConfigGeneration(Activity):
     """
 
     __tablename__ = ActivityType.skeletonization_config_generation.value
+    __versioned__: ClassVar[dict] = {}
+
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -2259,6 +2406,7 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     """
 
     __tablename__ = ActivityType.skeletonization_execution.value
+    __versioned__: ClassVar[dict] = {}
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     status: Mapped[SkeletonizationExecutionStatus] = mapped_column(
@@ -2269,3 +2417,7 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
 
 
 register_model_events()
+
+
+# call configure_mappers, needed for versioned tables
+configure_mappers()

@@ -10,9 +10,10 @@ from app.db.model import Base, Circuit, Entity, Subject
 def _get_tablename_to_class() -> dict[str, type[DeclarativeBase]]:
     """Map each table name to the corresponding class, excluding single table inheritance."""
     return {
-        mapper.class_.__tablename__: mapper.class_
+        tablename: mapper.class_
         for mapper in Base.registry.mappers
-        if mapper.polymorphic_identity in {mapper.class_.__tablename__, None}
+        if (tablename := getattr(mapper.class_, "__tablename__", None))
+        and mapper.polymorphic_identity in {tablename, None}
     }
 
 
@@ -41,7 +42,7 @@ def _find_protected_relationships(
 
 def test_protected_entity_relationships():
     """Test that the list of protected_relationships is complete."""
-    actual = test_module.protected_entity_relationships
+    actual = test_module._get_protected_entity_relationships()
     expected = _find_protected_relationships(source_base=Entity, target_base=Entity)
 
     missing = set(expected).difference(actual)

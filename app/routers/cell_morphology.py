@@ -20,3 +20,7 @@ admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.cell_morpholo
 admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
     app.service.cell_morphology.admin_update_one
 )
+
+read_mtypes_history = router.get("/{id_}/mtypes/history")(
+    app.service.cell_morphology.read_mtypes_history
+)

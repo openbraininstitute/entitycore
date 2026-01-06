@@ -25,22 +25,26 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     op.add_column("simulation", sa.Column("number_neurons", sa.BigInteger(), nullable=True))
 
-    op.execute(text("""
+    op.execute(
+        text("""
         UPDATE simulation
         SET number_neurons = 1
         WHERE entity_id IN (
             SELECT id FROM entity WHERE type = 'memodel'
         )
-    """))
+    """)
+    )
 
-    op.execute(text("""
+    op.execute(
+        text("""
         UPDATE simulation
         SET number_neurons = circuit.number_neurons
         FROM circuit, entity
         WHERE simulation.entity_id = circuit.id
         AND simulation.entity_id = entity.id
         AND entity.type = 'circuit'
-    """))
+    """)
+    )
 
     op.alter_column("simulation", "number_neurons", nullable=False)
 

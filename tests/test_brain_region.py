@@ -299,13 +299,13 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
         )
     assert len(client.get("/cell-morphology").json()["data"]) == 4 + 11
 
-    def get_response(hier, acronym, ascendants=False, direction=None):  # noqa: FBT002
+    def get_response(hier, acronym, ascendants=False, direction=None, params=None):  # noqa: FBT002
         hierarchy_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
         brain_region_id = (
             brain_regions0[acronym].id if hier == "hier0" else brain_regions1[acronym].id
         )
 
-        params = {
+        params = (params or {}) | {
             "within_brain_region_hierarchy_id": hierarchy_id,
             "within_brain_region_brain_region_id": brain_region_id,
             "within_brain_region_ascendants": ascendants,
@@ -373,3 +373,19 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
     ):
         response = get_response("hier1", region, direction=direction)
         assert len(response) == expected
+
+    utils.create_cell_morphology_id(
+        client,
+        subject_id=subject_id,
+        brain_region_id=brain_regions1["RegionA"].id,
+        authorized_public=False,
+        name="extra-RegionA",
+        description="extra-RegionA",
+    )
+    response = get_response(
+        "hier1",
+        acronym="RegionA",
+        direction="ascendants_and_descendants",
+        params={"page_size": "2"},
+    )
+    assert len(response) == 2

@@ -82,11 +82,12 @@ class NestedMTypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
         model = MTypeClass
 
 
-class MTypeClassFilter(NestedMTypeClassFilter):
+class MTypeClassFilter(ILikeSearchFilterMixin, NestedMTypeClassFilter):
     order_by: list[str] = ["pref_label"]  # noqa: RUF012
 
     class Constants(NestedMTypeClassFilter.Constants):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
+        search_model_fields = ["pref_label", "alt_label"]  # noqa: RUF012
 
 
 class NestedETypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
@@ -94,11 +95,12 @@ class NestedETypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
         model = ETypeClass
 
 
-class ETypeClassFilter(NestedETypeClassFilter):
+class ETypeClassFilter(ILikeSearchFilterMixin, NestedETypeClassFilter):
     order_by: list[str] = ["pref_label"]  # noqa: RUF012
 
     class Constants(NestedETypeClassFilter.Constants):
         ordering_model_fields = ["pref_label"]  # noqa: RUF012
+        search_model_fields = ["pref_label", "alt_label"]  # noqa: RUF012
 
 
 class NestedAgentFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):

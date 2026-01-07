@@ -86,6 +86,7 @@ def filter_by_hierarchy_and_region(
         brain_region_id=brain_region_id,
         direction=direction,
     )
+
     query = query.join(brain_region_query, model.brain_region_id == brain_region_query.c.id)
     return query
 

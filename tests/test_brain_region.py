@@ -1,9 +1,14 @@
 import itertools as it
+from typing import get_type_hints
 from unittest.mock import ANY
 
 import pytest
+from fastapi.routing import APIRoute
 
+from app.application import app
+from app.db import model
 from app.db.model import BrainRegion, BrainRegionHierarchy
+from app.dependencies.common import InBrainRegionDep
 
 from . import utils
 
@@ -389,3 +394,29 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
         params={"page_size": "2"},
     )
     assert len(response) == 2
+
+
+def test_InBrainRegionDep():
+    """Verify endpoints that have use the InBrainRegionDep have a brain_region_id on their model"""
+    endpoints = set()
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        if "GET" not in route.methods:
+            continue
+        if route.name != "read_many":
+            continue
+
+        hints = get_type_hints(route.endpoint, include_extras=True)
+        if all(h != InBrainRegionDep for h in hints.values()):
+            continue
+
+        # guess the model name
+        model_name = hints["return"].__name__.removeprefix("ListResponse[").removesuffix("Read]")
+        if not hasattr(model, model_name):
+            continue
+
+        if not hasattr(getattr(model, model_name), "brain_region_id"):
+            endpoints.add(route.path)
+
+    assert endpoints == set()

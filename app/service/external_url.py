@@ -8,7 +8,6 @@ from app.db.model import ExternalUrl, Person
 from app.dependencies.auth import UserContextDep
 from app.dependencies.common import (
     FacetsDep,
-    InBrainRegionDep,
     PaginationQuery,
     SearchDep,
 )
@@ -72,7 +71,6 @@ def read_many(
     filter_model: ExternalUrlFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ExternalUrlRead]:
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
@@ -102,7 +100,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=ExternalUrl,
         with_search=with_search,
-        with_in_brain_region=in_brain_region,
+        with_in_brain_region=None,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=None,

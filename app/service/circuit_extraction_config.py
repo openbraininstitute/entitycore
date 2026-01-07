@@ -13,7 +13,6 @@ from app.db.model import (
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
-    InBrainRegionDep,
     PaginationQuery,
     SearchDep,
 )
@@ -135,7 +134,6 @@ def read_many(
     filter_model: CircuitExtractionConfigFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[CircuitExtractionConfigRead]:
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
@@ -169,7 +167,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=CircuitExtractionConfig,
         with_search=with_search,
-        with_in_brain_region=in_brain_region,
+        with_in_brain_region=None,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=None,

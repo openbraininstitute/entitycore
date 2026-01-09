@@ -24,11 +24,11 @@ class EMDenseReconstructionDatasetBase(BaseModel, NameDescriptionMixin):
     volume_resolution_x_nm: float
     volume_resolution_y_nm: float
     volume_resolution_z_nm: float
-    release_url: SerializableHttpUrl
-    cave_client_url: SerializableAnyUrl
-    cave_datastack: str
-    precomputed_mesh_url: SerializableAnyUrl
-    cell_identifying_property: str
+    release_url: SerializableHttpUrl | None = None
+    cave_client_url: SerializableAnyUrl | None = None
+    cave_datastack: str | None = None
+    precomputed_mesh_url: SerializableAnyUrl | None = None
+    cell_identifying_property: str | None = None
 
 
 class EMDenseReconstructionDatasetRead(

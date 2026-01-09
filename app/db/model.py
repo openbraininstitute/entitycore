@@ -2001,11 +2001,11 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
     volume_resolution_x_nm: Mapped[float]
     volume_resolution_y_nm: Mapped[float]
     volume_resolution_z_nm: Mapped[float]
-    release_url: Mapped[str]
-    cave_client_url: Mapped[str]
-    cave_datastack: Mapped[str]
-    precomputed_mesh_url: Mapped[str]
-    cell_identifying_property: Mapped[str]
+    release_url: Mapped[str | None]
+    cave_client_url: Mapped[str | None]
+    cave_datastack: Mapped[str | None]
+    precomputed_mesh_url: Mapped[str | None]
+    cell_identifying_property: Mapped[str | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

@@ -231,7 +231,7 @@ def download_entity_asset(
     if asset.status == AssetStatus.UPLOADING:
         raise ApiError(
             message="Cannot download an uploading asset, because it is incomplete.",
-            error_code=ApiErrorCode.ASSET_INCOMPLETE,
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
             http_status_code=HTTPStatus.FORBIDDEN,
         )
     if asset.is_directory:

@@ -727,7 +727,7 @@ def test_download_entity_asset__uploading(client, entity, uploading_asset):
     )
     assert response.status_code == 403
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INCOMPLETE
+    assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCOMPLETE
 
 
 @pytest.mark.parametrize("client_fixture", ["client_user_2", "client_no_project"])

@@ -18,6 +18,7 @@ class ScientificArtifactFilterBase(CustomFilter):
     experiment_date__lte: datetime | None = None
     experiment_date__gte: datetime | None = None
     contact_email: str | None = None
+    published_in: str | None = None
 
 
 class NestedScientificArtifactFilter(ScientificArtifactFilterBase, IdFilterMixin):

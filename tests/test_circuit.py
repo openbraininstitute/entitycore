@@ -255,6 +255,7 @@ def models(db, circuit_json_data, person_id):
                     "created_by_id": person_id,
                     "updated_by_id": person_id,
                     "authorized_project_id": PROJECT_ID,
+                    "published_in": f"journal-{i}",
                 }
             )
         )
@@ -347,5 +348,12 @@ def test_filtering(client, root_circuit, models):
         client.get,
         url=ROUTE,
         params={"ilike_search": "circuit-2"},
+    ).json()["data"]
+    assert len(data) == 1
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"published_in": "journal-0"},
     ).json()["data"]
     assert len(data) == 1

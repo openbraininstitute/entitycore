@@ -222,7 +222,13 @@ def multipart_upload_list_parts(
     s3_key: str,
     upload_id: str,
 ) -> list:
-    return s3_client.list_parts(Bucket=bucket, Key=s3_key, UploadId=upload_id)["Parts"]
+    paginator = s3_client.get_paginator("list_parts")
+    page_iterator = paginator.paginate(
+        Bucket=bucket,
+        Key=s3_key,
+        UploadId=upload_id,
+    )
+    return [part for page in page_iterator for part in page.get("Parts", [])]
 
 
 def multipart_upload_complete(

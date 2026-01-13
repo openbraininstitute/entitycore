@@ -4,7 +4,12 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.base import (
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
+    CreationMixin,
+    IdentifiableMixin,
+)
 from app.schemas.species import NestedSpeciesRead
 
 
@@ -16,21 +21,19 @@ class BrainAtlasBase(BaseModel):
     species: NestedSpeciesRead
 
 
-class BrainAtlasRead(
-    BrainAtlasBase, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin, AssetsMixin
+class BrainAtlasCreate(
+    BrainAtlasBase,
+    AuthorizationOptionalPublicMixin,
 ):
     pass
 
 
-class BrainAtlasRegionBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    volume: float | None
-    is_leaf_region: bool
-
-    brain_atlas_id: uuid.UUID
-    brain_region_id: uuid.UUID
-
-
-class BrainAtlasRegionRead(BrainAtlasRegionBase, CreationMixin, IdentifiableMixin, AssetsMixin):
+class BrainAtlasRead(
+    AuthorizationMixin,
+    BrainAtlasBase,
+    CreationMixin,
+    CreatedByUpdatedByMixin,
+    IdentifiableMixin,
+    AssetsMixin,
+):
     pass

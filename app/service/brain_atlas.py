@@ -9,7 +9,8 @@ from app.dependencies.auth import UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
-from app.schemas.brain_atlas import BrainAtlasRead, BrainAtlasRegionRead
+from app.schemas.brain_atlas import BrainAtlasRead
+from app.schemas.brain_atlas_region import BrainAtlasRegionRead
 from app.schemas.types import ListResponse
 
 

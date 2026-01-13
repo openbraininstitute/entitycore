@@ -1,12 +1,16 @@
 import itertools as it
 from unittest.mock import ANY
 
+import pytest
+
 from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.db.types import EntityType, StorageType
 
 from . import utils
 
 ROUTE = "/brain-atlas"
+ADMIN_ROUTE = "/admin/brain-atlas"
+MODEL = BrainAtlas
 FILE_EXAMPLE_PATH = utils.TEST_DATA_DIR / "example.json"
 
 
@@ -106,6 +110,7 @@ def test_brain_atlas(db, client, species_id, person_id):
         "hierarchy_id": str(hierarchy_name.id),
         "id": str(brain_atlas0.id),
         "name": "test brain atlas",
+        "description": "test brain atlas description",
         "species": {
             "id": species_id,
             "name": "Test Species",
@@ -255,3 +260,113 @@ def test_brain_atlas(db, client, species_id, person_id):
         "update_date": ANY,
         "volume": None,
     }
+
+
+@pytest.fixture
+def json_data(brain_region_hierarchy_id, species_id):
+    return {
+        "name": "test brain atlas",
+        "description": "a magnificent description",
+        "hierarchy_id": str(brain_region_hierarchy_id),
+        "species_id": str(species_id),
+    }
+
+
+@pytest.fixture
+def model(db, json_data, person_id):
+    return utils.add_db(
+        db,
+        MODEL(
+            **json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": str(utils.PROJECT_ID),
+            },
+        ),
+    )
+
+
+@pytest.fixture
+def create_id(client, json_data):
+    def _create_id(**kwargs):
+        return utils.assert_request(client.post, url=ROUTE, json=json_data | kwargs).json()["id"]
+
+    return _create_id
+
+
+def _assert_read_response(data, json_data):
+    assert "id" in data
+    assert "authorized_public" in data
+    assert "authorized_project_id" in data
+    assert "assets" in data
+    assert data["name"] == json_data["name"]
+    assert data["description"] == json_data["description"]
+    assert data["hierarchy_id"] == json_data["hierarchy_id"]
+
+    utils.check_creation_fields(data)
+
+
+def test_update_one(clients, json_data):
+    utils.check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "new name!",
+        },
+        optional_payload=None,
+    )
+
+
+def test_create_one(client, json_data):
+    data = utils.assert_request(client.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
+
+
+def test_user_read_one(client, model, json_data):
+    data = utils.assert_request(client.get, url=f"{ROUTE}/{model.id}").json()
+    _assert_read_response(data, json_data)
+
+
+def test_admin_read_one(client_admin, model, json_data):
+    data = utils.assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model.id}").json()
+    _assert_read_response(data, json_data)
+
+
+def test_read_many(client, model, json_data):
+    data = utils.assert_request(client.get, url=f"{ROUTE}").json()["data"]
+
+    assert len(data) == 1
+
+    assert data[0]["id"] == str(model.id)
+    _assert_read_response(data[0], json_data)
+
+
+def test_delete_one(db, clients, json_data):
+    utils.check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            MODEL: 1,
+        },
+        expected_counts_after={
+            MODEL: 0,
+        },
+    )
+
+
+def test_missing(client):
+    utils.check_missing(ROUTE, client)
+
+
+def test_authorization(client_user_1, client_user_2, client_no_project, json_data):
+    utils.check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
+
+
+def test_pagination(client, create_id):
+    utils.check_pagination(ROUTE, client, create_id)

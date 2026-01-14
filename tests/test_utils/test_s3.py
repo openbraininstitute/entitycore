@@ -168,3 +168,10 @@ def test_multipart_compute_upload_plan(
 
     # sanity check: all parts cover the full filesize
     assert part_count * part_size >= filesize
+
+
+def test_validate_multipart_filesize():
+    """Test validate_multipart_filesize function."""
+    max_size = settings.S3_MULTIPART_UPLOAD_MAX_SIZE
+    assert test_module.validate_multipart_filesize(max_size) is True
+    assert test_module.validate_multipart_filesize(max_size + 1) is False

@@ -344,7 +344,7 @@ def entity_asset_directory_list(
     return files
 
 
-@router.post("/{entity_route}/{entity_id}/assets/upload/initiate")
+@router.post("/{entity_route}/{entity_id}/assets/multipart-upload/initiate")
 def initiate_entity_asset_upload(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
@@ -425,7 +425,7 @@ def initiate_entity_asset_upload(
     return asset_read
 
 
-@router.post("/{entity_route}/{entity_id}/assets/{asset_id}/upload/complete")
+@router.post("/{entity_route}/{entity_id}/assets/{asset_id}/multipart-upload/complete")
 def complete_entity_asset_upload(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,

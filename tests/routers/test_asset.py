@@ -135,7 +135,7 @@ def uploading_asset(client, entity) -> AssetRead:
     """Create an asset the file of which is being uploaded with delegation."""
     data = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json={
             "filename": "foo.swc",
             "filesize": 3 * 5 * 1024**2,
@@ -1180,7 +1180,7 @@ def test_multipart_asset_upload(client, entity, s3, s3_internal_bucket):
 
     data = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(filesize),
     ).json()
 
@@ -1252,7 +1252,7 @@ def test_multipart_asset_upload(client, entity, s3, s3_internal_bucket):
 
     completed_data = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/upload/complete",
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
     ).json()
 
     assert completed_data["status"] == "created"
@@ -1279,7 +1279,7 @@ def test_multipart_asset_upload_abort(client, entity, s3, s3_internal_bucket):
 
     data = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(filesize),
     ).json()
 
@@ -1318,7 +1318,7 @@ def test_initiate_entity_asset_upload_invalid_filesize(client, entity):
     max_size = settings.S3_MULTIPART_UPLOAD_MAX_SIZE
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(filesize=max_size + 1),
         expected_status_code=422,
     )
@@ -1333,7 +1333,7 @@ def test_initiate_entity_asset_upload_invalid_filename(client, entity):
 
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(filename="../../etc/passwd"),
         expected_status_code=422,
     )
@@ -1344,7 +1344,7 @@ def test_initiate_entity_asset_upload_invalid_filename(client, entity):
     # Test with invalid filename (absolute path)
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(filename="/absolute/path/file.swc"),
         expected_status_code=422,
     )
@@ -1357,7 +1357,7 @@ def test_initiate_entity_asset_upload_invalid_content_type(client, entity):
     # Test with invalid content type
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(content_type="application/octet-stream"),
         expected_status_code=422,
     )
@@ -1371,14 +1371,14 @@ def test_initiate_entity_asset_upload_duplicate(client, entity):
     # Create first upload
     assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(),
     )
 
     # Try to create duplicate
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(),
         expected_status_code=409,
     )
@@ -1390,7 +1390,7 @@ def test_initiate_entity_asset_upload_entity_not_found(client, entity):
     """Test initiate_entity_asset_upload with non-existent entity."""
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{MISSING_ID}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{MISSING_ID}/assets/multipart-upload/initiate",
         json=_multipart_json_data(),
         expected_status_code=404,
     )
@@ -1412,7 +1412,7 @@ def test_initiate_entity_asset_upload_non_authorized(
     client = request.getfixturevalue(client_fixture)
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(),
         expected_status_code=expected_status,
     )
@@ -1424,7 +1424,7 @@ def test_complete_entity_asset_upload_asset_not_found(client, entity):
     """Test complete_entity_asset_upload with non-existent asset."""
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/upload/complete",
+        url=f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/multipart-upload/complete",
         expected_status_code=404,
     )
     error = ErrorResponse.model_validate(response.json())
@@ -1435,7 +1435,7 @@ def test_complete_entity_asset_upload_entity_not_found(client, entity, uploading
     """Test complete_entity_asset_upload with non-existent entity."""
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{MISSING_ID}/assets/{uploading_asset.id}/upload/complete",
+        url=f"{route(entity.type)}/{MISSING_ID}/assets/{uploading_asset.id}/multipart-upload/complete",
         expected_status_code=404,
     )
     error = ErrorResponse.model_validate(response.json())
@@ -1446,7 +1446,7 @@ def test_complete_entity_asset_upload_not_uploading(client, entity, asset):
     """Test complete_entity_asset_upload when asset is not in uploading status."""
     data = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/upload/complete",
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/multipart-upload/complete",
         expected_status_code=422,
     ).json()
     error = ErrorResponse.model_validate(data)
@@ -1468,7 +1468,7 @@ def test_complete_entity_asset_upload_non_authorized(
     client = request.getfixturevalue(client_fixture)
     data = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/{uploading_asset.id}/upload/complete",
+        url=f"{route(entity.type)}/{entity.id}/assets/{uploading_asset.id}/multipart-upload/complete",
         expected_status_code=expected_status,
     ).json()
     error = ErrorResponse.model_validate(data)
@@ -1482,7 +1482,7 @@ def test_complete_entity_asset_upload_incomplete(client, entity, s3, s3_internal
     # Initiate upload
     data = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/upload/initiate",
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
         json=_multipart_json_data(filesize=filesize),
     ).json()
 
@@ -1501,7 +1501,7 @@ def test_complete_entity_asset_upload_incomplete(client, entity, s3, s3_internal
     # Try to complete - should fail because not all parts are uploaded
     response = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/upload/complete",
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
         expected_status_code=409,
     )
     error = ErrorResponse.model_validate(response.json())
@@ -1520,7 +1520,7 @@ def test_complete_entity_asset_upload_incomplete(client, entity, s3, s3_internal
     # now should complete
     data = assert_request(
         client.post,
-        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/upload/complete",
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
     ).json()
 
     assert data["status"] == "created"

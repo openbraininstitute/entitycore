@@ -5,11 +5,18 @@ from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 import app.queries.common
 from app.db.model import BrainAtlas, BrainAtlasRegion
-from app.dependencies.auth import UserContextDep
+from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
-from app.schemas.brain_atlas import BrainAtlasRead, BrainAtlasRegionRead
+from app.schemas.brain_atlas import (
+    BrainAtlasAdminUpdate,
+    BrainAtlasCreate,
+    BrainAtlasRead,
+    BrainAtlasUpdate,
+)
+from app.schemas.brain_atlas_region import BrainAtlasRegionRead
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 
@@ -66,6 +73,67 @@ def admin_read_one(db: SessionDep, atlas_id: uuid.UUID) -> BrainAtlasRead:
         user_context=None,
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
+    )
+
+
+def create_one(
+    db: SessionDep,
+    json_model: BrainAtlasCreate,
+    user_context: UserContextWithProjectIdDep,
+) -> BrainAtlasRead:
+    return app.queries.common.router_create_one(
+        db=db,
+        json_model=json_model,
+        user_context=user_context,
+        db_model_class=BrainAtlas,
+        response_schema_class=BrainAtlasRead,
+        apply_operations=_load_brain_atlas,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: BrainAtlasUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> BrainAtlasRead:
+    return app.queries.common.router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=BrainAtlas,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=BrainAtlasRead,
+        apply_operations=_load_brain_atlas,
+    )
+
+
+def admin_update_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: BrainAtlasAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> BrainAtlasRead:
+    return app.queries.common.router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=BrainAtlas,
+        user_context=None,
+        json_model=json_model,
+        response_schema_class=BrainAtlasRead,
+        apply_operations=_load_brain_atlas,
+    )
+
+
+def delete_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    return app.queries.common.router_user_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=BrainAtlas,
+        user_context=user_context,
     )
 
 

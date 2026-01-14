@@ -1,36 +1,45 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.base import (
+    AuthorizationMixin,
+    AuthorizationOptionalPublicMixin,
+    CreationMixin,
+    IdentifiableMixin,
+    NameDescriptionMixin,
+)
 from app.schemas.species import NestedSpeciesRead
+from app.schemas.utils import make_update_schema
 
 
-class BrainAtlasBase(BaseModel):
+class BrainAtlasCreate(AuthorizationOptionalPublicMixin, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
 
-    name: str
+    hierarchy_id: uuid.UUID
+    species_id: uuid.UUID
+    strain_id: uuid.UUID | None = None
+
+
+class BrainAtlasRead(
+    AuthorizationMixin,
+    CreationMixin,
+    CreatedByUpdatedByMixin,
+    IdentifiableMixin,
+    AssetsMixin,
+    NameDescriptionMixin,
+):
+    model_config = ConfigDict(from_attributes=True)
+
     hierarchy_id: uuid.UUID
     species: NestedSpeciesRead
 
 
-class BrainAtlasRead(
-    BrainAtlasBase, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin, AssetsMixin
-):
-    pass
-
-
-class BrainAtlasRegionBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    volume: float | None
-    is_leaf_region: bool
-
-    brain_atlas_id: uuid.UUID
-    brain_region_id: uuid.UUID
-
-
-class BrainAtlasRegionRead(BrainAtlasRegionBase, CreationMixin, IdentifiableMixin, AssetsMixin):
-    pass
+BrainAtlasUpdate = make_update_schema(BrainAtlasCreate, "BrainAtlasUpdate")  # pyright: ignore [reportInvalidTypeForm]
+BrainAtlasAdminUpdate = make_update_schema(
+    BrainAtlasCreate,
+    "BrainAtlasAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

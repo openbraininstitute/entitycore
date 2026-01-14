@@ -8,7 +8,6 @@ from app.db.model import Entity, Person, SkeletonizationConfigGeneration
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
-    InBrainRegionDep,
     PaginationQuery,
     SearchDep,
 )
@@ -105,7 +104,6 @@ def read_many(
     filter_model: FilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[ReadSchema]:
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
@@ -140,7 +138,7 @@ def read_many(
         filter_model=filter_model,
         db_model_class=DBModel,
         with_search=with_search,
-        with_in_brain_region=in_brain_region,
+        with_in_brain_region=None,
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=None,

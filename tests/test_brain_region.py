@@ -1,9 +1,14 @@
 import itertools as it
+from typing import get_type_hints
 from unittest.mock import ANY
 
 import pytest
+from fastapi.routing import APIRoute
 
+from app.application import app
+from app.db import model
 from app.db.model import BrainRegion, BrainRegionHierarchy
+from app.dependencies.common import InBrainRegionDep
 
 from . import utils
 
@@ -299,13 +304,13 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
         )
     assert len(client.get("/cell-morphology").json()["data"]) == 4 + 11
 
-    def get_response(hier, acronym, ascendants=False, direction=None):  # noqa: FBT002
+    def get_response(hier, acronym, ascendants=False, direction=None, params=None):  # noqa: FBT002
         hierarchy_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
         brain_region_id = (
             brain_regions0[acronym].id if hier == "hier0" else brain_regions1[acronym].id
         )
 
-        params = {
+        params = (params or {}) | {
             "within_brain_region_hierarchy_id": hierarchy_id,
             "within_brain_region_brain_region_id": brain_region_id,
             "within_brain_region_ascendants": ascendants,
@@ -373,3 +378,45 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
     ):
         response = get_response("hier1", region, direction=direction)
         assert len(response) == expected
+
+    utils.create_cell_morphology_id(
+        client,
+        subject_id=subject_id,
+        brain_region_id=brain_regions1["RegionA"].id,
+        authorized_public=False,
+        name="extra-RegionA",
+        description="extra-RegionA",
+    )
+    response = get_response(
+        "hier1",
+        acronym="RegionA",
+        direction="ascendants_and_descendants",
+        params={"page_size": "2"},
+    )
+    assert len(response) == 2
+
+
+def test_InBrainRegionDep():
+    """Verify endpoints that have use the InBrainRegionDep have a brain_region_id on their model"""
+    endpoints = set()
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        if "GET" not in route.methods:
+            continue
+        if route.name != "read_many":
+            continue
+
+        hints = get_type_hints(route.endpoint, include_extras=True)
+        if all(h != InBrainRegionDep for h in hints.values()):
+            continue
+
+        # guess the model name
+        model_name = hints["return"].__name__.removeprefix("ListResponse[").removesuffix("Read]")
+        if not hasattr(model, model_name):
+            continue
+
+        if not hasattr(getattr(model, model_name), "brain_region_id"):
+            endpoints.add(route.path)
+
+    assert endpoints == set()

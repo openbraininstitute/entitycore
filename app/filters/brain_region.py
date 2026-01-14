@@ -49,7 +49,7 @@ def get_family_query(
                     direction=WithinBrainRegionDirection.ascendants,
                 ).c.id
             )
-            .union_all(
+            .union(
                 sa.select(
                     get_family_query(
                         hierarchy_id=hierarchy_id,
@@ -86,6 +86,7 @@ def filter_by_hierarchy_and_region(
         brain_region_id=brain_region_id,
         direction=direction,
     )
+
     query = query.join(brain_region_query, model.brain_region_id == brain_region_query.c.id)
     return query
 

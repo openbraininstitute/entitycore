@@ -96,6 +96,7 @@ class SimulationBase(BaseModel, NameDescriptionMixin):
     simulation_campaign_id: uuid.UUID
     entity_id: uuid.UUID
     scan_parameters: JSON_DICT
+    number_neurons: int
 
 
 class SimulationCreate(SimulationBase, AuthorizationOptionalPublicMixin):

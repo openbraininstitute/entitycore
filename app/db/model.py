@@ -1728,6 +1728,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
           belongs to.
         entity_id (uuid.UUID): Foreign key referencing the entity ID.
         entity (Entity): The entity this simulation is associated with.
+        number_neurons (int): Number of neurons to be simulated
         scan_parameters (JSON_DICT): Scan parameters for the simulation.
     """
 
@@ -1749,6 +1750,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         uselist=False,
         foreign_keys=[entity_id],
     )
+    number_neurons: Mapped[int] = mapped_column(BigInteger)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(
         default={},
         nullable=False,
@@ -2218,11 +2220,11 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
     volume_resolution_x_nm: Mapped[float]
     volume_resolution_y_nm: Mapped[float]
     volume_resolution_z_nm: Mapped[float]
-    release_url: Mapped[str]
-    cave_client_url: Mapped[str]
-    cave_datastack: Mapped[str]
-    precomputed_mesh_url: Mapped[str]
-    cell_identifying_property: Mapped[str]
+    release_url: Mapped[str | None]
+    cave_client_url: Mapped[str | None]
+    cave_datastack: Mapped[str | None]
+    precomputed_mesh_url: Mapped[str | None]
+    cell_identifying_property: Mapped[str | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

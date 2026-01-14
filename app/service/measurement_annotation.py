@@ -20,7 +20,7 @@ from app.db.model import (
 )
 from app.db.utils import MEASURABLE_ENTITIES
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import InBrainRegionDep, PaginationQuery
+from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.measurement_annotation import (
@@ -100,7 +100,6 @@ def read_many(
     db: SessionDep,
     filter_model: MeasurementAnnotationFilterDep,
     pagination_request: PaginationQuery,
-    in_brain_region: InBrainRegionDep,
 ) -> ListResponse[MeasurementAnnotationRead]:
     apply_filter_query_operations = lambda q: constrain_to_accessible_entities(
         q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
@@ -123,7 +122,7 @@ def read_many(
         db_model_class=MeasurementAnnotation,
         authorized_project_id=None,  # validated with apply_filter_query_operations
         with_search=None,
-        with_in_brain_region=in_brain_region,
+        with_in_brain_region=None,
         facets=None,
         aliases=None,
         apply_filter_query_operations=apply_filter_query_operations,

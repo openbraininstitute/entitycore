@@ -3,12 +3,17 @@ from typing import Annotated
 from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
+from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
+from app.filters.entity import EntityFilterMixin
 from app.filters.species import SpeciesFilterMixin
 
 
 class BrainAtlasFilter(
-    IdFilterMixin, NameFilterMixin, SpeciesFilterMixin, ILikeSearchFilterMixin, CustomFilter
+    EntityFilterMixin,
+    NameFilterMixin,
+    SpeciesFilterMixin,
+    ILikeSearchFilterMixin,
+    CustomFilter,
 ):
     order_by: list[str] = ["name"]  # noqa: RUF012
 
@@ -17,7 +22,7 @@ class BrainAtlasFilter(
         ordering_model_fields = ["name"]  # noqa: RUF012
 
 
-class BrainAtlasRegionFilter(IdFilterMixin, CustomFilter):
+class BrainAtlasRegionFilter(EntityFilterMixin, CustomFilter):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

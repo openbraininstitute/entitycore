@@ -243,3 +243,12 @@ def test_filtering(client, models):
 
     data = _req({"pref_label__ilike": "label_a"})
     assert {d["pref_label"] for d in data} == {"label_ab", "label_a"}
+
+    data = _req({"ilike_search": "*label*"})
+    assert len(data) == len(models)
+
+    data = _req({"ilike_search": "label_a"})
+    assert len(data) == 1
+
+    data = _req({"ilike_search": "alt_label_a*"})
+    assert len(data) == 2

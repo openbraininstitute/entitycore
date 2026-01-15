@@ -181,91 +181,6 @@ def unauthorized_private_reference_trigger(model: type[Entity], field_name: str)
     )
 
 
-def create_transaction_trigger() -> tuple[PGFunction, PGTrigger]:
-    """Return function and trigger needed for the transaction table used by sqlalchemy-continuum.
-
-    Based on ``sqlalchemy_continuum.transaction.create_triggers``
-    to integrate with alembic_utils.
-    """
-    cls = versioning_manager.transaction_cls
-    tablename = cls.__tablename__  # pyright: ignore[reportAttributeAccessIssue]
-
-    if not (
-        function_match := FUNCTION_PATTERN.fullmatch(
-            s := temporary_transaction_procedure_sql.format(
-                temporary_transaction_sql=CreateTemporaryTransactionTableSQL(),
-                insert_temporary_transaction_sql=(
-                    InsertTemporaryTransactionSQL(transaction_id_values="NEW.id")
-                ),
-            )
-        )
-    ):
-        msg = f"Could not parse function definition: {s!r}"
-        raise ValueError(msg)
-    if not (trigger_match := TRIGGER_PATTERN.fullmatch(s := str(TransactionTriggerSQL(cls)))):
-        msg = f"Could not parse trigger definition: {s!r}"
-        raise ValueError(msg)
-    sql_function = PGFunction(
-        schema="public",
-        signature=function_match.group("signature"),
-        definition=function_match.group("body"),
-    )
-    sql_trigger = PGTrigger(
-        schema="public",
-        signature=trigger_match.group("signature"),
-        on_entity=tablename,
-        definition=trigger_match.group("body"),
-    )
-    return sql_function, sql_trigger
-
-
-def create_versioned_trigger(
-    table: Table,
-    *,
-    transaction_column_name="transaction_id",
-    operation_type_column_name="operation_type",
-    version_table_name_format="%s_version",
-    excluded_columns=None,
-    use_property_mod_tracking=True,
-    end_transaction_column_name=None,
-) -> tuple[PGFunction, PGTrigger]:
-    """Return function and trigger needed by sqlalchemy-continuum.
-
-    Based on ``sqlalchemy_continuum.dialects.postgresql.create_trigger``
-    to integrate with alembic_utils.
-    """
-    params = {
-        "table": table,
-        "update_validity_for_tables": [],
-        "transaction_column_name": transaction_column_name,
-        "operation_type_column_name": operation_type_column_name,
-        "version_table_name_format": version_table_name_format,
-        "excluded_columns": excluded_columns,
-        "use_property_mod_tracking": use_property_mod_tracking,
-        "end_transaction_column_name": end_transaction_column_name,
-    }
-    if not (
-        function_match := FUNCTION_PATTERN.fullmatch(s := str(CreateTriggerFunctionSQL(**params)))
-    ):
-        msg = f"Could not parse function definition: {s!r}"
-        raise ValueError(msg)
-    if not (trigger_match := TRIGGER_PATTERN.fullmatch(s := str(CreateTriggerSQL(**params)))):
-        msg = f"Could not parse trigger definition: {s!r}"
-        raise ValueError(msg)
-    sql_function = PGFunction(
-        schema="public",
-        signature=function_match.group("signature"),
-        definition=function_match.group("body"),
-    )
-    sql_trigger = PGTrigger(
-        schema="public",
-        signature=trigger_match.group("signature"),
-        on_entity=table.name,
-        definition=trigger_match.group("body"),
-    )
-    return sql_function, sql_trigger
-
-
 def _get_protected_entity_relationships() -> list[tuple[type[Entity], str]]:
     """List of entities with protected relationships, given as (model_class, field_name)."""
     return [
@@ -302,7 +217,6 @@ def register_all() -> None:
     entities: Iterable[ReplaceableEntity] = []
     entities += [
         PGExtension(schema="public", signature="vector"),
-        PGExtension(schema="public", signature="hstore"),  # for versioning updates
     ]
     # triggers for description_vector
     entities += [
@@ -322,14 +236,5 @@ def register_all() -> None:
             unauthorized_private_reference_function(model, field_name),
             unauthorized_private_reference_trigger(model, field_name),
         ]
-    # trigger on the trasansaction table
-    entities += create_transaction_trigger()
-    # triggers to write the versioned tables
-    for mapper in Base.registry.mappers:
-        if hasattr(mapper.class_, "__versioned__"):
-            entities += create_versioned_trigger(
-                table=mapper.class_.__table__,
-                use_property_mod_tracking=False,
-            )
     # register everything
     register_entities(entities=entities)

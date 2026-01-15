@@ -29,8 +29,6 @@ def upgrade() -> None:
         text("""
         UPDATE simulation
         SET number_neurons = 1
-        WHERE entity_id IN (
-            SELECT id FROM entity WHERE type = 'memodel'
         )
     """)
     )

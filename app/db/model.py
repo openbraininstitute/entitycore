@@ -87,22 +87,16 @@ from app.utils.events import register_model_events
 from app.utils.uuid import create_uuid
 
 # enable versioning
-# make_versioned(
-#     user_cls="Person",
-#     plugins=[
-#         UserContextPlugin(),
-#         TransactionChangesPlugin(),
-#     ],
-#     options={
-#         # "native_versioning": True,
-#         "native_versioning": False,
-#         # "create_tables": False,
-#         # "create_models": False,
-#         # "strategy": "validity",  # not working with native_versioning
-#         # "strategy": "subquery",  # slower
-#         "enum_prefix": "",
-#     },
-# )
+make_versioned(
+    user_cls="Person",
+    plugins=[
+        UserContextPlugin(),
+        TransactionChangesPlugin(),
+    ],
+    options={
+        "enum_prefix": "",
+    },
+)
 
 
 class Base(DeclarativeBase):

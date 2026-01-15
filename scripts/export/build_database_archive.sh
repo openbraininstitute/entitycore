@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="642ef45b49c6"
+SCRIPT_DB_VERSION="108948e19fcc"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -297,12 +297,20 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM measurement_annotation_version AS t0  WHERE TRUE) TO '$DATA_DIR/measurement_annotation_version.csv' WITH CSV HEADER;
 \echo Dumping table measurement_item
 \copy (SELECT t0.* FROM measurement_item AS t0 JOIN measurement_kind AS mk ON mk.id=t0.measurement_kind_id JOIN measurement_annotation AS ma ON ma.id=mk.measurement_annotation_id JOIN entity AS e ON e.id=ma.entity_id WHERE e.authorized_public IS true) TO '$DATA_DIR/measurement_item.csv' WITH CSV HEADER;
+\echo Dumping table measurement_item_version
+\copy (SELECT t0.* FROM measurement_item_version AS t0  WHERE TRUE) TO '$DATA_DIR/measurement_item_version.csv' WITH CSV HEADER;
 \echo Dumping table measurement_kind
 \copy (SELECT t0.* FROM measurement_kind AS t0 JOIN measurement_annotation AS ma ON ma.id=t0.measurement_annotation_id JOIN entity AS e ON e.id=ma.entity_id WHERE e.authorized_public IS true) TO '$DATA_DIR/measurement_kind.csv' WITH CSV HEADER;
+\echo Dumping table measurement_kind_version
+\copy (SELECT t0.* FROM measurement_kind_version AS t0  WHERE TRUE) TO '$DATA_DIR/measurement_kind_version.csv' WITH CSV HEADER;
 \echo Dumping table measurement_label
 \copy (SELECT t0.* FROM measurement_label AS t0  WHERE TRUE) TO '$DATA_DIR/measurement_label.csv' WITH CSV HEADER;
+\echo Dumping table measurement_label_version
+\copy (SELECT t0.* FROM measurement_label_version AS t0  WHERE TRUE) TO '$DATA_DIR/measurement_label_version.csv' WITH CSV HEADER;
 \echo Dumping table measurement_record
 \copy (SELECT t0.* FROM measurement_record AS t0 JOIN entity AS t1 ON t1.id=t0.entity_id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/measurement_record.csv' WITH CSV HEADER;
+\echo Dumping table measurement_record_version
+\copy (SELECT t0.* FROM measurement_record_version AS t0  WHERE TRUE) TO '$DATA_DIR/measurement_record_version.csv' WITH CSV HEADER;
 \echo Dumping table memodel
 \copy (SELECT t0.* FROM memodel AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.morphology_id JOIN entity AS t3 ON t3.id=t0.emodel_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false AND t3.authorized_public IS NOT false) TO '$DATA_DIR/memodel.csv' WITH CSV HEADER;
 \echo Dumping table memodel_calibration_result
@@ -409,6 +417,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM subject_version AS t0  WHERE TRUE) TO '$DATA_DIR/subject_version.csv' WITH CSV HEADER;
 \echo Dumping table transaction
 \copy (SELECT t0.* FROM transaction AS t0  WHERE TRUE) TO '$DATA_DIR/transaction.csv' WITH CSV HEADER;
+\echo Dumping table transaction_changes
+\copy (SELECT t0.* FROM transaction_changes AS t0  WHERE TRUE) TO '$DATA_DIR/transaction_changes.csv' WITH CSV HEADER;
 \echo Dumping table usage
 \copy (SELECT t0.* FROM usage AS t0 JOIN entity AS t1 ON t1.id=t0.usage_entity_id JOIN activity AS t2 ON t2.id=t0.usage_activity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/usage.csv' WITH CSV HEADER;
 \echo Dumping table usage_version
@@ -433,7 +443,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="642ef45b49c6"
+SCRIPT_DB_VERSION="108948e19fcc"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

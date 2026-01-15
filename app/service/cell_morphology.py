@@ -11,7 +11,7 @@ from sqlalchemy.orm import (
     raiseload,
     selectinload,
 )
-from sqlalchemy_continuum.utils import version_class
+from sqlalchemy_history.utils import version_class
 
 from app.db.model import (
     Agent,

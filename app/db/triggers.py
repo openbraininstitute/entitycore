@@ -6,17 +6,8 @@ from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
 from alembic_utils.replaceable_entity import ReplaceableEntity, register_entities
-from sqlalchemy import Table, inspect
+from sqlalchemy import inspect
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
-from sqlalchemy_continuum import versioning_manager
-from sqlalchemy_continuum.dialects.postgresql import (
-    CreateTemporaryTransactionTableSQL,
-    CreateTriggerFunctionSQL,
-    CreateTriggerSQL,
-    InsertTemporaryTransactionSQL,
-    TransactionTriggerSQL,
-)
-from sqlalchemy_continuum.transaction import procedure_sql as temporary_transaction_procedure_sql
 
 from app.db.model import (
     Base,

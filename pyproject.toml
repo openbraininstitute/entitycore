@@ -28,7 +28,7 @@ dependencies = [
     "h5py",
     "pgvector>=0.4.1",
     "openai>=1.101.0",
-    "sqlalchemy-continuum",
+    "sqlalchemy-history",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
@@ -62,7 +62,7 @@ include = ["app"]
 required-version = ">=0.8.0"
 
 [tool.uv.sources]
-sqlalchemy-continuum = { git = "https://github.com/GianlucaFicarelli/sqlalchemy-continuum", branch = "fork" }
+sqlalchemy-history = { git = "https://github.com/GianlucaFicarelli/sqlalchemy-history", branch = "obi" }
 
 [tool.ruff]
 line-length = 100

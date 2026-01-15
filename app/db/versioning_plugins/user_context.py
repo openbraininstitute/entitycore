@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.orm import Session
-from sqlalchemy_continuum.plugins import Plugin
+from sqlalchemy_history.plugins import Plugin
 
 from app.logger import L
 

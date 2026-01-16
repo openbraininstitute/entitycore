@@ -65,7 +65,6 @@ from app.schemas.measurement_label import MeasurementLabelRead
 from app.schemas.memodel_calibration_result import MEModelCalibrationResultRead
 from app.schemas.publication import PublicationRead
 from app.schemas.role import RoleRead
-from app.schemas.scientific_artifact import ScientificArtifactRead
 from app.schemas.scientific_artifact_external_url_link import ScientificArtifactExternalUrlLinkRead
 from app.schemas.scientific_artifact_publication_link import ScientificArtifactPublicationLinkRead
 from app.schemas.simulation import (
@@ -137,7 +136,6 @@ RESOURCE_TYPE_TO_READ_SCHEMA = {
     "person": PersonRead,
     "publication": PublicationRead,
     "role": RoleRead,
-    "scientific_artifact": ScientificArtifactRead,
     "scientific_artifact_external_url_link": ScientificArtifactExternalUrlLinkRead,
     "scientific_artifact_publication_link": ScientificArtifactPublicationLinkRead,
     "simulation": SimulationRead,

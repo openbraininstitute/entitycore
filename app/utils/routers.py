@@ -8,6 +8,7 @@ NOT_ROUTABLE_RESOURCES = {
     EntityType.analysis_software_source_code,
     EntityType.electrical_recording,
     EntityType.me_type_density,
+    EntityType.scientific_artifact,
     GlobalType.ion,
 }
 

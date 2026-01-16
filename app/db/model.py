@@ -651,37 +651,37 @@ class Entity(LegacyMixin, Identifiable):
         back_populates="validated_entity",
         # cascade="all, delete-orphan",  # TODO: should we allow deletion cascade?
     )
-    _generation_activities: Mapped[list["Activity"]] = relationship(
+    generation_activities: Mapped[list["Activity"]] = relationship(
         "Activity",
         secondary="generation",
         back_populates="generated",
         uselist=True,
-        viewonly=False,  # deletion cascade of generation allowed (b/c this entity is generated)
+        viewonly=False,  # deletion cascade of generation allowed (b/c this is the generated entity)
     )
-    _usage_activities: Mapped[list["Activity"]] = relationship(
+    usage_activities: Mapped[list["Activity"]] = relationship(
         "Activity",
         secondary="generation",
         back_populates="used",
         uselist=True,
-        viewonly=True,  # deletion cascade of usage forbidden! (b/c this entity is used)
+        viewonly=True,  # deletion cascade of usage forbidden! (b/c this is the used entity)
     )
-    _generated_entities: Mapped[list["Entity"]] = relationship(
+    generated_entities: Mapped[list["Entity"]] = relationship(
         "Entity",
         primaryjoin="Entity.id == Derivation.used_id",
         secondaryjoin="Entity.id == Derivation.generated_id",
         secondary="derivation",
         uselist=True,
-        viewonly=True,  # deletion cascade of derivation forbidden! (b/c this entity is used)
-        back_populates="_used_entities",
+        viewonly=True,  # deletion cascade of derivation forbidden! (b/c this is the used entity)
+        back_populates="used_entities",
     )
-    _used_entities: Mapped[list["Entity"]] = relationship(
+    used_entities: Mapped[list["Entity"]] = relationship(
         "Entity",
         primaryjoin="Entity.id == Derivation.generated_id",
         secondaryjoin="Entity.id == Derivation.used_id",
         secondary="derivation",
         uselist=True,
-        viewonly=False,  # deletion cascade of derivation allowed (b/c this entity is generated)
-        back_populates="_generated_entities",
+        viewonly=False,  # deletion cascade of derivation allowed (b/c this is the generated entity)
+        back_populates="generated_entities",
     )
 
     __mapper_args__ = {  # noqa: RUF012
@@ -1415,7 +1415,7 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
 
-    _emodels: Mapped[list["EModel"]] = relationship(
+    emodels: Mapped[list["EModel"]] = relationship(
         secondary="ion_channel_model__emodel",
         uselist=True,
     )  # deletion cascade of ion_channel_model__emodel
@@ -1586,6 +1586,7 @@ class ValidationResult(Entity):
         "Entity",
         uselist=False,
         foreign_keys=[validated_entity_id],
+        back_populates="validation_results",
     )
 
     __mapper_args__ = {  # noqa: RUF012
@@ -2304,7 +2305,7 @@ class EMCellMesh(
         uselist=False,
     )
 
-    _ion_channel_modeling_campaigns: Mapped[list["SkeletonizationCampaign"]] = relationship(
+    ion_channel_modeling_campaigns: Mapped[list["SkeletonizationCampaign"]] = relationship(
         secondary="em_cell_mesh__skeletonization_campaign",
     )  # deletion cascade of em_cell_mesh__skeletonization_campaign
 

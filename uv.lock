@@ -1115,7 +1115,7 @@ wheels = [
 [[package]]
 name = "sqlalchemy-history"
 version = "0"
-source = { git = "https://github.com/GianlucaFicarelli/sqlalchemy-history?branch=obi#87ef45c1cdd2ad3ccc68f82bf4527e099c9f79e8" }
+source = { git = "https://github.com/GianlucaFicarelli/sqlalchemy-history?branch=obi#885dfa56a7bad48e2188454bfe2476af74007a1c" }
 dependencies = [
     { name = "sqlalchemy" },
     { name = "sqlalchemy-utils" },

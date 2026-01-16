@@ -3,7 +3,6 @@ import sqlalchemy as sa
 
 from app.db.model import CellMorphology
 from app.db.types import ResourceType
-from app.logger import L
 from app.schemas.cell_morphology import CellMorphologyRead
 from app.service.versioning import RESOURCE_TYPE_TO_READ_SCHEMA
 from app.utils.routers import NOT_ROUTABLE_RESOURCES
@@ -75,7 +74,7 @@ def test_read_version_from_db(db, client, json_data, person_id, role_id):
     assert str(read.id) == entity_id
 
 
-def test_read_version_from_api(db, client, json_data):
+def test_read_version_from_api(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     entity_id = data["id"]
 

@@ -22,6 +22,8 @@ from app.schemas.asset import (
     AssetRead,
     DetailedFileList,
     DirectoryUpload,
+    ToUploadPart,
+    UploadMeta,
 )
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.types import ListResponse
@@ -33,6 +35,11 @@ from app.utils.s3 import (
     delete_from_s3,
     generate_presigned_url,
     list_directory_with_details,
+    multipart_compute_upload_plan,
+    multipart_upload_complete,
+    multipart_upload_create_part_presigned_url,
+    multipart_upload_initiate,
+    multipart_upload_list_parts,
     sanitize_directory_traversal,
 )
 
@@ -114,6 +121,7 @@ def create_entity_asset(  # noqa: PLR0913
     is_directory: bool,
     storage_type: StorageType,
     full_path: str | None = None,
+    status: AssetStatus = AssetStatus.CREATED,
 ) -> AssetRead:
     """Create an asset for an entity."""
     entity = entity_service.get_writable_entity(
@@ -158,6 +166,7 @@ def create_entity_asset(  # noqa: PLR0913
         asset_db = repos.asset.create_entity_asset(
             entity_id=entity_id,
             asset=asset_create,
+            status=status,
         )
     return AssetRead.model_validate(asset_db)
 
@@ -344,3 +353,139 @@ def list_directory(
     )
 
     return DetailedFileList.model_validate({"files": ret})
+
+
+def entity_asset_upload_initiate(
+    *,
+    repos: RepositoryGroup,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    s3_client: S3Client,
+    s3_key: str,
+    bucket: str,
+    filesize: int,
+    content_type: str,
+    preferred_part_count: int,
+    user_context: UserContext,
+) -> AssetRead:
+    _ = entity_service.get_readable_entity(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset = repos.asset.get_entity_asset(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            asset_id=asset_id,
+        )
+
+    storage = storages[asset.storage_type]
+
+    upload_id = multipart_upload_initiate(
+        s3_client=s3_client,
+        s3_key=s3_key,
+        bucket=bucket,
+        content_type=content_type,
+    )
+    part_size, part_count = multipart_compute_upload_plan(
+        filesize=filesize,
+        preferred_part_count=preferred_part_count,
+    )
+    parts = [
+        ToUploadPart(
+            part_number=part_number,
+            url=multipart_upload_create_part_presigned_url(
+                s3_client=s3_client,
+                bucket=storage.bucket,
+                s3_key=asset.full_path,
+                upload_id=upload_id,
+                part_number=part_number,
+            ),
+        )
+        for part_number in range(1, part_count + 1)
+    ]
+    asset.status = AssetStatus.UPLOADING
+    asset.upload_meta = UploadMeta(
+        upload_id=upload_id,
+        part_size=part_size,
+        parts=parts,
+    ).model_dump()
+    repos.db.flush()
+    return AssetRead.model_validate(asset)
+
+
+def entity_asset_upload_complete(
+    *,
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    storage: StorageUnion,
+    s3_client: S3Client,
+) -> AssetRead:
+    asset = get_entity_asset(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+
+    if asset.status != AssetStatus.UPLOADING or not asset.upload_meta:
+        raise ApiError(
+            message="Asset is not uploading. Operation cannot be performed.",
+            error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    # parts that have been already uploaded to s3
+    uploaded_parts = multipart_upload_list_parts(
+        s3_client=s3_client,
+        bucket=storage.bucket,
+        s3_key=asset.full_path,
+        upload_id=asset.upload_meta.upload_id,
+    )
+
+    # parts that are expected to be uploaded via the presigned urls
+    parts = asset.upload_meta.parts
+
+    # verify that expected and uploaded agree
+    uploaded_part_numbers = {p["PartNumber"] for p in uploaded_parts}
+    expected_part_numbers = {p.part_number for p in parts}
+
+    if uploaded_part_numbers != expected_part_numbers:
+        raise ApiError(
+            message=(
+                "Expected parts are not uploaded. "
+                f"Expected: {len(expected_part_numbers)}, Actual: {len(uploaded_part_numbers)}"
+            ),
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+
+    multipart_upload_complete(
+        s3_client=s3_client,
+        s3_key=asset.full_path,
+        upload_id=asset.upload_meta.upload_id,
+        bucket=storage.bucket,
+        parts=uploaded_parts,
+    )
+    _ = entity_service.get_readable_entity(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset_db = repos.asset.get_entity_asset(
+            entity_type=entity_type, entity_id=entity_id, asset_id=asset_id
+        )
+
+    asset_db.status = AssetStatus.CREATED
+    asset_db.upload_meta = None
+    repos.db.flush()
+    return AssetRead.model_validate(asset_db)

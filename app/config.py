@@ -48,6 +48,13 @@ class Settings(BaseSettings):
     S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value
     S3_PRESIGNED_URL_EXPIRATION: int = 600  # seconds  # TODO: decide an appropriate value
 
+    S3_MULTIPART_UPLOAD_MAX_SIZE: int = 5 * 1024**3  # TODO: Set appropriate upper file size limit
+    S3_MULTIPART_UPLOAD_MIN_PART_SIZE: int = 5 * 1024**2
+    S3_MULTIPART_UPLOAD_MAX_PART_SIZE: int = 5 * 1024**3
+    S3_MULTIPART_UPLOAD_MIN_PARTS: int = 1
+    S3_MULTIPART_UPLOAD_MAX_PARTS: int = 10_000
+    S3_MULTIPART_UPLOAD_DEFAULT_PARTS: int = 100
+
     API_ASSET_POST_MAX_SIZE: int = 150 * 1024**2  # bytes  # TODO: decide an appropriate value
 
     DB_ENGINE: str = "postgresql+psycopg2"

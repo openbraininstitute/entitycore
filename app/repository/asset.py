@@ -37,11 +37,13 @@ class AssetRepository(BaseRepository):
 
         return self.db.execute(query).scalar_one()
 
-    def create_entity_asset(self, entity_id: uuid.UUID, asset: AssetCreate) -> Asset:
+    def create_entity_asset(
+        self, entity_id: uuid.UUID, asset: AssetCreate, status: AssetStatus = AssetStatus.CREATED
+    ) -> Asset:
         """Create an asset associated with the given entity."""
         sha256_digest = bytes.fromhex(asset.sha256_digest) if asset.sha256_digest else None
         db_asset = Asset(
-            status=AssetStatus.CREATED,
+            status=status,
             entity_id=entity_id,
             path=asset.path,
             full_path=asset.full_path,

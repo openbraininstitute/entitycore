@@ -229,6 +229,7 @@ class AnnotationBodyType(StrEnum):
 
 class AssetStatus(StrEnum):
     CREATED = auto()
+    UPLOADING = auto()
     DELETED = auto()
 
 

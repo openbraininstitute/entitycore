@@ -1,3 +1,4 @@
+import math
 import os
 import uuid
 from pathlib import Path
@@ -17,6 +18,7 @@ from app.config import StorageUnion, settings, storages
 from app.db.types import EntityType, StorageType
 from app.logger import L
 from app.schemas.asset import validate_path
+from app.utils.common import clip
 
 
 class StorageClientFactory(Protocol):
@@ -51,6 +53,10 @@ def sanitize_directory_traversal(filename: str | Path) -> Path:
 
 def validate_filesize(filesize: int) -> bool:
     return filesize <= settings.API_ASSET_POST_MAX_SIZE
+
+
+def validate_multipart_filesize(filesize: int) -> bool:
+    return filesize <= settings.S3_MULTIPART_UPLOAD_MAX_SIZE
 
 
 def get_s3_client(storage: StorageUnion) -> S3Client:
@@ -164,6 +170,100 @@ def generate_presigned_url(
     except Exception:  # noqa: BLE001
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
     return url
+
+
+def multipart_upload_initiate(
+    s3_client: S3Client, bucket: str, s3_key: str, content_type: str
+) -> str:
+    res = s3_client.create_multipart_upload(Bucket=bucket, Key=s3_key, ContentType=content_type)
+    return res["UploadId"]
+
+
+def multipart_compute_upload_plan(*, filesize: int, preferred_part_count: int) -> tuple[int, int]:
+    part_count = clip(
+        preferred_part_count,
+        min_value=settings.S3_MULTIPART_UPLOAD_MIN_PARTS,
+        max_value=settings.S3_MULTIPART_UPLOAD_MAX_PARTS,
+    )
+    part_size = math.ceil(filesize / part_count)
+
+    part_size = clip(
+        part_size,
+        min_value=settings.S3_MULTIPART_UPLOAD_MIN_PART_SIZE,
+        max_value=settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE,
+    )
+    part_count = math.ceil(filesize / part_size)
+
+    return part_size, part_count
+
+
+def multipart_upload_create_part_presigned_url(
+    s3_client: S3Client,
+    bucket: str,
+    s3_key: str,
+    upload_id: str,
+    part_number: int,
+):
+    return s3_client.generate_presigned_url(
+        "upload_part",
+        Params={
+            "Bucket": bucket,
+            "Key": s3_key,
+            "UploadId": upload_id,
+            "PartNumber": part_number,
+        },
+        ExpiresIn=settings.S3_PRESIGNED_URL_EXPIRATION,
+    )
+
+
+def multipart_upload_list_parts(
+    s3_client: S3Client,
+    bucket: str,
+    s3_key: str,
+    upload_id: str,
+) -> list:
+    paginator = s3_client.get_paginator("list_parts")
+    page_iterator = paginator.paginate(
+        Bucket=bucket,
+        Key=s3_key,
+        UploadId=upload_id,
+    )
+    return [part for page in page_iterator for part in page.get("Parts", [])]
+
+
+def multipart_upload_complete(
+    s3_client: S3Client, s3_key: str, upload_id: str, bucket: str, parts: list
+):
+    s3_client.complete_multipart_upload(
+        Bucket=bucket,
+        Key=s3_key,
+        UploadId=upload_id,
+        MultipartUpload={
+            "Parts": [
+                {
+                    "ETag": p["ETag"],
+                    "PartNumber": p["PartNumber"],
+                }
+                for p in parts
+            ],
+        },
+    )
+
+
+def multipart_upload_abort(
+    *,
+    upload_id: str,
+    storage_type: StorageType,
+    s3_key: str,
+    storage_client_factory: StorageClientFactory,
+) -> None:
+    storage = storages[storage_type]
+    s3_client = storage_client_factory(storage)
+    s3_client.abort_multipart_upload(
+        Bucket=storage.bucket,
+        Key=s3_key,
+        UploadId=upload_id,
+    )
 
 
 def list_directory_with_details(

@@ -18,7 +18,8 @@ apt-get install -qyy \
     gcc \
     libc6-dev \
     libpq-dev \
-    ca-certificates
+    ca-certificates \
+    git
 EOT
 
 COPY --from=uv /uv /usr/local/bin/uv

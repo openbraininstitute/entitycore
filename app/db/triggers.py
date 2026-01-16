@@ -1,8 +1,11 @@
 import hashlib
+import re
+from typing import TYPE_CHECKING
 
 from alembic_utils.pg_extension import PGExtension
 from alembic_utils.pg_function import PGFunction
 from alembic_utils.pg_trigger import PGTrigger
+from alembic_utils.replaceable_entity import ReplaceableEntity, register_entities
 from sqlalchemy import inspect
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute
 
@@ -34,7 +37,16 @@ from app.db.model import (
     ValidationResult,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 MAX_IDENTIFIER_LENGTH = 59
+FUNCTION_PATTERN = re.compile(
+    r"^\s*CREATE OR REPLACE FUNCTION (?P<signature>[\w]+\(\))\s+(?P<body>.*)$", flags=re.DOTALL
+)
+TRIGGER_PATTERN = re.compile(
+    r"^\s*CREATE TRIGGER (?P<signature>[\w]+)\s+(?P<body>.*)$", flags=re.DOTALL
+)
 
 
 def _check_name_length(s: str, min_len: int = 1, max_len: int = 63) -> str:
@@ -160,54 +172,60 @@ def unauthorized_private_reference_trigger(model: type[Entity], field_name: str)
     )
 
 
-# list of protected relationships between entities as (model, field_name)
-protected_entity_relationships = [
-    (BrainAtlasRegion, "brain_atlas_id"),
-    (CellMorphology, "cell_morphology_protocol_id"),
-    (Circuit, "atlas_id"),
-    (Circuit, "root_circuit_id"),
-    (CircuitExtractionConfig, "circuit_id"),
-    (ElectricalRecordingStimulus, "recording_id"),
-    (EMCellMesh, "em_dense_reconstruction_dataset_id"),
-    (EModel, "exemplar_morphology_id"),
-    (ExperimentalBoutonDensity, "subject_id"),
-    (ExperimentalNeuronDensity, "subject_id"),
-    (ExperimentalSynapsesPerConnection, "subject_id"),
-    (MEModel, "emodel_id"),
-    (MEModel, "morphology_id"),
-    (MEModelCalibrationResult, "calibrated_entity_id"),
-    (ScientificArtifact, "subject_id"),
-    (Simulation, "entity_id"),
-    (Simulation, "simulation_campaign_id"),
-    (SimulationCampaign, "entity_id"),
-    (SimulationResult, "simulation_id"),
-    (SingleNeuronSimulation, "me_model_id"),
-    (SingleNeuronSynaptome, "me_model_id"),
-    (SingleNeuronSynaptomeSimulation, "synaptome_id"),
-    (ValidationResult, "validated_entity_id"),
-    (IonChannelModelingConfig, "ion_channel_modeling_campaign_id"),
-    (SkeletonizationConfig, "skeletonization_campaign_id"),
-    (SkeletonizationConfig, "em_cell_mesh_id"),
-]
-
-entities = [
-    description_vector_trigger(
-        model=mapper.class_,
-        signature=f"{mapper.class_.__tablename__}_description_vector",
-        target_field="description_vector",
-        fields=["description", "name"],
-    )
-    for mapper in Base.registry.mappers
-    if issubclass(mapper.class_, NameDescriptionVectorMixin)
-    and "description_vector" in mapper.class_.__table__.c  # exclude children
-]
-
-entities += [
-    PGExtension(schema="public", signature="vector"),
-]
-
-for model, field_name in protected_entity_relationships:
-    entities += [
-        unauthorized_private_reference_function(model, field_name),
-        unauthorized_private_reference_trigger(model, field_name),
+def _get_protected_entity_relationships() -> list[tuple[type[Entity], str]]:
+    """List of entities with protected relationships, given as (model_class, field_name)."""
+    return [
+        (BrainAtlasRegion, "brain_atlas_id"),
+        (CellMorphology, "cell_morphology_protocol_id"),
+        (Circuit, "atlas_id"),
+        (Circuit, "root_circuit_id"),
+        (CircuitExtractionConfig, "circuit_id"),
+        (ElectricalRecordingStimulus, "recording_id"),
+        (EMCellMesh, "em_dense_reconstruction_dataset_id"),
+        (EModel, "exemplar_morphology_id"),
+        (ExperimentalBoutonDensity, "subject_id"),
+        (ExperimentalNeuronDensity, "subject_id"),
+        (ExperimentalSynapsesPerConnection, "subject_id"),
+        (MEModel, "emodel_id"),
+        (MEModel, "morphology_id"),
+        (MEModelCalibrationResult, "calibrated_entity_id"),
+        (ScientificArtifact, "subject_id"),
+        (Simulation, "entity_id"),
+        (Simulation, "simulation_campaign_id"),
+        (SimulationCampaign, "entity_id"),
+        (SimulationResult, "simulation_id"),
+        (SingleNeuronSimulation, "me_model_id"),
+        (SingleNeuronSynaptome, "me_model_id"),
+        (SingleNeuronSynaptomeSimulation, "synaptome_id"),
+        (ValidationResult, "validated_entity_id"),
+        (IonChannelModelingConfig, "ion_channel_modeling_campaign_id"),
+        (SkeletonizationConfig, "skeletonization_campaign_id"),
+        (SkeletonizationConfig, "em_cell_mesh_id"),
     ]
+
+
+def register_all() -> None:
+    entities: Iterable[ReplaceableEntity] = []
+    entities += [
+        PGExtension(schema="public", signature="vector"),
+    ]
+    # triggers for description_vector
+    entities += [
+        description_vector_trigger(
+            model=mapper.class_,
+            signature=f"{mapper.class_.__tablename__}_description_vector",
+            target_field="description_vector",
+            fields=["description", "name"],
+        )
+        for mapper in Base.registry.mappers
+        if issubclass(mapper.class_, NameDescriptionVectorMixin)
+        and "description_vector" in mapper.class_.__table__.c  # exclude children
+    ]
+    # triggers for protected relationships
+    for model, field_name in _get_protected_entity_relationships():
+        entities += [
+            unauthorized_private_reference_function(model, field_name),
+            unauthorized_private_reference_trigger(model, field_name),
+        ]
+    # register everything
+    register_entities(entities=entities)

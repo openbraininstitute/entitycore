@@ -76,6 +76,7 @@ from app.routers import (
     subject,
     validation,
     validation_result,
+    versioning,
 )
 
 router = APIRouter()
@@ -154,6 +155,7 @@ authenticated_routers = [
     subject.router,
     validation.router,
     validation_result.router,
+    versioning.router,
 ]
 for r in authenticated_routers:
     router.include_router(r, dependencies=[Depends(user_verified)])

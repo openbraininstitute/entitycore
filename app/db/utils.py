@@ -22,14 +22,14 @@ MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
     for mapper in Base.registry.mappers
     if issubclass(mapper.class_, MeasurableEntityMixin)
     and issubclass(mapper.class_, Entity)
-    and mapper.class_.__tablename__
+    and getattr(mapper.class_, "__tablename__", None)
 }
 MeasurableEntityType = StrEnum("MeasurableEntity", sorted(MEASURABLE_ENTITIES))
 
 ENTITY_TYPE_TO_CLASS: dict[EntityType, type[Entity]] = {
     EntityType[mapper.class_.__tablename__]: mapper.class_
     for mapper in Base.registry.mappers
-    if hasattr(EntityType, mapper.class_.__tablename__)
+    if getattr(mapper.class_, "__tablename__", None) in EntityType
 }
 
 
@@ -68,13 +68,14 @@ def is_polymorphic_subclass(mapper_class: type[Identifiable]) -> bool:
         return False
 
     # If polymorphic_identity is different from __tablename__, it's a subclass
-    return mapper_args["polymorphic_identity"] != mapper_class.__tablename__
+    return mapper_args["polymorphic_identity"] != getattr(mapper_class, "__tablename__", None)
 
 
 RESOURCE_TYPE_TO_CLASS: dict[str, type[Identifiable]] = {
     mapper.class_.__tablename__: mapper.class_
     for mapper in Base.registry.mappers
-    if mapper.class_.__tablename__ in ResourceType and not is_polymorphic_subclass(mapper.class_)
+    if getattr(mapper.class_, "__tablename__", None) in ResourceType
+    and not is_polymorphic_subclass(mapper.class_)
 }
 
 CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS: dict[

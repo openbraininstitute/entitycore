@@ -451,9 +451,11 @@ def db(database_session_manager) -> Iterator[Session]:
 
 @pytest.fixture(autouse=True)
 def _db_cleanup(db):
+    """Rollback any changes after each test and truncate all tables."""
     yield
     db.rollback()
-    query = text(f"""TRUNCATE {",".join(Base.metadata.tables)} RESTART IDENTITY CASCADE""")
+    tables = ",".join(Base.metadata.tables)
+    query = text(f"""TRUNCATE {tables} RESTART IDENTITY CASCADE""")
     db.execute(query)
     db.commit()
 

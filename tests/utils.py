@@ -35,6 +35,9 @@ from app.db.model import (
     IonChannelModelingCampaign,
     IonChannelRecording,
     MeasurementAnnotation,
+    MeasurementItem,
+    MeasurementKind,
+    MeasurementLabel,
     MTypeClass,
     MTypeClassification,
     Person,
@@ -44,7 +47,13 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import EntityType, StorageType
+from app.db.types import (
+    EntityType,
+    MeasurementStatistic,
+    MeasurementUnit,
+    StorageType,
+    StructuralDomain,
+)
 from app.routers.asset import EntityRoute
 from app.utils.uuid import create_uuid
 
@@ -955,16 +964,33 @@ def add_annotation(db, *, entity_id, created_by_id, annotation_body_id=None):
     )
 
 
-def add_measurement_annotation(db, *, entity_id, created_by_id):
-    return add_db(
+def add_measurement_annotation(db, *, entity_id, created_by_id, entity_type):
+    measurement_label = add_db(
         db,
-        MeasurementAnnotation(
-            entity_id=entity_id,
+        MeasurementLabel(
+            entity_type=entity_type,
+            pref_label="test_label",
             created_by_id=created_by_id,
             updated_by_id=created_by_id,
-            measurement_kinds=[],
         ),
     )
+    measurement_item = MeasurementItem(
+        name=MeasurementStatistic.raw,
+        unit=MeasurementUnit.linear__um,
+        value=123.45,
+    )
+    measurement_kind = MeasurementKind(
+        structural_domain=StructuralDomain.axon,
+        measurement_label_id=measurement_label.id,
+        measurement_items=[measurement_item],
+    )
+    measurement_annotation = MeasurementAnnotation(
+        entity_id=entity_id,
+        created_by_id=created_by_id,
+        updated_by_id=created_by_id,
+        measurement_kinds=[measurement_kind],
+    )
+    return add_db(db, measurement_annotation)
 
 
 def count_db_class(db, db_class):

@@ -6,7 +6,6 @@ from logging.config import fileConfig
 import alembic_postgresql_enum  # noqa: F401
 from alembic.environment import MigrationContext
 from alembic.operations import MigrationScript
-from alembic_utils.replaceable_entity import register_entities
 from sqlalchemy import engine_from_config, pool, text
 
 from alembic import context
@@ -28,7 +27,7 @@ CONNECTION_SETTINGS = {
 
 # register triggers only if alembic is run with `-x register_triggers="true"`
 if context.get_x_argument(as_dictionary=True).get("register_triggers") == "true":
-    register_entities(triggers.entities)
+    triggers.register_all()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

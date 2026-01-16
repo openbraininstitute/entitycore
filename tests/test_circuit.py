@@ -357,3 +357,10 @@ def test_filtering(client, root_circuit, models):
         params={"published_in": "journal-0"},
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"published_in__ilike": "journal"},
+    ).json()["data"]
+    assert len(data) == len(models)

@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import ExecutorType
+from app.db.types import ActivityStatus, ExecutorType
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     ActivityTypeMixin,
@@ -20,6 +20,7 @@ class ActivityBase(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     start_time: datetime | None = None
     end_time: datetime | None = None
+    status: ActivityStatus = ActivityStatus.done
 
 
 class NestedActivityRead(ActivityBase, ActivityTypeMixin, IdentifiableMixin):
@@ -40,6 +41,7 @@ class ActivityUpdate(BaseModel):
     start_time: datetime | NotSet | None = NOT_SET
     end_time: datetime | NotSet | None = NOT_SET
     generated_ids: list[uuid.UUID] | NotSet | None = NOT_SET
+    status: ActivityStatus | NotSet | None = NOT_SET
 
 
 class ExecutionActivityMixin:

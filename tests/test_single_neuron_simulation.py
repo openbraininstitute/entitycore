@@ -46,7 +46,7 @@ def single_neuron_simulation_id(client, memodel_id, brain_region_id):
             "injection_location": ["soma[0]"],
             "recording_location": ["soma[0]_0.5"],
             "me_model_id": memodel_id,
-            "status": "success",
+            "status": "done",
             "seed": 1,
             "authorized_public": False,
             "brain_region_id": str(brain_region_id),
@@ -75,7 +75,7 @@ def json_data(brain_region_id, memodel_id):
         "injection_location": ["soma[0]"],
         "recording_location": ["soma[0]_0.5"],
         "me_model_id": memodel_id,
-        "status": "success",
+        "status": "done",
         "seed": 1,
         "authorized_public": False,
         "brain_region_id": str(brain_region_id),
@@ -90,7 +90,7 @@ def public_json_data(brain_region_id, public_memodel_id):
         "injection_location": ["soma[0]"],
         "recording_location": ["soma[0]_0.5"],
         "me_model_id": public_memodel_id,
-        "status": "success",
+        "status": "done",
         "seed": 1,
         "authorized_public": True,
         "brain_region_id": str(brain_region_id),
@@ -106,7 +106,7 @@ def test_update_one(clients, public_json_data):
         patch_payload={
             "name": "name",
             "description": "description",
-            "status": "failure",
+            "status": "error",
             "seed": 42,
             "injection_location": ["dendrite[0]"],
             "recording_location": ["dendrite[0]_0.5"],
@@ -125,7 +125,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_ne
             "injection_location": ["soma[0]"],
             "recording_location": ["soma[0]_0.5"],
             "me_model_id": memodel_id,
-            "status": "success",
+            "status": "done",
             "seed": 1,
             "authorized_public": False,
             "brain_region_id": str(brain_region_id),
@@ -151,7 +151,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_ne
     assert data["injection_location"] == ["soma[0]"]
     assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
-    assert data["status"] == "success"
+    assert data["status"] == "done"
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
     assert data["created_by"]["id"] == data["updated_by"]["id"]
@@ -167,7 +167,7 @@ def test_single_neuron_simulation(client, brain_region_id, memodel_id, single_ne
     assert data["injection_location"] == ["soma[0]"]
     assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["me_model"]["id"] == memodel_id, f"Failed to get id frmo me model; {data}"
-    assert data["status"] == "success"
+    assert data["status"] == "done"
     assert data["authorized_project_id"] == PROJECT_ID
     assert data["type"] == EntityType.single_neuron_simulation
     assert "assets" in data
@@ -237,6 +237,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             species_id=species_id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            validation_status="created",
         ),
     )
     me_model_2 = add_db(
@@ -251,6 +252,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             species_id=species_id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            validation_status="created",
         ),
     )
 
@@ -263,7 +265,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
                 injection_location=["soma[0]"],
                 recording_location=["soma[0]_0.5"],
                 me_model_id=me_model.id,
-                status="success",
+                status="done",
                 seed=1,
                 authorized_public=False,
                 brain_region_id=brain_region_id,
@@ -311,6 +313,7 @@ def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species
                 "species_id": species_id,
                 "created_by_id": str(person_id),
                 "updated_by_id": str(person_id),
+                "validation_status": "created",
             },
         )
         for i in range(2)
@@ -322,7 +325,7 @@ def faceted_ids(db, brain_region_hierarchy_id, emodel_id, morphology_id, species
                 "name": f"sim-{i}",
                 "description": f"sim-desc-{i}",
                 "me_model_id": str(me_model_id),
-                "status": "success",
+                "status": "done",
                 "injection_location": ["soma[0]"],
                 "recording_location": ["soma[0]_0.5"],
                 "seed": i,
@@ -412,6 +415,7 @@ def test_brain_region_filter(
                     "species_id": species_id,
                     "created_by_id": str(person_id),
                     "updated_by_id": str(person_id),
+                    "validation_status": "created",
                 },
             )
         )
@@ -424,7 +428,7 @@ def test_brain_region_filter(
             injection_location=["soma[0]"],
             recording_location=["soma[0]_0.5"],
             me_model_id=me_model_id,
-            status="success",
+            status="done",
             seed=1,
             authorized_project_id=PROJECT_ID,
             created_by_id=person_id,

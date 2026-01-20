@@ -5,7 +5,7 @@ from fastapi_filter import with_prefix
 from app.db.model import EMCellMesh
 from app.db.types import EMCellMeshType
 from app.dependencies.filter import FilterDepends
-from app.filters.common import MTypeClassFilterMixin
+from app.filters.common import ILikeSearchFilterMixin, MTypeClassFilterMixin, NameFilterMixin
 from app.filters.em_dense_reconstruction_dataset import NestedEMDenseReconstructionDatasetFilter
 from app.filters.measurement_annotation import MeasurableFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
@@ -14,6 +14,8 @@ from app.filters.scientific_artifact import ScientificArtifactFilter
 class EMCellMeshFilter(
     ScientificArtifactFilter,
     MTypeClassFilterMixin,
+    NameFilterMixin,
+    ILikeSearchFilterMixin,
     MeasurableFilterMixin,
 ):
     release_version: int | None = None

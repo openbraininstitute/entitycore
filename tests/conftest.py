@@ -1588,6 +1588,8 @@ def em_dense_reconstruction_dataset(db, em_dense_reconstruction_dataset_json_dat
 @pytest.fixture
 def em_cell_mesh_json_data(em_dense_reconstruction_dataset, subject_id, brain_region_id):
     return {
+        "name": "mesh-name",
+        "description": "mesh-description",
         "subject_id": str(subject_id),
         "brain_region_id": str(brain_region_id),
         "release_version": 1,

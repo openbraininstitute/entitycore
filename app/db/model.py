@@ -2013,6 +2013,7 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
 class EMCellMesh(
     ScientificArtifact,
     MTypesMixin,
+    NameDescriptionVectorMixin,
     MeasurableEntityMixin,
 ):
     """Cell surface mesh created from a dense EM reconstruction.

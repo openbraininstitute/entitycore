@@ -1097,6 +1097,7 @@ def faceted_memodels(
                 db,
                 EModel(
                     name=f"{i}",
+                    description=f"description-{i}",
                     brain_region_id=brain_region_ids[i],
                     species_id=species_ids[i],
                     exemplar_morphology_id=morphology_ids[i],

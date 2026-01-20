@@ -84,7 +84,7 @@ def json_data(brain_region_id, synaptome_id):
         "description": "my-description",
         "injection_location": ["soma[0]"],
         "recording_location": ["soma[0]_0.5"],
-        "status": "success",
+        "status": "done",
         "seed": 1,
         "synaptome_id": str(synaptome_id),
         "brain_region_id": str(brain_region_id),
@@ -99,7 +99,7 @@ def public_json_data(brain_region_id, public_synaptome_id):
         "description": "my-description",
         "injection_location": ["soma[0]"],
         "recording_location": ["soma[0]_0.5"],
-        "status": "success",
+        "status": "done",
         "seed": 1,
         "synaptome_id": str(public_synaptome_id),
         "brain_region_id": str(brain_region_id),
@@ -116,7 +116,7 @@ def _create_simulation_id(
     description="my-synaptome-simulation-description",
     injection_location=None,
     recording_location=None,
-    status="success",
+    status="done",
     seed=1,
     authorized_public=False,
 ):
@@ -157,7 +157,7 @@ def test_create_one(client, json_data, brain_region_id, synaptome_id):
     assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["description"] == "my-description"
     assert data["name"] == "my-sim"
-    assert data["status"] == "success"
+    assert data["status"] == "done"
     assert data["injection_location"] == ["soma[0]"]
     assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["synaptome"]["id"] == str(synaptome_id)
@@ -176,7 +176,7 @@ def test_update_one(clients, public_json_data):
         patch_payload={
             "name": "name",
             "description": "description",
-            "status": "failure",
+            "status": "error",
             "seed": 42,
             "injection_location": ["dendrite[0]"],
             "recording_location": ["dendrite[0]_0.5"],
@@ -202,7 +202,7 @@ def test_read_one(client, client_admin, brain_region_id, synaptome_id, simulatio
     assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["description"] == "my-description"
     assert data["name"] == "my-sim"
-    assert data["status"] == "success"
+    assert data["status"] == "done"
     assert data["injection_location"] == ["soma[0]"]
     assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["synaptome"]["id"] == str(synaptome_id)
@@ -218,7 +218,7 @@ def test_read_one(client, client_admin, brain_region_id, synaptome_id, simulatio
     assert data["brain_region"]["id"] == str(brain_region_id)
     assert data["description"] == "my-description"
     assert data["name"] == "my-sim"
-    assert data["status"] == "success"
+    assert data["status"] == "done"
     assert data["injection_location"] == ["soma[0]"]
     assert data["recording_location"] == ["soma[0]_0.5"]
     assert data["synaptome"]["id"] == str(synaptome_id)
@@ -435,6 +435,7 @@ def test_brain_region_filter(
                     species_id=species_id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    validation_status="created",
                 ),
             ).id
         )
@@ -459,7 +460,7 @@ def test_brain_region_filter(
             description="description",
             injection_location=["soma[0]"],
             recording_location=["soma[0]_0.5"],
-            status="success",
+            status="done",
             seed=1,
             synaptome_id=synaptome_id,
             brain_region_id=brain_region_id,

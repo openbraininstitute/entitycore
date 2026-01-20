@@ -7,7 +7,6 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
     DateTime,
-    Enum,
     ForeignKey,
     ForeignKeyConstraint,
     Identity,
@@ -36,6 +35,7 @@ from app.db.types import (
     BIGINT,
     JSON_DICT,
     STRING_LIST,
+    ActivityStatus,
     ActivityType,
     AgentType,
     AgePeriod,
@@ -47,7 +47,6 @@ from app.db.types import (
     CellMorphologyGenerationType,
     CellMorphologyProtocolDesign,
     CircuitBuildCategory,
-    CircuitExtractionExecutionStatus,
     CircuitScale,
     ContentType,
     DerivationType,
@@ -61,7 +60,6 @@ from app.db.types import (
     ExecutorType,
     ExternalSource,
     GlobalType,
-    IonChannelModelingExecutionStatus,
     MeasurementStatistic,
     MeasurementUnit,
     PointLocation,
@@ -69,14 +67,10 @@ from app.db.types import (
     PublicationType,
     RepairPipelineType,
     Sex,
-    SimulationExecutionStatus,
-    SingleNeuronSimulationStatus,
-    SkeletonizationExecutionStatus,
     SlicingDirectionType,
     StainingType,
     StorageType,
     StructuralDomain,
-    ValidationStatus,
 )
 from app.schemas.publication import Author
 from app.utils.events import register_model_events
@@ -424,7 +418,7 @@ class Activity(Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
     type: Mapped[ActivityType]
-
+    status: Mapped[ActivityStatus]
     start_time: Mapped[datetime | None]
     end_time: Mapped[datetime | None]
 
@@ -765,10 +759,7 @@ class MEModel(
     __tablename__ = EntityType.memodel.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    validation_status: Mapped[ValidationStatus] = mapped_column(
-        Enum(ValidationStatus, name="me_model_validation_status"),
-        default=ValidationStatus.created,
-    )
+    validation_status: Mapped[ActivityStatus]
 
     morphology_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.cell_morphology}.id"))
 
@@ -1108,7 +1099,7 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     seed: Mapped[int]
     injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
     recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
-    status: Mapped[SingleNeuronSimulationStatus]
+    status: Mapped[ActivityStatus]
     # TODO: called used ?
     me_model_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.memodel}.id"), index=True
@@ -1123,7 +1114,7 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     seed: Mapped[int]
     injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
     recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
-    status: Mapped[SingleNeuronSimulationStatus]
+    status: Mapped[ActivityStatus]
     synaptome_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True
     )
@@ -1347,16 +1338,10 @@ class IonChannelModelingExecution(Activity, ExecutionActivityMixin):
     Attributes:
         id (uuid.UUID): Primary key for the an ion channel modeling execution,
             referencing the ion channel recording IDs.
-        status (IonChannelModelingExecutionStatus): The status of the
-            ion channel modeling execution.
     """
 
     __tablename__ = ActivityType.ion_channel_modeling_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-    status: Mapped[IonChannelModelingExecutionStatus] = mapped_column(
-        Enum(IonChannelModelingExecutionStatus, name="ion_channel_modeling_execution_status"),
-        default=IonChannelModelingExecutionStatus.created,
-    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1421,7 +1406,7 @@ class Asset(Identifiable):
     """Asset table."""
 
     __tablename__ = "asset"
-    status: Mapped[AssetStatus] = mapped_column()
+    status: Mapped[AssetStatus] = mapped_column()  # TODO: Remove if postgresql_where below removed
     path: Mapped[str]  # relative path
     full_path: Mapped[str]  # full path on S3
     is_directory: Mapped[bool]
@@ -1586,15 +1571,10 @@ class SimulationExecution(Activity, ExecutionActivityMixin):
 
     Attributes:
         id: Primary key for the simulation execution, referencing the entity ID.
-        status: The status of the simulation execution.
     """
 
     __tablename__ = ActivityType.simulation_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-    status: Mapped[SimulationExecutionStatus] = mapped_column(
-        Enum(SimulationExecutionStatus, name="simulation_execution_status"),
-        default=SimulationExecutionStatus.created,
-    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -1923,7 +1903,6 @@ class CircuitExtractionExecution(Activity, ExecutionActivityMixin):
 
     Attributes:
         id (uuid.UUID): Primary key.
-        status (CircuitExtractionExecutionStatus): The status of the circuit extraction execution.
 
     Note: The CircuitExtractionExecution activity associates a CircuitExtractionConfig entity with
           its corresponding extracted output Circuit entity.
@@ -1931,10 +1910,6 @@ class CircuitExtractionExecution(Activity, ExecutionActivityMixin):
 
     __tablename__ = ActivityType.circuit_extraction_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-    status: Mapped[CircuitExtractionExecutionStatus] = mapped_column(
-        Enum(CircuitExtractionExecutionStatus, name="circuit_extraction_execution_status"),
-        default=CircuitExtractionExecutionStatus.created,
-    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
@@ -2264,9 +2239,6 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     __tablename__ = ActivityType.skeletonization_execution.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-    status: Mapped[SkeletonizationExecutionStatus] = mapped_column(
-        default=SkeletonizationExecutionStatus.created,
-    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

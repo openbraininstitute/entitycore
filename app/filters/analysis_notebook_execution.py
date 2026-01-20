@@ -11,8 +11,6 @@ class AnalysisNotebookExecutionFilter(
 ):
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
-    status: str | None = None
-
     class Constants(CustomFilter.Constants):
         model = AnalysisNotebookExecution
         ordering_model_fields = ["creation_date", "update_date"]  # noqa: RUF012

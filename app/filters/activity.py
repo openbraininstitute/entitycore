@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi_filter import with_prefix
 
-from app.db.types import ExecutorType
+from app.db.types import ActivityStatus, ExecutorType
 from app.dependencies.filter import FilterDepends
 from app.filters.common import (
     CreationFilterMixin,
@@ -20,6 +20,7 @@ NestedGeneratedFilterDep = FilterDepends(with_prefix("generated", NestedEntityFi
 class ActivityFilterMixin(IdFilterMixin, CreatorFilterMixin, CreationFilterMixin):
     start_time: datetime | None = None
     end_time: datetime | None = None
+    status: ActivityStatus | None = None
 
     used: Annotated[NestedEntityFilter | None, NestedUsedFilterDep] = None
     generated: Annotated[NestedEntityFilter | None, NestedGeneratedFilterDep] = None

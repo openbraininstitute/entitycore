@@ -211,6 +211,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             species_id=species_id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            validation_status="created",
         ),
     )
     me_model_2 = add_db(
@@ -225,6 +226,7 @@ def test_pagination(db, client, brain_region_id, emodel_id, morphology_id, speci
             species_id=species_id,
             created_by_id=person_id,
             updated_by_id=person_id,
+            validation_status="created",
         ),
     )
 
@@ -378,6 +380,7 @@ def test_brain_region_filter(
                     species_id=species_id,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    validation_status="created",
                 ),
             ).id
         )

@@ -743,6 +743,7 @@ def test_brain_region_filter(
             authorized_project_id=PROJECT_ID,
             created_by_id=person_id,
             updated_by_id=person_id,
+            validation_status="created",
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.model import ValidationStatus
+from app.db.model import ActivityStatus
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (
@@ -24,7 +24,7 @@ from app.schemas.utils import make_update_schema
 
 class MEModelBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    validation_status: ValidationStatus = ValidationStatus.created
+    validation_status: ActivityStatus = ActivityStatus.created
 
 
 # To be used by entities who reference MEModel

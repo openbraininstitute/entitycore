@@ -41,7 +41,7 @@ class IdentifiableMixin(BaseModel):
 
 class NameDescriptionMixin:
     name: str
-    description: str = ""
+    description: str
 
 
 class CreationMixin(BaseModel):

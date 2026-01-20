@@ -165,7 +165,8 @@ def upgrade() -> None:
     _remap_table_statuses(op, activity_enum)
 
     conn = op.get_bind()
-    rows = conn.execute(text("""
+    rows = conn.execute(
+        text("""
         SELECT c.relname
         FROM pg_inherits i
         JOIN pg_class p ON i.inhparent = p.oid
@@ -174,7 +175,8 @@ def upgrade() -> None:
         WHERE p.relname = 'activity'
           AND a.attname = 'status'
           AND a.attisdropped = false
-    """)).fetchall()
+    """)
+    ).fetchall()
 
     if rows:
         tables = ", ".join(r[0] for r in rows)

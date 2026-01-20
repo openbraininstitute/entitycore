@@ -1097,6 +1097,7 @@ def faceted_memodels(
                 db,
                 EModel(
                     name=f"{i}",
+                    description=f"description-{i}",
                     brain_region_id=brain_region_ids[i],
                     species_id=species_ids[i],
                     exemplar_morphology_id=morphology_ids[i],
@@ -1588,6 +1589,8 @@ def em_dense_reconstruction_dataset(db, em_dense_reconstruction_dataset_json_dat
 @pytest.fixture
 def em_cell_mesh_json_data(em_dense_reconstruction_dataset, subject_id, brain_region_id):
     return {
+        "name": "mesh-name",
+        "description": "mesh-description",
         "subject_id": str(subject_id),
         "brain_region_id": str(brain_region_id),
         "release_version": 1,

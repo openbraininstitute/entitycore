@@ -130,6 +130,7 @@ def entity_id_cascades(db, root_circuit_json_data, person_id):
         db,
         ExternalUrl(
             name="url",
+            description="url-description",
             source=ExternalSource.channelpedia,
             url="https://foo.bar",
             created_by_id=person_id,

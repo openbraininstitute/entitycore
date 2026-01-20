@@ -156,7 +156,7 @@ class Identifiable(TimestampMixin, Base):
 class NameDescriptionVectorMixin(Base):
     __abstract__ = True
     name: Mapped[str] = mapped_column(index=True)
-    description: Mapped[str] = mapped_column(default="")
+    description: Mapped[str]
     description_vector: Mapped[str | None] = mapped_column(TSVECTOR)
 
     @declared_attr.directive
@@ -2013,6 +2013,7 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
 class EMCellMesh(
     ScientificArtifact,
     MTypesMixin,
+    NameDescriptionVectorMixin,
     MeasurableEntityMixin,
 ):
     """Cell surface mesh created from a dense EM reconstruction.

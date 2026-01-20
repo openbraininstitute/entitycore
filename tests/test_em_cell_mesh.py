@@ -45,6 +45,8 @@ def _assert_read_response(data, json_data):
     assert "authorized_public" in data
     assert "authorized_project_id" in data
     assert "assets" in data
+    assert data["name"] == json_data["name"]
+    assert data["description"] == json_data["description"]
     assert data["type"] == EntityType.em_cell_mesh
     assert data["em_dense_reconstruction_dataset"] == {
         "id": json_data["em_dense_reconstruction_dataset_id"],
@@ -93,6 +95,8 @@ def models(db, json_data, person_id):
             **(
                 json_data
                 | {
+                    "name": f"mesh-{i}",
+                    "description": f"desc-{i}",
                     "level_of_detail": i,
                     "dense_reconstruction_cell_id": i,
                     "mesh_type": ["static", "dynamic"][i % 2],
@@ -111,6 +115,11 @@ def models(db, json_data, person_id):
 
 
 def test_filtering(client, models, brain_region_id, species_id, strain_id):
+    params = {"name": "mesh-2"}
+    data = assert_request(client.get, url=ROUTE, params=params).json()["data"]
+    assert len(data) == 1
+    assert data[0]["name"] == "mesh-2"
+
     params = {"em_dense_reconstruction_dataset__name__ilike": "microns"}
     data = assert_request(client.get, url=ROUTE, params=params).json()["data"]
     assert len(data) == len(models)

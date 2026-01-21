@@ -12,14 +12,26 @@ from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-from sqlalchemy import Text, text
+from sqlalchemy import Text, text, inspect
 import app.db.types
+from app.db.model import Activity
 
 # revision identifiers, used by Alembic.
 revision: str = "447c8883c88f"
 down_revision: Union[str, None] = "07064e01c345"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+
+TABLES_WITHOUT_STATUS = [
+    "analysis_notebook_execution",
+    "calibration",
+    "circuit_extraction_config_generation",
+    "ion_channel_modeling_config_generation",
+    "simulation_generation",
+    "skeletonization_config_generation",
+    "validation",
+]
 
 
 # move status from these tables to the activity parent table
@@ -91,9 +103,8 @@ TABLES_TO_REMAP_STATUS = [
 ]
 
 
-def _create_activity_status_column(op):
-    """Create activity status collumn and fill it with done."""
-    activity_enum = sa.Enum(
+def _activity_enum():
+    return sa.Enum(
         "created",
         "pending",
         "running",
@@ -102,6 +113,11 @@ def _create_activity_status_column(op):
         "cancelled",
         name="activitystatus",
     )
+
+
+def _create_activity_status_column(op):
+    """Create activity status collumn and fill it with done."""
+    activity_enum = _activity_enum()
     activity_enum.create(op.get_bind())
     op.add_column(
         "activity",
@@ -165,26 +181,103 @@ def upgrade() -> None:
     _remap_table_statuses(op, activity_enum)
 
     conn = op.get_bind()
-    rows = conn.execute(
-        text("""
-        SELECT c.relname
-        FROM pg_inherits i
-        JOIN pg_class p ON i.inhparent = p.oid
-        JOIN pg_class c ON i.inhrelid = c.oid
-        JOIN pg_attribute a ON a.attrelid = c.oid
-        WHERE p.relname = 'activity'
-          AND a.attname = 'status'
-          AND a.attisdropped = false
-    """)
-    ).fetchall()
 
-    if rows:
-        tables = ", ".join(r[0] for r in rows)
-        raise RuntimeError(
-            f"Migration invariant violated: "
-            f"child tables of activity still define 'status': {tables}"
+    # for the activity tables that did not have a status a "done" default
+    # should be set in the acticity table
+    for table in TABLES_WITHOUT_STATUS:
+        count = conn.execute(
+            text(f"""
+            SELECT COUNT(*)
+            FROM {table} t
+            JOIN activity a ON a.id = t.id
+            WHERE a.status != 'done'
+        """)
+        ).scalar()
+
+        if count:
+            raise RuntimeError(f"{table}: {count} rows have activity.status != 'done'")
+
+
+def _create_table_enums(conn):
+    """Create all old enums."""
+    enums = {}
+    for t in TABLES_TO_MOVE_STATUS:
+        table_enum = postgresql.ENUM(*t["enum"]["values"], name=t["enum"]["name"])
+        table_enum.create(conn)
+        enums[t["enum"]["name"]] = table_enum
+    for t in TABLES_TO_REMAP_STATUS:
+        table_enum = postgresql.ENUM(*t["enum"]["values"], name=t["enum"]["name"])
+        table_enum.create(conn)
+        enums[t["enum"]["name"]] = table_enum
+    return enums
+
+
+def _create_table_columns(enums):
+    for t in TABLES_TO_MOVE_STATUS:
+        op.add_column(
+            t["table"],
+            sa.Column(t["column"], enums[t["enum"]["name"]], nullable=True),
+        )
+
+
+def _move_status_from_activity_to_tables(conn):
+    for t in TABLES_TO_MOVE_STATUS:
+        table_name = t["table"]
+        enum_name = t["enum"]["name"]
+        conn.execute(
+            text(f"""
+            UPDATE {table_name} t
+            SET status = a.status::text::{enum_name}
+            FROM activity a
+            WHERE a.id = t.id
+        """)
+        )
+
+
+def _invert_remap_table_statuses(conn, old_enum, enums):
+    enums_to_be_dropped = []
+    for t in TABLES_TO_REMAP_STATUS:
+        table_name = t["table"]
+        table_column = t["column"]
+        new_enum_name = t["enum"]["name"]
+        inverse_mapping = {v: k for k, v in t["mapping"].items()}
+
+        str_using = _using_expr(table_column, inverse_mapping).replace(
+            "activitystatus", new_enum_name
+        )
+
+        conn.execute(
+            text(f"""
+        ALTER TABLE {table_name}
+        ALTER COLUMN {table_column} TYPE {new_enum_name}
+        USING {str_using}
+        """)
         )
 
 
 def downgrade() -> None:
-    raise RuntimeError("The migration cannot be safely downgraded.")
+    conn = op.get_bind()
+
+    enums = _create_table_enums(conn)
+
+    # create nullable status columns for tables
+    _create_table_columns(enums)
+
+    # copy values from activity to tables
+    _move_status_from_activity_to_tables(conn)
+
+    # remove nullability
+    for t in TABLES_TO_MOVE_STATUS:
+        op.alter_column(
+            t["table"],
+            t["column"],
+            existing_type=enums[t["enum"]["name"]],
+            nullable=False,
+        )
+
+    # invert statuses back to local ones
+    activity_enum = _activity_enum()
+    _invert_remap_table_statuses(conn, activity_enum, enums)
+
+    op.drop_column("activity", "status")
+    activity_enum.drop(conn)

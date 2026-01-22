@@ -2271,4 +2271,114 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
+class Mapping(ScientificArtifact, NameDescriptionVectorMixin):
+    """Represents a mapping between two classification schemes.
+    
+    A mapping defines relationships between two classification schemes, such as
+    mapping from OBI_mtypes to OBI_etypes. Each mapping contains multiple
+    mapping relations that define specific relationships between classifications.
+    
+    Attributes:
+        id (uuid.UUID): Primary key, inherited from ScientificArtifact.
+        name (str): Name of mapping, inherited from NameDescriptionVectorMixin.
+        version (str): Version of mapping.
+        source_schema_id (uuid.UUID): Foreign key to source EntityClassificationScheme.
+        target_schema_id (uuid.UUID): Foreign key to target EntityClassificationScheme.
+        mapping_relations (list[MappingRelation]): Relations within this mapping.
+    """
+    
+    __tablename__ = EntityType.mapping.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    
+    version: Mapped[str]
+    
+    # Foreign keys to EntityClassificationScheme (placeholder entities for now)
+    source_schema_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    target_schema_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    
+    mapping_relations: Mapped[list["MappingRelation"]] = relationship(
+        "MappingRelation",
+        back_populates="mapping",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    
+    __table_args__ = (
+        UniqueConstraint("source_schema_id", "target_schema_id", "version", name="uq_mapping_source_target_version"),
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class MappingRelation(ScientificArtifact):
+    """Represents a specific relation within a mapping.
+    
+    A mapping relation defines the relationship between a specific source classification
+    and a target classification within a mapping. It can contain data values or
+    references to parameterisation relations for complex data.
+    
+    Attributes:
+        id (uuid.UUID): Primary key, inherited from ScientificArtifact.
+        mapping_id (uuid.UUID): Foreign key to parent mapping.
+        mapping (Mapping): The parent mapping this relation belongs to.
+        source_id (uuid.UUID): Foreign key to source EntityClassification.
+        target_id (uuid.UUID): Foreign key to target EntityClassification.
+        data (str | int | float | bool | None): Simple data value or reference to parameterisation.
+    """
+    
+    __tablename__ = EntityType.mapping_relation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    
+    mapping_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("mapping.id"), index=True
+    )
+    mapping: Mapped["Mapping"] = relationship(
+        "Mapping",
+        back_populates="mapping_relations",
+        uselist=False,
+    )
+    
+    # Foreign keys to EntityClassification (placeholder entities for now)
+    source_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    target_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    
+    # Can store simple data values (int/float/bool/str)
+    data: Mapped[str | int | float | bool | None] = mapped_column(JSONB)
+
+    parameterisation_relation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("parameterisation_relation.id"), index=True
+    )
+    parameterisation_relation: Mapped["ParameterisationRelation"] = relationship(
+        "ParameterisationRelation",
+        foreign_keys=[parameterisation_relation_id],
+        uselist=False,
+    )
+    
+    __table_args__ = (
+        UniqueConstraint("mapping_id", "source_id", "target_id", name="uq_mapping_relation_source_target"),
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class ParameterisationRelation(ScientificArtifact):
+    """Represents complex parameter data for mapping relations.
+    
+    A parameterisation relation stores complex data structures as key-value pairs,
+    used when a mapping relation needs to contain multiple data values
+    (e.g., synaptic physiology parameters).
+    
+    Attributes:
+        id (uuid.UUID): Primary key, inherited from ScientificArtifact.
+        data (dict): Dictionary of key-value pairs containing the parameter data.
+    """
+    
+    __tablename__ = EntityType.parameterisation_relation.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scientific_artifact.id"), primary_key=True)
+    
+    data: Mapped[JSON_DICT]
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
 register_model_events()

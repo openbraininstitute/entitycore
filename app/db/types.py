@@ -141,6 +141,9 @@ class EntityType(StrEnum):
     analysis_notebook_result = auto()
     skeletonization_config = auto()
     skeletonization_campaign = auto()
+    mapping = auto()
+    mapping_relation = auto()
+    parameterisation_relation = auto()
 
 
 class AgentType(StrEnum):

@@ -2,7 +2,8 @@ from typing import Annotated
 
 from fastapi_filter import with_prefix
 
-from app.db.model import ActivityStatus, MEModel
+from app.db.model import MEModel
+from app.db.types import ValidationStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
@@ -26,7 +27,7 @@ class NestedMEModelFilter(
     NameFilterMixin,
     CustomFilter,
 ):
-    validation_status: ActivityStatus | None = None
+    validation_status: ValidationStatus | None = None
 
     brain_region: Annotated[
         NestedBrainRegionFilter | None,

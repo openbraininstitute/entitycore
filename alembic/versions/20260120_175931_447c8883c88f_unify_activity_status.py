@@ -74,15 +74,6 @@ TABLES_TO_MOVE_STATUS = [
 # remap table status to activity status without moving it
 TABLES_TO_REMAP_STATUS = [
     {
-        "table": "memodel",
-        "column": "validation_status",
-        "enum": {
-            "name": "me_model_validation_status",
-            "values": ["created", "initialized", "running", "done", "error"],
-        },
-        "mapping": {"initialized": "pending"},
-    },
-    {
         "table": "single_neuron_simulation",
         "column": "status",
         "enum": {

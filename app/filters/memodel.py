@@ -2,7 +2,8 @@ from typing import Annotated
 
 from fastapi_filter import with_prefix
 
-from app.db.model import MEModel, ValidationStatus
+from app.db.model import MEModel
+from app.db.types import ValidationStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter

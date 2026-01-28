@@ -869,6 +869,7 @@ def create_memodel_ids(
                     authorized_project_id=PROJECT_ID,
                     created_by_id=person_id,
                     updated_by_id=person_id,
+                    validation_status="created",
                 ),
             ).id
 
@@ -1132,6 +1133,7 @@ def faceted_memodels(
                 authorized_project_id=PROJECT_ID,
                 created_by_id=person_id,
                 updated_by_id=person_id,
+                validation_status="created",
             ),
         )
 

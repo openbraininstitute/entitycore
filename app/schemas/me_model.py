@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.model import ValidationStatus
+from app.db.types import ValidationStatus
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
 from app.schemas.base import (

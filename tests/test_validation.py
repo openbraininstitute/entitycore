@@ -35,6 +35,7 @@ def json_data(morphology_id, validation_result_id):
         "start_time": str(datetime.now(UTC)),
         "end_time": str(datetime.now(UTC)),
         "used_ids": [str(morphology_id)],
+        "status": "created",
         "generated_ids": [str(validation_result_id)],
     }
 

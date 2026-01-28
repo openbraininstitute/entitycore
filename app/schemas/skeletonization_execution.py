@@ -1,4 +1,3 @@
-from app.db.types import SkeletonizationExecutionStatus
 from app.schemas.activity import (
     ActivityCreate,
     ActivityRead,
@@ -9,15 +8,15 @@ from app.schemas.utils import make_update_schema
 
 
 class SkeletonizationExecutionCreate(ActivityCreate, ExecutionActivityMixin):
-    status: SkeletonizationExecutionStatus
+    pass
 
 
 class SkeletonizationExecutionRead(ActivityRead, ExecutionActivityMixin):
-    status: SkeletonizationExecutionStatus
+    pass
 
 
 class SkeletonizationExecutionUserUpdate(ActivityUpdate, ExecutionActivityMixin):
-    status: SkeletonizationExecutionStatus | None = None
+    pass
 
 
 SkeletonizationExecutionAdminUpdate = make_update_schema(

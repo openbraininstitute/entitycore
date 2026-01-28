@@ -1,4 +1,3 @@
-from app.db.types import IonChannelModelingExecutionStatus
 from app.schemas.activity import (
     ActivityCreate,
     ActivityRead,
@@ -9,15 +8,15 @@ from app.schemas.utils import make_update_schema
 
 
 class IonChannelModelingExecutionCreate(ActivityCreate, ExecutionActivityMixin):
-    status: IonChannelModelingExecutionStatus
+    pass
 
 
 class IonChannelModelingExecutionRead(ActivityRead, ExecutionActivityMixin):
-    status: IonChannelModelingExecutionStatus
+    pass
 
 
 class IonChannelModelingExecutionUserUpdate(ActivityUpdate, ExecutionActivityMixin):
-    status: IonChannelModelingExecutionStatus | None = None
+    pass
 
 
 IonChannelModelingExecutionAdminUpdate = make_update_schema(

@@ -7,6 +7,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
     DateTime,
+    Enum,
     ForeignKey,
     ForeignKeyConstraint,
     Identity,
@@ -71,6 +72,7 @@ from app.db.types import (
     StainingType,
     StorageType,
     StructuralDomain,
+    ValidationStatus,
 )
 from app.schemas.publication import Author
 from app.utils.events import register_model_events
@@ -759,7 +761,10 @@ class MEModel(
     __tablename__ = EntityType.memodel.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    validation_status: Mapped[ActivityStatus]
+    validation_status: Mapped[ValidationStatus] = mapped_column(
+        Enum(ValidationStatus, name="me_model_validation_status"),
+        default=ValidationStatus.created,
+    )
 
     morphology_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.cell_morphology}.id"))
 

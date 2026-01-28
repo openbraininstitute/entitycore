@@ -232,6 +232,15 @@ class AssetStatus(StrEnum):
     DELETED = auto()
 
 
+class ValidationStatus(StrEnum):
+    # TODO: To be removed once validation_status is removed
+    created = auto()
+    initialized = auto()
+    running = auto()
+    done = auto()
+    error = auto()
+
+
 class ActivityStatus(StrEnum):
     created = auto()
     pending = auto()

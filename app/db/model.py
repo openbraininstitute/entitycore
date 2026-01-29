@@ -1104,7 +1104,6 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
     seed: Mapped[int]
     injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
     recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
-    status: Mapped[ActivityStatus]
     # TODO: called used ?
     me_model_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.memodel}.id"), index=True
@@ -1119,7 +1118,6 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
     seed: Mapped[int]
     injection_location: Mapped[STRING_LIST] = mapped_column(default=[])
     recording_location: Mapped[STRING_LIST] = mapped_column(default=[])
-    status: Mapped[ActivityStatus]
     synaptome_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True
     )

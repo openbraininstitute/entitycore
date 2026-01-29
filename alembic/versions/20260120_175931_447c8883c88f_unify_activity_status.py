@@ -33,7 +33,6 @@ TABLES_WITHOUT_STATUS = [
     "validation",
 ]
 
-
 # move status from these tables to the activity parent table
 TABLES_TO_MOVE_STATUS = [
     {
@@ -72,15 +71,15 @@ TABLES_TO_MOVE_STATUS = [
 
 
 # remap table status to activity status without moving it
-TABLES_TO_REMAP_STATUS = [
+TABLES_TO_DROP_STATUS = [
     {
         "table": "single_neuron_simulation",
         "column": "status",
         "enum": {
             "name": "singleneuronsimulationstatus",
             "values": ["started", "failure", "success"],
+            "default": "success",
         },
-        "mapping": {"started": "created", "failure": "error", "success": "done"},
     },
     {
         "table": "single_neuron_synaptome_simulation",
@@ -88,8 +87,8 @@ TABLES_TO_REMAP_STATUS = [
         "enum": {
             "name": "singleneuronsimulationstatus",
             "values": ["started", "failure", "success"],
+            "default": "success",
         },
-        "mapping": {"started": "created", "failure": "error", "success": "done"},
     },
 ]
 
@@ -149,27 +148,18 @@ def _move_table_statuses(op):
         postgresql.ENUM(*t["enum"]["values"], name=t["enum"]["name"]).drop(op.get_bind())
 
 
-def _remap_table_statuses(op, new_enum):
-    enums_to_be_dropped = []
-    for t in TABLES_TO_REMAP_STATUS:
-        old_enum = postgresql.ENUM(*t["enum"]["values"], name=t["enum"]["name"])
-        op.alter_column(
-            t["table"],
-            t["column"],
-            existing_type=old_enum,
-            type_=new_enum,
-            existing_nullable=False,
-            postgresql_using=_using_expr(t["column"], t["mapping"]),
-        )
-        enums_to_be_dropped.append(old_enum)
-    for e in enums_to_be_dropped:
-        e.drop(op.get_bind())
+def _drop_table_statuses(op):
+    for t in TABLES_TO_DROP_STATUS:
+        op.drop_column(t["table"], t["column"])
+    for t in TABLES_TO_DROP_STATUS:
+        enum = postgresql.ENUM(*t["enum"]["values"], name=t["enum"]["name"])
+        enum.drop(op.get_bind(), checkfirst=True)
 
 
 def upgrade() -> None:
     activity_enum = _create_activity_status_column(op)
     _move_table_statuses(op)
-    _remap_table_statuses(op, activity_enum)
+    _drop_table_statuses(op)
 
     conn = op.get_bind()
 
@@ -194,11 +184,11 @@ def _create_table_enums(conn):
     enums = {}
     for t in TABLES_TO_MOVE_STATUS:
         table_enum = postgresql.ENUM(*t["enum"]["values"], name=t["enum"]["name"])
-        table_enum.create(conn)
+        table_enum.create(conn, checkfirst=True)
         enums[t["enum"]["name"]] = table_enum
-    for t in TABLES_TO_REMAP_STATUS:
+    for t in TABLES_TO_DROP_STATUS:
         table_enum = postgresql.ENUM(*t["enum"]["values"], name=t["enum"]["name"])
-        table_enum.create(conn)
+        table_enum.create(conn, checkfirst=True)
         enums[t["enum"]["name"]] = table_enum
     return enums
 
@@ -208,6 +198,16 @@ def _create_table_columns(enums):
         op.add_column(
             t["table"],
             sa.Column(t["column"], enums[t["enum"]["name"]], nullable=True),
+        )
+    for t in TABLES_TO_DROP_STATUS:
+        op.add_column(
+            t["table"],
+            sa.Column(
+                t["column"],
+                enums[t["enum"]["name"]],
+                nullable=False,
+                server_default=t["enum"]["default"],
+            ),
         )
 
 
@@ -221,27 +221,6 @@ def _move_status_from_activity_to_tables(conn):
             SET status = a.status::text::{enum_name}
             FROM activity a
             WHERE a.id = t.id
-        """)
-        )
-
-
-def _invert_remap_table_statuses(conn, old_enum, enums):
-    enums_to_be_dropped = []
-    for t in TABLES_TO_REMAP_STATUS:
-        table_name = t["table"]
-        table_column = t["column"]
-        new_enum_name = t["enum"]["name"]
-        inverse_mapping = {v: k for k, v in t["mapping"].items()}
-
-        str_using = _using_expr(table_column, inverse_mapping).replace(
-            "activitystatus", new_enum_name
-        )
-
-        conn.execute(
-            text(f"""
-        ALTER TABLE {table_name}
-        ALTER COLUMN {table_column} TYPE {new_enum_name}
-        USING {str_using}
         """)
         )
 
@@ -266,9 +245,5 @@ def downgrade() -> None:
             nullable=False,
         )
 
-    # invert statuses back to local ones
-    activity_enum = _activity_enum()
-    _invert_remap_table_statuses(conn, activity_enum, enums)
-
     op.drop_column("activity", "status")
-    activity_enum.drop(conn)
+    _activity_enum().drop(conn)

@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from app.db.model import SingleNeuronSynaptomeSimulation
-from app.db.types import ActivityStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
@@ -23,8 +22,6 @@ class SingleNeuronSynaptomeSimulationFilter(
     NameFilterMixin,
     ILikeSearchFilterMixin,
 ):
-    status: ActivityStatus | None = None
-
     synaptome: Annotated[
         NestedSingleNeuronSynaptomeFilter | None, NestedSingleNeuronSynaptomeFilterDep
     ] = None

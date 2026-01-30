@@ -302,6 +302,7 @@ def ion_channel_models(db, json_data, person_id):
                     "created_by_id": str(person_id),
                     "updated_by_id": str(person_id),
                     "authorized_project_id": PROJECT_ID,
+                    "conductance_name": "gbar",
                 }
             ),
             IonChannelModel(
@@ -311,6 +312,7 @@ def ion_channel_models(db, json_data, person_id):
                     "created_by_id": str(person_id),
                     "updated_by_id": str(person_id),
                     "authorized_project_id": PROJECT_ID,
+                    "conductance_name": "gmax",
                 }
             ),
             IonChannelModel(
@@ -321,6 +323,7 @@ def ion_channel_models(db, json_data, person_id):
                     "updated_by_id": str(person_id),
                     "authorized_project_id": PROJECT_ID,
                     "temperature_celsius": None,
+                    "conductance_name": None,
                 }
             ),
         ],
@@ -357,3 +360,12 @@ def test_filtering(client, ion_channel_models, person_id):
 
     data = req({"ilike_search": "icm-2"})
     assert len(data) == 1
+
+    data = req({"conductance_name": "gbar"})
+    assert len(data) == 1
+
+    data = req({"conductance_name__isnull": True})
+    assert len(data) == 1
+
+    data = req({"conductance_name__isnull": False})
+    assert len(data) == 2

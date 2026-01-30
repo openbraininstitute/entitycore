@@ -29,6 +29,8 @@ class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSear
     temperature_celsius__lte: int | None = None
     temperature_celsius__gte: int | None = None
     is_stochastic: bool | None = None
+    conductance_name: str | None = None
+    conductance_name__isnull: bool | None = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

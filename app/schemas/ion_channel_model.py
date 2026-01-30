@@ -35,6 +35,7 @@ class IonChannelModelBase(BaseModel, NameDescriptionMixin):
     temperature_celsius: int | None
     is_stochastic: bool = False
     neuron_block: NeuronBlock
+    conductance_name: str | None = None
 
 
 class IonChannelModelCreate(

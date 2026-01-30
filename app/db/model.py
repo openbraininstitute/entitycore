@@ -1231,6 +1231,7 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     is_stochastic: Mapped[bool] = mapped_column(default=False)
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
+    conductance_name: Mapped[str | None] = mapped_column(default=None)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

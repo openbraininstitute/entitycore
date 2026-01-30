@@ -1,4 +1,3 @@
-from app.db.types import CircuitExtractionExecutionStatus
 from app.schemas.activity import (
     ActivityCreate,
     ActivityRead,
@@ -9,15 +8,15 @@ from app.schemas.utils import make_update_schema
 
 
 class CircuitExtractionExecutionCreate(ActivityCreate, ExecutionActivityMixin):
-    status: CircuitExtractionExecutionStatus
+    pass
 
 
 class CircuitExtractionExecutionRead(ActivityRead, ExecutionActivityMixin):
-    status: CircuitExtractionExecutionStatus
+    pass
 
 
 class CircuitExtractionExecutionUserUpdate(ActivityUpdate, ExecutionActivityMixin):
-    status: CircuitExtractionExecutionStatus | None = None
+    pass
 
 
 CircuitExtractionExecutionAdminUpdate = make_update_schema(

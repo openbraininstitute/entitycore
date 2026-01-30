@@ -1,7 +1,6 @@
 from typing import Annotated
 
 from app.db.model import SingleNeuronSimulation
-from app.db.types import SingleNeuronSimulationStatus
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.brain_region import BrainRegionFilterMixin
@@ -20,8 +19,6 @@ class SingleNeuronSimulationFilter(
     NameFilterMixin,
     ILikeSearchFilterMixin,
 ):
-    status: SingleNeuronSimulationStatus | None = None
-
     me_model: Annotated[NestedMEModelFilter | None, NestedMEModelFilterDep] = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
@@ -32,7 +29,6 @@ class SingleNeuronSimulationFilter(
             "creation_date",
             "update_date",
             "name",
-            "status",
             "brain_region__name",
             "brain_region__acronym",
             "created_by__pref_label",

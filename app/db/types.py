@@ -232,51 +232,22 @@ class AssetStatus(StrEnum):
     DELETED = auto()
 
 
-class SingleNeuronSimulationStatus(StrEnum):
-    started = auto()
-    failure = auto()
-    success = auto()
+class ValidationStatus(StrEnum):
+    # TODO: To be removed once validation_status is removed
+    created = auto()
+    initialized = auto()
+    running = auto()
+    done = auto()
+    error = auto()
 
 
-class SimulationExecutionStatus(StrEnum):
+class ActivityStatus(StrEnum):
     created = auto()
     pending = auto()
     running = auto()
     done = auto()
     error = auto()
     cancelled = auto()
-
-
-class IonChannelModelingExecutionStatus(StrEnum):
-    created = auto()
-    pending = auto()
-    running = auto()
-    done = auto()
-    error = auto()
-
-
-class SkeletonizationExecutionStatus(StrEnum):
-    created = auto()
-    pending = auto()
-    running = auto()
-    done = auto()
-    error = auto()
-
-
-class CircuitExtractionExecutionStatus(StrEnum):
-    created = auto()
-    pending = auto()
-    running = auto()
-    done = auto()
-    error = auto()
-
-
-class ValidationStatus(StrEnum):
-    created = auto()
-    initialized = auto()
-    running = auto()
-    done = auto()
-    error = auto()
 
 
 class Sex(StrEnum):

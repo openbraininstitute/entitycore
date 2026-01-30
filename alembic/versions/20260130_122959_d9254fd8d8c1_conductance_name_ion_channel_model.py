@@ -1,4 +1,4 @@
-"""Default migration message
+"""conductance_name_ion_channel_model
 
 Revision ID: d9254fd8d8c1
 Revises: 447c8883c88f

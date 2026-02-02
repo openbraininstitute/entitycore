@@ -1232,6 +1232,7 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     nmodl_suffix: Mapped[str]
     neuron_block: Mapped[JSON_DICT]
     conductance_name: Mapped[str | None]
+    max_permeability_name: Mapped[str | None]
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

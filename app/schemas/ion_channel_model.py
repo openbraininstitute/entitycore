@@ -36,6 +36,7 @@ class IonChannelModelBase(BaseModel, NameDescriptionMixin):
     is_stochastic: bool = False
     neuron_block: NeuronBlock
     conductance_name: str | None = None
+    max_permeability_name: str | None = None
 
 
 class IonChannelModelCreate(

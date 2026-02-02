@@ -325,7 +325,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
     { name = "fastapi", specifier = ">=0.121" },
     { name = "fastapi-filter", specifier = ">=2.0.0" },
-    { name = "httpx" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "openai", specifier = ">=1.101.0" },
     { name = "pgvector", specifier = ">=0.4.1" },

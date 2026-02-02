@@ -11,7 +11,7 @@ dependencies = [
     "cachetools>=5.5.2",
     "fastapi>=0.121",
     "fastapi-filter>=2.0.0",
-    "httpx",
+    "httpx>=0.28.1",
     "loguru>=0.7.3",
     "pydantic>=2",
     "sqlalchemy",
@@ -20,7 +20,7 @@ dependencies = [
     "click>=8.1.7",
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
-    "python-multipart>=0.0.20",
+    "python-multipart>=0.0.20",  # needed by fastapi to handle uploaded files
     "pgvector>=0.4.1",
     "openai>=1.101.0",
 ]

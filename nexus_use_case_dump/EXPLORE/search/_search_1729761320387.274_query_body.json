@@ -1,1 +1,0 @@
-{"query":{"bool":{"must":[{"term":{"@type":"GeneratorTaskActivity"}},{"term":{"used_config.@id.keyword":"https://bbp.epfl.ch/data/bbp/mmb-point-neuron-framework-model/3eb1c62a-6714-4b97-8ed3-fe0a0605ba26"}},{"term":{"used_rev":1}}]}}}

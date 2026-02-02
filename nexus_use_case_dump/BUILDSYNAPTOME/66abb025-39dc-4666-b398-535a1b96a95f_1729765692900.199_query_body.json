@@ -1,6 +1,0 @@
------------------------------117162419941390295921995748178
-Content-Disposition: form-data; name="file"; filename="synaptome_config.json"
-Content-Type: application/json
-
-{"synapses":[{"id":"b5c2adcf-0baa-491c-8ef3-4487940a2f66","name":"test1","target":"apic","type":110,"distribution":"formula","formula":"0.08","seed":100,"exclusion_rules":null,"soma_synapse_count":50,"color":"#FF8B2C"}],"meModelSelf":"https://openbluebrain.com/api/nexus/v1/resources/59764e8c-5831-4d81-8166-d2f1c595571b/66abb025-39dc-4666-b398-535a1b96a95f/_/https:%2F%2Fopenbluebrain.com%2Fdata%2F59764e8c-5831-4d81-8166-d2f1c595571b%2F66abb025-39dc-4666-b398-535a1b96a95f%2Fd31576a5-e5e4-4aa9-93d5-41afc8cee6bd"}
------------------------------117162419941390295921995748178--

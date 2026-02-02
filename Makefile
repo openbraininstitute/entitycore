@@ -46,41 +46,11 @@ lint:  ## Run linters
 	uv run -m ruff check
 	uv run -m pyright app
 
-pip-audit:
+pip-audit:  ## Run package auditing
 	uv run --with pip-audit pip-audit -l
 
 build:  ## Build the Docker image
 	docker compose --profile "*" --progress=plain build app
-
-import:  ## Run the import on a database, assumes mba_hierarchy.json and out are in the current dir
-	@$(call load_env,run-local)
-	@test -n "$(PROJECT_ID_IMPORT)" || (echo "Please set the variable PROJECT_ID_IMPORT"; exit 1)
-	@test -n "$(VIRTUAL_LAB_ID_IMPORT)" || (echo "Please set the variable VIRTUAL_LAB_ID_IMPORT"; exit 1)
-	docker compose up --wait db
-	uv run -m alembic upgrade head
-	uv run -m app.cli.import_data --seed 1 hierarchy $(HIERARCHY_NAME) mba_hierarchy.json
-	uv run -m app.cli.import_data --seed 2 run ./out project_ids.txt --virtual-lab-id $(VIRTUAL_LAB_ID_IMPORT) --project-id $(PROJECT_ID_IMPORT) --hierarchy-name $(HIERARCHY_NAME)
-
-curate-files:  ## Create curated files and save them into the curated directory
-	@$(call load_env,run-local)
-	docker compose up --wait db
-	mkdir -p curated
-	uv run -m app.cli.import_data curate-files files.txt curated_files.txt --out-dir ./curated
-
-organize-files:  ## Organize files locally by creating symlinks from the backup to the expected location
-	@$(call load_env,run-local)
-	docker compose up --wait db
-	uv run -m app.cli.import_data organize-files $(if $(wildcard curated_files.txt),curated_files.txt,files.txt)
-
-fetch-missing-distributions:
-	@$(call load_env,run-local)
-	docker compose up --wait db
-	uv run -m app.cli.import_data fetch-missing-distributions files.txt  missing_distributions ./out
-
-assign-project:
-	@$(call load_env,run-local)
-	docker compose up --wait db
-	uv run -m app.cli.import_data assign-project project_ids.txt
 
 publish: build  ## Publish the Docker image to DockerHub
 	docker compose push app
@@ -155,5 +125,5 @@ extract-traces:  ## Extract response payloads generated in unit tests
 		--source "$${REQUEST_TRACER_OUTPUT}" \
 		--output "$${EXTRACTED_TRACES}"
 
-generate-asset-labels-table:  ## Update asset-labels.md
+update-asset-labels:  ## Update asset-labels.md
 	uv run ./scripts/generate_asset_labels_table.py -o ./docs/asset-labels.md

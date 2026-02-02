@@ -50,29 +50,18 @@ In case of issues with the database, you can delete all the related Docker conta
 $ make destroy
 ```
 
-## Optional, populate the database with sample data
+## Optional, dump and restore the database
 
-- Download the hierarchy:
-
-```
-aws s3 cp --no-sign-request s3://openbluebrain/Model_Data/Brain_atlas/Mouse/resolution_25_um/version_1.1.0/Parcellation_ontology/mba_hierarchy.json . 
-```
-
-- Download the Nexus data (only metadata) from:
-```
-https://openbraininstitute.sharepoint.com/:u:/s/OpenBrainInstitute/EZATMPEZvN5CjHtL2c78U14BXsrey4ORBfupq5BvdVKJKg
-```
-- Untar the downloaded file (`out.tar` or `out.tar.gz`) in a directory called `out`:
+To dump and restore the database, you can optionally specify DUMPFILE when using:
 
 ```
-$ tar xzf out.tar.gz
+$ make dump DUMPFILE=./data/db_2026.1.9.dump
 ```
 
-- Import data into the specified database:
+```
+$ make restore DUMPFILE=./data/db_2026.1.9.dump
+```
 
-```
-$ make import
-```
 
 ## Available make targets
 
@@ -85,9 +74,8 @@ upgrade-deps            Create or update the lock file, using the latest version
 check-deps              Check that the dependencies in the existing lock file are valid
 format                  Run formatters
 lint                    Run linters
+pip-audit               Run package auditing
 build                   Build the Docker image
-import                  Run the import on a database, assumes mba_hierarchy.json and out are in the current dir
-organize-files          Organize files locally by creating symlinks from the backup to the expected location
 publish                 Publish the Docker image to DockerHub
 test-local              Run tests locally
 test-docker             Run tests in Docker
@@ -95,16 +83,11 @@ run-local               Run the application locally
 run-docker              Run the application in Docker
 destroy                 Take down the application and remove the volumes
 migration               Create or update the alembic migration
-```
-
-## Legacy notes, to be cleaned up
-
-```
-# setup postgres to use full text search (VectorTS)
-
-# test_legacy / test_dump can be used to test legacy calls
-# test_dump is going through all the nexus rest calls in nexus_use_case_dump and executes these calls
+dump                    Dump the local database to file
+restore                 Delete and restore the local database from file
+extract-traces          Extract response payloads generated in unit tests
+update-asset-labels     Update asset-labels.md
 ```
 
 
-Copyright © 2025 Open Brain Institute
+Copyright © 2025-2026 Open Brain Institute

@@ -2,9 +2,7 @@
 name = "entitycore"
 version = "0.0.0"
 description = "entitycore"
-authors = [
-    {name = "Open Brain Institute"},
-]
+authors = [{ name = "Open Brain Institute" }]
 dependencies = [
     "alembic>=1.14.1",
     "alembic-postgresql-enum>=1.5.0",
@@ -13,25 +11,22 @@ dependencies = [
     "cachetools>=5.5.2",
     "fastapi>=0.121",
     "fastapi-filter>=2.0.0",
+    "httpx",
     "loguru>=0.7.3",
     "pydantic>=2",
     "sqlalchemy",
-    "tqdm>=4.67.1",
     "uvicorn[standard]",
     "psycopg2",
-    "bidict",
-    "deepdiff",
     "click>=8.1.7",
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
     "python-multipart>=0.0.20",
-    "h5py",
     "pgvector>=0.4.1",
     "openai>=1.101.0",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = "Apache-2.0"
 
 [build-system]
 requires = ["setuptools>=64", "wheel"]
@@ -40,30 +35,33 @@ build-backend = "setuptools.build_meta"
 [dependency-groups]
 dev = [
     "coverage[toml]",
-    "httpx",
     "moto[s3]>=5.0.28",
     "pyright>=1.1.400",
     "pytest",
     "pytest-cov",
     "pytest-freezer>=0.4.9",
     "pytest-httpx>=0.35.0",
-    "rich>=14.0.0",
     "ruff",
     "types-boto3-lite[essential]>=1.36.11",
     "types-cachetools>=5.5.0.20240820",
-    "types-PyYAML",
 ]
 
 [tool.setuptools.packages.find]
 include = ["app"]
 
 [tool.uv]
-required-version = ">=0.8.0"
+required-version = ">=0.9.0"
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-include = ["pyproject.toml", "app/**/*.py", "tests/**/*.py", "alembic/**/*.py"]
+include = [
+    "pyproject.toml",
+    "app/**/*.py",
+    "tests/**/*.py",
+    "alembic/**/*.py",
+    "scripts/**/*.py",
+]
 
 [tool.ruff.lint]
 preview = true
@@ -86,20 +84,20 @@ ignore = [
     "TD",      # TODOs
     "RET504",  # Unnecessary assignment to `query` before `return` statement
     ### TODO: remove rules temporarily ignored (lower priority)
-    "DOC201",  # `return` is not documented in docstring
-    "DOC402",  # `yield` is not documented in docstring
-    "DOC501",  # Raised exception missing from docstring
+    "DOC201", # `return` is not documented in docstring
+    "DOC402", # `yield` is not documented in docstring
+    "DOC501", # Raised exception missing from docstring
     ### TODO: remove additional rules temporarily ignored (higher priority)
-    "ANN",     # All the annotations
-    "D100",    # Missing docstring in public module
-    "D101",    # Missing docstring in public class
-    "D102",    # Missing docstring in public method
-    "D103",    # Missing docstring in public function
-    "D104",    # Missing docstring in public package
-    "D106",    # Missing docstring in public nested class
-    "ERA001",  # Found commented-out code
-    "N815",    # Variable in class scope should not be mixedCase
-    "E731",    # Do not assign a `lambda` expression, use a `def`
+    "ANN",    # All the annotations
+    "D100",   # Missing docstring in public module
+    "D101",   # Missing docstring in public class
+    "D102",   # Missing docstring in public method
+    "D103",   # Missing docstring in public function
+    "D104",   # Missing docstring in public package
+    "D106",   # Missing docstring in public nested class
+    "ERA001", # Found commented-out code
+    "N815",   # Variable in class scope should not be mixedCase
+    "E731",   # Do not assign a `lambda` expression, use a `def`
 ]
 
 [tool.ruff.lint.isort]
@@ -120,21 +118,6 @@ builtins-ignorelist = ["license"]
     "PLR0914", # Too many local variables
 ]
 "alembic/versions/*" = ["ALL"]
-"app/cli/import_data.py" = ["ALL"]
-"app/cli/curate.py" = [
-    "S101",    # Use of `assert` detected
-]
-"app/cli/curation/*" = [
-    "B006",    # Do not use mutable data structures for argument defaults
-    "S101",    # Use of `assert` detected
-]
-"app/cli/utils.py" = [
-    "B006",    # Do not use mutable data structures for argument defaults
-    "S101",
-    "PLR0915",  # Too many statements
-]
-"test_dump/**.py" = ["ALL"]
-"test_legacy/**.py" = ["ALL"]
 "tests/**.py" = [
     "ANN",     # Missing type annotation
     "D",       # pydocstyle
@@ -147,7 +130,7 @@ builtins-ignorelist = ["license"]
     "SLF001",  # private member access
 ]
 "app/db/model.py" = [
-    "A003",    # builtin-attribute-shadowing
+    "A003", # builtin-attribute-shadowing
 ]
 
 [tool.ruff.lint.pydocstyle]
@@ -179,33 +162,25 @@ addopts = [
     "--durations-min=0.1",
 ]
 # asyncio_mode = "auto"
-testpaths = [
-    "tests",
-]
+testpaths = ["tests"]
 filterwarnings = [
-    "ignore:datetime.datetime.utcnow:DeprecationWarning:botocore",  # https://github.com/boto/boto3/issues/3889
+    "ignore:datetime.datetime.utcnow:DeprecationWarning:botocore", # https://github.com/boto/boto3/issues/3889
     "error::sqlalchemy.exc.SAWarning",
 ]
 
 [tool.coverage.run]
 branch = true
 parallel = false
-source_pkgs = [
-    "app",
-]
+source_pkgs = ["app"]
 
 [tool.coverage.report]
 show_missing = true
 precision = 0
 fail_under = 90
-omit = [
-    "__main__.py",
-    "app/cli/*",
-    "app/routers/legacy/*",
-]
+omit = ["__main__.py", "scripts/*"]
 
 [tool.coverage.xml]
 output = "coverage/coverage.xml"
 
 [tool.pyright]
-exclude = ["app/routers/legacy", "app/cli/curation/electrical_cell_recording.py"]
+exclude = []

@@ -1,1 +1,0 @@
-{"aggregations":{"total":{"value":0}},"hits":{"hits":[],"total":{"relation":"eq","value":0}},"timed_out":false,"took":0,"_shards":{"failed":0,"skipped":0,"successful":1,"total":1}}

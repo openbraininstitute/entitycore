@@ -1,1 +1,0 @@
-{"size":0,"query":{"bool":{"filter":[{"bool":{"must":[{"term":{"_deprecated":false}},{"term":{"@type":"ScholarlyArticle"}}]}}]}},"aggs":{"total":{"value_count":{"field":"_index"}}}}

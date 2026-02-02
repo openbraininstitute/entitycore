@@ -20,7 +20,7 @@ dependencies = [
     "click>=8.1.7",
     "pydantic-settings>=2.7.1",
     "pyjwt>=2.10.1",
-    "python-multipart>=0.0.20",  # needed by fastapi to handle uploaded files
+    "python-multipart>=0.0.20",       # needed by fastapi to handle uploaded files
     "pgvector>=0.4.1",
     "openai>=1.101.0",
 ]
@@ -79,6 +79,7 @@ ignore = [
     "PLR0914", # Too many local vars
     "RET504",  # Unnecessary assignment to `result` before `return` statement
     "RUF029",  # Function is declared `async`, but doesn't `await` or use `async` features.
+    "RUF067",  # `__init__` module should only contain docstrings and re-exports
     "S104",    # Possible binding to all interfaces
     "FIX002",  # Line contains TODO, consider resolving the issue
     "TD",      # TODOs

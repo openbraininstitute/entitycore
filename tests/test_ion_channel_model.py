@@ -303,6 +303,7 @@ def ion_channel_models(db, json_data, person_id):
                     "updated_by_id": str(person_id),
                     "authorized_project_id": PROJECT_ID,
                     "conductance_name": "gbar",
+                    "max_permeability_name": None,
                 }
             ),
             IonChannelModel(
@@ -313,6 +314,7 @@ def ion_channel_models(db, json_data, person_id):
                     "updated_by_id": str(person_id),
                     "authorized_project_id": PROJECT_ID,
                     "conductance_name": "gmax",
+                    "max_permeability_name": None,
                 }
             ),
             IonChannelModel(
@@ -324,6 +326,7 @@ def ion_channel_models(db, json_data, person_id):
                     "authorized_project_id": PROJECT_ID,
                     "temperature_celsius": None,
                     "conductance_name": None,
+                    "max_permeability_name": "pbar",
                 }
             ),
         ],
@@ -369,3 +372,12 @@ def test_filtering(client, ion_channel_models, person_id):
 
     data = req({"conductance_name__isnull": False})
     assert len(data) == 2
+
+    data = req({"max_permeability_name": "pbar"})
+    assert len(data) == 1
+
+    data = req({"max_permeability_name__isnull": True})
+    assert len(data) == 2
+
+    data = req({"max_permeability_name__isnull": False})
+    assert len(data) == 1

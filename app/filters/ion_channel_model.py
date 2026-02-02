@@ -31,6 +31,8 @@ class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSear
     is_stochastic: bool | None = None
     conductance_name: str | None = None
     conductance_name__isnull: bool | None = None
+    max_permeability_name: str | None = None
+    max_permeability_name__isnull: bool | None = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

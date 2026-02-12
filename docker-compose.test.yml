@@ -24,7 +24,9 @@ services:
     image: pgvector/pgvector:0.8.0-pg17-trixie
     environment:
     - POSTGRES_USER=test
-    - POSTGRES_PASSWORD=test
+    # chose a password that requires urlencoding, since pydantic has issues with that:
+    # https://github.com/pydantic/pydantic/issues/8061
+    - POSTGRES_PASSWORD=test!,test
     ports:
     - "127.0.0.1:5434:5432"
     healthcheck:

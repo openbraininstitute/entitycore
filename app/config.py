@@ -1,4 +1,5 @@
 from typing import Literal
+from urllib.parse import quote
 
 from pydantic import PostgresDsn, SecretStr, field_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -74,8 +75,8 @@ class Settings(BaseSettings):
         else:
             dsn = PostgresDsn.build(
                 scheme=info.data["DB_ENGINE"],
-                username=info.data["DB_USER"],
-                password=info.data["DB_PASS"],
+                username=quote(info.data["DB_USER"]),
+                password=quote(info.data["DB_PASS"]),
                 host=info.data["DB_HOST"],
                 port=info.data["DB_PORT"],
                 path=info.data["DB_NAME"],

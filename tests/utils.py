@@ -1551,23 +1551,24 @@ def check_activity_update_one(
         generated_ids=[],
     )
 
-    end_time = datetime.now(UTC)
+    end_time_1 = datetime.now(UTC)
+    end_time_2 = datetime.now(UTC)
 
-    update_json = {
-        "end_time": str(end_time),
-        "generated_ids": [str(generated_id)],
-    }
+    # if not in the same project, nobody can update the activity in regular route
+    data = assert_request(
+        client_admin.patch,
+        url=f"{route}/{entity_id}",
+        json={"end_time": str(end_time_1)},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+    assert "not found" in data["message"]
 
-    data = assert_request(client.patch, url=f"{route}/{entity_id}", json=update_json).json()
-    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time
-    assert len(data["generated"]) == 1
-    assert data["generated"][0]["id"] == str(generated_id)
-
-    # only admin client can hit admin endpoint
+    # regular user cannot hit admin endpoint
     data = assert_request(
         client.patch,
         url=f"{admin_route}/{entity_id}",
-        json=update_json,
+        json={"end_time": str(end_time_1)},
         expected_status_code=403,
     ).json()
     assert data["error_code"] == "NOT_AUTHORIZED"
@@ -1578,24 +1579,28 @@ def check_activity_update_one(
         generated_ids=[],
     )
 
+    # user can update the activity in regular route
+    data = assert_request(
+        client.patch,
+        url=f"{route}/{entity_id}",
+        json={"end_time": str(end_time_1)},
+    ).json()
+    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time_1
+    assert len(data["generated"]) == 0
+
+    # admin can update the activity in admin route
     data = assert_request(
         client_admin.patch,
         url=f"{admin_route}/{entity_id}",
-        json=update_json,
+        json={
+            "end_time": str(end_time_2),
+            "generated_ids": [str(generated_id)],
+        },
     ).json()
 
-    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time
+    assert DateTimeAdapter.validate_python(data["end_time"]) == end_time_2
     assert len(data["generated"]) == 1
     assert data["generated"][0]["id"] == str(generated_id)
-
-    # admin is treated as regular user for regular route (no project context)
-    data = assert_request(
-        client_admin.patch,
-        url=f"{route}/{entity_id}",
-        json=update_json,
-        expected_status_code=403,
-    ).json()
-    assert data["error_code"] == "NOT_AUTHORIZED"
 
 
 def check_activity_update_one__fail_if_generated_ids_unauthorized(

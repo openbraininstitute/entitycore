@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import (
-    constrain_to_accessible_entities,
+    constrain_to_readable_entities,
 )
 from app.db.model import (
     ExternalUrl,
@@ -133,7 +133,7 @@ def read_many(
         aliases=aliases,
     )
 
-    filter_query = lambda q: constrain_to_accessible_entities(
+    filter_query = lambda q: constrain_to_readable_entities(
         q.join(
             scientific_artifact_alias,
             ScientificArtifactExternalUrlLink.scientific_artifact_id

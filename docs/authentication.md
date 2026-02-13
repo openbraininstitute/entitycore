@@ -30,7 +30,7 @@ The special Keycloak group `/service/entitycore/maintainer` allows users to:
 
 * update public entities within authorized projects
 * delete public entities within authorized projects
-* hard delete assets within authorized projects
+* delete assets of public entities within authorized projects
 
 ## Caching
 

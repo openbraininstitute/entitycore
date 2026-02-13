@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import operators
 
 from app.db.auth import (
-    constrain_to_accessible_entities,
+    constrain_to_readable_entities,
     constrain_to_writable_entities,
     is_user_authorized_for_deletion,
     select_unauthorized_entities,
@@ -68,7 +68,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        query = constrain_to_accessible_entities(
+        query = constrain_to_readable_entities(
             query=query,
             project_id=user_context.project_id,
             db_model_class=id_model_class,
@@ -311,7 +311,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     """
     filter_query = sa.select(db_model_class)
     if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
-        filter_query = constrain_to_accessible_entities(
+        filter_query = constrain_to_readable_entities(
             filter_query,
             project_id=authorized_project_id,
             db_model_class=id_model_class,
@@ -469,7 +469,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext | UserContextWithProjectId | None,
+    user_context: UserContext | None,
     json_model: ActivityUpdate,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
@@ -478,8 +478,8 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        query = constrain_to_accessible_entities(
-            query, user_context.project_id, db_model_class=id_model_class
+        query = constrain_to_writable_entities(
+            query, user_context=user_context, db_model_class=id_model_class
         )
     if apply_operations:
         query = apply_operations(query)

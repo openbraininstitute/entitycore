@@ -3,7 +3,7 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
+from app.db.auth import constrain_entity_query_to_project, constrain_to_readable_entities
 from app.db.model import Entity
 from app.errors import ensure_result
 
@@ -27,7 +27,7 @@ def get_readable_entity[T: Entity](
         or raises NoResultFound if the entity doesn't exist, or it's forbidden.
     """
     query = sa.select(db_model_class).where(db_model_class.id == entity_id)
-    query = constrain_to_accessible_entities(query, project_id=project_id)
+    query = constrain_to_readable_entities(query, project_id=project_id)
     with ensure_result(f"Entity {db_model_class.__name__} {entity_id} not found or forbidden"):
         return db.execute(query).scalar_one()
 

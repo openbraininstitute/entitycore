@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 import app.queries.entity
-from app.db.auth import constrain_to_accessible_entities
+from app.db.auth import constrain_to_readable_entities
 from app.db.model import Entity
 from app.db.types import EntityType
 from app.db.utils import (
@@ -87,7 +87,7 @@ def count_entities_by_type(
                 sa.literal(et.value).label("type"),
                 sa.func.count(entity_class.id).label("count"),
             )
-            q = constrain_to_accessible_entities(
+            q = constrain_to_readable_entities(
                 q, project_id=user_context.project_id, db_model_class=entity_class
             )
             q = q.join(brain_region_cte, entity_class.brain_region_id == brain_region_cte.c.id)  # type: ignore[reportAttributeAccessIssue]
@@ -103,7 +103,7 @@ def count_entities_by_type(
         query = sa.select(
             Entity.type.label("type"), sa.func.count(Entity.id).label("count")
         ).select_from(Entity)
-        query = constrain_to_accessible_entities(
+        query = constrain_to_readable_entities(
             query, project_id=user_context.project_id, db_model_class=Entity
         )
         query = query.where(Entity.type.in_(entity_types))

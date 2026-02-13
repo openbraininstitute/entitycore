@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
-from app.db.auth import constrain_entity_query_to_project, constrain_to_accessible_entities
+from app.db.auth import constrain_entity_query_to_project, constrain_to_readable_entities
 from app.db.model import Agent, Contribution, Entity, Person
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
@@ -63,7 +63,7 @@ def read_many(
         aliases=aliases,
     )
 
-    filter_query = lambda q: constrain_to_accessible_entities(_load(q), user_context.project_id)
+    filter_query = lambda q: constrain_to_readable_entities(_load(q), user_context.project_id)
 
     return app.queries.common.router_read_many(
         db=db,
@@ -94,7 +94,7 @@ def read_one(
         db_model_class=Contribution,
         user_context=None,
         response_schema_class=ContributionRead,
-        apply_operations=lambda q: constrain_to_accessible_entities(
+        apply_operations=lambda q: constrain_to_readable_entities(
             _load(q), user_context.project_id
         ),
     )

@@ -44,7 +44,7 @@ def constrain_to_writable_entities[Q: Query | Select](
     )
 
 
-def constrain_to_accessible_entities[Q: Query | Select](
+def constrain_to_readable_entities[Q: Query | Select](
     query: Q,
     project_id: UUID4 | None,
     db_model_class: Any = Entity,

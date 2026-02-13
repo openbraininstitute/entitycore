@@ -154,7 +154,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: SimulationGenerationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
 ) -> SimulationGenerationRead:
     return router_update_activity_one(
         db=db,

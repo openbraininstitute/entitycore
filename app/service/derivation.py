@@ -55,8 +55,8 @@ def read_many(
     )
 
     # always needed regardless of the filter, so it cannot go to filter_keys
-    apply_filter_query_operations = (
-        lambda q: q.join(Derivation, used_db_model_class.id == Derivation.used_id)
+    apply_filter_query_operations = lambda q: (
+        q.join(Derivation, used_db_model_class.id == Derivation.used_id)
         .join(generated_alias, Derivation.generated_id == generated_alias.id)
         .where(
             generated_alias.id == entity_id,

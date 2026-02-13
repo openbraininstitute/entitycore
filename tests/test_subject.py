@@ -54,7 +54,7 @@ def _assert_read_response(data, json_data):
     if json_data["strain_id"] is not None:
         assert data["strain"]["id"] == json_data["strain_id"]
     assert data["authorized_project_id"] == PROJECT_ID
-    assert data["age_value"] == 14.0 * 24.0 * 3600.0
+    assert data["age_value"] == 14 * 24 * 3600
     assert data["age_min"] is None
     assert data["age_max"] is None
     assert data["age_period"] == "postnatal"

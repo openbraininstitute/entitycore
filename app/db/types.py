@@ -141,6 +141,19 @@ class EntityType(StrEnum):
     analysis_notebook_result = auto()
     skeletonization_config = auto()
     skeletonization_campaign = auto()
+    campaign = auto()
+    item_config = auto()
+
+
+class TaskType(StrEnum):
+    """Task types for campaigns."""
+
+    circuit_simulation = auto()
+    circuit_extraction = auto()
+    ion_channel_modeling = auto()
+    skeletonization = auto()
+    ion_channel_simulation = auto()
+    em_synapse_mapping = auto()
 
 
 class AgentType(StrEnum):
@@ -197,6 +210,8 @@ class ActivityType(StrEnum):
     circuit_extraction_execution = auto()
     skeletonization_execution = auto()
     skeletonization_config_generation = auto()
+    config_generation = auto()
+    config_execution = auto()
 
 
 class DerivationType(StrEnum):

@@ -167,7 +167,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: UserUpdateSchema,  # pyright: ignore [reportInvalidTypeForm]
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
 ) -> ReadSchema:
     return router_update_activity_one(
         db=db,

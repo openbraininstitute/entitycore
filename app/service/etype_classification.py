@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from fastapi import HTTPException
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.auth import constrain_to_accessible_entities
+from app.db.auth import constrain_to_readable_entities
 from app.db.model import (
     Entity,
     ETypeClassification,
@@ -45,7 +45,7 @@ def create_one(
     json_model: ETypeClassificationCreate,
     user_context: UserContextWithProjectIdDep,
 ) -> ETypeClassificationRead:
-    stmt = constrain_to_accessible_entities(
+    stmt = constrain_to_readable_entities(
         sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.entity_id),
         user_context.project_id,
     )

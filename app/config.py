@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     LOG_CATCH: bool = True
     LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO"}
 
-    KEYCLOAK_URL: str = "https://staging.openbraininstitute.org/auth/realms/SBO"
+    KEYCLOAK_URL: str = "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO"
     AUTH_CACHE_MAXSIZE: int = 128  # items
     AUTH_CACHE_MAX_TTL: int = 300  # seconds
     AUTH_CACHE_INFO: bool = False

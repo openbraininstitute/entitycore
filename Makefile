@@ -108,7 +108,7 @@ restore:  ## Delete and restore the local database from file
 		db bash -c '\
 		echo "Restoring database $$PGDATABASE from $$DUMPFILE to $$PGHOST:$$PGPORT" && \
 		dropdb --force $$PGDATABASE && createdb $$PGDATABASE && \
-		pg_restore --clean --if-exists --exit-on-error --no-owner --dbname $$PGDATABASE $$DUMPFILE \
+		pg_restore --clean --if-exists --exit-on-error --no-owner --no-acl --dbname $$PGDATABASE $$DUMPFILE \
 		&& psql -c "ANALYZE;"'
 
 extract-traces: export REQUEST_TRACER_ENABLE=1

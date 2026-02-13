@@ -159,7 +159,7 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: IonChannelModelingExecutionUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
 ) -> IonChannelModelingExecutionRead:
     return router_update_activity_one(
         db=db,

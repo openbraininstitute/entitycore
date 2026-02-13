@@ -54,6 +54,19 @@ def get_entity_assets(
     pagination_request: PaginationQuery,
     filter_model: AssetFilterDep,
 ) -> ListResponse[AssetRead]:
+    """Retrieve a paginated list of assets associated with a specific entity.
+
+    This endpoint returns all assets linked to the given `entity_route` and `entity_id`,
+    subject to pagination and optional filtering parameters.
+
+    Notes:
+    - Assets with status `CREATED` are fully processed and available for download.
+    - Assets with status `UPLOADING` may also be returned in the response. However,
+      these assets are still being uploaded and are not yet complete. As a result,
+      they cannot be downloaded until their status transitions to `CREATED`.
+    - The presence of an asset in the response does not guarantee it is downloadable.
+    - Clients should always check the asset `status` field before attempting to download.
+    """
     return asset_service.get_entity_assets(
         repos=repos,
         user_context=user_context,
@@ -221,6 +234,24 @@ def download_entity_asset(
     asset_id: uuid.UUID,
     asset_path: str | None = None,
 ) -> RedirectResponse:
+    """Download an asset associated with a specific entity.
+
+    This endpoint returns a temporary download link (via HTTP redirect) to the
+    requested asset file.
+
+    Availability:
+    - Only assets with status `CREATED` can be downloaded.
+    - If the asset is in `UPLOADING` status, the request will return
+      HTTP 409 (Conflict) because the asset is not yet complete.
+
+    Directory assets:
+    - If the asset represents a directory, you must provide the `asset_path`
+      query parameter specifying the relative path of the file inside the directory.
+    - If `asset_path` is missing for a directory asset, the request will fail
+      with HTTP 409.
+    - If `asset_path` is provided for a non-directory asset, the request will
+      fail with HTTP 409.
+    """
     asset = asset_service.get_entity_asset(
         repos,
         user_context=user_context,

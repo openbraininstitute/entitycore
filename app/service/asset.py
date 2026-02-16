@@ -392,9 +392,15 @@ def entity_asset_upload_initiate(
     content_type: str,
     preferred_part_count: int,
 ) -> AssetReadWithUploadMeta:
-    """Initiate multipart upload.
+    """Initiate a multipart upload for an existing entity asset.
 
-    Note: This function does not check user permissions.
+    This function prepares and starts a multipart upload to S3 for the specified
+    asset and returns the asset metadata along with upload details (e.g., upload ID,
+    part size configuration).
+
+    It is intended to be called immediately after the asset record has been
+    created in the router. Because of that, it does not perform any additional
+    existence or permission checks.
     """
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
         asset = repos.asset.get_entity_asset(
@@ -456,6 +462,16 @@ def entity_asset_upload_complete(
     storage: StorageUnion,
     s3_client: S3Client,
 ) -> AssetRead:
+    """Initiate a multipart file upload for an existing entity asset.
+
+    This function prepares and starts a multipart upload to S3 for the specified
+    asset and returns the asset metadata along with upload details (e.g., upload ID,
+    part size configuration).
+
+    It is intended to be called immediately after the asset record has been
+    created in the router. Because of that, it does not perform any additional
+    existence or permission checks.
+    """
     asset_db = get_writable_entity_db_asset(
         repos,
         user_context=user_context,

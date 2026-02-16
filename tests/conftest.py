@@ -108,9 +108,19 @@ def s3():
 
 
 @pytest.fixture(scope="session")
-def _create_buckets(s3):
-    s3.create_bucket(Bucket=storages[StorageType.aws_s3_internal].bucket)
-    s3.create_bucket(Bucket=storages[StorageType.aws_s3_open].bucket, ACL="public-read")
+def s3_internal_bucket():
+    return storages[StorageType.aws_s3_internal].bucket
+
+
+@pytest.fixture(scope="session")
+def s3_open_bucket():
+    return storages[StorageType.aws_s3_open].bucket
+
+
+@pytest.fixture(scope="session")
+def _create_buckets(s3, s3_internal_bucket, s3_open_bucket):
+    s3.create_bucket(Bucket=s3_internal_bucket)
+    s3.create_bucket(Bucket=s3_open_bucket, ACL="public-read")
 
 
 @pytest.fixture

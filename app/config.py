@@ -1,7 +1,7 @@
 from typing import Literal
 from urllib.parse import quote
 
-from pydantic import PostgresDsn, SecretStr, field_validator
+from pydantic import PostgresDsn, SecretStr, field_validator, model_validator
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -48,7 +48,14 @@ class Settings(BaseSettings):
 
     S3_PRESIGNED_URL_NETLOC: str | None = None  # to override the presigned url hostname and port
     S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value
-    S3_PRESIGNED_URL_EXPIRATION: int = 600  # seconds  # TODO: decide an appropriate value
+    S3_PRESIGNED_URL_EXPIRATION: int = 6 * 3600  # 6 hours
+
+    S3_MULTIPART_UPLOAD_MAX_SIZE: int = 1024**4  # 1TB
+    S3_MULTIPART_UPLOAD_MIN_PART_SIZE: int = 5 * 1024**2
+    S3_MULTIPART_UPLOAD_MAX_PART_SIZE: int = 5 * 1024**3
+    S3_MULTIPART_UPLOAD_MIN_PARTS: int = 1
+    S3_MULTIPART_UPLOAD_MAX_PARTS: int = 10_000
+    S3_MULTIPART_UPLOAD_DEFAULT_PARTS: int = 100
 
     API_ASSET_POST_MAX_SIZE: int = 150 * 1024**2  # bytes  # TODO: decide an appropriate value
 
@@ -82,6 +89,16 @@ class Settings(BaseSettings):
                 path=info.data["DB_NAME"],
             )
         return dsn.unicode_string()
+
+    @model_validator(mode="after")
+    def validate_multipart_upload_size_consistency(self):
+        if (
+            self.S3_MULTIPART_UPLOAD_MAX_SIZE
+            > self.S3_MULTIPART_UPLOAD_MAX_PART_SIZE * self.S3_MULTIPART_UPLOAD_MAX_PARTS
+        ):
+            msg = "S3 multipart upload max size outside allowed limits."
+            raise ValueError(msg)
+        return self
 
 
 class AWSS3InternalConfig(BaseSettings):

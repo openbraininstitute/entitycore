@@ -5,9 +5,10 @@ from fastapi import UploadFile
 
 from app.db.types import ContentType
 from app.logger import L
+from app.schemas.asset import InitiateUploadRequest
 
 
-def get_content_type(file: UploadFile) -> ContentType:
+def get_content_type(file: UploadFile | InitiateUploadRequest) -> ContentType:
     """Return the file content-type.
 
     In case of discrepancy with the original content-type, the discrepancy is just logged.

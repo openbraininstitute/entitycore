@@ -1,4 +1,5 @@
 import io
+from http import HTTPStatus
 from unittest.mock import ANY, patch
 
 import pytest
@@ -22,6 +23,7 @@ from tests.utils import (
     create_cell_morphology_id,
     route,
     s3_key_exists,
+    s3_multipart_upload_exists,
     upload_entity_asset,
 )
 
@@ -126,6 +128,24 @@ def asset(client, entity) -> AssetRead:
     )
     assert response.status_code == 201, f"Failed to create asset: {response.text}"
     data = response.json()
+    return AssetRead.model_validate(data)
+
+
+@pytest.fixture
+def uploading_asset(client, entity) -> AssetRead:
+    """Create an asset the file of which is being uploaded with delegation."""
+    data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json={
+            "filename": "foo.swc",
+            "filesize": 3 * 5 * 1024**2,
+            "sha256_digest": "e3b7c1f0a9d4b8e6f2c0a5d9e1b4c8f6a0d3e7b2c9f4a6d8e5b1c0f9a2",
+            "preferred_part_count": 3,
+            "label": "morphology",
+            "content_type": "application/swc",
+        },
+    ).json()
     return AssetRead.model_validate(data)
 
 
@@ -692,6 +712,18 @@ def test_download_entity_asset(client, entity, asset):
     )
 
 
+def test_download_entity_asset__uploading(client, entity, uploading_asset):
+    """Test that downloading an uploading asset is forbidden."""
+
+    response = client.get(
+        f"{route(entity.type)}/{entity.id}/assets/{uploading_asset.id}/download",
+        follow_redirects=False,
+    )
+    assert response.status_code == HTTPStatus.CONFLICT
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCOMPLETE
+
+
 @pytest.mark.parametrize("client_fixture", ["client_user_2", "client_no_project"])
 def test_download_entity_asset_non_authorized(request, client_fixture, entity, asset):
     client = request.getfixturevalue(client_fixture)
@@ -1121,3 +1153,416 @@ def test_list_entity_asset_directory_non_authorized(
     assert response.status_code == expected_status
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == expected_error
+
+
+def _multipart_json_data(
+    filesize=3 * 5 * 1024**2, filename="foo.swc", content_type="application/swc"
+):
+    return {
+        "filename": filename,
+        "filesize": filesize,
+        "sha256_digest": "e3b7c1f0a9d4b8e6f2c0a5d9e1b4c8f6a0d3e7b2c9f4a6d8e5b1c0f9a2",
+        "preferred_part_count": 3,
+        "label": "morphology",
+        "content_type": content_type,
+    }
+
+
+def test_multipart_asset_upload(db, client, entity, s3, s3_internal_bucket):
+    """Test iniating, uploading parts, and completing a multipart upload."""
+    filesize = 3 * 5 * 1024**2
+
+    data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filesize),
+    ).json()
+
+    upload_id = db.get(Asset, data["id"]).upload_meta["upload_id"]
+
+    expected_upload_meta = {
+        "part_size": 5 * 1024**2,
+        "parts": [
+            {
+                "part_number": 1,
+                "url": ANY,
+            },
+            {
+                "part_number": 2,
+                "url": ANY,
+            },
+            {
+                "part_number": 3,
+                "url": ANY,
+            },
+        ],
+    }
+
+    assert data["status"] == "uploading"
+    assert data["upload_meta"] == expected_upload_meta
+
+    # check that asset is registered in the db with uploading status
+    asset_data = assert_request(
+        client.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}",
+    ).json()
+    assert asset_data["status"] == "uploading"
+
+    # check that multipart upload has initiated
+    assert s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
+
+    # three lines with repeating a, b, c of 5Mb each
+    file_part_bytes = [(letter * 5_242_879 + "\n").encode("utf-8") for letter in ("a", "b", "c")]
+
+    # upload the file to s3 using parts (no presigned urls)
+    part_size = data["upload_meta"]["part_size"]
+    n_full_parts, remainder = divmod(filesize, part_size)
+    sizes = [part_size] * n_full_parts
+    if remainder:
+        sizes += [remainder]
+
+    assert len(sizes) == len(data["upload_meta"]["parts"])
+
+    for i, part in enumerate(data["upload_meta"]["parts"]):
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=data["full_path"],
+            UploadId=upload_id,
+            PartNumber=part["part_number"],
+            Body=file_part_bytes[i],
+        )
+
+    # sanity check that part data is uploaded
+    parts = s3.list_parts(
+        Bucket=s3_internal_bucket,
+        Key=data["full_path"],
+        UploadId=upload_id,
+    )["Parts"]
+
+    assert len(parts) == 3
+    for i, part in enumerate(parts, start=1):
+        assert part["PartNumber"] == i
+        assert part["Size"] == part_size
+
+    completed_data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
+    ).json()
+
+    assert completed_data["status"] == "created"
+
+    # sanity check if db asset changes persisted
+    completed_data = assert_request(
+        client.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}",
+    ).json()
+    assert completed_data["status"] == "created"
+
+    # get file from s3 and check concatenation is correct
+    content = s3.get_object(Bucket=s3_internal_bucket, Key=data["full_path"])["Body"].read()
+    assert content == b"".join(file_part_bytes)
+
+    # check no uploads left following completion
+    assert not s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
+
+
+def test_multipart_asset_upload_abort(db, client, entity, s3, s3_internal_bucket):
+    filesize = 3 * 5 * 1024**2
+
+    data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filesize),
+    ).json()
+
+    assert data["status"] == "uploading"
+    upload_id = db.get(Asset, data["id"]).upload_meta["upload_id"]
+
+    # check that asset is registered in the db with uploading status
+    asset_data = assert_request(
+        client.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}",
+    ).json()
+    assert asset_data["status"] == "uploading"
+
+    # check that multipart upload has initiated
+    assert s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
+
+    assert_request(
+        client.delete,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}",
+    )
+
+    # uploading asset must be deleted
+    assert_request(
+        client.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}",
+        expected_status_code=404,
+    )
+
+    # check that the asset deletion triggered multipart upload abort
+    assert not s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
+
+
+def test_initiate_entity_asset_upload_invalid_filesize(client, entity):
+    """Test initiate_entity_asset_upload with invalid filesize."""
+    # Test with filesize exceeding max
+    max_size = settings.S3_MULTIPART_UPLOAD_MAX_SIZE
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filesize=max_size + 1),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
+    assert f"bigger than {max_size}" in error.message
+
+
+def test_initiate_entity_asset_upload_invalid_filename(client, entity):
+    """Test initiate_entity_asset_upload with invalid filename."""
+    # Test with invalid filename (path traversal)
+
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filename="../../etc/passwd"),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
+    assert "Invalid file name" in error.message
+
+    # Test with invalid filename (absolute path)
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filename="/absolute/path/file.swc"),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
+
+
+def test_initiate_entity_asset_upload_invalid_content_type(client, entity):
+    """Test initiate_entity_asset_upload with invalid content type."""
+    # Test with invalid content type
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(content_type="application/octet-stream"),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
+    assert "Invalid content type" in error.message
+
+
+def test_initiate_entity_asset_upload_duplicate(client, entity):
+    """Test initiate_entity_asset_upload with duplicate asset."""
+    # Create first upload
+    assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(),
+    )
+
+    # Try to create duplicate
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(),
+        expected_status_code=409,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_DUPLICATED
+
+
+def test_initiate_entity_asset_upload_entity_not_found(client, entity):
+    """Test initiate_entity_asset_upload with non-existent entity."""
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{MISSING_ID}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(),
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    ("client_fixture", "expected_status", "expected_error"),
+    [
+        ("client_user_2", 404, ApiErrorCode.ENTITY_NOT_FOUND),
+        ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+    ],
+)
+def test_initiate_entity_asset_upload_non_authorized(
+    request, client_fixture, expected_status, expected_error, entity
+):
+    """Test initiate_entity_asset_upload with unauthorized user."""
+    client = request.getfixturevalue(client_fixture)
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(),
+        expected_status_code=expected_status,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == expected_error
+
+
+def test_complete_entity_asset_upload_asset_not_found(client, entity):
+    """Test complete_entity_asset_upload with non-existent asset."""
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/multipart-upload/complete",
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
+
+
+def test_complete_entity_asset_upload_entity_not_found(client, entity, uploading_asset):
+    """Test complete_entity_asset_upload with non-existent entity."""
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{MISSING_ID}/assets/{uploading_asset.id}/multipart-upload/complete",
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
+def test_complete_entity_asset_upload_not_uploading(client, entity, asset):
+    """Test complete_entity_asset_upload when asset is not in uploading status."""
+    data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/multipart-upload/complete",
+        expected_status_code=422,
+    ).json()
+    error = ErrorResponse.model_validate(data)
+    assert error.error_code == ApiErrorCode.ASSET_NOT_UPLOADING
+    assert "not uploading" in error.message.lower()
+
+
+@pytest.mark.parametrize(
+    ("client_fixture", "expected_status", "expected_error"),
+    [
+        ("client_user_2", 404, ApiErrorCode.ENTITY_NOT_FOUND),
+        ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+    ],
+)
+def test_complete_entity_asset_upload_non_authorized(
+    request, client_fixture, expected_status, expected_error, entity, uploading_asset
+):
+    """Test complete_entity_asset_upload with unauthorized user."""
+    client = request.getfixturevalue(client_fixture)
+    data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/{uploading_asset.id}/multipart-upload/complete",
+        expected_status_code=expected_status,
+    ).json()
+    error = ErrorResponse.model_validate(data)
+    assert error.error_code == expected_error
+
+
+def test_complete_entity_asset_upload_incomplete(db, client, entity, s3, s3_internal_bucket):
+    """Test complete_entity_asset_upload when upload is incomplete."""
+    filesize = 3 * 5 * 1024**2
+
+    # Initiate upload
+    data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filesize=filesize),
+    ).json()
+
+    upload_id = db.get(Asset, data["id"]).upload_meta["upload_id"]
+
+    # Upload only 2 out of 3 parts (incomplete)
+    file_part_bytes = [(letter * 5_242_879 + "\n").encode("utf-8") for letter in ("a", "b")]
+
+    for i, part in enumerate(data["upload_meta"]["parts"][:2]):  # Only upload 2 parts
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=data["full_path"],
+            UploadId=upload_id,
+            PartNumber=part["part_number"],
+            Body=file_part_bytes[i],
+        )
+
+    # Try to complete - should fail because not all parts are uploaded
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
+        expected_status_code=409,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCOMPLETE
+    assert "Expected parts are not uploaded" in error.message
+
+    # upload last part
+    s3.upload_part(
+        Bucket=s3_internal_bucket,
+        Key=data["full_path"],
+        UploadId=upload_id,
+        PartNumber=data["upload_meta"]["parts"][-1]["part_number"],
+        Body=file_part_bytes[-1],
+    )
+
+    # now should complete
+    data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
+    ).json()
+
+    assert data["status"] == "created"
+
+
+def test_complete_entity_asset_upload_inconsistent_size(db, client, entity, s3, s3_internal_bucket):
+    """Test complete_entity_asset_upload when total uploaded size does not match expected size."""
+    # Expected filesize declared during initiation
+    declared_filesize = 3 * 5 * 1024**2  # ~75MB
+
+    # Initiate upload
+    data = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/multipart-upload/initiate",
+        json=_multipart_json_data(filesize=declared_filesize),
+    ).json()
+
+    upload_meta = data["upload_meta"]
+    upload_id = db.get(Asset, data["id"]).upload_meta["upload_id"]
+
+    # Upload *all* parts, but with incorrect sizes
+    # Make each part slightly smaller so total size mismatches
+    wrong_part_size = 5_242_000  # slightly smaller than expected
+    body = b"x" * wrong_part_size
+
+    for part in upload_meta["parts"]:
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=data["full_path"],
+            UploadId=upload_id,
+            PartNumber=part["part_number"],
+            Body=body,
+        )
+
+    # Try to complete - should fail due to size mismatch
+    response = assert_request(
+        client.post,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}/multipart-upload/complete",
+        expected_status_code=409,
+    )
+
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCONSISTENT_SIZE
+    assert "does not match expected size" in error.message
+
+    # Asset should still be in uploading state
+    asset_data = assert_request(
+        client.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}",
+    ).json()
+    assert asset_data["status"] == "uploading"

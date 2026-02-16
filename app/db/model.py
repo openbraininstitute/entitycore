@@ -1427,6 +1427,7 @@ class Asset(Identifiable):
         index=True,
     )
     storage_type: Mapped[StorageType]
+    upload_meta: Mapped[JSON_DICT | None]
 
     # partial unique index
     __table_args__ = (

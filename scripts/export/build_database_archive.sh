@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="523e523531a7"
+SCRIPT_DB_VERSION="122df969f6ee"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -105,6 +105,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM brain_region_hierarchy AS t0  WHERE TRUE) TO '$DATA_DIR/brain_region_hierarchy.csv' WITH CSV HEADER;
 \echo Dumping table calibration
 \copy (SELECT t0.* FROM calibration AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/calibration.csv' WITH CSV HEADER;
+\echo Dumping table campaign
+\copy (SELECT t0.* FROM campaign AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/campaign.csv' WITH CSV HEADER;
 \echo Dumping table cell_composition
 \copy (SELECT t0.* FROM cell_composition AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/cell_composition.csv' WITH CSV HEADER;
 \echo Dumping table cell_morphology
@@ -121,6 +123,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM circuit_extraction_config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_config_generation.csv' WITH CSV HEADER;
 \echo Dumping table circuit_extraction_execution
 \copy (SELECT t0.* FROM circuit_extraction_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_execution.csv' WITH CSV HEADER;
+\echo Dumping table config_generation
+\copy (SELECT t0.* FROM config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/config_generation.csv' WITH CSV HEADER;
 \echo Dumping table consortium
 \copy (SELECT t0.* FROM consortium AS t0  WHERE TRUE) TO '$DATA_DIR/consortium.csv' WITH CSV HEADER;
 \echo Dumping table contribution
@@ -145,6 +149,10 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM emodel AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.exemplar_morphology_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/emodel.csv' WITH CSV HEADER;
 \echo Dumping table entity
 \copy (SELECT t0.* FROM entity AS t0  WHERE t0.authorized_public IS true) TO '$DATA_DIR/entity.csv' WITH CSV HEADER;
+\echo Dumping table entity__campaign
+\copy (SELECT t0.* FROM entity__campaign AS t0 JOIN entity AS t1 ON t1.id=t0.entity_id JOIN entity AS t2 ON t2.id=t0.campaign_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/entity__campaign.csv' WITH CSV HEADER;
+\echo Dumping table entity__task_config
+\copy (SELECT t0.* FROM entity__task_config AS t0 JOIN entity AS t1 ON t1.id=t0.entity_id JOIN entity AS t2 ON t2.id=t0.task_config_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/entity__task_config.csv' WITH CSV HEADER;
 \echo Dumping table etype_class
 \copy (SELECT t0.* FROM etype_class AS t0  WHERE TRUE) TO '$DATA_DIR/etype_class.csv' WITH CSV HEADER;
 \echo Dumping table etype_classification
@@ -245,6 +253,10 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM strain AS t0  WHERE TRUE) TO '$DATA_DIR/strain.csv' WITH CSV HEADER;
 \echo Dumping table subject
 \copy (SELECT t0.* FROM subject AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/subject.csv' WITH CSV HEADER;
+\echo Dumping table task_config
+\copy (SELECT t0.* FROM task_config AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.campaign_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/task_config.csv' WITH CSV HEADER;
+\echo Dumping table task_execution
+\copy (SELECT t0.* FROM task_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_execution.csv' WITH CSV HEADER;
 \echo Dumping table usage
 \copy (SELECT t0.* FROM usage AS t0 JOIN entity AS t1 ON t1.id=t0.usage_entity_id JOIN activity AS t2 ON t2.id=t0.usage_activity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/usage.csv' WITH CSV HEADER;
 \echo Dumping table validation
@@ -263,7 +275,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="523e523531a7"
+SCRIPT_DB_VERSION="122df969f6ee"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

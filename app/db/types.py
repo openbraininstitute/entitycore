@@ -142,7 +142,7 @@ class EntityType(StrEnum):
     skeletonization_config = auto()
     skeletonization_campaign = auto()
     campaign = auto()
-    item_config = auto()
+    task_config = auto()
 
 
 class TaskType(StrEnum):
@@ -211,7 +211,7 @@ class ActivityType(StrEnum):
     skeletonization_execution = auto()
     skeletonization_config_generation = auto()
     config_generation = auto()
-    config_execution = auto()
+    task_execution = auto()
 
 
 class DerivationType(StrEnum):

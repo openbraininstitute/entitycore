@@ -2265,17 +2265,17 @@ class EntityToCampaign(Base):
     )
 
 
-class EntityToItemConfig(Base):
-    """Represents the many-to-many associations between item configs and entities used as input."""
+class EntityToTaskConfig(Base):
+    """Represents the many-to-many associations between task configs and entities used as input."""
 
-    __tablename__ = "entity__item_config"
+    __tablename__ = "entity__task_config"
 
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    item_config_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.item_config}.id", ondelete="CASCADE"),
+    task_config_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.task_config}.id", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -2316,18 +2316,18 @@ class Campaign(NameDescriptionVectorMixin, Entity):
         secondary="entity__campaign",
     )
 
-    configs: Mapped[list["ItemConfig"]] = relationship(
+    configs: Mapped[list["TaskConfig"]] = relationship(
         uselist=True,
-        foreign_keys="ItemConfig.campaign_id",
+        foreign_keys="TaskConfig.campaign_id",
     )
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class ItemConfig(NameDescriptionVectorMixin, Entity):
-    """Represents the configuration of an item of the campaign in the database.
+class TaskConfig(NameDescriptionVectorMixin, Entity):
+    """Represents the configuration of a task of the campaign in the database.
 
     Assets:
-        - An obi-one campaign item configuration file.
+        - An obi-one task configuration file.
 
     Attributes:
         id (uuid.UUID): Primary key referencing the entity ID.
@@ -2351,7 +2351,7 @@ class ItemConfig(NameDescriptionVectorMixin, Entity):
     # IonChannelModelingConfig:
     #   ion_channel_modeling_campaign_id -> campaign_id
 
-    __tablename__ = EntityType.item_config.value
+    __tablename__ = EntityType.task_config.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     task_type: Mapped[TaskType] = mapped_column(index=True)
@@ -2360,20 +2360,20 @@ class ItemConfig(NameDescriptionVectorMixin, Entity):
         ForeignKey(f"{EntityType.campaign}.id"), index=True
     )
     entities: Mapped[list[Entity]] = relationship(
-        primaryjoin="ItemConfig.id == EntityToItemConfig.item_config_id",
-        secondary="entity__item_config",
+        primaryjoin="TaskConfig.id == EntityToTaskConfig.task_config_id",
+        secondary="entity__task_config",
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class ConfigGeneration(Activity):
-    """Represents an activity generating the item configurations in a campaign.
+    """Represents an activity generating the task configurations in a campaign.
 
     Inputs (used):
         - Campaign (one)
     Outputs (generated):
-        - ItemConfig (many)
+        - TaskConfig (many)
 
     Attributes:
         id (uuid.UUID): Primary key referencing the activity ID.
@@ -2387,11 +2387,11 @@ class ConfigGeneration(Activity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class ConfigExecution(Activity, ExecutionActivityMixin):
-    """Represents an activity executing a configuration.
+class TaskExecution(Activity, ExecutionActivityMixin):
+    """Represents an activity executing a campaign task.
 
     Inputs (used):
-        - ItemConfig (one)
+        - TaskConfig (one)
     Outputs (generated):
         - Entity (many)
 
@@ -2400,7 +2400,7 @@ class ConfigExecution(Activity, ExecutionActivityMixin):
         task_type: type of task.
     """
 
-    __tablename__ = ActivityType.config_execution.value
+    __tablename__ = ActivityType.task_execution.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     # task_type: Mapped[TaskType] = mapped_column(index=True)

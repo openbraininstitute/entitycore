@@ -123,8 +123,6 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM circuit_extraction_config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_config_generation.csv' WITH CSV HEADER;
 \echo Dumping table circuit_extraction_execution
 \copy (SELECT t0.* FROM circuit_extraction_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_execution.csv' WITH CSV HEADER;
-\echo Dumping table task_execution
-\copy (SELECT t0.* FROM task_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_execution.csv' WITH CSV HEADER;
 \echo Dumping table config_generation
 \copy (SELECT t0.* FROM config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/config_generation.csv' WITH CSV HEADER;
 \echo Dumping table consortium
@@ -189,8 +187,6 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM ion_channel_recording AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/ion_channel_recording.csv' WITH CSV HEADER;
 \echo Dumping table ion_channel_recording__ion_channel_modeling_campaign
 \copy (SELECT t0.* FROM ion_channel_recording__ion_channel_modeling_campaign AS t0 JOIN entity AS t1 ON t1.id=t0.ion_channel_recording_id JOIN entity AS t2 ON t2.id=t0.ion_channel_modeling_campaign_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/ion_channel_recording__ion_channel_modeling_campaign.csv' WITH CSV HEADER;
-\echo Dumping table task_config
-\copy (SELECT t0.* FROM task_config AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.campaign_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/task_config.csv' WITH CSV HEADER;
 \echo Dumping table license
 \copy (SELECT t0.* FROM license AS t0  WHERE TRUE) TO '$DATA_DIR/license.csv' WITH CSV HEADER;
 \echo Dumping table me_type_density
@@ -257,6 +253,10 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM strain AS t0  WHERE TRUE) TO '$DATA_DIR/strain.csv' WITH CSV HEADER;
 \echo Dumping table subject
 \copy (SELECT t0.* FROM subject AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/subject.csv' WITH CSV HEADER;
+\echo Dumping table task_config
+\copy (SELECT t0.* FROM task_config AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.campaign_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/task_config.csv' WITH CSV HEADER;
+\echo Dumping table task_execution
+\copy (SELECT t0.* FROM task_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_execution.csv' WITH CSV HEADER;
 \echo Dumping table usage
 \copy (SELECT t0.* FROM usage AS t0 JOIN entity AS t1 ON t1.id=t0.usage_entity_id JOIN activity AS t2 ON t2.id=t0.usage_activity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/usage.csv' WITH CSV HEADER;
 \echo Dumping table validation

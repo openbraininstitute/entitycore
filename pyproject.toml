@@ -23,7 +23,6 @@ dependencies = [
     "python-multipart>=0.0.20",       # needed by fastapi to handle uploaded files
     "pgvector>=0.4.1",
     "openai>=1.101.0",
-    "starlette-context>=0.4.0",
 ]
 requires-python = "==3.12.*"
 readme = "README.md"

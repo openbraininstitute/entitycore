@@ -13,6 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette_context import plugins
+from starlette_context.middleware import ContextMiddleware
 
 from app.config import settings
 from app.db.session import configure_database_session_manager
@@ -137,6 +139,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+app.add_middleware(
+    ContextMiddleware,
+    plugins=(
+        plugins.RequestIdPlugin(),
+        plugins.ForwardedForPlugin(),
+    ),
 )
 app.include_router(
     router,

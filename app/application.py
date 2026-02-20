@@ -159,7 +159,7 @@ async def add_process_time_header(request: Request, call_next):
     start_time = time.perf_counter()
     response = await call_next(request)
     process_time = time.perf_counter() - start_time
-    response.headers[HeaderKey.process_time] = str(process_time)
+    response.headers[HeaderKey.process_time] = f"{process_time:.3f}"
     return response
 
 

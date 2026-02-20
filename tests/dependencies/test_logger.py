@@ -1,8 +1,5 @@
 from unittest.mock import ANY
 
-from fastapi import Depends
-
-from app.dependencies.logger import logger_context
 from app.logger import L
 
 from tests.utils import ADMIN_SUB_ID
@@ -15,7 +12,7 @@ def test_logger_context(client_admin):
     def capture_sink(message):
         logs.append(message.record)
 
-    @client_admin.app.get("/test-logger", dependencies=[Depends(logger_context)])
+    @client_admin.app.get("/test-logger")
     def test_endpoint():
         L.info("test message")
         return {"ok": True}

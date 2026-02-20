@@ -12,6 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.requests import Request
 
 from app.config import settings
+from app.context import request_context
 from app.errors import ApiError, ApiErrorCode, AuthErrorReason
 from app.logger import L
 from app.schemas.auth import (
@@ -212,6 +213,10 @@ def user_verified(
         token=token,
         http_client=request.state.http_client,
     )
+
+    # Store subject_id in contextvar for logging
+    ctx = request_context.get({})
+    ctx["user_id"] = str(user_context.profile.subject)
 
     if not user_context.is_authorized:
         match user_context.auth_error_reason:

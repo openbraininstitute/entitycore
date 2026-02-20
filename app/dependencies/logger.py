@@ -9,9 +9,15 @@ from app.utils.uuid import create_uuid
 
 
 async def logger_context(request: Request, user_context: UserContextDep) -> AsyncIterator[None]:
-    """Add context information to each log message, different in each request.
+    """Add context information to each log message in authenticated endpoints.
 
-    The additional keys are added to the extra dict.
+    It shold be used only in authenticated endpoints, since it depends on `user_context`.
+
+    These additional keys are added to the extra dict:
+
+    - sub_id: the subject_id from Keycloak
+    - request_id: id that can be used to correlate multiple logs in the same request
+    - forwarded_for: the originating IP address of the client, from the X-Forwarded-For HTTP header
 
     Must be async because FastAPI wraps sync generator dependencies with
     contextmanager_in_threadpool, which runs __enter__ and __exit__

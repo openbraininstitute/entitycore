@@ -24,7 +24,8 @@ def test_logger_context(client_admin):
     handler_id = L.add(capture_sink, level="INFO")
 
     try:
-        result = client_admin.get("/test-logger", headers={"x-forwarded-for": "127.1.2.3"})
+        headers = {"x-forwarded-for": "127.1.2.3"}
+        result = client_admin.get("/test-logger", headers=headers)
 
         assert result.status_code == 200
         assert len(logs) == 1

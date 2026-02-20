@@ -12,6 +12,7 @@ import sqlalchemy.exc
 from loguru import logger
 
 from app.config import settings
+from app.context import request_context
 
 L = logger
 
@@ -84,6 +85,12 @@ def str_formatter(record: "loguru.Record") -> str:
 
 def configure_logging() -> int:
     """Configure logging."""
+
+    def patcher(record):
+        ctx = request_context.get({})
+        record["extra"].update(ctx)
+        return record
+
     L.remove()
     handler_id = L.add(
         sink=sys.stderr,
@@ -94,6 +101,7 @@ def configure_logging() -> int:
         enqueue=settings.LOG_ENQUEUE,
         catch=settings.LOG_CATCH,
     )
+    L.configure(patcher=patcher)
     L.enable("app")
     logging.basicConfig(handlers=[InterceptHandler()], level=logging.NOTSET, force=True)
     for logger_name, logger_level in settings.LOG_STANDARD_LOGGER.items():

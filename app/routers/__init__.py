@@ -3,7 +3,6 @@
 from fastapi import APIRouter, Depends
 
 from app.dependencies.auth import user_verified, user_with_service_admin_role
-from app.dependencies.logger import logger_context
 from app.routers import (
     admin,
     analysis_notebook_environment,
@@ -85,7 +84,6 @@ router.include_router(
     admin.router,
     dependencies=[
         Depends(user_with_service_admin_role),
-        Depends(logger_context),
     ],
 )
 
@@ -167,6 +165,5 @@ for r in authenticated_routers:
         r,
         dependencies=[
             Depends(user_verified),
-            Depends(logger_context),
         ],
     )

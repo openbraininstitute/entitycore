@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     LOG_DIAGNOSE: bool = False
     LOG_ENQUEUE: bool = False
     LOG_CATCH: bool = True
-    LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO"}
+    LOG_STANDARD_LOGGER: dict[str, str] = {"root": "INFO", "uvicorn.access": "WARNING"}
 
     KEYCLOAK_URL: str = "https://staging.cell-a.openbraininstitute.org/auth/realms/SBO"
     AUTH_CACHE_MAXSIZE: int = 128  # items

@@ -1,5 +1,4 @@
 from unittest.mock import ANY
-from uuid import UUID
 
 from fastapi import Depends
 
@@ -33,7 +32,7 @@ def test_logger_context(client_admin):
         record = logs[0]
         assert record["message"] == "test message"
         assert record["extra"] == {
-            "sub_id": UUID(ADMIN_SUB_ID),
+            "sub_id": ADMIN_SUB_ID,
             "request_id": ANY,
             "forwarded_for": "127.1.2.3",
         }

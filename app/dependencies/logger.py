@@ -5,7 +5,6 @@ from starlette.requests import Request
 from app.dependencies.auth import UserContextDep
 from app.logger import L
 from app.schemas.types import HeaderKey
-from app.utils.uuid import create_uuid
 
 
 async def logger_context(request: Request, user_context: UserContextDep) -> AsyncIterator[None]:
@@ -24,8 +23,8 @@ async def logger_context(request: Request, user_context: UserContextDep) -> Asyn
     in different contexts, invalidating ContextVar tokens.
     See: https://github.com/fastapi/fastapi/blob/c441583/fastapi/concurrency.py#L28-L41
     """
-    sub_id = user_context.profile.subject
-    request_id = request.headers.get(HeaderKey.request_id) or create_uuid()
+    sub_id = str(user_context.profile.subject)
+    request_id = request.state.request_id
     forwarded_for = request.headers.get(HeaderKey.forwarded_for)
 
     with L.contextualize(

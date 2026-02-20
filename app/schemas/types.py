@@ -10,6 +10,7 @@ from sqlalchemy.orm import DeclarativeBase
 class HeaderKey(StrEnum):
     request_id = "X-Request-ID"
     forwarded_for = "X-Forwarded-For"
+    process_time = "X-Process-Time"
 
 
 class PaginationRequest(BaseModel):

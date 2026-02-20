@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from http import HTTPStatus
@@ -21,6 +22,8 @@ from app.errors import ApiError, ApiErrorCode
 from app.logger import L
 from app.routers import router
 from app.schemas.api import ErrorResponse
+from app.schemas.types import HeaderKey
+from app.utils.uuid import create_uuid
 
 
 @asynccontextmanager
@@ -138,6 +141,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def add_request_id_header(request: Request, call_next):
+    """Generate a unique request-id and add it to the response headers."""
+    request_id = str(create_uuid())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers[HeaderKey.request_id] = request_id
+    return response
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    """Calculate the process time and add it to the response headers."""
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = time.perf_counter() - start_time
+    response.headers[HeaderKey.process_time] = f"{process_time:.3f}"
+    return response
+
+
 app.include_router(
     router,
     responses={

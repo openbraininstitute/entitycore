@@ -1,9 +1,16 @@
 import uuid
+from enum import StrEnum
 from typing import Annotated
 
 import sqlalchemy as sa
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, HttpUrl, PlainSerializer, computed_field
 from sqlalchemy.orm import DeclarativeBase
+
+
+class HeaderKey(StrEnum):
+    request_id = "X-Request-ID"
+    forwarded_for = "X-Forwarded-For"
+    process_time = "X-Process-Time"
 
 
 class PaginationRequest(BaseModel):

@@ -7,7 +7,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.context import request_context
+from app.context import RequestContext, request_context_provider
 from app.logger import L
 from app.schemas.types import HeaderKey
 from app.utils.uuid import create_uuid
@@ -26,8 +26,8 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         """Set request context and log access."""
         start_time = time.perf_counter()
         request_id = str(create_uuid())
-        ctx = {"request_id": request_id, "user_id": ""}
-        request_context.set(ctx)
+        ctx = RequestContext(request_id=request_id)
+        request_context_provider.set(ctx)
 
         try:
             response = await call_next(request)

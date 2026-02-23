@@ -12,7 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.requests import Request
 
 from app.config import settings
-from app.context import request_context
+from app.context import request_context_provider
 from app.errors import ApiError, ApiErrorCode, AuthErrorReason
 from app.logger import L
 from app.schemas.auth import (
@@ -169,6 +169,12 @@ def _check_user_info(
     return user_context
 
 
+def _enrich_request_context(user_context: UserContext) -> None:
+    """Store user_id in contextvar for logging purposes."""
+    ctx = request_context_provider.get()
+    ctx["user_id"] = str(user_context.profile.subject)
+
+
 def user_verified(
     project_context: Annotated[OptionalProjectContext, Header()],
     token: Annotated[HTTPAuthorizationCredentials | None, Depends(AuthHeader)],
@@ -182,7 +188,7 @@ def user_verified(
     """
     if settings.APP_DISABLE_AUTH:
         L.warning("Authentication is disabled: admin role granted, vlab and proj not verified")
-        return UserContext(
+        user_context = UserContext(
             profile=UserProfile(
                 subject=UUID(int=0),
                 name="Admin User",
@@ -193,6 +199,9 @@ def user_verified(
             virtual_lab_id=project_context.virtual_lab_id,
             project_id=project_context.project_id,
         )
+        # enrich request context even when the authentication is disabled
+        _enrich_request_context(user_context)
+        return user_context
 
     if not token:
         raise ApiError(
@@ -214,9 +223,8 @@ def user_verified(
         http_client=request.state.http_client,
     )
 
-    # Store subject_id in contextvar for logging
-    ctx = request_context.get({})
-    ctx["user_id"] = str(user_context.profile.subject)
+    # enrich request context before potentially raising an exception
+    _enrich_request_context(user_context)
 
     if not user_context.is_authorized:
         match user_context.auth_error_reason:

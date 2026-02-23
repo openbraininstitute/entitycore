@@ -12,7 +12,7 @@ import sqlalchemy.exc
 from loguru import logger
 
 from app.config import settings
-from app.context import request_context
+from app.context import request_context_provider
 
 L = logger
 
@@ -86,10 +86,9 @@ def str_formatter(record: "loguru.Record") -> str:
 def configure_logging() -> int:
     """Configure logging."""
 
-    def patcher(record):
-        ctx = request_context.get({})
+    def patcher(record: "loguru.Record") -> None:
+        ctx = request_context_provider.get({})
         record["extra"].update(ctx)
-        return record
 
     L.remove()
     handler_id = L.add(

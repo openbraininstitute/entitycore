@@ -55,6 +55,27 @@ def test_public_endpoint() -> str:
     return path
 
 
+@pytest.fixture(scope="session")
+def test_error_endpoint() -> str:
+    """Fixture to add a test endpoint that raises an unhandled error.
+
+    Use the session scope because the endpoint isn't removed until the end of the tests.
+    """
+    path = "/test-error-endpoint"
+
+    @app.get(path)
+    def test_endpoint():
+        L.info("test message")
+        msg = "test error"
+        raise RuntimeError(msg)
+
+    return path
+
+
+def _filter_logs(logs, keys=("message", "extra")):
+    return [{k: rec[k] for k in keys} for rec in logs]
+
+
 def test_authenticated_request_context(logs, client_admin, test_authenticated_endpoint):
     """Test that the request context middleware adds user_id and request_id to logs."""
     client = client_admin
@@ -86,7 +107,7 @@ def test_authenticated_request_context(logs, client_admin, test_authenticated_en
             },
         },
     ]
-    assert [{k: rec[k] for k in ["message", "extra"]} for rec in logs] == expected
+    assert _filter_logs(logs) == expected
 
 
 def test_public_request_context(logs, client_no_auth, test_public_endpoint):
@@ -118,4 +139,35 @@ def test_public_request_context(logs, client_no_auth, test_public_endpoint):
             },
         },
     ]
-    assert [{k: rec[k] for k in ["message", "extra"]} for rec in logs] == expected
+    assert _filter_logs(logs) == expected
+
+
+def test_error_request_context(logs, client_no_auth, test_error_endpoint):
+    """Test that the request context middleware handles errors."""
+    client = client_no_auth
+    endpoint = test_error_endpoint
+    headers = {"x-forwarded-for": "127.1.2.3"}
+    with pytest.raises(RuntimeError, match="test error"):
+        client.get(endpoint, headers=headers)
+
+    expected = [
+        {
+            "message": "test message",
+            "extra": {
+                "request_id": ANY,
+                "serialized": ANY,
+            },
+        },
+        {
+            "message": f"GET http://testserver{endpoint}",
+            "extra": {
+                "request_id": ANY,
+                "forwarded_for": "127.1.2.3",
+                "process_time": ANY,
+                "status_code": 500,
+                "client": "testclient",
+                "serialized": ANY,
+            },
+        },
+    ]
+    assert _filter_logs(logs) == expected

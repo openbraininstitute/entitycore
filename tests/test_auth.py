@@ -8,6 +8,7 @@ import pytest
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.config import settings
+from app.context import request_context_provider
 from app.dependencies import auth as test_module
 from app.errors import ApiError, ApiErrorCode, AuthErrorReason
 from app.schemas.auth import UserContext, UserContextWithProjectId, UserProfile, UserProjectGroup
@@ -31,6 +32,17 @@ PROJECT_CONTEXTS = [
 def _clear_cache():
     yield
     test_module._check_user_info.cache_clear()
+
+
+@pytest.fixture(autouse=True)
+def _set_request_context():
+    """Set the request context variable, needed in user_verified.
+
+    At runtime, this is set by RequestContextMiddleware.
+    """
+    token = request_context_provider.set({})
+    yield
+    request_context_provider.reset(token)
 
 
 @pytest.fixture

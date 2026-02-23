@@ -87,6 +87,11 @@ def configure_logging() -> int:
     """Configure logging."""
 
     def patcher(record: "loguru.Record") -> None:
+        """Add request context (request_id, user_id) to all log records.
+
+        This function is automatically applied to every log message across all modules,
+        enriching them with contextual information from the current request.
+        """
         ctx = request_context_provider.get({})
         record["extra"].update(ctx)
 

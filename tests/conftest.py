@@ -52,6 +52,7 @@ from app.db.model import (
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.db.types import CellMorphologyGenerationType, EntityType, StorageType
 from app.dependencies import auth
+from app.logger import configure_logging
 from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
 from app.schemas.external_url import ExternalUrlCreate
 
@@ -98,6 +99,11 @@ def _setup_env_variables():
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # noqa: S105
     os.environ["AWS_SECURITY_TOKEN"] = "testing"  # noqa: S105
     os.environ["AWS_SESSION_TOKEN"] = "testing"  # noqa: S105
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _configure_logging():
+    configure_logging()
 
 
 @pytest.fixture(scope="session")

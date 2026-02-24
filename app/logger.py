@@ -12,6 +12,7 @@ import sqlalchemy.exc
 from loguru import logger
 
 from app.config import settings
+from app.context import request_context_provider
 
 L = logger
 
@@ -84,6 +85,16 @@ def str_formatter(record: "loguru.Record") -> str:
 
 def configure_logging() -> int:
     """Configure logging."""
+
+    def patcher(record: "loguru.Record") -> None:
+        """Add request context (request_id, user_id) to all log records.
+
+        This function is automatically applied to every log message across all modules,
+        enriching them with contextual information from the current request.
+        """
+        ctx = request_context_provider.get({})
+        record["extra"].update(ctx)
+
     L.remove()
     handler_id = L.add(
         sink=sys.stderr,
@@ -94,6 +105,7 @@ def configure_logging() -> int:
         enqueue=settings.LOG_ENQUEUE,
         catch=settings.LOG_CATCH,
     )
+    L.configure(patcher=patcher)
     L.enable("app")
     logging.basicConfig(handlers=[InterceptHandler()], level=logging.NOTSET, force=True)
     for logger_name, logger_level in settings.LOG_STANDARD_LOGGER.items():

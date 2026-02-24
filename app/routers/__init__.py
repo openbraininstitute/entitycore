@@ -80,7 +80,12 @@ from app.routers import (
 
 router = APIRouter()
 router.include_router(root.router)
-router.include_router(admin.router, dependencies=[Depends(user_with_service_admin_role)])
+router.include_router(
+    admin.router,
+    dependencies=[
+        Depends(user_with_service_admin_role),
+    ],
+)
 
 
 authenticated_routers = [
@@ -156,4 +161,9 @@ authenticated_routers = [
     validation_result.router,
 ]
 for r in authenticated_routers:
-    router.include_router(r, dependencies=[Depends(user_verified)])
+    router.include_router(
+        r,
+        dependencies=[
+            Depends(user_verified),
+        ],
+    )

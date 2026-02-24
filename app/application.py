@@ -19,6 +19,7 @@ from app.db.session import configure_database_session_manager
 from app.dependencies.common import forbid_extra_query_params
 from app.errors import ApiError, ApiErrorCode
 from app.logger import L
+from app.middleware import RequestContextMiddleware
 from app.routers import router
 from app.schemas.api import ErrorResponse
 
@@ -138,6 +139,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestContextMiddleware)
+
+
 app.include_router(
     router,
     responses={

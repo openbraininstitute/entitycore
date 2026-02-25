@@ -1273,17 +1273,22 @@ class SimulationCampaignBase(
 
     __abstract__ = True
 
-    simulations = relationship(
-        "Simulation",
-        uselist=True,
-        back_populates="simulation_campaign",
-        foreign_keys="Simulation.simulation_campaign_id",
-    )
-    scan_parameters: Mapped[JSON_DICT] = mapped_column(
-        default={},
-        nullable=False,
-        server_default="{}",
-    )
+    @declared_attr
+    def simulations(cls):
+        return relationship(
+            "Simulation",
+            uselist=True,
+            back_populates="simulation_campaign",
+            foreign_keys="Simulation.simulation_campaign_id",
+        )
+
+    @declared_attr
+    def scan_parameters(cls) -> Mapped[JSON_DICT]:
+        return mapped_column(
+            default={},
+            nullable=False,
+            server_default="{}",
+        )
 
 
 class IonChannelModelSimulationCampaign(

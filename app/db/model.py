@@ -2284,27 +2284,29 @@ class Campaign(NameDescriptionVectorMixin, Entity):
     """Represents a generic campaign in the database.
 
     Assets:
-        - campaign configuration file
+        - campaign configuration file.
 
     Attributes:
         id (uuid.UUID): Primary key referencing the entity ID.
-        task_type: type of task.
-        scan_parameters (JSON_DICT): Scan parameters for the skeletonization campaign.
-    """
+        task_type: Type of task.
+        scan_parameters (JSON_DICT): Scan parameters for the campaign.
+        inputs: entities used as input for the campaign.
+        configs: task configs generated from the campaign.
 
-    # # # Mappings
-    # SimulationCampaign:
-    #   entity_id/entity -> inputs[0]
-    #   simulations -> configs
-    # SkeletonizationCampaign:
-    #   input_meshes -> inputs
-    #   skeletonization_configs -> configs
-    # CircuitExtractionCampaign:
-    #   NOTHING -> inputs
-    #   NOTHING -> configs
-    # IonChannelModelingCampaign:
-    #   input_recordings -> inputs
-    #   ion_channel_modeling_configs -> configs
+    Potential mappings for existing campaigns:
+        SimulationCampaign:
+            entity_id/entity -> inputs[0]
+            simulations -> configs
+        SkeletonizationCampaign:
+            input_meshes -> inputs
+            skeletonization_configs -> configs
+        CircuitExtractionCampaign:
+            NOTHING -> inputs
+            NOTHING -> configs
+        IonChannelModelingCampaign:
+            input_recordings -> inputs
+            ion_channel_modeling_configs -> configs
+    """
 
     __tablename__ = EntityType.campaign.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
@@ -2327,29 +2329,29 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
     """Represents the configuration of a task of the campaign in the database.
 
     Assets:
-        - An obi-one task configuration file.
+        - task configuration file.
 
     Attributes:
         id (uuid.UUID): Primary key referencing the entity ID.
-        task_type: type of task.
-        scan_parameters (JSON_DICT): Scan parameters for the skeletonization.
-        skeletonization_campaign_id: id of the campaign that generated the config.
-        em_cell_mesh_id: id of the mesh used by this config.
-    """
+        task_type: Type of task.
+        scan_parameters (JSON_DICT): Scan parameters for the task.
+        campaign_id: id of the campaign that generated the config.
+        inputs: entities used as input for the task.
 
-    # # # Mappings
-    # Simulation:
-    #   simulation_campaign_id -> campaign_id
-    #   entity/entity_id -> entities[0]
-    #   number_neurons -> MISSING
-    # SkeletonizationConfig:
-    #   skeletonization_campaign_id -> campaign_id
-    #   em_cell_mesh_id -> entities[0]
-    # CircuitExtractionConfig:
-    #   circuit_id -> entities[0]
-    #   NOTHING -> campaign_id
-    # IonChannelModelingConfig:
-    #   ion_channel_modeling_campaign_id -> campaign_id
+    Potential mappings for existing campaigns:
+        Simulation:
+            simulation_campaign_id -> campaign_id
+            entity/entity_id -> inputs[0]
+            number_neurons -> MISSING
+        SkeletonizationConfig:
+            skeletonization_campaign_id -> campaign_id
+            em_cell_mesh_id -> inputs[0]
+        CircuitExtractionConfig:
+            circuit_id -> inputs[0]
+            NOTHING -> campaign_id
+        IonChannelModelingConfig:
+            ion_channel_modeling_campaign_id -> campaign_id
+    """
 
     __tablename__ = EntityType.task_config.value
 
@@ -2359,7 +2361,7 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
     campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.campaign}.id"), index=True
     )
-    entities: Mapped[list[Entity]] = relationship(
+    inputs: Mapped[list[Entity]] = relationship(
         primaryjoin="TaskConfig.id == EntityToTaskConfig.task_config_id",
         secondary="entity__task_config",
     )
@@ -2367,7 +2369,7 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class ConfigGeneration(Activity):
+class TaskConfigGeneration(Activity):
     """Represents an activity generating the task configurations in a campaign.
 
     Inputs (used):
@@ -2377,7 +2379,6 @@ class ConfigGeneration(Activity):
 
     Attributes:
         id (uuid.UUID): Primary key referencing the activity ID.
-        task_type: type of task.
     """
 
     __tablename__ = ActivityType.config_generation.value
@@ -2388,7 +2389,7 @@ class ConfigGeneration(Activity):
 
 
 class TaskExecution(Activity, ExecutionActivityMixin):
-    """Represents an activity executing a campaign task.
+    """Represents an activity executing a task in a campaign.
 
     Inputs (used):
         - TaskConfig (one)
@@ -2397,7 +2398,6 @@ class TaskExecution(Activity, ExecutionActivityMixin):
 
     Attributes:
         id (uuid.UUID): Primary key referencing the activity ID.
-        task_type: type of task.
     """
 
     __tablename__ = ActivityType.task_execution.value

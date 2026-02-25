@@ -1269,12 +1269,7 @@ class SimulationCampaignBase(
     A simulation campaign represents the specification of a set of simulations.
 
     it has an asset which is the simulation campaign configuration file.
-
-    Attributes:
-        id (uuid.UUID): Primary key for the simulation campaign, referencing the entity ID.
     """
-
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     simulations = relationship(
         "Simulation",
@@ -1305,6 +1300,7 @@ class IonChannelModelSimulationCampaign(
     """
 
     __tablename__ = EntityType.ion_channel_model_simulation_campaign.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
     ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
         "IonChannelModel",
@@ -1576,6 +1572,8 @@ class SimulationCampaign(
     """
 
     __tablename__ = EntityType.simulation_campaign.value
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
     __mapper_args__ = {  # noqa: RUF012

@@ -1274,6 +1274,7 @@ class SimulationCampaignBase(
     __abstract__ = True
 
     @declared_attr
+    @classmethod
     def simulations(cls):
         return relationship(
             "Simulation",
@@ -1283,6 +1284,7 @@ class SimulationCampaignBase(
         )
 
     @declared_attr
+    @classmethod
     def scan_parameters(cls) -> Mapped[JSON_DICT]:
         return mapped_column(
             default={},

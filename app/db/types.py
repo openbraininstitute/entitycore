@@ -116,7 +116,7 @@ class EntityType(StrEnum):
     experimental_synapses_per_connection = auto()
     external_url = auto()
     ion_channel_model = auto()
-    ion_channel_model_simulation = auto()
+    ion_channel_model_simulation_campaign = auto()
     ion_channel_modeling_campaign = auto()
     ion_channel_modeling_config = auto()
     ion_channel_recording = auto()

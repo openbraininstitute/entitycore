@@ -1292,7 +1292,7 @@ class SimulationCampaignBase(
             server_default="{}",
         )
 
-    __mapper_args__ = {
+    __mapper_args__ = {  # noqa: RUF012
         "polymorphic_on": type,
     }
 

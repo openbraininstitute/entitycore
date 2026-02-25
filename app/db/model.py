@@ -1563,8 +1563,7 @@ class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, E
 
 
 class SimulationCampaign(
-    NameDescriptionVectorMixin,
-    Entity,
+    SimulationCampaignBase,
 ):
     """Represents a simulation campaign entity in the database.
 

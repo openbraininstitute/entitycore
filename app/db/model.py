@@ -1270,6 +1270,7 @@ class SimulationCampaignBase(
 
     it has an asset which is the simulation campaign configuration file.
     """
+
     __abstract__ = True
 
     simulations = relationship(

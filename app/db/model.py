@@ -1248,6 +1248,80 @@ class IonChannelModelToEModel(Base):
     )
 
 
+class IonChannelModelToIonChannelModelSimulationCampaign(Base):
+    __tablename__ = "ion_channel_model__ion_channel_model_simulation_campaign"
+
+    ion_channel_model_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.ion_channel_model}.id", ondelete="CASCADE"), primary_key=True
+    )
+    ion_channel_model_simulation_campaign_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.ion_channel_model_simulation_campaign}.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
+class SimulationCampaignBase(
+    NameDescriptionVectorMixin,
+    Entity,
+):
+    """Represents a simulation campaign entity in the database.
+
+    A simulation campaign represents the specification of a set of simulations.
+
+    it has an asset which is the simulation campaign configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the simulation campaign, referencing the entity ID.
+    """
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    simulations = relationship(
+        "Simulation",
+        uselist=True,
+        back_populates="simulation_campaign",
+        foreign_keys="Simulation.simulation_campaign_id",
+    )
+    scan_parameters: Mapped[JSON_DICT] = mapped_column(
+        default={},
+        nullable=False,
+        server_default="{}",
+    )
+
+
+class IonChannelModelSimulationCampaign(
+    SimulationCampaignBase,
+):
+    """Represents an ion channel model simulation campaign entity in the database.
+
+    An ion channel model simulation campaign represents the specification of a set of
+    ion channel model simulation tasks.
+
+    It has an asset which is the ion channel model simulation campaign configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key for the ion channel model simulation campaign,
+            referencing the entity ID.
+    """
+
+    __tablename__ = EntityType.ion_channel_model_simulation_campaign.value
+
+    ion_channel_models: Mapped[list["IonChannelModel"]] = relationship(
+        "IonChannelModel",
+        primaryjoin=(
+            "IonChannelModelSimulationCampaign.id == "
+            "IonChannelModelToIonChannelModelSimulationCampaign."
+            "ion_channel_model_simulation_campaign_id"
+        ),
+        secondary="ion_channel_model__ion_channel_model_simulation_campaign",
+    )
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_identity": __tablename__,
+        "inherit_condition": id == Entity.id,
+    }
+
+
 class IonChannelRecordingToIonChannelModelingCampaign(Base):
     __tablename__ = "ion_channel_recording__ion_channel_modeling_campaign"
 
@@ -1503,21 +1577,8 @@ class SimulationCampaign(
     """
 
     __tablename__ = EntityType.simulation_campaign.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-
     entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
 
-    simulations = relationship(
-        "Simulation",
-        uselist=True,
-        back_populates="simulation_campaign",
-        foreign_keys="Simulation.simulation_campaign_id",
-    )
-    scan_parameters: Mapped[JSON_DICT] = mapped_column(
-        default={},
-        nullable=False,
-        server_default="{}",
-    )
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
@@ -1546,16 +1607,19 @@ class Simulation(Entity, NameDescriptionVectorMixin):
     simulation_campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("simulation_campaign.id"), index=True
     )
-    simulation_campaign: Mapped[SimulationCampaign] = relationship(
-        "SimulationCampaign",
+    simulation_campaign: Mapped[SimulationCampaignBase] = relationship(
+        "SimulationCampaignBase",
         uselist=False,
         foreign_keys=[simulation_campaign_id],
     )
-    entity_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
+    entity_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("entity.id"), index=True, nullable=True
+    )
     entity: Mapped[Entity] = relationship(
         "Entity",
         uselist=False,
         foreign_keys=[entity_id],
+        nullable=True,
     )
     number_neurons: Mapped[int] = mapped_column(BigInteger)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(

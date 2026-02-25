@@ -33,6 +33,7 @@ from app.db.model import (
     ETypeClass,
     ETypeClassification,
     IonChannelModelingCampaign,
+    IonChannelModelSimulationCampaign,
     IonChannelRecording,
     MeasurementAnnotation,
     MTypeClass,
@@ -95,6 +96,7 @@ ROUTES = {
     ElectricalCellRecording: "/electrical-cell-recording",
     IonChannelRecording: "/ion-channel-recording",
     IonChannelModelingCampaign: "/ion-channel-modeling-campaign",
+    IonChannelModelSimulationCampaign: "/ion-channel-model-simulation-campaign",
     CircuitExtractionCampaign: "/circuit-extraction-campaign",
     SkeletonizationCampaign: "/skeletonization-campaign",
     SkeletonizationConfig: "/skeletonization-config",
@@ -238,6 +240,27 @@ def create_ion_channel_modeling_campaign_id(
 ):
     response = client.post(
         ROUTES[IonChannelModelingCampaign],
+        json={
+            "name": name,
+            "description": description,
+            "authorized_public": authorized_public,
+            "scan_parameters": {"foo": "bar"},
+        },
+    )
+
+    assert response.status_code == 200
+    return response.json()["id"]
+
+
+def create_ion_channel_model_simulation_campaign_id(
+    client,
+    name="Test Ion Channel Model Simulation Campaign Name",
+    description="Test Ion Channel Model Simulation Campaign Description",
+    *,
+    authorized_public: bool = False,
+):
+    response = client.post(
+        ROUTES[IonChannelModelSimulationCampaign],
         json={
             "name": name,
             "description": description,

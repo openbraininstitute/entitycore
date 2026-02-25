@@ -785,6 +785,22 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             )
         ],
     },
+    EntityType.ion_channel_model_simulation_campaign: {
+        AssetLabel.campaign_generation_config: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Campaign configuration.",
+            )
+        ],
+        AssetLabel.campaign_summary: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Summary of generated campaign listing all created simulation configs.",
+            )
+        ],
+    },
     EntityType.simulation_campaign: {
         AssetLabel.campaign_generation_config: [
             LabelRequirements(

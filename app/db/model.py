@@ -1291,6 +1291,10 @@ class SimulationCampaignBase(
             nullable=False,
             server_default="{}",
         )
+    
+    __mapper_args__ = {
+        "polymorphic_on": type,
+    }
 
 
 class IonChannelModelSimulationCampaign(
@@ -1611,7 +1615,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.simulation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     simulation_campaign_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("simulation_campaign.id"), index=True
+        ForeignKey("simulation_campaign_base.id"), index=True
     )
     simulation_campaign: Mapped[SimulationCampaignBase] = relationship(
         "SimulationCampaignBase",

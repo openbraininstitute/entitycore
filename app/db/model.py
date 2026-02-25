@@ -1291,7 +1291,7 @@ class SimulationCampaignBase(
             nullable=False,
             server_default="{}",
         )
-    
+
     __mapper_args__ = {
         "polymorphic_on": type,
     }

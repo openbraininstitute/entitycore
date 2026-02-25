@@ -1625,7 +1625,6 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         "Entity",
         uselist=False,
         foreign_keys=[entity_id],
-        nullable=True,
     )
     number_neurons: Mapped[int] = mapped_column(BigInteger)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(

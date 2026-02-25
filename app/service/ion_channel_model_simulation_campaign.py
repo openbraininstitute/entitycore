@@ -7,8 +7,8 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 from app.db.model import (
     Agent,
     IonChannelModelSimulationCampaign,
-    Simulation,
     Person,
+    Simulation,
 )
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -17,7 +17,9 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.ion_channel_model_simulation_campaign import IonChannelModelSimulationCampaignFilterDep
+from app.filters.ion_channel_model_simulation_campaign import (
+    IonChannelModelSimulationCampaignFilterDep,
+)
 from app.queries.common import (
     router_create_one,
     router_read_many,

@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import JSON_DICT, TaskType
@@ -13,7 +15,6 @@ from app.schemas.base import (
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.entity import NestedEntityRead
-from app.schemas.task_config import NestedTaskConfigRead
 from app.schemas.utils import make_update_schema
 
 
@@ -30,7 +31,7 @@ class CampaignCreate(
     CampaignBase,
     AuthorizationOptionalPublicMixin,
 ):
-    pass
+    inputs_ids: list[uuid.UUID] = []
 
 
 CampaignUserUpdate = make_update_schema(
@@ -62,4 +63,3 @@ class CampaignRead(
     ContributionReadWithoutEntityMixin,
 ):
     inputs: list[NestedEntityRead]
-    configs: list[NestedTaskConfigRead]

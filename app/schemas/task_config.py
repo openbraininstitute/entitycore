@@ -26,7 +26,7 @@ class TaskConfigBase(BaseModel, NameDescriptionMixin):
 
 
 class TaskConfigCreate(TaskConfigBase, AuthorizationOptionalPublicMixin):
-    pass
+    inputs_ids: list[uuid.UUID] = []
 
 
 TaskConfigUserUpdate = make_update_schema(

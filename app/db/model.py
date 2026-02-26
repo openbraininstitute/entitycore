@@ -2291,21 +2291,18 @@ class Campaign(NameDescriptionVectorMixin, Entity):
         task_type: Type of task.
         scan_parameters (JSON_DICT): Scan parameters for the campaign.
         inputs: entities used as input for the campaign.
-        configs: task configs generated from the campaign.
 
     Potential mappings for existing campaigns:
         SimulationCampaign:
             entity_id/entity -> inputs[0]
-            simulations -> configs
+            simulations -> task_config_generation.used[]
         SkeletonizationCampaign:
             input_meshes -> inputs
-            skeletonization_configs -> configs
+            skeletonization_configs -> task_config_generation.used[]
         CircuitExtractionCampaign:
-            NOTHING -> inputs
-            NOTHING -> configs
         IonChannelModelingCampaign:
             input_recordings -> inputs
-            ion_channel_modeling_configs -> configs
+            ion_channel_modeling_configs -> task_config_generation.used[]
     """
 
     __tablename__ = EntityType.campaign.value
@@ -2318,10 +2315,6 @@ class Campaign(NameDescriptionVectorMixin, Entity):
         secondary="entity__campaign",
     )
 
-    configs: Mapped[list["TaskConfig"]] = relationship(
-        uselist=True,
-        foreign_keys="TaskConfig.campaign_id",
-    )
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

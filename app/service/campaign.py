@@ -25,6 +25,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.constants import NESTED_CAMPAIGN_RELATIONSHIPS
 from app.queries.factory import query_params_factory
 from app.schemas.campaign import (
     CampaignAdminUpdate,
@@ -99,6 +100,7 @@ def create_one(
         db_model_class=DBModel,
         response_schema_class=ReadSchema,
         apply_operations=_load,
+        nested_relationships=NESTED_CAMPAIGN_RELATIONSHIPS,
     )
 
 
@@ -116,6 +118,7 @@ def update_one(
         json_model=json_model,
         response_schema_class=ReadSchema,
         apply_operations=_load,
+        nested_relationships=NESTED_CAMPAIGN_RELATIONSHIPS,
     )
 
 
@@ -132,6 +135,7 @@ def admin_update_one(
         json_model=json_model,
         response_schema_class=ReadSchema,
         apply_operations=_load,
+        nested_relationships=NESTED_CAMPAIGN_RELATIONSHIPS,
     )
 
 

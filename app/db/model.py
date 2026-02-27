@@ -2250,32 +2250,32 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class EntityToCampaign(Base):
+class CampaignToEntity(Base):
     """Represents the many-to-many associations between campaigns and entities used as input."""
 
     __tablename__ = "entity__campaign"
 
-    entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
     campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.campaign}.id", ondelete="CASCADE"),
         primary_key=True,
     )
-
-
-class EntityToTaskConfig(Base):
-    """Represents the many-to-many associations between task configs and entities used as input."""
-
-    __tablename__ = "entity__task_config"
-
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,
     )
+
+
+class TaskConfigToEntity(Base):
+    """Represents the many-to-many associations between task configs and entities used as input."""
+
+    __tablename__ = "entity__task_config"
+
     task_config_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.task_config}.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,
     )
 

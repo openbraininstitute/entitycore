@@ -2374,7 +2374,7 @@ class TaskConfigGeneration(Activity):
         id (uuid.UUID): Primary key referencing the activity ID.
     """
 
-    __tablename__ = ActivityType.config_generation.value
+    __tablename__ = ActivityType.task_config_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     # task_type: Mapped[TaskType] = mapped_column(index=True)
 

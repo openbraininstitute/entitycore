@@ -73,7 +73,7 @@ def upgrade() -> None:
     op.create_index(op.f("ix_campaign_name"), "campaign", ["name"], unique=False)
     op.create_index(op.f("ix_campaign_task_type"), "campaign", ["task_type"], unique=False)
     op.create_table(
-        "config_generation",
+        "task_config_generation",
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.ForeignKeyConstraint(
             ["id"], ["activity.id"], name=op.f("fk_config_generation_id_activity")
@@ -196,7 +196,7 @@ def upgrade() -> None:
             "circuit_extraction_execution",
             "skeletonization_execution",
             "skeletonization_config_generation",
-            "config_generation",
+            "task_config_generation",
             "task_execution",
         ],
         affected_columns=[
@@ -348,7 +348,7 @@ def downgrade() -> None:
     op.drop_table("task_config")
     op.drop_table("campaign__entity")
     op.drop_table("task_execution")
-    op.drop_table("config_generation")
+    op.drop_table("task_config_generation")
     op.drop_index(op.f("ix_campaign_task_type"), table_name="campaign")
     op.drop_index(op.f("ix_campaign_name"), table_name="campaign")
     op.drop_index("ix_campaign_description_vector", table_name="campaign", postgresql_using="gin")

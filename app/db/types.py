@@ -210,7 +210,7 @@ class ActivityType(StrEnum):
     circuit_extraction_execution = auto()
     skeletonization_execution = auto()
     skeletonization_config_generation = auto()
-    config_generation = auto()
+    task_config_generation = auto()
     task_execution = auto()
 
 

@@ -125,8 +125,6 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM circuit_extraction_config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_config_generation.csv' WITH CSV HEADER;
 \echo Dumping table circuit_extraction_execution
 \copy (SELECT t0.* FROM circuit_extraction_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/circuit_extraction_execution.csv' WITH CSV HEADER;
-\echo Dumping table config_generation
-\copy (SELECT t0.* FROM config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/config_generation.csv' WITH CSV HEADER;
 \echo Dumping table consortium
 \copy (SELECT t0.* FROM consortium AS t0  WHERE TRUE) TO '$DATA_DIR/consortium.csv' WITH CSV HEADER;
 \echo Dumping table contribution
@@ -255,6 +253,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM task_config AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.campaign_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/task_config.csv' WITH CSV HEADER;
 \echo Dumping table task_config__entity
 \copy (SELECT t0.* FROM task_config__entity AS t0 JOIN entity AS t1 ON t1.id=t0.task_config_id JOIN entity AS t2 ON t2.id=t0.entity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/task_config__entity.csv' WITH CSV HEADER;
+\echo Dumping table task_config_generation
+\copy (SELECT t0.* FROM task_config_generation AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_config_generation.csv' WITH CSV HEADER;
 \echo Dumping table task_execution
 \copy (SELECT t0.* FROM task_execution AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_execution.csv' WITH CSV HEADER;
 \echo Dumping table usage

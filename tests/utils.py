@@ -1646,7 +1646,7 @@ def check_activity_update_one__fail_if_generated_ids_exists(
         "generated_ids": [str(entity_id_1)],
     }
     data = assert_request(
-        client.patch, url=f"{route}/{gen1}", json=update_json, expected_status_code=404
+        client.patch, url=f"{route}/{gen1}", json=update_json, expected_status_code=409
     ).json()
     assert data["details"] == "It is forbidden to update generated_ids if they exist."
 

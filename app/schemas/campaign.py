@@ -62,4 +62,4 @@ class CampaignRead(
     AuthorizationMixin,
     ContributionReadWithoutEntityMixin,
 ):
-    inputs: list[NestedEntityRead]
+    input: list[NestedEntityRead]

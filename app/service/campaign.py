@@ -54,7 +54,7 @@ def _load(query: sa.Select):
         joinedload(DBModel.updated_by),
         selectinload(DBModel.assets),
         selectinload(DBModel.contributions),
-        selectinload(DBModel.inputs),
+        selectinload(DBModel.input),
         raiseload("*"),
     )
 

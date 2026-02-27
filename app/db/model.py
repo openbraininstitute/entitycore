@@ -2290,18 +2290,18 @@ class Campaign(NameDescriptionVectorMixin, Entity):
         id (uuid.UUID): Primary key referencing the entity ID.
         task_type: Type of task.
         scan_parameters (JSON_DICT): Scan parameters for the campaign.
-        inputs: entities used as input for the campaign.
+        input: entities used as input for the campaign.
 
     Potential mappings for existing campaigns:
         SimulationCampaign:
-            entity_id/entity -> inputs[0]
+            entity_id/entity -> input[0]
             simulations -> task_config_generation.used[]
         SkeletonizationCampaign:
-            input_meshes -> inputs
+            input_meshes -> input
             skeletonization_configs -> task_config_generation.used[]
         CircuitExtractionCampaign:
         IonChannelModelingCampaign:
-            input_recordings -> inputs
+            input_recordings -> input
             ion_channel_modeling_configs -> task_config_generation.used[]
     """
 
@@ -2310,7 +2310,7 @@ class Campaign(NameDescriptionVectorMixin, Entity):
     task_type: Mapped[TaskType] = mapped_column(index=True)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
 
-    inputs: Mapped[list[Entity]] = relationship(
+    input: Mapped[list[Entity]] = relationship(
         primaryjoin="Campaign.id == CampaignToEntity.campaign_id",
         secondary="campaign__entity",
     )
@@ -2329,18 +2329,18 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
         task_type: Type of task.
         scan_parameters (JSON_DICT): Scan parameters for the task.
         campaign_id: id of the campaign that generated the config.
-        inputs: entities used as input for the task.
+        input: entities used as input for the task.
 
     Potential mappings for existing campaigns:
         Simulation:
             simulation_campaign_id -> campaign_id
-            entity/entity_id -> inputs[0]
+            entity/entity_id -> input[0]
             number_neurons -> MISSING
         SkeletonizationConfig:
             skeletonization_campaign_id -> campaign_id
-            em_cell_mesh_id -> inputs[0]
+            em_cell_mesh_id -> input[0]
         CircuitExtractionConfig:
-            circuit_id -> inputs[0]
+            circuit_id -> input[0]
             NOTHING -> campaign_id
         IonChannelModelingConfig:
             ion_channel_modeling_campaign_id -> campaign_id
@@ -2354,7 +2354,7 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
     campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.campaign}.id"), index=True
     )
-    inputs: Mapped[list[Entity]] = relationship(
+    input: Mapped[list[Entity]] = relationship(
         primaryjoin="TaskConfig.id == TaskConfigToEntity.task_config_id",
         secondary="task_config__entity",
     )

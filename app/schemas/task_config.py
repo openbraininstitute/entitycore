@@ -53,4 +53,4 @@ class TaskConfigRead(
     AuthorizationMixin,
     ContributionReadWithoutEntityMixin,
 ):
-    inputs: list[NestedEntityRead]
+    input: list[NestedEntityRead]

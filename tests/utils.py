@@ -317,6 +317,7 @@ def create_circuit_extraction_campaign_id(
 
 def create_campaign_id(
     client,
+    task_type,
     name="Test Campaign Name",
     description="Test Campaign Description",
     *,
@@ -325,6 +326,7 @@ def create_campaign_id(
     response = client.post(
         "/campaign",
         json={
+            "task_type": task_type,
             "name": name,
             "description": description,
             "authorized_public": authorized_public,
@@ -338,6 +340,7 @@ def create_campaign_id(
 
 def create_task_config_id(
     client,
+    task_type,
     campaign_id,
     name="Test Task Config Name",
     description="Test Task Config Description",
@@ -347,6 +350,7 @@ def create_task_config_id(
     response = client.post(
         "/task-config",
         json={
+            "task_type": task_type,
             "name": name,
             "description": description,
             "campaign_id": str(campaign_id),

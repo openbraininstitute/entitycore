@@ -32,6 +32,7 @@ DateTimeAdapter = TypeAdapter(datetime)
 
 ROUTE = "task-config-generation"
 ADMIN_ROUTE = "/admin/task-config-generation"
+TASK_TYPE = "skeletonization"
 
 
 @pytest.fixture
@@ -128,14 +129,17 @@ def test_create_one__unauthorized_entities(db, client_user_1, client_user_2, jso
     user1_private_used_id = create_campaign_id(
         client_user_1,
         authorized_public=False,
+        task_type=TASK_TYPE,
     )
     user2_private_used_id = create_campaign_id(
         client_user_2,
         authorized_public=False,
+        task_type=TASK_TYPE,
     )
     user2_public_used_id = create_campaign_id(
         client_user_2,
         authorized_public=True,
+        task_type=TASK_TYPE,
     )
     check_activity_create_one__unauthorized_entities(
         db=db,
@@ -161,6 +165,7 @@ def task_config_id_1(client, campaign_id):
     return create_task_config_id(
         client=client,
         campaign_id=campaign_id,
+        task_type=TASK_TYPE,
     )
 
 
@@ -169,6 +174,7 @@ def task_config_id_2(client, campaign_id):
     return create_task_config_id(
         client=client,
         campaign_id=campaign_id,
+        task_type=TASK_TYPE,
     )
 
 
@@ -213,12 +219,16 @@ def test_filtering(
     assert len(data) == len(models)
 
     data = assert_request(
-        client.get, url=ROUTE, params={"used__id": campaign_id}
+        client.get,
+        url=ROUTE,
+        params={"used__id": campaign_id},
     ).json()["data"]
     assert len(data) == 3
 
     data = assert_request(
-        client.get, url=ROUTE, params={"generated__id": task_config_id_1}
+        client.get,
+        url=ROUTE,
+        params={"generated__id": task_config_id_1},
     ).json()["data"]
     assert len(data) == 2
 
@@ -304,10 +314,12 @@ def test_update_one__fail_if_generated_ids_unauthorized(
     user1_private_used_id = create_campaign_id(
         client_user_1,
         authorized_public=False,
+        task_type=TASK_TYPE,
     )
     user2_private_used_id = create_campaign_id(
         client_user_2,
         authorized_public=False,
+        task_type=TASK_TYPE,
     )
     check_activity_update_one__fail_if_generated_ids_unauthorized(
         db=db,
@@ -319,9 +331,7 @@ def test_update_one__fail_if_generated_ids_unauthorized(
     )
 
 
-def test_update_one__fail_if_generated_ids_exists(
-    client, campaign_id, task_config_id, create_id
-):
+def test_update_one__fail_if_generated_ids_exists(client, campaign_id, task_config_id, create_id):
     """Test activity Generation associations cannot be updated if they already exist."""
     check_activity_update_one__fail_if_generated_ids_exists(
         client=client,

@@ -45,7 +45,7 @@ def create_id(client, json_data):
 
 def _assert_read_response(data, json_data):
     check_entity_read_response(data, json_data, EntityType.campaign)
-    assert "task_configs" in data
+    assert "input" in data
     assert data["scan_parameters"] == json_data["scan_parameters"]
 
 
@@ -128,6 +128,7 @@ def models(db, json_data, person_id):
             add_db(
                 db,
                 TaskConfig(
+                    task_type="skeletonization",
                     name=f"config-{j}",
                     description=f"config-{j}",
                     campaign_id=campaign.id,

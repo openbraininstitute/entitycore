@@ -338,9 +338,7 @@ def test_update_one__fail_if_generated_ids_unauthorized(
     )
 
 
-def test_update_one__fail_if_generated_ids_exists(
-    client, morphology_id, task_config_id, create_id
-):
+def test_update_one__fail_if_generated_ids_exists(client, morphology_id, task_config_id, create_id):
     """Test activity Generation associations cannot be updated if they already exist."""
     check_activity_update_one__fail_if_generated_ids_exists(
         client=client,

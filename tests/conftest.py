@@ -1932,6 +1932,13 @@ def campaign_json_data():
 
 
 @pytest.fixture
+def campaign_with_nested_relationships_json_data(campaign_json_data, em_cell_mesh):
+    return campaign_json_data | {
+        "input_ids": [str(em_cell_mesh.id)],
+    }
+
+
+@pytest.fixture
 def campaign_id(client, campaign_json_data):
     data = assert_request(
         client.post,
@@ -1959,6 +1966,13 @@ def task_config_json_data(public_campaign_id):
         "campaign_id": public_campaign_id,
         "scan_parameters": {"foo": "bar"},
         "task_type": "skeletonization",
+    }
+
+
+@pytest.fixture
+def task_config_with_nested_relationships_json_data(task_config_json_data, em_cell_mesh):
+    return task_config_json_data | {
+        "input_ids": [str(em_cell_mesh.id)],
     }
 
 

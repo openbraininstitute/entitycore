@@ -4,11 +4,13 @@ from app.db.model import TaskConfig
 from app.db.types import EntityType
 
 from .utils import (
+    PROJECT_ID,
     USER_SUB_ID_1,
     assert_request,
     check_authorization,
     check_entity_delete_one,
     check_entity_read_response,
+    check_entity_update_one,
     check_missing,
     check_pagination,
 )
@@ -42,6 +44,7 @@ def model_id(task_config_id):
 
 def _assert_read_response(data, json_data):
     check_entity_read_response(data, json_data, EntityType.task_config)
+    assert "input" in data
     assert data["campaign_id"]
     assert data["scan_parameters"] == json_data["scan_parameters"]
 
@@ -49,6 +52,23 @@ def _assert_read_response(data, json_data):
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+
+
+def test_create_one_with_nested_relationships(
+    client, task_config_with_nested_relationships_json_data
+):
+    json_data = task_config_with_nested_relationships_json_data
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
+    input_ids = json_data["input_ids"]
+    assert data["input"] == [
+        {
+            "authorized_project_id": PROJECT_ID,
+            "authorized_public": False,
+            "id": input_ids[0],
+            "type": "em_cell_mesh",
+        },
+    ]
 
 
 def test_read_one(clients, model_id, json_data):
@@ -76,6 +96,20 @@ def test_delete_one(db, clients, public_json_data):
         expected_counts_after={
             TaskConfig: 0,
         },
+    )
+
+
+def test_update_one(clients, json_data):
+    check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "name",
+            "description": "description",
+        },
+        optional_payload=None,
     )
 
 

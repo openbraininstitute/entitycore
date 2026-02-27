@@ -9,7 +9,6 @@ from sqlalchemy.sql import operators
 from app.db.auth import (
     constrain_to_readable_entities,
     constrain_to_writable_entities,
-    is_user_authorized_for_deletion,
 )
 from app.db.model import Activity, Identifiable
 from app.db.utils import get_declaring_class, load_db_model_from_pydantic, update_model
@@ -40,6 +39,7 @@ from app.queries.types import (
 from app.queries.utils import (
     create_associations_to_entities,
     get_or_create_user_agent,
+    is_user_authorized_for_deletion,
 )
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId

@@ -7,10 +7,11 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db.auth import select_unauthorized_entities
 from app.db.model import Identifiable, Person
 from app.queries.types import NestedRelationships, UpdateRelationshipPolicy
-from app.schemas.auth import UserProfile
+from app.schemas.auth import UserContext, UserProfile
 from app.schemas.utils import NOT_SET
 from app.utils.uuid import create_uuid
 
@@ -40,6 +41,37 @@ def get_or_create_user_agent(db: Session, user_profile: UserProfile) -> Person:
 def get_user(db: Session, subject_id: uuid.UUID) -> Person | None:
     query = sa.select(Person).where(Person.sub_id == subject_id)
     return db.execute(query).scalars().first()
+
+
+def is_user_authorized_for_deletion(  # noqa: PLR0911
+    db: Session, user_context: UserContext, obj: Identifiable
+) -> bool:
+    if settings.APP_DISABLE_AUTH:
+        return True
+
+    # if there is no authorized_project_id it is a global resource
+    if not (project_id := getattr(obj, "authorized_project_id", None)):
+        return False
+
+    # Service maintainers may delete public/private entities within their projects.
+    if user_context.is_service_maintainer:
+        return project_id in user_context.user_project_ids
+
+    # from here and below public entities cannot be deleted
+    if obj.authorized_public:  # pyright: ignore [reportAttributeAccessIssue]
+        return False
+
+    # Project admins may delete private entities within their projects
+    if project_id in user_context.admin_project_ids:
+        return True
+
+    # Project members may delete only the private entities they themselves created
+    if project_id in user_context.member_project_ids and (
+        db_user := get_user(db, user_context.profile.subject)
+    ):
+        return db_user.created_by_id == obj.created_by_id
+
+    return False
 
 
 def create_associations_to_entities(

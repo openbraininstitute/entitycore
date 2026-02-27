@@ -1,6 +1,6 @@
 import uuid
 from itertools import chain
-from typing import Literal
+from typing import Literal, cast
 
 import sqlalchemy as sa
 from fastapi import HTTPException
@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.auth import select_unauthorized_entities
 from app.db.model import Identifiable, Person
-from app.queries.types import NestedRelationships, UpdateRelationshipPolicy
+from app.queries.types import NestedRelationships
 from app.schemas.auth import UserContext, UserProfile
 from app.schemas.utils import NOT_SET
 from app.utils.uuid import create_uuid
@@ -98,11 +98,14 @@ def create_associations_to_entities(
             or if trying to update associations when it's not allowed.
     """
     # map relationship keys to lists of entity IDs to associate, ignoring NOT_SET values
-    nested_relationship_ids = {
-        relationship_key: ids
-        for relationship_key in nested_relationships
-        if (ids := getattr(json_model, relationship_key)) != NOT_SET
-    }
+    nested_relationship_ids: dict[str, list[uuid.UUID]] = cast(
+        "dict[str, list[uuid.UUID]]",
+        {
+            relationship_key: ids
+            for relationship_key in nested_relationships
+            if (ids := getattr(json_model, relationship_key, NOT_SET)) != NOT_SET
+        },
+    )
 
     associated_ids = list(chain.from_iterable(nested_relationship_ids.values()))
 
@@ -125,19 +128,13 @@ def create_associations_to_entities(
 
     for relationship_key, relationship in nested_relationships.items():
         # ignore empty ids
-        if not (right_ids := nested_relationship_ids[relationship_key]):
+        if not (right_ids := nested_relationship_ids.get(relationship_key)):
             continue
-        if action == "update":
-            if relationship["update_policy"] == UpdateRelationshipPolicy.never:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"It is forbidden to update {relationship_key} after the creation.",
-                )
-            if getattr(left, relationship["relationship_name"]):
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"It is forbidden to update {relationship_key} if they exist.",
-                )
+        if action == "update" and getattr(left, relationship["relationship_name"]):
+            raise HTTPException(
+                status_code=409,
+                detail=f"It is forbidden to update {relationship_key} if they exist.",
+            )
         factory = relationship["db_model_factory"]
         for right_id in right_ids:
             db_instance = factory(left_id=left.id, right_id=right_id)

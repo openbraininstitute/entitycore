@@ -2253,7 +2253,7 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
 class CampaignToEntity(Base):
     """Represents the many-to-many associations between campaigns and entities used as input."""
 
-    __tablename__ = "entity__campaign"
+    __tablename__ = "campaign__entity"
 
     campaign_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.campaign}.id", ondelete="CASCADE"),
@@ -2268,7 +2268,7 @@ class CampaignToEntity(Base):
 class TaskConfigToEntity(Base):
     """Represents the many-to-many associations between task configs and entities used as input."""
 
-    __tablename__ = "entity__task_config"
+    __tablename__ = "task_config__entity"
 
     task_config_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(f"{EntityType.task_config}.id", ondelete="CASCADE"),
@@ -2311,8 +2311,8 @@ class Campaign(NameDescriptionVectorMixin, Entity):
     scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
 
     inputs: Mapped[list[Entity]] = relationship(
-        primaryjoin="Campaign.id == EntityToCampaign.campaign_id",
-        secondary="entity__campaign",
+        primaryjoin="Campaign.id == CampaignToEntity.campaign_id",
+        secondary="campaign__entity",
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
@@ -2355,8 +2355,8 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
         ForeignKey(f"{EntityType.campaign}.id"), index=True
     )
     inputs: Mapped[list[Entity]] = relationship(
-        primaryjoin="TaskConfig.id == EntityToTaskConfig.task_config_id",
-        secondary="entity__task_config",
+        primaryjoin="TaskConfig.id == TaskConfigToEntity.task_config_id",
+        secondary="task_config__entity",
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

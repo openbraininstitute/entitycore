@@ -1,8 +1,8 @@
 """Add generic campaign models
 
-Revision ID: c3208a1f2c6b
+Revision ID: a873e3bb7ed3
 Revises: 523e523531a7
-Create Date: 2026-02-18 10:46:17.576165
+Create Date: 2026-02-27 15:35:48.007178
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "c3208a1f2c6b"
+revision: str = "a873e3bb7ed3"
 down_revision: Union[str, None] = "523e523531a7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -34,6 +34,153 @@ def upgrade() -> None:
         "em_synapse_mapping",
         name="tasktype",
     ).create(op.get_bind())
+    op.create_table(
+        "campaign",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column(
+            "task_type",
+            postgresql.ENUM(
+                "circuit_simulation",
+                "circuit_extraction",
+                "ion_channel_modeling",
+                "skeletonization",
+                "ion_channel_simulation",
+                "em_synapse_mapping",
+                name="tasktype",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column(
+            "scan_parameters",
+            postgresql.JSONB(astext_type=sa.Text()),
+            server_default="{}",
+            nullable=False,
+        ),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_campaign_id_entity")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_campaign")),
+    )
+    op.create_index(
+        "ix_campaign_description_vector",
+        "campaign",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_campaign_name"), "campaign", ["name"], unique=False)
+    op.create_index(op.f("ix_campaign_task_type"), "campaign", ["task_type"], unique=False)
+    op.create_table(
+        "config_generation",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["id"], ["activity.id"], name=op.f("fk_config_generation_id_activity")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_config_generation")),
+    )
+    op.create_table(
+        "task_execution",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column(
+            "executor",
+            postgresql.ENUM(
+                "single_node_job",
+                "distributed_job",
+                "jupyter_notebook",
+                name="executortype",
+                create_type=False,
+            ),
+            nullable=True,
+        ),
+        sa.Column("execution_id", sa.Uuid(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["id"], ["activity.id"], name=op.f("fk_task_execution_id_activity")
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_task_execution")),
+    )
+    op.create_table(
+        "campaign__entity",
+        sa.Column("campaign_id", sa.Uuid(), nullable=False),
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["campaign_id"],
+            ["campaign.id"],
+            name=op.f("fk_campaign__entity_campaign_id_campaign"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["entity_id"],
+            ["entity.id"],
+            name=op.f("fk_campaign__entity_entity_id_entity"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("campaign_id", "entity_id", name=op.f("pk_campaign__entity")),
+    )
+    op.create_table(
+        "task_config",
+        sa.Column("id", sa.Uuid(), nullable=False),
+        sa.Column(
+            "task_type",
+            postgresql.ENUM(
+                "circuit_simulation",
+                "circuit_extraction",
+                "ion_channel_modeling",
+                "skeletonization",
+                "ion_channel_simulation",
+                "em_synapse_mapping",
+                name="tasktype",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
+        sa.Column(
+            "scan_parameters",
+            postgresql.JSONB(astext_type=sa.Text()),
+            server_default="{}",
+            nullable=False,
+        ),
+        sa.Column("campaign_id", sa.Uuid(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("description", sa.String(), nullable=False),
+        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["campaign_id"], ["campaign.id"], name=op.f("fk_task_config_campaign_id_campaign")
+        ),
+        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_task_config_id_entity")),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_task_config")),
+    )
+    op.create_index(
+        op.f("ix_task_config_campaign_id"), "task_config", ["campaign_id"], unique=False
+    )
+    op.create_index(
+        "ix_task_config_description_vector",
+        "task_config",
+        ["description_vector"],
+        unique=False,
+        postgresql_using="gin",
+    )
+    op.create_index(op.f("ix_task_config_name"), "task_config", ["name"], unique=False)
+    op.create_index(op.f("ix_task_config_task_type"), "task_config", ["task_type"], unique=False)
+    op.create_table(
+        "task_config__entity",
+        sa.Column("task_config_id", sa.Uuid(), nullable=False),
+        sa.Column("entity_id", sa.Uuid(), nullable=False),
+        sa.ForeignKeyConstraint(
+            ["entity_id"],
+            ["entity.id"],
+            name=op.f("fk_task_config__entity_entity_id_entity"),
+            ondelete="CASCADE",
+        ),
+        sa.ForeignKeyConstraint(
+            ["task_config_id"],
+            ["task_config.id"],
+            name=op.f("fk_task_config__entity_task_config_id_task_config"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("task_config_id", "entity_id", name=op.f("pk_task_config__entity")),
+    )
     op.sync_enum_values(
         enum_schema="public",
         enum_name="activitytype",
@@ -112,173 +259,11 @@ def upgrade() -> None:
         ],
         enum_values_to_rename=[],
     )
-    op.create_table(
-        "campaign",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "task_type",
-            postgresql.ENUM(
-                "circuit_simulation",
-                "circuit_extraction",
-                "ion_channel_modeling",
-                "skeletonization",
-                "ion_channel_simulation",
-                "em_synapse_mapping",
-                name="tasktype",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
-        sa.Column(
-            "scan_parameters",
-            postgresql.JSONB(astext_type=sa.Text()),
-            server_default="{}",
-            nullable=False,
-        ),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_campaign_id_entity")),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_campaign")),
-    )
-    op.create_index(
-        "ix_campaign_description_vector",
-        "campaign",
-        ["description_vector"],
-        unique=False,
-        postgresql_using="gin",
-    )
-    op.create_index(op.f("ix_campaign_name"), "campaign", ["name"], unique=False)
-    op.create_index(op.f("ix_campaign_task_type"), "campaign", ["task_type"], unique=False)
-    op.create_table(
-        "task_execution",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "executor",
-            postgresql.ENUM(
-                "single_node_job",
-                "distributed_job",
-                "jupyter_notebook",
-                name="executortype",
-                create_type=False,
-            ),
-            nullable=True,
-        ),
-        sa.Column("execution_id", sa.Uuid(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["id"], ["activity.id"], name=op.f("fk_task_execution_id_activity")
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_task_execution")),
-    )
-    op.create_table(
-        "config_generation",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["id"], ["activity.id"], name=op.f("fk_config_generation_id_activity")
-        ),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_config_generation")),
-    )
-    op.create_table(
-        "entity__campaign",
-        sa.Column("entity_id", sa.Uuid(), nullable=False),
-        sa.Column("campaign_id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["campaign_id"],
-            ["campaign.id"],
-            name=op.f("fk_entity__campaign_campaign_id_campaign"),
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["entity_id"],
-            ["entity.id"],
-            name=op.f("fk_entity__campaign_entity_id_entity"),
-            ondelete="CASCADE",
-        ),
-        sa.PrimaryKeyConstraint("entity_id", "campaign_id", name=op.f("pk_entity__campaign")),
-    )
-    op.create_table(
-        "task_config",
-        sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "task_type",
-            postgresql.ENUM(
-                "circuit_simulation",
-                "circuit_extraction",
-                "ion_channel_modeling",
-                "skeletonization",
-                "ion_channel_simulation",
-                "em_synapse_mapping",
-                name="tasktype",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
-        sa.Column(
-            "scan_parameters",
-            postgresql.JSONB(astext_type=sa.Text()),
-            server_default="{}",
-            nullable=False,
-        ),
-        sa.Column("campaign_id", sa.Uuid(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
-        sa.Column("description", sa.String(), nullable=False),
-        sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["campaign_id"], ["campaign.id"], name=op.f("fk_task_config_campaign_id_campaign")
-        ),
-        sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_task_config_id_entity")),
-        sa.PrimaryKeyConstraint("id", name=op.f("pk_task_config")),
-    )
-    op.create_index(
-        op.f("ix_task_config_campaign_id"), "task_config", ["campaign_id"], unique=False
-    )
-    op.create_index(
-        "ix_task_config_description_vector",
-        "task_config",
-        ["description_vector"],
-        unique=False,
-        postgresql_using="gin",
-    )
-    op.create_index(op.f("ix_task_config_name"), "task_config", ["name"], unique=False)
-    op.create_index(op.f("ix_task_config_task_type"), "task_config", ["task_type"], unique=False)
-    op.create_table(
-        "entity__task_config",
-        sa.Column("entity_id", sa.Uuid(), nullable=False),
-        sa.Column("task_config_id", sa.Uuid(), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["entity_id"],
-            ["entity.id"],
-            name=op.f("fk_entity__task_config_entity_id_entity"),
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["task_config_id"],
-            ["task_config.id"],
-            name=op.f("fk_entity__task_config_task_config_id_task_config"),
-            ondelete="CASCADE",
-        ),
-        sa.PrimaryKeyConstraint("entity_id", "task_config_id", name=op.f("pk_entity__task_config")),
-    )
     # ### end Alembic commands ###
 
 
 def downgrade() -> None:
     # ### commands auto generated by Alembic - please adjust! ###
-    op.drop_table("entity__task_config")
-    op.drop_index(op.f("ix_task_config_task_type"), table_name="task_config")
-    op.drop_index(op.f("ix_task_config_name"), table_name="task_config")
-    op.drop_index(
-        "ix_task_config_description_vector", table_name="task_config", postgresql_using="gin"
-    )
-    op.drop_index(op.f("ix_task_config_campaign_id"), table_name="task_config")
-    op.drop_table("task_config")
-    op.drop_table("entity__campaign")
-    op.drop_table("config_generation")
-    op.drop_table("task_execution")
-    op.drop_index(op.f("ix_campaign_task_type"), table_name="campaign")
-    op.drop_index(op.f("ix_campaign_name"), table_name="campaign")
-    op.drop_index("ix_campaign_description_vector", table_name="campaign", postgresql_using="gin")
-    op.drop_table("campaign")
     op.sync_enum_values(
         enum_schema="public",
         enum_name="entitytype",
@@ -353,6 +338,21 @@ def downgrade() -> None:
         ],
         enum_values_to_rename=[],
     )
+    op.drop_table("task_config__entity")
+    op.drop_index(op.f("ix_task_config_task_type"), table_name="task_config")
+    op.drop_index(op.f("ix_task_config_name"), table_name="task_config")
+    op.drop_index(
+        "ix_task_config_description_vector", table_name="task_config", postgresql_using="gin"
+    )
+    op.drop_index(op.f("ix_task_config_campaign_id"), table_name="task_config")
+    op.drop_table("task_config")
+    op.drop_table("campaign__entity")
+    op.drop_table("task_execution")
+    op.drop_table("config_generation")
+    op.drop_index(op.f("ix_campaign_task_type"), table_name="campaign")
+    op.drop_index(op.f("ix_campaign_name"), table_name="campaign")
+    op.drop_index("ix_campaign_description_vector", table_name="campaign", postgresql_using="gin")
+    op.drop_table("campaign")
     sa.Enum(
         "circuit_simulation",
         "circuit_extraction",

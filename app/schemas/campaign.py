@@ -31,7 +31,7 @@ class CampaignCreate(
     CampaignBase,
     AuthorizationOptionalPublicMixin,
 ):
-    inputs_ids: list[uuid.UUID] = []
+    input_ids: list[uuid.UUID] = []
 
 
 CampaignUserUpdate = make_update_schema(

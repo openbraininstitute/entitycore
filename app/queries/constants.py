@@ -17,7 +17,7 @@ NESTED_ACTIVITY_RELATIONSHIPS: NestedRelationships = {
 }
 
 NESTED_CAMPAIGN_RELATIONSHIPS: NestedRelationships = {
-    "inputs_ids": {
+    "input_ids": {
         "relationship_name": "inputs",
         "db_model_factory": lambda *, left_id, right_id: CampaignToEntity(
             campaign_id=left_id, entity_id=right_id
@@ -26,7 +26,7 @@ NESTED_CAMPAIGN_RELATIONSHIPS: NestedRelationships = {
 }
 
 NESTED_TASK_CONFIG_RELATIONSHIPS: NestedRelationships = {
-    "inputs_ids": {
+    "input_ids": {
         "relationship_name": "inputs",
         "db_model_factory": lambda *, left_id, right_id: TaskConfigToEntity(
             task_config_id=left_id, entity_id=right_id

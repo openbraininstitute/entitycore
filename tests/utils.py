@@ -315,6 +315,50 @@ def create_circuit_extraction_campaign_id(
     ).json()["id"]
 
 
+def create_campaign_id(
+    client,
+    name="Test Campaign Name",
+    description="Test Campaign Description",
+    *,
+    authorized_public: bool = False,
+):
+    response = client.post(
+        "/campaign",
+        json={
+            "name": name,
+            "description": description,
+            "authorized_public": authorized_public,
+            "scan_parameters": {"foo": "bar"},
+        },
+    )
+
+    assert response.status_code == 200
+    return response.json()["id"]
+
+
+def create_task_config_id(
+    client,
+    campaign_id,
+    name="Test Task Config Name",
+    description="Test Task Config Description",
+    *,
+    authorized_public: bool = False,
+):
+    response = client.post(
+        "/task-config",
+        json={
+            "name": name,
+            "description": description,
+            "campaign_id": str(campaign_id),
+            "authorized_public": authorized_public,
+            "scan_parameters": {"foo": "bar"},
+        },
+    )
+
+    assert response.status_code == 200
+    return response.json()["id"]
+
+
 def add_db(db, row):
     """Add one row to the db and commit the transaction."""
     db.add(row)

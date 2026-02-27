@@ -1919,3 +1919,52 @@ def skeletonization_config_id(client, skeletonization_config_json_data):
         json=skeletonization_config_json_data,
     ).json()
     return data["id"]
+
+
+@pytest.fixture
+def campaign_json_data():
+    return {
+        "name": "campaign",
+        "description": "campaign-description",
+        "scan_parameters": {"foo": "bar"},
+    }
+
+
+@pytest.fixture
+def campaign_id(client, campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/campaign",
+        json=campaign_json_data | {"authorized_public": False},
+    ).json()
+    return data["id"]
+
+
+@pytest.fixture
+def public_campaign_id(client, campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/campaign",
+        json=campaign_json_data | {"authorized_public": True},
+    ).json()
+    return data["id"]
+
+
+@pytest.fixture
+def task_config_json_data(public_campaign_id):
+    return {
+        "name": "task-config",
+        "description": "task-config-description",
+        "campaign_id": public_campaign_id,
+        "scan_parameters": {"foo": "bar"},
+    }
+
+
+@pytest.fixture
+def task_config_id(client, task_config_json_data):
+    data = assert_request(
+        client.post,
+        url="/task-config",
+        json=task_config_json_data,
+    ).json()
+    return data["id"]

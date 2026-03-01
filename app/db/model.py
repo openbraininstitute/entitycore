@@ -2250,21 +2250,6 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class CampaignToEntity(Base):
-    """Represents the many-to-many associations between campaigns and entities used as input."""
-
-    __tablename__ = "campaign__entity"
-
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.campaign}.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-    entity_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
-
-
 class TaskConfigToEntity(Base):
     """Represents the many-to-many associations between task configs and entities used as input."""
 
@@ -2278,44 +2263,6 @@ class TaskConfigToEntity(Base):
         ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,
     )
-
-
-class Campaign(NameDescriptionVectorMixin, Entity):
-    """Represents a generic campaign in the database.
-
-    Assets:
-        - campaign configuration file.
-
-    Attributes:
-        id (uuid.UUID): Primary key referencing the entity ID.
-        task_type: Type of task.
-        scan_parameters (JSON_DICT): Scan parameters for the campaign.
-        input: entities used as input for the campaign.
-
-    Potential mappings for existing campaigns:
-        SimulationCampaign:
-            entity_id/entity -> input[0]
-            simulations -> task_config_generation.used[]
-        SkeletonizationCampaign:
-            input_meshes -> input
-            skeletonization_configs -> task_config_generation.used[]
-        CircuitExtractionCampaign:
-        IonChannelModelingCampaign:
-            input_recordings -> input
-            ion_channel_modeling_configs -> task_config_generation.used[]
-    """
-
-    __tablename__ = EntityType.campaign.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    task_type: Mapped[TaskType] = mapped_column(index=True)
-    scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
-
-    input: Mapped[list[Entity]] = relationship(
-        primaryjoin="Campaign.id == CampaignToEntity.campaign_id",
-        secondary="campaign__entity",
-    )
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
 class TaskConfig(NameDescriptionVectorMixin, Entity):
@@ -2358,25 +2305,6 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
         primaryjoin="TaskConfig.id == TaskConfigToEntity.task_config_id",
         secondary="task_config__entity",
     )
-
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
-
-
-class TaskConfigGeneration(Activity):
-    """Represents an activity generating the task configurations in a campaign.
-
-    Inputs (used):
-        - Campaign (one)
-    Outputs (generated):
-        - TaskConfig (many)
-
-    Attributes:
-        id (uuid.UUID): Primary key referencing the activity ID.
-    """
-
-    __tablename__ = ActivityType.task_config_generation.value
-    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-    # task_type: Mapped[TaskType] = mapped_column(index=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

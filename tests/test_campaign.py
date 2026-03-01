@@ -13,8 +13,11 @@ from .utils import (
     check_entity_delete_one,
     check_entity_read_response,
     check_entity_update_one,
+    check_entity_update_one__fail_if_nested_ids_exists,
+    check_entity_update_one__fail_if_nested_ids_unauthorized,
     check_missing,
     check_pagination,
+    create_cell_morphology_id,
 )
 
 ROUTE = "campaign"
@@ -109,6 +112,47 @@ def test_update_one(clients, json_data):
             "description": "description",
         },
         optional_payload=None,
+    )
+
+
+def test_update_one__fail_if_nested_ids_unauthorized(
+    db, client_user_1, client_user_2, json_data, subject_id, brain_region_id
+):
+    """Test that it is not allowed to update the nested ids with unauthorized entities."""
+
+    user2_generated_id = create_cell_morphology_id(
+        client_user_2,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    check_entity_update_one__fail_if_nested_ids_unauthorized(
+        db=db,
+        route=ROUTE,
+        client_user_1=client_user_1,
+        json_data=json_data,
+        u2_private_entity_id=user2_generated_id,
+        relationship_key="input_ids",
+    )
+
+
+def test_update_one__fail_if_nested_ids_exists(
+    db, client_user_1, json_data, subject_id, brain_region_id
+):
+    """Test that nested ids cannot be updated if they already exist."""
+    user1_generated_id = create_cell_morphology_id(
+        client_user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    check_entity_update_one__fail_if_nested_ids_exists(
+        db=db,
+        route=ROUTE,
+        client_user_1=client_user_1,
+        json_data=json_data,
+        u1_private_entity_id=user1_generated_id,
+        relationship_key="input_ids",
     )
 
 

@@ -1699,6 +1699,63 @@ def check_activity_update_one__fail_if_generated_ids_exists(
     assert data["details"] == "It is forbidden to update generated_ids if they exist."
 
 
+def check_entity_update_one__fail_if_nested_ids_unauthorized(
+    db,
+    route,
+    client_user_1,
+    json_data,
+    u2_private_entity_id,
+    relationship_key,
+):
+    """Test that it is not allowed to update nested ids with unauthorized entities."""
+    # sanity check to ensure that authorized_project_id and authorized_public are consistent
+    e2 = _get_entity(db, entity_id=u2_private_entity_id)
+    assert e2.authorized_public is False
+
+    # create an entity without relationships
+    json_data |= {
+        relationship_key: [],
+    }
+    data = assert_request(client_user_1.post, url=route, json=json_data).json()
+
+    # update the entity with invalid relationships
+    update_json = {
+        relationship_key: [str(u2_private_entity_id)],
+    }
+    data = assert_request(
+        client_user_1.patch, url=f"{route}/{data['id']}", json=update_json, expected_status_code=404
+    ).json()
+    assert data["details"] == f"Cannot access entities {u2_private_entity_id}"
+
+
+def check_entity_update_one__fail_if_nested_ids_exists(
+    db,
+    route,
+    client_user_1,
+    json_data,
+    u1_private_entity_id,
+    relationship_key,
+):
+    # sanity check to ensure that authorized_project_id and authorized_public are consistent
+    e1 = _get_entity(db, entity_id=u1_private_entity_id)
+    assert e1.authorized_public is False
+
+    # create an entity with valid relationships
+    json_data |= {
+        relationship_key: [str(u1_private_entity_id)],
+    }
+    data = assert_request(client_user_1.post, url=route, json=json_data).json()
+
+    # update the entity when the nested relationships exist already
+    update_json = {
+        relationship_key: [str(u1_private_entity_id)],
+    }
+    data = assert_request(
+        client_user_1.patch, url=f"{route}/{data['id']}", json=update_json, expected_status_code=409
+    ).json()
+    assert data["details"] == f"It is forbidden to update {relationship_key} if they exist."
+
+
 def s3_key_exists(s3_client, key: str, storage_type=StorageType.aws_s3_internal) -> bool:
     bucket = storages[storage_type].bucket
 

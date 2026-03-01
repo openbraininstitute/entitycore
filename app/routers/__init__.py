@@ -15,7 +15,6 @@ from app.routers import (
     brain_region,
     brain_region_hierarchy,
     calibration,
-    campaign,
     cell_composition,
     cell_morphology,
     cell_morphology_protocol,
@@ -75,9 +74,8 @@ from app.routers import (
     species,
     strain,
     subject,
+    task_activity,
     task_config,
-    task_config_generation,
-    task_execution,
     validation,
     validation_result,
 )
@@ -161,8 +159,8 @@ authenticated_routers = [
     species.router,
     strain.router,
     subject.router,
+    task_activity.router,
     task_config.router,
-    task_execution.router,
     validation.router,
     validation_result.router,
 ]

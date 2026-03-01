@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
 from app.routers.admin import router as admin_router
-from app.service import task_execution as service
+from app.service import task_activity as service
 
-ROUTE = "task-execution"
+ROUTE = "task-activity"
 router = APIRouter(prefix=f"/{ROUTE}", tags=[ROUTE])
 
 read_many = router.get("")(service.read_many)

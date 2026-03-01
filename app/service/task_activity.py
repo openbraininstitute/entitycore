@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
-from app.db.model import Entity, Person, TaskExecution
+from app.db.model import Entity, Person, TaskActivity
 from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -12,7 +12,7 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.task_execution import TaskExecutionFilterDep
+from app.filters.task_activity import TaskActivityFilterDep
 from app.queries.common import (
     router_create_activity_one,
     router_read_many,
@@ -22,11 +22,11 @@ from app.queries.common import (
 )
 from app.queries.factory import query_params_factory
 from app.schemas.routers import DeleteResponse
-from app.schemas.task_execution import (
-    TaskExecutionAdminUpdate,
-    TaskExecutionCreate,
-    TaskExecutionRead,
-    TaskExecutionUserUpdate,
+from app.schemas.task_activity import (
+    TaskActivityAdminUpdate,
+    TaskActivityCreate,
+    TaskActivityRead,
+    TaskActivityUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -34,12 +34,12 @@ if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-DBModel = TaskExecution
-ReadSchema = TaskExecutionRead
-CreateSchema = TaskExecutionCreate
-UserUpdateSchema = TaskExecutionUserUpdate
-AdminUpdateSchema = TaskExecutionAdminUpdate
-FilterDep = TaskExecutionFilterDep
+DBModel = TaskActivity
+ReadSchema = TaskActivityRead
+CreateSchema = TaskActivityCreate
+UserUpdateSchema = TaskActivityUserUpdate
+AdminUpdateSchema = TaskActivityAdminUpdate
+FilterDep = TaskActivityFilterDep
 
 
 def _load(query: sa.Select):

@@ -20,6 +20,7 @@ from .utils import (
 
 ROUTE = "task-config"
 ADMIN_ROUTE = "/admin/task-config"
+TASK_CONFIG_TYPE = "skeletonization__config"
 
 
 @pytest.fixture
@@ -33,9 +34,13 @@ def public_json_data(json_data):
 
 
 @pytest.fixture
-def create_id(client, json_data):
+def create_id(client, task_config_with_parent_json_data):
     def _create_id(**kwargs):
-        return assert_request(client.post, url=ROUTE, json=json_data | kwargs).json()["id"]
+        return assert_request(
+            client.post,
+            url=ROUTE,
+            json=task_config_with_parent_json_data | kwargs,
+        ).json()["id"]
 
     return _create_id
 
@@ -48,13 +53,20 @@ def model_id(task_config_id):
 def _assert_read_response(data, json_data):
     check_entity_read_response(data, json_data, EntityType.task_config)
     assert "input" in data
-    assert data["campaign_id"]
+    assert "parent_id" in data
     assert data["scan_parameters"] == json_data["scan_parameters"]
 
 
 def test_create_one(client, json_data):
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
+
+
+def test_create_one_with_parent(client, task_config_with_parent_json_data):
+    json_data = task_config_with_parent_json_data
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
+    assert json_data["parent_id"] == task_config_with_parent_json_data["parent_id"]
 
 
 def test_create_one_with_nested_relationships(
@@ -176,7 +188,12 @@ def models(create_id):
 
 def test_filtering_ordering(client, models, public_campaign_id):
     def _req(query):
-        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+        # always filter by task_config_type to exclude the parent campaign
+        return assert_request(
+            client.get,
+            url=ROUTE,
+            params=query | {"task_config_type": TASK_CONFIG_TYPE},
+        ).json()["data"]
 
     data = _req({})
     assert len(data) == len(models)
@@ -188,10 +205,10 @@ def test_filtering_ordering(client, models, public_campaign_id):
     assert len(data) == 1
     assert data[0]["name"] == "config-0"
 
-    data = _req({"campaign_id": public_campaign_id})
+    data = _req({"parent_id": public_campaign_id})
     assert len(data) == len(models)
 
-    data = _req({"campaign_id__in": [public_campaign_id]})
+    data = _req({"parent_id__in": [public_campaign_id]})
     assert len(data) == len(models)
 
     data = _req({"order_by": "-name"})

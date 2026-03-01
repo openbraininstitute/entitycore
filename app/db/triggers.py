@@ -189,7 +189,7 @@ protected_entity_relationships = [
     (IonChannelModelingConfig, "ion_channel_modeling_campaign_id"),
     (SkeletonizationConfig, "skeletonization_campaign_id"),
     (SkeletonizationConfig, "em_cell_mesh_id"),
-    (TaskConfig, "campaign_id"),
+    (TaskConfig, "parent_id"),
 ]
 
 entities = [

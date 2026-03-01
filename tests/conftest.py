@@ -1927,7 +1927,7 @@ def campaign_json_data():
         "name": "campaign",
         "description": "campaign-description",
         "scan_parameters": {"foo": "bar"},
-        "task_type": "skeletonization",
+        "task_config_type": "skeletonization__campaign",
     }
 
 
@@ -1942,7 +1942,7 @@ def campaign_with_nested_relationships_json_data(campaign_json_data, em_cell_mes
 def campaign_id(client, campaign_json_data):
     data = assert_request(
         client.post,
-        url="/campaign",
+        url="/task-config",
         json=campaign_json_data | {"authorized_public": False},
     ).json()
     return data["id"]
@@ -1952,20 +1952,26 @@ def campaign_id(client, campaign_json_data):
 def public_campaign_id(client, campaign_json_data):
     data = assert_request(
         client.post,
-        url="/campaign",
+        url="/task-config",
         json=campaign_json_data | {"authorized_public": True},
     ).json()
     return data["id"]
 
 
 @pytest.fixture
-def task_config_json_data(public_campaign_id):
+def task_config_json_data():
     return {
         "name": "task-config",
         "description": "task-config-description",
-        "campaign_id": public_campaign_id,
         "scan_parameters": {"foo": "bar"},
-        "task_type": "skeletonization",
+        "task_config_type": "skeletonization__config",
+    }
+
+
+@pytest.fixture
+def task_config_with_parent_json_data(task_config_json_data, public_campaign_id):
+    return task_config_json_data | {
+        "parent_id": public_campaign_id,
     }
 
 

@@ -72,7 +72,8 @@ from app.db.types import (
     StainingType,
     StorageType,
     StructuralDomain,
-    TaskType,
+    TaskActivityType,
+    TaskConfigType,
     ValidationStatus,
 )
 from app.schemas.publication import Author
@@ -2266,40 +2267,26 @@ class TaskConfigToEntity(Base):
 
 
 class TaskConfig(NameDescriptionVectorMixin, Entity):
-    """Represents the configuration of a task of the campaign in the database.
+    """Represents the configuration of a generic task.
 
     Assets:
         - task configuration file.
 
     Attributes:
         id (uuid.UUID): Primary key referencing the entity ID.
-        task_type: Type of task.
+        task_config_type: Type of task config.
         scan_parameters (JSON_DICT): Scan parameters for the task.
-        campaign_id: id of the campaign that generated the config.
+        parent_id: id of the parent task that generated this task config.
         input: entities used as input for the task.
-
-    Potential mappings for existing campaigns:
-        Simulation:
-            simulation_campaign_id -> campaign_id
-            entity/entity_id -> input[0]
-            number_neurons -> MISSING
-        SkeletonizationConfig:
-            skeletonization_campaign_id -> campaign_id
-            em_cell_mesh_id -> input[0]
-        CircuitExtractionConfig:
-            circuit_id -> input[0]
-            NOTHING -> campaign_id
-        IonChannelModelingConfig:
-            ion_channel_modeling_campaign_id -> campaign_id
     """
 
     __tablename__ = EntityType.task_config.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    task_type: Mapped[TaskType] = mapped_column(index=True)
+    task_config_type: Mapped[TaskConfigType] = mapped_column(index=True)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
-    campaign_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.campaign}.id"), index=True
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(f"{EntityType.task_config}.id"), index=True
     )
     input: Mapped[list[Entity]] = relationship(
         primaryjoin="TaskConfig.id == TaskConfigToEntity.task_config_id",
@@ -2309,8 +2296,8 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class TaskExecution(Activity, ExecutionActivityMixin):
-    """Represents an activity executing a task in a campaign.
+class TaskActivity(Activity, ExecutionActivityMixin):
+    """Represents a generic task activity.
 
     Inputs (used):
         - TaskConfig (one)
@@ -2319,12 +2306,13 @@ class TaskExecution(Activity, ExecutionActivityMixin):
 
     Attributes:
         id (uuid.UUID): Primary key referencing the activity ID.
+        task_activity_type: Type of task config.
     """
 
-    __tablename__ = ActivityType.task_execution.value
+    __tablename__ = ActivityType.task_activity.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
-    # task_type: Mapped[TaskType] = mapped_column(index=True)
+    task_activity_type: Mapped[TaskActivityType] = mapped_column(index=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

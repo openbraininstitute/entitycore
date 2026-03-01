@@ -5,8 +5,8 @@ from pydantic import TypeAdapter
 
 from app.db.model import (
     Generation,
+    TaskActivity,
     TaskConfig,
-    TaskExecution,
     Usage,
 )
 from app.db.types import ActivityType, ExecutorType
@@ -28,13 +28,14 @@ from .utils import (
 
 DateTimeAdapter = TypeAdapter(datetime)
 
-ROUTE = "task-execution"
-ADMIN_ROUTE = "/admin/task-execution"
+ROUTE = "task-activity"
+ADMIN_ROUTE = "/admin/task-activity"
 
 
 @pytest.fixture
 def json_data(task_config_id, morphology_id):
     return {
+        "task_activity_type": "skeletonization__execution",
         "start_time": str(datetime.now(UTC)),
         "end_time": str(datetime.now(UTC)),
         "used_ids": [str(task_config_id)],
@@ -88,7 +89,7 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
     assert DateTimeAdapter.validate_python(data["end_time"]) == DateTimeAdapter.validate_python(
         json_data["end_time"]
     )
-    assert data["type"] == ActivityType.task_execution
+    assert data["type"] == ActivityType.task_activity
 
 
 def test_create_one(clients, json_data):
@@ -280,13 +281,13 @@ def test_delete_one(db, clients, json_data):
         admin_route=ADMIN_ROUTE,
         expected_counts_before={
             TaskConfig: 1,
-            TaskExecution: 1,
+            TaskActivity: 1,
             Usage: 1,
             Generation: 1,
         },
         expected_counts_after={
             TaskConfig: 1,
-            TaskExecution: 0,
+            TaskActivity: 0,
             Usage: 0,
             Generation: 0,
         },

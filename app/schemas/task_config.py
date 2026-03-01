@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import JSON_DICT, TaskType
+from app.db.types import JSON_DICT, TaskConfigType
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -20,9 +20,9 @@ from app.schemas.utils import make_update_schema
 
 class TaskConfigBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
-    task_type: TaskType
+    task_config_type: TaskConfigType
     scan_parameters: JSON_DICT
-    campaign_id: uuid.UUID
+    parent_id: uuid.UUID | None = None
 
 
 class TaskConfigCreate(TaskConfigBase, AuthorizationOptionalPublicMixin):

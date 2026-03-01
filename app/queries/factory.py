@@ -276,7 +276,7 @@ def query_params_factory[I: Identifiable](
         ),
         "task_config": lambda q: q.join(
             task_config_alias,
-            db_model_class.id == task_config_alias.campaign_id,
+            db_model_class.id == task_config_alias.parent_id,
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

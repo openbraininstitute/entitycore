@@ -2276,8 +2276,8 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
         id (uuid.UUID): Primary key referencing the entity ID.
         task_config_type: Type of task config.
         scan_parameters (JSON_DICT): Scan parameters for the task.
-        parent_id: id of the parent task that generated this task config.
-        input: entities used as input for the task.
+        task_config_generator_id: id of the task that generated this task config.
+        inputs: entities used as input for the task.
     """
 
     __tablename__ = EntityType.task_config.value
@@ -2285,10 +2285,10 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     task_config_type: Mapped[TaskConfigType] = mapped_column(index=True)
     scan_parameters: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
-    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+    task_config_generator_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey(f"{EntityType.task_config}.id"), index=True
     )
-    input: Mapped[list[Entity]] = relationship(
+    inputs: Mapped[list[Entity]] = relationship(
         primaryjoin="TaskConfig.id == TaskConfigToEntity.task_config_id",
         secondary="task_config__entity",
     )

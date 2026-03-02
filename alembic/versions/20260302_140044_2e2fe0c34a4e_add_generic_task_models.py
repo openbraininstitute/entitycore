@@ -1,8 +1,8 @@
 """Add generic task models
 
-Revision ID: d6c17cf77ea4
+Revision ID: 2e2fe0c34a4e
 Revises: 523e523531a7
-Create Date: 2026-03-01 16:21:44.922143
+Create Date: 2026-03-02 14:00:44.255839
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "d6c17cf77ea4"
+revision: str = "2e2fe0c34a4e"
 down_revision: Union[str, None] = "523e523531a7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -128,13 +128,15 @@ def upgrade() -> None:
             server_default="{}",
             nullable=False,
         ),
-        sa.Column("parent_id", sa.Uuid(), nullable=True),
+        sa.Column("task_config_generator_id", sa.Uuid(), nullable=True),
         sa.Column("name", sa.String(), nullable=False),
         sa.Column("description", sa.String(), nullable=False),
         sa.Column("description_vector", postgresql.TSVECTOR(), nullable=True),
         sa.ForeignKeyConstraint(["id"], ["entity.id"], name=op.f("fk_task_config_id_entity")),
         sa.ForeignKeyConstraint(
-            ["parent_id"], ["task_config.id"], name=op.f("fk_task_config_parent_id_task_config")
+            ["task_config_generator_id"],
+            ["task_config.id"],
+            name=op.f("fk_task_config_task_config_generator_id_task_config"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_task_config")),
     )
@@ -146,7 +148,12 @@ def upgrade() -> None:
         postgresql_using="gin",
     )
     op.create_index(op.f("ix_task_config_name"), "task_config", ["name"], unique=False)
-    op.create_index(op.f("ix_task_config_parent_id"), "task_config", ["parent_id"], unique=False)
+    op.create_index(
+        op.f("ix_task_config_task_config_generator_id"),
+        "task_config",
+        ["task_config_generator_id"],
+        unique=False,
+    )
     op.create_index(
         op.f("ix_task_config_task_config_type"), "task_config", ["task_config_type"], unique=False
     )
@@ -325,7 +332,7 @@ def downgrade() -> None:
     )
     op.drop_table("task_config__entity")
     op.drop_index(op.f("ix_task_config_task_config_type"), table_name="task_config")
-    op.drop_index(op.f("ix_task_config_parent_id"), table_name="task_config")
+    op.drop_index(op.f("ix_task_config_task_config_generator_id"), table_name="task_config")
     op.drop_index(op.f("ix_task_config_name"), table_name="task_config")
     op.drop_index(
         "ix_task_config_description_vector", table_name="task_config", postgresql_using="gin"

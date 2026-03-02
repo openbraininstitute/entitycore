@@ -21,8 +21,8 @@ class NestedTaskConfigFilter(TaskConfigFilterBase):
 
 
 class TaskConfigFilter(EntityFilterMixin, TaskConfigFilterBase, ILikeSearchFilterMixin):
-    parent_id: uuid.UUID | None = None
-    parent_id__in: list[uuid.UUID] | None = None
+    task_config_generator_id: uuid.UUID | None = None
+    task_config_generator_id__in: list[uuid.UUID] | None = None
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

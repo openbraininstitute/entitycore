@@ -2,9 +2,9 @@
 
 ```mermaid
 flowchart TD
-    subgraph Input["Input Entities"]
-        EIn1[Entity - Campaign Input]
-        EIn2[Entity - Config Input]
+    subgraph Inputs["Input Entities"]
+        EIn1[Entity - Campaign Inputs]
+        EIn2[Entity - Config Inputs]
     end
 
     subgraph Task_Layer["Task Layer"]
@@ -23,7 +23,7 @@ flowchart TD
 
     EIn1 -->|TaskConfigToEntity| TC1
     EIn2 -->|TaskConfigToEntity| TC2
-    TC1 -->|parent_id FK| TC2
+    TC1 -->|task_config_generator_id FK| TC2
 
     TC1 -->|Usage| TA1
     TA1 -->|Generation| TC2
@@ -44,11 +44,11 @@ flowchart TD
 
 ```mermaid
 erDiagram
-    Campaign_Entity_Input ||--o{ TaskConfigToEntity_Campaign : "input"
+    Campaign_Entity_Input ||--o{ TaskConfigToEntity_Campaign : "inputs"
     TaskConfig_Campaign ||--o{ TaskConfigToEntity_Campaign : "has"
-    TaskConfig_Campaign ||--o{ TaskConfig_Config : "parent_id"
+    TaskConfig_Campaign ||--o{ TaskConfig_Config : "task_config_generator_id"
 
-    Config_Entity_Input ||--o{ TaskConfigToEntity_Config : "input"
+    Config_Entity_Inputs ||--o{ TaskConfigToEntity_Config : "inputs"
     TaskConfig_Config ||--o{ TaskConfigToEntity_Config : "has"
 
     TaskConfig_Campaign ||--o{ Usage_CG : "used by config_generation"
@@ -74,7 +74,7 @@ erDiagram
         uuid id PK,FK
         JSON_DICT scan_parameters
         TaskConfigType task_config_type
-        uuid parent_id FK
+        uuid task_config_generator_id FK
     }
 
     Usage {
@@ -98,8 +98,8 @@ erDiagram
 ### Flowchart (Primary)
 Shows the workflow clearly:
 - **Green boxes**: Input entities
-  - Campaign input (linked via TaskConfigToEntity)
-  - Config input (linked via TaskConfigToEntity)
+  - Campaign inputs (linked via TaskConfigToEntity)
+  - Config inputs (linked via TaskConfigToEntity)
 - **Blue boxes**: TaskConfig with different types
   - circuit_simulation__campaign
   - circuit_simulation__config

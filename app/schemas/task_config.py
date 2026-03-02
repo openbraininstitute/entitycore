@@ -22,7 +22,7 @@ class TaskConfigBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
     task_config_type: TaskConfigType
     scan_parameters: JSON_DICT
-    parent_id: uuid.UUID | None = None
+    task_config_generator_id: uuid.UUID | None = None
 
 
 class TaskConfigCreate(TaskConfigBase, AuthorizationOptionalPublicMixin):
@@ -53,4 +53,4 @@ class TaskConfigRead(
     AuthorizationMixin,
     ContributionReadWithoutEntityMixin,
 ):
-    input: list[NestedEntityRead]
+    inputs: list[NestedEntityRead]

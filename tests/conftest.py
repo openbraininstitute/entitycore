@@ -1971,7 +1971,7 @@ def task_config_json_data():
 @pytest.fixture
 def task_config_with_parent_json_data(task_config_json_data, public_campaign_id):
     return task_config_json_data | {
-        "parent_id": public_campaign_id,
+        "task_config_generator_id": public_campaign_id,
     }
 
 

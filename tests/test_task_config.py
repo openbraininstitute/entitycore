@@ -52,8 +52,8 @@ def model_id(task_config_id):
 
 def _assert_read_response(data, json_data):
     check_entity_read_response(data, json_data, EntityType.task_config)
-    assert "input" in data
-    assert "parent_id" in data
+    assert "inputs" in data
+    assert "task_config_generator_id" in data
     assert data["scan_parameters"] == json_data["scan_parameters"]
 
 
@@ -66,7 +66,10 @@ def test_create_one_with_parent(client, task_config_with_parent_json_data):
     json_data = task_config_with_parent_json_data
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
-    assert json_data["parent_id"] == task_config_with_parent_json_data["parent_id"]
+    assert (
+        json_data["task_config_generator_id"]
+        == task_config_with_parent_json_data["task_config_generator_id"]
+    )
 
 
 def test_create_one_with_nested_relationships(
@@ -76,7 +79,7 @@ def test_create_one_with_nested_relationships(
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
     input_ids = json_data["input_ids"]
-    assert data["input"] == [
+    assert data["inputs"] == [
         {
             "authorized_project_id": PROJECT_ID,
             "authorized_public": False,
@@ -205,10 +208,10 @@ def test_filtering_ordering(client, models, public_campaign_id):
     assert len(data) == 1
     assert data[0]["name"] == "config-0"
 
-    data = _req({"parent_id": public_campaign_id})
+    data = _req({"task_config_generator_id": public_campaign_id})
     assert len(data) == len(models)
 
-    data = _req({"parent_id__in": [public_campaign_id]})
+    data = _req({"task_config_generator_id__in": [public_campaign_id]})
     assert len(data) == len(models)
 
     data = _req({"order_by": "-name"})

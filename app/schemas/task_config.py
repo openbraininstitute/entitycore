@@ -1,6 +1,7 @@
 import uuid
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.types import JSON_DICT, TaskConfigType
 from app.schemas.agent import CreatedByUpdatedByMixin
@@ -14,7 +15,7 @@ from app.schemas.base import (
     NameDescriptionMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.entity import NestedEntityRead
+from app.schemas.entity import NestedEntityCreate, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
 
@@ -26,7 +27,10 @@ class TaskConfigBase(BaseModel, NameDescriptionMixin):
 
 
 class TaskConfigCreate(TaskConfigBase, AuthorizationOptionalPublicMixin):
-    input_ids: list[uuid.UUID] = []
+    inputs: Annotated[
+        list[NestedEntityCreate],
+        Field(description="List of input entities (only ids)."),
+    ] = []
 
 
 TaskConfigUserUpdate = make_update_schema(
@@ -53,4 +57,7 @@ class TaskConfigRead(
     AuthorizationMixin,
     ContributionReadWithoutEntityMixin,
 ):
-    inputs: list[NestedEntityRead]
+    inputs: Annotated[
+        list[NestedEntityRead],
+        Field(description="List of input entities."),
+    ] = []

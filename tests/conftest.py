@@ -1934,7 +1934,7 @@ def campaign_json_data():
 @pytest.fixture
 def campaign_with_nested_relationships_json_data(campaign_json_data, em_cell_mesh):
     return campaign_json_data | {
-        "input_ids": [str(em_cell_mesh.id)],
+        "inputs": [{"id": str(em_cell_mesh.id)}],
     }
 
 
@@ -1978,7 +1978,7 @@ def task_config_with_parent_json_data(task_config_json_data, public_campaign_id)
 @pytest.fixture
 def task_config_with_nested_relationships_json_data(task_config_json_data, em_cell_mesh):
     return task_config_json_data | {
-        "input_ids": [str(em_cell_mesh.id)],
+        "inputs": [{"id": str(em_cell_mesh.id)}],
     }
 
 

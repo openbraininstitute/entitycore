@@ -78,12 +78,12 @@ def test_create_one_with_nested_relationships(
     json_data = task_config_with_nested_relationships_json_data
     data = assert_request(client.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
-    input_ids = json_data["input_ids"]
+    inputs = json_data["inputs"]
     assert data["inputs"] == [
         {
             "authorized_project_id": PROJECT_ID,
             "authorized_public": False,
-            "id": input_ids[0],
+            "id": inputs[0]["id"],
             "type": "em_cell_mesh",
         },
     ]
@@ -148,7 +148,7 @@ def test_update_one__fail_if_nested_ids_unauthorized(
         client_user_1=client_user_1,
         json_data=json_data,
         u2_private_entity_id=user2_generated_id,
-        relationship_key="input_ids",
+        relationship_key="inputs",
     )
 
 
@@ -168,7 +168,7 @@ def test_update_one__fail_if_nested_ids_exists(
         client_user_1=client_user_1,
         json_data=json_data,
         u1_private_entity_id=user1_generated_id,
-        relationship_key="input_ids",
+        relationship_key="inputs",
     )
 
 

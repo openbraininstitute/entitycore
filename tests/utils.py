@@ -1672,7 +1672,7 @@ def check_entity_update_one__fail_if_nested_ids_unauthorized(
 
     # update the entity with invalid relationships
     update_json = {
-        relationship_key: [str(u2_private_entity_id)],
+        relationship_key: [{"id": str(u2_private_entity_id)}],
     }
     data = assert_request(
         client_user_1.patch, url=f"{route}/{data['id']}", json=update_json, expected_status_code=404
@@ -1694,13 +1694,13 @@ def check_entity_update_one__fail_if_nested_ids_exists(
 
     # create an entity with valid relationships
     json_data |= {
-        relationship_key: [str(u1_private_entity_id)],
+        relationship_key: [{"id": str(u1_private_entity_id)}],
     }
     data = assert_request(client_user_1.post, url=route, json=json_data).json()
 
     # update the entity when the nested relationships exist already
     update_json = {
-        relationship_key: [str(u1_private_entity_id)],
+        relationship_key: [{"id": str(u1_private_entity_id)}],
     }
     data = assert_request(
         client_user_1.patch, url=f"{route}/{data['id']}", json=update_json, expected_status_code=409

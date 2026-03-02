@@ -101,9 +101,9 @@ def create_associations_to_entities(
     nested_relationship_ids: dict[str, list[uuid.UUID]] = cast(
         "dict[str, list[uuid.UUID]]",
         {
-            relationship_key: ids
-            for relationship_key in nested_relationships
-            if (ids := getattr(json_model, relationship_key, NOT_SET)) != NOT_SET
+            relationship_key: relationship["nested_id_getter"](items=items)  # type: ignore[misc]
+            for relationship_key, relationship in nested_relationships.items()
+            if (items := getattr(json_model, relationship_key, NOT_SET)) != NOT_SET
         },
     )
 

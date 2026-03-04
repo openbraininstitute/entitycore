@@ -1,9 +1,9 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.db.types import JSON_DICT, TaskConfigType
+from app.db.types import TaskConfigType
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -22,7 +22,7 @@ from app.schemas.utils import make_update_schema
 class TaskConfigBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
     task_config_type: TaskConfigType
-    scan_parameters: JSON_DICT
+    meta: dict[str, Any]
     task_config_generator_id: uuid.UUID | None = None
 
 

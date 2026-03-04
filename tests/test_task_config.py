@@ -54,7 +54,7 @@ def _assert_read_response(data, json_data):
     check_entity_read_response(data, json_data, EntityType.task_config)
     assert "inputs" in data
     assert "task_config_generator_id" in data
-    assert data["scan_parameters"] == json_data["scan_parameters"]
+    assert data["meta"] == json_data["meta"]
 
 
 def test_create_one(client, json_data):

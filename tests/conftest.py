@@ -1926,7 +1926,7 @@ def campaign_json_data():
     return {
         "name": "campaign",
         "description": "campaign-description",
-        "scan_parameters": {"foo": "bar"},
+        "meta": {"foo": "bar"},
         "task_config_type": "skeletonization__campaign",
     }
 
@@ -1963,7 +1963,7 @@ def task_config_json_data():
     return {
         "name": "task-config",
         "description": "task-config-description",
-        "scan_parameters": {"foo": "bar"},
+        "meta": {"foo": "bar"},
         "task_config_type": "skeletonization__config",
     }
 

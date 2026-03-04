@@ -1,8 +1,8 @@
 """Add generic task models
 
-Revision ID: 2e2fe0c34a4e
+Revision ID: 38e60731b8fc
 Revises: 523e523531a7
-Create Date: 2026-03-02 14:00:44.255839
+Create Date: 2026-03-04 17:40:59.423728
 
 """
 
@@ -17,7 +17,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "2e2fe0c34a4e"
+revision: str = "38e60731b8fc"
 down_revision: Union[str, None] = "523e523531a7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -123,10 +123,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column(
-            "scan_parameters",
-            postgresql.JSONB(astext_type=sa.Text()),
-            server_default="{}",
-            nullable=False,
+            "meta", postgresql.JSONB(astext_type=sa.Text()), server_default="{}", nullable=False
         ),
         sa.Column("task_config_generator_id", sa.Uuid(), nullable=True),
         sa.Column("name", sa.String(), nullable=False),

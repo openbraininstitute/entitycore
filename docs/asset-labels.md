@@ -61,3 +61,4 @@
 | circuit_extraction_config          | circuit_extraction_config               | application/json         | .json            | Single circuit extraction configuration.                                                                     |
 | skeletonization_campaign           | campaign_generation_config              | application/json         | .json            | Skeletonization campaign configuration.                                                                      |
 | skeletonization_config             | skeletonization_config                  | application/json         | .json            | Single skeletonization configuration.                                                                        |
+| task_config                        | task_config                             | application/json         | .json            | Generic task configuration.                                                                                  |

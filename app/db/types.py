@@ -440,6 +440,7 @@ class AssetLabel(StrEnum):
     ion_channel_model_thumbnail = auto()
     circuit_extraction_config = auto()
     skeletonization_config = auto()
+    task_config = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -955,6 +956,15 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.json,
                 is_directory=False,
                 description="Single skeletonization configuration.",
+            )
+        ],
+    },
+    EntityType.task_config: {
+        AssetLabel.task_config: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Generic task configuration.",
             )
         ],
     },

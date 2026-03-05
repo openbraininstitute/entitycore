@@ -12,6 +12,7 @@ from app.schemas.base import (
     NameDescriptionMixin,
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.entity import NestedEntityCreate
 from app.schemas.ion_channel_modeling_config import NestedIonChannelModelingConfigRead
 from app.schemas.ion_channel_recording import NestedIonChannelRecordingRead
 from app.schemas.utils import make_update_schema
@@ -25,7 +26,7 @@ class IonChannelModelingCampaignBase(BaseModel, NameDescriptionMixin):
 class IonChannelModelingCampaignCreate(
     IonChannelModelingCampaignBase, AuthorizationOptionalPublicMixin
 ):
-    pass
+    input_recordings: list[NestedEntityCreate] = []
 
 
 IonChannelModelingCampaignUserUpdate = make_update_schema(

@@ -77,7 +77,7 @@ def is_user_authorized_for_deletion(  # noqa: PLR0911
 def create_associations_to_entities(
     db: Session,
     *,
-    left: Identifiable,
+    parent: Identifiable,
     json_model: BaseModel,
     nested_relationships: NestedRelationships,
     project_id: uuid.UUID | None,
@@ -87,7 +87,7 @@ def create_associations_to_entities(
 
     Args:
         db: Database session.
-        left: Identifiable on the left side of the associations.
+        parent: Identifiable that is parent of the associations.
         json_model: Pydantic model of the left resourece.
         nested_relationships: Mapping of relationship keys to relationship dicts.
         project_id: Optional project ID for authorization checks.
@@ -128,16 +128,16 @@ def create_associations_to_entities(
 
     for relationship_key, relationship in nested_relationships.items():
         # ignore empty ids
-        if not (right_ids := nested_relationship_ids.get(relationship_key)):
+        if not (children := nested_relationship_ids.get(relationship_key)):
             continue
-        if action == "update" and getattr(left, relationship["relationship_name"]):
+        if action == "update" and getattr(parent, relationship["relationship_name"]):
             raise HTTPException(
                 status_code=409,
                 detail=f"It is forbidden to update {relationship_key} if they exist.",
             )
         factory = relationship["db_model_factory"]
-        for right_id in right_ids:
-            db_instance = factory(left_id=left.id, right_id=right_id)
+        for child_id in children:
+            db_instance = factory(parent_id=parent.id, child_id=child_id)
             db.add(db_instance)
 
     db.flush()

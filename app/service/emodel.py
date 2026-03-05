@@ -33,7 +33,6 @@ from app.queries.factory import query_params_factory
 from app.schemas.emodel import (
     EModelAdminUpdate,
     EModelCreate,
-    EModelRead,
     EModelReadExpanded,
     EModelUserUpdate,
 )
@@ -102,13 +101,13 @@ def create_one(
     user_context: UserContextWithProjectIdDep,
     db: SessionDep,
     emodel: EModelCreate,
-) -> EModelRead:
+) -> EModelReadExpanded:
     return router_create_one(
         db=db,
         user_context=user_context,
         db_model_class=EModel,
         json_model=emodel,
-        response_schema_class=EModelRead,
+        response_schema_class=EModelReadExpanded,
         apply_operations=_load,
     )
 
@@ -118,14 +117,14 @@ def update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: EModelUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> EModelRead:
+) -> EModelReadExpanded:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=EModel,
         user_context=user_context,
         json_model=json_model,
-        response_schema_class=EModelRead,
+        response_schema_class=EModelReadExpanded,
         apply_operations=_load,
     )
 
@@ -134,14 +133,14 @@ def admin_update_one(
     db: SessionDep,
     id_: uuid.UUID,
     json_model: EModelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> EModelRead:
+) -> EModelReadExpanded:
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=EModel,
         user_context=None,
         json_model=json_model,
-        response_schema_class=EModelRead,
+        response_schema_class=EModelReadExpanded,
         apply_operations=_load,
     )
 

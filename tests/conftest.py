@@ -35,7 +35,6 @@ from app.db.model import (
     ExternalUrl,
     IonChannel,
     IonChannelModel,
-    IonChannelModelToEModel,
     MEModel,
     MTypeClass,
     MTypeClassification,
@@ -1053,21 +1052,13 @@ def faceted_emodel_ids(db: Session, client, person_id, species_id, ion_channel_m
                 "authorized_public": False,
                 "created_by_id": str(person_id),
                 "updated_by_id": str(person_id),
+                "ion_channel_models": [
+                    {"id": str(ion_channel_model.id)} for ion_channel_model in ion_channel_models
+                ],
             },
         ).json()["id"]
 
         emodel_ids.append(str(emodel_id))
-
-    # associate emodel with ion_channel_model
-    for emodel_id in emodel_ids:
-        for ion_channel_model in ion_channel_models:
-            add_db(
-                db,
-                IonChannelModelToEModel(
-                    ion_channel_model_id=ion_channel_model.id,
-                    emodel_id=emodel_id,
-                ),
-            )
 
     return EModelIds(
         emodel_ids=emodel_ids,

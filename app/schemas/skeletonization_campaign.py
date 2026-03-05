@@ -13,6 +13,7 @@ from app.schemas.base import (
 )
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.em_cell_mesh import NestedEMCellMeshRead
+from app.schemas.entity import NestedEntityCreate
 from app.schemas.skeletonization_config import NestedSkeletonizationConfigRead
 from app.schemas.utils import make_update_schema
 
@@ -22,8 +23,11 @@ class SkeletonizationCampaignBase(BaseModel, NameDescriptionMixin):
     scan_parameters: JSON_DICT
 
 
-class SkeletonizationCampaignCreate(SkeletonizationCampaignBase, AuthorizationOptionalPublicMixin):
-    pass
+class SkeletonizationCampaignCreate(
+    SkeletonizationCampaignBase,
+    AuthorizationOptionalPublicMixin,
+):
+    input_meshes: list[NestedEntityCreate] = []
 
 
 SkeletonizationCampaignUserUpdate = make_update_schema(

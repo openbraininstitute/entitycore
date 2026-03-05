@@ -33,6 +33,7 @@ from app.db.model import (
     Species,
     Strain,
     Subject,
+    TaskConfig,
     Usage,
 )
 from app.dependencies.common import FacetQueryParams
@@ -92,6 +93,7 @@ def query_params_factory[I: Identifiable](
     ion_channel_model_alias = _get_alias(IonChannelModel, "ion_channel_model")
     ion_channel_modeling_config_alias = _get_alias(IonChannelModelingConfig)
     skeletonization_config_alias = _get_alias(SkeletonizationConfig)
+    task_config_alias = _get_alias(TaskConfig)
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -152,6 +154,10 @@ def query_params_factory[I: Identifiable](
         "skeletonization_config": {
             "id": skeletonization_config_alias.id,
             "label": skeletonization_config_alias.name,
+        },
+        "task_config": {
+            "id": task_config_alias.id,
+            "label": task_config_alias.name,
         },
     }
     filter_joins = {
@@ -267,6 +273,10 @@ def query_params_factory[I: Identifiable](
         "skeletonization_config": lambda q: q.join(
             skeletonization_config_alias,
             db_model_class.id == skeletonization_config_alias.skeletonization_campaign_id,
+        ),
+        "task_config": lambda q: q.join(
+            task_config_alias,
+            db_model_class.id == task_config_alias.task_config_generator_id,
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

@@ -31,6 +31,7 @@ from app.db.model import (
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
     SkeletonizationConfig,
+    TaskConfig,
     ValidationResult,
 )
 
@@ -188,6 +189,7 @@ protected_entity_relationships = [
     (IonChannelModelingConfig, "ion_channel_modeling_campaign_id"),
     (SkeletonizationConfig, "skeletonization_campaign_id"),
     (SkeletonizationConfig, "em_cell_mesh_id"),
+    (TaskConfig, "task_config_generator_id"),
 ]
 
 entities = [

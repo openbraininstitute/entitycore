@@ -2,7 +2,6 @@ import uuid
 from http import HTTPStatus
 
 import sqlalchemy as sa
-from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import operators
@@ -10,10 +9,8 @@ from sqlalchemy.sql import operators
 from app.db.auth import (
     constrain_to_readable_entities,
     constrain_to_writable_entities,
-    is_user_authorized_for_deletion,
-    select_unauthorized_entities,
 )
-from app.db.model import Activity, Generation, Identifiable, Usage
+from app.db.model import Activity, Identifiable
 from app.db.utils import get_declaring_class, load_db_model_from_pydantic, update_model
 from app.dependencies.common import (
     FacetQueryParams,
@@ -32,14 +29,22 @@ from app.errors import (
 )
 from app.filters.base import Aliases, CustomFilter
 from app.queries import crud
+from app.queries.constants import NESTED_ACTIVITY_RELATIONSHIPS
 from app.queries.filter import filter_from_db
-from app.queries.types import ApplyOperations, SupportsModelValidate
-from app.queries.utils import get_or_create_user_agent
+from app.queries.types import (
+    ApplyOperations,
+    NestedRelationships,
+    SupportsModelValidate,
+)
+from app.queries.utils import (
+    create_associations_to_entities,
+    get_or_create_user_agent,
+    is_user_authorized_for_deletion,
+)
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, PaginationResponse
-from app.schemas.utils import NOT_SET
 
 
 def router_read_one[T: BaseModel, I: Identifiable](
@@ -103,7 +108,7 @@ def router_create_activity_one[T: BaseModel, I: Activity](
         created_by_id=created_by_id,
         updated_by_id=updated_by_id,
         authorized_project_id=project_id,
-        ignore_attributes={"used_ids", "generated_ids"},
+        ignore_attributes=set(NESTED_ACTIVITY_RELATIONSHIPS),
     )
 
     with (
@@ -117,30 +122,14 @@ def router_create_activity_one[T: BaseModel, I: Activity](
         db.add(db_model_instance)
         db.flush()
 
-    if associated_ids := json_model.used_ids + json_model.generated_ids:
-        if (
-            unaccessible_entities := db.execute(
-                select_unauthorized_entities(associated_ids, user_context.project_id)
-            )
-            .scalars()
-            .all()
-        ):
-            raise HTTPException(
-                status_code=404,
-                detail=f"Cannot access entities {', '.join(str(e) for e in unaccessible_entities)}",
-            )
-
-        for entity_id in json_model.used_ids:
-            db.add(Usage(usage_entity_id=entity_id, usage_activity_id=db_model_instance.id))
-
-        for entity_id in json_model.generated_ids:
-            db.add(
-                Generation(
-                    generation_entity_id=entity_id, generation_activity_id=db_model_instance.id
-                )
-            )
-
-        db.flush()
+    create_associations_to_entities(
+        db=db,
+        left=db_model_instance,
+        json_model=json_model,
+        nested_relationships=NESTED_ACTIVITY_RELATIONSHIPS,
+        project_id=db_model_instance.authorized_project_id,
+        action="create",
+    )
 
     if apply_operations:
         q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
@@ -160,6 +149,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
     embedding: list[float] | None = None,
+    nested_relationships: NestedRelationships | None = None,
 ) -> T:
     """Create a model in the database.
 
@@ -171,6 +161,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
         embedding: optional embedding vector to attach to the model.
+        nested_relationships: mapping of nested relationships that can be set automatically.
 
     Returns:
         the written model data as a Pydantic model.
@@ -192,6 +183,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
         created_by_id=created_by_id,
         updated_by_id=updated_by_id,
         authorized_project_id=project_id,
+        ignore_attributes=set(nested_relationships) if nested_relationships else None,
     )
 
     if embedding is not None and hasattr(db_model_instance, "embedding"):
@@ -207,6 +199,16 @@ def router_create_one[T: BaseModel, I: Identifiable](
     ):
         db.add(db_model_instance)
         db.flush()
+
+    if nested_relationships:
+        create_associations_to_entities(
+            db=db,
+            left=db_model_instance,
+            json_model=json_model,
+            nested_relationships=nested_relationships,
+            project_id=getattr(db_model_instance, "authorized_project_id", None),
+            action="create",
+        )
 
     if apply_operations:
         q = sa.select(db_model_class).where(db_model_class.id == db_model_instance.id)
@@ -395,6 +397,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     json_model: BaseModel,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
+    nested_relationships: NestedRelationships | None = None,
 ):
     query = (
         sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
@@ -407,14 +410,29 @@ def router_update_one[T: BaseModel, I: Identifiable](
         query = apply_operations(query)
 
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
-        obj = db.execute(query).unique().scalar_one()
+        db_model_instance = db.execute(query).unique().scalar_one()
 
-    obj = update_model(model=obj, data=json_model.model_dump())
+    db_model_instance = update_model(
+        model=db_model_instance,
+        data=json_model.model_dump(
+            exclude=set(nested_relationships) if nested_relationships else None
+        ),
+    )
 
     db.flush()
-    db.refresh(obj)
+    db.refresh(db_model_instance)
 
-    return response_schema_class.model_validate(obj)
+    if nested_relationships:
+        create_associations_to_entities(
+            db=db,
+            left=db_model_instance,
+            json_model=json_model,
+            nested_relationships=nested_relationships,
+            project_id=getattr(db_model_instance, "authorized_project_id", None),
+            action="update",
+        )
+
+    return response_schema_class.model_validate(db_model_instance)
 
 
 def router_user_delete_one[T: BaseModel, I: Identifiable](
@@ -485,44 +503,28 @@ def router_update_activity_one[T: BaseModel, I: Activity](
         query = apply_operations(query)
 
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
-        obj = db.execute(query).unique().scalar_one()
+        db_model_instance = db.execute(query).unique().scalar_one()
 
     update_data = json_model.model_dump(
         exclude_unset=True,
         exclude_none=True,
-        exclude={"used_ids", "generated_ids"},
+        exclude=set(NESTED_ACTIVITY_RELATIONSHIPS),
         exclude_defaults=True,  # ignore NOT_SET default values
     )
 
     for key, value in update_data.items():
-        setattr(obj, key, value)
+        setattr(db_model_instance, key, value)
 
-    # ignore NOT_SET values
-    generated_ids = json_model.generated_ids if json_model.generated_ids != NOT_SET else []
-
-    if generated_ids:
-        if obj.generated:
-            raise HTTPException(
-                status_code=404,
-                detail="It is forbidden to update generated_ids if they exist.",
-            )
-
-        if user_context and (
-            unaccessible_entities := db.execute(
-                select_unauthorized_entities(generated_ids, user_context.project_id)
-            )
-            .scalars()
-            .all()
-        ):
-            raise HTTPException(
-                status_code=404,
-                detail=f"Cannot access entities {', '.join(str(e) for e in unaccessible_entities)}",
-            )
-
-        for entity_id in generated_ids:
-            db.add(Generation(generation_entity_id=entity_id, generation_activity_id=obj.id))
+    create_associations_to_entities(
+        db=db,
+        left=db_model_instance,
+        json_model=json_model,
+        nested_relationships=NESTED_ACTIVITY_RELATIONSHIPS,
+        project_id=db_model_instance.authorized_project_id,
+        action="update",
+    )
 
     db.flush()
-    db.refresh(obj)
+    db.refresh(db_model_instance)
 
-    return response_schema_class.model_validate(obj)
+    return response_schema_class.model_validate(db_model_instance)

@@ -110,6 +110,7 @@ def extract(source: Path, component: str | None, output: Path) -> None:
                 head == "admin"
                 or "/assets" in tail
                 or "/regions" in tail
+                or "/test-authenticated-endpoint" in tail
                 or tail.endswith(("counts", "hierarchy", "derived-from"))
             ):
                 # ignore undesired endpoints

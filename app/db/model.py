@@ -72,6 +72,8 @@ from app.db.types import (
     StainingType,
     StorageType,
     StructuralDomain,
+    TaskActivityType,
+    TaskConfigType,
     ValidationStatus,
 )
 from app.schemas.publication import Author
@@ -2245,6 +2247,72 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     __tablename__ = ActivityType.skeletonization_execution.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class TaskConfigToEntity(Base):
+    """Represents the many-to-many associations between task configs and entities used as input."""
+
+    __tablename__ = "task_config__entity"
+
+    task_config_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.task_config}.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    entity_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("entity.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+
+class TaskConfig(NameDescriptionVectorMixin, Entity):
+    """Represents the configuration of a generic task.
+
+    Assets:
+        - task configuration file.
+
+    Attributes:
+        id (uuid.UUID): Primary key referencing the entity ID.
+        task_config_type: Type of task config.
+        meta (JSON_DICT): Meta parameters for the task.
+        task_config_generator_id: id of the task that generated this task config.
+        inputs: entities used as input for the task.
+    """
+
+    __tablename__ = EntityType.task_config.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    task_config_type: Mapped[TaskConfigType] = mapped_column(index=True)
+    meta: Mapped[JSON_DICT] = mapped_column(default={}, server_default="{}")
+    task_config_generator_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(f"{EntityType.task_config}.id"), index=True
+    )
+    inputs: Mapped[list[Entity]] = relationship(
+        primaryjoin="TaskConfig.id == TaskConfigToEntity.task_config_id",
+        secondary="task_config__entity",
+    )
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class TaskActivity(Activity, ExecutionActivityMixin):
+    """Represents a generic task activity.
+
+    Inputs (used):
+        - TaskConfig (one)
+    Outputs (generated):
+        - Entity (many)
+
+    Attributes:
+        id (uuid.UUID): Primary key referencing the activity ID.
+        task_activity_type: Type of task config.
+    """
+
+    __tablename__ = ActivityType.task_activity.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
+    task_activity_type: Mapped[TaskActivityType] = mapped_column(index=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

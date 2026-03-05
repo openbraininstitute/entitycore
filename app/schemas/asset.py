@@ -14,6 +14,7 @@ from app.db.types import (
     AssetStatus,
     ContentType,
     EntityType,
+    LabelRequirements,
     StorageType,
 )
 
@@ -96,7 +97,7 @@ class AssetReadWithUploadMeta(AssetRead):
     upload_meta: UploadMetaRead | None = None
 
 
-def _raise_on_label_requirement(asset, label_reqs):
+def _raise_on_label_requirement(asset: AssetBase, label_reqs: list[LabelRequirements]) -> None:
     content_type_success = [
         label_req.content_type == asset.content_type
         for label_req in label_reqs

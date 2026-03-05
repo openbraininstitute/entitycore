@@ -141,6 +141,41 @@ class EntityType(StrEnum):
     analysis_notebook_result = auto()
     skeletonization_config = auto()
     skeletonization_campaign = auto()
+    task_config = auto()
+
+
+class TaskConfigType(StrEnum):
+    """Task config types."""
+
+    circuit_simulation__campaign = auto()
+    circuit_simulation__config = auto()
+    circuit_extraction__campaign = auto()
+    circuit_extraction__config = auto()
+    ion_channel_modeling__campaign = auto()
+    ion_channel_modeling__config = auto()
+    skeletonization__campaign = auto()
+    skeletonization__config = auto()
+    ion_channel_simulation__campaign = auto()
+    ion_channel_simulation__config = auto()
+    em_synapse_mapping__campaign = auto()
+    em_synapse_mapping__config = auto()
+
+
+class TaskActivityType(StrEnum):
+    """Task activity types."""
+
+    circuit_simulation__config_generation = auto()
+    circuit_simulation__execution = auto()
+    circuit_extraction__config_generation = auto()
+    circuit_extraction__execution = auto()
+    ion_channel_modeling__config_generation = auto()
+    ion_channel_modeling__execution = auto()
+    skeletonization__config_generation = auto()
+    skeletonization__execution = auto()
+    ion_channel_simulation__config_generation = auto()
+    ion_channel_simulation__execution = auto()
+    em_synapse_mapping__config_generation = auto()
+    em_synapse_mapping__execution = auto()
 
 
 class AgentType(StrEnum):
@@ -197,6 +232,7 @@ class ActivityType(StrEnum):
     circuit_extraction_execution = auto()
     skeletonization_execution = auto()
     skeletonization_config_generation = auto()
+    task_activity = auto()
 
 
 class DerivationType(StrEnum):
@@ -404,6 +440,7 @@ class AssetLabel(StrEnum):
     ion_channel_model_thumbnail = auto()
     circuit_extraction_config = auto()
     skeletonization_config = auto()
+    task_config = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -919,6 +956,15 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.json,
                 is_directory=False,
                 description="Single skeletonization configuration.",
+            )
+        ],
+    },
+    EntityType.task_config: {
+        AssetLabel.task_config: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Generic task configuration.",
             )
         ],
     },

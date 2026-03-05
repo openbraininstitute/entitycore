@@ -8,7 +8,6 @@ from pydantic.networks import AnyUrl
 from types_boto3_s3 import S3Client
 
 from app.config import StorageUnion, storages
-from app.db.auth import is_user_authorized_for_deletion
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, StorageType
 from app.dependencies.common import PaginationQuery
@@ -16,6 +15,7 @@ from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness,
 from app.filters.asset import AssetFilterDep
 from app.queries import crud
 from app.queries.common import get_or_create_user_agent, router_read_many
+from app.queries.utils import is_user_authorized_for_deletion
 from app.repository.group import RepositoryGroup
 from app.schemas.asset import (
     AssetCreate,

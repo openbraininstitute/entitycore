@@ -1919,3 +1919,74 @@ def skeletonization_config_id(client, skeletonization_config_json_data):
         json=skeletonization_config_json_data,
     ).json()
     return data["id"]
+
+
+@pytest.fixture
+def campaign_json_data():
+    return {
+        "name": "campaign",
+        "description": "campaign-description",
+        "meta": {"foo": "bar"},
+        "task_config_type": "skeletonization__campaign",
+    }
+
+
+@pytest.fixture
+def campaign_with_nested_relationships_json_data(campaign_json_data, em_cell_mesh):
+    return campaign_json_data | {
+        "inputs": [{"id": str(em_cell_mesh.id)}],
+    }
+
+
+@pytest.fixture
+def campaign_id(client, campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/task-config",
+        json=campaign_json_data | {"authorized_public": False},
+    ).json()
+    return data["id"]
+
+
+@pytest.fixture
+def public_campaign_id(client, campaign_json_data):
+    data = assert_request(
+        client.post,
+        url="/task-config",
+        json=campaign_json_data | {"authorized_public": True},
+    ).json()
+    return data["id"]
+
+
+@pytest.fixture
+def task_config_json_data():
+    return {
+        "name": "task-config",
+        "description": "task-config-description",
+        "meta": {"foo": "bar"},
+        "task_config_type": "skeletonization__config",
+    }
+
+
+@pytest.fixture
+def task_config_with_parent_json_data(task_config_json_data, public_campaign_id):
+    return task_config_json_data | {
+        "task_config_generator_id": public_campaign_id,
+    }
+
+
+@pytest.fixture
+def task_config_with_nested_relationships_json_data(task_config_json_data, em_cell_mesh):
+    return task_config_json_data | {
+        "inputs": [{"id": str(em_cell_mesh.id)}],
+    }
+
+
+@pytest.fixture
+def task_config_id(client, task_config_json_data):
+    data = assert_request(
+        client.post,
+        url="/task-config",
+        json=task_config_json_data,
+    ).json()
+    return data["id"]

@@ -74,6 +74,8 @@ from app.routers import (
     species,
     strain,
     subject,
+    task_activity,
+    task_config,
     validation,
     validation_result,
 )
@@ -157,6 +159,8 @@ authenticated_routers = [
     species.router,
     strain.router,
     subject.router,
+    task_activity.router,
+    task_config.router,
     validation.router,
     validation_result.router,
 ]

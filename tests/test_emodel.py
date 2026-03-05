@@ -52,7 +52,7 @@ def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_i
     assert data["ion_channel_models"] == []
 
     response = client.get(f"{ROUTE}/{data['id']}")
-    assert response.status_code == 200, f"Failed to get emodels: {response.text}"
+    assert response.status_code == 200, f"Failed to get emodel: {response.text}"
     data = response.json()
     assert data["created_by"]["id"] == data["updated_by"]["id"]
     assert data["ion_channel_models"] == []
@@ -70,16 +70,25 @@ def test_create_emodel_with_nested_ion_channel_models(
     response = client.post(ROUTE, json=json_data)
     assert response.status_code == 200, f"Failed to create emodel: {response.text}"
     data = response.json()
+    entity_id = data["id"]
 
     assert len(data["ion_channel_models"]) == len(ion_channel_models)
     assert [{k: item[k] for k in check_keys} for item in data["ion_channel_models"]] == expected
 
-    response = client.get(f"{ROUTE}/{data['id']}")
-    assert response.status_code == 200, f"Failed to get emodels: {response.text}"
+    # retrieve the entity created
+    response = client.get(f"{ROUTE}/{entity_id}")
+    assert response.status_code == 200, f"Failed to get emodel: {response.text}"
     data = response.json()
 
     assert len(data["ion_channel_models"]) == len(ion_channel_models)
     assert [{k: item[k] for k in check_keys} for item in data["ion_channel_models"]] == expected
+
+    # delete the entity created, including nested associations
+    response = client.delete(f"{ROUTE}/{entity_id}")
+    assert response.status_code == 200, f"Failed to delete emodel: {response.text}"
+    data = response.json()
+
+    assert data == {"id": entity_id}
 
 
 @pytest.fixture

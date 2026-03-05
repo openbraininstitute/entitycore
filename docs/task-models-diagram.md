@@ -21,8 +21,8 @@ flowchart TD
         EOut[Entity - Output]
     end
 
-    EIn1 -->|TaskConfigToEntity| TC1
-    EIn2 -->|TaskConfigToEntity| TC2
+    EIn1 -->|EntityToTaskConfig| TC1
+    EIn2 -->|EntityToTaskConfig| TC2
     TC1 -->|task_config_generator_id FK| TC2
 
     TC1 -->|Usage| TA1
@@ -44,12 +44,12 @@ flowchart TD
 
 ```mermaid
 erDiagram
-    Campaign_Entity_Input ||--o{ TaskConfigToEntity_Campaign : "inputs"
-    TaskConfig_Campaign ||--o{ TaskConfigToEntity_Campaign : "has"
+    Campaign_Entity_Input ||--o{ EntityToTaskConfig_Campaign : "inputs"
+    TaskConfig_Campaign ||--o{ EntityToTaskConfig_Campaign : "has"
     TaskConfig_Campaign ||--o{ TaskConfig_Config : "task_config_generator_id"
 
-    Config_Entity_Inputs ||--o{ TaskConfigToEntity_Config : "inputs"
-    TaskConfig_Config ||--o{ TaskConfigToEntity_Config : "has"
+    Config_Entity_Inputs ||--o{ EntityToTaskConfig_Config : "inputs"
+    TaskConfig_Config ||--o{ EntityToTaskConfig_Config : "has"
 
     TaskConfig_Campaign ||--o{ Usage_CG : "used by config_generation"
     Usage_CG }o--|| TaskActivity_ConfigGeneration : ""
@@ -65,7 +65,7 @@ erDiagram
         uuid id PK
     }
 
-    TaskConfigToEntity {
+    EntityToTaskConfig {
         uuid entity_id PK,FK
         uuid task_config_id PK,FK
     }
@@ -98,8 +98,8 @@ erDiagram
 ### Flowchart (Primary)
 Shows the workflow clearly:
 - **Green boxes**: Input entities
-  - Campaign inputs (linked via TaskConfigToEntity)
-  - Config inputs (linked via TaskConfigToEntity)
+  - Campaign inputs (linked via EntityToTaskConfig)
+  - Config inputs (linked via EntityToTaskConfig)
 - **Blue boxes**: TaskConfig with different types
   - circuit_simulation__campaign
   - circuit_simulation__config
@@ -111,15 +111,15 @@ Shows the workflow clearly:
 
 ### ER Diagram (Detailed)
 Shows the same relationships with Usage and Generation tables split by activity:
-- **TaskConfigToEntity**: Junction table linking input entities to TaskConfig (both campaign and config types)
+- **EntityToTaskConfig**: Junction table linking input entities to TaskConfig (both campaign and config types)
 - **Usage_CG**: Usage records for config_generation activity
 - **Generation_CG**: Generation records for config_generation activity
 - **Usage_TE**: Usage records for execution activity
 - **Generation_TE**: Generation records for execution activity
 
 Notes:
-- TaskConfig[circuit_simulation__campaign] has many input entities (via TaskConfigToEntity)
-- TaskConfig[circuit_simulation__config] has many input entities (via TaskConfigToEntity)
+- TaskConfig[circuit_simulation__campaign] has many input entities (via EntityToTaskConfig)
+- TaskConfig[circuit_simulation__config] has many input entities (via EntityToTaskConfig)
 - One TaskConfig[campaign] is used by TaskActivity[config_generation] to generate many TaskConfig[config]
 - One TaskConfig[config] can be used by many TaskActivity[execution], each generating many Entity
 - TaskActivity has task_activity_type field (enum: circuit_simulation__config_generation, circuit_simulation__execution, etc.)

@@ -1,6 +1,7 @@
 import uuid
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
@@ -16,6 +17,7 @@ from app.schemas.base import (
 from app.schemas.brain_region import BrainRegionReadMixin
 from app.schemas.cell_morphology import CellMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.entity import NestedEntityCreate
 from app.schemas.ion_channel_model import IonChannelModelWAssets
 from app.schemas.species import NestedSpeciesRead, NestedStrainRead
 from app.schemas.utils import make_update_schema
@@ -37,6 +39,10 @@ class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
     strain_id: uuid.UUID | None = None
     brain_region_id: uuid.UUID
     exemplar_morphology_id: uuid.UUID
+    ion_channel_models: Annotated[
+        list[NestedEntityCreate],
+        Field(description="List of ion channel models (only ids)."),
+    ] = []
 
 
 EModelUserUpdate = make_update_schema(EModelCreate, "EModelUserUpdate")  # pyright: ignore [reportInvalidTypeForm]

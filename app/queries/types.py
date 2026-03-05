@@ -15,9 +15,9 @@ class SupportsModelValidate[T: BaseModel](Protocol):
 
 
 class AssociationCallable(Protocol):
-    """Callable that should accept left_id and right_id and return a valid db model instance."""
+    """Callable that should accept parent_id and child_id and return a valid db model instance."""
 
-    def __call__(self, *, left_id: uuid.UUID, right_id: uuid.UUID) -> DeclarativeBase: ...
+    def __call__(self, *, parent_id: uuid.UUID, child_id: uuid.UUID) -> DeclarativeBase: ...
 
 
 class NestedIdGetter(Protocol):

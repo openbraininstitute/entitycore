@@ -29,13 +29,9 @@ from app.errors import (
 )
 from app.filters.base import Aliases, CustomFilter
 from app.queries import crud
-from app.queries.constants import NESTED_ACTIVITY_RELATIONSHIPS
+from app.queries.constants import NESTED_RELATIONSHIPS_MAP
 from app.queries.filter import filter_from_db
-from app.queries.types import (
-    ApplyOperations,
-    NestedRelationships,
-    SupportsModelValidate,
-)
+from app.queries.types import ApplyOperations, SupportsModelValidate
 from app.queries.utils import (
     create_associations_to_entities,
     get_or_create_user_agent,
@@ -94,6 +90,7 @@ def router_create_activity_one[T: BaseModel, I: Activity](
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
 ):
+    nested_relationships = NESTED_RELATIONSHIPS_MAP[Activity]
     created_by_id = updated_by_id = project_id = None
 
     db_agent = get_or_create_user_agent(db, user_context.profile)
@@ -108,7 +105,7 @@ def router_create_activity_one[T: BaseModel, I: Activity](
         created_by_id=created_by_id,
         updated_by_id=updated_by_id,
         authorized_project_id=project_id,
-        ignore_attributes=set(NESTED_ACTIVITY_RELATIONSHIPS),
+        ignore_attributes=set(nested_relationships),
     )
 
     with (
@@ -124,9 +121,9 @@ def router_create_activity_one[T: BaseModel, I: Activity](
 
     create_associations_to_entities(
         db=db,
-        left=db_model_instance,
+        parent=db_model_instance,
         json_model=json_model,
-        nested_relationships=NESTED_ACTIVITY_RELATIONSHIPS,
+        nested_relationships=nested_relationships,
         project_id=db_model_instance.authorized_project_id,
         action="create",
     )
@@ -149,7 +146,6 @@ def router_create_one[T: BaseModel, I: Identifiable](
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
     embedding: list[float] | None = None,
-    nested_relationships: NestedRelationships | None = None,
 ) -> T:
     """Create a model in the database.
 
@@ -161,11 +157,11 @@ def router_create_one[T: BaseModel, I: Identifiable](
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
         embedding: optional embedding vector to attach to the model.
-        nested_relationships: mapping of nested relationships that can be set automatically.
 
     Returns:
         the written model data as a Pydantic model.
     """
+    nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class)
     created_by_id = updated_by_id = project_id = None
 
     db_agent = get_or_create_user_agent(db, user_context.profile)
@@ -203,7 +199,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
     if nested_relationships:
         create_associations_to_entities(
             db=db,
-            left=db_model_instance,
+            parent=db_model_instance,
             json_model=json_model,
             nested_relationships=nested_relationships,
             project_id=getattr(db_model_instance, "authorized_project_id", None),
@@ -397,8 +393,8 @@ def router_update_one[T: BaseModel, I: Identifiable](
     json_model: BaseModel,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
-    nested_relationships: NestedRelationships | None = None,
 ):
+    nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class)
     query = (
         sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
     )
@@ -425,7 +421,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     if nested_relationships:
         create_associations_to_entities(
             db=db,
-            left=db_model_instance,
+            parent=db_model_instance,
             json_model=json_model,
             nested_relationships=nested_relationships,
             project_id=getattr(db_model_instance, "authorized_project_id", None),
@@ -492,6 +488,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
 ) -> T:
+    nested_relationships = NESTED_RELATIONSHIPS_MAP[Activity]
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
@@ -508,7 +505,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     update_data = json_model.model_dump(
         exclude_unset=True,
         exclude_none=True,
-        exclude=set(NESTED_ACTIVITY_RELATIONSHIPS),
+        exclude=set(nested_relationships),
         exclude_defaults=True,  # ignore NOT_SET default values
     )
 
@@ -517,9 +514,9 @@ def router_update_activity_one[T: BaseModel, I: Activity](
 
     create_associations_to_entities(
         db=db,
-        left=db_model_instance,
+        parent=db_model_instance,
         json_model=json_model,
-        nested_relationships=NESTED_ACTIVITY_RELATIONSHIPS,
+        nested_relationships=nested_relationships,
         project_id=db_model_instance.authorized_project_id,
         action="update",
     )

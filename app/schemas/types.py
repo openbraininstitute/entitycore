@@ -6,6 +6,8 @@ import sqlalchemy as sa
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, HttpUrl, PlainSerializer, computed_field
 from sqlalchemy.orm import DeclarativeBase
 
+from app.config import settings
+
 
 class HeaderKey(StrEnum):
     request_id = "X-Request-ID"
@@ -17,7 +19,9 @@ class PaginationRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     page: Annotated[int, Field(ge=1)] = 1
-    page_size: Annotated[int, Field(ge=1)] = 100
+    page_size: Annotated[int, Field(ge=1, le=settings.PAGINATION_MAX_PAGE_SIZE)] = (
+        settings.PAGINATION_DEFAULT_PAGE_SIZE
+    )
 
     @computed_field
     @property

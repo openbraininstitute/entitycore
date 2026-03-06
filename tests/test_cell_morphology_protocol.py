@@ -277,6 +277,15 @@ def test_filtering(client, models):
     data = assert_request(
         client.get,
         url=ROUTE,
+        params={"generation_type__not_in": ["digital_reconstruction", "modified_reconstruction"]},
+    ).json()["data"]
+    assert len(data) == 2
+
+    assert {d["generation_type"] for d in data} == {"placeholder", "computationally_synthesized"}
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)

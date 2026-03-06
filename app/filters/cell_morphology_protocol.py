@@ -17,6 +17,7 @@ class CellMorphologyProtocolFilterBase(
 ):
     generation_type: CellMorphologyGenerationType | None = None
     generation_type__in: list[CellMorphologyGenerationType] | None = None
+    generation_type__not_in: list[CellMorphologyGenerationType] | None = None
 
     class Constants(CustomFilter.Constants):
         model = CellMorphologyProtocol

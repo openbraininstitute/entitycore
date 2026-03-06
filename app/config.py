@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     S3_MULTIPART_UPLOAD_DEFAULT_PARTS: int = 100
 
     API_ASSET_POST_MAX_SIZE: int = 150 * 1024**2  # bytes  # TODO: decide an appropriate value
+    PAGINATION_DEFAULT_PAGE_SIZE: int = 30
+    PAGINATION_MAX_PAGE_SIZE: int = 200
 
     DB_ENGINE: str = "postgresql+psycopg2"
     DB_USER: str = "entitycore"

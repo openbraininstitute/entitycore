@@ -51,7 +51,7 @@ def test_brain_region_hierarchy(client, brain_region_hierarchy_id):
     response = assert_request(
         client.get,
         url=ROUTE,
-        params={"with_facets": True},
+        params={"with_facets": True, "page_size": 100},
     )
     response_json = response.json()
     assert "facets" in response_json

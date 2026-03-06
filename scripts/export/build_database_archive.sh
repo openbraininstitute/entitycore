@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="1f5cf23383af"
+SCRIPT_DB_VERSION="b07f22cc6f1a"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -145,6 +145,8 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM emodel AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.exemplar_morphology_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/emodel.csv' WITH CSV HEADER;
 \echo Dumping table entity
 \copy (SELECT t0.* FROM entity AS t0  WHERE t0.authorized_public IS true) TO '$DATA_DIR/entity.csv' WITH CSV HEADER;
+\echo Dumping table entity__task_config
+\copy (SELECT t0.* FROM entity__task_config AS t0 JOIN entity AS t1 ON t1.id=t0.entity_id JOIN entity AS t2 ON t2.id=t0.task_config_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/entity__task_config.csv' WITH CSV HEADER;
 \echo Dumping table etype_class
 \copy (SELECT t0.* FROM etype_class AS t0  WHERE TRUE) TO '$DATA_DIR/etype_class.csv' WITH CSV HEADER;
 \echo Dumping table etype_classification
@@ -249,8 +251,6 @@ SET TRANSACTION READ ONLY;
 \copy (SELECT t0.* FROM task_activity AS t0 JOIN activity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/task_activity.csv' WITH CSV HEADER;
 \echo Dumping table task_config
 \copy (SELECT t0.* FROM task_config AS t0 JOIN entity AS t1 ON t1.id=t0.id LEFT JOIN entity AS t2 ON t2.id=t0.task_config_generator_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/task_config.csv' WITH CSV HEADER;
-\echo Dumping table task_config__entity
-\copy (SELECT t0.* FROM task_config__entity AS t0 JOIN entity AS t1 ON t1.id=t0.task_config_id JOIN entity AS t2 ON t2.id=t0.entity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/task_config__entity.csv' WITH CSV HEADER;
 \echo Dumping table usage
 \copy (SELECT t0.* FROM usage AS t0 JOIN entity AS t1 ON t1.id=t0.usage_entity_id JOIN activity AS t2 ON t2.id=t0.usage_activity_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/usage.csv' WITH CSV HEADER;
 \echo Dumping table validation
@@ -269,7 +269,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="1f5cf23383af"
+SCRIPT_DB_VERSION="b07f22cc6f1a"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

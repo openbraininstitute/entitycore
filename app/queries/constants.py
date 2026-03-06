@@ -2,6 +2,7 @@ from app.db.model import (
     Activity,
     EmCellMeshToSkeletonizationCampaign,
     EModel,
+    EntityToTaskConfig,
     Generation,
     Identifiable,
     IonChannelModelingCampaign,
@@ -9,7 +10,6 @@ from app.db.model import (
     IonChannelRecordingToIonChannelModelingCampaign,
     SkeletonizationCampaign,
     TaskConfig,
-    TaskConfigToEntity,
     Usage,
 )
 from app.queries.types import NestedRelationships
@@ -34,7 +34,7 @@ NESTED_RELATIONSHIPS_MAP: dict[type[Identifiable], NestedRelationships] = {
     TaskConfig: {
         "inputs": {
             "relationship_name": "inputs",
-            "db_model_factory": lambda *, parent_id, child_id: TaskConfigToEntity(
+            "db_model_factory": lambda *, parent_id, child_id: EntityToTaskConfig(
                 task_config_id=parent_id,
                 entity_id=child_id,
             ),

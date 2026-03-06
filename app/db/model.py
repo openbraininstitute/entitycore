@@ -2251,17 +2251,17 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class TaskConfigToEntity(Base):
-    """Represents the many-to-many associations between task configs and entities used as input."""
+class EntityToTaskConfig(Base):
+    """Represents the many-to-many associations between entities used as input and task configs."""
 
-    __tablename__ = "task_config__entity"
+    __tablename__ = "entity__task_config"
 
-    task_config_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(f"{EntityType.task_config}.id", ondelete="CASCADE"),
-        primary_key=True,
-    )
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    task_config_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(f"{EntityType.task_config}.id", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -2289,8 +2289,8 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
         ForeignKey(f"{EntityType.task_config}.id"), index=True
     )
     inputs: Mapped[list[Entity]] = relationship(
-        primaryjoin="TaskConfig.id == TaskConfigToEntity.task_config_id",
-        secondary="task_config__entity",
+        primaryjoin="TaskConfig.id == EntityToTaskConfig.task_config_id",
+        secondary="entity__task_config",
     )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012

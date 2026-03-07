@@ -1,11 +1,9 @@
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import CellMorphology
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
-from app.filters.brain_region import BrainRegionFilterMixin, NestedBrainRegionFilter
+from app.filters.brain_region import BrainRegionFilterMixin
 from app.filters.cell_morphology_protocol import (
     NestedCellMorphologyProtocolFilter,
     NestedCellMorphologyProtocolFilterDep,
@@ -15,11 +13,10 @@ from app.filters.common import (
     ILikeSearchFilterMixin,
     MTypeClassFilterMixin,
     NameFilterMixin,
-    NestedMTypeClassFilter,
 )
 from app.filters.entity import EntityFilterMixin
 from app.filters.measurement_annotation import MeasurableFilterMixin
-from app.filters.subject import NestedSubjectFilter, SubjectFilterMixin
+from app.filters.subject import SubjectFilterMixin
 
 
 class CellMorphologyFilterBase(
@@ -36,35 +33,7 @@ class CellMorphologyFilterBase(
 class NestedCellMorphologyFilter(
     CellMorphologyFilterBase,
 ):
-    brain_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("morphology__brain_region", NestedBrainRegionFilter)),
-    ] = None
-    subject: Annotated[
-        NestedSubjectFilter | None,
-        FilterDepends(with_prefix("morphology__subject", NestedSubjectFilter)),
-    ] = None
-    mtype: Annotated[
-        NestedMTypeClassFilter | None,
-        FilterDepends(with_prefix("morphology__mtype", NestedMTypeClassFilter)),
-    ] = None
-
-
-class NestedExemplarMorphologyFilter(
-    CellMorphologyFilterBase,
-):
-    brain_region: Annotated[
-        NestedBrainRegionFilter | None,
-        FilterDepends(with_prefix("exemplar_morphology__brain_region", NestedBrainRegionFilter)),
-    ] = None
-    subject: Annotated[
-        NestedSubjectFilter | None,
-        FilterDepends(with_prefix("exemplar_morphology__subject", NestedSubjectFilter)),
-    ] = None
-    mtype: Annotated[
-        NestedMTypeClassFilter | None,
-        FilterDepends(with_prefix("exemplar_morphology__mtype", NestedMTypeClassFilter)),
-    ] = None
+    pass
 
 
 class CellMorphologyFilter(

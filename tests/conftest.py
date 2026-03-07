@@ -1015,7 +1015,11 @@ def faceted_emodel_ids(db: Session, client, person_id, species_id, ion_channel_m
     )
     brain_region_ids = [
         utils.create_brain_region(
-            db, hierarchy_name.id, i, f"region{i}", created_by_id=person_id
+            db,
+            hierarchy_id=hierarchy_name.id,
+            annotation_value=i,
+            name=f"region{i}",
+            created_by_id=person_id,
         ).id
         for i in range(2)
     ]

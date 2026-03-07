@@ -696,8 +696,8 @@ def test_pagination(db, client, brain_region_id, person_id):
     assert list(reversed(names)) == list(range(total_items))
 
 
-def test_filter_by_id__in(db, client, brain_region_id, person_id, subject_id):
-    """Test filtering cell morphologies by id__in parameter."""
+def test_filter(db, client, brain_region_id, person_id, subject_id):
+    """Test filtering cell morphologies by different parameters."""
     morphology_ids = []
     for i in range(5):
         morphology_id = create_cell_morphology_id(
@@ -820,6 +820,20 @@ def test_filter_by_id__in(db, client, brain_region_id, person_id, subject_id):
         params={"ilike_search": "Filter Morphology_2"},
     ).json()["data"]
     assert len(data) == 0
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"has_segmented_spines": True},
+    ).json()["data"]
+    assert len(data) == 0
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"has_segmented_spines": False},
+    ).json()["data"]
+    assert len(data) == 5
 
 
 def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, subject_id):

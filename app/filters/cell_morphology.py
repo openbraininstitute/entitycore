@@ -22,10 +22,19 @@ from app.filters.measurement_annotation import MeasurableFilterMixin
 from app.filters.subject import NestedSubjectFilter, SubjectFilterMixin
 
 
-class NestedCellMorphologyFilter(
+class CellMorphologyFilterBase(
     IdFilterMixin,
     NameFilterMixin,
     CustomFilter,
+):
+    has_segmented_spines: bool | None = None
+
+    class Constants(CustomFilter.Constants):
+        model = CellMorphology
+
+
+class NestedCellMorphologyFilter(
+    CellMorphologyFilterBase,
 ):
     brain_region: Annotated[
         NestedBrainRegionFilter | None,
@@ -40,14 +49,9 @@ class NestedCellMorphologyFilter(
         FilterDepends(with_prefix("morphology__mtype", NestedMTypeClassFilter)),
     ] = None
 
-    class Constants(CustomFilter.Constants):
-        model = CellMorphology
-
 
 class NestedExemplarMorphologyFilter(
-    IdFilterMixin,
-    NameFilterMixin,
-    CustomFilter,
+    CellMorphologyFilterBase,
 ):
     brain_region: Annotated[
         NestedBrainRegionFilter | None,
@@ -62,9 +66,6 @@ class NestedExemplarMorphologyFilter(
         FilterDepends(with_prefix("exemplar_morphology__mtype", NestedMTypeClassFilter)),
     ] = None
 
-    class Constants(CustomFilter.Constants):
-        model = CellMorphology
-
 
 class CellMorphologyFilter(
     EntityFilterMixin,
@@ -72,17 +73,15 @@ class CellMorphologyFilter(
     SubjectFilterMixin,
     MTypeClassFilterMixin,
     MeasurableFilterMixin,
-    NameFilterMixin,
     ILikeSearchFilterMixin,
-    CustomFilter,
+    CellMorphologyFilterBase,
 ):
     cell_morphology_protocol: Annotated[
         NestedCellMorphologyProtocolFilter | None, NestedCellMorphologyProtocolFilterDep
     ] = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
-    class Constants(CustomFilter.Constants):
-        model = CellMorphology
+    class Constants(CellMorphologyFilterBase.Constants):
         ordering_model_fields = [  # noqa: RUF012
             "creation_date",
             "update_date",

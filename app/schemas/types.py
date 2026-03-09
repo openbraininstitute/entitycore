@@ -13,6 +13,8 @@ class HeaderKey(StrEnum):
     request_id = "X-Request-ID"
     forwarded_for = "X-Forwarded-For"
     process_time = "X-Process-Time"
+    user_agent = "User-Agent"
+    content_length = "Content-Length"
 
 
 class PaginationRequest(BaseModel):

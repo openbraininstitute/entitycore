@@ -441,6 +441,7 @@ class AssetLabel(StrEnum):
     circuit_extraction_config = auto()
     skeletonization_config = auto()
     task_config = auto()
+    lod_mesh_block = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -912,16 +913,23 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType.em_cell_mesh: {
         AssetLabel.cell_surface_mesh: [
             LabelRequirements(
-                content_type=ContentType.h5,
-                is_directory=False,
-                description="A triangle mesh describing the surface of a cell in h5 format.",
-            ),
-            LabelRequirements(
                 content_type=ContentType.obj,
                 is_directory=False,
                 description="A triangle mesh describing the surface of a cell in obj format.",
             ),
-        ]
+            LabelRequirements(
+                content_type=ContentType.gltf_binary,
+                is_directory=False,
+                description="A triangle mesh describing the surface of a cell in glb format.",
+            ),
+        ],
+        AssetLabel.lod_mesh_block: [
+            LabelRequirements(
+                content_type=None,
+                is_directory=True,
+                description="A directory containing all the LOD mesh blocks in glb format.",
+            ),
+        ],
     },
     EntityType.circuit_extraction_campaign: {
         AssetLabel.campaign_generation_config: [

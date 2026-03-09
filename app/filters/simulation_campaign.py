@@ -14,7 +14,9 @@ from app.filters.simulation import NestedSimulationFilter
 
 
 class NestedEntityFilter(IdFilterMixin, CustomFilter):
-    type: Literal[EntityType.circuit, EntityType.memodel, EntityType.ion_channel_model] | None = None
+    type: Literal[EntityType.circuit, EntityType.memodel, EntityType.ion_channel_model] | None = (
+        None
+    )
 
     class Constants(CustomFilter.Constants):
         model = Entity

@@ -34,28 +34,37 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         except Exception:
             process_time = time.perf_counter() - start_time
             L.error(
-                "{} {}",
-                request.method,
-                str(request.url),
-                client=request.client.host if request.client else "-",
+                "request_failed",
+                method=request.method,
+                url=str(request.url),
                 status_code=500,
-                process_time=f"{process_time:.3f}",
+                status_class=5,
+                process_time_ms=round(process_time * 1000),
+                client=request.client.host if request.client else "",
                 forwarded_for=request.headers.get(HeaderKey.forwarded_for, ""),
+                user_agent=request.headers.get(HeaderKey.user_agent, ""),
             )
             raise
 
         process_time = time.perf_counter() - start_time
         response.headers[HeaderKey.process_time] = f"{process_time:.3f}"
         response.headers[HeaderKey.request_id] = request_id
+        response_size = response.headers.get(HeaderKey.content_length)
+        route = request.scope.get("route")
+        route_template = route.path if route else None
 
         L.info(
-            "{} {}",
-            request.method,
-            str(request.url),
-            client=request.client.host if request.client else "-",
+            "request_completed",
+            method=request.method,
+            url=str(request.url),
+            route_template=route_template,
             status_code=response.status_code,
-            process_time=f"{process_time:.3f}",
+            status_class=response.status_code // 100,
+            process_time_ms=round(process_time * 1000),
+            response_size=int(response_size) if response_size else None,
+            client=request.client.host if request.client else "",
             forwarded_for=request.headers.get(HeaderKey.forwarded_for, ""),
+            user_agent=request.headers.get(HeaderKey.user_agent, ""),
         )
 
         return response

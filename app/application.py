@@ -130,6 +130,7 @@ app = FastAPI(
     },
     root_path=settings.ROOT_PATH,
     redirect_slashes=False,
+    strict_content_type=False,
 )
 app.add_middleware(
     CORSMiddleware,

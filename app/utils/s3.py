@@ -11,8 +11,14 @@ import botocore.client
 from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
+from pydantic import BaseModel
 from types_boto3_s3 import S3Client
-from types_boto3_s3.type_defs import PaginatorConfigTypeDef
+from types_boto3_s3.type_defs import (
+    CompletedPartTypeDef,
+    CopySourceTypeDef,
+    DeleteObjectRequestTypeDef,
+    PaginatorConfigTypeDef,
+)
 
 from app.config import StorageUnion, settings, storages
 from app.db.types import EntityType, StorageType
@@ -20,9 +26,33 @@ from app.logger import L
 from app.schemas.asset import validate_path
 from app.utils.common import clip
 
+PUBLIC_ASSET_PREFIX = "public/"
+PRIVATE_ASSET_PREFIX = "private/"
+
 
 class StorageClientFactory(Protocol):
     def __call__(self, storage: StorageUnion) -> S3Client: ...
+
+
+class MoveDirectoryResult(BaseModel):
+    total_file_count: int
+    total_file_size: int
+
+
+class MoveAssetResult(MoveDirectoryResult):
+    asset_count: int
+
+
+def ensure_directory_prefix(prefix: str) -> str:
+    """Return the prefix with a trailing '/' if it's missing."""
+    if not prefix.endswith("/"):
+        prefix += "/"
+    return prefix
+
+
+def get_s3_path_prefix(*, public: bool) -> str:
+    """Return the S3 path prefix for public or private assets."""
+    return PUBLIC_ASSET_PREFIX if public else PRIVATE_ASSET_PREFIX
 
 
 def build_s3_path(
@@ -35,8 +65,23 @@ def build_s3_path(
     is_public: bool,
 ) -> str:
     """Return the key used to store the file on S3."""
-    prefix = "public" if is_public else "private"
-    return f"{prefix}/{vlab_id}/{proj_id}/assets/{entity_type.name}/{entity_id}/{filename}"
+    prefix = get_s3_path_prefix(public=is_public)
+    return f"{prefix}{vlab_id}/{proj_id}/assets/{entity_type.name}/{entity_id}/{filename}"
+
+
+def convert_s3_path_visibility(s3_path: str, *, public: bool) -> str:
+    """Convert a private S3 path to a public one, or vice versa.
+
+    Args:
+        s3_path: the original S3 path.
+        public: whether the returned path should be public or private.
+    """
+    old_prefix = get_s3_path_prefix(public=not public)
+    new_prefix = get_s3_path_prefix(public=public)
+    if not s3_path.startswith(old_prefix):
+        msg = f"S3 path must start with {old_prefix!r}."
+        raise ValueError(msg)
+    return new_prefix + s3_path.removeprefix(old_prefix)
 
 
 def validate_filename(filename: str) -> bool:
@@ -273,9 +318,8 @@ def list_directory_with_details(
     pagination_config: PaginatorConfigTypeDef | None = None,
 ) -> dict:
     # with `prefix="foo/asdf" argument will match all `foo/asdf/` and `foo/asdf_asdf/,
-    # insure we have a ending / to prevent being promiscuous
-    if not prefix.endswith("/"):
-        prefix += "/"
+    # ensure we have a ending / to prevent being promiscuous
+    prefix = ensure_directory_prefix(prefix)
 
     paginator = s3_client.get_paginator("list_objects_v2")
     files = {}
@@ -323,3 +367,130 @@ def check_object(
             return {"exists": False}
         raise
     return {"exists": True, "type": object_type}
+
+
+def copy_file(
+    s3_client: S3Client,
+    *,
+    src_bucket_name: str,
+    dst_bucket_name: str,
+    src_key: str,
+    dst_key: str,
+    size: int,
+) -> str | None:
+    """Copy a file in S3, using multipart copy for large objects.
+
+    Returns the source VersionId if available, or None.
+    See https://docs.aws.amazon.com/AmazonS3/latest/userguide/CopyingObjectsMPUapi.html
+    """
+    copy_source: CopySourceTypeDef = {"Bucket": src_bucket_name, "Key": src_key}
+    if size <= settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE:
+        output = s3_client.copy_object(CopySource=copy_source, Bucket=dst_bucket_name, Key=dst_key)
+        return output.get("CopySourceVersionId")
+
+    part_size = settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE
+    head = s3_client.head_object(Bucket=src_bucket_name, Key=src_key)
+    create_kwargs: dict = {"Bucket": dst_bucket_name, "Key": dst_key}
+    if content_type := head.get("ContentType"):
+        create_kwargs["ContentType"] = content_type
+    upload_id = s3_client.create_multipart_upload(**create_kwargs)["UploadId"]
+    try:
+        parts: list[CompletedPartTypeDef] = []
+        for part_number, offset in enumerate(range(0, size, part_size), 1):
+            last_byte = min(offset + part_size - 1, size - 1)
+            resp = s3_client.upload_part_copy(
+                Bucket=dst_bucket_name,
+                Key=dst_key,
+                UploadId=upload_id,
+                PartNumber=part_number,
+                CopySource=copy_source,
+                CopySourceRange=f"bytes={offset}-{last_byte}",
+            )
+            parts.append(
+                {
+                    "ETag": resp["CopyPartResult"]["ETag"],  # type: ignore[typeddict-item]
+                    "PartNumber": part_number,
+                }
+            )
+        s3_client.complete_multipart_upload(
+            Bucket=dst_bucket_name,
+            Key=dst_key,
+            UploadId=upload_id,
+            MultipartUpload={"Parts": parts},
+        )
+    except Exception:
+        s3_client.abort_multipart_upload(Bucket=dst_bucket_name, Key=dst_key, UploadId=upload_id)
+        raise
+    return head.get("VersionId")
+
+
+def move_file(
+    s3_client: S3Client,
+    *,
+    src_bucket_name: str,
+    dst_bucket_name: str,
+    src_key: str,
+    dst_key: str,
+    size: int,
+    dry_run: bool,
+) -> None:
+    """Move a file in S3 by copying it to the new location and deleting the original."""
+    if (src_bucket_name, src_key) == (dst_bucket_name, dst_key):
+        msg = "Source and destination cannot be the same."
+        raise ValueError(msg)
+    if dry_run:
+        return
+    try:
+        src_version_id = copy_file(
+            s3_client,
+            src_bucket_name=src_bucket_name,
+            dst_bucket_name=dst_bucket_name,
+            src_key=src_key,
+            dst_key=dst_key,
+            size=size,
+        )
+    except s3_client.exceptions.NoSuchKey:
+        try:
+            s3_client.head_object(Bucket=dst_bucket_name, Key=dst_key)
+        except ClientError:
+            detail = f"Failed to get object s3://{src_bucket_name}/{src_key}"
+            raise HTTPException(status_code=500, detail=detail) from None
+        L.warning("Source already moved: s3://{}/{}", src_bucket_name, src_key)
+        return
+    # delete the original object without leaving a delete marker when versioning is enabled
+    delete_kwargs: DeleteObjectRequestTypeDef = {"Bucket": src_bucket_name, "Key": src_key}
+    if src_version_id:
+        delete_kwargs["VersionId"] = src_version_id
+    s3_client.delete_object(**delete_kwargs)
+
+
+def move_directory(
+    s3_client: S3Client,
+    *,
+    src_bucket_name: str,
+    dst_bucket_name: str,
+    src_key: str,
+    dst_key: str,
+    dry_run: bool,
+) -> MoveDirectoryResult:
+    """Move a directory in S3 by copying it to the new location and deleting the original."""
+    src_key = ensure_directory_prefix(src_key)
+    dst_key = ensure_directory_prefix(dst_key)
+    objects = list_directory_with_details(s3_client, bucket_name=src_bucket_name, prefix=src_key)
+    total_file_size = 0
+    total_file_count = len(objects)
+    for obj in objects.values():
+        total_file_size += obj["size"]
+        move_file(
+            s3_client,
+            src_bucket_name=src_bucket_name,
+            dst_bucket_name=dst_bucket_name,
+            src_key=f"{src_key}{obj['name']}",
+            dst_key=f"{dst_key}{obj['name']}",
+            size=obj["size"],
+            dry_run=dry_run,
+        )
+    return MoveDirectoryResult(
+        total_file_count=total_file_count,
+        total_file_size=total_file_size,
+    )

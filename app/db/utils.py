@@ -6,16 +6,28 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
 from app.db.model import (
+    Activity,
     Base,
     CellMorphologyProtocol,
     Entity,
+    ETypeClassification,
     Identifiable,
     LocationMixin,
     MeasurableEntityMixin,
+    MTypeClassification,
 )
 from app.db.types import CellMorphologyGenerationType, EntityType, ResourceType
 from app.logger import L
 from app.schemas.utils import NOT_SET
+
+PublishableBaseModel = Activity | Entity | ETypeClassification | MTypeClassification
+
+PUBLISHABLE_BASE_CLASSES: list[type[PublishableBaseModel]] = [
+    Activity,
+    Entity,
+    ETypeClassification,
+    MTypeClassification,
+]
 
 MEASURABLE_ENTITIES: dict[str, type[Entity]] = {
     mapper.class_.__tablename__: mapper.class_

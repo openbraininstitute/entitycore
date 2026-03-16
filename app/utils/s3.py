@@ -368,7 +368,7 @@ def copy_file(
     dst_bucket_name: str,
     src_key: str,
     dst_key: str,
-) -> None:
+) -> bool:
     """Copy a file in S3, using multipart copy for large objects.
 
     See https://docs.aws.amazon.com/boto3/latest/reference/services/s3/client/copy.html
@@ -377,15 +377,26 @@ def copy_file(
         "Bucket": src_bucket_name,
         "Key": src_key,
     }
-    s3_client.copy(
-        CopySource=copy_source,
-        Bucket=dst_bucket_name,
-        Key=dst_key,
-        Config=TransferConfig(
-            multipart_threshold=settings.S3_MULTIPART_COPY_THRESHOLD,
-            multipart_chunksize=settings.S3_MULTIPART_COPY_CHUNKSIZE,
-        ),
-    )
+    try:
+        s3_client.copy(
+            CopySource=copy_source,
+            Bucket=dst_bucket_name,
+            Key=dst_key,
+            Config=TransferConfig(
+                multipart_threshold=settings.S3_MULTIPART_COPY_THRESHOLD,
+                multipart_chunksize=settings.S3_MULTIPART_COPY_CHUNKSIZE,
+            ),
+        )
+    except Exception:  # noqa: BLE001
+        L.exception(
+            "Error while copying file from s3://{}/{} to s3://{}/{}",
+            src_bucket_name,
+            src_key,
+            dst_bucket_name,
+            dst_key,
+        )
+        return False
+    return True
 
 
 def move_file(
@@ -405,6 +416,7 @@ def move_file(
     if dry_run:
         return MoveFileResult(size=size, error=None)
     try:
+        # check if the source object exists and get its metadata
         src_head = s3_client.head_object(Bucket=src_bucket_name, Key=src_key)
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") != "404":
@@ -418,13 +430,19 @@ def move_file(
             return MoveFileResult(size=size, error=msg)
         L.warning("Source already moved: s3://{}/{}", src_bucket_name, src_key)
         return MoveFileResult(size=size, error=None)
-    copy_file(
+    if not copy_file(
         s3_client,
         src_bucket_name=src_bucket_name,
         dst_bucket_name=dst_bucket_name,
         src_key=src_key,
         dst_key=dst_key,
-    )
+    ):
+        msg = (
+            f"Failed to copy object from s3://{src_bucket_name}/{src_key} "
+            f"to s3://{dst_bucket_name}/{dst_key}"
+        )
+        L.warning(msg)
+        return MoveFileResult(size=size, error=msg)
     # delete the original object without leaving a delete marker when versioning is enabled
     delete_kwargs: DeleteObjectRequestTypeDef = {"Bucket": src_bucket_name, "Key": src_key}
     if src_version_id := src_head.get("VersionId"):

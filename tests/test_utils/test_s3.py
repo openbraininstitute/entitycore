@@ -226,7 +226,7 @@ def test_copy_file(s3, s3_internal_bucket):
     bucket = s3_internal_bucket
     _upload(s3, bucket, "src/file.txt", b"hello")
 
-    test_module.copy_file(
+    result = test_module.copy_file(
         s3,
         src_bucket_name=bucket,
         dst_bucket_name=bucket,
@@ -234,8 +234,23 @@ def test_copy_file(s3, s3_internal_bucket):
         dst_key="dst/file.txt",
     )
 
+    assert result is True
     assert _read(s3, bucket, "dst/file.txt") == b"hello"
     assert _exists(s3, bucket, "src/file.txt")
+
+
+def test_copy_file_source_missing(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+
+    result = test_module.copy_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/nonexistent.txt",
+        dst_key="dst/nonexistent.txt",
+    )
+
+    assert result is False
 
 
 def test_move_file(s3, s3_internal_bucket):

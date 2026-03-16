@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi_filter import with_prefix
 
 from app.db.model import CellMorphologyProtocol
-from app.db.types import CellMorphologyGenerationType
+from app.db.types import CellMorphologyGenerationType, CellMorphologyProtocolDesign
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
@@ -18,6 +18,14 @@ class CellMorphologyProtocolFilterBase(
     generation_type: CellMorphologyGenerationType | None = None
     generation_type__in: list[CellMorphologyGenerationType] | None = None
     generation_type__not_in: list[CellMorphologyGenerationType] | None = None
+
+    protocol_design: CellMorphologyProtocolDesign | None = None
+    protocol_design__in: list[CellMorphologyProtocolDesign] | None = None
+    protocol_design__not_in: list[CellMorphologyProtocolDesign] | None = None
+
+    protocol_document: str | None = None
+    protocol_document__in: list[str] | None = None
+    protocol_document__ilike: str | None = None
 
     class Constants(CustomFilter.Constants):
         model = CellMorphologyProtocol

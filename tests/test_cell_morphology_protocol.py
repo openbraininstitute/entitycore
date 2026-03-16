@@ -57,6 +57,7 @@ def json_data_modified_reconstruction():
             "name": "Modified Reconstruction Protocol Test",
             "description": "Description Test",
             "generation_type": CellMorphologyGenerationType.modified_reconstruction,
+            "protocol_document": "https://www.example.com",
             "protocol_design": CellMorphologyProtocolDesign.fluorophore,
             "method_type": ModifiedMorphologyMethodType.cloned,
         }
@@ -274,14 +275,49 @@ def test_filtering(client, models):
         "modified_reconstruction",
     }
 
+    data = assert_request(client.get, url=ROUTE, params={"protocol_design": "cell_patch"}).json()[
+        "data"
+    ]
+    assert len(data) == 1
+    assert data[0]["protocol_design"] == "cell_patch"
+
     data = assert_request(
         client.get,
         url=ROUTE,
-        params={"generation_type__not_in": ["digital_reconstruction", "modified_reconstruction"]},
+        params={"protocol_design__in": ["electron_microscopy", "cell_patch"]},
     ).json()["data"]
     assert len(data) == 2
+    assert {d["protocol_design"] for d in data} == {
+        "electron_microscopy",
+        "cell_patch",
+    }
 
-    assert {d["generation_type"] for d in data} == {"placeholder", "computationally_synthesized"}
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"protocol_design__not_in": ["electron_microscopy", "cell_patch"]},
+    ).json()["data"]
+    assert len(data) == 1
+    assert {d["protocol_design"] for d in data} == {"fluorophore"}
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"protocol_document": "https://example.com/"},
+    ).json()["data"]
+    assert len(data) == 1
+    assert {d["protocol_document"] for d in data} == {"https://example.com/"}
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"protocol_document__ilike": "%example%"},
+    ).json()["data"]
+    assert len(data) == 2
+    assert {d["protocol_document"] for d in data} == {
+        "https://example.com/",
+        "https://www.example.com/",
+    }
 
     data = assert_request(
         client.get,

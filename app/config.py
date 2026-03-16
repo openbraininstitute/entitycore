@@ -46,8 +46,10 @@ class Settings(BaseSettings):
     AUTH_CACHE_MAX_TTL: int = 300  # seconds
     AUTH_CACHE_INFO: bool = False
 
-    S3_PRESIGNED_URL_NETLOC: str | None = None  # to override the presigned url hostname and port
-    S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value
+    # to override the presigned url hostname and port when running locally
+    S3_PRESIGNED_URL_NETLOC: str | None = None
+    # used for deciding whether to use multipart for upload and copy
+    S3_MULTIPART_THRESHOLD: int = 500 * 1024**2  # bytes
     S3_PRESIGNED_URL_EXPIRATION: int = 6 * 3600  # 6 hours
 
     S3_MULTIPART_UPLOAD_MAX_SIZE: int = 1024**4  # 1TB

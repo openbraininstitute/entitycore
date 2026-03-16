@@ -13,7 +13,6 @@ from botocore.exceptions import ClientError
 from fastapi import HTTPException
 from types_boto3_s3 import S3Client
 from types_boto3_s3.type_defs import (
-    CompletedPartTypeDef,
     CopySourceTypeDef,
     DeleteObjectRequestTypeDef,
     PaginatorConfigTypeDef,
@@ -367,62 +366,21 @@ def copy_file(
     dst_bucket_name: str,
     src_key: str,
     dst_key: str,
-    size: int,
-) -> str | None:
+) -> None:
     """Copy a file in S3, using multipart copy for large objects.
 
-    Returns the source VersionId if available, or None.
-    See https://docs.aws.amazon.com/AmazonS3/latest/userguide/CopyingObjectsMPUapi.html
+    See https://docs.aws.amazon.com/boto3/latest/reference/services/s3/client/copy.html
     """
-    copy_source: CopySourceTypeDef = {"Bucket": src_bucket_name, "Key": src_key}
-    if size <= settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE:
-        output = s3_client.copy_object(CopySource=copy_source, Bucket=dst_bucket_name, Key=dst_key)
-        return output.get("CopySourceVersionId")
-
-    part_size = settings.S3_MULTIPART_UPLOAD_MAX_PART_SIZE
-    head = s3_client.head_object(Bucket=src_bucket_name, Key=src_key)
-    create_kwargs: dict = {"Bucket": dst_bucket_name, "Key": dst_key}
-    if content_type := head.get("ContentType"):
-        create_kwargs["ContentType"] = content_type
-    upload_id = s3_client.create_multipart_upload(**create_kwargs)["UploadId"]
-    try:
-        parts: list[CompletedPartTypeDef] = []
-        for part_number, offset in enumerate(range(0, size, part_size), 1):
-            last_byte = min(offset + part_size - 1, size - 1)
-            resp = s3_client.upload_part_copy(
-                Bucket=dst_bucket_name,
-                Key=dst_key,
-                UploadId=upload_id,
-                PartNumber=part_number,
-                CopySource=copy_source,
-                CopySourceRange=f"bytes={offset}-{last_byte}",
-            )
-            parts.append(
-                {
-                    "ETag": resp["CopyPartResult"]["ETag"],  # type: ignore[typeddict-item]
-                    "PartNumber": part_number,
-                }
-            )
-        s3_client.complete_multipart_upload(
-            Bucket=dst_bucket_name,
-            Key=dst_key,
-            UploadId=upload_id,
-            MultipartUpload={"Parts": parts},
-        )
-    except Exception:
-        try:
-            s3_client.abort_multipart_upload(
-                Bucket=dst_bucket_name, Key=dst_key, UploadId=upload_id
-            )
-        except Exception:  # noqa: BLE001
-            L.exception(
-                "Failed to abort multipart upload {} for s3://{}/{}",
-                upload_id,
-                dst_bucket_name,
-                dst_key,
-            )
-        raise
-    return head.get("VersionId")
+    copy_source: CopySourceTypeDef = {
+        "Bucket": src_bucket_name,
+        "Key": src_key,
+    }
+    s3_client.copy(
+        CopySource=copy_source,
+        Bucket=dst_bucket_name,
+        Key=dst_key,
+        Config=TransferConfig(multipart_threshold=settings.S3_MULTIPART_THRESHOLD),
+    )
 
 
 def move_file(
@@ -442,16 +400,12 @@ def move_file(
     if dry_run:
         return MoveFileResult(size=size, error=None)
     try:
-        src_version_id = copy_file(
-            s3_client,
-            src_bucket_name=src_bucket_name,
-            dst_bucket_name=dst_bucket_name,
-            src_key=src_key,
-            dst_key=dst_key,
-            size=size,
-        )
-    except s3_client.exceptions.NoSuchKey:
+        src_head = s3_client.head_object(Bucket=src_bucket_name, Key=src_key)
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") != "404":
+            raise
         try:
+            # check if the destination object already exists
             s3_client.head_object(Bucket=dst_bucket_name, Key=dst_key)
         except ClientError:
             msg = f"Failed to get object s3://{src_bucket_name}/{src_key}"
@@ -459,9 +413,16 @@ def move_file(
             return MoveFileResult(size=size, error=msg)
         L.warning("Source already moved: s3://{}/{}", src_bucket_name, src_key)
         return MoveFileResult(size=size, error=None)
+    copy_file(
+        s3_client,
+        src_bucket_name=src_bucket_name,
+        dst_bucket_name=dst_bucket_name,
+        src_key=src_key,
+        dst_key=dst_key,
+    )
     # delete the original object without leaving a delete marker when versioning is enabled
     delete_kwargs: DeleteObjectRequestTypeDef = {"Bucket": src_bucket_name, "Key": src_key}
-    if src_version_id:
+    if src_version_id := src_head.get("VersionId"):
         delete_kwargs["VersionId"] = src_version_id
     s3_client.delete_object(**delete_kwargs)
     return MoveFileResult(size=size, error=None)

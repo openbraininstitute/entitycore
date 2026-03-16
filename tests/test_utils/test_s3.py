@@ -1,6 +1,7 @@
 import io
 import math
 from pathlib import Path
+from unittest.mock import Mock
 
 import botocore.exceptions
 import pytest
@@ -13,6 +14,18 @@ from app.utils import s3 as test_module
 from tests.utils import PROJECT_ID, VIRTUAL_LAB_ID
 
 pytestmark = pytest.mark.usefixtures("_create_buckets")
+
+
+def _fail_on_second_call(original, error_msg):
+    """Return a Mock that delegates the first call and raises on the second."""
+
+    def side_effect(**kwargs):
+        if mock.call_count > 1:
+            raise RuntimeError(error_msg)
+        return original(**kwargs)
+
+    mock = Mock(side_effect=side_effect)
+    return mock
 
 
 def _upload(s3, bucket, key, data=b"content"):
@@ -258,6 +271,59 @@ def test_copy_file_multipart(s3, s3_internal_bucket, monkeypatch):
     )
 
     assert _read(s3, bucket, "dst/big.bin") == data
+
+
+def test_copy_file_multipart_abort_success(s3, s3_internal_bucket, monkeypatch):
+    """The original exception is re-raised when abort_multipart_upload succeeds."""
+    bucket = s3_internal_bucket
+    part_size = 5 * 1024 * 1024
+    data = b"x" * (part_size + 100)
+    _upload(s3, bucket, "src/fail.bin", data)
+
+    error_msg = "upload_part_copy failed"
+    upload_part_copy_mock = _fail_on_second_call(s3.upload_part_copy, error_msg=error_msg)
+
+    monkeypatch.setattr(settings, "S3_MULTIPART_UPLOAD_MAX_PART_SIZE", part_size)
+    monkeypatch.setattr(s3, "upload_part_copy", upload_part_copy_mock)
+
+    with pytest.raises(RuntimeError, match=error_msg):
+        test_module.copy_file(
+            s3,
+            src_bucket_name=bucket,
+            dst_bucket_name=bucket,
+            src_key="src/fail.bin",
+            dst_key="dst/fail.bin",
+            size=len(data),
+        )
+    assert upload_part_copy_mock.call_count == 2
+
+
+def test_copy_file_multipart_abort_failure(s3, s3_internal_bucket, monkeypatch):
+    """The original exception is re-raised even when abort_multipart_upload fails."""
+    bucket = s3_internal_bucket
+    part_size = 5 * 1024 * 1024
+    data = b"x" * (part_size + 100)
+    _upload(s3, bucket, "src/fail.bin", data)
+
+    error_msg = "upload_part_copy failed"
+    upload_part_copy_mock = _fail_on_second_call(s3.upload_part_copy, error_msg=error_msg)
+    abort_multipart_upload_mock = Mock(side_effect=RuntimeError("abort failed"))
+
+    monkeypatch.setattr(settings, "S3_MULTIPART_UPLOAD_MAX_PART_SIZE", part_size)
+    monkeypatch.setattr(s3, "upload_part_copy", upload_part_copy_mock)
+    monkeypatch.setattr(s3, "abort_multipart_upload", abort_multipart_upload_mock)
+
+    with pytest.raises(RuntimeError, match=error_msg):
+        test_module.copy_file(
+            s3,
+            src_bucket_name=bucket,
+            dst_bucket_name=bucket,
+            src_key="src/fail.bin",
+            dst_key="dst/fail.bin",
+            size=len(data),
+        )
+    assert upload_part_copy_mock.call_count == 2
+    assert abort_multipart_upload_mock.call_count == 1
 
 
 def test_move_file(s3, s3_internal_bucket):

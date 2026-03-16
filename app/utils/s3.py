@@ -419,7 +419,17 @@ def copy_file(
             MultipartUpload={"Parts": parts},
         )
     except Exception:
-        s3_client.abort_multipart_upload(Bucket=dst_bucket_name, Key=dst_key, UploadId=upload_id)
+        try:
+            s3_client.abort_multipart_upload(
+                Bucket=dst_bucket_name, Key=dst_key, UploadId=upload_id
+            )
+        except Exception:  # noqa: BLE001
+            L.exception(
+                "Failed to abort multipart upload {} for s3://{}/{}",
+                upload_id,
+                dst_bucket_name,
+                dst_key,
+            )
         raise
     return head.get("VersionId")
 

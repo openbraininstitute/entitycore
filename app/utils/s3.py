@@ -454,8 +454,9 @@ def move_file(
         try:
             s3_client.head_object(Bucket=dst_bucket_name, Key=dst_key)
         except ClientError:
-            error = f"Failed to get object s3://{src_bucket_name}/{src_key}"
-            return MoveFileResult(size=size, error=error)
+            msg = f"Failed to get object s3://{src_bucket_name}/{src_key}"
+            L.warning(msg)
+            return MoveFileResult(size=size, error=msg)
         L.warning("Source already moved: s3://{}/{}", src_bucket_name, src_key)
         return MoveFileResult(size=size, error=None)
     # delete the original object without leaving a delete marker when versioning is enabled

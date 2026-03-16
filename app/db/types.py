@@ -792,6 +792,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 ),
             ),
         ],
+        AssetLabel.cell_surface_mesh: [
+            LabelRequirements(
+                content_type=ContentType.gltf_binary,
+                is_directory=False,
+                description=("A triangle mesh describing the surface of a cell in glb format."),
+            ),
+        ],
     },
     EntityType.simulation: {
         AssetLabel.custom_node_sets: [

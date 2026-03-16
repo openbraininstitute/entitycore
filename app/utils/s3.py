@@ -132,13 +132,15 @@ def upload_to_s3(
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
     """
-    config = TransferConfig(multipart_threshold=settings.S3_MULTIPART_THRESHOLD)
     try:
         s3_client.upload_fileobj(
             file_obj,
             Bucket=bucket_name,
             Key=s3_key,
-            Config=config,
+            Config=TransferConfig(
+                multipart_threshold=settings.S3_MULTIPART_UPLOAD_THRESHOLD,
+                multipart_chunksize=settings.S3_MULTIPART_UPLOAD_CHUNKSIZE,
+            ),
         )
     except Exception:  # noqa: BLE001
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)
@@ -379,7 +381,10 @@ def copy_file(
         CopySource=copy_source,
         Bucket=dst_bucket_name,
         Key=dst_key,
-        Config=TransferConfig(multipart_threshold=settings.S3_MULTIPART_THRESHOLD),
+        Config=TransferConfig(
+            multipart_threshold=settings.S3_MULTIPART_COPY_THRESHOLD,
+            multipart_chunksize=settings.S3_MULTIPART_COPY_CHUNKSIZE,
+        ),
     )
 
 

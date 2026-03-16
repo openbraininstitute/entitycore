@@ -10,9 +10,8 @@ from app.db.model import Asset, Entity
 from app.db.types import AssetStatus, StorageType
 from app.db.utils import PUBLISHABLE_BASE_CLASSES, PublishableBaseModel
 from app.logger import L
-from app.schemas.publish import ChangeProjectVisibilityResponse
+from app.schemas.publish import ChangeProjectVisibilityResponse, MoveAssetsResult
 from app.utils.s3 import (
-    MoveAssetResult,
     convert_s3_path_visibility,
     get_s3_path_prefix,
     move_directory,
@@ -60,7 +59,7 @@ def _set_assets_visibility(
     max_assets: int | None,
     dry_run: bool,
     public: bool,
-) -> MoveAssetResult:
+) -> MoveAssetsResult:
     """Move assets from private to public in S3 or vice versa, and update their path in the db.
 
     Rows are updated in batches directly after loading the ORM models for better efficiency.
@@ -85,37 +84,36 @@ def _set_assets_visibility(
         .with_for_update(of=Asset)
         .limit(max_assets)
     ).scalars()
-    asset_count = total_file_count = total_file_size = 0
+    move_result = MoveAssetsResult()
     for batch in batched(private_assets, BATCH_SIZE):
         path_mapping: dict[uuid.UUID, str] = {}
         L.info("Processing batch of {} assets [dry_run={}]", len(batch), dry_run)
-        asset_count += len(batch)
         for asset in batch:
             src_key = asset.full_path
             dst_key = convert_s3_path_visibility(asset.full_path, public=public)
             if asset.is_directory:
-                move_result = move_directory(
-                    s3_client,
-                    src_bucket_name=bucket_name,
-                    dst_bucket_name=bucket_name,
-                    src_key=src_key,
-                    dst_key=dst_key,
-                    dry_run=dry_run,
+                move_result.update_from_directory_result(
+                    move_directory(
+                        s3_client,
+                        src_bucket_name=bucket_name,
+                        dst_bucket_name=bucket_name,
+                        src_key=src_key,
+                        dst_key=dst_key,
+                        dry_run=dry_run,
+                    )
                 )
-                total_file_count += move_result.total_file_count
-                total_file_size += move_result.total_file_size
             else:
-                move_file(
-                    s3_client,
-                    src_bucket_name=bucket_name,
-                    dst_bucket_name=bucket_name,
-                    src_key=src_key,
-                    dst_key=dst_key,
-                    size=asset.size,
-                    dry_run=dry_run,
+                move_result.update_from_file_result(
+                    move_file(
+                        s3_client,
+                        src_bucket_name=bucket_name,
+                        dst_bucket_name=bucket_name,
+                        src_key=src_key,
+                        dst_key=dst_key,
+                        size=asset.size,
+                        dry_run=dry_run,
+                    )
                 )
-                total_file_count += 1
-                total_file_size += asset.size
             path_mapping[asset.id] = dst_key
             db.expunge(asset)  # free memory from session's identity map
         db.execute(
@@ -126,11 +124,7 @@ def _set_assets_visibility(
                 update_date=Asset.update_date,  # preserve update_date
             )
         )
-    return MoveAssetResult(
-        asset_count=asset_count,
-        total_file_count=total_file_count,
-        total_file_size=total_file_size,
-    )
+    return move_result
 
 
 def set_project_visibility(
@@ -187,9 +181,7 @@ def set_project_visibility(
         message=f"Project resources successfully made {description}",
         project_id=project_id,
         resource_count=resource_count,
-        asset_count=move_result.asset_count,
-        total_file_count=move_result.total_file_count,
-        total_file_size=move_result.total_file_size,
+        move_assets_result=move_result,
         dry_run=dry_run,
         public=public,
         completed=completed,

@@ -5,7 +5,6 @@ from unittest.mock import Mock
 
 import botocore.exceptions
 import pytest
-from fastapi import HTTPException
 
 from app.config import settings
 from app.db.types import EntityType
@@ -330,7 +329,7 @@ def test_move_file(s3, s3_internal_bucket):
     bucket = s3_internal_bucket
     _upload(s3, bucket, "src/move.txt", b"move me")
 
-    test_module.move_file(
+    result = test_module.move_file(
         s3,
         src_bucket_name=bucket,
         dst_bucket_name=bucket,
@@ -340,6 +339,8 @@ def test_move_file(s3, s3_internal_bucket):
         dry_run=False,
     )
 
+    assert result.size == 7
+    assert result.error is None
     assert _read(s3, bucket, "dst/move.txt") == b"move me"
     assert not _exists(s3, bucket, "src/move.txt")
 
@@ -348,7 +349,7 @@ def test_move_file_dry_run(s3, s3_internal_bucket):
     bucket = s3_internal_bucket
     _upload(s3, bucket, "src/dry.txt", b"stay")
 
-    test_module.move_file(
+    result = test_module.move_file(
         s3,
         src_bucket_name=bucket,
         dst_bucket_name=bucket,
@@ -358,6 +359,8 @@ def test_move_file_dry_run(s3, s3_internal_bucket):
         dry_run=True,
     )
 
+    assert result.size == 4
+    assert result.error is None
     assert _exists(s3, bucket, "src/dry.txt")
     assert not _exists(s3, bucket, "dst/dry.txt")
 
@@ -380,7 +383,7 @@ def test_move_file_already_moved(s3, s3_internal_bucket):
     bucket = s3_internal_bucket
     _upload(s3, bucket, "dst/already.txt", b"already there")
 
-    test_module.move_file(
+    result = test_module.move_file(
         s3,
         src_bucket_name=bucket,
         dst_bucket_name=bucket,
@@ -390,21 +393,26 @@ def test_move_file_already_moved(s3, s3_internal_bucket):
         dry_run=False,
     )
 
+    assert result.size == 13
+    assert result.error is None
     assert _read(s3, bucket, "dst/already.txt") == b"already there"
 
 
 def test_move_file_source_missing_dest_missing(s3, s3_internal_bucket):
     bucket = s3_internal_bucket
-    with pytest.raises(HTTPException, match="500"):
-        test_module.move_file(
-            s3,
-            src_bucket_name=bucket,
-            dst_bucket_name=bucket,
-            src_key="src/gone.txt",
-            dst_key="dst/gone.txt",
-            size=1,
-            dry_run=False,
-        )
+    result = test_module.move_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/gone.txt",
+        dst_key="dst/gone.txt",
+        size=1,
+        dry_run=False,
+    )
+
+    assert result.size == 1
+    assert result.error is not None
+    assert "Failed to get object" in result.error
 
 
 def test_move_directory(s3, s3_internal_bucket):
@@ -421,8 +429,8 @@ def test_move_directory(s3, s3_internal_bucket):
         dry_run=False,
     )
 
-    assert result.total_file_count == 2
-    assert result.total_file_size == 5
+    assert result.file_count == 2
+    assert result.size == 5
     assert _read(s3, bucket, "dstdir/a.txt") == b"aaa"
     assert _read(s3, bucket, "dstdir/b.txt") == b"bb"
     assert not _exists(s3, bucket, "srcdir/a.txt")
@@ -442,7 +450,7 @@ def test_move_directory_dry_run(s3, s3_internal_bucket):
         dry_run=True,
     )
 
-    assert result.total_file_count == 1
-    assert result.total_file_size == 3
+    assert result.file_count == 1
+    assert result.size == 3
     assert _exists(s3, bucket, "srcdir2/c.txt")
     assert not _exists(s3, bucket, "dstdir2/c.txt")

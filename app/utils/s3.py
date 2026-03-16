@@ -11,7 +11,6 @@ import botocore.client
 from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
-from pydantic import BaseModel
 from types_boto3_s3 import S3Client
 from types_boto3_s3.type_defs import (
     CompletedPartTypeDef,
@@ -24,6 +23,7 @@ from app.config import StorageUnion, settings, storages
 from app.db.types import EntityType, StorageType
 from app.logger import L
 from app.schemas.asset import validate_path
+from app.schemas.publish import MoveDirectoryResult, MoveFileResult
 from app.utils.common import clip
 
 PUBLIC_ASSET_PREFIX = "public/"
@@ -32,15 +32,6 @@ PRIVATE_ASSET_PREFIX = "private/"
 
 class StorageClientFactory(Protocol):
     def __call__(self, storage: StorageUnion) -> S3Client: ...
-
-
-class MoveDirectoryResult(BaseModel):
-    total_file_count: int
-    total_file_size: int
-
-
-class MoveAssetResult(MoveDirectoryResult):
-    asset_count: int
 
 
 def ensure_directory_prefix(prefix: str) -> str:
@@ -443,13 +434,13 @@ def move_file(
     dst_key: str,
     size: int,
     dry_run: bool,
-) -> None:
+) -> MoveFileResult:
     """Move a file in S3 by copying it to the new location and deleting the original."""
     if (src_bucket_name, src_key) == (dst_bucket_name, dst_key):
         msg = "Source and destination cannot be the same."
         raise ValueError(msg)
     if dry_run:
-        return
+        return MoveFileResult(size=size, error=None)
     try:
         src_version_id = copy_file(
             s3_client,
@@ -463,15 +454,16 @@ def move_file(
         try:
             s3_client.head_object(Bucket=dst_bucket_name, Key=dst_key)
         except ClientError:
-            detail = f"Failed to get object s3://{src_bucket_name}/{src_key}"
-            raise HTTPException(status_code=500, detail=detail) from None
+            error = f"Failed to get object s3://{src_bucket_name}/{src_key}"
+            return MoveFileResult(size=size, error=error)
         L.warning("Source already moved: s3://{}/{}", src_bucket_name, src_key)
-        return
+        return MoveFileResult(size=size, error=None)
     # delete the original object without leaving a delete marker when versioning is enabled
     delete_kwargs: DeleteObjectRequestTypeDef = {"Bucket": src_bucket_name, "Key": src_key}
     if src_version_id:
         delete_kwargs["VersionId"] = src_version_id
     s3_client.delete_object(**delete_kwargs)
+    return MoveFileResult(size=size, error=None)
 
 
 def move_directory(
@@ -487,11 +479,9 @@ def move_directory(
     src_key = ensure_directory_prefix(src_key)
     dst_key = ensure_directory_prefix(dst_key)
     objects = list_directory_with_details(s3_client, bucket_name=src_bucket_name, prefix=src_key)
-    total_file_size = 0
-    total_file_count = len(objects)
+    move_directory_result = MoveDirectoryResult(size=0, file_count=0)
     for obj in objects.values():
-        total_file_size += obj["size"]
-        move_file(
+        move_file_result = move_file(
             s3_client,
             src_bucket_name=src_bucket_name,
             dst_bucket_name=dst_bucket_name,
@@ -500,7 +490,5 @@ def move_directory(
             size=obj["size"],
             dry_run=dry_run,
         )
-    return MoveDirectoryResult(
-        total_file_count=total_file_count,
-        total_file_size=total_file_size,
-    )
+        move_directory_result.update_from_file_result(move_file_result)
+    return move_directory_result

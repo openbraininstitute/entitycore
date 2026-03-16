@@ -121,10 +121,11 @@ def test_publish(db, client_admin, s3, private_morphology_with_asset):
 
     assert data["public"] is True
     assert data["dry_run"] is False
+    # resource_count can be > 1 in case there are other resources besides the morphology
     assert data["resource_count"] >= 1
-    assert data["asset_count"] >= 1
-    assert data["total_file_count"] >= 1
-    assert data["total_file_size"] > 0
+    assert data["move_assets_result"]["asset_count"] == 1
+    assert data["move_assets_result"]["file_count"] == 1
+    assert data["move_assets_result"]["total_size"] > 0
     assert data["completed"] is True
 
     db.expire_all()
@@ -147,6 +148,7 @@ def test_publish_dry_run(db, client_admin, private_morphology_with_asset):
     assert data["project_id"] == PROJECT_ID
     assert data["public"] is True
     assert data["dry_run"] is True
+    # resource_count can be > 1 in case there are other resources besides the morphology
     assert data["resource_count"] >= 1
     assert data["completed"] is True
 
@@ -163,13 +165,13 @@ def test_publish_with_max_assets(client_admin):
     response = _publish(client_admin, PROJECT_ID, dry_run=False, max_assets=1)
     assert response.status_code == 200
     data = response.json()
-    assert data["asset_count"] == 1
+    assert data["move_assets_result"]["asset_count"] == 1
     assert data["completed"] is False
 
     response = _publish(client_admin, PROJECT_ID, dry_run=False, max_assets=1)
     assert response.status_code == 200
     data = response.json()
-    assert data["asset_count"] == 0
+    assert data["move_assets_result"]["asset_count"] == 0
     assert data["completed"] is True
 
 
@@ -179,7 +181,7 @@ def test_publish_no_resources(client_admin):
     assert response.status_code == 200
     data = response.json()
     assert data["resource_count"] == 0
-    assert data["asset_count"] == 0
+    assert data["move_assets_result"]["asset_count"] == 0
     assert data["completed"] is True
 
 
@@ -200,8 +202,9 @@ def test_unpublish(db, client_admin, s3, private_morphology_with_asset):
 
     assert data["public"] is False
     assert data["dry_run"] is False
+    # resource_count can be > 1 in case there are other resources besides the morphology
     assert data["resource_count"] >= 1
-    assert data["asset_count"] >= 1
+    assert data["move_assets_result"]["asset_count"] == 1
     assert data["completed"] is True
 
     db.expire_all()
@@ -268,7 +271,7 @@ def test_publish_directory_asset(db, client_admin, s3, private_circuit_with_dire
     response = _publish(client_admin, PROJECT_ID, dry_run=False)
     assert response.status_code == 200
     data = response.json()
-    assert data["total_file_count"] >= len(directory_files)
+    assert data["move_assets_result"]["file_count"] == len(directory_files)
 
     db.expire_all()
     asset_after = db.get(Asset, asset_id)

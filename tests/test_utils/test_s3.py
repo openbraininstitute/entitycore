@@ -1,6 +1,7 @@
 import io
 import math
 from pathlib import Path
+from unittest.mock import Mock
 
 import botocore.exceptions
 import pytest
@@ -341,6 +342,31 @@ def test_move_file_source_missing_dest_missing(s3, s3_internal_bucket):
     assert result.size == 1
     assert result.error is not None
     assert "Failed to get object" in result.error
+
+
+def test_move_file_copy_failure(s3, s3_internal_bucket, monkeypatch):
+    """Test move_file when copy_file fails after head_object succeeds."""
+    bucket = s3_internal_bucket
+    _upload(s3, bucket, "src/copy_fail.txt", b"data")
+
+    copy_file_mock = Mock(return_value=False)
+    monkeypatch.setattr(test_module, "copy_file", copy_file_mock)
+    result = test_module.move_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/copy_fail.txt",
+        dst_key="dst/copy_fail.txt",
+        size=4,
+        dry_run=False,
+    )
+
+    assert copy_file_mock.call_count == 1
+    assert result.size == 4
+    assert result.error is not None
+    assert "Failed to copy object" in result.error
+    # source file should still exist since copy failed
+    assert _exists(s3, bucket, "src/copy_fail.txt")
 
 
 def test_move_directory(s3, s3_internal_bucket):

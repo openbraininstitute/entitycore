@@ -54,13 +54,15 @@ class Settings(BaseSettings):
 
     # to override the presigned url hostname and port when running locally
     S3_PRESIGNED_URL_NETLOC: str | None = None
+    S3_PRESIGNED_URL_EXPIRATION: int = 6 * 3600  # 6 hours
     # upload_fileobj: data flows through the service
     S3_MULTIPART_UPLOAD_THRESHOLD: int = 100 * MB
     S3_MULTIPART_UPLOAD_CHUNKSIZE: int = 10 * MB
+    S3_MULTIPART_UPLOAD_MAX_CONCURRENCY: int = 10
     # copy: server-side, data stays in S3
     S3_MULTIPART_COPY_THRESHOLD: int = 5 * GB
     S3_MULTIPART_COPY_CHUNKSIZE: int = 1 * GB
-    S3_PRESIGNED_URL_EXPIRATION: int = 6 * 3600  # 6 hours
+    S3_MULTIPART_COPY_MAX_CONCURRENCY: int = 10
 
     S3_MULTIPART_UPLOAD_MAX_SIZE: int = 1 * TB
     S3_MULTIPART_UPLOAD_MIN_PART_SIZE: int = 5 * MB

@@ -140,6 +140,7 @@ def upload_to_s3(
             Config=TransferConfig(
                 multipart_threshold=settings.S3_MULTIPART_UPLOAD_THRESHOLD,
                 multipart_chunksize=settings.S3_MULTIPART_UPLOAD_CHUNKSIZE,
+                max_concurrency=settings.S3_MULTIPART_UPLOAD_MAX_CONCURRENCY,
             ),
         )
     except Exception:  # noqa: BLE001
@@ -385,6 +386,7 @@ def copy_file(
             Config=TransferConfig(
                 multipart_threshold=settings.S3_MULTIPART_COPY_THRESHOLD,
                 multipart_chunksize=settings.S3_MULTIPART_COPY_CHUNKSIZE,
+                max_concurrency=settings.S3_MULTIPART_COPY_MAX_CONCURRENCY,
             ),
         )
     except Exception:  # noqa: BLE001

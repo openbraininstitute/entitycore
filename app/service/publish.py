@@ -175,7 +175,6 @@ def set_project_visibility(
     )
     if dry_run:
         savepoint.rollback()
-        db.expire_all()
     completed = max_assets is None or move_result.asset_count < max_assets
     return ChangeProjectVisibilityResponse(
         message=f"Project resources successfully made {description}",

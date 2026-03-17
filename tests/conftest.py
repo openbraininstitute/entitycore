@@ -13,6 +13,7 @@ from moto import mock_aws
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from types_boto3_s3 import S3Client
 
 from app.application import app
 from app.config import storages
@@ -123,8 +124,12 @@ def s3_open_bucket():
 
 
 @pytest.fixture(scope="session")
-def _create_buckets(s3, s3_internal_bucket, s3_open_bucket):
+def _create_buckets(s3: S3Client, s3_internal_bucket, s3_open_bucket):
     s3.create_bucket(Bucket=s3_internal_bucket)
+    s3.put_bucket_versioning(
+        Bucket=s3_internal_bucket,
+        VersioningConfiguration={"Status": "Enabled"},
+    )
     s3.create_bucket(Bucket=s3_open_bucket, ACL="public-read")
 
 

@@ -130,6 +130,8 @@ def read_many(
     facet_keys = filter_keys = [
         "contribution",
         "created_by",
+        "species",
+        "strain",
         "updated_by",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(

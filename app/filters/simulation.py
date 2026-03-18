@@ -31,7 +31,20 @@ class SimulationFilter(EntityFilterMixin, SimulationFilterBase, ILikeSearchFilte
 
     class Constants(CustomFilter.Constants):
         model = Simulation
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "id",
+            "creation_date",
+            "update_date",
+            "name",
+            "simulation_campaign_id",
+            "entity_id",
+            "number_neurons",
+            "circuit__name",
+            "circuit__scale",
+            "created_by__pref_label",
+            "updated_by__pref_label",
+            "contribution__pref_label",
+        ]
 
 
 SimulationFilterDep = Annotated[SimulationFilter, FilterDepends(SimulationFilter)]

@@ -58,7 +58,29 @@ class CircuitFilter(
 
     class Constants(ScientificArtifactFilter.Constants):
         model = Circuit
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "id",
+            "creation_date",
+            "update_date",
+            "name",
+            "scale",
+            "build_category",
+            "has_morphologies",
+            "has_point_neurons",
+            "has_electrical_cell_models",
+            "has_spines",
+            "number_neurons",
+            "number_synapses",
+            "number_connections",
+            "brain_region__name",
+            "brain_region__acronym",
+            "subject__name",
+            "subject__species__name",
+            "subject__strain__name",
+            "created_by__pref_label",
+            "updated_by__pref_label",
+            "contribution__pref_label",
+        ]
 
 
 CircuitFilterDep = Annotated[CircuitFilter, FilterDepends(CircuitFilter)]

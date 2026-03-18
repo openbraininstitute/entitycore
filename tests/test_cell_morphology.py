@@ -502,6 +502,23 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
         "cell_morphology_protocol": [],
     }
 
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"order_by": "subject__name", "page_size": 100},
+    ).json()["data"]
+    assert all(elem["subject"]["name"] >= prev["subject"]["name"] for prev, elem in it.pairwise(data))
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"order_by": "-subject__species__name", "page_size": 100},
+    ).json()["data"]
+    assert all(
+        elem["subject"]["species"]["name"] <= prev["subject"]["species"]["name"]
+        for prev, elem in it.pairwise(data)
+    )
+
 
 def test_query_cell_morphology_species_join(db, client, brain_region_id, subject_id):
     """Make sure not to join all the species w/ their strains while doing query"""

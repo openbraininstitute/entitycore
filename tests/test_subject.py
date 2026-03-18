@@ -273,3 +273,12 @@ def test_filtering_sorting(client, models):
 
     data = req({"ilike_search": "?oo-?oo"})
     assert {d["name"] for d in data} == {"foo-foo", "boo-boo"}
+
+    data = req({"species__name": "Test Species"})
+    assert len(data) == len(models)
+
+    data = req({"species__name": "unknown"})
+    assert len(data) == 0
+
+    data = req({"strain__name": "unknown"})
+    assert len(data) == 0

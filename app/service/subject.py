@@ -128,6 +128,8 @@ def read_many(
     }
 
     facet_keys = filter_keys = [
+        "species",
+        "strain",
         "contribution",
         "created_by",
         "updated_by",

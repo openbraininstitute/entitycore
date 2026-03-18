@@ -507,7 +507,9 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
         url=ROUTE,
         params={"order_by": "subject__name", "page_size": 100},
     ).json()["data"]
-    assert all(elem["subject"]["name"] >= prev["subject"]["name"] for prev, elem in it.pairwise(data))
+    assert all(
+        elem["subject"]["name"] >= prev["subject"]["name"] for prev, elem in it.pairwise(data)
+    )
 
     data = assert_request(
         client.get,

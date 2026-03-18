@@ -52,8 +52,6 @@ class SimulationCampaignFilter(
             "creation_date",
             "update_date",
             "name",
-            "entity_id",
-            "entity__type",
             "circuit__name",
             "simulation__name",
             "created_by__pref_label",

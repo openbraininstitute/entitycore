@@ -36,8 +36,6 @@ class SimulationFilter(EntityFilterMixin, SimulationFilterBase, ILikeSearchFilte
             "creation_date",
             "update_date",
             "name",
-            "simulation_campaign_id",
-            "entity_id",
             "number_neurons",
             "circuit__name",
             "circuit__scale",

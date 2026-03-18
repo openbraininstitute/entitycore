@@ -12,17 +12,37 @@ from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
 from types_boto3_s3 import S3Client
-from types_boto3_s3.type_defs import PaginatorConfigTypeDef
+from types_boto3_s3.type_defs import (
+    CopySourceTypeDef,
+    DeleteObjectRequestTypeDef,
+    PaginatorConfigTypeDef,
+)
 
 from app.config import StorageUnion, settings, storages
 from app.db.types import EntityType, StorageType
 from app.logger import L
 from app.schemas.asset import validate_path
+from app.schemas.publish import MoveDirectoryResult, MoveFileResult
 from app.utils.common import clip
+
+PUBLIC_ASSET_PREFIX = "public/"
+PRIVATE_ASSET_PREFIX = "private/"
 
 
 class StorageClientFactory(Protocol):
     def __call__(self, storage: StorageUnion) -> S3Client: ...
+
+
+def ensure_directory_prefix(prefix: str) -> str:
+    """Return the prefix with a trailing '/' if it's missing."""
+    if not prefix.endswith("/"):
+        prefix += "/"
+    return prefix
+
+
+def get_s3_path_prefix(*, public: bool) -> str:
+    """Return the S3 path prefix for public or private assets."""
+    return PUBLIC_ASSET_PREFIX if public else PRIVATE_ASSET_PREFIX
 
 
 def build_s3_path(
@@ -35,8 +55,23 @@ def build_s3_path(
     is_public: bool,
 ) -> str:
     """Return the key used to store the file on S3."""
-    prefix = "public" if is_public else "private"
-    return f"{prefix}/{vlab_id}/{proj_id}/assets/{entity_type.name}/{entity_id}/{filename}"
+    prefix = get_s3_path_prefix(public=is_public)
+    return f"{prefix}{vlab_id}/{proj_id}/assets/{entity_type.name}/{entity_id}/{filename}"
+
+
+def convert_s3_path_visibility(s3_path: str, *, public: bool) -> str:
+    """Convert a private S3 path to a public one, or vice versa.
+
+    Args:
+        s3_path: the original S3 path.
+        public: whether the returned path should be public or private.
+    """
+    old_prefix = get_s3_path_prefix(public=not public)
+    new_prefix = get_s3_path_prefix(public=public)
+    if not s3_path.startswith(old_prefix):
+        msg = f"S3 path must start with {old_prefix!r}."
+        raise ValueError(msg)
+    return new_prefix + s3_path.removeprefix(old_prefix)
 
 
 def validate_filename(filename: str) -> bool:
@@ -97,13 +132,16 @@ def upload_to_s3(
         bucket_name: name of the S3 bucket.
         s3_key: S3 object key (destination path in the bucket).
     """
-    config = TransferConfig(multipart_threshold=settings.S3_MULTIPART_THRESHOLD)
     try:
         s3_client.upload_fileobj(
             file_obj,
             Bucket=bucket_name,
             Key=s3_key,
-            Config=config,
+            Config=TransferConfig(
+                multipart_threshold=settings.S3_MULTIPART_UPLOAD_THRESHOLD,
+                multipart_chunksize=settings.S3_MULTIPART_UPLOAD_CHUNKSIZE,
+                max_concurrency=settings.S3_MULTIPART_UPLOAD_MAX_CONCURRENCY,
+            ),
         )
     except Exception:  # noqa: BLE001
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)
@@ -273,9 +311,8 @@ def list_directory_with_details(
     pagination_config: PaginatorConfigTypeDef | None = None,
 ) -> dict:
     # with `prefix="foo/asdf" argument will match all `foo/asdf/` and `foo/asdf_asdf/,
-    # insure we have a ending / to prevent being promiscuous
-    if not prefix.endswith("/"):
-        prefix += "/"
+    # ensure we have a ending / to prevent being promiscuous
+    prefix = ensure_directory_prefix(prefix)
 
     paginator = s3_client.get_paginator("list_objects_v2")
     files = {}
@@ -323,3 +360,122 @@ def check_object(
             return {"exists": False}
         raise
     return {"exists": True, "type": object_type}
+
+
+def copy_file(
+    s3_client: S3Client,
+    *,
+    src_bucket_name: str,
+    dst_bucket_name: str,
+    src_key: str,
+    dst_key: str,
+) -> bool:
+    """Copy a file in S3, using multipart copy for large objects.
+
+    See https://docs.aws.amazon.com/boto3/latest/reference/services/s3/client/copy.html
+    """
+    copy_source: CopySourceTypeDef = {
+        "Bucket": src_bucket_name,
+        "Key": src_key,
+    }
+    try:
+        s3_client.copy(
+            CopySource=copy_source,
+            Bucket=dst_bucket_name,
+            Key=dst_key,
+            Config=TransferConfig(
+                multipart_threshold=settings.S3_MULTIPART_COPY_THRESHOLD,
+                multipart_chunksize=settings.S3_MULTIPART_COPY_CHUNKSIZE,
+                max_concurrency=settings.S3_MULTIPART_COPY_MAX_CONCURRENCY,
+            ),
+        )
+    except Exception:  # noqa: BLE001
+        L.exception(
+            "Error while copying file from s3://{}/{} to s3://{}/{}",
+            src_bucket_name,
+            src_key,
+            dst_bucket_name,
+            dst_key,
+        )
+        return False
+    return True
+
+
+def move_file(
+    s3_client: S3Client,
+    *,
+    src_bucket_name: str,
+    dst_bucket_name: str,
+    src_key: str,
+    dst_key: str,
+    size: int,
+    dry_run: bool,
+) -> MoveFileResult:
+    """Move a file in S3 by copying it to the new location and deleting the original."""
+    if (src_bucket_name, src_key) == (dst_bucket_name, dst_key):
+        msg = "Source and destination cannot be the same."
+        raise ValueError(msg)
+    if dry_run:
+        return MoveFileResult(size=size, error=None)
+    try:
+        # check if the source object exists and get its metadata
+        src_head = s3_client.head_object(Bucket=src_bucket_name, Key=src_key)
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") != "404":
+            raise
+        try:
+            # check if the destination object already exists
+            s3_client.head_object(Bucket=dst_bucket_name, Key=dst_key)
+        except ClientError:
+            msg = f"Failed to get object s3://{src_bucket_name}/{src_key}"
+            L.warning(msg)
+            return MoveFileResult(size=size, error=msg)
+        L.warning("Source already moved: s3://{}/{}", src_bucket_name, src_key)
+        return MoveFileResult(size=size, error=None)
+    if not copy_file(
+        s3_client,
+        src_bucket_name=src_bucket_name,
+        dst_bucket_name=dst_bucket_name,
+        src_key=src_key,
+        dst_key=dst_key,
+    ):
+        msg = (
+            f"Failed to copy object from s3://{src_bucket_name}/{src_key} "
+            f"to s3://{dst_bucket_name}/{dst_key}"
+        )
+        L.warning(msg)
+        return MoveFileResult(size=size, error=msg)
+    # delete the original object without leaving a delete marker when versioning is enabled
+    delete_kwargs: DeleteObjectRequestTypeDef = {"Bucket": src_bucket_name, "Key": src_key}
+    if src_version_id := src_head.get("VersionId"):
+        delete_kwargs["VersionId"] = src_version_id
+    s3_client.delete_object(**delete_kwargs)
+    return MoveFileResult(size=size, error=None)
+
+
+def move_directory(
+    s3_client: S3Client,
+    *,
+    src_bucket_name: str,
+    dst_bucket_name: str,
+    src_key: str,
+    dst_key: str,
+    dry_run: bool,
+) -> MoveDirectoryResult:
+    """Move a directory in S3 by copying it to the new location and deleting the original."""
+    src_key = ensure_directory_prefix(src_key)
+    dst_key = ensure_directory_prefix(dst_key)
+    objects = list_directory_with_details(s3_client, bucket_name=src_bucket_name, prefix=src_key)
+    move_directory_result = MoveDirectoryResult(size=0, file_count=0)
+    for obj in objects.values():
+        move_file_result = move_file(
+            s3_client,
+            src_bucket_name=src_bucket_name,
+            dst_bucket_name=dst_bucket_name,
+            src_key=f"{src_key}{obj['name']}",
+            dst_key=f"{dst_key}{obj['name']}",
+            size=obj["size"],
+            dry_run=dry_run,
+        )
+        move_directory_result.update_from_file_result(move_file_result)
+    return move_directory_result

@@ -7,6 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.db.types import StorageType
 
+# size aliases
+KB = 1024
+MB = KB * 1024
+GB = MB * 1024
+TB = GB * 1024
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -46,18 +52,26 @@ class Settings(BaseSettings):
     AUTH_CACHE_MAX_TTL: int = 300  # seconds
     AUTH_CACHE_INFO: bool = False
 
-    S3_PRESIGNED_URL_NETLOC: str | None = None  # to override the presigned url hostname and port
-    S3_MULTIPART_THRESHOLD: int = 5 * 1024**2  # bytes  # TODO: decide an appropriate value
+    # to override the presigned url hostname and port when running locally
+    S3_PRESIGNED_URL_NETLOC: str | None = None
     S3_PRESIGNED_URL_EXPIRATION: int = 6 * 3600  # 6 hours
+    # upload_fileobj: data flows through the service
+    S3_MULTIPART_UPLOAD_THRESHOLD: int = 100 * MB
+    S3_MULTIPART_UPLOAD_CHUNKSIZE: int = 10 * MB
+    S3_MULTIPART_UPLOAD_MAX_CONCURRENCY: int = 10
+    # copy: server-side, data stays in S3
+    S3_MULTIPART_COPY_THRESHOLD: int = 5 * GB
+    S3_MULTIPART_COPY_CHUNKSIZE: int = 1 * GB
+    S3_MULTIPART_COPY_MAX_CONCURRENCY: int = 10
 
-    S3_MULTIPART_UPLOAD_MAX_SIZE: int = 1024**4  # 1TB
-    S3_MULTIPART_UPLOAD_MIN_PART_SIZE: int = 5 * 1024**2
-    S3_MULTIPART_UPLOAD_MAX_PART_SIZE: int = 5 * 1024**3
+    S3_MULTIPART_UPLOAD_MAX_SIZE: int = 1 * TB
+    S3_MULTIPART_UPLOAD_MIN_PART_SIZE: int = 5 * MB
+    S3_MULTIPART_UPLOAD_MAX_PART_SIZE: int = 5 * GB
     S3_MULTIPART_UPLOAD_MIN_PARTS: int = 1
     S3_MULTIPART_UPLOAD_MAX_PARTS: int = 10_000
     S3_MULTIPART_UPLOAD_DEFAULT_PARTS: int = 100
 
-    API_ASSET_POST_MAX_SIZE: int = 150 * 1024**2  # bytes  # TODO: decide an appropriate value
+    API_ASSET_POST_MAX_SIZE: int = 150 * MB
     PAGINATION_DEFAULT_PAGE_SIZE: int = 30
     PAGINATION_MAX_PAGE_SIZE: int = 200
 

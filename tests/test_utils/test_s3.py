@@ -1,6 +1,9 @@
+import io
 import math
 from pathlib import Path
+from unittest.mock import Mock
 
+import botocore.exceptions
 import pytest
 
 from app.config import settings
@@ -8,6 +11,24 @@ from app.db.types import EntityType
 from app.utils import s3 as test_module
 
 from tests.utils import PROJECT_ID, VIRTUAL_LAB_ID
+
+pytestmark = pytest.mark.usefixtures("_create_buckets")
+
+
+def _upload(s3, bucket, key, data=b"content"):
+    s3.upload_fileobj(io.BytesIO(data), Bucket=bucket, Key=key)
+
+
+def _exists(s3, bucket, key):
+    try:
+        s3.head_object(Bucket=bucket, Key=key)
+    except botocore.exceptions.ClientError:
+        return False
+    return True
+
+
+def _read(s3, bucket, key):
+    return s3.get_object(Bucket=bucket, Key=key)["Body"].read()
 
 
 def test_build_s3_path_private():
@@ -175,3 +196,215 @@ def test_validate_multipart_filesize():
     max_size = settings.S3_MULTIPART_UPLOAD_MAX_SIZE
     assert test_module.validate_multipart_filesize(max_size) is True
     assert test_module.validate_multipart_filesize(max_size + 1) is False
+
+
+def test_ensure_directory_prefix():
+    assert test_module.ensure_directory_prefix("foo") == "foo/"
+    assert test_module.ensure_directory_prefix("foo/") == "foo/"
+    assert test_module.ensure_directory_prefix("a/b/c") == "a/b/c/"
+
+
+def test_convert_s3_path_visibility_private_to_public():
+    path = "private/vlab/proj/assets/morph/1/file.asc"
+    result = test_module.convert_s3_path_visibility(path, public=True)
+    assert result == "public/vlab/proj/assets/morph/1/file.asc"
+
+
+def test_convert_s3_path_visibility_public_to_private():
+    path = "public/vlab/proj/assets/morph/1/file.asc"
+    result = test_module.convert_s3_path_visibility(path, public=False)
+    assert result == "private/vlab/proj/assets/morph/1/file.asc"
+
+
+def test_convert_s3_path_visibility_wrong_prefix():
+    with pytest.raises(ValueError, match="must start with"):
+        test_module.convert_s3_path_visibility("public/file.txt", public=True)
+    with pytest.raises(ValueError, match="must start with"):
+        test_module.convert_s3_path_visibility("private/file.txt", public=False)
+
+
+def test_copy_file(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+    _upload(s3, bucket, "src/file.txt", b"hello")
+
+    result = test_module.copy_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/file.txt",
+        dst_key="dst/file.txt",
+    )
+
+    assert result is True
+    assert _read(s3, bucket, "dst/file.txt") == b"hello"
+    assert _exists(s3, bucket, "src/file.txt")
+
+
+def test_copy_file_source_missing(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+
+    result = test_module.copy_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/nonexistent.txt",
+        dst_key="dst/nonexistent.txt",
+    )
+
+    assert result is False
+
+
+def test_move_file(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+    _upload(s3, bucket, "src/move.txt", b"move me")
+
+    result = test_module.move_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/move.txt",
+        dst_key="dst/move.txt",
+        size=7,
+        dry_run=False,
+    )
+
+    assert result.size == 7
+    assert result.error is None
+    assert _read(s3, bucket, "dst/move.txt") == b"move me"
+    assert not _exists(s3, bucket, "src/move.txt")
+
+
+def test_move_file_dry_run(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+    _upload(s3, bucket, "src/dry.txt", b"stay")
+
+    result = test_module.move_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/dry.txt",
+        dst_key="dst/dry.txt",
+        size=4,
+        dry_run=True,
+    )
+
+    assert result.size == 4
+    assert result.error is None
+    assert _exists(s3, bucket, "src/dry.txt")
+    assert not _exists(s3, bucket, "dst/dry.txt")
+
+
+def test_move_file_same_src_dst(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+    with pytest.raises(ValueError, match="Source and destination cannot be the same"):
+        test_module.move_file(
+            s3,
+            src_bucket_name=bucket,
+            dst_bucket_name=bucket,
+            src_key="same.txt",
+            dst_key="same.txt",
+            size=1,
+            dry_run=False,
+        )
+
+
+def test_move_file_already_moved(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+    _upload(s3, bucket, "dst/already.txt", b"already there")
+
+    result = test_module.move_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/already.txt",
+        dst_key="dst/already.txt",
+        size=13,
+        dry_run=False,
+    )
+
+    assert result.size == 13
+    assert result.error is None
+    assert _read(s3, bucket, "dst/already.txt") == b"already there"
+
+
+def test_move_file_source_missing_dest_missing(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+    result = test_module.move_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/gone.txt",
+        dst_key="dst/gone.txt",
+        size=1,
+        dry_run=False,
+    )
+
+    assert result.size == 1
+    assert result.error is not None
+    assert "Failed to get object" in result.error
+
+
+def test_move_file_copy_failure(s3, s3_internal_bucket, monkeypatch):
+    """Test move_file when copy_file fails after head_object succeeds."""
+    bucket = s3_internal_bucket
+    _upload(s3, bucket, "src/copy_fail.txt", b"data")
+
+    copy_file_mock = Mock(return_value=False)
+    monkeypatch.setattr(test_module, "copy_file", copy_file_mock)
+    result = test_module.move_file(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="src/copy_fail.txt",
+        dst_key="dst/copy_fail.txt",
+        size=4,
+        dry_run=False,
+    )
+
+    assert copy_file_mock.call_count == 1
+    assert result.size == 4
+    assert result.error is not None
+    assert "Failed to copy object" in result.error
+    # source file should still exist since copy failed
+    assert _exists(s3, bucket, "src/copy_fail.txt")
+
+
+def test_move_directory(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+    _upload(s3, bucket, "srcdir/a.txt", b"aaa")
+    _upload(s3, bucket, "srcdir/b.txt", b"bb")
+
+    result = test_module.move_directory(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="srcdir",
+        dst_key="dstdir",
+        dry_run=False,
+    )
+
+    assert result.file_count == 2
+    assert result.size == 5
+    assert _read(s3, bucket, "dstdir/a.txt") == b"aaa"
+    assert _read(s3, bucket, "dstdir/b.txt") == b"bb"
+    assert not _exists(s3, bucket, "srcdir/a.txt")
+    assert not _exists(s3, bucket, "srcdir/b.txt")
+
+
+def test_move_directory_dry_run(s3, s3_internal_bucket):
+    bucket = s3_internal_bucket
+    _upload(s3, bucket, "srcdir2/c.txt", b"ccc")
+
+    result = test_module.move_directory(
+        s3,
+        src_bucket_name=bucket,
+        dst_bucket_name=bucket,
+        src_key="srcdir2",
+        dst_key="dstdir2",
+        dry_run=True,
+    )
+
+    assert result.file_count == 1
+    assert result.size == 3
+    assert _exists(s3, bucket, "srcdir2/c.txt")
+    assert not _exists(s3, bucket, "dstdir2/c.txt")

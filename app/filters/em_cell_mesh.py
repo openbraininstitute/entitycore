@@ -38,8 +38,23 @@ class EMCellMeshFilter(
     class Constants(ScientificArtifactFilter.Constants):
         model = EMCellMesh
         ordering_model_fields = [  # noqa: RUF012
+            "id",
             "creation_date",
             "update_date",
+            "name",
+            "release_version",
+            "dense_reconstruction_cell_id",
+            "level_of_detail",
+            "mesh_type",
+            "brain_region__name",
+            "brain_region__acronym",
+            "subject__name",
+            "subject__species__name",
+            "subject__strain__name",
+            "em_dense_reconstruction_dataset__name",
+            "mtype__pref_label",
+            "created_by__pref_label",
+            "updated_by__pref_label",
         ]
 
 

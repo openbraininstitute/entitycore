@@ -193,6 +193,22 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     ).json()["data"]
     assert len(data) == len(models)
 
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"order_by": "level_of_detail", "page_size": 100},
+    ).json()["data"]
+    assert [d["level_of_detail"] for d in data] == sorted(d["level_of_detail"] for d in data)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"order_by": "-dense_reconstruction_cell_id", "page_size": 100},
+    ).json()["data"]
+    assert [d["dense_reconstruction_cell_id"] for d in data] == sorted(
+        (d["dense_reconstruction_cell_id"] for d in data), reverse=True
+    )
+
 
 def test_delete_one(db, clients, json_data):
     check_entity_delete_one(

@@ -52,12 +52,20 @@ class CellMorphologyFilter(
 
     class Constants(CellMorphologyFilterBase.Constants):
         ordering_model_fields = [  # noqa: RUF012
+            "id",
             "creation_date",
             "update_date",
             "name",
+            "has_segmented_spines",
             "brain_region__name",
             "brain_region__acronym",
             "mtype__pref_label",
+            "subject__name",
+            "subject__species__name",
+            "subject__strain__name",
+            "cell_morphology_protocol__name",
+            "created_by__pref_label",
+            "updated_by__pref_label",
         ]
 
 

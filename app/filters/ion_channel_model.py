@@ -38,7 +38,26 @@ class IonChannelModelFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSear
 
     class Constants(ScientificArtifactFilter.Constants):
         model = IonChannelModel
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "id",
+            "creation_date",
+            "update_date",
+            "name",
+            "nmodl_suffix",
+            "is_ljp_corrected",
+            "is_temperature_dependent",
+            "temperature_celsius",
+            "is_stochastic",
+            "conductance_name",
+            "max_permeability_name",
+            "brain_region__name",
+            "brain_region__acronym",
+            "subject__name",
+            "subject__species__name",
+            "subject__strain__name",
+            "created_by__pref_label",
+            "updated_by__pref_label",
+        ]
 
 
 # Dependencies

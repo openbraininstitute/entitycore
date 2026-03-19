@@ -42,10 +42,14 @@ class IonChannelFilter(
     class Constants(CustomFilter.Constants):
         model = IonChannel
         ordering_model_fields = [  # noqa: RUF012
+            "id",
             "creation_date",
             "update_date",
             "label",
             "name",
+            "gene",
+            "created_by__pref_label",
+            "updated_by__pref_label",
         ]
 
 

@@ -47,7 +47,17 @@ class SimulationCampaignFilter(
 
     class Constants(CustomFilter.Constants):
         model = SimulationCampaign
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "id",
+            "creation_date",
+            "update_date",
+            "name",
+            "circuit__name",
+            "simulation__name",
+            "created_by__pref_label",
+            "updated_by__pref_label",
+            "contribution__pref_label",
+        ]
 
 
 SimulationCampaignFilterDep = Annotated[

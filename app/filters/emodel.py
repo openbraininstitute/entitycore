@@ -78,15 +78,21 @@ class EModelFilter(
     class Constants(CustomFilter.Constants):
         model = EModel
         ordering_model_fields = [  # noqa: RUF012
+            "id",
             "creation_date",
             "update_date",
             "name",
+            "species__name",
             "brain_region__name",
             "brain_region__acronym",
             "score",
             "exemplar_morphology__name",
             "mtype__pref_label",
             "etype__pref_label",
+            "ion_channel_model__name",
+            "created_by__pref_label",
+            "updated_by__pref_label",
+            "contribution__pref_label",
         ]
 
 

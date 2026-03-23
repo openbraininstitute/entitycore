@@ -5,7 +5,7 @@ from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 import app.queries.common
 from app.db.model import BrainAtlas, BrainAtlasRegion
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
@@ -105,10 +105,12 @@ def update_one(
         json_model=json_model,
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
+        check_authorized_project=True,
     )
 
 
 def admin_update_one(
+    user_context: AdminContextDep,
     db: SessionDep,
     id_: uuid.UUID,
     json_model: BrainAtlasAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
@@ -117,10 +119,11 @@ def admin_update_one(
         id_=id_,
         db=db,
         db_model_class=BrainAtlas,
-        user_context=None,
+        user_context=user_context,
         json_model=json_model,
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
+        check_authorized_project=False,
     )
 
 

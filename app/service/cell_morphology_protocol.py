@@ -15,7 +15,7 @@ from app.db.model import (
     Person,
 )
 from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ensure_valid_schema
@@ -148,7 +148,10 @@ def read_many(
 
 
 def update_one(
-    user_context: UserContextDep, db: SessionDep, id_: uuid.UUID, json_model: dict
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: dict,
 ) -> CellMorphologyProtocolRead:
     one = read_one(db=db, id_=id_, user_context=user_context)
 
@@ -162,15 +165,19 @@ def update_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphologyProtocol,
-        user_context=None,  # already checked for access
+        user_context=user_context,
         json_model=patch_model,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
+        check_authorized_project=True,
     )
 
 
 def admin_update_one(
-    db: SessionDep, id_: uuid.UUID, json_model: dict
+    user_context: AdminContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: dict,
 ) -> CellMorphologyProtocolRead:
     one = admin_read_one(db=db, id_=id_)
 
@@ -184,10 +191,11 @@ def admin_update_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphologyProtocol,
-        user_context=None,
+        user_context=user_context,
         json_model=patch_model,
         response_schema_class=CellMorphologyProtocolReadAdapter,
         apply_operations=_load_from_db,
+        check_authorized_project=False,
     )
 
 

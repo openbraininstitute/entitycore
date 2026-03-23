@@ -1204,7 +1204,7 @@ def _is_list_of_dicts(lst) -> bool:
 
 def _check_dict(actual_data, expected_data):
     """Compare the given dicts recursively, ignoring non-significant keys."""
-    ignored_keys = {"id", "updated_by_id", "update_date"}
+    ignored_keys = {"id", "updated_by", "updated_by_id", "update_date"}
     assert set(actual_data) - ignored_keys == set(expected_data) - ignored_keys, (
         "Actual != Expected"
     )
@@ -1257,6 +1257,12 @@ def check_entity_update_one(
         # Examples: emodel, ion_channel_model
         expected_data = {k: v for k, v in old_data.items() if k in new_data} | patch_data
         _check_dict(new_data, expected_data)
+        # check that the timestamp is updated only when the data is different
+        is_updated = any(old_data[k] != new_data[k] for k in new_data)
+        if is_updated:
+            assert old_data["update_date"] < new_data["update_date"]
+        else:
+            assert old_data["update_date"] == new_data["update_date"]
 
     public_1_data = _create(clients.user_1, json_data | {"authorized_public": True})
     private_1_data = _create(clients.user_1, json_data | {"authorized_public": False})
@@ -1309,13 +1315,14 @@ def check_entity_update_one(
     ).json()
     assert data["error_code"] == "ENTITY_NOT_FOUND"
 
-    # admin has no such restrictions
+    # a service admin can update any public resource using the admin route
     _patch_compare(clients.admin, f"{admin_route}/{public_1_id}", patch_payload)
 
-    # neither does a maintainer that has access to the project
+    # a service maintainer with access to the project can update a public resource
     _patch_compare(clients.maintainer_1, f"{route}/{public_1_id}", patch_payload)
     _patch_compare(clients.maintainer_3, f"{route}/{public_1_id}", patch_payload)
 
+    # a service maintainer without access to the project cannot update a public resource
     data = assert_request(
         clients.maintainer_2.patch,
         url=f"{route}/{public_1_id}",

@@ -253,7 +253,7 @@ def update_one(
         json_model=json_model,
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
-        check_authorized_project=False,
+        check_authorized_project=False,  # checked with apply_operations
     )
 
 

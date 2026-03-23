@@ -146,21 +146,7 @@ def update_one(
     )
 
 
-def admin_update_one(
-    db: SessionDep,
-    user_context: AdminContextDep,
-    id_: uuid.UUID,
-    json_model: IonChannelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> IonChannelRead:
-    return router_update_one(
-        id_=id_,
-        db=db,
-        db_model_class=IonChannel,
-        user_context=user_context,
-        json_model=json_model,
-        response_schema_class=IonChannelRead,
-        check_authorized_project=False,
-    )
+admin_update_one = update_one
 
 
 def delete_one(

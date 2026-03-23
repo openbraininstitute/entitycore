@@ -86,21 +86,7 @@ def update_one(
     )
 
 
-def admin_update_one(
-    user_context: AdminContextDep,
-    db: SessionDep,
-    id_: uuid.UUID,
-    json_model: ETypeClassAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> ETypeClassRead:
-    return router_update_one(
-        id_=id_,
-        db=db,
-        db_model_class=ETypeClass,
-        user_context=user_context,
-        json_model=json_model,
-        response_schema_class=ETypeClassRead,
-        check_authorized_project=False,
-    )
+admin_update_one = update_one
 
 
 def delete_one(

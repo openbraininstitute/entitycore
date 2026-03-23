@@ -92,6 +92,8 @@ class MEModelFilter(
             "brain_region__acronym",
             "created_by__pref_label",
             "name",
+            "mtype__pref_label",
+            "etype__pref_label",
         ]
 
 

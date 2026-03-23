@@ -18,6 +18,7 @@ from app.db.model import (
     IonChannelModel,
     IonChannelModelingConfig,
     IonChannelModelToEModel,
+    Measurement,
     MeasurementAnnotation,
     MeasurementItem,
     MeasurementKind,
@@ -36,6 +37,7 @@ from app.db.model import (
     TaskConfig,
     Usage,
 )
+from app.db.types import MeasurementStatistic
 from app.dependencies.common import FacetQueryParams
 from app.filters.base import Aliases
 from app.queries.types import ApplyOperations
@@ -94,6 +96,9 @@ def query_params_factory[I: Identifiable](
     ion_channel_modeling_config_alias = _get_alias(IonChannelModelingConfig)
     skeletonization_config_alias = _get_alias(SkeletonizationConfig)
     task_config_alias = _get_alias(TaskConfig)
+    measurement_mean_alias = _get_alias(Measurement, "measurement_mean")
+    measurement_sem_alias = _get_alias(Measurement, "measurement_sem")
+    measurement_sample_size_alias = _get_alias(Measurement, "measurement_sample_size")
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -277,6 +282,21 @@ def query_params_factory[I: Identifiable](
         "task_config": lambda q: q.join(
             task_config_alias,
             db_model_class.id == task_config_alias.task_config_generator_id,
+        ),
+        "measurement_mean": lambda q: q.outerjoin(
+            measurement_mean_alias,
+            (db_model_class.id == measurement_mean_alias.entity_id)
+            & (measurement_mean_alias.name == MeasurementStatistic.mean),
+        ),
+        "measurement_sem": lambda q: q.outerjoin(
+            measurement_sem_alias,
+            (db_model_class.id == measurement_sem_alias.entity_id)
+            & (measurement_sem_alias.name == MeasurementStatistic.standard_error),
+        ),
+        "measurement_sample_size": lambda q: q.outerjoin(
+            measurement_sample_size_alias,
+            (db_model_class.id == measurement_sample_size_alias.entity_id)
+            & (measurement_sample_size_alias.name == MeasurementStatistic.sample_size),
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

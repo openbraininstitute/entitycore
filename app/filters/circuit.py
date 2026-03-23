@@ -72,6 +72,8 @@ class CircuitFilter(
             "number_neurons",
             "number_synapses",
             "number_connections",
+            "experiment_date",
+            "published_in",
             "brain_region__name",
             "brain_region__acronym",
             "subject__name",

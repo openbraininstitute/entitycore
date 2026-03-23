@@ -4,6 +4,7 @@ from app.db.model import (
     ExperimentalBoutonDensity,
     ExperimentalNeuronDensity,
     ExperimentalSynapsesPerConnection,
+    Measurement,
 )
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
@@ -18,6 +19,14 @@ from app.filters.common import (
 )
 from app.filters.entity import EntityFilterMixin
 from app.filters.subject import SubjectFilterMixin
+
+
+class NestedMeasurementFilter(CustomFilter):
+    """Nested filter for measurement sorting."""
+
+    class Constants(CustomFilter.Constants):
+        model = Measurement
+        ordering_model_fields = ["value"]  # noqa: RUF012
 
 
 class DensityFilterBase(
@@ -48,6 +57,7 @@ class ExperimentalNeuronDensityFilter(
             "subject__age_value",
             "mtype__pref_label",
             "etype__pref_label",
+            "subject__strain__name",
         ]
 
 
@@ -60,6 +70,20 @@ class ExperimentalBoutonDensityFilter(
     DensityFilterBase,
     MTypeClassFilterMixin,
 ):
+    # Measurement filters for sorting support
+    measurement_mean: Annotated[
+        NestedMeasurementFilter | None,
+        FilterDepends(with_prefix("measurement_mean", NestedMeasurementFilter)),
+    ] = None
+    measurement_sem: Annotated[
+        NestedMeasurementFilter | None,
+        FilterDepends(with_prefix("measurement_sem", NestedMeasurementFilter)),
+    ] = None
+    measurement_sample_size: Annotated[
+        NestedMeasurementFilter | None,
+        FilterDepends(with_prefix("measurement_sample_size", NestedMeasurementFilter)),
+    ] = None
+
     class Constants(CustomFilter.Constants):
         model = ExperimentalBoutonDensity
         ordering_model_fields = [  # noqa: RUF012
@@ -71,6 +95,10 @@ class ExperimentalBoutonDensityFilter(
             "subject__species__name",
             "subject__age_value",
             "mtype__pref_label",
+            "subject__strain__name",
+            "measurement_mean__value",
+            "measurement_sem__value",
+            "measurement_sample_size__value",
         ]
 
 
@@ -103,13 +131,18 @@ class ExperimentalSynapsesPerConnectionFilter(
         model = ExperimentalSynapsesPerConnection
         ordering_model_fields = [  # noqa: RUF012
             "creation_date",
-            "creation_date",
             "update_date",
             "name",
             "subject__species__name",
             "subject__age_value",
             "brain_region__name",
             "brain_region__acronym",
+            "pre_region__name",
+            "pre_region__acronym",
+            "post_region__name",
+            "post_region__acronym",
+            "pre_mtype__pref_label",
+            "post_mtype__pref_label",
         ]
 
 

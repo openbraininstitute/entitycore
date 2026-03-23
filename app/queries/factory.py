@@ -96,9 +96,20 @@ def query_params_factory[I: Identifiable](
     ion_channel_modeling_config_alias = _get_alias(IonChannelModelingConfig)
     skeletonization_config_alias = _get_alias(SkeletonizationConfig)
     task_config_alias = _get_alias(TaskConfig)
-    measurement_mean_alias = _get_alias(Measurement, "measurement_mean")
-    measurement_sem_alias = _get_alias(Measurement, "measurement_sem")
-    measurement_sample_size_alias = _get_alias(Measurement, "measurement_sample_size")
+
+    # Measurement aliases - handled separately since Measurement doesn't inherit from Identifiable
+    # Use cast to work around type constraints since Measurement uses Base, not Identifiable
+    measurement_aliases_raw = cast("dict[str, Any]", aliases.get(Measurement, {}))  # type: ignore[arg-type]
+    if isinstance(measurement_aliases_raw, dict):
+        measurement_mean_alias = measurement_aliases_raw.get("measurement_mean", Measurement)
+        measurement_sem_alias = measurement_aliases_raw.get("measurement_sem", Measurement)
+        measurement_sample_size_alias = measurement_aliases_raw.get(
+            "measurement_sample_size", Measurement
+        )
+    else:
+        measurement_mean_alias = Measurement
+        measurement_sem_alias = Measurement
+        measurement_sample_size_alias = Measurement
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {

@@ -64,7 +64,7 @@ def create_one(json_model: RoleCreate, db: SessionDep, user_context: AdminContex
 
 def update_one(
     db: SessionDep,
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,
     id_: uuid.UUID,
     json_model: RoleAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> RoleRead:
@@ -72,25 +72,14 @@ def update_one(
         id_=id_,
         db=db,
         db_model_class=Role,
-        user_context=None,
+        user_context=user_context,
         json_model=json_model,
         response_schema_class=RoleRead,
+        check_authorized_project=False,
     )
 
 
-def admin_update_one(
-    db: SessionDep,
-    id_: uuid.UUID,
-    json_model: RoleAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> RoleRead:
-    return router_update_one(
-        id_=id_,
-        db=db,
-        db_model_class=Role,
-        user_context=None,
-        json_model=json_model,
-        response_schema_class=RoleRead,
-    )
+admin_update_one = update_one
 
 
 def delete_one(

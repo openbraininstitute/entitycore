@@ -389,18 +389,18 @@ def router_update_one[T: BaseModel, I: Identifiable](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext | None,
+    user_context: UserContext,
     json_model: BaseModel,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
+    check_authorized_project: bool,
 ):
     nested_relationships = NESTED_RELATIONSHIPS_MAP.get(db_model_class)
     query = (
         sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
     )
-    if user_context and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
-    ):
+    if check_authorized_project:
+        id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
         query = constrain_to_writable_entities(query, user_context, db_model_class=id_model_class)
     if apply_operations:
         query = apply_operations(query)
@@ -414,6 +414,11 @@ def router_update_one[T: BaseModel, I: Identifiable](
             exclude=set(nested_relationships) if nested_relationships else None
         ),
     )
+
+    if db.is_modified(db_model_instance):
+        db_agent = get_or_create_user_agent(db, user_context.profile)
+        db_model_instance.updated_by_id = db_agent.id
+        db_model_instance.update_date = sa.func.now()
 
     db.flush()
     db.refresh(db_model_instance)
@@ -483,16 +488,16 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     id_: uuid.UUID,
     db: Session,
     db_model_class: type[I],
-    user_context: UserContext | None,
+    user_context: UserContext,
     json_model: ActivityUpdate,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations | None = None,
+    check_authorized_project: bool,
 ) -> T:
     nested_relationships = NESTED_RELATIONSHIPS_MAP[Activity]
     query = sa.select(db_model_class).where(db_model_class.id == id_)
-    if user_context and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
-    ):
+    if check_authorized_project:
+        id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
         query = constrain_to_writable_entities(
             query, user_context=user_context, db_model_class=id_model_class
         )
@@ -511,6 +516,11 @@ def router_update_activity_one[T: BaseModel, I: Activity](
 
     for key, value in update_data.items():
         setattr(db_model_instance, key, value)
+
+    if db.is_modified(db_model_instance):
+        db_agent = get_or_create_user_agent(db, user_context.profile)
+        db_model_instance.updated_by_id = db_agent.id
+        db_model_instance.update_date = sa.func.now()
 
     create_associations_to_entities(
         db=db,

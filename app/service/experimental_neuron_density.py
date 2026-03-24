@@ -15,7 +15,7 @@ from app.db.model import (
     Person,
     Subject,
 )
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     InBrainRegionDep,
@@ -186,10 +186,12 @@ def update_one(
         json_model=json_model,
         response_schema_class=ExperimentalNeuronDensityRead,
         apply_operations=_load,
+        check_authorized_project=True,
     )
 
 
 def admin_update_one(
+    user_context: AdminContextDep,
     db: SessionDep,
     id_: uuid.UUID,
     json_model: ExperimentalNeuronDensityAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
@@ -198,10 +200,11 @@ def admin_update_one(
         id_=id_,
         db=db,
         db_model_class=ExperimentalNeuronDensity,
-        user_context=None,
+        user_context=user_context,
         json_model=json_model,
         response_schema_class=ExperimentalNeuronDensityRead,
         apply_operations=_load,
+        check_authorized_project=False,
     )
 
 

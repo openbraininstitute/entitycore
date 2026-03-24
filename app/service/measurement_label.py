@@ -112,7 +112,7 @@ def read_many(
 
 def update_one(
     db: SessionDep,
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,
     id_: uuid.UUID,
     json_model: MeasurementLabelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> MeasurementLabelRead:
@@ -120,25 +120,14 @@ def update_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementLabel,
-        user_context=None,
+        user_context=user_context,
         json_model=json_model,
         response_schema_class=MeasurementLabelRead,
+        check_authorized_project=False,
     )
 
 
-def admin_update_one(
-    db: SessionDep,
-    id_: uuid.UUID,
-    json_model: MeasurementLabelAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> MeasurementLabelRead:
-    return app.queries.common.router_update_one(
-        id_=id_,
-        db=db,
-        db_model_class=MeasurementLabel,
-        user_context=None,
-        json_model=json_model,
-        response_schema_class=MeasurementLabelRead,
-    )
+admin_update_one = update_one
 
 
 def delete_one(

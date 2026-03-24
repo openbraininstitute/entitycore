@@ -26,7 +26,6 @@ class NestedMeasurementFilter(CustomFilter):
 
     class Constants(CustomFilter.Constants):
         model = Measurement
-        ordering_model_fields = ["value"]  # noqa: RUF012
 
 
 class DensityFilterBase(

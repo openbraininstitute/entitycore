@@ -7,6 +7,7 @@ from fastapi_filter import with_prefix
 from app.db.types import ActivityStatus, ExecutorType
 from app.dependencies.filter import FilterDepends
 from app.filters.common import (
+    AuthorizedFilterMixin,
     CreationFilterMixin,
     IdFilterMixin,
 )
@@ -17,7 +18,12 @@ NestedUsedFilterDep = FilterDepends(with_prefix("used", NestedEntityFilter))
 NestedGeneratedFilterDep = FilterDepends(with_prefix("generated", NestedEntityFilter))
 
 
-class ActivityFilterMixin(IdFilterMixin, CreatorFilterMixin, CreationFilterMixin):
+class ActivityFilterMixin(
+    IdFilterMixin,
+    AuthorizedFilterMixin,
+    CreatorFilterMixin,
+    CreationFilterMixin,
+):
     start_time: datetime | None = None
     end_time: datetime | None = None
     status: ActivityStatus | None = None

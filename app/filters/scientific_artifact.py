@@ -37,7 +37,12 @@ class ScientificArtifactFilter(
 
     class Constants(NestedScientificArtifactFilter.Constants):
         model = ScientificArtifact
-        ordering_model_fields = ["creation_date", "update_date"]  # noqa: RUF012
+        ordering_model_fields = [  # noqa: RUF012
+            "creation_date",
+            "update_date",
+            "experiment_date",
+            "published_in",
+        ]
 
 
 ScientificArtifactFilterDep = Annotated[

@@ -239,6 +239,11 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
 
     densities = []
     density_ids = [0, 1, 1, 1, 2, 2]
+    # Different measurement values for sorting tests
+    mean_values = [10.0, 30.0, 20.0, 50.0, 40.0, 60.0]
+    sem_values = [1.0, 3.0, 2.0, 5.0, 4.0, 6.0]
+    sample_size_values = [100, 300, 200, 500, 400, 600]
+
     for i, subject in enumerate(subjects):
         density = add_db(
             db,
@@ -254,7 +259,7 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 }
             ),
         )
-        # add measurements
+        # add original measurements
         add_all_db(
             db,
             [
@@ -266,6 +271,30 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                     }
                 )
                 for i, m in enumerate(measurements)
+            ],
+        )
+        # add mean, standard_error, and sample_size measurements for sorting tests
+        add_all_db(
+            db,
+            [
+                Measurement(
+                    name="mean",
+                    unit="1/μm",
+                    value=mean_values[i],
+                    entity_id=density.id,
+                ),
+                Measurement(
+                    name="standard_error",
+                    unit="1/μm",
+                    value=sem_values[i],
+                    entity_id=density.id,
+                ),
+                Measurement(
+                    name="sample_size",
+                    unit="dimensionless",
+                    value=sample_size_values[i],
+                    entity_id=density.id,
+                ),
             ],
         )
 
@@ -509,4 +538,86 @@ def test_sorting_and_filtering(client, models):
         "acronym-4",
         "acronym-2",
         "acronym-1",
+    ]
+
+
+def test_measurement_sorting(client, models):
+    """Test sorting by measurement values (mean, sem, sample_size)."""
+    densities = models[-1]
+
+    def req(query):
+        return assert_request(client.get, url=ROUTE, params=query).json()["data"]
+
+    # The measurement values are:
+    # density[0]: mean=10, sem=1, sample_size=100
+    # density[1]: mean=30, sem=3, sample_size=300
+    # density[2]: mean=20, sem=2, sample_size=200
+    # density[3]: mean=50, sem=5, sample_size=500
+    # density[4]: mean=40, sem=4, sample_size=400
+    # density[5]: mean=60, sem=6, sample_size=600
+
+    # Sort by mean ascending
+    data = req({"order_by": "measurement_mean__value"})
+    assert len(data) == len(densities)
+    mean_values = [
+        next((m["value"] for m in d["measurements"] if m["name"] == "mean"), None) for d in data
+    ]
+    assert mean_values == [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+
+    # Sort by mean descending
+    data = req({"order_by": "-measurement_mean__value"})
+    mean_values = [
+        next((m["value"] for m in d["measurements"] if m["name"] == "mean"), None) for d in data
+    ]
+    assert mean_values == [60.0, 50.0, 40.0, 30.0, 20.0, 10.0]
+
+    # Sort by SEM (standard_error) ascending
+    data = req({"order_by": "measurement_sem__value"})
+    sem_values = [
+        next((m["value"] for m in d["measurements"] if m["name"] == "standard_error"), None)
+        for d in data
+    ]
+    assert sem_values == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+
+    # Sort by SEM descending
+    data = req({"order_by": "-measurement_sem__value"})
+    sem_values = [
+        next((m["value"] for m in d["measurements"] if m["name"] == "standard_error"), None)
+        for d in data
+    ]
+    assert sem_values == [6.0, 5.0, 4.0, 3.0, 2.0, 1.0]
+
+    # Sort by sample_size ascending
+    data = req({"order_by": "measurement_sample_size__value"})
+    sample_sizes = [
+        next((m["value"] for m in d["measurements"] if m["name"] == "sample_size"), None)
+        for d in data
+    ]
+    assert sample_sizes == [100.0, 200.0, 300.0, 400.0, 500.0, 600.0]
+
+    # Sort by sample_size descending
+    data = req({"order_by": "-measurement_sample_size__value"})
+    sample_sizes = [
+        next((m["value"] for m in d["measurements"] if m["name"] == "sample_size"), None)
+        for d in data
+    ]
+    assert sample_sizes == [600.0, 500.0, 400.0, 300.0, 200.0, 100.0]
+
+    # Combined sorting: by name then by mean
+    data = req({"order_by": ["+name", "+measurement_mean__value"]})
+    names_and_means = [
+        (
+            d["name"],
+            next((m["value"] for m in d["measurements"] if m["name"] == "mean"), None),
+        )
+        for d in data
+    ]
+    # d-0 has mean=10, d-1 has means 30,20,50, d-2 has means 40,60
+    assert names_and_means == [
+        ("d-0", 10.0),
+        ("d-1", 20.0),
+        ("d-1", 30.0),
+        ("d-1", 50.0),
+        ("d-2", 40.0),
+        ("d-2", 60.0),
     ]

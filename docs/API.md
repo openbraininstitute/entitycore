@@ -267,7 +267,7 @@ Instead, one can use the following query parameters:
 ```
 
 ```
-GET /cell-morphology?within_brain_region_hierarchy_id=3f41b5b5-4b62-40da-a645-eef27c6d07e3&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
+GET /cell-morphology?within_brain_region_direction=ascendants_and_descendants&within_brain_region_brain_region_id=ff004978-e3a2-4249-adab-f3d253e4bdd3
 ```
 
 In other words, the name of the hierarchy, and the id which will be recursively included:
@@ -279,12 +279,8 @@ For example, in the following, if `RegionA-1` is the target region, all the outl
 
 ![Tree showing semantics of ascendants and descendants](within-search-ascendants-and-descendants.png)
 
-
-Originally, there was a boolean: `within_brain_region_ascendants: bool = False`.
-If `within_brain_region_direction` is included, it overrides `within_brain_region_ascendants`.
-Otherwise, `within_brain_region_direction` is used, with the behavior that `within_brain_region_ascendants=True` is equivalent to `within_brain_region_direction=ascendants`, and `within_brain_region_ascendants=True`is equivalent to `within_brain_region_direction=descendants`.
-This will be deprecated.
-
+Only the `within_brain_region_brain_region_id` and `within_brain_region_direction` query parameters are required.
+If `within_brain_region_hierarchy_id` is included, it is checked against the `within_brain_region_brain_region_id` to make sure they refer to the same hierarchy.
 
 # Brain Atlas:
 

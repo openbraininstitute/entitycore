@@ -5,14 +5,15 @@ from typing import Annotated, NotRequired, TypedDict
 import sqlalchemy as sa
 from fastapi import Depends, Query
 from fastapi.dependencies.models import Dependant
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
+from app.db.model import BrainRegion
 from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.base import CustomFilter
-from app.filters.brain_region import WithinBrainRegionDirection, filter_by_hierarchy_and_region
+from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations
 from app.schemas.types import Facet, Facets, PaginationRequest
@@ -149,41 +150,122 @@ class Search[T: DeclarativeBase](BaseModel):
 class InBrainRegionQuery(BaseModel):
     """Handle parameters for within_brain_region_* query params.
 
-    Using `within_brain_region_ascendants` will be deprecated; future usage
-    should only be through `within_brain_region_direction`.
-
-    During the transition, `within_brain_region_direction` will take precedence if it's there
-
+    Only `within_brain_region_direction` and `within_brain_region_brain_region_id`
+    are required. `within_brain_region_hierarchy_id` is optional, and only
+    used to check that the chosen brain_region_id matches the correct hierarchy.
     """
 
     within_brain_region_hierarchy_id: uuid.UUID | None = None
     within_brain_region_brain_region_id: uuid.UUID | None = None
-    within_brain_region_ascendants: bool = False
     within_brain_region_direction: WithinBrainRegionDirection | None = None
 
-    def __call__(self, query: sa.Select, db_model_class):
+    @model_validator(mode="after")
+    def check_range(self):
         if (
-            self.within_brain_region_hierarchy_id is None
-            or self.within_brain_region_brain_region_id is None
+            self.within_brain_region_hierarchy_id is not None
+            and self.within_brain_region_brain_region_id is None
+        ):
+            raise ApiError(
+                message=(
+                    "Need to specify `within_brain_region_brain_region_id` "
+                    "when `within_brain_region_hierarchy_id` is specified"
+                ),
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                details={
+                    "within_brain_region_hierarchy_id": f"{self.within_brain_region_hierarchy_id}",
+                },
+            )
+
+        if (
+            self.within_brain_region_brain_region_id is not None
+            and self.within_brain_region_direction is None
+        ):
+            raise ApiError(
+                message=(
+                    "Need to specify `within_brain_region_brain_region_id` "
+                    "when `within_brain_region_direction` is specified"
+                ),
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                details={
+                    "within_brain_region_direction": f"{self.within_brain_region_direction}",
+                },
+            )
+
+        if (
+            self.within_brain_region_brain_region_id is None
+            and self.within_brain_region_direction is not None
+        ):
+            raise ApiError(
+                message=(
+                    "Need to specify `within_brain_region_direction` "
+                    "when `within_brain_region_brain_region_id` is specified"
+                ),
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                details={
+                    "within_brain_region_direction": f"{self.within_brain_region_direction}",
+                },
+            )
+        return self
+
+    def __call__(self, db: Session, query: sa.Select, db_model_class):
+        if (
+            self.within_brain_region_brain_region_id is None
+            and self.within_brain_region_direction is None
         ):
             return query
 
-        return filter_by_hierarchy_and_region(
+        # should be checked by model_validator
+        assert self.within_brain_region_brain_region_id  # noqa: S101
+        assert self.within_brain_region_direction  # noqa: S101
+
+        if (
+            self.within_brain_region_hierarchy_id is not None
+            and self.within_brain_region_brain_region_id is not None
+            and not db.execute(
+                sa.select(
+                    sa.exists().where(
+                        sa.and_(
+                            BrainRegion.id == self.within_brain_region_brain_region_id,
+                            BrainRegion.hierarchy_id == self.within_brain_region_hierarchy_id,
+                        )
+                    )
+                )
+            ).scalar()
+        ):
+            id_ = f"{self.within_brain_region_brain_region_id}"
+            raise ApiError(
+                message=(
+                    "Mismatch between desired `within_brain_region_hierarchy_id` "
+                    "and the `within_brain_region_brain_region_id`: it "
+                    "must belong to the same hierarchy"
+                ),
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                details={
+                    "within_brain_region_hierarchy_id": f"{self.within_brain_region_hierarchy_id}",
+                    "within_brain_region_brain_region_id": id_,
+                },
+            )
+
+        return filter_by_region(
             query=query,
             model=db_model_class,
-            hierarchy_id=self.within_brain_region_hierarchy_id,
             brain_region_id=self.within_brain_region_brain_region_id,
             direction=self.get_direction(),
         )
 
     def get_direction(self) -> WithinBrainRegionDirection:
-        # compatibility; will be deprecated
         if self.within_brain_region_direction is not None:
             return self.within_brain_region_direction
-        return (
-            WithinBrainRegionDirection.ascendants
-            if self.within_brain_region_ascendants
-            else WithinBrainRegionDirection.descendants
+
+        raise ApiError(
+            message=("Need to specify `within_brain_region_direction`"),
+            error_code=ApiErrorCode.INVALID_REQUEST,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            details={},
         )
 
 

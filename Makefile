@@ -55,11 +55,12 @@ build:  ## Build the Docker image
 publish: build  ## Publish the Docker image to DockerHub
 	docker compose push app
 
+TESTS ?= tests
 test-local:  ## Run tests locally
 	@$(call load_env,test-local)
 	docker compose up --wait db-test
 	uv run -m alembic upgrade head
-	uv run -m pytest
+	uv run -m pytest $(TESTS)
 	uv run -m coverage xml
 	uv run -m coverage html
 

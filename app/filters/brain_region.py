@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from fastapi_filter import with_prefix
 from sqlalchemy.orm import aliased
 
-from app.db.model import BrainRegion, BrainRegionHierarchy
+from app.db.model import BrainRegion
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, NameFilterMixin
@@ -20,16 +20,12 @@ class WithinBrainRegionDirection(StrEnum):
 
 
 def get_family_query(
-    *, hierarchy_id: uuid.UUID, brain_region_id: uuid.UUID, direction: WithinBrainRegionDirection
+    *, brain_region_id: uuid.UUID, direction: WithinBrainRegionDirection
 ) -> sa.CTE:
     """Create query for BrainRegions that returns ids."""
     cte = (
         sa.select(BrainRegion.id, BrainRegion.parent_structure_id)
-        .join(BrainRegionHierarchy, BrainRegion.hierarchy_id == BrainRegionHierarchy.id)
-        .where(
-            BrainRegion.id == brain_region_id,
-            BrainRegionHierarchy.id == hierarchy_id,
-        )
+        .where(BrainRegion.id == brain_region_id)
         .cte(recursive=True)
     )
 
@@ -44,7 +40,6 @@ def get_family_query(
         return (
             sa.select(
                 get_family_query(
-                    hierarchy_id=hierarchy_id,
                     brain_region_id=brain_region_id,
                     direction=WithinBrainRegionDirection.ascendants,
                 ).c.id
@@ -52,7 +47,6 @@ def get_family_query(
             .union(
                 sa.select(
                     get_family_query(
-                        hierarchy_id=hierarchy_id,
                         brain_region_id=brain_region_id,
                         direction=WithinBrainRegionDirection.descendants,
                     ).c.id
@@ -61,32 +55,21 @@ def get_family_query(
             .cte()
         )
 
-    recurse = (
-        sa.select(br_alias.id, br_alias.parent_structure_id)
-        .join(cte, join_direction)
-        .join(BrainRegionHierarchy, br_alias.hierarchy_id == BrainRegionHierarchy.id)
-        .where(BrainRegionHierarchy.id == hierarchy_id)
-    )
+    recurse = sa.select(br_alias.id, br_alias.parent_structure_id).join(cte, join_direction)
 
     query = cte.union_all(recurse)
 
     return query
 
 
-def filter_by_hierarchy_and_region(
+def filter_by_region(
     *,
     query,
     model,
-    hierarchy_id: uuid.UUID,
     brain_region_id: uuid.UUID,
     direction: WithinBrainRegionDirection,
 ):
-    brain_region_query = get_family_query(
-        hierarchy_id=hierarchy_id,
-        brain_region_id=brain_region_id,
-        direction=direction,
-    )
-
+    brain_region_query = get_family_query(brain_region_id=brain_region_id, direction=direction)
     query = query.join(brain_region_query, model.brain_region_id == brain_region_query.c.id)
     return query
 
@@ -95,7 +78,6 @@ class NestedBrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     acronym: str | None = None
     acronym__in: list[str] | None = None
     annotation_value: int | None = None
-    hierarchy_id: uuid.UUID | None = None
 
     class Constants(CustomFilter.Constants):
         model = BrainRegion

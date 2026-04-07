@@ -327,7 +327,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         filter_query = with_search(filter_query, description_vector)
 
     if with_in_brain_region:
-        filter_query = with_in_brain_region(filter_query, db_model_class)
+        filter_query = with_in_brain_region(db, filter_query, db_model_class)
 
     data_query = (
         filter_model.sort(filter_query, aliases=aliases)

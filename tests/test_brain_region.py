@@ -151,6 +151,16 @@ def test_read_one(clients, json_data):
     )
 
 
+def test_read_many(clients, json_data):
+    utils.check_global_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
+
+
 def test_update_one(clients, json_data):
     utils.check_global_update_one(
         route=ROUTE,

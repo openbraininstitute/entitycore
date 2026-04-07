@@ -7,6 +7,7 @@ from tests.utils import (
     MISSING_ID_COMPACT,
     assert_request,
     check_global_delete_one,
+    check_global_read_many,
     check_global_read_one,
 )
 
@@ -64,6 +65,16 @@ def test_create_license(client, client_admin):
 
 def test_read_one(clients, json_data):
     check_global_read_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
+
+
+def test_read_many(clients, json_data):
+    check_global_read_many(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,

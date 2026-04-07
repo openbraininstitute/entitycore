@@ -118,6 +118,9 @@ def read_many(
     )
 
 
+admin_read_many = read_many
+
+
 def update_one(
     db: SessionDep,
     user_context: AdminContextDep,

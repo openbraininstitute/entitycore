@@ -1149,6 +1149,49 @@ def check_global_read_one(
     _req(clients.admin, admin_route)
 
 
+def check_global_read_many(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+    validator: Callable[[dict, dict], None],
+):
+    model_id = assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+
+    def _req(client, client_route):
+        data = assert_request(client.get, url=client_route).json()["data"]
+        assert len(data) == 1
+        assert data[0]["id"] == str(model_id)
+        validator(data[0], json_data)
+
+    # user that created the resource can read it
+    _req(clients.user_1, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_1.get,
+        url=admin_route,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # any other user can read it too because it is global
+    _req(clients.user_2, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_2.get,
+        url=admin_route,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # service admins can read from both regular and admin routes
+    _req(clients.admin, route)
+    _req(clients.admin, admin_route)
+
+
 def check_global_update_one(
     *,
     route: str,

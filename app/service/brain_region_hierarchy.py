@@ -72,6 +72,9 @@ def read_many(
     )
 
 
+admin_read_many = read_many
+
+
 def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyRead:
     return app.queries.common.router_read_one(
         id_=id_,
@@ -81,6 +84,9 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> BrainRegionHierarchyRead:
         response_schema_class=BrainRegionHierarchyRead,
         apply_operations=_load,
     )
+
+
+admin_read_one = read_one
 
 
 def create_one(
@@ -115,6 +121,9 @@ def update_one(
         apply_operations=_load,
         check_authorized_project=False,
     )
+
+
+admin_update_one = update_one
 
 
 def delete_one(

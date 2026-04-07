@@ -71,9 +71,12 @@ def count_entities_by_type(
 
     filter_conditions = []
     if should_filter_brain_region:
+        # should be checked by model_validator
+        assert in_brain_region.within_brain_region_brain_region_id  # noqa: S101
+        assert in_brain_region.within_brain_region_direction  # noqa: S101
         brain_region_cte = get_family_query(
-            brain_region_id=in_brain_region.within_brain_region_brain_region_id,  # type: ignore[reportGeneralTypeIssues]
-            direction=in_brain_region.get_direction(),
+            brain_region_id=in_brain_region.within_brain_region_brain_region_id,
+            direction=in_brain_region.within_brain_region_direction,
         )
 
         for et in entity_types:

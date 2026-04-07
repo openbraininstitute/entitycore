@@ -254,18 +254,7 @@ class InBrainRegionQuery(BaseModel):
             query=query,
             model=db_model_class,
             brain_region_id=self.within_brain_region_brain_region_id,
-            direction=self.get_direction(),
-        )
-
-    def get_direction(self) -> WithinBrainRegionDirection:
-        if self.within_brain_region_direction is not None:
-            return self.within_brain_region_direction
-
-        raise ApiError(
-            message=("Need to specify `within_brain_region_direction`"),
-            error_code=ApiErrorCode.INVALID_REQUEST,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-            details={},
+            direction=self.within_brain_region_direction,
         )
 
 

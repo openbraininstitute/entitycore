@@ -19,6 +19,7 @@ from .utils import (
     assert_request,
     check_activity_create_one__unauthorized_entities,
     check_activity_delete_one,
+    check_activity_read_many,
     check_activity_update_one,
     check_activity_update_one__fail_if_generated_ids_exists,
     check_activity_update_one__fail_if_generated_ids_unauthorized,
@@ -30,7 +31,7 @@ from .utils import (
 
 DateTimeAdapter = TypeAdapter(datetime)
 
-ROUTE = "calibration"
+ROUTE = "/calibration"
 ADMIN_ROUTE = "/admin/calibration"
 MODEL = Validation
 TYPE = str(ActivityType.calibration)
@@ -154,6 +155,14 @@ def test_create_one__unauthorized_entities(
         u1_private_entity_id=user1_morph_id,
         u2_private_entity_id=user2_morph_id,
         u2_public_entity_id=user2_public_morph_id,
+    )
+
+
+def test_read_many(clients):
+    check_activity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
     )
 
 

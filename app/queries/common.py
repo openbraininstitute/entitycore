@@ -282,6 +282,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     filter_model: CustomFilter[I],
     filter_joins: dict[str, ApplyOperations] | None = None,
     embedding: list[float] | None = None,
+    check_authorized_project: bool = True,
 ) -> ListResponse[T]:
     """Read multiple models from the database.
 
@@ -303,12 +304,16 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
             - the nested filters attributes, to choose which joins should be applied for filtering.
             - the keys in `name_to_facet_query_params`, for retrieving the facets.
         embedding: optional list of floats representing an embedding vector for semantic search.
+        check_authorized_project: Whether to constrain or not to authorized entities
 
     Returns:
         the list of model data, pagination, and facets as a Pydantic model.
     """
     filter_query = sa.select(db_model_class)
-    if id_model_class := get_declaring_class(db_model_class, "authorized_project_id"):
+
+    if check_authorized_project and (
+        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    ):
         filter_query = constrain_to_readable_entities(
             filter_query,
             project_id=authorized_project_id,

@@ -18,6 +18,7 @@ from .utils import (
     assert_request,
     check_activity_create_one__unauthorized_entities,
     check_activity_delete_one,
+    check_activity_read_many,
     check_activity_update_one,
     check_activity_update_one__fail_if_generated_ids_exists,
     check_activity_update_one__fail_if_generated_ids_unauthorized,
@@ -29,7 +30,7 @@ from .utils import (
 
 DateTimeAdapter = TypeAdapter(datetime)
 
-ROUTE = "ion-channel-modeling-config-generation"
+ROUTE = "/ion-channel-modeling-config-generation"
 ADMIN_ROUTE = "/admin/ion-channel-modeling-config-generation"
 
 
@@ -144,6 +145,14 @@ def test_create_one__unauthorized_entities(db, client_user_1, client_user_2, jso
         u1_private_entity_id=user1_icmc_id,
         u2_private_entity_id=user2_icmc_id,
         u2_public_entity_id=user2_public_icmc_id,
+    )
+
+
+def test_read_many(clients):
+    check_activity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
     )
 
 

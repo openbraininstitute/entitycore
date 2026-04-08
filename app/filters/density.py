@@ -74,9 +74,9 @@ class ExperimentalBoutonDensityFilter(
         NestedMeasurementFilter | None,
         FilterDepends(with_prefix("measurement_mean", NestedMeasurementFilter)),
     ] = None
-    measurement_sem: Annotated[
+    measurement_standard_error: Annotated[
         NestedMeasurementFilter | None,
-        FilterDepends(with_prefix("measurement_sem", NestedMeasurementFilter)),
+        FilterDepends(with_prefix("measurement_standard_error", NestedMeasurementFilter)),
     ] = None
     measurement_sample_size: Annotated[
         NestedMeasurementFilter | None,
@@ -96,7 +96,7 @@ class ExperimentalBoutonDensityFilter(
             "mtype__pref_label",
             "subject__strain__name",
             "measurement_mean__value",
-            "measurement_sem__value",
+            "measurement_standard_error__value",
             "measurement_sample_size__value",
         ]
 

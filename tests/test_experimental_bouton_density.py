@@ -241,7 +241,7 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
     density_ids = [0, 1, 1, 1, 2, 2]
     # Different measurement values for sorting tests
     mean_values = [10.0, 30.0, 20.0, 50.0, 40.0, 60.0]
-    sem_values = [1.0, 3.0, 2.0, 5.0, 4.0, 6.0]
+    standard_error_values = [1.0, 3.0, 2.0, 5.0, 4.0, 6.0]
     sample_size_values = [100, 300, 200, 500, 400, 600]
 
     for i, subject in enumerate(subjects):
@@ -286,7 +286,7 @@ def models(db, json_data, person_id, brain_region_hierarchy_id, agents):
                 Measurement(
                     name="standard_error",
                     unit="1/μm",
-                    value=sem_values[i],
+                    value=standard_error_values[i],
                     entity_id=density.id,
                 ),
                 Measurement(
@@ -542,19 +542,19 @@ def test_sorting_and_filtering(client, models):
 
 
 def test_measurement_sorting(client, models):
-    """Test sorting by measurement values (mean, sem, sample_size)."""
+    """Test sorting by measurement values (mean, standard_error, sample_size)."""
     densities = models[-1]
 
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
     # The measurement values are:
-    # density[0]: mean=10, sem=1, sample_size=100
-    # density[1]: mean=30, sem=3, sample_size=300
-    # density[2]: mean=20, sem=2, sample_size=200
-    # density[3]: mean=50, sem=5, sample_size=500
-    # density[4]: mean=40, sem=4, sample_size=400
-    # density[5]: mean=60, sem=6, sample_size=600
+    # density[0]: mean=10, standard_error=1, sample_size=100
+    # density[1]: mean=30, standard_error=3, sample_size=300
+    # density[2]: mean=20, standard_error=2, sample_size=200
+    # density[3]: mean=50, standard_error=5, sample_size=500
+    # density[4]: mean=40, standard_error=4, sample_size=400
+    # density[5]: mean=60, standard_error=6, sample_size=600
 
     # Sort by mean ascending
     data = req({"order_by": "measurement_mean__value"})
@@ -571,21 +571,21 @@ def test_measurement_sorting(client, models):
     ]
     assert mean_values == [60.0, 50.0, 40.0, 30.0, 20.0, 10.0]
 
-    # Sort by SEM (standard_error) ascending
-    data = req({"order_by": "measurement_sem__value"})
-    sem_values = [
+    # Sort by standard_error ascending
+    data = req({"order_by": "measurement_standard_error__value"})
+    standard_error_values = [
         next((m["value"] for m in d["measurements"] if m["name"] == "standard_error"), None)
         for d in data
     ]
-    assert sem_values == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+    assert standard_error_values == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
 
-    # Sort by SEM descending
-    data = req({"order_by": "-measurement_sem__value"})
-    sem_values = [
+    # Sort by standard_error descending
+    data = req({"order_by": "-measurement_standard_error__value"})
+    standard_error_values = [
         next((m["value"] for m in d["measurements"] if m["name"] == "standard_error"), None)
         for d in data
     ]
-    assert sem_values == [6.0, 5.0, 4.0, 3.0, 2.0, 1.0]
+    assert standard_error_values == [6.0, 5.0, 4.0, 3.0, 2.0, 1.0]
 
     # Sort by sample_size ascending
     data = req({"order_by": "measurement_sample_size__value"})

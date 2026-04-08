@@ -1,5 +1,7 @@
 from typing import Any, cast
 
+from sqlalchemy.orm import DeclarativeBase
+
 from app.db.model import (
     Agent,
     BrainRegion,
@@ -62,7 +64,7 @@ def query_params_factory[I: Identifiable](
         Tuple with a dict of FacetQueryParams and a dict of ApplyOperations.
     """
 
-    def _get_alias[T: type[Identifiable]](db_cls: T, name: str | None = None) -> T:
+    def _get_alias[T: type[DeclarativeBase]](db_cls: T, name: str | None = None) -> T:
         value = aliases.get(db_cls, db_cls)
         # if multiple aliases for a db_cls e.g, {Agent: {"agent": alias1, "created_by": "alias2"}
         if isinstance(value, dict):
@@ -97,14 +99,9 @@ def query_params_factory[I: Identifiable](
     skeletonization_config_alias = _get_alias(SkeletonizationConfig)
     task_config_alias = _get_alias(TaskConfig)
 
-    # Measurement aliases - handled separately since Measurement doesn't inherit from Identifiable
-    # Use cast to work around type constraints since Measurement uses Base, not Identifiable
-    measurement_aliases_raw = cast("dict[str, Any]", aliases.get(Measurement, {}))  # type: ignore[arg-type]
-    measurement_mean_alias = measurement_aliases_raw.get("measurement_mean", Measurement)
-    measurement_sem_alias = measurement_aliases_raw.get("measurement_sem", Measurement)
-    measurement_sample_size_alias = measurement_aliases_raw.get(
-        "measurement_sample_size", Measurement
-    )
+    measurement_mean_alias = _get_alias(Measurement, "measurement_mean")
+    measurement_standard_error_alias = _get_alias(Measurement, "measurement_standard_error")
+    measurement_sample_size_alias = _get_alias(Measurement, "measurement_sample_size")
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -294,10 +291,10 @@ def query_params_factory[I: Identifiable](
             (db_model_class.id == measurement_mean_alias.entity_id)
             & (measurement_mean_alias.name == MeasurementStatistic.mean),
         ),
-        "measurement_sem": lambda q: q.outerjoin(
-            measurement_sem_alias,
-            (db_model_class.id == measurement_sem_alias.entity_id)
-            & (measurement_sem_alias.name == MeasurementStatistic.standard_error),
+        "measurement_standard_error": lambda q: q.outerjoin(
+            measurement_standard_error_alias,
+            (db_model_class.id == measurement_standard_error_alias.entity_id)
+            & (measurement_standard_error_alias.name == MeasurementStatistic.standard_error),
         ),
         "measurement_sample_size": lambda q: q.outerjoin(
             measurement_sample_size_alias,

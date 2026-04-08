@@ -8,10 +8,9 @@ from pydantic import field_validator
 from sqlalchemy import Select, or_
 from sqlalchemy.orm import DeclarativeBase
 
-from app.db.model import Identifiable
 from app.utils.pattern import convert_to_ilike_pattern
 
-Aliases = dict[type[Identifiable], type[Identifiable] | dict[str, type[Identifiable]]]
+type Aliases[T: DeclarativeBase] = dict[type[T], type[T] | dict[str, type[T]]]
 
 
 NESTED_SEPARATOR = "__"

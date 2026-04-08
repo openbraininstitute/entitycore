@@ -74,7 +74,7 @@ def read_many(
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
     measurement_mean_alias = aliased(Measurement, flat=True)
-    measurement_sem_alias = aliased(Measurement, flat=True)
+    measurement_standard_error = aliased(Measurement, flat=True)
     measurement_sample_size_alias = aliased(Measurement, flat=True)
     aliases = {
         Subject: subject,
@@ -87,7 +87,7 @@ def read_many(
         },
         Measurement: {
             "measurement_mean": measurement_mean_alias,
-            "measurement_sem": measurement_sem_alias,
+            "measurement_standard_error": measurement_standard_error,
             "measurement_sample_size": measurement_sample_size_alias,
         },
     }
@@ -110,7 +110,7 @@ def read_many(
         "subject.species",
         "subject.strain",
         "measurement_mean",
-        "measurement_sem",
+        "measurement_standard_error",
         "measurement_sample_size",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(

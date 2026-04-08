@@ -1138,11 +1138,19 @@ class Measurement(Base):
         ForeignKey("entity.id", ondelete="CASCADE"), index=True
     )
 
+    __table_args__ = (
+        UniqueConstraint(
+            "entity_id",
+            "name",
+            name="uq_measurement_entity_id_name",
+        ),
+    )
+
 
 class MeasurementsMixin:
     @declared_attr
     @classmethod
-    def measurements(cls):
+    def measurements(cls) -> Mapped[list[Measurement]]:
         return relationship(
             "Measurement",
             foreign_keys=Measurement.entity_id,

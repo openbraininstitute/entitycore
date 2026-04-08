@@ -16,7 +16,11 @@ class RepairPipelineType(StrEnum):
     unraveled = auto()
     repaired = auto()
 
-
+class CellMorphologyFileType(StrEnum):
+    h5 = auto()
+    swc = auto()
+    asc = auto()
+    
 class ModifiedMorphologyMethodType(StrEnum):
     cloned = auto()
     mix_and_match = auto()

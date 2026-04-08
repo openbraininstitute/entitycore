@@ -45,6 +45,7 @@ from app.db.types import (
     AssetLabel,
     AssetStatus,
     AssociationType,
+    CellMorphologyFileType,
     CellMorphologyGenerationType,
     CellMorphologyProtocolDesign,
     CircuitBuildCategory,
@@ -862,6 +863,7 @@ class CellMorphology(
 
     location: Mapped[PointLocation | None]
     repair_pipeline_state: Mapped[RepairPipelineType | None]
+    original_file_type: Mapped[CellMorphologyFileType | None]
     cell_morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("cell_morphology_protocol.id"), index=True
     )

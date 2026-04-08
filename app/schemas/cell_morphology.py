@@ -3,6 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 from app.db.types import (
+    CellMorphologyFileType,
     PointLocationBase,
     RepairPipelineType,
 )
@@ -20,6 +21,7 @@ class CellMorphologyBase(BaseModel, NameDescriptionMixin):
     legacy_id: list[str] | None = None
     has_segmented_spines: bool = False
     repair_pipeline_state: RepairPipelineType | None = None
+    original_file_type: CellMorphologyFileType | None = None
 
 
 class CellMorphologyCreate(

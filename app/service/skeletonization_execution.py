@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Entity, Person, SkeletonizationExecution
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -177,10 +177,12 @@ def update_one(
         db_model_class=DBModel,
         response_schema_class=ReadSchema,
         apply_operations=_load,
+        check_authorized_project=True,
     )
 
 
 def admin_update_one(
+    user_context: AdminContextDep,
     db: SessionDep,
     id_: uuid.UUID,
     json_model: AdminUpdateSchema,  # pyright: ignore [reportInvalidTypeForm]
@@ -189,8 +191,9 @@ def admin_update_one(
         db=db,
         id_=id_,
         json_model=json_model,
-        user_context=None,
+        user_context=user_context,
         db_model_class=DBModel,
         response_schema_class=ReadSchema,
         apply_operations=_load,
+        check_authorized_project=False,
     )

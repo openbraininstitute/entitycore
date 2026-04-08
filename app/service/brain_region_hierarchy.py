@@ -101,7 +101,7 @@ def create_one(
 
 def update_one(
     db: SessionDep,
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,
     id_: uuid.UUID,
     json_model: BrainRegionHierarchyAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
 ) -> BrainRegionHierarchyRead:
@@ -109,10 +109,11 @@ def update_one(
         id_=id_,
         db=db,
         db_model_class=BrainRegionHierarchy,
-        user_context=None,
+        user_context=user_context,
         json_model=json_model,
         response_schema_class=BrainRegionHierarchyRead,
         apply_operations=_load,
+        check_authorized_project=False,
     )
 
 

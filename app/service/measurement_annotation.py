@@ -11,7 +11,11 @@ from sqlalchemy.orm import (
     selectinload,
 )
 
-from app.db.auth import constrain_entity_query_to_project, constrain_to_readable_entities
+from app.db.auth import (
+    constrain_entity_query_to_project,
+    constrain_to_readable_entities,
+    constrain_to_writable_entities,
+)
 from app.db.model import (
     Entity,
     MeasurementAnnotation,
@@ -19,7 +23,7 @@ from app.db.model import (
     MeasurementLabel,
 )
 from app.db.utils import MEASURABLE_ENTITIES
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import ApiError, ApiErrorCode
@@ -230,7 +234,7 @@ def delete_one(
 
 
 def update_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
     json_model: MeasurementAnnotationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
@@ -238,21 +242,23 @@ def update_one(
     def apply_operations(q):
         entity_alias = aliased(Entity)
         q = q.join(entity_alias, entity_alias.id == MeasurementAnnotation.entity_id)
-        q = q.where(entity_alias.authorized_project_id == user_context.project_id)
+        q = constrain_to_writable_entities(q, user_context, db_model_class=entity_alias)
         return _load_from_db_with_entity(q=q)
 
     return router_update_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        user_context=None,
+        user_context=user_context,
         json_model=json_model,
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
+        check_authorized_project=False,  # checked with apply_operations
     )
 
 
 def admin_update_one(
+    user_context: AdminContextDep,
     db: SessionDep,
     id_: uuid.UUID,
     json_model: MeasurementAnnotationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
@@ -266,8 +272,9 @@ def admin_update_one(
         id_=id_,
         db=db,
         db_model_class=MeasurementAnnotation,
-        user_context=None,
+        user_context=user_context,
         json_model=json_model,
         response_schema_class=MeasurementAnnotationRead,
         apply_operations=apply_operations,
+        check_authorized_project=False,
     )

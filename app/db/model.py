@@ -1140,10 +1140,14 @@ class Measurement(Base):
     )
 
     __table_args__ = (
+        # Deferred so that SQLAlchemy's INSERT-before-DELETE ordering
+        # doesn't violate the constraint when replacing measurements.
         UniqueConstraint(
             "entity_id",
             "name",
             name="uq_measurement_entity_id_name",
+            deferrable=True,
+            initially="deferred",
         ),
     )
 

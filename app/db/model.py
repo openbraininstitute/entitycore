@@ -1139,11 +1139,23 @@ class Measurement(Base):
         ForeignKey("entity.id", ondelete="CASCADE"), index=True
     )
 
+    __table_args__ = (
+        # Deferred so that SQLAlchemy's INSERT-before-DELETE ordering
+        # doesn't violate the constraint when replacing measurements.
+        UniqueConstraint(
+            "entity_id",
+            "name",
+            name="uq_measurement_entity_id_name",
+            deferrable=True,
+            initially="deferred",
+        ),
+    )
+
 
 class MeasurementsMixin:
     @declared_attr
     @classmethod
-    def measurements(cls):
+    def measurements(cls) -> Mapped[list[Measurement]]:
         return relationship(
             "Measurement",
             foreign_keys=Measurement.entity_id,

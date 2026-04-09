@@ -1,5 +1,7 @@
 from typing import Any, cast
 
+from sqlalchemy.orm import DeclarativeBase
+
 from app.db.model import (
     Agent,
     BrainRegion,
@@ -18,6 +20,7 @@ from app.db.model import (
     IonChannelModel,
     IonChannelModelingConfig,
     IonChannelModelToEModel,
+    Measurement,
     MeasurementAnnotation,
     MeasurementItem,
     MeasurementKind,
@@ -36,6 +39,7 @@ from app.db.model import (
     TaskConfig,
     Usage,
 )
+from app.db.types import MeasurementStatistic
 from app.dependencies.common import FacetQueryParams
 from app.filters.base import Aliases
 from app.queries.types import ApplyOperations
@@ -60,7 +64,7 @@ def query_params_factory[I: Identifiable](
         Tuple with a dict of FacetQueryParams and a dict of ApplyOperations.
     """
 
-    def _get_alias[T: type[Identifiable]](db_cls: T, name: str | None = None) -> T:
+    def _get_alias[T: type[DeclarativeBase]](db_cls: T, name: str | None = None) -> T:
         value = aliases.get(db_cls, db_cls)
         # if multiple aliases for a db_cls e.g, {Agent: {"agent": alias1, "created_by": "alias2"}
         if isinstance(value, dict):
@@ -94,6 +98,10 @@ def query_params_factory[I: Identifiable](
     ion_channel_modeling_config_alias = _get_alias(IonChannelModelingConfig)
     skeletonization_config_alias = _get_alias(SkeletonizationConfig)
     task_config_alias = _get_alias(TaskConfig)
+
+    measurement_mean_alias = _get_alias(Measurement, "measurement_mean")
+    measurement_standard_error_alias = _get_alias(Measurement, "measurement_standard_error")
+    measurement_sample_size_alias = _get_alias(Measurement, "measurement_sample_size")
 
     name_to_facet_query_params: dict[str, FacetQueryParams] = {
         "agent": {
@@ -277,6 +285,21 @@ def query_params_factory[I: Identifiable](
         "task_config": lambda q: q.join(
             task_config_alias,
             db_model_class.id == task_config_alias.task_config_generator_id,
+        ),
+        "measurement_mean": lambda q: q.outerjoin(
+            measurement_mean_alias,
+            (db_model_class.id == measurement_mean_alias.entity_id)
+            & (measurement_mean_alias.name == MeasurementStatistic.mean),
+        ),
+        "measurement_standard_error": lambda q: q.outerjoin(
+            measurement_standard_error_alias,
+            (db_model_class.id == measurement_standard_error_alias.entity_id)
+            & (measurement_standard_error_alias.name == MeasurementStatistic.standard_error),
+        ),
+        "measurement_sample_size": lambda q: q.outerjoin(
+            measurement_sample_size_alias,
+            (db_model_class.id == measurement_sample_size_alias.entity_id)
+            & (measurement_sample_size_alias.name == MeasurementStatistic.sample_size),
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

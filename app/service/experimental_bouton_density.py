@@ -12,6 +12,7 @@ from app.db.model import (
     Agent,
     Contribution,
     ExperimentalBoutonDensity,
+    Measurement,
     Person,
     Subject,
 )
@@ -72,6 +73,9 @@ def read_many(
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
+    measurement_mean_alias = aliased(Measurement, flat=True)
+    measurement_standard_error = aliased(Measurement, flat=True)
+    measurement_sample_size_alias = aliased(Measurement, flat=True)
     aliases = {
         Subject: subject,
         Agent: {
@@ -80,6 +84,11 @@ def read_many(
         Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
+        },
+        Measurement: {
+            "measurement_mean": measurement_mean_alias,
+            "measurement_standard_error": measurement_standard_error,
+            "measurement_sample_size": measurement_sample_size_alias,
         },
     }
     facet_keys = [
@@ -100,6 +109,9 @@ def read_many(
         "subject",
         "subject.species",
         "subject.strain",
+        "measurement_mean",
+        "measurement_standard_error",
+        "measurement_sample_size",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=ExperimentalBoutonDensity,

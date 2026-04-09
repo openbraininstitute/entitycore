@@ -59,9 +59,8 @@ class CircuitFilter(
     class Constants(ScientificArtifactFilter.Constants):
         model = Circuit
         ordering_model_fields = [  # noqa: RUF012
+            *ScientificArtifactFilter.Constants.ordering_model_fields,
             "id",
-            "creation_date",
-            "update_date",
             "name",
             "scale",
             "build_category",

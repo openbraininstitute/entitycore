@@ -5,7 +5,13 @@ from fastapi.testclient import TestClient
 
 from app.db.model import ValidationResult
 
-from .utils import USER_SUB_ID_1, assert_request, check_entity_delete_one, check_entity_update_one
+from .utils import (
+    USER_SUB_ID_1,
+    assert_request,
+    check_entity_delete_one,
+    check_entity_read_many,
+    check_entity_update_one,
+)
 
 MODEL = ValidationResult
 ROUTE = "/validation-result"
@@ -76,6 +82,15 @@ def test_read_one(client, client_admin, validation_result_id, json_data):
     data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{validation_result_id}").json()
     _assert_read_response(data, json_data)
     assert data["id"] == validation_result_id
+
+
+def test_read_many(clients, public_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=public_json_data,
+    )
 
 
 def test_create_one(client: TestClient, json_data):

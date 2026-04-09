@@ -24,6 +24,7 @@ from .utils import (
     check_brain_region_filter,
     check_deletion_cascades,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     create_cell_morphology_id,
 )
@@ -127,6 +128,15 @@ def test_create_memodel(
     assert response.status_code == 200, f"Failed to get morphologys: {response.text}"
     data = response.json()["data"][0]
     _assert_read_response(data, json_data)
+
+
+def test_read_many(clients, public_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=public_json_data,
+    )
 
 
 def test_delete_one(db, clients, public_json_data):

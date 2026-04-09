@@ -35,6 +35,8 @@ from .utils import (
     check_brain_region_filter,
     check_deletion_cascades,
     check_entity_delete_one,
+    check_entity_read_many,
+    check_entity_read_response,
     check_entity_update_one,
     create_cell_morphology_id,
     create_mtype_classification,
@@ -61,6 +63,10 @@ def json_data(subject_id, license_id, brain_region_id, cell_morphology_protocol)
         "experiment_date": "2025-01-01T00:00:00",
         "repair_pipeline_state": "raw",
     }
+
+
+def _assert_read_response(data, json_data):
+    check_entity_read_response(data, json_data, EntityType.cell_morphology)
 
 
 def test_create_one(
@@ -107,6 +113,15 @@ def test_create_one(
     )
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]
     assert data[0]["cell_morphology_protocol"] == expected_cell_morphology_protocol_json_data
+
+
+def test_read_many(clients, json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+    )
 
 
 def test_delete_one(db, clients, json_data):

@@ -160,15 +160,16 @@ def admin_update_one(
     )
 
 
-def read_many(
+def _read_many(
     *,
     db: SessionDep,
     user_context: UserContextDep,
     pagination_request: PaginationQuery,
-    memodel_filter: MEModelFilterDep,
+    filter_model: MEModelFilterDep,
     search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    check_authorized_project: bool,
 ) -> ListResponse[MEModelRead]:
     morphology_alias = aliased(CellMorphology, flat=True)
     emodel_alias = aliased(EModel, flat=True)
@@ -218,8 +219,51 @@ def read_many(
         pagination_request=pagination_request,
         response_schema_class=MEModelRead,
         name_to_facet_query_params=name_to_facet_query_params,
-        filter_model=memodel_filter,
+        filter_model=filter_model,
         filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: MEModelFilterDep,
+    search: SearchDep,
+    facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
+) -> ListResponse[MEModelRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        search=search,
+        facets=facets,
+        in_brain_region=in_brain_region,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: MEModelFilterDep,
+    search: SearchDep,
+    facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
+) -> ListResponse[MEModelRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        search=search,
+        facets=facets,
+        in_brain_region=in_brain_region,
+        check_authorized_project=False,
     )
 
 

@@ -95,13 +95,14 @@ def create_one(
     )
 
 
-def read_many(
+def _read_many(
     *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: CellMorphologyProtocolFilterDep,
     with_facets: FacetsDep,
+    check_authorized_project: bool,
 ) -> ListResponse[CellMorphologyProtocolRead]:
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
@@ -144,6 +145,41 @@ def read_many(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: CellMorphologyProtocolFilterDep,
+    with_facets: FacetsDep,
+) -> ListResponse[CellMorphologyProtocolRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_facets=with_facets,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: CellMorphologyProtocolFilterDep,
+    with_facets: FacetsDep,
+) -> ListResponse[CellMorphologyProtocolRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_facets=with_facets,
+        check_authorized_project=False,
     )
 
 

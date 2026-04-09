@@ -17,6 +17,7 @@ from .utils import (
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     upload_entity_asset,
 )
@@ -143,7 +144,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_read_many(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):
+def test_read_many_1(client: TestClient, subject_id: str, brain_region_id: uuid.UUID):
     count = 11
     icm_res = [create(client, subject_id, brain_region_id) for _ in range(count)]
     for icm in icm_res:
@@ -172,6 +173,15 @@ def test_read_many(client: TestClient, subject_id: str, brain_region_id: uuid.UU
         assert len(single_data["assets"]) == 1
 
     IonChannelModelRead.model_validate(icm_res[0].json())
+
+
+def test_read_many_2(clients, json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+    )
 
 
 def test_delete_one(db, clients, json_data):

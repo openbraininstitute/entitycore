@@ -1,4 +1,5 @@
 import uuid
+from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -9,14 +10,23 @@ from app.db.model import (
     Contribution,
     Person,
 )
-from app.dependencies.auth import UserContextDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
+from app.errors import ApiError
 from app.filters.cell_composition import CellCompositionFilterDep
-from app.queries.common import router_read_many, router_read_one
+from app.queries.common import (
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.cell_composition import (
+    CellCompositionAdminUpdate,
+    CellCompositionCreate,
     CellCompositionRead,
+    CellCompositionUserUpdate,
 )
 from app.schemas.types import ListResponse
 
@@ -24,7 +34,7 @@ if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-def _load(query: sa.Select):
+def _load_from_db(query: sa.Select):
     return query.options(
         joinedload(CellComposition.brain_region),
         joinedload(CellComposition.species, innerjoin=True),
@@ -34,6 +44,66 @@ def _load(query: sa.Select):
         selectinload(CellComposition.contributions).joinedload(Contribution.agent),
         selectinload(CellComposition.contributions).joinedload(Contribution.role),
         raiseload("*"),
+    )
+
+
+def create_one(
+    user_context: UserContextWithProjectIdDep,
+    db: SessionDep,
+    json_model: CellCompositionCreate,
+) -> CellCompositionRead:
+    return router_create_one(
+        db=db,
+        user_context=user_context,
+        db_model_class=CellComposition,
+        json_model=json_model,
+        response_schema_class=CellCompositionRead,
+        apply_operations=_load_from_db,
+    )
+
+
+def update_one(
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CellCompositionUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> CellCompositionRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellComposition,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=CellCompositionRead,
+        apply_operations=_load_from_db,
+        check_authorized_project=True,
+    )
+
+
+def admin_update_one(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+    json_model: CellCompositionAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> CellCompositionRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellComposition,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=CellCompositionRead,
+        apply_operations=_load_from_db,
+        check_authorized_project=False,
+    )
+
+
+def delete_one(
+    id_: uuid.UUID,  # noqa: ARG001
+):
+    raise ApiError(
+        message="Endpoint not implemented",
+        http_status_code=HTTPStatus.NOT_IMPLEMENTED,
     )
 
 
@@ -48,7 +118,7 @@ def read_one(
         db_model_class=CellComposition,
         user_context=user_context,
         response_schema_class=CellCompositionRead,
-        apply_operations=_load,
+        apply_operations=_load_from_db,
     )
 
 
@@ -62,16 +132,18 @@ def admin_read_one(
         db_model_class=CellComposition,
         user_context=None,
         response_schema_class=CellCompositionRead,
-        apply_operations=_load,
+        apply_operations=_load_from_db,
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: CellCompositionFilterDep,
     with_search: SearchDep,
+    check_authorized_project: bool,
 ) -> ListResponse[CellCompositionRead]:
     aliases: Aliases = {
         Person: {
@@ -98,11 +170,46 @@ def read_many(
         with_in_brain_region=None,
         facets=None,
         apply_filter_query_operations=None,
-        apply_data_query_operations=_load,
+        apply_data_query_operations=_load_from_db,
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=CellCompositionRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
         name_to_facet_query_params=name_to_facet_query_params,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: CellCompositionFilterDep,
+    with_search: SearchDep,
+) -> ListResponse[CellCompositionRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: CellCompositionFilterDep,
+    with_search: SearchDep,
+) -> ListResponse[CellCompositionRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        check_authorized_project=False,
     )

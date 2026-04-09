@@ -5,7 +5,13 @@ from fastapi.testclient import TestClient
 
 from app.db.model import MEModelCalibrationResult
 
-from .utils import USER_SUB_ID_1, assert_request, check_entity_delete_one, check_entity_update_one
+from .utils import (
+    USER_SUB_ID_1,
+    assert_request,
+    check_entity_delete_one,
+    check_entity_read_many,
+    check_entity_update_one,
+)
 
 MODEL = MEModelCalibrationResult
 ROUTE = "/memodel-calibration-result"
@@ -87,6 +93,15 @@ def test_create_one(client: TestClient, json_data):
 
     data = assert_request(client.get, url=ROUTE).json()["data"][0]
     _assert_read_response(data, json_data)
+
+
+def test_read_many(clients, public_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=public_json_data,
+    )
 
 
 def test_delete_one(db, clients, public_json_data):

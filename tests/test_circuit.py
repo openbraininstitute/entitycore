@@ -24,6 +24,7 @@ from .utils import (
     check_creation_fields,
     check_deletion_cascades,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     check_missing,
     check_pagination,
@@ -95,6 +96,15 @@ def test_read_one(client, client_admin, circuit, circuit_json_data):
     data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{circuit.id}").json()
     _assert_read_response(data, circuit_json_data)
     assert len(data["contributions"]) == 1
+
+
+def test_read_many_2(clients, root_circuit_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=root_circuit_json_data,
+    )
 
 
 def test_delete_one(db, clients, root_circuit_json_data):
@@ -190,7 +200,7 @@ def test_deletion_cascades(db, clients, entity_id_cascades):
     )
 
 
-def test_read_many(client, circuit, circuit_json_data):
+def test_read_many_1(client, circuit, circuit_json_data):
     data = assert_request(client.get, url=f"{ROUTE}").json()["data"]
 
     # circuit and root circuit

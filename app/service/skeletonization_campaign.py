@@ -4,12 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import (
-    Agent,
-    Person,
-    SkeletonizationCampaign,
-    SkeletonizationConfig,
-)
+from app.db.model import Agent, Person, SkeletonizationCampaign, SkeletonizationConfig
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -139,13 +134,15 @@ def admin_update_one(
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: FilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    check_authorized_project: bool,
 ) -> ListResponse[ReadSchema]:
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
@@ -188,6 +185,45 @@ def read_many(
         response_schema_class=ReadSchema,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: FilterDep,
+    with_search: SearchDep,
+    with_facets: FacetsDep,
+) -> ListResponse[ReadSchema]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=with_facets,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: FilterDep,
+    with_search: SearchDep,
+    with_facets: FacetsDep,
+) -> ListResponse[ReadSchema]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=with_facets,
+        check_authorized_project=False,
     )
 
 

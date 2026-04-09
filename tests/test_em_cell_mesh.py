@@ -13,6 +13,7 @@ from .utils import (
     check_authorization,
     check_creation_fields,
     check_entity_delete_one,
+    check_entity_read_many,
     check_missing,
     check_pagination,
 )
@@ -207,6 +208,15 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     ).json()["data"]
     assert [d["dense_reconstruction_cell_id"] for d in data] == sorted(
         (d["dense_reconstruction_cell_id"] for d in data), reverse=True
+    )
+
+
+def test_read_many(clients, json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
     )
 
 

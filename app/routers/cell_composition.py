@@ -1,16 +1,8 @@
-from fastapi import APIRouter
-
-import app.service.cell_composition
+import app.service.cell_composition as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import EntityRoute
 
-ROUTE = "cell-composition"
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
-)
-
-read_one = router.get("/{id_}")(app.service.cell_composition.read_one)
-read_many = router.get("")(app.service.cell_composition.read_many)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.cell_composition.admin_read_one)
+ROUTE = EntityRoute.cell_composition
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

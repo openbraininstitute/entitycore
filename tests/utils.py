@@ -1280,6 +1280,63 @@ def check_entity_read_response(data, json_data, expected_entity_type):
     check_creation_fields(data)
 
 
+def check_entity_read_many(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+):
+
+    # register entities with users in different projects
+    u1_private = assert_request(
+        clients.user_1.post, url=route, json=json_data | {"authorized_public": False}
+    ).json()
+    u1_public = assert_request(
+        clients.user_1.post, url=route, json=json_data | {"authorized_public": True}
+    ).json()
+    u2_private = assert_request(
+        clients.user_2.post, url=route, json=json_data | {"authorized_public": False}
+    ).json()
+    u2_public = assert_request(
+        clients.user_2.post, url=route, json=json_data | {"authorized_public": True}
+    ).json()
+
+    def req(client, client_route, expected_status_code=200):
+        return assert_request(
+            client.get, url=client_route, expected_status_code=expected_status_code
+        ).json()
+
+    # user1 can get their entities and user2's public
+    results = req(clients.user_1, route)["data"]
+    assert {r["id"] for r in results} == {u1_private["id"], u1_public["id"], u2_public["id"]}
+
+    # user not allowed using admin route
+    data = req(clients.user_1, admin_route, expected_status_code=403)
+    assert data["message"] == "Service admin role required"
+
+    # same for user2
+    results = req(clients.user_2, route)["data"]
+    assert {r["id"] for r in results} == {u2_private["id"], u2_public["id"], u1_public["id"]}
+
+    # user not allowed using admin route
+    data = req(clients.user_2, admin_route, expected_status_code=403)
+    assert data["message"] == "Service admin role required"
+
+    # admin using the user route has access only to public entities (no project headers)
+    results = req(clients.admin, route)["data"]
+    assert all(r["authorized_public"] for r in results)
+
+    # admin on admin route can get them all
+    results = req(clients.admin, admin_route)["data"]
+    assert {r["id"] for r in results} == {
+        u1_private["id"],
+        u1_public["id"],
+        u2_private["id"],
+        u2_public["id"],
+    }
+
+
 def check_entity_update_one(
     *,
     route: str,

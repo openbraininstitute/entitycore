@@ -12,6 +12,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     check_missing,
     check_pagination,
@@ -105,11 +106,20 @@ def test_admin_read_one(client_admin, model_id, json_data):
     assert data["id"] == str(model_id)
 
 
-def test_read_many(client, model_id, json_data):
+def test_read_many_1(client, model_id, json_data):
     data = assert_request(client.get, url=ROUTE).json()
     assert len(data["data"]) == 1
     _assert_read_response(data["data"][0], json_data)
     assert data["data"][0]["id"] == str(model_id)
+
+
+def test_read_many_2(clients, public_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=public_json_data,
+    )
 
 
 def test_missing(client):

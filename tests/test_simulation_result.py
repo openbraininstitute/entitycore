@@ -11,6 +11,7 @@ from .utils import (
     check_authorization,
     check_creation_fields,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     check_missing,
     check_pagination,
@@ -85,7 +86,7 @@ def test_admin_read_one(client_admin, model, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_many(client, model, json_data):
+def test_read_many_1(client, model, json_data):
     data = assert_request(client.get, url=f"{ROUTE}").json()["data"]
 
     # circuit and root circuit
@@ -93,6 +94,15 @@ def test_read_many(client, model, json_data):
 
     assert data[0]["id"] == str(model.id)
     _assert_read_response(data[0], json_data)
+
+
+def test_read_many_2(clients, public_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=public_json_data,
+    )
 
 
 def test_delete_one(db, clients, public_json_data):

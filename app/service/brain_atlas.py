@@ -6,7 +6,9 @@ from sqlalchemy.orm import joinedload, raiseload, selectinload
 import app.queries.common
 from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery
+from app.dependencies.common import (
+    PaginationQuery,
+)
 from app.dependencies.db import SessionDep
 from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
 from app.schemas.brain_atlas import (
@@ -31,11 +33,13 @@ def _load_brain_atlas(query: sa.Select):
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    brain_atlas_filter: BrainAtlasFilterDep,
+    filter_model: BrainAtlasFilterDep,
+    check_authorized_project: bool,
 ) -> ListResponse[BrainAtlasRead]:
     return app.queries.common.router_read_many(
         db=db,
@@ -50,13 +54,44 @@ def read_many(
         pagination_request=pagination_request,
         response_schema_class=BrainAtlasRead,
         name_to_facet_query_params=None,
-        filter_model=brain_atlas_filter,
+        filter_model=filter_model,
+        check_authorized_project=check_authorized_project,
     )
 
 
-def read_one(user_context: UserContextDep, atlas_id: uuid.UUID, db: SessionDep) -> BrainAtlasRead:
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: BrainAtlasFilterDep,
+) -> ListResponse[BrainAtlasRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: BrainAtlasFilterDep,
+) -> ListResponse[BrainAtlasRead]:
+    return _read_many(
+        db=db,
+        user_context=user_context,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        check_authorized_project=False,
+    )
+
+
+def read_one(user_context: UserContextDep, id_: uuid.UUID, db: SessionDep) -> BrainAtlasRead:
     return app.queries.common.router_read_one(
-        id_=atlas_id,
+        id_=id_,
         db=db,
         db_model_class=BrainAtlas,
         user_context=user_context,
@@ -65,9 +100,9 @@ def read_one(user_context: UserContextDep, atlas_id: uuid.UUID, db: SessionDep) 
     )
 
 
-def admin_read_one(db: SessionDep, atlas_id: uuid.UUID) -> BrainAtlasRead:
+def admin_read_one(db: SessionDep, id_: uuid.UUID) -> BrainAtlasRead:
     return app.queries.common.router_read_one(
-        id_=atlas_id,
+        id_=id_,
         db=db,
         db_model_class=BrainAtlas,
         user_context=None,

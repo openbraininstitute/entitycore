@@ -1,20 +1,8 @@
-from fastapi import APIRouter
-
+import app.service.analysis_notebook_result as service
 from app.routers.admin import router as admin_router
-from app.service import analysis_notebook_result as service
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import EntityRoute
 
-ROUTE = "analysis-notebook-result"
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
-)
-
-read_many = router.get("")(service.read_many)
-read_one = router.get("/{id_}")(service.read_one)
-create_one = router.post("")(service.create_one)
-update_one = router.patch("/{id_}")(service.update_one)
-delete_one = router.delete("/{id_}")(service.delete_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(service.admin_read_one)
-admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(service.admin_update_one)
+ROUTE = EntityRoute.analysis_notebook_result
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

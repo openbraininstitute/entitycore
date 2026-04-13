@@ -1,6 +1,7 @@
-from enum import auto
+from enum import StrEnum, auto
+from typing import TYPE_CHECKING
 
-from app.utils.enum import HyphenStrEnum
+from app.utils.enum import HyphenStrEnum, combine_str_enums
 
 
 class EntityRoute(HyphenStrEnum):
@@ -48,21 +49,6 @@ class EntityRoute(HyphenStrEnum):
     task_config = auto()
 
 
-class ActivityRoute(HyphenStrEnum):
-    simulation_execution = auto()
-    simulation_generation = auto()
-    validation = auto()
-    calibration = auto()
-    analysis_notebook_execution = auto()
-    ion_channel_modeling_execution = auto()
-    ion_channel_modeling_config_generation = auto()
-    circuit_extraction_config_generation = auto()
-    circuit_extraction_execution = auto()
-    skeletonization_execution = auto()
-    skeletonization_config_generation = auto()
-    task_activity = auto()
-
-
 class GlobalRoute(HyphenStrEnum):
     """Global resource routes."""
 
@@ -78,3 +64,47 @@ class GlobalRoute(HyphenStrEnum):
     ion_channel = auto()
     measurement_annotation = auto()
     measurement_label = auto()
+
+
+class AssociationRoute(HyphenStrEnum):
+    """Association routes."""
+
+    etype_classification = auto()
+    mtype_classification = auto()
+    contribution = auto()
+    derivation = auto()
+    scientific_artifact_publication_link = auto()
+    scientific_artifact_external_url_link = auto()
+
+
+class AgentRoute(HyphenStrEnum):
+    """Agent routes."""
+
+    person = auto()
+    organization = auto()
+    consortium = auto()
+
+
+class ActivityRoute(HyphenStrEnum):
+    """Activity routes."""
+
+    simulation_execution = auto()
+    simulation_generation = auto()
+    validation = auto()
+    calibration = auto()
+    analysis_notebook_execution = auto()
+    ion_channel_modeling_execution = auto()
+    ion_channel_modeling_config_generation = auto()
+    circuit_extraction_config_generation = auto()
+    circuit_extraction_execution = auto()
+    skeletonization_execution = auto()
+    skeletonization_config_generation = auto()
+    task_activity = auto()
+
+
+if TYPE_CHECKING:
+    ResourceRoute = StrEnum
+else:
+    ResourceRoute = combine_str_enums(
+        "ResourceRoute", (EntityRoute, AssociationRoute, GlobalRoute, AgentRoute, ActivityRoute)
+    )

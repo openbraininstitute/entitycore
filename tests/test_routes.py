@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import pytest
 
 from app.application import app
-from app.utils.routers import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
+from app.routers.types import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
 
 
 @dataclass

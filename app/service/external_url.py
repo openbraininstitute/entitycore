@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import ExternalUrl, Person
-from app.dependencies.auth import UserContextDep
+from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -13,12 +13,20 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.external_url import ExternalUrlFilterDep
-from app.queries.common import router_create_one, router_read_many, router_read_one
+from app.queries.common import (
+    router_admin_delete_one,
+    router_create_one,
+    router_read_many,
+    router_read_one,
+    router_update_one,
+)
 from app.queries.factory import query_params_factory
 from app.schemas.external_url import (
+    ExternalUrlAdminUpdate,
     ExternalUrlCreate,
     ExternalUrlRead,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -110,4 +118,39 @@ def read_many(
         response_schema_class=ExternalUrlRead,
         authorized_project_id=None,
         filter_joins=filter_joins,
+    )
+
+
+admin_read_many = read_many
+
+
+def update_one(
+    db: SessionDep,
+    user_context: AdminContextDep,
+    id_: uuid.UUID,
+    json_model: ExternalUrlAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> ExternalUrlRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=ExternalUrl,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=ExternalUrlRead,
+        check_authorized_project=False,
+    )
+
+
+admin_update_one = update_one
+
+
+def delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    user_context: AdminContextDep,  # noqa: ARG001
+) -> DeleteResponse:
+    return router_admin_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=ExternalUrl,
     )

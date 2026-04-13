@@ -9,6 +9,7 @@ from app.db.types import EXTERNAL_SOURCE_INFO, ExternalSource
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import CreationMixin, IdentifiableMixin, NameDescriptionMixin
 from app.schemas.types import SerializableHttpUrl
+from app.schemas.utils import make_update_schema
 
 
 class ExternalUrlBase(BaseModel, NameDescriptionMixin):
@@ -29,6 +30,13 @@ class ExternalUrlCreate(ExternalUrlBase):
             msg = f"The url for '{self.source}' must start with {allowed_url}"
             raise ValueError(msg)
         return self
+
+
+ExternalUrlAdminUpdate = make_update_schema(
+    ExternalUrlCreate,
+    "ExternalUrlAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedExternalUrlRead(

@@ -7,7 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 import app.queries.common
 from app.db.auth import constrain_entity_query_to_project, constrain_to_readable_entities
 from app.db.model import Agent, Contribution, Entity, Person
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.contribution import ContributionFilterDep
@@ -28,11 +28,13 @@ def _load(query: sa.Select):
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     filter_model: ContributionFilterDep,
     pagination_request: PaginationQuery,
+    check_authorized_project: bool,
 ) -> ListResponse[ContributionRead]:
     agent_alias = aliased(Agent, flat=True)
     entity_alias = aliased(Entity, flat=True)
@@ -62,8 +64,10 @@ def read_many(
         filter_keys=filter_keys,
         aliases=aliases,
     )
-
-    filter_query = lambda q: constrain_to_readable_entities(_load(q), user_context.project_id)
+    if check_authorized_project:
+        filter_query = lambda q: constrain_to_readable_entities(_load(q), user_context.project_id)
+    else:
+        filter_query = _load
 
     return app.queries.common.router_read_many(
         db=db,
@@ -80,6 +84,37 @@ def read_many(
         filter_model=filter_model,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: ContributionFilterDep,
+) -> ListResponse[ContributionRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: ContributionFilterDep,
+) -> ListResponse[ContributionRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        check_authorized_project=False,
     )
 
 

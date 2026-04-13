@@ -11,7 +11,7 @@ from app.db.model import (
     MTypeClassification,
     Person,
 )
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -99,13 +99,15 @@ def admin_read_one(
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: MTypeClassificationFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    check_authorized_project: bool,
 ) -> ListResponse[MTypeClassificationRead]:
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
@@ -144,4 +146,43 @@ def read_many(
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
         with_in_brain_region=None,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: MTypeClassificationFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+) -> ListResponse[MTypeClassificationRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: MTypeClassificationFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+) -> ListResponse[MTypeClassificationRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        check_authorized_project=False,
     )

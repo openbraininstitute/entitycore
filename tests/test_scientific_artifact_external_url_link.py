@@ -68,27 +68,26 @@ def test_missing(client):
 
 
 def test_authorization(
-    client_user_1,
-    client_user_2,
+    clients,
     json_data,
     root_circuit_json_data,
     external_url,
 ):
     circuit_json_data = root_circuit_json_data | {"authorized_public": False}
     circuit_1 = assert_request(
-        client_user_1.post,
+        clients.user_1.post,
         url="/circuit",
         json=circuit_json_data,
     ).json()
     circuit_2 = assert_request(
-        client_user_2.post,
+        clients.user_2.post,
         url="/circuit",
         json=circuit_json_data,
     ).json()
 
     # user 1 creates link between accessible entities
     data = assert_request(
-        client_user_1.post,
+        clients.user_1.post,
         url=ROUTE,
         json=json_data
         | {
@@ -99,12 +98,12 @@ def test_authorization(
     assert data["id"]
 
     # user 1 fetches successfully accessible links
-    data = assert_request(client_user_1.get, url=ROUTE).json()["data"]
+    data = assert_request(clients.user_1.get, url=ROUTE).json()["data"]
     assert len(data) == 1
 
     # user 1 creates link between external_url and inaccessible circuit
     data = assert_request(
-        client_user_1.post,
+        clients.user_1.post,
         url=ROUTE,
         json=json_data
         | {
@@ -116,7 +115,7 @@ def test_authorization(
 
     # user 2 creates link between external_url and inaccessible circuit
     data = assert_request(
-        client_user_2.post,
+        clients.user_2.post,
         url=ROUTE,
         json=json_data
         | {
@@ -126,14 +125,22 @@ def test_authorization(
     ).json()
 
     # user 1 fetched only the accessible link
-    data = assert_request(client_user_1.get, url=ROUTE).json()["data"]
+    data = assert_request(clients.user_1.get, url=ROUTE).json()["data"]
     assert len(data) == 1
     assert data[0]["scientific_artifact"]["id"] == circuit_1["id"]
 
     # user 2 fetched only the accessible link
-    data = assert_request(client_user_2.get, url=ROUTE).json()["data"]
+    data = assert_request(clients.user_2.get, url=ROUTE).json()["data"]
     assert len(data) == 1
     assert data[0]["scientific_artifact"]["id"] == circuit_2["id"]
+
+    # admin on user route fetches nothing
+    data = assert_request(clients.admin.get, url=ROUTE).json()["data"]
+    assert len(data) == 0
+
+    # admin on admin route fetches everything
+    data = assert_request(clients.admin.get, url=ADMIN_ROUTE).json()["data"]
+    assert len(data) == 2
 
 
 @pytest.fixture

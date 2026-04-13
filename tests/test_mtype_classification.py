@@ -91,13 +91,25 @@ def test_read_one(client, client_admin, json_data, model_id):
     _assert_read_schema(data, json_data)
 
 
-def test_read_many(client, json_data, model_id):
+def test_read_many(clients, json_data, model_id):
     data = assert_request(
-        client.get,
+        clients.user_1.get,
         url=ROUTE,
     ).json()["data"]
     _assert_read_schema(data[0], json_data)
     assert data[0]["id"] == str(model_id)
+
+    data = assert_request(
+        clients.user_2.get,
+        url=ROUTE,
+    ).json()["data"]
+    assert len(data) == 1
+
+    data = assert_request(
+        clients.admin.get,
+        url=ADMIN_ROUTE,
+    ).json()["data"]
+    assert len(data) == 2
 
 
 def test_filtering(client, model_id, morphology_id, custom_mtype):

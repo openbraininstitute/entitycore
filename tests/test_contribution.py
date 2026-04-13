@@ -17,31 +17,31 @@ ADMIN_ROUTE = "/admin/contribution"
 ROUTE_MORPH = "/cell-morphology"
 
 
-def test_create_contribution(
-    client,
-    person_id,
-    organization_id,
-    role_id,
-    subject_id,
-    brain_region_id,
-):
+@pytest.fixture
+def json_data(client, subject_id, brain_region_id, role_id, person_id):
     cell_morphology_id = create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
     )
+    return {
+        "agent_id": str(person_id),
+        "role_id": str(role_id),
+        "entity_id": str(cell_morphology_id),
+    }
 
-    response = client.post(
-        ROUTE,
-        json={
-            "agent_id": str(person_id),
-            "role_id": str(role_id),
-            "entity_id": str(cell_morphology_id),
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
+
+def test_create_contribution(
+    client,
+    json_data,
+    person_id,
+    organization_id,
+    role_id,
+):
+    cell_morphology_id = json_data["entity_id"]
+
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
     assert data["agent"]["id"] == str(person_id)
     assert data["agent"]["given_name"] == "jd"
     assert data["agent"]["family_name"] == "courcol"
@@ -55,9 +55,7 @@ def test_create_contribution(
 
     contribution_id = data["id"]
 
-    response = client.get(f"{ROUTE}/{contribution_id}")
-    assert response.status_code == 200
-    data = response.json()
+    data = assert_request(client.get, url=f"{ROUTE}/{contribution_id}").json()
     assert data["agent"]["id"] == str(person_id)
     assert data["agent"]["given_name"] == "jd"
     assert data["agent"]["family_name"] == "courcol"
@@ -69,44 +67,93 @@ def test_create_contribution(
     assert data["id"] == contribution_id
     check_creation_fields(data)
 
-    response = client.post(
-        ROUTE,
-        json={
-            "agent_id": str(organization_id),
-            "role_id": str(role_id),
-            "entity_id": str(cell_morphology_id),
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
+    data = assert_request(
+        client.post, url=ROUTE, json=json_data | {"agent_id": str(organization_id)}
+    ).json()
     assert data["agent"]["id"] == str(organization_id)
     assert data["agent"]["pref_label"] == "ACME"
     assert data["agent"]["alternative_name"] == "A Company Making Everything"
     assert data["agent"]["type"] == "organization"
     check_creation_fields(data)
 
-    response = client.get(ROUTE)
-    assert response.status_code == 200
-    assert len(response.json()["data"]) == 2
+    data = assert_request(client.get, url=ROUTE).json()["data"]
+    assert len(data) == 2
 
-    response = client.get(f"{ROUTE_MORPH}/{cell_morphology_id}")
-    assert response.status_code == 200
-    data = response.json()
+    data = assert_request(client.get, url=f"{ROUTE_MORPH}/{cell_morphology_id}").json()
     assert "contributions" in data
     assert len(data["contributions"]) == 2
 
-    response = client.get(ROUTE_MORPH, params={"with_facets": True})
-    assert response.status_code == 200
-    data = response.json()["data"]
+    resp = assert_request(client.get, url=ROUTE_MORPH, params={"with_facets": True}).json()
+    data = resp["data"]
     assert len(data) == 1
     assert len(data[0]["contributions"]) == 2
 
-    facets = response.json()["facets"]
+    facets = resp["facets"]
     assert len(facets["contribution"]) == 2
     assert facets["contribution"] == [
         {"id": str(organization_id), "label": "ACME", "type": "organization", "count": 1},
         {"id": str(person_id), "label": "jd courcol", "type": "person", "count": 1},
     ]
+
+
+def test_read_many(clients, json_data, person_id, organization_id, subject_id, brain_region_id):
+
+    m1_id_pr = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    m1_id_pu = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
+    )
+    m2_id_pr = create_cell_morphology_id(
+        clients.user_2,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    m2_id_pu = create_cell_morphology_id(
+        clients.user_2,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
+    )
+    c1_pr = assert_request(
+        clients.user_1.post,
+        url=ROUTE,
+        json=json_data | {"entity_id": m1_id_pr, "agent_id": str(person_id)},
+    ).json()
+    c1_pu = assert_request(
+        clients.user_1.post,
+        url=ROUTE,
+        json=json_data | {"entity_id": m1_id_pu, "agent_id": str(organization_id)},
+    ).json()
+    c2_pr = assert_request(
+        clients.user_2.post,
+        url=ROUTE,
+        json=json_data | {"entity_id": m2_id_pr, "agent_id": str(person_id)},
+    ).json()
+    c2_pu = assert_request(
+        clients.user_2.post,
+        url=ROUTE,
+        json=json_data | {"entity_id": m2_id_pu, "agent_id": str(person_id)},
+    ).json()
+
+    data = assert_request(clients.user_1.get, url=ROUTE).json()["data"]
+    assert {d["id"] for d in data} == {c1_pr["id"], c1_pu["id"], c2_pu["id"]}
+
+    data = assert_request(clients.user_2.get, url=ROUTE).json()["data"]
+    assert {d["id"] for d in data} == {c2_pr["id"], c2_pu["id"], c1_pu["id"]}
+
+    data = assert_request(clients.admin.get, url=ROUTE).json()["data"]
+    assert {d["id"] for d in data} == {c2_pu["id"], c1_pu["id"]}
+
+    data = assert_request(clients.admin.get, url=ADMIN_ROUTE).json()["data"]
+    assert {d["id"] for d in data} == {c1_pr["id"], c1_pu["id"], c2_pr["id"], c2_pu["id"]}
 
 
 def test_delete_one(client, client_admin, role_id, person_id, brain_region_id, subject_id):

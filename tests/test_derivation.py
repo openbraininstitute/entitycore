@@ -15,12 +15,12 @@ from tests.utils import (
 
 
 def test_get_derived_from(
-    db, client, client_user_2, emodel_id, public_emodel_id, electrical_cell_recording_json_data
+    db, clients, emodel_id, public_emodel_id, electrical_cell_recording_json_data
 ):
     # create two emodels, one with derivations and one without
     trace_ids = [
         create_electrical_cell_recording_id(
-            client, json_data=electrical_cell_recording_json_data | {"name": f"name-{i}"}
+            clients.user_1, json_data=electrical_cell_recording_json_data | {"name": f"name-{i}"}
         )
         for i in range(6)
     ]
@@ -51,7 +51,7 @@ def test_get_derived_from(
     )
     add_all_db(db, derivations)
 
-    response = client.get(
+    response = clients.user_1.get(
         url=f"/emodel/{public_emodel_id}/derived-from",
         params={"derivation_type": "circuit_extraction"},
     )
@@ -61,7 +61,7 @@ def test_get_derived_from(
     assert [d["id"] for d in data] == [str(id_) for id_ in reversed(trace_ids[:3])]
     assert all(d["type"] == "electrical_cell_recording" for d in data)
 
-    response = client.get(
+    response = clients.user_1.get(
         url=f"/emodel/{public_emodel_id}/derived-from",
         params={"derivation_type": "circuit_rewiring"},
     )
@@ -71,7 +71,7 @@ def test_get_derived_from(
     assert [d["id"] for d in data] == [str(id_) for id_ in reversed(trace_ids[3:5])]
     assert all(d["type"] == "electrical_cell_recording" for d in data)
 
-    response = client.get(
+    response = clients.user_1.get(
         url=f"/emodel/{emodel_id}/derived-from",
         params={"derivation_type": "unspecified"},
     )
@@ -82,13 +82,13 @@ def test_get_derived_from(
     assert data[0]["type"] == "electrical_cell_recording"
 
     # Test error not derivation_type param
-    response = client.get(url=f"/emodel/{public_emodel_id}/derived-from")
+    response = clients.user_1.get(url=f"/emodel/{public_emodel_id}/derived-from")
     assert_response(response, 422)
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.INVALID_REQUEST
 
     # Test error invalid derivation_type param
-    response = client.get(
+    response = clients.user_1.get(
         url=f"/emodel/{public_emodel_id}/derived-from",
         params={"derivation_type": "invalid_type"},
     )
@@ -97,7 +97,7 @@ def test_get_derived_from(
     assert error.error_code == ApiErrorCode.INVALID_REQUEST
 
     # Test empty result
-    response = client.get(
+    response = clients.user_1.get(
         url=f"/emodel/{public_emodel_id}/derived-from",
         params={"derivation_type": "unspecified"},
     )
@@ -106,7 +106,7 @@ def test_get_derived_from(
     assert len(data) == 0
 
     # Test private unreadable entity
-    response = client_user_2.get(
+    response = clients.user_2.get(
         url=f"/emodel/{emodel_id}/derived-from",
         params={"derivation_type": "unspecified"},
     )
@@ -114,12 +114,26 @@ def test_get_derived_from(
     assert response.json()["error_code"] == "ENTITY_NOT_FOUND"
 
     # Test non existing entity
-    response = client_user_2.get(
+    response = clients.user_2.get(
         url="/emodel/00000000-0000-0000-0000-000000000000/derived-from",
         params={"derivation_type": "unspecified"},
     )
     assert_response(response, 404)
     assert response.json()["error_code"] == "ENTITY_NOT_FOUND"
+
+    data = assert_request(
+        clients.admin.get,
+        url=f"/admin/emodel/{public_emodel_id}/derived-from",
+        params={"derivation_type": "circuit_extraction"},
+    ).json()["data"]
+    assert len(data) == 3
+
+    data = assert_request(
+        clients.admin.get,
+        url=f"/admin/emodel/{emodel_id}/derived-from",
+        params={"derivation_type": "unspecified"},
+    ).json()["data"]
+    assert len(data) == 1
 
 
 @pytest.mark.parametrize(

@@ -152,10 +152,12 @@ def _read_many(
     }
     facet_keys = filter_keys = [
         "brain_region",
-        "me_model",
         "created_by",
         "updated_by",
         "contribution",
+        "me_model",
+        "me_model.etype",  # match NestedMEModelFilter.etype for filtering by me_model__etype__*
+        "me_model.mtype",  # match NestedMEModelFilter.mtype for filtering by me_model__mtype__*
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=SingleNeuronSynaptome,

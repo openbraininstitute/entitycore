@@ -187,7 +187,8 @@ class CustomFilter[T: DeclarativeBase](Filter):
             if NESTED_SEPARATOR in field_name:
                 filter_name, *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
 
-                model = getattr(self, filter_name).Constants.model
+                nested_filter = getattr(self, filter_name)
+                model = nested_filter.Constants.model
 
                 if model in aliases:
                     model_or_fields_dict = aliases[model]
@@ -197,7 +198,20 @@ class CustomFilter[T: DeclarativeBase](Filter):
                         model = model_or_fields_dict
 
                 for part in parts:
-                    model = getattr(model, part).property.mapper.class_
+                    # Resolve each intermediate part of the ordering field
+                    # (e.g. "etype" in "me_model__etype__pref_label").
+                    # Prefer the nested filter field name (e.g. NestedMEModelFilter.etype)
+                    # so that ordering and filtering use the same names, even when
+                    # the filter name differs from the DB relationship name
+                    # (e.g. filter "etype" vs relationship "etypes").
+                    # Fall back to the SQLAlchemy relationship for parts that
+                    # don't correspond to any nested filter field.
+                    nested_attr = getattr(nested_filter, part, None)
+                    if isinstance(nested_attr, CustomFilter):
+                        nested_filter = nested_attr
+                        model = nested_filter.Constants.model
+                    else:
+                        model = getattr(model, part).property.mapper.class_
 
             order_by_field = getattr(model, field_name)
 

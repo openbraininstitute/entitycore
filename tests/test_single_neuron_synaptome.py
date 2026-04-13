@@ -1,4 +1,5 @@
 import itertools as it
+from unittest.mock import ANY
 
 import pytest
 
@@ -346,6 +347,22 @@ def test_facets(db, client, faceted_ids):
         ],
         "updated_by": [
             {"id": str(agent.id), "label": agent.pref_label, "count": 4, "type": agent.type}
+        ],
+        "etype": [
+            {
+                "count": 4,
+                "id": ANY,
+                "label": "etype-emodel-0",
+                "type": "me_model.etype",
+            },
+        ],
+        "mtype": [
+            {
+                "count": 4,
+                "id": ANY,
+                "label": "m1",
+                "type": "me_model.mtype",
+            },
         ],
     }
 

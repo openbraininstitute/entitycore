@@ -13,7 +13,7 @@ from app.db.model import (
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
-from app.errors import ApiError
+from app.errors import ApiError, ApiErrorCode
 from app.filters.cell_composition import CellCompositionFilterDep
 from app.queries.common import (
     router_create_one,
@@ -104,6 +104,7 @@ def delete_one(
     raise ApiError(
         message="Endpoint not implemented",
         http_status_code=HTTPStatus.NOT_IMPLEMENTED,
+        error_code=ApiErrorCode.GENERIC_ERROR,
     )
 
 

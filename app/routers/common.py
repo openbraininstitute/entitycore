@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import Any
+
 from fastapi import APIRouter
 
 from app.schemas.service import AdminCrudService, UserCrudService
@@ -19,11 +22,18 @@ def register_default_admin_routes(router: APIRouter, service: AdminCrudService, 
     router.patch(f"/{route}/{{id_}}")(service.admin_update_one)
 
 
-def create_user_router(route: str, service: UserCrudService) -> APIRouter:
+def create_user_router(
+    route: str,
+    service: UserCrudService,
+    before_routes: list[Callable[[APIRouter], Any]] | None = None,
+) -> APIRouter:
     """Create default APIRouter with CRUD routes."""
     router = APIRouter(
         prefix=f"/{route}",
         tags=[route],
     )
+    if before_routes:
+        for route_func in before_routes:
+            route_func(router)
     register_default_user_routes(router=router, service=service)
     return router

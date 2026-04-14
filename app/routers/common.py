@@ -26,6 +26,7 @@ def create_user_router(
     route: str,
     service: UserCrudService,
     before_routes: list[Callable[[APIRouter], Any]] | None = None,
+    after_routes: list[Callable[[APIRouter], Any]] | None = None,
 ) -> APIRouter:
     """Create default APIRouter with CRUD routes."""
     router = APIRouter(
@@ -35,5 +36,10 @@ def create_user_router(
     if before_routes:
         for route_func in before_routes:
             route_func(router)
+
     register_default_user_routes(router=router, service=service)
+
+    if after_routes:
+        for route_func in after_routes:
+            route_func(router)
     return router

@@ -1,9 +1,10 @@
 from fastapi import APIRouter
 
 from app.routers.admin import router as admin_router
+from app.routers.types import AssociationRoute
 from app.service import mtype_classification as service
 
-ROUTE = "mtype-classification"
+ROUTE = AssociationRoute.mtype_classification
 
 router = APIRouter(
     prefix=f"/{ROUTE}",

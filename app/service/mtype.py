@@ -102,3 +102,6 @@ def delete_one(
         db=db,
         db_model_class=MTypeClass,
     )
+
+
+admin_delete_one = delete_one

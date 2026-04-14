@@ -7,11 +7,12 @@ from app.errors import ApiErrorCode, ensure_result
 from app.filters.asset import AssetFilterDep
 from app.queries.common import router_read_many
 from app.repository.group import RepositoryGroup
+from app.routers.types import EntityRoute
 from app.schemas.asset import (
     AssetRead,
 )
 from app.schemas.types import ListResponse
-from app.utils.routers import EntityRoute, entity_route_to_type
+from app.utils.routers import entity_route_to_type
 
 
 def get_entity_asset(

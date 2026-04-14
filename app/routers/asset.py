@@ -16,6 +16,7 @@ from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.errors import ApiError, ApiErrorCode
 from app.filters.asset import AssetFilterDep
+from app.routers.types import EntityRoute
 from app.schemas.asset import (
     AssetAndPresignedURLS,
     AssetRead,
@@ -28,7 +29,7 @@ from app.schemas.asset import (
 from app.schemas.types import ListResponse
 from app.service import asset as asset_service
 from app.utils.files import calculate_sha256_digest, get_content_type
-from app.utils.routers import EntityRoute, entity_route_to_type
+from app.utils.routers import entity_route_to_type
 from app.utils.s3 import (
     check_object,
     generate_presigned_url,

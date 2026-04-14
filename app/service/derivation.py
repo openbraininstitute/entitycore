@@ -21,10 +21,11 @@ from app.filters.entity import BasicEntityFilterDep
 from app.queries import crud
 from app.queries.common import router_read_many
 from app.queries.entity import get_readable_entity, get_writable_entity
+from app.routers.types import EntityRoute
 from app.schemas.base import BasicEntityRead
 from app.schemas.derivation import DerivationCreate, DerivationRead
 from app.schemas.types import ListResponse
-from app.utils.routers import EntityRoute, entity_route_to_type
+from app.utils.routers import entity_route_to_type
 
 
 def _read_many(

@@ -11,6 +11,7 @@ from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.filters.asset import AssetFilterDep
 from app.queries.common import router_admin_delete_one
+from app.routers.types import EntityRoute, ResourceRoute
 from app.schemas.asset import (
     AssetRead,
 )
@@ -23,8 +24,6 @@ from app.service import (
     publish as publish_service,
 )
 from app.utils.routers import (
-    EntityRoute,
-    ResourceRoute,
     entity_route_to_type,
     route_to_type,
 )

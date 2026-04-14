@@ -19,7 +19,7 @@ from app.schemas.cell_morphology import CellMorphologyBase
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.entity import NestedEntityCreate
 from app.schemas.ion_channel_model import IonChannelModelWAssets
-from app.schemas.species import NestedSpeciesRead, NestedStrainRead
+from app.schemas.species import SpeciesStrainCreateMixin, SpeciesStrainReadMixin
 from app.schemas.utils import make_update_schema
 
 
@@ -34,9 +34,7 @@ class EModelBase(BaseModel, NameDescriptionMixin):
     seed: int
 
 
-class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin):
-    species_id: uuid.UUID
-    strain_id: uuid.UUID | None = None
+class EModelCreate(EModelBase, AuthorizationOptionalPublicMixin, SpeciesStrainCreateMixin):
     brain_region_id: uuid.UUID
     exemplar_morphology_id: uuid.UUID
     ion_channel_models: Annotated[
@@ -62,10 +60,9 @@ class EModelRead(
     CreatedByUpdatedByMixin,
     ContributionReadWithoutEntityMixin,
     BrainRegionReadMixin,
+    SpeciesStrainReadMixin,
 ):
     id: uuid.UUID
-    species: NestedSpeciesRead
-    strain: NestedStrainRead | None
     mtypes: list[MTypeClassRead] | None
     etypes: list[ETypeClassRead] | None
     exemplar_morphology: ExemplarMorphology

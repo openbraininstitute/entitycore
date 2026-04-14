@@ -1,10 +1,9 @@
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import CreationMixin, IdentifiableMixin
-from app.schemas.species import NestedSpeciesRead, NestedStrainRead
+from app.schemas.species import SpeciesStrainCreateMixin, SpeciesStrainReadMixin
 from app.schemas.utils import make_update_schema
 
 
@@ -14,16 +13,18 @@ class BrainRegionHierarchyBase(BaseModel):
     name: str
 
 
-class BrainRegionHierarchyCreate(BrainRegionHierarchyBase):
-    species_id: UUID
-    strain_id: UUID | None = None
+class BrainRegionHierarchyCreate(BrainRegionHierarchyBase, SpeciesStrainCreateMixin):
+    pass
 
 
 class BrainRegionHierarchyRead(
-    BrainRegionHierarchyBase, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
+    BrainRegionHierarchyBase,
+    CreationMixin,
+    CreatedByUpdatedByMixin,
+    IdentifiableMixin,
+    SpeciesStrainReadMixin,
 ):
-    species: NestedSpeciesRead
-    strain: NestedStrainRead | None = None
+    pass
 
 
 BrainRegionHierarchyAdminUpdate = make_update_schema(

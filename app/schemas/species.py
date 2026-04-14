@@ -48,3 +48,17 @@ StrainAdminUpdate = make_update_schema(
 
 class NestedStrainRead(StrainCreate, IdentifiableMixin):
     pass
+
+
+class SpeciesStrainReadMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    species: NestedSpeciesRead
+    strain: NestedStrainRead | None = None
+
+
+class SpeciesStrainCreateMixin(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    species_id: UUID
+    strain_id: UUID | None = None

@@ -9,7 +9,6 @@ from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
-from app.db.model import BrainRegion
 from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.base import CustomFilter
@@ -150,33 +149,19 @@ class Search[T: DeclarativeBase](BaseModel):
 class InBrainRegionQuery(BaseModel):
     """Handle parameters for within_brain_region_* query params.
 
-    Only `within_brain_region_direction` and `within_brain_region_brain_region_id`
-    are required. `within_brain_region_hierarchy_id` is optional, and only
-    used to check that the chosen brain_region_id matches the correct hierarchy.
+    Only `within_brain_region_direction` and `within_brain_region_brain_region_id` are required.
+    `within_brain_region_hierarchy_id` exists for historical reasons, and is
+    not used or verified: see https://github.com/openbraininstitute/entitycore/issues/567
     """
 
-    within_brain_region_hierarchy_id: uuid.UUID | None = None
     within_brain_region_brain_region_id: uuid.UUID | None = None
     within_brain_region_direction: WithinBrainRegionDirection | None = None
 
+    # only for backwards compat; ignored
+    within_brain_region_hierarchy_id: uuid.UUID | None = None
+
     @model_validator(mode="after")
     def check_range(self):
-        if (
-            self.within_brain_region_hierarchy_id is not None
-            and self.within_brain_region_brain_region_id is None
-        ):
-            raise ApiError(
-                message=(
-                    "Need to specify `within_brain_region_brain_region_id` "
-                    "when `within_brain_region_hierarchy_id` is specified"
-                ),
-                error_code=ApiErrorCode.INVALID_REQUEST,
-                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                details={
-                    "within_brain_region_hierarchy_id": f"{self.within_brain_region_hierarchy_id}",
-                },
-            )
-
         if (
             self.within_brain_region_brain_region_id is not None
             and self.within_brain_region_direction is None
@@ -210,7 +195,7 @@ class InBrainRegionQuery(BaseModel):
             )
         return self
 
-    def __call__(self, db: Session, query: sa.Select, db_model_class):
+    def __call__(self, query: sa.Select, db_model_class):
         if (
             self.within_brain_region_brain_region_id is None
             and self.within_brain_region_direction is None
@@ -220,35 +205,6 @@ class InBrainRegionQuery(BaseModel):
         # this was already checked by model_validator; adding asserts so typing is happy
         assert self.within_brain_region_brain_region_id  # noqa: S101
         assert self.within_brain_region_direction  # noqa: S101
-
-        if (
-            self.within_brain_region_hierarchy_id is not None
-            and self.within_brain_region_brain_region_id is not None
-            and not db.execute(
-                sa.select(
-                    sa.exists().where(
-                        sa.and_(
-                            BrainRegion.id == self.within_brain_region_brain_region_id,
-                            BrainRegion.hierarchy_id == self.within_brain_region_hierarchy_id,
-                        )
-                    )
-                )
-            ).scalar()
-        ):
-            id_ = f"{self.within_brain_region_brain_region_id}"
-            raise ApiError(
-                message=(
-                    "Mismatch between desired `within_brain_region_hierarchy_id` "
-                    "and the `within_brain_region_brain_region_id`: it "
-                    "must belong to the same hierarchy"
-                ),
-                error_code=ApiErrorCode.INVALID_REQUEST,
-                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                details={
-                    "within_brain_region_hierarchy_id": f"{self.within_brain_region_hierarchy_id}",
-                    "within_brain_region_brain_region_id": id_,
-                },
-            )
 
         return filter_by_region(
             query=query,

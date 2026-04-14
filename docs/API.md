@@ -261,7 +261,6 @@ This is inefficient.
 Instead, one can use the following query parameters:
 
 ```
-    within_brain_region_hierarchy_id: uuid.UUID | None = None
     within_brain_region_brain_region_id: uuid.UUID | None = None
     within_brain_region_direction: [ascendants, descendants, ascendants_and_descendants]
 ```
@@ -280,7 +279,9 @@ For example, in the following, if `RegionA-1` is the target region, all the outl
 ![Tree showing semantics of ascendants and descendants](within-search-ascendants-and-descendants.png)
 
 Only the `within_brain_region_brain_region_id` and `within_brain_region_direction` query parameters are required.
-If `within_brain_region_hierarchy_id` is included, it is checked against the `within_brain_region_brain_region_id` to make sure they refer to the same hierarchy.
+
+Note: If `within_brain_region_hierarchy_id` is included, it is not an error, but it is not checked to be correct against `within_brain_region_brain_region_id`.
+See: https://github.com/openbraininstitute/entitycore/issues/567
 
 # Brain Atlas:
 

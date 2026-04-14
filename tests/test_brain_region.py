@@ -394,8 +394,18 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
     utils.assert_request(
         client.get,
         url="/cell-morphology",
-        expected_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         params={"within_brain_region_hierarchy_id": str(hierarchy_name0.id)},
+    )
+
+    # superfluous `within_brain_region_hierarchy_id` and
+    utils.assert_request(
+        client.get,
+        url="/cell-morphology",
+        params={
+            "within_brain_region_hierarchy_id": str(hierarchy_name0.id),
+            "within_brain_region_direction": "ascendants",
+            "within_brain_region_brain_region_id": str(brain_regions1["RegionA"].id),
+        },
     )
 
     # only `within_brain_region_brain_region_id`, missing `within_brain_region_direction`
@@ -412,18 +422,6 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
         url="/cell-morphology",
         expected_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         params={"within_brain_region_direction": "ascendants"},
-    )
-
-    # mismatched `within_brain_region_hierarchy_id` and
-    utils.assert_request(
-        client.get,
-        url="/cell-morphology",
-        expected_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        params={
-            "within_brain_region_hierarchy_id": str(hierarchy_name0.id),
-            "within_brain_region_direction": "ascendants",
-            "within_brain_region_brain_region_id": str(brain_regions1["RegionA"].id),
-        },
     )
 
 

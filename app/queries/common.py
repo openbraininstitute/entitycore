@@ -329,9 +329,11 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     if with_in_brain_region:
         filter_query = with_in_brain_region(filter_query, db_model_class)
 
+    ensure_stable_sorting = [db_model_class.creation_date.desc(), db_model_class.id]
+
     data_query = (
         filter_model.sort(filter_query, aliases=aliases)
-        .order_by(db_model_class.id)
+        .order_by(*ensure_stable_sorting)
         .with_only_columns(db_model_class)
         .offset(pagination_request.offset)
         .limit(pagination_request.page_size)
@@ -345,7 +347,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
         # Order by L2 distance first, then by ID to guarantee uniqueness
         data_query = data_query.order_by(
             db_model_class.embedding.l2_distance(embedding),  # type: ignore[attr-defined]
-            db_model_class.id,
+            *ensure_stable_sorting,
         )
 
     if apply_data_query_operations:

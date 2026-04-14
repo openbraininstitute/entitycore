@@ -8,7 +8,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Derivation, DerivationType, Entity
 from app.db.utils import ENTITY_TYPE_TO_CLASS, load_db_model_from_pydantic
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import DerivationQueryDep, PaginationQuery
 from app.dependencies.db import SessionDep
 from app.errors import (
@@ -111,7 +111,7 @@ def read_many(
 
 def admin_read_many(
     *,
-    user_context: UserContextDep,
+    user_context: AdminContextDep,
     db: SessionDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,

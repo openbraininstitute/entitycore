@@ -65,15 +65,13 @@ def count_entities_by_type(
     Returns:
         Dictionary with entity type as key and count as value
     """
-    should_filter_brain_region = (
-        in_brain_region and in_brain_region.within_brain_region_brain_region_id is not None
-    )
+    if (
+        in_brain_region
+        and in_brain_region.within_brain_region_brain_region_id
+        and in_brain_region.within_brain_region_direction
+    ):
+        filter_conditions = []
 
-    filter_conditions = []
-    if should_filter_brain_region:
-        # should be checked by model_validator
-        assert in_brain_region.within_brain_region_brain_region_id  # noqa: S101
-        assert in_brain_region.within_brain_region_direction  # noqa: S101
         brain_region_cte = get_family_query(
             brain_region_id=in_brain_region.within_brain_region_brain_region_id,
             direction=in_brain_region.within_brain_region_direction,

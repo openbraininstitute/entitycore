@@ -217,7 +217,7 @@ class InBrainRegionQuery(BaseModel):
         ):
             return query
 
-        # should be checked by model_validator
+        # this was already checked by model_validator; adding asserts so typing is happy
         assert self.within_brain_region_brain_region_id  # noqa: S101
         assert self.within_brain_region_direction  # noqa: S101
 

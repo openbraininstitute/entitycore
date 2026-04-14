@@ -134,29 +134,22 @@ def _read_many(
         filter_keys=filter_keys,
         aliases=aliases,
     )
+    base_join_query = lambda q: q.join(
+        scientific_artifact_alias,
+        ScientificArtifactExternalUrlLink.scientific_artifact_id == scientific_artifact_alias.id,
+    ).join(
+        external_url_alias,
+        ScientificArtifactExternalUrlLink.external_url_id == external_url_alias.id,
+    )
 
     if check_authorized_project:
         filter_query = lambda q: constrain_to_readable_entities(
-            q.join(
-                scientific_artifact_alias,
-                ScientificArtifactExternalUrlLink.scientific_artifact_id
-                == scientific_artifact_alias.id,
-            ).join(
-                external_url_alias,
-                ScientificArtifactExternalUrlLink.external_url_id == external_url_alias.id,
-            ),
+            base_join_query(q),
             project_id=user_context.project_id,
             db_model_class=scientific_artifact_alias,
         )
     else:
-        filter_query = lambda q: q.join(
-            scientific_artifact_alias,
-            ScientificArtifactExternalUrlLink.scientific_artifact_id
-            == scientific_artifact_alias.id,
-        ).join(
-            external_url_alias,
-            ScientificArtifactExternalUrlLink.external_url_id == external_url_alias.id,
-        )
+        filter_query = base_join_query
 
     return router_read_many(
         db=db,

@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 from app.schemas.base import (
     CreationMixin,
     IdentifiableMixin,
+    make_update_schema,
 )
 
 
@@ -18,6 +19,13 @@ class PersonBase(BaseModel):
 
 class PersonCreate(PersonBase):
     legacy_id: str | None = None
+
+
+PersonAdminUpdate = make_update_schema(
+    PersonCreate,
+    "PersonAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedPersonRead(PersonBase, IdentifiableMixin):
@@ -45,6 +53,13 @@ class OrganizationCreate(OrganizationBase):
     legacy_id: str | None = None
 
 
+OrganizationAdminUpdate = make_update_schema(
+    OrganizationCreate,
+    "OrganizationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
+
+
 class NestedOrganizationRead(OrganizationBase, IdentifiableMixin):
     type: str
 
@@ -64,6 +79,13 @@ class ConsortiumBase(BaseModel):
 
 class ConsortiumCreate(ConsortiumBase):
     legacy_id: str | None = None
+
+
+ConsortiumAdminUpdate = make_update_schema(
+    ConsortiumCreate,
+    "ConsortiumAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]
 
 
 class NestedConsortiumRead(ConsortiumBase, IdentifiableMixin):

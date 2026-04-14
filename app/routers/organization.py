@@ -1,18 +1,8 @@
-from fastapi import APIRouter
-
-import app.service.organization
+import app.service.organization as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import AgentRoute
 
-ROUTE = "organization"
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
-)
-
-read_many = router.get("")(app.service.organization.read_many)
-read_one = router.get("/{id_}")(app.service.organization.read_one)
-create_one = router.post("")(app.service.organization.create_one)
-delete_one = router.delete("/{id_}")(app.service.organization.delete_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.organization.admin_read_one)
+ROUTE = AgentRoute.organization
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

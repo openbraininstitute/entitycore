@@ -1,18 +1,8 @@
-from fastapi import APIRouter
-
-import app.service.consortium
+import app.service.consortium as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import AgentRoute
 
-ROUTE = "consortium"
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
-)
-
-read_many = router.get("")(app.service.consortium.read_many)
-read_one = router.get("/{id_}")(app.service.consortium.read_one)
-create_one = router.post("")(app.service.consortium.create_one)
-delete_one = router.delete("/{id_}")(app.service.consortium.delete_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.consortium.admin_read_one)
+ROUTE = AgentRoute.consortium
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

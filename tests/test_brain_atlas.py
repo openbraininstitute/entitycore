@@ -117,6 +117,7 @@ def test_brain_atlas(db, client, species_id, person_id):
             "name": "Test Species",
             "taxonomy_id": "12345",
         },
+        "strain": None,
         "update_date": ANY,
         "created_by": ANY,
         "updated_by": ANY,

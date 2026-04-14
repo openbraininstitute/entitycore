@@ -38,6 +38,7 @@ def _load_from_db(query: sa.Select):
     return query.options(
         joinedload(CellComposition.brain_region),
         joinedload(CellComposition.species, innerjoin=True),
+        joinedload(CellComposition.strain),
         joinedload(CellComposition.created_by),
         joinedload(CellComposition.updated_by),
         selectinload(CellComposition.assets),

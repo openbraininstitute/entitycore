@@ -10,6 +10,7 @@ from .utils import (
     assert_request,
     check_entity_read_many,
     check_entity_read_response,
+    check_entity_delete_one
 )
 
 ROUTE = "cell-composition"
@@ -131,3 +132,19 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
         params={"ilike_search": "*composition-1"},
     ).json()["data"]
     assert len(data) == 1
+
+
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            CellComposition: 1,
+        },
+        expected_counts_after={
+            CellComposition: 0,
+        },
+    )

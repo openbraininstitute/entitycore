@@ -1,5 +1,4 @@
 import uuid
-from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -13,13 +12,13 @@ from app.db.model import (
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode
 from app.filters.cell_composition import CellCompositionFilterDep
 from app.queries.common import (
     router_create_one,
     router_read_many,
     router_read_one,
     router_update_one,
+    router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
 from app.schemas.cell_composition import (
@@ -28,6 +27,7 @@ from app.schemas.cell_composition import (
     CellCompositionRead,
     CellCompositionUserUpdate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:
@@ -99,12 +99,15 @@ def admin_update_one(
 
 
 def delete_one(
-    id_: uuid.UUID,  # noqa: ARG001
-):
-    raise ApiError(
-        message="Endpoint not implemented",
-        http_status_code=HTTPStatus.NOT_IMPLEMENTED,
-        error_code=ApiErrorCode.GENERIC_ERROR,
+    user_context: UserContextDep,
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    return router_user_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=CellComposition,
+        user_context=user_context,
     )
 
 

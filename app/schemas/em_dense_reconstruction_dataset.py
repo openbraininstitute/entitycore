@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 from app.db.types import SlicingDirectionType
-from app.schemas.base import NameDescriptionMixin
+from app.schemas.base import NameDescriptionMixin, make_update_schema
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.types import SerializableAnyUrl, SerializableHttpUrl
 
@@ -43,3 +43,10 @@ class EMDenseReconstructionDatasetCreate(
     ScientificArtifactCreate,
 ):
     pass
+
+
+EMDenseReconstructionDatasetAdminUpdate = make_update_schema(
+    EMDenseReconstructionDatasetCreate,
+    "EMDenseReconstructionDatasetAdminUpdate",
+    excluded_fields=set(),
+)  # pyright : ignore [reportInvalidTypeForm]

@@ -198,6 +198,7 @@ class ClientProxies(NamedTuple):
     user_3: ClientProxy
     no_project: ClientProxy
     admin: ClientProxy
+    admin_with_project: ClientProxy
     maintainer_1: ClientProxy
     maintainer_2: ClientProxy
     maintainer_3: ClientProxy

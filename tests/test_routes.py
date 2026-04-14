@@ -116,6 +116,7 @@ def test_entity_route_methods(entity_routes):
         "update_one",
         "delete_one",
         "admin_read_one",
+        "admin_read_many",
         "admin_update_one",
         "admin_delete_one",
         "admin_delete_entity_asset",
@@ -137,15 +138,8 @@ def test_entity_route_methods(entity_routes):
     # why is em-dense-recostruction-dataset an entity?
     # why is external-url an entity?
     skip = {
-        "brain-atlas",
-        "brain-atlas-region",
-        "cell-composition",
-        "em-dense-reconstruction-dataset",
-        "external-url",
-        "scientific-artifact",  # no router, remove from EntityRoute?
+        # "em-dense-reconstruction-dataset",
         "me-type-density",
-        "analysis-software-source-code",  # no router, remove from EntityRoute?
-        "electrical-recording",  # no router, remove from EntityRoute?
     }
 
     _assert_routes(entity_routes, expected_method_names, skip)
@@ -159,6 +153,7 @@ def test_global_route_methods(global_routes):
         "update_one",
         "delete_one",
         "admin_read_one",
+        "admin_read_many",
         "admin_update_one",
         "admin_delete_one",
     }
@@ -176,6 +171,7 @@ def test_activity_route_methods(activity_routes):
         "update_one",
         "delete_one",
         "admin_read_one",
+        "admin_read_many",
         "admin_update_one",
         "admin_delete_one",
     ]

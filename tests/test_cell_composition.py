@@ -8,9 +8,9 @@ from .utils import (
     USER_SUB_ID_1,
     add_db,
     assert_request,
+    check_entity_delete_one,
     check_entity_read_many,
     check_entity_read_response,
-    check_entity_delete_one
 )
 
 ROUTE = "cell-composition"

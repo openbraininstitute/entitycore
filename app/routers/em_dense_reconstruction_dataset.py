@@ -1,12 +1,8 @@
-from fastapi import APIRouter
+import app.service.em_dense_reconstruction_dataset as service
+from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import EntityRoute
 
-import app.service.em_dense_reconstruction_dataset
-
-router = APIRouter(
-    prefix="/em-dense-reconstruction-dataset",
-    tags=["em-dense-reconstruction-dataset"],
-)
-
-read_many = router.get("")(app.service.em_dense_reconstruction_dataset.read_many)
-read_one = router.get("/{id_}")(app.service.em_dense_reconstruction_dataset.read_one)
-create_one = router.post("")(app.service.em_dense_reconstruction_dataset.create_one)
+ROUTE = EntityRoute.em_dense_reconstruction_dataset
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

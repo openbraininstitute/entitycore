@@ -115,7 +115,7 @@ def upload_entity_asset(
     storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
     s3_client = storage_client_factory(storage)
     if file.size and not validate_filesize(file.size):
-        msg = f"File not allowed because empty or bigger than {settings.API_ASSET_POST_MAX_SIZE}"
+        msg = f"File not allowed because bigger than {settings.API_ASSET_POST_MAX_SIZE}"
         raise ApiError(
             message=msg,
             error_code=ApiErrorCode.ASSET_INVALID_FILE,

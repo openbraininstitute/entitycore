@@ -149,40 +149,30 @@ class Search[T: DeclarativeBase](BaseModel):
 class InBrainRegionQuery(BaseModel):
     """Handle parameters for within_brain_region_* query params.
 
-    Only `within_brain_region_direction` and `within_brain_region_brain_region_id` are required.
-    `within_brain_region_hierarchy_id` exists for historical reasons, and is
+    The parameters `within_brain_region_direction` and `within_brain_region_brain_region_id` can be
+    both specified at the same time, or both left unspecified to not filter.
+
+    The parameter `within_brain_region_hierarchy_id` is deprecated, and is
     not used or verified: see https://github.com/openbraininstitute/entitycore/issues/567
-    It will be deprecated.
+    It will be removed in a future version.
     """
 
     within_brain_region_brain_region_id: uuid.UUID | None = None
     within_brain_region_direction: WithinBrainRegionDirection | None = None
 
     # only for backwards compat; ignored
-    within_brain_region_hierarchy_id: uuid.UUID | None = None
+    within_brain_region_hierarchy_id: Annotated[uuid.UUID | None, Query(deprecated=True)] = None
 
     @model_validator(mode="after")
-    def check_range(self):
-        if (
-            self.within_brain_region_brain_region_id is not None
-            and self.within_brain_region_direction is None
-        ):
-            raise ApiError(
-                message=(
-                    "Need to specify `within_brain_region_brain_region_id` "
-                    "when `within_brain_region_direction` is specified"
-                ),
-                error_code=ApiErrorCode.INVALID_REQUEST,
-                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-                details={
-                    "within_brain_region_direction": f"{self.within_brain_region_direction}",
-                },
-            )
+    def check_brain_region_id_and_direction(self):
+        """Check within_brain_region_direction and within_brain_region_brain_region_id.
 
-        if (
-            self.within_brain_region_brain_region_id is None
-            and self.within_brain_region_direction is not None
-        ):
+        They need to be both None, or both not None.
+        """
+        brain_region_id = self.within_brain_region_brain_region_id
+        direction = self.within_brain_region_direction
+
+        if brain_region_id is not None and direction is None:
             raise ApiError(
                 message=(
                     "Need to specify `within_brain_region_direction` "
@@ -191,7 +181,22 @@ class InBrainRegionQuery(BaseModel):
                 error_code=ApiErrorCode.INVALID_REQUEST,
                 http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
                 details={
-                    "within_brain_region_direction": f"{self.within_brain_region_direction}",
+                    "within_brain_region_brain_region_id": f"{brain_region_id}",
+                    "within_brain_region_direction": f"{direction}",
+                },
+            )
+
+        if brain_region_id is None and direction is not None:
+            raise ApiError(
+                message=(
+                    "Need to specify `within_brain_region_brain_region_id` "
+                    "when `within_brain_region_direction` is specified"
+                ),
+                error_code=ApiErrorCode.INVALID_REQUEST,
+                http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                details={
+                    "within_brain_region_brain_region_id": f"{brain_region_id}",
+                    "within_brain_region_direction": f"{direction}",
                 },
             )
         return self

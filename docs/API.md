@@ -278,11 +278,10 @@ For example, in the following, if `RegionA-1` is the target region, all the outl
 
 ![Tree showing semantics of ascendants and descendants](within-search-ascendants-and-descendants.png)
 
-Only the `within_brain_region_brain_region_id` and `within_brain_region_direction` query parameters are required.
+The parameters `within_brain_region_direction` and `within_brain_region_brain_region_id` can be both specified at the same time, or both left unspecified to not filter.
 
-Note: If `within_brain_region_hierarchy_id` is included, it is not an error, but it is not checked to be correct against `within_brain_region_brain_region_id`.
-See: https://github.com/openbraininstitute/entitycore/issues/567
-It will be deprecated.
+The parameter `within_brain_region_hierarchy_id` is deprecated, and is not used or verified: see https://github.com/openbraininstitute/entitycore/issues/567.
+It will be removed in a future version.
 
 # Brain Atlas:
 

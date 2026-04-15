@@ -78,6 +78,7 @@ class NestedBrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
     acronym: str | None = None
     acronym__in: list[str] | None = None
     annotation_value: int | None = None
+    hierarchy_id: uuid.UUID | None = None
 
     class Constants(CustomFilter.Constants):
         model = BrainRegion

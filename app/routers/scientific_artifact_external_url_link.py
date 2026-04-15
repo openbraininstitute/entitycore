@@ -17,3 +17,4 @@ create_one = router.post("")(service.create_one)
 
 admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(service.admin_read_one)
 admin_read_many = admin_router.get(f"/{ROUTE}")(service.admin_read_many)
+admin_delete_one = admin_router.delete(f"/{ROUTE}/{{id_}}")(service.admin_delete_one)

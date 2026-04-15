@@ -133,14 +133,10 @@ def test_entity_route_methods(entity_routes):
         "upload_entity_asset",
     }
 
-    # the following must be clarified:
-    # why is ion-channel is an entity?
-    # why is em-dense-recostruction-dataset an entity?
-    # why is external-url an entity?
-    skip = {
-        # "em-dense-reconstruction-dataset",
-        "me-type-density",
-    }
+    # skip = {
+    #    "me-type-density",
+    # }
+    skip = set()
 
     _assert_routes(entity_routes, expected_method_names, skip)
 
@@ -158,8 +154,7 @@ def test_global_route_methods(global_routes):
         "admin_delete_one",
     }
 
-    skip = {"brain-region-hierarchy", "ion"}
-
+    skip = set()
     _assert_routes(global_routes, expected_method_names, skip)
 
 

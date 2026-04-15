@@ -2,17 +2,33 @@ import uuid
 
 from app.db.model import Asset, Entity
 from app.db.types import EntityType
+from app.db.utils import RESOURCE_TYPE_TO_CLASS
 from app.dependencies.common import PaginationQuery
+from app.dependencies.db import SessionDep
 from app.errors import ApiErrorCode, ensure_result
 from app.filters.asset import AssetFilterDep
-from app.queries.common import router_read_many
+from app.queries.common import router_admin_delete_one, router_read_many
 from app.repository.group import RepositoryGroup
-from app.routers.types import EntityRoute
+from app.routers.types import EntityRoute, ResourceRoute
 from app.schemas.asset import (
     AssetRead,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-from app.utils.routers import entity_route_to_type
+from app.utils.routers import entity_route_to_type, route_to_type
+
+
+def delete_one(
+    db: SessionDep,
+    route: ResourceRoute,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    resource_type = route_to_type(route)
+    return router_admin_delete_one(
+        id_=id_,
+        db=db,
+        db_model_class=RESOURCE_TYPE_TO_CLASS[resource_type],
+    )
 
 
 def get_entity_asset(

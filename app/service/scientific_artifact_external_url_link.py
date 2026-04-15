@@ -26,11 +26,14 @@ from app.filters.scientific_artifact_external_url_link import (
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
+from app.routers.types import AssociationRoute
+from app.schemas.routers import DeleteResponse
 from app.schemas.scientific_artifact_external_url_link import (
     ScientificArtifactExternalUrlLinkCreate,
     ScientificArtifactExternalUrlLinkRead,
 )
 from app.schemas.types import ListResponse
+from app.service import admin as admin_service
 from app.utils.entity import ensure_readable
 
 if TYPE_CHECKING:
@@ -205,4 +208,15 @@ def admin_read_many(
         pagination_request=pagination_request,
         filter_model=filter_model,
         check_authorized_project=False,
+    )
+
+
+def admin_delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    return admin_service.delete_one(
+        db=db,
+        route=AssociationRoute.scientific_artifact_external_url_link,
+        id_=id_,
     )

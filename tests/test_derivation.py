@@ -284,7 +284,7 @@ def test_create_with_authorization(client_user_1, client_user_2, root_circuit_js
             assert data["error_code"] == "ENTITY_NOT_FOUND", f"Error in test {i}"
 
 
-def test_delete_one(client, root_circuit, circuit):
+def test_user_delete_one(client, root_circuit, circuit):
     data = assert_request(
         client.post,
         url="/derivation",

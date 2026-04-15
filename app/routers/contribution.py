@@ -1,19 +1,8 @@
-from fastapi import APIRouter
-
 import app.service.contribution as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
 from app.routers.types import AssociationRoute
 
 ROUTE = AssociationRoute.contribution
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
-)
-
-read_many = router.get("")(service.read_many)
-read_one = router.get("/{id_}")(service.read_one)
-create_one = router.post("")(service.create_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(service.admin_read_one)
-admin_read_many = admin_router.get(f"/{ROUTE}")(service.admin_read_many)
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

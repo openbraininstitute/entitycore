@@ -22,11 +22,14 @@ from app.filters.classification import ETypeClassificationFilterDep
 from app.logger import L
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
+from app.routers.types import AssociationRoute
 from app.schemas.classification import (
     ETypeClassificationCreate,
     ETypeClassificationRead,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+from app.service import admin as admin_service
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
@@ -184,4 +187,15 @@ def admin_read_many(
         with_search=with_search,
         facets=facets,
         check_authorized_project=False,
+    )
+
+
+def admin_delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    return admin_service.delete_one(
+        db=db,
+        route=AssociationRoute.etype_classification,
+        id_=id_,
     )

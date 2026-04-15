@@ -96,6 +96,45 @@ def test_create_contribution(
     ]
 
 
+def test_update_one(clients, json_data, organization_id, person_id):
+
+    data = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()
+
+    cid = data["id"]
+
+    data = assert_request(
+        clients.user_2.patch,
+        url=f"{ROUTE}/{cid}",
+        json={"agent_id": str(organization_id)},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    assert_request(
+        clients.user_1.patch, url=f"{ROUTE}/{cid}", json={"agent_id": str(organization_id)}
+    )
+
+    data = assert_request(clients.user_1.get, url=f"{ROUTE}/{cid}").json()
+    assert data["agent"]["id"] == str(organization_id)
+
+    # admin on regular route
+    data = assert_request(
+        clients.admin.patch,
+        url=f"{ROUTE}/{cid}",
+        json={"agent_id": str(person_id)},
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admin on admin route
+    data = assert_request(
+        clients.admin.patch, url=f"{ADMIN_ROUTE}/{cid}", json={"agent_id": str(person_id)}
+    )
+
+    data = assert_request(clients.user_1.get, url=f"{ROUTE}/{cid}").json()
+    assert data["agent"]["id"] == str(person_id)
+
+
 def test_read_many(clients, json_data, person_id, organization_id, subject_id, brain_region_id):
 
     m1_id_pr = create_cell_morphology_id(
@@ -156,7 +195,7 @@ def test_read_many(clients, json_data, person_id, organization_id, subject_id, b
     assert {d["id"] for d in data} == {c1_pr["id"], c1_pu["id"], c2_pr["id"], c2_pu["id"]}
 
 
-def test_delete_one(client, client_admin, role_id, person_id, brain_region_id, subject_id):
+def test_admin_delete_one(client, client_admin, role_id, person_id, brain_region_id, subject_id):
     morphology_id = create_cell_morphology_id(
         client,
         subject_id=subject_id,
@@ -193,6 +232,47 @@ def test_delete_one(client, client_admin, role_id, person_id, brain_region_id, s
 
     data = assert_request(
         client.get,
+        url=f"{ROUTE_MORPH}/{morphology_id}",
+    ).json()
+    assert len(data["contributions"]) == 0
+
+
+def test_user_delete_one(clients, role_id, person_id, brain_region_id, subject_id):
+    morphology_id = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    contribution = assert_request(
+        clients.user_1.post,
+        url=ROUTE,
+        json={
+            "agent_id": str(person_id),
+            "role_id": str(role_id),
+            "entity_id": str(morphology_id),
+        },
+    ).json()
+
+    model_id = contribution["id"]
+
+    data = assert_request(
+        clients.user_1.get,
+        url=f"{ROUTE_MORPH}/{morphology_id}",
+    ).json()
+    assert len(data["contributions"]) == 1
+    assert data["contributions"][0]["id"] == str(contribution["id"])
+
+    data = assert_request(
+        clients.user_2.delete, url=f"{ROUTE}/{model_id}", expected_status_code=403
+    ).json()
+    assert data["error_code"] == "ENTITY_FORBIDDEN"
+
+    data = assert_request(clients.user_1.delete, url=f"{ROUTE}/{model_id}").json()
+    assert data["id"] == str(model_id)
+
+    data = assert_request(
+        clients.user_1.get,
         url=f"{ROUTE_MORPH}/{morphology_id}",
     ).json()
     assert len(data["contributions"]) == 0

@@ -205,7 +205,7 @@ def test_count_entities_by_type_with_brain_region_filter(
             "types": "cell_morphology",
             "within_brain_region_hierarchy_id": str(brain_region_hierarchy_id),
             "within_brain_region_brain_region_id": str(region1.id),
-            "within_brain_region_ascendants": False,
+            "within_brain_region_direction": "descendants",
         },
     )
     data = response.json()

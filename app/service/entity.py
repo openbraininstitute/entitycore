@@ -65,20 +65,16 @@ def count_entities_by_type(
     Returns:
         Dictionary with entity type as key and count as value
     """
-    results = {}
-
-    should_filter_brain_region = (
+    if (
         in_brain_region
-        and in_brain_region.within_brain_region_hierarchy_id is not None
-        and in_brain_region.within_brain_region_brain_region_id is not None
-    )
+        and in_brain_region.within_brain_region_brain_region_id
+        and in_brain_region.within_brain_region_direction
+    ):
+        filter_conditions = []
 
-    filter_conditions = []
-    if should_filter_brain_region:
         brain_region_cte = get_family_query(
-            hierarchy_id=in_brain_region.within_brain_region_hierarchy_id,  # type: ignore[reportGeneralTypeIssues]
-            brain_region_id=in_brain_region.within_brain_region_brain_region_id,  # type: ignore[reportGeneralTypeIssues]
-            direction=in_brain_region.get_direction(),
+            brain_region_id=in_brain_region.within_brain_region_brain_region_id,
+            direction=in_brain_region.within_brain_region_direction,
         )
 
         for et in entity_types:

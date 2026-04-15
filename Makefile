@@ -55,6 +55,7 @@ build:  ## Build the Docker image
 publish: build  ## Publish the Docker image to DockerHub
 	docker compose push app
 
+# use `PYTEST_ADDOPTS=` to narrow the pytests run, and add options 
 test-local:  ## Run tests locally
 	@$(call load_env,test-local)
 	docker compose up --wait db-test

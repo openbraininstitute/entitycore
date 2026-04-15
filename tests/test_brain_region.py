@@ -1,4 +1,5 @@
 import itertools as it
+from http import HTTPStatus
 from typing import get_type_hints
 from unittest.mock import ANY
 
@@ -304,21 +305,19 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
         )
     assert len(client.get("/cell-morphology").json()["data"]) == 4 + 11
 
-    def get_response(hier, acronym, ascendants=False, direction=None, params=None):  # noqa: FBT002
-        hierarchy_id = hierarchy_name0.id if hier == "hier0" else hierarchy_name1.id
+    def get_response(hier, acronym, direction=None, params=None):
         brain_region_id = (
             brain_regions0[acronym].id if hier == "hier0" else brain_regions1[acronym].id
         )
 
         params = (params or {}) | {
-            "within_brain_region_hierarchy_id": hierarchy_id,
             "within_brain_region_brain_region_id": brain_region_id,
-            "within_brain_region_ascendants": ascendants,
         }
-        if direction is not None:
-            params["within_brain_region_direction"] = direction
+        params["within_brain_region_direction"] = direction
 
-        return client.get("/cell-morphology", params=params).json()["data"]
+        return utils.assert_request(client.get, url="/cell-morphology", params=params).json()[
+            "data"
+        ]
 
     for direction, region, expected in (
         ("descendants", "root", 4),
@@ -336,10 +335,6 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
     ):
         response = get_response("hier0", region, direction=direction)
         assert len(response) == expected
-        if direction != "ascendants_and_descendants":
-            ascendants = direction == "ascendants"
-            legacy = get_response("hier0", region, ascendants=ascendants)
-            assert len(legacy) == expected
 
     for direction, region, expected in (
         ("descendants", "root", 11),
@@ -394,6 +389,40 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
         params={"page_size": "2"},
     )
     assert len(response) == 2
+
+    # only `within_brain_region_hierarchy_id`
+    utils.assert_request(
+        client.get,
+        url="/cell-morphology",
+        params={"within_brain_region_hierarchy_id": str(hierarchy_name0.id)},
+    )
+
+    # superfluous `within_brain_region_hierarchy_id` and
+    utils.assert_request(
+        client.get,
+        url="/cell-morphology",
+        params={
+            "within_brain_region_hierarchy_id": str(hierarchy_name0.id),
+            "within_brain_region_direction": "ascendants",
+            "within_brain_region_brain_region_id": str(brain_regions1["RegionA"].id),
+        },
+    )
+
+    # only `within_brain_region_brain_region_id`, missing `within_brain_region_direction`
+    utils.assert_request(
+        client.get,
+        url="/cell-morphology",
+        expected_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        params={"within_brain_region_brain_region_id": str(brain_regions1["RegionA"].id)},
+    )
+
+    # only `within_brain_region_direction`, missing `within_brain_region_brain_region_id`
+    utils.assert_request(
+        client.get,
+        url="/cell-morphology",
+        expected_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        params={"within_brain_region_direction": "ascendants"},
+    )
 
 
 def test_InBrainRegionDep():

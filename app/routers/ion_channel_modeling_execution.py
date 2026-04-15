@@ -1,20 +1,8 @@
-from fastapi import APIRouter
-
-import app.service.ion_channel_modeling_execution
+import app.service.ion_channel_modeling_execution as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import ActivityRoute
 
-ROUTE = "ion-channel-modeling-execution"
-router = APIRouter(prefix=f"/{ROUTE}", tags=[ROUTE])
-
-read_many = router.get("")(app.service.ion_channel_modeling_execution.read_many)
-read_one = router.get("/{id_}")(app.service.ion_channel_modeling_execution.read_one)
-create_one = router.post("")(app.service.ion_channel_modeling_execution.create_one)
-delete_one = router.delete("/{id_}")(app.service.ion_channel_modeling_execution.delete_one)
-update_one = router.patch("/{id_}")(app.service.ion_channel_modeling_execution.update_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(
-    app.service.ion_channel_modeling_execution.admin_read_one
-)
-admin_update_one = admin_router.patch("/ion-channel-modeling-execution/{id_}")(
-    app.service.ion_channel_modeling_execution.admin_update_one
-)
+ROUTE = ActivityRoute.ion_channel_modeling_execution
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

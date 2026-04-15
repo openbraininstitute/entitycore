@@ -22,6 +22,7 @@ from .utils import (
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     check_missing,
     create_brain_region,
@@ -129,6 +130,15 @@ def test_read_one(
     assert len(data["stimuli"]) == 2
     assert len(data["assets"]) == 1
     _assert_read_response(data, ion_channel_recording_json_data)
+
+
+def test_read_many(clients, ion_channel_recording_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=ion_channel_recording_json_data,
+    )
 
 
 def test_delete_one(db, clients, ion_channel_recording_json_data):

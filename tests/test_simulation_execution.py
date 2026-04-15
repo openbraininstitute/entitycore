@@ -12,6 +12,7 @@ from .utils import (
     assert_request,
     check_activity_create_one__unauthorized_entities,
     check_activity_delete_one,
+    check_activity_read_many,
     check_activity_update_one,
     check_activity_update_one__fail_if_generated_ids_exists,
     check_activity_update_one__fail_if_generated_ids_unauthorized,
@@ -23,7 +24,7 @@ from .utils import (
 
 DateTimeAdapter = TypeAdapter(datetime)
 
-ROUTE = "simulation-execution"
+ROUTE = "/simulation-execution"
 ADMIN_ROUTE = "/admin/simulation-execution"
 MODEL = SimulationExecution
 
@@ -111,6 +112,14 @@ def test_create_one__empty_ids(client, client_admin, json_data):
 
     data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{data['id']}").json()
     _assert_read_response(data, json_data, empty_ids=True)
+
+
+def test_read_many(clients):
+    check_activity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+    )
 
 
 def test_create_one__unauthorized_entities(

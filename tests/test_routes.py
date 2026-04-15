@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import pytest
 
 from app.application import app
-from app.utils.routers import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
+from app.routers.types import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
 
 
 @dataclass
@@ -116,6 +116,7 @@ def test_entity_route_methods(entity_routes):
         "update_one",
         "delete_one",
         "admin_read_one",
+        "admin_read_many",
         "admin_update_one",
         "admin_delete_one",
         "admin_delete_entity_asset",
@@ -132,21 +133,10 @@ def test_entity_route_methods(entity_routes):
         "upload_entity_asset",
     }
 
-    # the following must be clarified:
-    # why is ion-channel is an entity?
-    # why is em-dense-recostruction-dataset an entity?
-    # why is external-url an entity?
-    skip = {
-        "brain-atlas",
-        "brain-atlas-region",
-        "cell-composition",
-        "em-dense-reconstruction-dataset",
-        "external-url",
-        "scientific-artifact",  # no router, remove from EntityRoute?
-        "me-type-density",
-        "analysis-software-source-code",  # no router, remove from EntityRoute?
-        "electrical-recording",  # no router, remove from EntityRoute?
-    }
+    # skip = {
+    #    "me-type-density",
+    # }
+    skip = set()
 
     _assert_routes(entity_routes, expected_method_names, skip)
 
@@ -159,12 +149,12 @@ def test_global_route_methods(global_routes):
         "update_one",
         "delete_one",
         "admin_read_one",
+        "admin_read_many",
         "admin_update_one",
         "admin_delete_one",
     }
 
-    skip = {"brain-region-hierarchy", "ion"}
-
+    skip = set()
     _assert_routes(global_routes, expected_method_names, skip)
 
 
@@ -176,6 +166,7 @@ def test_activity_route_methods(activity_routes):
         "update_one",
         "delete_one",
         "admin_read_one",
+        "admin_read_many",
         "admin_update_one",
         "admin_delete_one",
     ]

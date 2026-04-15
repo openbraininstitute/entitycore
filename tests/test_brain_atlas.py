@@ -7,6 +7,7 @@ from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.db.types import EntityType, StorageType
 
 from . import utils
+from .utils import check_entity_read_many
 
 ROUTE = "/brain-atlas"
 ADMIN_ROUTE = "/admin/brain-atlas"
@@ -116,6 +117,7 @@ def test_brain_atlas(db, client, species_id, person_id):
             "name": "Test Species",
             "taxonomy_id": "12345",
         },
+        "strain": None,
         "update_date": ANY,
         "created_by": ANY,
         "updated_by": ANY,
@@ -335,13 +337,10 @@ def test_admin_read_one(client_admin, model, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_many(client, model, json_data):
-    data = utils.assert_request(client.get, url=f"{ROUTE}").json()["data"]
-
-    assert len(data) == 1
-
-    assert data[0]["id"] == str(model.id)
-    _assert_read_response(data[0], json_data)
+def test_read_many(clients, json_data):
+    check_entity_read_many(
+        route=ROUTE, admin_route=ADMIN_ROUTE, clients=clients, json_data=json_data
+    )
 
 
 def test_delete_one(db, clients, json_data):

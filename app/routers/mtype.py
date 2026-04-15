@@ -1,20 +1,8 @@
-from fastapi import APIRouter
-
-import app.service.mtype
+import app.service.mtype as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import GlobalRoute
 
-ROUTE = "mtype"
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
-)
-
-read_many = router.get("")(app.service.mtype.read_many)
-read_one = router.get("/{id_}")(app.service.mtype.read_one)
-create_one = router.post("")(app.service.mtype.create_one)
-update_one = router.patch("/{id_}")(app.service.mtype.update_one)
-delete_one = router.delete("/{id_}")(app.service.mtype.delete_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.mtype.admin_read_one)
-admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(app.service.mtype.admin_update_one)
+ROUTE = GlobalRoute.mtype
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

@@ -13,7 +13,7 @@ from app.db.model import (
     ScientificArtifact,
     ScientificArtifactPublicationLink,
 )
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -26,11 +26,14 @@ from app.filters.scientific_artifact_publication_link import (
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
+from app.routers.types import AssociationRoute
+from app.schemas.routers import DeleteResponse
 from app.schemas.scientific_artifact_publication_link import (
     ScientificArtifactPublicationLinkCreate,
     ScientificArtifactPublicationLinkRead,
 )
 from app.schemas.types import ListResponse
+from app.service import admin as admin_service
 from app.utils.entity import ensure_readable
 
 if TYPE_CHECKING:
@@ -97,13 +100,15 @@ def create_one(
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: ScientificArtifactPublicationLinkFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    check_authorized_project: bool,
 ) -> ListResponse[ScientificArtifactPublicationLinkRead]:
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
@@ -132,19 +137,22 @@ def read_many(
         filter_keys=filter_keys,
         aliases=aliases,
     )
-
-    filter_query = lambda q: constrain_to_readable_entities(
-        q.join(
-            scientific_artifact_alias,
-            ScientificArtifactPublicationLink.scientific_artifact_id
-            == scientific_artifact_alias.id,
-        ).join(
-            publication_alias,
-            ScientificArtifactPublicationLink.publication_id == publication_alias.id,
-        ),
-        project_id=user_context.project_id,
-        db_model_class=scientific_artifact_alias,
+    base_join_query = lambda q: q.join(
+        scientific_artifact_alias,
+        ScientificArtifactPublicationLink.scientific_artifact_id == scientific_artifact_alias.id,
+    ).join(
+        publication_alias,
+        ScientificArtifactPublicationLink.publication_id == publication_alias.id,
     )
+
+    if check_authorized_project:
+        filter_query = lambda q: constrain_to_readable_entities(
+            base_join_query(q),
+            project_id=user_context.project_id,
+            db_model_class=scientific_artifact_alias,
+        )
+    else:
+        filter_query = base_join_query
 
     return router_read_many(
         db=db,
@@ -161,4 +169,53 @@ def read_many(
         response_schema_class=ScientificArtifactPublicationLinkRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+    pagination_request: PaginationQuery,
+    filter_model: ScientificArtifactPublicationLinkFilterDep,
+) -> ListResponse[ScientificArtifactPublicationLinkRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        with_search=with_search,
+        facets=facets,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+    pagination_request: PaginationQuery,
+    filter_model: ScientificArtifactPublicationLinkFilterDep,
+) -> ListResponse[ScientificArtifactPublicationLinkRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        with_search=with_search,
+        facets=facets,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        check_authorized_project=False,
+    )
+
+
+def admin_delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    return admin_service.delete_one(
+        db=db,
+        route=AssociationRoute.scientific_artifact_publication_link,
+        id_=id_,
     )

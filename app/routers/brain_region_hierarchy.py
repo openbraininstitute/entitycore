@@ -1,23 +1,14 @@
-from fastapi import APIRouter
-
-import app.service.brain_region_hierarchy
+import app.service.brain_region_hierarchy as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import GlobalRoute
 
-ROUTE = "brain-region-hierarchy"
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
+ROUTE = GlobalRoute.brain_region_hierarchy
+router = create_user_router(
+    route=ROUTE,
+    service=service,
+    after_routes=[
+        lambda router: router.get("/{id_}/hierarchy")(service.read_hierarchy),
+    ],
 )
-
-read_many = router.get("")(app.service.brain_region_hierarchy.read_many)
-read_one = router.get("/{id_}")(app.service.brain_region_hierarchy.read_one)
-read_hierarchy = router.get("/{id_}/hierarchy")(app.service.brain_region_hierarchy.read_hierarchy)
-create_one = router.post("")(app.service.brain_region_hierarchy.create_one)
-update_one = router.patch("/{id_}")(app.service.brain_region_hierarchy.update_one)
-delete_one = router.delete("/{id_}")(app.service.brain_region_hierarchy.delete_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.brain_region_hierarchy.read_one)
-admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
-    app.service.brain_region_hierarchy.update_one
-)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

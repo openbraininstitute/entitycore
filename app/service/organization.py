@@ -11,7 +11,7 @@ from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
 from app.filters.organization import OrganizationFilterDep
 from app.queries.factory import query_params_factory
-from app.schemas.agent import OrganizationCreate, OrganizationRead
+from app.schemas.agent import OrganizationAdminUpdate, OrganizationCreate, OrganizationRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
@@ -68,6 +68,9 @@ def read_many(
     )
 
 
+admin_read_many = read_many
+
+
 def read_one(id_: uuid.UUID, db: SessionDep) -> OrganizationRead:
     return app.queries.common.router_read_one(
         id_=id_,
@@ -101,6 +104,27 @@ def create_one(
         user_context=user_context,
         apply_operations=_load,
     )
+
+
+def update_one(
+    db: SessionDep,
+    user_context: AdminContextDep,
+    id_: uuid.UUID,
+    json_model: OrganizationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> OrganizationRead:
+    return app.queries.common.router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Organization,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=OrganizationRead,
+        apply_operations=_load,
+        check_authorized_project=False,
+    )
+
+
+admin_update_one = update_one
 
 
 def delete_one(

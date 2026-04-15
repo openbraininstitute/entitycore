@@ -175,15 +175,16 @@ def admin_update_one(
     )
 
 
-def read_many(
+def _read_many(
     *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    morphology_filter: CellMorphologyFilterDep,
-    search: SearchDep,
+    filter_model: CellMorphologyFilterDep,
+    with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    check_authorized_project: bool,
 ) -> ListResponse[CellMorphologyRead]:
     subject_alias = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
@@ -229,7 +230,7 @@ def read_many(
         db=db,
         db_model_class=CellMorphology,
         authorized_project_id=user_context.project_id,
-        with_search=search,
+        with_search=with_search,
         with_in_brain_region=in_brain_region,
         facets=with_facets,
         aliases=aliases,
@@ -238,8 +239,51 @@ def read_many(
         pagination_request=pagination_request,
         response_schema_class=CellMorphologyRead,
         name_to_facet_query_params=name_to_facet_query_params,
-        filter_model=morphology_filter,
+        filter_model=filter_model,
         filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: CellMorphologyFilterDep,
+    with_search: SearchDep,
+    with_facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
+) -> ListResponse[CellMorphologyRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        with_facets=with_facets,
+        in_brain_region=in_brain_region,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: CellMorphologyFilterDep,
+    with_search: SearchDep,
+    with_facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
+) -> ListResponse[CellMorphologyRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        with_facets=with_facets,
+        in_brain_region=in_brain_region,
+        check_authorized_project=False,
     )
 
 

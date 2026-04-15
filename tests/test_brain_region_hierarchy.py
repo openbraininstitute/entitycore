@@ -9,6 +9,7 @@ from .utils import assert_request, check_creation_fields
 from tests import test_brain_region, utils
 from tests.utils import (
     check_global_delete_one,
+    check_global_read_many,
     check_global_read_one,
     check_global_update_one,
 )
@@ -153,6 +154,16 @@ def test_create(client, client_admin, species_id):
 
 def test_read_one(clients, json_data):
     check_global_read_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
+
+
+def test_read_many(clients, json_data):
+    check_global_read_many(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,

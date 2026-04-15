@@ -1,16 +1,8 @@
-from fastapi import APIRouter
-
-import app.service.external_url
+import app.service.external_url as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import EntityRoute
 
-ROUTE = "external-url"
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
-)
-read_one = router.get("/{id_}")(app.service.external_url.read_one)
-read_many = router.get("")(app.service.external_url.read_many)
-create_one = router.post("")(app.service.external_url.create_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.external_url.admin_read_one)
+ROUTE = EntityRoute.external_url
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

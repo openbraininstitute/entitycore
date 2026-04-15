@@ -44,7 +44,7 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import EntityType, StorageType
+from app.db.types import EntityType, ExecutorType, StorageType
 from app.routers.asset import EntityRoute
 from app.utils.uuid import create_uuid
 
@@ -198,6 +198,7 @@ class ClientProxies(NamedTuple):
     user_3: ClientProxy
     no_project: ClientProxy
     admin: ClientProxy
+    admin_with_project: ClientProxy
     maintainer_1: ClientProxy
     maintainer_2: ClientProxy
     maintainer_3: ClientProxy
@@ -1149,6 +1150,49 @@ def check_global_read_one(
     _req(clients.admin, admin_route)
 
 
+def check_global_read_many(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+    validator: Callable[[dict, dict], None],
+):
+    model_id = assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+
+    def _req(client, client_route):
+        data = assert_request(client.get, url=client_route).json()["data"]
+        assert len(data) == 1
+        assert data[0]["id"] == str(model_id)
+        validator(data[0], json_data)
+
+    # user that created the resource can read it
+    _req(clients.user_1, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_1.get,
+        url=admin_route,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # any other user can read it too because it is global
+    _req(clients.user_2, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_2.get,
+        url=admin_route,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # service admins can read from both regular and admin routes
+    _req(clients.admin, route)
+    _req(clients.admin, admin_route)
+
+
 def check_global_update_one(
     *,
     route: str,
@@ -1235,6 +1279,63 @@ def check_entity_read_response(data, json_data, expected_entity_type):
     assert data["type"] == expected_entity_type
 
     check_creation_fields(data)
+
+
+def check_entity_read_many(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    json_data: dict,
+):
+
+    # register entities with users in different projects
+    u1_private = assert_request(
+        clients.user_1.post, url=route, json=json_data | {"authorized_public": False}
+    ).json()
+    u1_public = assert_request(
+        clients.user_1.post, url=route, json=json_data | {"authorized_public": True}
+    ).json()
+    u2_private = assert_request(
+        clients.user_2.post, url=route, json=json_data | {"authorized_public": False}
+    ).json()
+    u2_public = assert_request(
+        clients.user_2.post, url=route, json=json_data | {"authorized_public": True}
+    ).json()
+
+    def req(client, client_route, expected_status_code=200):
+        return assert_request(
+            client.get, url=client_route, expected_status_code=expected_status_code
+        ).json()
+
+    # user1 can get their entities and user2's public
+    results = req(clients.user_1, route)["data"]
+    assert {r["id"] for r in results} == {u1_private["id"], u1_public["id"], u2_public["id"]}
+
+    # user not allowed using admin route
+    data = req(clients.user_1, admin_route, expected_status_code=403)
+    assert data["message"] == "Service admin role required"
+
+    # same for user2
+    results = req(clients.user_2, route)["data"]
+    assert {r["id"] for r in results} == {u2_private["id"], u2_public["id"], u1_public["id"]}
+
+    # user not allowed using admin route
+    data = req(clients.user_2, admin_route, expected_status_code=403)
+    assert data["message"] == "Service admin role required"
+
+    # admin using the user route has access only to public entities (no project headers)
+    results = req(clients.admin, route)["data"]
+    assert all(r["authorized_public"] for r in results)
+
+    # admin on admin route can get them all
+    results = req(clients.admin, admin_route)["data"]
+    assert {r["id"] for r in results} == {
+        u1_private["id"],
+        u1_public["id"],
+        u2_private["id"],
+        u2_public["id"],
+    }
 
 
 def check_entity_update_one(
@@ -1656,6 +1757,74 @@ def check_activity_update_one__fail_if_generated_ids_exists(
         client.patch, url=f"{route}/{gen1}", json=update_json, expected_status_code=409
     ).json()
     assert data["details"] == "It is forbidden to update generated_ids if they exist."
+
+
+def check_activity_read_many(
+    *,
+    route: str,
+    admin_route: str,
+    clients: ClientProxies,
+    extra_json_data: dict | None = None,
+):
+    json_data = {
+        "start_time": str(datetime.now(UTC)),
+        "end_time": str(datetime.now(UTC)),
+        "used_ids": [],
+        "status": "done",
+        "executor": str(ExecutorType.distributed_job),
+        "execution_id": "1739b817-26bb-4dad-93f4-0279a1b2cf6e",
+    }
+
+    if extra_json_data:
+        json_data |= extra_json_data
+
+    # register entities with users in different projects
+    u1_private = assert_request(
+        clients.user_1.post, url=route, json=json_data | {"authorized_public": False}
+    ).json()
+    u1_public = assert_request(
+        clients.user_1.post, url=route, json=json_data | {"authorized_public": True}
+    ).json()
+    u2_private = assert_request(
+        clients.user_2.post, url=route, json=json_data | {"authorized_public": False}
+    ).json()
+    u2_public = assert_request(
+        clients.user_2.post, url=route, json=json_data | {"authorized_public": True}
+    ).json()
+
+    def req(client, client_route, expected_status_code=200):
+        return assert_request(
+            client.get, url=client_route, expected_status_code=expected_status_code
+        ).json()
+
+    # user1 can get their entities and user2's public
+    results = req(clients.user_1, route)["data"]
+    assert {r["id"] for r in results} == {u1_private["id"], u1_public["id"], u2_public["id"]}
+
+    # user not allowed using admin route
+    data = req(clients.user_1, admin_route, expected_status_code=403)
+    assert data["message"] == "Service admin role required"
+
+    # same for user2
+    results = req(clients.user_2, route)["data"]
+    assert {r["id"] for r in results} == {u2_private["id"], u2_public["id"], u1_public["id"]}
+
+    # user not allowed using admin route
+    data = req(clients.user_2, admin_route, expected_status_code=403)
+    assert data["message"] == "Service admin role required"
+
+    # admin using the user route has access only to public entities (no project headers)
+    results = req(clients.admin, route)["data"]
+    assert all(r["authorized_public"] for r in results)
+
+    # admin on admin route can get them all
+    results = req(clients.admin, admin_route)["data"]
+    assert {r["id"] for r in results} == {
+        u1_private["id"],
+        u1_public["id"],
+        u2_private["id"],
+        u2_public["id"],
+    }
 
 
 def check_entity_update_one__fail_if_nested_ids_unauthorized(

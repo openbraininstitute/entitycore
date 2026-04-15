@@ -1,38 +1,7 @@
-from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from app.db.types import ActivityType, EntityType, GlobalType, ResourceType
-
-
-def _convert_resource_type_to_route(name):
-    if name == "mtype_class":
-        return "mtype"
-    if name == "etype_class":
-        return "etype"
-    return name.replace("_", "-")
-
-
-if not TYPE_CHECKING:
-    # EntityRoute (hyphen-separated) <-> EntityType (underscore_separated)
-    EntityRoute = StrEnum(
-        "EntityRoute", {item.name: item.name.replace("_", "-") for item in EntityType}
-    )
-    ActivityRoute = StrEnum(
-        "ActivityRoute", {item.name: item.name.replace("_", "-") for item in ActivityType}
-    )
-    GlobalRoute = StrEnum(
-        "GlobalRoute",
-        {item.name: _convert_resource_type_to_route(item.name) for item in GlobalType},
-    )
-    ResourceRoute = StrEnum(
-        "ResourceRoute",
-        {item.name: _convert_resource_type_to_route(item.name) for item in ResourceType},
-    )
-else:
-    EntityRoute = StrEnum
-    GlobalRoute = StrEnum
-    ResourceRoute = StrEnum
-    ActivityRoute = StrEnum
+from app.db.types import EntityType, ResourceType
+from app.routers.types import EntityRoute, ResourceRoute
 
 
 def entity_route_to_type(entity_route: EntityRoute) -> EntityType:
@@ -40,4 +9,8 @@ def entity_route_to_type(entity_route: EntityRoute) -> EntityType:
 
 
 def route_to_type(route: ResourceRoute) -> Any:
+    if route == "mtype":
+        return ResourceType["mtype_class"]
+    if route == "etype":
+        return ResourceType["etype_class"]
     return ResourceType[route.name]

@@ -9,6 +9,9 @@ from .utils import (
     USER_SUB_ID_1,
     add_db,
     assert_request,
+    check_global_delete_one,
+    check_global_read_many,
+    check_global_update_one,
     check_missing,
 )
 
@@ -106,6 +109,16 @@ def test_read_one(client, client_admin, model_id, json_data):
     _assert_read_response(data, expected)
 
 
+def test_read_many(clients, json_data):
+    check_global_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
+
+
 def test_missing(client):
     check_missing(ROUTE, client)
 
@@ -187,3 +200,31 @@ def test_filtering_sorting(client, models, person_id):
 
     data = req({"ilike_search": "name-1"})
     assert len(data) == 1
+
+
+def test_delete_one(db, clients, json_data):
+    check_global_delete_one(
+        db=db,
+        clients=clients,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        json_data=json_data,
+        expected_counts_before={
+            ExternalUrl: 1,
+        },
+        expected_counts_after={
+            ExternalUrl: 0,
+        },
+    )
+
+
+def test_update_one(clients, json_data):
+    check_global_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "source": "modeldb",
+        },
+    )

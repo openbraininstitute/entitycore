@@ -88,13 +88,15 @@ def create_one(
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: CircuitExtractionExecutionFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    check_authorized_project: bool,
 ) -> ListResponse[CircuitExtractionExecutionRead]:
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
@@ -139,6 +141,45 @@ def read_many(
         response_schema_class=CircuitExtractionExecutionRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: CircuitExtractionExecutionFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+) -> ListResponse[CircuitExtractionExecutionRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: CircuitExtractionExecutionFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+) -> ListResponse[CircuitExtractionExecutionRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        check_authorized_project=False,
     )
 
 

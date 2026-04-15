@@ -1,22 +1,8 @@
-from fastapi import APIRouter
-
-import app.service.em_cell_mesh
+import app.service.em_cell_mesh as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
+from app.routers.types import EntityRoute
 
-ROUTE = "em-cell-mesh"
-
-router = APIRouter(
-    prefix=f"/{ROUTE}",
-    tags=[ROUTE],
-)
-
-read_many = router.get("")(app.service.em_cell_mesh.read_many)
-read_one = router.get("/{id_}")(app.service.em_cell_mesh.read_one)
-create_one = router.post("")(app.service.em_cell_mesh.create_one)
-update_one = router.patch("/{id_}")(app.service.em_cell_mesh.update_one)
-delete_one = router.delete("/{id_}")(app.service.em_cell_mesh.delete_one)
-
-admin_read_one = admin_router.get(f"/{ROUTE}/{{id_}}")(app.service.em_cell_mesh.admin_read_one)
-admin_update_one = admin_router.patch(f"/{ROUTE}/{{id_}}")(
-    app.service.em_cell_mesh.admin_update_one
-)
+ROUTE = EntityRoute.em_cell_mesh
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)

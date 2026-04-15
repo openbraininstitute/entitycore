@@ -9,6 +9,7 @@ from tests.utils import (
     add_db,
     assert_request,
     check_global_delete_one,
+    check_global_read_many,
 )
 
 ROUTE = "/organization"
@@ -23,6 +24,12 @@ def json_data():
     }
 
 
+def _assert_read_response(data, json_data):
+    assert data["pref_label"] == json_data["pref_label"]
+    assert data["alternative_name"] == json_data["alternative_name"]
+    assert "id" in data
+
+
 def test_create_organization(client, client_admin, json_data):
     response = client_admin.post(
         ROUTE,
@@ -30,16 +37,13 @@ def test_create_organization(client, client_admin, json_data):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["pref_label"] == json_data["pref_label"]
-    assert data["alternative_name"] == json_data["alternative_name"]
-    assert "id" in data
+    _assert_read_response(data, json_data)
     id_ = data["id"]
 
     response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
-    assert data["pref_label"] == json_data["pref_label"]
-    assert data["alternative_name"] == json_data["alternative_name"]
+    _assert_read_response(data, json_data)
     assert data["id"] == id_
 
     response = client.get(ROUTE)
@@ -48,6 +52,16 @@ def test_create_organization(client, client_admin, json_data):
     data = response.json()["data"]
     assert data[0]["id"] == id_
     assert len(data) == 1
+
+
+def test_read_many(clients, json_data):
+    check_global_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        validator=_assert_read_response,
+    )
 
 
 def test_delete_one(db, clients, json_data):

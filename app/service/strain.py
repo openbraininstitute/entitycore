@@ -76,6 +76,9 @@ def read_many(
     )
 
 
+admin_read_many = read_many
+
+
 def read_one(id_: uuid.UUID, db: SessionDep) -> StrainRead:
     return app.queries.common.router_read_one(
         id_=id_,

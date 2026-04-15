@@ -11,16 +11,16 @@ from app.schemas.base import (
     IdentifiableMixin,
     NameDescriptionMixin,
 )
-from app.schemas.species import NestedSpeciesRead
+from app.schemas.species import SpeciesStrainCreateMixin, SpeciesStrainReadMixin
 from app.schemas.utils import make_update_schema
 
 
-class BrainAtlasCreate(AuthorizationOptionalPublicMixin, NameDescriptionMixin):
+class BrainAtlasCreate(
+    AuthorizationOptionalPublicMixin, NameDescriptionMixin, SpeciesStrainCreateMixin
+):
     model_config = ConfigDict(from_attributes=True)
 
     hierarchy_id: uuid.UUID
-    species_id: uuid.UUID
-    strain_id: uuid.UUID | None = None
 
 
 class BrainAtlasRead(
@@ -30,11 +30,11 @@ class BrainAtlasRead(
     IdentifiableMixin,
     AssetsMixin,
     NameDescriptionMixin,
+    SpeciesStrainReadMixin,
 ):
     model_config = ConfigDict(from_attributes=True)
 
     hierarchy_id: uuid.UUID
-    species: NestedSpeciesRead
 
 
 BrainAtlasUpdate = make_update_schema(BrainAtlasCreate, "BrainAtlasUpdate")  # pyright: ignore [reportInvalidTypeForm]

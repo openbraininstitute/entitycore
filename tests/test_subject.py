@@ -12,6 +12,7 @@ from .utils import (
     assert_request,
     check_authorization,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     check_missing,
     check_pagination,
@@ -109,6 +110,15 @@ def test_read_one(client, client_admin, model_id, json_data, json_data_partial):
 
     data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{model_id}").json()
     _assert_read_response(data, json_data)
+
+
+def test_read_many(clients, json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+    )
 
 
 def test_delete_one(db, clients, json_data):

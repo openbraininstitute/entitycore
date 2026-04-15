@@ -3,27 +3,53 @@ import pytest
 from app.db.model import CellComposition
 from app.db.types import EntityType
 
-from .utils import PROJECT_ID, USER_SUB_ID_1, add_db, assert_request
+from .utils import (
+    PROJECT_ID,
+    USER_SUB_ID_1,
+    add_db,
+    assert_request,
+    check_entity_delete_one,
+    check_entity_read_many,
+    check_entity_read_response,
+)
 
 ROUTE = "cell-composition"
 ADMIN_ROUTE = "/admin/cell-composition"
 
 
 @pytest.fixture
-def cell_composition_id(db, brain_region_id, species_id, person_id):
+def json_data(brain_region_id, species_id):
+    return {
+        "name": "my-composition",
+        "description": "my-composition",
+        "brain_region_id": str(brain_region_id),
+        "species_id": str(species_id),
+    }
+
+
+@pytest.fixture
+def cell_composition_id(db, json_data, person_id):
     row = add_db(
         db,
         CellComposition(
-            name="my-composition",
-            description="my-composition",
-            brain_region_id=brain_region_id,
-            species_id=species_id,
-            created_by_id=person_id,
-            updated_by_id=person_id,
-            authorized_project_id=PROJECT_ID,
+            **json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+            }
         ),
     )
     return row.id
+
+
+def test_create_one(client, json_data):
+    data = assert_request(client.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
+
+
+def _assert_read_response(data, json_data):
+    check_entity_read_response(data, json_data, EntityType.cell_composition)
 
 
 def test_read_one(client, client_admin, cell_composition_id):
@@ -41,6 +67,15 @@ def test_read_one(client, client_admin, cell_composition_id):
     assert data["name"] == "my-composition"
     assert "assets" in data
     assert data["type"] == EntityType.cell_composition
+
+
+def test_read_many(clients, json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+    )
 
 
 def test_filtering(client, db, brain_region_id, species_id, person_id):
@@ -97,3 +132,19 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
         params={"ilike_search": "*composition-1"},
     ).json()["data"]
     assert len(data) == 1
+
+
+def test_delete_one(db, clients, json_data):
+    check_entity_delete_one(
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        expected_counts_before={
+            CellComposition: 1,
+        },
+        expected_counts_after={
+            CellComposition: 0,
+        },
+    )

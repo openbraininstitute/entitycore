@@ -27,22 +27,26 @@ def json_data():
     }
 
 
+def _assert_read_response(data, json_data):
+    assert data["given_name"] == json_data["given_name"]
+    assert data["family_name"] == json_data["family_name"]
+    assert "id" in data
+    assert data["sub_id"] == ANY
+
+
 def test_create_person(client, client_admin, json_data):
     response = client_admin.post(ROUTE, json=json_data)
     assert response.status_code == 200
     data = response.json()
-    assert data["given_name"] == json_data["given_name"]
-    assert data["family_name"] == json_data["family_name"]
-    assert "id" in data
+    _assert_read_response(data, json_data)
+
     id_ = data["id"]
-    assert data["sub_id"] == ANY
 
     response = client.get(f"{ROUTE}/{id_}")
     assert response.status_code == 200
     data = response.json()
-    assert data["given_name"] == json_data["given_name"]
+    _assert_read_response(data, json_data)
     assert data["id"] == id_
-    assert data["sub_id"] == ANY
 
     response = client.get(ROUTE)
     assert response.status_code == 200
@@ -74,6 +78,44 @@ def test_create_person(client, client_admin, json_data):
 
     assert len(data) == 3
     assert sum(1 for d in data if d["sub_id"] is not None) == 1
+
+
+def test_read_many(clients, json_data):
+
+    route = ROUTE
+    admin_route = ADMIN_ROUTE
+
+    assert_request(clients.admin.post, url=route, json=json_data).json()["id"]
+
+    def _req(client, client_route):
+        data = assert_request(client.get, url=client_route).json()["data"]
+        assert len(data) == 2
+
+    # user that created the resource can read it
+    _req(clients.user_1, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_1.get,
+        url=admin_route,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # any other user can read it too because it is global
+    _req(clients.user_2, route)
+
+    # but cannot use the admin endpoint
+    data = assert_request(
+        clients.user_2.get,
+        url=admin_route,
+        expected_status_code=403,
+    ).json()
+    assert data["message"] == "Service admin role required"
+
+    # service admins can read from both regular and admin routes
+    _req(clients.admin, route)
+    _req(clients.admin, admin_route)
 
 
 def test_delete_one(db, clients, json_data):

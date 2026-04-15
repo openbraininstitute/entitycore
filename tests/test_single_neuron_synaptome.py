@@ -21,6 +21,7 @@ from .utils import (
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     create_brain_region,
 )
@@ -149,7 +150,7 @@ def test_read_one(client, client_admin, model_id, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_many(client, model_id, json_data):
+def test_read_many_1(client, model_id, json_data):
     items = assert_request(
         client.get,
         url=f"{ROUTE}",
@@ -157,6 +158,15 @@ def test_read_many(client, model_id, json_data):
     assert len(items) == 1
     assert items[0]["id"] == model_id
     _assert_read_response(items[0], json_data)
+
+
+def test_read_many_2(clients, public_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=public_json_data,
+    )
 
 
 def test_delete_one(db, clients, public_json_data):

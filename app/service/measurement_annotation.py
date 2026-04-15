@@ -139,6 +139,45 @@ def read_many(
     )
 
 
+def admin_read_many(
+    user_context: AdminContextDep,  # noqa: ARG001
+    db: SessionDep,
+    filter_model: MeasurementAnnotationFilterDep,
+    pagination_request: PaginationQuery,
+) -> ListResponse[MeasurementAnnotationRead]:
+    apply_filter_query_operations = lambda q: q.join(
+        Entity, Entity.id == MeasurementAnnotation.entity_id
+    )
+    facet_keys = []
+    filter_keys = [
+        "measurement_kind",
+        "measurement_kind.pref_label",
+        "measurement_kind.measurement_item",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=MeasurementAnnotation,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases={},
+    )
+    return router_read_many(
+        db=db,
+        db_model_class=MeasurementAnnotation,
+        authorized_project_id=None,  # validated with apply_filter_query_operations
+        with_search=None,
+        with_in_brain_region=None,
+        facets=None,
+        aliases=None,
+        apply_filter_query_operations=apply_filter_query_operations,
+        apply_data_query_operations=_load_from_db_with_entity,
+        pagination_request=pagination_request,
+        response_schema_class=MeasurementAnnotationRead,
+        name_to_facet_query_params=name_to_facet_query_params,
+        filter_model=filter_model,
+        filter_joins=filter_joins,
+    )
+
+
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,

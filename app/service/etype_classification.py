@@ -11,7 +11,7 @@ from app.db.model import (
     ETypeClassification,
     Person,
 )
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -22,11 +22,14 @@ from app.filters.classification import ETypeClassificationFilterDep
 from app.logger import L
 from app.queries.common import router_create_one, router_read_many, router_read_one
 from app.queries.factory import query_params_factory
+from app.routers.types import AssociationRoute
 from app.schemas.classification import (
     ETypeClassificationCreate,
     ETypeClassificationRead,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+from app.service import admin as admin_service
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
@@ -98,13 +101,15 @@ def admin_read_one(
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: ETypeClassificationFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
+    check_authorized_project: bool,
 ) -> ListResponse[ETypeClassificationRead]:
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
@@ -143,4 +148,54 @@ def read_many(
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
         with_in_brain_region=None,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: ETypeClassificationFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+) -> ListResponse[ETypeClassificationRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: ETypeClassificationFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+) -> ListResponse[ETypeClassificationRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        check_authorized_project=False,
+    )
+
+
+def admin_delete_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+) -> DeleteResponse:
+    return admin_service.delete_one(
+        db=db,
+        route=AssociationRoute.etype_classification,
+        id_=id_,
     )

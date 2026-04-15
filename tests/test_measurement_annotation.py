@@ -63,6 +63,122 @@ def json_data(morphology_id, measurement_labels):
     }
 
 
+def _assert_read_response(data, json_data):
+    assert "id" in data
+    assert data["entity_type"] == json_data["entity_type"]
+    assert data["entity_id"] == json_data["entity_id"]
+    assert data["measurement_kinds"] == json_data["measurement_kinds"]
+
+
+def test_read_many(clients, subject_id, brain_region_id, measurement_labels):
+
+    route = ROUTE
+    admin_route = ADMIN_ROUTE
+
+    # register entities with users in different projects
+    c1_id = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    c2_id = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
+    )
+    c3_id = create_cell_morphology_id(
+        clients.user_2,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=False,
+    )
+    c4_id = create_cell_morphology_id(
+        clients.user_2,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        authorized_public=True,
+    )
+
+    json_data = {
+        "entity_type": ENTITY_TYPE,
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[0],
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm",
+                        "value": 54.2,
+                    },
+                    {
+                        "name": "median",
+                        "unit": "μm",
+                        "value": 44.6,
+                    },
+                ],
+            },
+        ],
+    }
+
+    u1_private = assert_request(
+        clients.user_1.post,
+        url=route,
+        json=json_data | {"entity_id": c1_id},
+    ).json()
+    u1_public = assert_request(
+        clients.user_1.post,
+        url=ROUTE,
+        json=json_data | {"entity_id": c2_id},
+    ).json()
+    u2_private = assert_request(
+        clients.user_2.post,
+        url=ROUTE,
+        json=json_data | {"entity_id": c3_id},
+    ).json()
+    u2_public = assert_request(
+        clients.user_2.post,
+        url=ROUTE,
+        json=json_data | {"entity_id": c4_id},
+    ).json()
+
+    def req(client, client_route, expected_status_code=200):
+        return assert_request(
+            client.get, url=client_route, expected_status_code=expected_status_code
+        ).json()
+
+    # user1 can get their entities and user2's public
+    results = req(clients.user_1, route)["data"]
+    assert {r["id"] for r in results} == {u1_private["id"], u1_public["id"], u2_public["id"]}
+
+    # user not allowed using admin route
+    data = req(clients.user_1, admin_route, expected_status_code=403)
+    assert data["message"] == "Service admin role required"
+
+    # same for user2
+    results = req(clients.user_2, route)["data"]
+    assert {r["id"] for r in results} == {u2_private["id"], u2_public["id"], u1_public["id"]}
+
+    # user not allowed using admin route
+    data = req(clients.user_2, admin_route, expected_status_code=403)
+    assert data["message"] == "Service admin role required"
+
+    # admin using the user route has access only to public entities (no project headers)
+    results = req(clients.admin, route)["data"]
+    assert {r["id"] for r in results} == {u1_public["id"], u2_public["id"]}
+
+    # admin on admin route can get them all
+    results = req(clients.admin, admin_route)["data"]
+    assert {r["id"] for r in results} == {
+        u1_private["id"],
+        u1_public["id"],
+        u2_private["id"],
+        u2_public["id"],
+    }
+
+
 def test_update_one(clients, json_data, subject_id, brain_region_id):
     old_morph_id = json_data["entity_id"]
 

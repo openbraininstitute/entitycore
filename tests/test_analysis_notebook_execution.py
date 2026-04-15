@@ -20,6 +20,7 @@ from .utils import (
     assert_request,
     check_activity_create_one__unauthorized_entities,
     check_activity_delete_one,
+    check_activity_read_many,
     check_activity_update_one,
     check_activity_update_one__fail_if_generated_ids_exists,
     check_activity_update_one__fail_if_generated_ids_unauthorized,
@@ -30,7 +31,7 @@ from .utils import (
 
 DateTimeAdapter = TypeAdapter(datetime)
 
-ROUTE = "analysis-notebook-execution"
+ROUTE = "/analysis-notebook-execution"
 ADMIN_ROUTE = "/admin/analysis-notebook-execution"
 CIRCUIT_ROUTE = "/circuit"
 MODEL = AnalysisNotebookExecution
@@ -154,6 +155,17 @@ def test_create_one__unauthorized_entities(
         u1_private_entity_id=u1_private_entity,
         u2_private_entity_id=u2_private_entity,
         u2_public_entity_id=u2_public_entity,
+    )
+
+
+def test_read_many(clients, analysis_notebook_environment):
+    check_activity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        extra_json_data={
+            "analysis_notebook_environment_id": str(analysis_notebook_environment.id),
+        },
     )
 
 

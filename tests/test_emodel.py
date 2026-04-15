@@ -13,6 +13,7 @@ from .utils import (
     USER_SUB_ID_1,
     assert_request,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     create_cell_morphology_id,
     upload_entity_asset,
@@ -36,6 +37,11 @@ def json_data(species_id, strain_id, brain_region_id, morphology_id):
         "seed": -1,
         "exemplar_morphology_id": morphology_id,
     }
+
+
+@pytest.fixture
+def public_json_data(json_data, public_morphology_id):
+    return json_data | {"exemplar_morphology_id": str(public_morphology_id)}
 
 
 def test_create_emodel(client: TestClient, species_id, strain_id, brain_region_id, json_data):
@@ -91,9 +97,13 @@ def test_create_emodel_with_nested_ion_channel_models(
     assert data == {"id": entity_id}
 
 
-@pytest.fixture
-def public_json_data(json_data, public_morphology_id):
-    return json_data | {"exemplar_morphology_id": str(public_morphology_id)}
+def test_read_many(clients, public_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=public_json_data,
+    )
 
 
 def test_update_one(clients, public_json_data):

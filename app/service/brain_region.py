@@ -60,6 +60,9 @@ def read_many(
     )
 
 
+admin_read_many = read_many
+
+
 def read_one(db: SessionDep, id_: uuid.UUID) -> BrainRegionRead:
     with ensure_result(error_message="Brain region not found"):
         stmt = sa.select(BrainRegion).filter(BrainRegion.id == id_)

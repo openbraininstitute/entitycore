@@ -60,7 +60,8 @@ def _load(query: sa.Select):
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
@@ -68,6 +69,7 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    check_authorized_project: bool,
 ) -> ListResponse[ExperimentalBoutonDensityRead]:
     subject = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
@@ -134,6 +136,49 @@ def read_many(
         response_schema_class=ExperimentalBoutonDensityRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: ExperimentalBoutonDensityFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
+) -> ListResponse[ExperimentalBoutonDensityRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        in_brain_region=in_brain_region,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: ExperimentalBoutonDensityFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
+) -> ListResponse[ExperimentalBoutonDensityRead]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        in_brain_region=in_brain_region,
+        check_authorized_project=False,
     )
 
 

@@ -59,14 +59,16 @@ def _load_expanded(q: Select[IonChannelModel]) -> Select[IonChannelModel]:
     )
 
 
-def read_many(
+def _read_many(
+    *,
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
     with_search: SearchDep,
-    icm_filter: IonChannelModelFilterDep,
+    filter_model: IonChannelModelFilterDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
+    check_authorized_project: bool,
 ) -> ListResponse[IonChannelModelExpanded]:
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
@@ -116,8 +118,51 @@ def read_many(
         pagination_request=pagination_request,
         response_schema_class=IonChannelModelExpanded,
         name_to_facet_query_params=name_to_facet_query_params,
-        filter_model=icm_filter,
+        filter_model=filter_model,
         filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many(
+    user_context: UserContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: IonChannelModelFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
+) -> ListResponse[IonChannelModelExpanded]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        in_brain_region=in_brain_region,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many(
+    user_context: AdminContextDep,
+    db: SessionDep,
+    pagination_request: PaginationQuery,
+    filter_model: IonChannelModelFilterDep,
+    with_search: SearchDep,
+    facets: FacetsDep,
+    in_brain_region: InBrainRegionDep,
+) -> ListResponse[IonChannelModelExpanded]:
+    return _read_many(
+        user_context=user_context,
+        db=db,
+        pagination_request=pagination_request,
+        filter_model=filter_model,
+        with_search=with_search,
+        facets=facets,
+        in_brain_region=in_brain_region,
+        check_authorized_project=False,
     )
 
 

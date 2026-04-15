@@ -39,6 +39,9 @@ def read_many(
     )
 
 
+admin_read_many = read_many
+
+
 def read_one(id_: uuid.UUID, db: SessionDep) -> MTypeClassRead:
     return router_read_one(
         id_=id_,
@@ -99,3 +102,6 @@ def delete_one(
         db=db,
         db_model_class=MTypeClass,
     )
+
+
+admin_delete_one = delete_one

@@ -14,9 +14,10 @@ from app.queries.common import (
     router_create_one,
     router_read_many,
     router_read_one,
+    router_update_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.agent import PersonCreate, PersonRead
+from app.schemas.agent import PersonAdminUpdate, PersonCreate, PersonRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
@@ -78,6 +79,9 @@ def read_many(
     )
 
 
+admin_read_many = read_many
+
+
 def read_one(id_: uuid.UUID, db: SessionDep) -> PersonRead:
     return router_read_one(
         id_=id_,
@@ -109,6 +113,27 @@ def create_one(person: PersonCreate, db: SessionDep, user_context: AdminContextD
         user_context=user_context,
         apply_operations=_load,
     )
+
+
+def update_one(
+    db: SessionDep,
+    user_context: AdminContextDep,
+    id_: uuid.UUID,
+    json_model: PersonAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> PersonRead:
+    return router_update_one(
+        id_=id_,
+        db=db,
+        db_model_class=Person,
+        user_context=user_context,
+        json_model=json_model,
+        response_schema_class=PersonRead,
+        apply_operations=_load,
+        check_authorized_project=False,
+    )
+
+
+admin_update_one = update_one
 
 
 def delete_one(

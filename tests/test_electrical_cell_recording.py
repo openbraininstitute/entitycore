@@ -23,6 +23,7 @@ from .utils import (
     check_authorization,
     check_brain_region_filter,
     check_entity_delete_one,
+    check_entity_read_many,
     check_entity_update_one,
     check_missing,
     create_brain_region,
@@ -128,6 +129,15 @@ def test_admin_read_one(
             "update_date": ANY,
         },
     ]
+
+
+def test_read_many(clients, electrical_cell_recording_json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=electrical_cell_recording_json_data,
+    )
 
 
 def test_delete_one(db, clients, electrical_cell_recording_json_data):

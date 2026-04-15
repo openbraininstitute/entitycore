@@ -17,6 +17,7 @@ from app.queries import crud
 from app.queries.common import get_or_create_user_agent, router_read_many
 from app.queries.utils import is_user_authorized_for_deletion
 from app.repository.group import RepositoryGroup
+from app.routers.types import EntityRoute
 from app.schemas.asset import (
     AssetCreate,
     AssetRead,
@@ -30,7 +31,7 @@ from app.schemas.asset import (
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.types import ListResponse
 from app.service import entity as entity_service
-from app.utils.routers import EntityRoute, entity_route_to_type
+from app.utils.routers import entity_route_to_type
 from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,

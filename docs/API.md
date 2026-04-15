@@ -282,6 +282,7 @@ Only the `within_brain_region_brain_region_id` and `within_brain_region_directio
 
 Note: If `within_brain_region_hierarchy_id` is included, it is not an error, but it is not checked to be correct against `within_brain_region_brain_region_id`.
 See: https://github.com/openbraininstitute/entitycore/issues/567
+It will be deprecated.
 
 # Brain Atlas:
 

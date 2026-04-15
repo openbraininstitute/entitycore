@@ -152,6 +152,7 @@ class InBrainRegionQuery(BaseModel):
     Only `within_brain_region_direction` and `within_brain_region_brain_region_id` are required.
     `within_brain_region_hierarchy_id` exists for historical reasons, and is
     not used or verified: see https://github.com/openbraininstitute/entitycore/issues/567
+    It will be deprecated.
     """
 
     within_brain_region_brain_region_id: uuid.UUID | None = None

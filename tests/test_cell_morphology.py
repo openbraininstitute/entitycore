@@ -823,6 +823,13 @@ def test_filter(db, client, brain_region_id, person_id, subject_id):
     data = assert_request(
         client.get,
         url=ROUTE,
+        params={"order_by": "cell_morphology_protocol__generation_type"},
+    ).json()["data"]
+    assert len(data) == len(morphology_ids)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == 5

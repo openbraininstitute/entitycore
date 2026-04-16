@@ -48,6 +48,7 @@ class CellMorphologyProtocolFilter(
         ordering_model_fields = [  # noqa: RUF012
             "creation_date",
             "update_date",
+            "generation_type",
         ]
 
 

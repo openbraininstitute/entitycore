@@ -165,8 +165,12 @@ class CustomFilter[T: DeclarativeBase](Filter):
     def sort(self, query: Select[tuple[T]], aliases: Aliases | None = None) -> Select[tuple[T]]:  # type:ignore[override]
         """Sort query taking into account nested fields and aliases.
 
-        Sorting in nested field is applied by spliting the nested field name from A__B__name to
-        [A, B, name] and sorting with the respective nested model alias name.
+        Nested ordering fields (e.g. "me_model__etype__pref_label") are split into
+        [filter_name, *intermediate_parts, field_name]. The first element identifies the
+        top-level nested filter, and each intermediate part must correspond to a nested
+        CustomFilter field on the previous filter, so that ordering and filtering use the
+        same names even when the filter name differs from the DB relationship name
+        (e.g. filter "etype" vs relationship "etypes").
 
         Aliases are required here because the ORDER BY section must refer to the correct aliased
         model that is also used in the filtering part of the query.
@@ -174,6 +178,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
         Ordering value examples:
             - creation_date
             - subject__species__name
+            - me_model__etype__pref_label
         """
         if aliases is None:
             aliases = {}
@@ -198,20 +203,13 @@ class CustomFilter[T: DeclarativeBase](Filter):
                         model = model_or_fields_dict
 
                 for part in parts:
-                    # Resolve each intermediate part of the ordering field
-                    # (e.g. "etype" in "me_model__etype__pref_label").
-                    # Prefer the nested filter field name (e.g. NestedMEModelFilter.etype)
-                    # so that ordering and filtering use the same names, even when
-                    # the filter name differs from the DB relationship name
-                    # (e.g. filter "etype" vs relationship "etypes").
-                    # Fall back to the SQLAlchemy relationship for parts that
-                    # don't correspond to any nested filter field.
                     nested_attr = getattr(nested_filter, part, None)
                     if isinstance(nested_attr, CustomFilter):
                         nested_filter = nested_attr
                         model = nested_filter.Constants.model
                     else:
-                        model = getattr(model, part).property.mapper.class_
+                        msg = f"Unsupported ordering part {part!r} in {type(nested_filter).__name__}"
+                        raise ValueError(msg)
 
             order_by_field = getattr(model, field_name)
 

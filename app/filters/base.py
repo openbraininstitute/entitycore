@@ -166,10 +166,9 @@ class CustomFilter[T: DeclarativeBase](Filter):
         """Sort query taking into account nested fields and aliases.
 
         Nested ordering fields (e.g. "me_model__etype__pref_label") are split into
-        [filter_name, *intermediate_parts, field_name]. The first element identifies the
-        top-level nested filter, and each intermediate part must correspond to a nested
-        CustomFilter field on the previous filter, so that ordering and filtering use the
-        same names even when the filter name differs from the DB relationship name
+        [*parts, field_name]. Each part must correspond to a nested CustomFilter field
+        on the previous filter (starting from self), so that ordering and filtering use
+        the same names even when the filter name differs from the DB relationship name
         (e.g. filter "etype" vs relationship "etypes").
 
         Aliases are required here because the ORDER BY section must refer to the correct aliased
@@ -190,28 +189,23 @@ class CustomFilter[T: DeclarativeBase](Filter):
             model = self.Constants.model
 
             if NESTED_SEPARATOR in field_name:
-                filter_name, *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
-
-                nested_filter = getattr(self, filter_name)
-                model = nested_filter.Constants.model
-
-                if model in aliases:
-                    model_or_fields_dict = aliases[model]
-                    if isinstance(model_or_fields_dict, dict):
-                        model = model_or_fields_dict.get(filter_name, model)
-                    else:
-                        model = model_or_fields_dict
+                original_field_name = field_name
+                *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
+                nested_filter = self
 
                 for part in parts:
-                    nested_attr = getattr(nested_filter, part, None)
-                    if isinstance(nested_attr, CustomFilter):
-                        nested_filter = nested_attr
-                        model = nested_filter.Constants.model
-                    else:
-                        msg = (
-                            f"Unsupported ordering part {part!r} in {type(nested_filter).__name__}"
-                        )
+                    nested_filter = getattr(nested_filter, part, None)
+                    if not isinstance(nested_filter, CustomFilter):
+                        msg = f"Unsupported ordering part {part!r} in {original_field_name!r}"
                         raise ValueError(msg)  # noqa: TRY004
+                    model = nested_filter.Constants.model
+
+                    if model in aliases:
+                        model_or_fields_dict = aliases[model]
+                        if isinstance(model_or_fields_dict, dict):
+                            model = model_or_fields_dict.get(part, model)
+                        else:
+                            model = model_or_fields_dict
 
             order_by_field = getattr(model, field_name)
 

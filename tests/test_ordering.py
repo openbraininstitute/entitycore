@@ -92,5 +92,8 @@ def test_sort_unsupported_nested_ordering_part():
         order_by=["subject__bad_part__name"],
         subject=NestedSubjectFilter(),
     )
-    with pytest.raises(ValueError, match="Unsupported ordering part 'bad_part'"):
+    with pytest.raises(
+        ValueError,
+        match="Unsupported ordering part 'bad_part' in 'subject__bad_part__name'",
+    ):
         invalid_filter.sort(sa.select(CellMorphology))

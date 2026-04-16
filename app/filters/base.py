@@ -208,8 +208,10 @@ class CustomFilter[T: DeclarativeBase](Filter):
                         nested_filter = nested_attr
                         model = nested_filter.Constants.model
                     else:
-                        msg = f"Unsupported ordering part {part!r} in {type(nested_filter).__name__}"
-                        raise ValueError(msg)
+                        msg = (
+                            f"Unsupported ordering part {part!r} in {type(nested_filter).__name__}"
+                        )
+                        raise ValueError(msg)  # noqa: TRY004
 
             order_by_field = getattr(model, field_name)
 

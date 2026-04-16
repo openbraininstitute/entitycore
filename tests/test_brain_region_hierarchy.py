@@ -98,6 +98,7 @@ def test_hierarchy_tree(db, client, brain_region_hierarchy_id):
 
     def compare_hier(raw_node, service_node):
         assert raw_node["id"] == service_node["annotation_value"]
+        assert service_node["hierarchy_id"] == str(brain_region_hierarchy_id)
         for name in ("acronym", "name"):
             assert raw_node[name] == service_node[name]
             if "children" in raw_node or "children" in service_node:

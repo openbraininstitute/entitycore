@@ -177,6 +177,7 @@ def read_hierarchy(
                 "acronym": node.acronym,
                 "color_hex_triplet": node.color_hex_triplet,
                 "parent_structure_id": node.parent_structure_id,
+                "hierarchy_id": node.hierarchy_id,
                 "children": build_tree(node.id),
             }
             for node in children

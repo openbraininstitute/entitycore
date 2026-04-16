@@ -129,6 +129,8 @@ def query_params_factory[I: Identifiable](
         },
         "emodel": {"id": emodel_alias.id, "label": emodel_alias.name},
         "me_model": {"id": me_model_alias.id, "label": me_model_alias.name},
+        "me_model.etype": {"id": ETypeClass.id, "label": ETypeClass.pref_label},
+        "me_model.mtype": {"id": MTypeClass.id, "label": MTypeClass.pref_label},
         "synaptome": {"id": synaptome_alias.id, "label": synaptome_alias.name},
         "created_by": {
             "id": created_by_alias.id,
@@ -186,6 +188,12 @@ def query_params_factory[I: Identifiable](
         "me_model": lambda q: q.join(
             me_model_alias, db_model_class.me_model_id == me_model_alias.id
         ),
+        "me_model.etype": lambda q: q.join(
+            ETypeClassification, ETypeClassification.entity_id == me_model_alias.id
+        ).join(ETypeClass, ETypeClass.id == ETypeClassification.etype_class_id),
+        "me_model.mtype": lambda q: q.join(
+            MTypeClassification, MTypeClassification.entity_id == me_model_alias.id
+        ).join(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),
         "synaptome": lambda q: q.join(
             synaptome_alias, db_model_class.synaptome_id == synaptome_alias.id
         ),

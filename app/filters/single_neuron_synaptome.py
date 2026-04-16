@@ -54,6 +54,8 @@ class SingleNeuronSynaptomeFilter(
             "brain_region__name",
             "brain_region__acronym",
             "created_by__pref_label",
+            "me_model__etype__pref_label",
+            "me_model__mtype__pref_label",
         ]
 
 

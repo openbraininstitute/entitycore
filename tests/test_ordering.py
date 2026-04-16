@@ -1,4 +1,9 @@
+import pytest
+import sqlalchemy as sa
+
 from app.db.model import CellMorphology, License
+from app.filters.cell_morphology import CellMorphologyFilter
+from app.filters.subject import NestedSubjectFilter
 
 from tests.utils import PROJECT_ID, add_all_db, check_sort_by_field
 
@@ -77,3 +82,18 @@ def test_cell_morphology_ordering(db, client, subject_id, license_id, brain_regi
     data = response.json()["data"]
     assert len(data) == count // 2
     check_sort_by_field(data, "name", how="descending")
+
+
+def test_sort_unsupported_nested_ordering_part():
+    """Test that sorting by a nested field with an unsupported intermediate part raises an error."""
+
+    # Use model_construct to bypass the ordering_model_fields validator
+    invalid_filter = CellMorphologyFilter.model_construct(
+        order_by=["subject__bad_part__name"],
+        subject=NestedSubjectFilter(),
+    )
+    with pytest.raises(
+        ValueError,
+        match="Unsupported ordering part 'bad_part' in 'subject__bad_part__name'",
+    ):
+        invalid_filter.sort(sa.select(CellMorphology))

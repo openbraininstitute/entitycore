@@ -165,8 +165,11 @@ class CustomFilter[T: DeclarativeBase](Filter):
     def sort(self, query: Select[tuple[T]], aliases: Aliases | None = None) -> Select[tuple[T]]:  # type:ignore[override]
         """Sort query taking into account nested fields and aliases.
 
-        Sorting in nested field is applied by spliting the nested field name from A__B__name to
-        [A, B, name] and sorting with the respective nested model alias name.
+        Nested ordering fields (e.g. "me_model__etype__pref_label") are split into
+        [*parts, field_name]. Each part must correspond to a nested CustomFilter field
+        on the previous filter (starting from self), so that ordering and filtering use
+        the same names even when the filter name differs from the DB relationship name
+        (e.g. filter "etype" vs relationship "etypes").
 
         Aliases are required here because the ORDER BY section must refer to the correct aliased
         model that is also used in the filtering part of the query.
@@ -174,6 +177,7 @@ class CustomFilter[T: DeclarativeBase](Filter):
         Ordering value examples:
             - creation_date
             - subject__species__name
+            - me_model__etype__pref_label
         """
         if aliases is None:
             aliases = {}
@@ -185,19 +189,23 @@ class CustomFilter[T: DeclarativeBase](Filter):
             model = self.Constants.model
 
             if NESTED_SEPARATOR in field_name:
-                filter_name, *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
-
-                model = getattr(self, filter_name).Constants.model
-
-                if model in aliases:
-                    model_or_fields_dict = aliases[model]
-                    if isinstance(model_or_fields_dict, dict):
-                        model = model_or_fields_dict.get(filter_name, model)
-                    else:
-                        model = model_or_fields_dict
+                original_field_name = field_name
+                *parts, field_name = field_name.split(NESTED_SEPARATOR)  # noqa: PLW2901
+                nested_filter = self
 
                 for part in parts:
-                    model = getattr(model, part).property.mapper.class_
+                    nested_filter = getattr(nested_filter, part, None)
+                    if not isinstance(nested_filter, CustomFilter):
+                        msg = f"Unsupported ordering part {part!r} in {original_field_name!r}"
+                        raise ValueError(msg)  # noqa: TRY004
+                    model = nested_filter.Constants.model
+
+                    if model in aliases:
+                        model_or_fields_dict = aliases[model]
+                        if isinstance(model_or_fields_dict, dict):
+                            model = model_or_fields_dict.get(part, model)
+                        else:
+                            model = model_or_fields_dict
 
             order_by_field = getattr(model, field_name)
 

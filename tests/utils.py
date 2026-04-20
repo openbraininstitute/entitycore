@@ -208,6 +208,7 @@ def create_cell_morphology_id(
     client,
     subject_id,
     brain_region_id,
+    cell_morphology_protocol_id,
     name="Test Morphology Name",
     description="Test Morphology Description",
     *,
@@ -222,6 +223,7 @@ def create_cell_morphology_id(
             "subject_id": str(subject_id),
             "location": {"x": 10, "y": 20, "z": 30},
             "legacy_id": ["Test Legacy ID"],
+            "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
             "authorized_public": authorized_public,
         },
     )

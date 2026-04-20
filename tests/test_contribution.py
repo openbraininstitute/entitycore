@@ -18,11 +18,12 @@ ROUTE_MORPH = "/cell-morphology"
 
 
 @pytest.fixture
-def json_data(client, subject_id, brain_region_id, role_id, person_id):
+def json_data(client, subject_id, brain_region_id, role_id, person_id, cell_morphology_protocol_id):
     cell_morphology_id = create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     return {
@@ -135,30 +136,42 @@ def test_update_one(clients, json_data, organization_id, person_id):
     assert data["agent"]["id"] == str(person_id)
 
 
-def test_read_many(clients, json_data, person_id, organization_id, subject_id, brain_region_id):
+def test_read_many(
+    clients,
+    json_data,
+    person_id,
+    organization_id,
+    subject_id,
+    brain_region_id,
+    cell_morphology_protocol_id,
+):
 
     m1_id_pr = create_cell_morphology_id(
         clients.user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     m1_id_pu = create_cell_morphology_id(
         clients.user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
     m2_id_pr = create_cell_morphology_id(
         clients.user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     m2_id_pu = create_cell_morphology_id(
         clients.user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
     c1_pr = assert_request(
@@ -195,11 +208,20 @@ def test_read_many(clients, json_data, person_id, organization_id, subject_id, b
     assert {d["id"] for d in data} == {c1_pr["id"], c1_pu["id"], c2_pr["id"], c2_pu["id"]}
 
 
-def test_admin_delete_one(client, client_admin, role_id, person_id, brain_region_id, subject_id):
+def test_admin_delete_one(
+    client,
+    client_admin,
+    role_id,
+    person_id,
+    brain_region_id,
+    subject_id,
+    cell_morphology_protocol_id,
+):
     morphology_id = create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     contribution = assert_request(
@@ -237,11 +259,14 @@ def test_admin_delete_one(client, client_admin, role_id, person_id, brain_region
     assert len(data["contributions"]) == 0
 
 
-def test_user_delete_one(clients, role_id, person_id, brain_region_id, subject_id):
+def test_user_delete_one(
+    clients, role_id, person_id, brain_region_id, subject_id, cell_morphology_protocol_id
+):
     morphology_id = create_cell_morphology_id(
         clients.user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     contribution = assert_request(
@@ -300,11 +325,13 @@ def test_authorization(
     subject_id,
     person_id,
     role_id,
+    cell_morphology_protocol_id,
 ):
     inaccessible_entity_id = create_cell_morphology_id(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
 
@@ -337,6 +364,7 @@ def test_authorization(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
     response = client_user_1.post(
@@ -381,7 +409,7 @@ def test_authorization(
 
 
 @pytest.fixture
-def models(client, db, subject_id, brain_region_id, person_id):
+def models(client, db, subject_id, brain_region_id, person_id, cell_morphology_protocol_id):
     person = create_person(
         db,
         given_name="GivenName",
@@ -443,6 +471,7 @@ def models(client, db, subject_id, brain_region_id, person_id):
             subject_id=subject_id,
             brain_region_id=brain_region_id,
             name=f"TestMorphologyName{i}",
+            cell_morphology_protocol_id=cell_morphology_protocol_id,
             authorized_public=False,
         )
         morphology_ids.append(cell_morphology_id)

@@ -244,7 +244,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_query_cell_morphology(db, client, brain_region_id, person_id):
+def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morphology_protocol_id):
     species1 = add_db(
         db,
         Species(
@@ -322,6 +322,7 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 client,
                 subject_id=str(subject.id),
                 brain_region_id=brain_region_id,
+                cell_morphology_protocol_id=cell_morphology_protocol_id,
                 authorized_public=False,
                 name=f"Test Morphology Name {i}",
                 description=f"Test Morphology Description {i}",
@@ -624,7 +625,7 @@ def test_authorization(
     check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
 
 
-def test_pagination(db, client, brain_region_id, person_id):
+def test_pagination(db, client, brain_region_id, person_id, cell_morphology_protocol_id):
     species0 = add_db(
         db,
         Species(
@@ -693,6 +694,7 @@ def test_pagination(db, client, brain_region_id, person_id):
             client,
             subject_id=str(subject.id),
             brain_region_id=brain_region_id,
+            cell_morphology_protocol_id=cell_morphology_protocol_id,
             name=f"TestMorphologyName{i}",
             authorized_public=False,
         )
@@ -730,7 +732,7 @@ def test_pagination(db, client, brain_region_id, person_id):
     assert list(reversed(names)) == list(range(total_items))
 
 
-def test_filter(db, client, brain_region_id, person_id, subject_id):
+def test_filter(db, client, brain_region_id, person_id, subject_id, cell_morphology_protocol_id):
     """Test filtering cell morphologies by different parameters."""
     morphology_ids = []
     for i in range(5):
@@ -738,6 +740,7 @@ def test_filter(db, client, brain_region_id, person_id, subject_id):
             client,
             subject_id=str(subject_id),
             brain_region_id=brain_region_id,
+            cell_morphology_protocol_id=cell_morphology_protocol_id,
             authorized_public=False,
             name=f"Filter Test Morphology {i}",
             description=f"Filter Test Description {i}",

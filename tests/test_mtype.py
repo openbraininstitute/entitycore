@@ -139,11 +139,14 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_morph_mtypes(db, client, subject_id, brain_region_id, person_id):
+def test_morph_mtypes(
+    db, client, subject_id, brain_region_id, person_id, cell_morphology_protocol_id
+):
     morph_id = create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
 

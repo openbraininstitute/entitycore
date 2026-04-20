@@ -164,7 +164,7 @@ def test_count_entities_by_type_zero_results(client):
 
 
 def test_count_entities_by_type_with_brain_region_filter(
-    db, client, brain_region_hierarchy_id, subject_id, person_id
+    db, client, brain_region_hierarchy_id, subject_id, person_id, cell_morphology_protocol_id
 ):
     """Test counting entities with brain region filtering."""
 
@@ -179,6 +179,7 @@ def test_count_entities_by_type_with_brain_region_filter(
         client,
         subject_id=subject_id,
         brain_region_id=region1.id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
         name="morph1",
     )
@@ -186,6 +187,7 @@ def test_count_entities_by_type_with_brain_region_filter(
         client,
         subject_id=subject_id,
         brain_region_id=region2.id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
         name="morph2",
     )
@@ -218,12 +220,14 @@ def test_count_entities_authorization(
     client_no_project,
     subject_id,
     brain_region_id,
+    cell_morphology_protocol_id,
 ):
     """Test that entity counts respect authorization rules."""
     create_cell_morphology_id(
         client_user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
         name="private_morph",
     )
@@ -232,6 +236,7 @@ def test_count_entities_authorization(
         client_user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
         name="public_morph",
     )
@@ -240,6 +245,7 @@ def test_count_entities_authorization(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
         name="user2_private_morph",
     )

@@ -505,6 +505,7 @@ def test_contribution_facets(
     client,
     subject_id,
     brain_region_id,
+    cell_morphology_protocol_id,
     models,
 ):
     subject = db.get(Subject, subject_id)
@@ -540,7 +541,14 @@ def test_contribution_facets(
         "updated_by": [
             {"count": 9, "id": str(agent.id), "label": agent.pref_label, "type": str(agent.type)}
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 9,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            }
+        ],
     }
     assert len(data["data"]) == 9
     expected_indexes = [11, 10, 6, 5, 4, 3, 2, 1, 0]

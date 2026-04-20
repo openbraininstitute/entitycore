@@ -653,6 +653,7 @@ def test_authorization(
                 "description": "test",
                 "subject_id": str(subject_id),
                 "brain_region_id": str(brain_region_id),
+                "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
                 "location": None,
                 "legacy_id": None,
                 "authorized_public": True,

@@ -426,7 +426,14 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
                 "type": str(agent.type),
             },
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 11,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            },
+        ],
     }
 
     response = client.get(ROUTE, params={"search": "Test", "with_facets": True})
@@ -475,7 +482,14 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
                 "type": str(agent.type),
             },
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 11,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            },
+        ],
     }
 
     response = client.get(
@@ -515,7 +529,14 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
                 "type": str(agent.type),
             },
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 6,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            },
+        ],
     }
 
     data = assert_request(
@@ -538,7 +559,9 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morp
     )
 
 
-def test_query_cell_morphology_species_join(db, client, brain_region_id, subject_id):
+def test_query_cell_morphology_species_join(
+    db, client, brain_region_id, cell_morphology_protocol_id, subject_id
+):
     """Make sure not to join all the species w/ their strains while doing query"""
 
     subject = db.get(Subject, subject_id)
@@ -548,6 +571,7 @@ def test_query_cell_morphology_species_join(db, client, brain_region_id, subject
         url=ROUTE,
         json={
             "brain_region_id": str(brain_region_id),
+            "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
             "subject_id": str(subject_id),
             "description": "description",
             "name": "morph00",
@@ -601,7 +625,14 @@ def test_query_cell_morphology_species_join(db, client, brain_region_id, subject
                 "type": registered["created_by"]["type"],
             },
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 1,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            },
+        ],
     }
 
 
@@ -612,10 +643,12 @@ def test_authorization(
     subject_id,
     license_id,
     brain_region_id,
+    cell_morphology_protocol_id,
 ):
     json_data = {
         "location": {"x": 10, "y": 20, "z": 30},
         "brain_region_id": str(brain_region_id),
+        "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
         "description": "morph description",
         "legacy_id": ["Test Legacy ID"],
         "license_id": license_id,

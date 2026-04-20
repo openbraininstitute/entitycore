@@ -12,12 +12,13 @@ from .utils import (
 ROUTE = "/entity"
 
 
-def test_get_entity(client, brain_region_id, license_id, subject_id):
+def test_get_entity(client, brain_region_id, license_id, subject_id, cell_morphology_protocol_id):
     morph = assert_request(
         client.post,
         url="/cell-morphology",
         json={
             "brain_region_id": str(brain_region_id),
+            "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
             "subject_id": str(subject_id),
             "description": "Test morph",
             "name": "Test morph",
@@ -32,12 +33,15 @@ def test_get_entity(client, brain_region_id, license_id, subject_id):
     assert data["type"] == "cell_morphology"
 
 
-def test_get_entity_no_auth(client, client_user_2, brain_region_id, subject_id, license_id):
+def test_get_entity_no_auth(
+    client, client_user_2, brain_region_id, subject_id, license_id, cell_morphology_protocol_id
+):
     morph = assert_request(
         client_user_2.post,
         url="/cell-morphology",
         json={
             "brain_region_id": str(brain_region_id),
+            "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
             "subject_id": str(subject_id),
             "description": "Test morph",
             "name": "Test morph",
@@ -58,6 +62,7 @@ def test_public_unrelated_project_accessible(
     brain_region_id,
     license_id,
     subject_id,
+    cell_morphology_protocol_id,
 ):
     morph = assert_request(
         client_user_2.post,
@@ -65,6 +70,7 @@ def test_public_unrelated_project_accessible(
         json={
             "authorized_public": True,
             "brain_region_id": str(brain_region_id),
+            "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
             "subject_id": str(subject_id),
             "description": "Test morph",
             "name": "Test morph",

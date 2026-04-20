@@ -877,7 +877,9 @@ def test_filter(db, client, brain_region_id, person_id, subject_id):
     assert len(data) == 5
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, subject_id):
+def test_brain_region_filter(
+    db, client, brain_region_hierarchy_id, person_id, subject_id, cell_morphology_protocol
+):
     def create_model_function(_db, name, brain_region_id):
         return CellMorphology(
             name=name,
@@ -890,7 +892,7 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, s
             authorized_project_id=PROJECT_ID,
             created_by_id=person_id,
             updated_by_id=person_id,
-            cell_morphology_protocol_id=None,
+            cell_morphology_protocol_id=str(cell_morphology_protocol.id),
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

@@ -28,7 +28,7 @@ class CellMorphologyCreate(
 ):
     subject_id: uuid.UUID
     brain_region_id: uuid.UUID
-    cell_morphology_protocol_id: uuid.UUID | None = None
+    cell_morphology_protocol_id: uuid.UUID
 
 
 CellMorphologyUserUpdate = make_update_schema(CellMorphologyCreate, "CellMorphologyUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
@@ -44,7 +44,7 @@ class CellMorphologyRead(
     ScientificArtifactRead,
 ):
     mtypes: list[MTypeClassRead] | None
-    cell_morphology_protocol: NestedCellMorphologyProtocolRead | None
+    cell_morphology_protocol: NestedCellMorphologyProtocolRead
 
 
 class CellMorphologyAnnotationExpandedRead(CellMorphologyRead):

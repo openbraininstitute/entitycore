@@ -228,7 +228,7 @@ def test_read_many(clients, json_data):
         admin_route=ADMIN_ROUTE,
         clients=clients,
         # ensure that each protocol has a unique name
-        json_data_it=({**json_data, "name": f"{name}_{i}"} for i in itertools.count()),
+        json_data=({**json_data, "name": f"{name}_{i}"} for i in itertools.count()),
     )
 
 

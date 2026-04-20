@@ -1287,28 +1287,23 @@ def check_entity_read_many(
     route: str,
     admin_route: str,
     clients: ClientProxies,
-    json_data: dict | None = None,
-    json_data_it: Iterator[dict] | None = None,
+    json_data: dict | Iterator[dict],
 ):
-    if json_data_it is None:
-        assert json_data is not None
-        json_data_it = itertools.repeat(json_data)
-    else:
-        # json_data cannot be passed with json_data_it
-        assert json_data is None
+    if isinstance(json_data, dict):
+        json_data = itertools.repeat(json_data)
 
     # register entities with users in different projects
     u1_private = assert_request(
-        clients.user_1.post, url=route, json=next(json_data_it) | {"authorized_public": False}
+        clients.user_1.post, url=route, json=next(json_data) | {"authorized_public": False}
     ).json()
     u1_public = assert_request(
-        clients.user_1.post, url=route, json=next(json_data_it) | {"authorized_public": True}
+        clients.user_1.post, url=route, json=next(json_data) | {"authorized_public": True}
     ).json()
     u2_private = assert_request(
-        clients.user_2.post, url=route, json=next(json_data_it) | {"authorized_public": False}
+        clients.user_2.post, url=route, json=next(json_data) | {"authorized_public": False}
     ).json()
     u2_public = assert_request(
-        clients.user_2.post, url=route, json=next(json_data_it) | {"authorized_public": True}
+        clients.user_2.post, url=route, json=next(json_data) | {"authorized_public": True}
     ).json()
 
     def req(client, client_route, expected_status_code=200):

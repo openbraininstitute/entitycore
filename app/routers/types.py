@@ -34,6 +34,7 @@ class EntityRoute(HyphenStrEnum):
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()
     single_neuron_synaptome_simulation = auto()
+    simulatable_extracellular_recording_array = auto()
     subject = auto()
     validation_result = auto()
     circuit = auto()

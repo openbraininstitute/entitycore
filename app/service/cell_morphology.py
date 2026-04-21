@@ -61,7 +61,7 @@ def _load_from_db(query: sa.Select, *, expand: set[ExpandableAttribute] | None =
     """Return the query with the required options to load the data."""
     query = query.options(
         joinedload(CellMorphology.brain_region, innerjoin=True),
-        joinedload(CellMorphology.cell_morphology_protocol),
+        selectinload(CellMorphology.cell_morphology_protocol),
         selectinload(CellMorphology.contributions).options(
             selectinload(Contribution.agent),
             selectinload(Contribution.role),

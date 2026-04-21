@@ -16,6 +16,7 @@ from app.schemas.base import (
 )
 from app.schemas.brain_region import BrainRegionReadMixin
 from app.schemas.cell_morphology import CellMorphologyBase
+from app.schemas.cell_morphology_protocol import NestedCellMorphologyProtocolRead
 from app.schemas.contribution import ContributionReadWithoutEntityMixin
 from app.schemas.entity import NestedEntityCreate
 from app.schemas.ion_channel_model import IonChannelModelWAssets
@@ -24,7 +25,7 @@ from app.schemas.utils import make_update_schema
 
 
 class ExemplarMorphology(CreationMixin, CellMorphologyBase, IdentifiableMixin):
-    pass
+    cell_morphology_protocol: NestedCellMorphologyProtocolRead
 
 
 class EModelBase(BaseModel, NameDescriptionMixin):

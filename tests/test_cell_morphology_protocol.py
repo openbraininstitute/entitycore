@@ -1,3 +1,5 @@
+import itertools
+
 import pytest
 
 from app.db.model import (
@@ -13,6 +15,7 @@ from app.db.types import (
     ModifiedMorphologyMethodType,
     SlicingDirectionType,
 )
+from app.errors import ApiErrorCode
 from app.schemas.cell_morphology_protocol import (
     ComputationallySynthesizedCellMorphologyProtocolCreate,
     DigitalReconstructionCellMorphologyProtocolCreate,
@@ -140,6 +143,21 @@ def test_create_one(request, client, json_data_fixture):
     _assert_read_response(data, expected)
 
 
+@pytest.mark.usefixtures("model_id")  # ensure that the protocol already exists
+def test_create_one_duplicated_fails(client, json_data):
+    del json_data["type"]
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data,
+        expected_status_code=409,
+    ).json()
+    assert data["error_code"] == ApiErrorCode.ENTITY_DUPLICATED
+    assert data["message"] == (
+        "DigitalReconstructionCellMorphologyProtocol already exists or breaks unique constraints"
+    )
+
+
 def test_update_one(clients, json_data_digital_reconstruction):
     def _req_compare(client, route, patch_data):
         data = assert_request(
@@ -204,11 +222,13 @@ def test_read_one(client, model_id, json_data):
 
 
 def test_read_many(clients, json_data):
+    name = json_data["name"]
     check_entity_read_many(
         route=ROUTE,
         admin_route=ADMIN_ROUTE,
         clients=clients,
-        json_data=json_data,
+        # ensure that each protocol has a unique name
+        json_data=({**json_data, "name": f"{name}_{i}"} for i in itertools.count()),
     )
 
 

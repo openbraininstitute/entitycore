@@ -299,7 +299,7 @@ def test_brain_region_id(db, client, client_admin, person_id, species_id):
     assert len(response.json()["data"]) == 0
 
 
-def test_family_queries(db, client, subject_id, person_id, species_id):
+def test_family_queries(db, client, subject_id, person_id, species_id, cell_morphology_protocol_id):
     hierarchy_name0 = utils.create_hiearchy_name(
         db, name="hier0", species_id=species_id, created_by_id=person_id
     )
@@ -316,6 +316,7 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
             client,
             subject_id=subject_id,
             brain_region_id=row.id,
+            cell_morphology_protocol_id=cell_morphology_protocol_id,
             authorized_public=False,
             name=f"{acronym}-{hier}",
             description=f"Description {acronym}-{hier}",
@@ -395,6 +396,7 @@ def test_family_queries(db, client, subject_id, person_id, species_id):
         client,
         subject_id=subject_id,
         brain_region_id=brain_regions1["RegionA"].id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
         name="extra-RegionA",
         description="extra-RegionA",

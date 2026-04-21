@@ -142,7 +142,13 @@ def test_update_one(clients, json_data):
 
 
 def test_update_one__fail_if_nested_ids_unauthorized(
-    db, client_user_1, client_user_2, json_data, subject_id, brain_region_id
+    db,
+    client_user_1,
+    client_user_2,
+    json_data,
+    subject_id,
+    brain_region_id,
+    cell_morphology_protocol_id,
 ):
     """Test that it is not allowed to update the nested ids with unauthorized entities."""
 
@@ -150,6 +156,7 @@ def test_update_one__fail_if_nested_ids_unauthorized(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     check_entity_update_one__fail_if_nested_ids_unauthorized(
@@ -163,13 +170,14 @@ def test_update_one__fail_if_nested_ids_unauthorized(
 
 
 def test_update_one__fail_if_nested_ids_exists(
-    db, client_user_1, json_data, subject_id, brain_region_id
+    db, client_user_1, json_data, subject_id, brain_region_id, cell_morphology_protocol_id
 ):
     """Test that nested ids cannot be updated if they already exist."""
     user1_generated_id = create_cell_morphology_id(
         client_user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     check_entity_update_one__fail_if_nested_ids_exists(

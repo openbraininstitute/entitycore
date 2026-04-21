@@ -74,12 +74,13 @@ def test_construct_model_measurement_annotation(person_id):
     _check_result(result)
 
 
-def test_construct_model_cell_morphology(brain_region_id, person_id):
+def test_construct_model_cell_morphology(brain_region_id, cell_morphology_protocol_id, person_id):
     cell_morphology = {
         "name": "morph-0",
         "description": "desc-0",
         "subject_id": SUBJECT_ID,
         "brain_region_id": str(brain_region_id),
+        "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
         "location": {"x": 100.1, "y": 100.2, "z": 100.3},
     }
 

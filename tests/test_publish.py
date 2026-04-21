@@ -23,7 +23,9 @@ UNPUBLISH_URL = "/admin/unpublish-project"
 
 
 @pytest.fixture
-def private_morphology_with_asset(client, subject_id, brain_region_id, tmp_path):
+def private_morphology_with_asset(
+    client, subject_id, brain_region_id, cell_morphology_protocol_id, tmp_path
+):
     entity_id = assert_request(
         client.post,
         url="/cell-morphology",
@@ -31,6 +33,7 @@ def private_morphology_with_asset(client, subject_id, brain_region_id, tmp_path)
             "name": "Private Morphology",
             "description": "desc",
             "brain_region_id": str(brain_region_id),
+            "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
             "subject_id": str(subject_id),
             "location": {"x": 0, "y": 0, "z": 0},
             "authorized_public": False,

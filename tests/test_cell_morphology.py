@@ -244,7 +244,7 @@ def test_missing(client):
     assert response.status_code == 422
 
 
-def test_query_cell_morphology(db, client, brain_region_id, person_id):
+def test_query_cell_morphology(db, client, brain_region_id, person_id, cell_morphology_protocol_id):
     species1 = add_db(
         db,
         Species(
@@ -322,6 +322,7 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 client,
                 subject_id=str(subject.id),
                 brain_region_id=brain_region_id,
+                cell_morphology_protocol_id=cell_morphology_protocol_id,
                 authorized_public=False,
                 name=f"Test Morphology Name {i}",
                 description=f"Test Morphology Description {i}",
@@ -425,7 +426,14 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "type": str(agent.type),
             },
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 11,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            },
+        ],
     }
 
     response = client.get(ROUTE, params={"search": "Test", "with_facets": True})
@@ -474,7 +482,14 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "type": str(agent.type),
             },
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 11,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            },
+        ],
     }
 
     response = client.get(
@@ -514,7 +529,14 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
                 "type": str(agent.type),
             },
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 6,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            },
+        ],
     }
 
     data = assert_request(
@@ -537,7 +559,9 @@ def test_query_cell_morphology(db, client, brain_region_id, person_id):
     )
 
 
-def test_query_cell_morphology_species_join(db, client, brain_region_id, subject_id):
+def test_query_cell_morphology_species_join(
+    db, client, brain_region_id, cell_morphology_protocol_id, subject_id
+):
     """Make sure not to join all the species w/ their strains while doing query"""
 
     subject = db.get(Subject, subject_id)
@@ -547,6 +571,7 @@ def test_query_cell_morphology_species_join(db, client, brain_region_id, subject
         url=ROUTE,
         json={
             "brain_region_id": str(brain_region_id),
+            "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
             "subject_id": str(subject_id),
             "description": "description",
             "name": "morph00",
@@ -600,7 +625,14 @@ def test_query_cell_morphology_species_join(db, client, brain_region_id, subject
                 "type": registered["created_by"]["type"],
             },
         ],
-        "cell_morphology_protocol": [],
+        "cell_morphology_protocol": [
+            {
+                "count": 1,
+                "id": str(cell_morphology_protocol_id),
+                "label": "placeholder",
+                "type": "cell_morphology_protocol",
+            },
+        ],
     }
 
 
@@ -611,10 +643,12 @@ def test_authorization(
     subject_id,
     license_id,
     brain_region_id,
+    cell_morphology_protocol_id,
 ):
     json_data = {
         "location": {"x": 10, "y": 20, "z": 30},
         "brain_region_id": str(brain_region_id),
+        "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
         "description": "morph description",
         "legacy_id": ["Test Legacy ID"],
         "license_id": license_id,
@@ -624,7 +658,7 @@ def test_authorization(
     check_authorization(ROUTE, client_user_1, client_user_2, client_no_project, json_data)
 
 
-def test_pagination(db, client, brain_region_id, person_id):
+def test_pagination(db, client, brain_region_id, person_id, cell_morphology_protocol_id):
     species0 = add_db(
         db,
         Species(
@@ -693,6 +727,7 @@ def test_pagination(db, client, brain_region_id, person_id):
             client,
             subject_id=str(subject.id),
             brain_region_id=brain_region_id,
+            cell_morphology_protocol_id=cell_morphology_protocol_id,
             name=f"TestMorphologyName{i}",
             authorized_public=False,
         )
@@ -730,7 +765,7 @@ def test_pagination(db, client, brain_region_id, person_id):
     assert list(reversed(names)) == list(range(total_items))
 
 
-def test_filter(db, client, brain_region_id, person_id, subject_id):
+def test_filter(db, client, brain_region_id, person_id, subject_id, cell_morphology_protocol_id):
     """Test filtering cell morphologies by different parameters."""
     morphology_ids = []
     for i in range(5):
@@ -738,6 +773,7 @@ def test_filter(db, client, brain_region_id, person_id, subject_id):
             client,
             subject_id=str(subject_id),
             brain_region_id=brain_region_id,
+            cell_morphology_protocol_id=cell_morphology_protocol_id,
             authorized_public=False,
             name=f"Filter Test Morphology {i}",
             description=f"Filter Test Description {i}",
@@ -823,6 +859,13 @@ def test_filter(db, client, brain_region_id, person_id, subject_id):
     data = assert_request(
         client.get,
         url=ROUTE,
+        params={"order_by": "cell_morphology_protocol__generation_type"},
+    ).json()["data"]
+    assert len(data) == len(morphology_ids)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == 5
@@ -870,7 +913,9 @@ def test_filter(db, client, brain_region_id, person_id, subject_id):
     assert len(data) == 5
 
 
-def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, subject_id):
+def test_brain_region_filter(
+    db, client, brain_region_hierarchy_id, person_id, subject_id, cell_morphology_protocol
+):
     def create_model_function(_db, name, brain_region_id):
         return CellMorphology(
             name=name,
@@ -883,7 +928,7 @@ def test_brain_region_filter(db, client, brain_region_hierarchy_id, person_id, s
             authorized_project_id=PROJECT_ID,
             created_by_id=person_id,
             updated_by_id=person_id,
-            cell_morphology_protocol_id=None,
+            cell_morphology_protocol_id=str(cell_morphology_protocol.id),
         )
 
     check_brain_region_filter(ROUTE, client, db, brain_region_hierarchy_id, create_model_function)

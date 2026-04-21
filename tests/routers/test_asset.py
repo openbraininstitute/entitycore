@@ -50,7 +50,7 @@ def _get_expected_full_path(entity, path):
 
 
 @pytest.fixture
-def create_entity_asset(subject_id, brain_region_id):
+def create_entity_asset(subject_id, brain_region_id, cell_morphology_protocol_id):
     def _create_entity_asset(
         client,
         authorized_public,
@@ -60,6 +60,7 @@ def create_entity_asset(subject_id, brain_region_id):
             client,
             subject_id=subject_id,
             brain_region_id=brain_region_id,
+            cell_morphology_protocol_id=cell_morphology_protocol_id,
             authorized_public=authorized_public,
         )
         data = (
@@ -80,12 +81,13 @@ def create_entity_asset(subject_id, brain_region_id):
 
 
 @pytest.fixture
-def entity(client, subject_id, brain_region_id) -> Entity:
+def entity(client, subject_id, brain_region_id, cell_morphology_protocol_id) -> Entity:
     entity_type = EntityType.cell_morphology
     entity_id = create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     return Entity(id=entity_id, type=entity_type)

@@ -66,6 +66,7 @@ class CellMorphologyFilter(
             "cell_morphology_protocol__name",
             "created_by__pref_label",
             "updated_by__pref_label",
+            "cell_morphology_protocol__generation_type",
         ]
 
 

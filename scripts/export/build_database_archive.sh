@@ -2,7 +2,7 @@
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="2f5c75357494"
+SCRIPT_DB_VERSION="ddbb5f8641b7"
 echo "DB dump (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 
@@ -108,7 +108,7 @@ SET TRANSACTION READ ONLY;
 \echo Dumping table cell_composition
 \copy (SELECT t0.* FROM cell_composition AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/cell_composition.csv' WITH CSV HEADER;
 \echo Dumping table cell_morphology
-\copy (SELECT t0.* FROM cell_morphology AS t0 JOIN entity AS t1 ON t1.id=t0.id LEFT JOIN entity AS t2 ON t2.id=t0.cell_morphology_protocol_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/cell_morphology.csv' WITH CSV HEADER;
+\copy (SELECT t0.* FROM cell_morphology AS t0 JOIN entity AS t1 ON t1.id=t0.id JOIN entity AS t2 ON t2.id=t0.cell_morphology_protocol_id WHERE t1.authorized_public IS NOT false AND t2.authorized_public IS NOT false) TO '$DATA_DIR/cell_morphology.csv' WITH CSV HEADER;
 \echo Dumping table cell_morphology_protocol
 \copy (SELECT t0.* FROM cell_morphology_protocol AS t0 JOIN entity AS t1 ON t1.id=t0.id WHERE t1.authorized_public IS NOT false) TO '$DATA_DIR/cell_morphology_protocol.csv' WITH CSV HEADER;
 \echo Dumping table circuit
@@ -269,7 +269,7 @@ install -m 755 /dev/stdin "$WORK_DIR/load.sh" <<'EOF_LOAD_SCRIPT'
 # Automatically generated, do not edit!
 set -euo pipefail
 SCRIPT_VERSION="1"
-SCRIPT_DB_VERSION="2f5c75357494"
+SCRIPT_DB_VERSION="ddbb5f8641b7"
 echo "DB load (version $SCRIPT_VERSION for db version $SCRIPT_DB_VERSION)"
 
 

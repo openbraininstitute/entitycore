@@ -867,7 +867,7 @@ class CellMorphology(
 
     location: Mapped[PointLocation | None]
     repair_pipeline_state: Mapped[RepairPipelineType | None]
-    cell_morphology_protocol_id: Mapped[uuid.UUID | None] = mapped_column(
+    cell_morphology_protocol_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("cell_morphology_protocol.id"), index=True
     )
 

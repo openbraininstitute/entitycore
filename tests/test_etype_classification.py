@@ -26,11 +26,17 @@ def custom_etype(db, person_id):
 
 
 @pytest.fixture
-def unauthorized_morph_id(client_user_2, brain_region_id, subject_id):
+def unauthorized_morph_id(
+    client_user_2,
+    brain_region_id,
+    subject_id,
+    cell_morphology_protocol_id,
+):
     return create_cell_morphology_id(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
 

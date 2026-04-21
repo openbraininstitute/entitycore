@@ -637,12 +637,13 @@ def brain_atlas_id(db, brain_region_hierarchy_id, person_id, species_id):
 
 
 @pytest.fixture
-def morphology_id(db, client, subject_id, brain_region_id, person_id):
+def morphology_id(db, client, subject_id, brain_region_id, person_id, cell_morphology_protocol_id):
     model_id = utils.create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
         authorized_public=False,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
     )
     mtype = add_db(
         db,
@@ -669,15 +670,12 @@ def morphology_id(db, client, subject_id, brain_region_id, person_id):
 
 
 @pytest.fixture
-def public_morphology_id(
-    client,
-    subject_id,
-    brain_region_id,
-):
+def public_morphology_id(client, subject_id, brain_region_id, cell_morphology_protocol_id):
     model_id = utils.create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
     return model_id
@@ -1014,7 +1012,14 @@ def ion_channel_models(db, person_id, brain_region_id, subject_id):
 
 
 @pytest.fixture
-def faceted_emodel_ids(db: Session, client, person_id, species_id, ion_channel_models):
+def faceted_emodel_ids(
+    db: Session,
+    client,
+    person_id,
+    species_id,
+    ion_channel_models,
+    cell_morphology_protocol_id,
+):
     subject_ids, species_ids, _ = utils.create_subject_ids(db, created_by_id=person_id, n=2)
 
     hierarchy_name = utils.create_hiearchy_name(
@@ -1037,6 +1042,7 @@ def faceted_emodel_ids(db: Session, client, person_id, species_id, ion_channel_m
                 client,
                 subject_id=subject_ids[i],
                 brain_region_id=brain_region_ids[i],
+                cell_morphology_protocol_id=cell_morphology_protocol_id,
                 authorized_public=False,
                 name=f"test exemplar morphology {i}",
             )
@@ -1081,7 +1087,11 @@ def faceted_emodel_ids(db: Session, client, person_id, species_id, ion_channel_m
 
 @pytest.fixture
 def faceted_memodels(
-    db: Session, client: TestClient, species_id, agents: tuple[Agent, Agent, Role]
+    db: Session,
+    client: TestClient,
+    species_id,
+    agents: tuple[Agent, Agent, Role],
+    cell_morphology_protocol_id,
 ):
     person_id = agents[1].id
 
@@ -1103,6 +1113,7 @@ def faceted_memodels(
                 client,
                 subject_id=subject_ids[i],
                 brain_region_id=brain_region_ids[i],
+                cell_morphology_protocol_id=cell_morphology_protocol_id,
                 authorized_public=False,
                 name=f"test morphology {i}",
             )
@@ -1678,6 +1689,11 @@ def cell_morphology_protocol(db, cell_morphology_protocol_json_data, person_id):
             }
         ),
     )
+
+
+@pytest.fixture
+def cell_morphology_protocol_id(cell_morphology_protocol):
+    return str(cell_morphology_protocol.id)
 
 
 @pytest.fixture

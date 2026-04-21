@@ -70,7 +70,9 @@ def _assert_read_response(data, json_data):
     assert data["measurement_kinds"] == json_data["measurement_kinds"]
 
 
-def test_read_many(clients, subject_id, brain_region_id, measurement_labels):
+def test_read_many(
+    clients, subject_id, brain_region_id, measurement_labels, cell_morphology_protocol_id
+):
 
     route = ROUTE
     admin_route = ADMIN_ROUTE
@@ -80,24 +82,28 @@ def test_read_many(clients, subject_id, brain_region_id, measurement_labels):
         clients.user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     c2_id = create_cell_morphology_id(
         clients.user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
     c3_id = create_cell_morphology_id(
         clients.user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     c4_id = create_cell_morphology_id(
         clients.user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
 
@@ -179,13 +185,14 @@ def test_read_many(clients, subject_id, brain_region_id, measurement_labels):
     }
 
 
-def test_update_one(clients, json_data, subject_id, brain_region_id):
+def test_update_one(clients, json_data, subject_id, brain_region_id, cell_morphology_protocol_id):
     old_morph_id = json_data["entity_id"]
 
     new_morph_id = create_cell_morphology_id(
         clients.user_1,
         subject_id,
         brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
 
@@ -294,13 +301,16 @@ def _get_return_payload(request_payload):
     return payload
 
 
-def test_create_and_retrieve(clients, subject_id, brain_region_id, measurement_labels):
+def test_create_and_retrieve(
+    clients, subject_id, brain_region_id, measurement_labels, cell_morphology_protocol_id
+):
     client = clients.user_1
 
     morphology_id = create_cell_morphology_id(
         client,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
     request_payload_1 = _get_request_payload_1(entity_id=morphology_id, labels=measurement_labels)
@@ -433,12 +443,14 @@ def test_authorization(
     client_no_project,
     subject_id,
     brain_region_id,
+    cell_morphology_protocol_id,
     measurement_labels,
 ):
     morphology_id_public = create_cell_morphology_id(
         client_user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
 
@@ -453,6 +465,7 @@ def test_authorization(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
 
@@ -481,6 +494,7 @@ def test_authorization(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
     response = client_user_1.post(

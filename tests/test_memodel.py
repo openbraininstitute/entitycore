@@ -565,11 +565,13 @@ def test_authorization(
     morphology_id,
     subject_id,
     emodel_id,
+    cell_morphology_protocol_id,
 ):
     public_morphology_id = create_cell_morphology_id(
         client_user_1,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=True,
     )
 
@@ -632,6 +634,7 @@ def test_authorization(
         client_user_2,
         subject_id=subject_id,
         brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
         authorized_public=False,
     )
 
@@ -650,6 +653,7 @@ def test_authorization(
                 "description": "test",
                 "subject_id": str(subject_id),
                 "brain_region_id": str(brain_region_id),
+                "cell_morphology_protocol_id": str(cell_morphology_protocol_id),
                 "location": None,
                 "legacy_id": None,
                 "authorized_public": True,

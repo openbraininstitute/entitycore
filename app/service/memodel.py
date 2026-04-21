@@ -51,7 +51,9 @@ def _load(select: Select):
         joinedload(MEModel.emodel).options(
             joinedload(EModel.species),
             joinedload(EModel.strain),
-            joinedload(EModel.exemplar_morphology),
+            joinedload(EModel.exemplar_morphology).selectinload(
+                CellMorphology.cell_morphology_protocol
+            ),
             joinedload(EModel.brain_region),
             selectinload(EModel.contributions).joinedload(Contribution.agent),
             selectinload(EModel.contributions).joinedload(Contribution.role),

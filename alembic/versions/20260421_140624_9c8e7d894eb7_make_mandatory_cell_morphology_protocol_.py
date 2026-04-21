@@ -1,8 +1,8 @@
 """Make mandatory cell_morphology_protocol_id
 
-Revision ID: 8c4b8a552d16
-Revises: f4744cf2307b
-Create Date: 2026-04-20 16:29:26.972877
+Revision ID: 9c8e7d894eb7
+Revises: 2f5c75357494
+Create Date: 2026-04-21 14:06:24.891187
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "8c4b8a552d16"
-down_revision: Union[str, None] = "f4744cf2307b"
+revision: str = "9c8e7d894eb7"
+down_revision: Union[str, None] = "2f5c75357494"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

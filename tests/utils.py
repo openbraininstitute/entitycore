@@ -1,9 +1,10 @@
 import functools
+import itertools
 import json
 import operator
 import os
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import NamedTuple
@@ -1288,21 +1289,23 @@ def check_entity_read_many(
     route: str,
     admin_route: str,
     clients: ClientProxies,
-    json_data: dict,
+    json_data: dict | Iterator[dict],
 ):
+    if isinstance(json_data, dict):
+        json_data = itertools.repeat(json_data)
 
     # register entities with users in different projects
     u1_private = assert_request(
-        clients.user_1.post, url=route, json=json_data | {"authorized_public": False}
+        clients.user_1.post, url=route, json=next(json_data) | {"authorized_public": False}
     ).json()
     u1_public = assert_request(
-        clients.user_1.post, url=route, json=json_data | {"authorized_public": True}
+        clients.user_1.post, url=route, json=next(json_data) | {"authorized_public": True}
     ).json()
     u2_private = assert_request(
-        clients.user_2.post, url=route, json=json_data | {"authorized_public": False}
+        clients.user_2.post, url=route, json=next(json_data) | {"authorized_public": False}
     ).json()
     u2_public = assert_request(
-        clients.user_2.post, url=route, json=json_data | {"authorized_public": True}
+        clients.user_2.post, url=route, json=next(json_data) | {"authorized_public": True}
     ).json()
 
     def req(client, client_route, expected_status_code=200):

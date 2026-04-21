@@ -176,6 +176,11 @@ class NameDescriptionVectorMixin(Base):
         return super_table_args
 
 
+class UniqueNameDescriptionVectorMixin(NameDescriptionVectorMixin):
+    __abstract__ = True
+    name: Mapped[str] = mapped_column(index=True, unique=True)
+
+
 class EmbeddingMixin(Base):
     """Mixin class that provides an embedding field for vector similarity search.
 
@@ -801,7 +806,7 @@ class MeasurableEntityMixin:
         )
 
 
-class CellMorphologyProtocol(Entity, NameDescriptionVectorMixin):
+class CellMorphologyProtocol(Entity, UniqueNameDescriptionVectorMixin):
     __tablename__ = EntityType.cell_morphology_protocol.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     protocol_document: Mapped[str | None]

@@ -47,21 +47,23 @@ def _load(select: sa.Select[tuple[EModel]]):
     return select.options(
         joinedload(EModel.species),
         joinedload(EModel.strain),
-        joinedload(EModel.exemplar_morphology),
+        joinedload(EModel.exemplar_morphology).selectinload(
+            CellMorphology.cell_morphology_protocol
+        ),
         joinedload(EModel.brain_region),
         selectinload(EModel.assets),
         selectinload(EModel.contributions).joinedload(Contribution.agent),
         selectinload(EModel.contributions).joinedload(Contribution.role),
         joinedload(EModel.mtypes),
         joinedload(EModel.etypes),
-        selectinload(EModel.ion_channel_models)
-        .joinedload(IonChannelModel.subject)
-        .selectinload(Subject.species),
-        selectinload(EModel.ion_channel_models)
-        .joinedload(IonChannelModel.subject)
-        .selectinload(Subject.strain),
-        selectinload(EModel.ion_channel_models).joinedload(IonChannelModel.brain_region),
-        selectinload(EModel.ion_channel_models).selectinload(IonChannelModel.assets),
+        selectinload(EModel.ion_channel_models).options(
+            joinedload(IonChannelModel.subject).options(
+                selectinload(Subject.species),
+                selectinload(Subject.strain),
+            ),
+            joinedload(IonChannelModel.brain_region),
+            selectinload(IonChannelModel.assets),
+        ),
         joinedload(EModel.created_by),
         joinedload(EModel.updated_by),
         raiseload("*"),

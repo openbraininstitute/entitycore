@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi_filter import with_prefix
 
 from app.db.model import Circuit
-from app.db.types import CircuitBuildCategory, CircuitScale
+from app.db.types import CircuitBuildCategory, CircuitScale, TargetSimulator
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
@@ -17,6 +17,8 @@ class CircuitFilterMixin:
 
     build_category: CircuitBuildCategory | None = None
     build_category__in: list[CircuitBuildCategory] | None = None
+
+    target_simulator: TargetSimulator | None = None
 
 
 class NestedCircuitFilter(

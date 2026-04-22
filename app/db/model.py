@@ -72,6 +72,7 @@ from app.db.types import (
     StainingType,
     StorageType,
     StructuralDomain,
+    TargetSimulator,
     TaskActivityType,
     TaskConfigType,
     ValidationStatus,
@@ -1820,6 +1821,12 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     number_neurons: Mapped[int] = mapped_column(BigInteger)
     number_synapses: Mapped[int] = mapped_column(BigInteger)
     number_connections: Mapped[int | None] = mapped_column(BigInteger)
+
+    target_simulator: Mapped[TargetSimulator] = mapped_column(
+        sa.Enum(TargetSimulator, values_callable=lambda x: [i.value for i in x]),
+        nullable=False,
+        server_default=TargetSimulator.coreneuron,
+    )  # sqlalchemy by default uses enum names instead of its values
 
     # May be added later:
     # version: Mapped[str] = mapped_column(default="")

@@ -13,6 +13,7 @@ from app.db.types import (
     EntityType,
     ExternalSource,
     PublicationType,
+    TargetSimulator,
 )
 
 from .utils import (
@@ -375,3 +376,8 @@ def test_filtering(client, root_circuit, models):
         params={"published_in__ilike": "journal"},
     ).json()["data"]
     assert len(data) == len(models)
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"target_simulator": TargetSimulator.coreneuron}
+    ).json()["data"]
+    assert len(data) == len(models) + 1

@@ -64,6 +64,7 @@ def _assert_read_response(data, json_data):
     assert data["build_category"] == json_data["build_category"]
     assert data["scale"] == json_data["scale"]
     assert data["authorized_public"] is json_data["authorized_public"]
+    assert data["target_simulator"] == TargetSimulator.coreneuron
 
     check_creation_fields(data)
 

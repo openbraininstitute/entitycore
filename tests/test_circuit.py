@@ -64,7 +64,7 @@ def _assert_read_response(data, json_data):
     assert data["build_category"] == json_data["build_category"]
     assert data["scale"] == json_data["scale"]
     assert data["authorized_public"] is json_data["authorized_public"]
-    assert data["target_simulator"] == TargetSimulator.coreneuron
+    assert data["target_simulator"] == TargetSimulator.neuron
 
     check_creation_fields(data)
 
@@ -379,6 +379,6 @@ def test_filtering(client, root_circuit, models):
     assert len(data) == len(models)
 
     data = assert_request(
-        client.get, url=ROUTE, params={"target_simulator": TargetSimulator.coreneuron}
+        client.get, url=ROUTE, params={"target_simulator": TargetSimulator.neuron}
     ).json()["data"]
-    assert len(data) == len(models) + 1
+    assert len(data) == len(models)  # root is different than children

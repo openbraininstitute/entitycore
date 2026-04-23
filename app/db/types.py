@@ -1114,4 +1114,4 @@ class TargetSimulator(StrEnum):
     neuron = "NEURON"
     coreneuron = "CORENEURON"
     learning_engine = "LearningEngine"
-    brian2 = "brian2"
+    brian2 = "Brian2"

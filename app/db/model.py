@@ -1825,7 +1825,7 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
     target_simulator: Mapped[TargetSimulator] = mapped_column(
         sa.Enum(TargetSimulator, values_callable=lambda x: [i.value for i in x]),
         nullable=False,
-        server_default=TargetSimulator.coreneuron,
+        server_default=TargetSimulator.neuron,
     )  # sqlalchemy by default uses enum names instead of its values
 
     # May be added later:

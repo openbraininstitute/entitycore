@@ -1,8 +1,8 @@
 """circuit_target_simulator
 
-Revision ID: c4d95e516823
+Revision ID: 5b313e362c15
 Revises: ddbb5f8641b7
-Create Date: 2026-04-22 17:48:50.775614
+Create Date: 2026-04-23 12:15:47.974367
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "c4d95e516823"
+revision: str = "5b313e362c15"
 down_revision: Union[str, None] = "ddbb5f8641b7"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -39,7 +39,7 @@ def upgrade() -> None:
                 name="targetsimulator",
                 create_type=False,
             ),
-            server_default="CORENEURON",
+            server_default="NEURON",
             nullable=False,
         ),
     )

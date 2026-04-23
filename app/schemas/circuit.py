@@ -25,7 +25,7 @@ class CircuitBase(BaseModel, NameDescriptionMixin):
 
     root_circuit_id: uuid.UUID | None = None
     atlas_id: uuid.UUID | None = None
-    target_simulator: TargetSimulator | None = None
+    target_simulator: TargetSimulator
 
 
 class CircuitRead(CircuitBase, ScientificArtifactRead):

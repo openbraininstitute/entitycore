@@ -1136,4 +1136,3 @@ class ElectrodeType(StrEnum):
     neuropixels_v2 = auto()
     neuropixels_ultra = auto()
     custom = auto()
-    placeholder = auto()

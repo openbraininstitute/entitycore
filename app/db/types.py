@@ -1130,6 +1130,7 @@ class TargetSimulator(StrEnum):
     learning_engine = "LearningEngine"
     brian2 = "Brian2"
 
+
 class ElectrodeType(StrEnum):
     neuropixels_v1 = auto()
     neuropixels_v2 = auto()

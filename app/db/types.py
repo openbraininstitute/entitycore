@@ -1108,7 +1108,7 @@ class ExecutorType(StrEnum):
 class TargetSimulator(StrEnum):
     """Target simulator values as used in libsonata.
 
-    See: https://github.com/openbraininstitute/libsonata/blob/5701031d206867e17d0296c5acbf206df40d0b3b/src/config.cpp#L129-L132
+    See: https://sonata-extension.readthedocs.io/en/latest/sonata_config.html#target-simulator
     """
 
     neuron = "NEURON"

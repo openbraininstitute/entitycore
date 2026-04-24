@@ -1103,3 +1103,15 @@ class ExecutorType(StrEnum):
     single_node_job = auto()
     distributed_job = auto()
     jupyter_notebook = auto()
+
+
+class TargetSimulator(StrEnum):
+    """Target simulator values as used in libsonata.
+
+    See: https://sonata-extension.readthedocs.io/en/latest/sonata_config.html#target-simulator
+    """
+
+    neuron = "NEURON"
+    coreneuron = "CORENEURON"
+    learning_engine = "LearningEngine"
+    brian2 = "Brian2"

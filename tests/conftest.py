@@ -50,7 +50,7 @@ from app.db.model import (
     Subject,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
-from app.db.types import CellMorphologyGenerationType, EntityType, StorageType
+from app.db.types import CellMorphologyGenerationType, EntityType, StorageType, TargetSimulator
 from app.dependencies import auth
 from app.logger import configure_logging
 from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
@@ -1294,6 +1294,7 @@ def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_
         "updated_by_id": str(person_id),
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
+        "target_simulator": TargetSimulator.coreneuron,
     }
 
 

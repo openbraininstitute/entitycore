@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.db.types import CircuitBuildCategory, CircuitScale
+from app.db.types import CircuitBuildCategory, CircuitScale, TargetSimulator
 from app.schemas.base import NameDescriptionMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.utils import make_update_schema
@@ -25,6 +25,7 @@ class CircuitBase(BaseModel, NameDescriptionMixin):
 
     root_circuit_id: uuid.UUID | None = None
     atlas_id: uuid.UUID | None = None
+    target_simulator: TargetSimulator = TargetSimulator.neuron
 
 
 class CircuitRead(CircuitBase, ScientificArtifactRead):

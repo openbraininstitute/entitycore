@@ -194,8 +194,15 @@ def query_params_factory[I: Identifiable](
         "me_model.mtype": lambda q: q.join(
             MTypeClassification, MTypeClassification.entity_id == me_model_alias.id
         ).join(MTypeClass, MTypeClass.id == MTypeClassification.mtype_class_id),
+        "me_model.species": lambda q: q.join(Species, me_model_alias.species_id == Species.id),
         "synaptome": lambda q: q.join(
             synaptome_alias, db_model_class.synaptome_id == synaptome_alias.id
+        ),
+        "synaptome.me_model": lambda q: q.join(
+            me_model_alias, me_model_alias.id == synaptome_alias.me_model_id
+        ),
+        "synaptome.me_model.species": lambda q: q.join(
+            Species, Species.id == me_model_alias.species_id
         ),
         "brain_region": lambda q: q.join(
             brain_region_alias, db_model_class.brain_region_id == brain_region_alias.id

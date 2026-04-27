@@ -504,6 +504,9 @@ def test_sorting_filtering(client, faceted_ids):
         data = req({"brain_region__acronym": "", "order_by": ordering_field})
         assert len(data) == 0
 
+        data = req({"me_model__species__name": "Test Species", "order_by": ordering_field})
+        assert len(data) == n_models
+
         data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
         assert len(data) == n_models
 

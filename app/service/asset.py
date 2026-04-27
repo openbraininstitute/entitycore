@@ -572,6 +572,20 @@ def download_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
     )
+    return create_asset_download_redirect(
+        asset=asset,
+        storage_client_factory=storage_client_factory,
+        asset_path=asset_path,
+    )
+
+
+def create_asset_download_redirect(
+    *,
+    asset: AssetRead,
+    storage_client_factory: StorageClientFactory,
+    asset_path: str | None = None,
+) -> RedirectResponse:
+    """Return a redirect response to download an asset from storage."""
     if asset.status == AssetStatus.UPLOADING:
         raise ApiError(
             message="Cannot download an uploading asset, because it is incomplete.",

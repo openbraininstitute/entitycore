@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Query
+from starlette.responses import RedirectResponse
 
 from app.config import storages
 from app.db.types import StorageType
@@ -84,6 +85,43 @@ def delete_entity_asset(
     )
     # Note: Asset storage object is deleted via app.db.events
     return asset
+
+
+@router.get("/{entity_route}/{entity_id}/assets/{asset_id}/download")
+def download_entity_asset(
+    repos: RepoGroupDep,
+    storage_client_factory: StorageClientFactoryDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    asset_path: str | None = None,
+) -> RedirectResponse:
+    """Download an asset associated with a specific entity.
+
+    This endpoint returns a temporary download link (via HTTP redirect) to the
+    requested asset file.
+
+    Availability:
+    - Only assets with status `CREATED` can be downloaded.
+    - If the asset is in `UPLOADING` status, the request will return
+      HTTP 409 (Conflict) because the asset is not yet complete.
+
+    Directory assets:
+    - If the asset represents a directory, you must provide the `asset_path`
+      query parameter specifying the relative path of the file inside the directory.
+    - If `asset_path` is missing for a directory asset, the request will fail
+      with HTTP 409.
+    - If `asset_path` is provided for a non-directory asset, the request will
+      fail with HTTP 409.
+    """
+    return admin_service.download_entity_asset(
+        repos=repos,
+        storage_client_factory=storage_client_factory,
+        entity_route=entity_route,
+        entity_id=entity_id,
+        asset_id=asset_id,
+        asset_path=asset_path,
+    )
 
 
 @router.post("/publish-project/{project_id}")

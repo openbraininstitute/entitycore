@@ -5,6 +5,7 @@ from typing import cast
 
 from fastapi import HTTPException
 from pydantic.networks import AnyUrl
+from starlette.responses import RedirectResponse
 from types_boto3_s3 import S3Client
 
 from app.config import StorageUnion, storages
@@ -535,3 +536,90 @@ def entity_asset_upload_complete(
     asset_db.status = AssetStatus.CREATED
     repos.db.flush()
     return AssetRead.model_validate(asset_db)
+
+
+def download_entity_asset(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    storage_client_factory: StorageClientFactory,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    asset_path: str | None = None,
+) -> RedirectResponse:
+    """Download an asset associated with a specific entity.
+
+    This endpoint returns a temporary download link (via HTTP redirect) to the
+    requested asset file.
+
+    Availability:
+    - Only assets with status `CREATED` can be downloaded.
+    - If the asset is in `UPLOADING` status, the request will return
+      HTTP 409 (Conflict) because the asset is not yet complete.
+
+    Directory assets:
+    - If the asset represents a directory, you must provide the `asset_path`
+      query parameter specifying the relative path of the file inside the directory.
+    - If `asset_path` is missing for a directory asset, the request will fail
+      with HTTP 409.
+    - If `asset_path` is provided for a non-directory asset, the request will
+      fail with HTTP 409.
+    """
+    asset = get_entity_asset(
+        repos,
+        user_context=user_context,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+    return create_asset_download_redirect(
+        asset=asset,
+        storage_client_factory=storage_client_factory,
+        asset_path=asset_path,
+    )
+
+
+def create_asset_download_redirect(
+    *,
+    asset: AssetRead,
+    storage_client_factory: StorageClientFactory,
+    asset_path: str | None = None,
+) -> RedirectResponse:
+    """Return a redirect response to download an asset from storage."""
+    if asset.status == AssetStatus.UPLOADING:
+        raise ApiError(
+            message="Cannot download an uploading asset, because it is incomplete.",
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+    if asset.is_directory:
+        if asset_path is None:
+            msg = "Missing required parameter for downloading a directory file: asset_path"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_MISSING_PATH,
+                http_status_code=HTTPStatus.CONFLICT,
+            )
+        full_path = str(Path(asset.full_path, sanitize_directory_traversal(asset_path)))
+    else:
+        if asset_path:
+            msg = "asset_path is only applicable when asset is a directory"
+            raise ApiError(
+                message=msg,
+                error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
+                http_status_code=HTTPStatus.CONFLICT,
+            )
+        full_path = asset.full_path
+
+    storage = storages[asset.storage_type]
+    s3_client = storage_client_factory(storage)
+
+    url = generate_presigned_url(
+        s3_client=s3_client,
+        operation="get_object",
+        bucket_name=storage.bucket,
+        s3_key=full_path,
+    )
+    if not url:
+        raise HTTPException(status_code=500, detail="Failed to generate presigned url")
+    return RedirectResponse(url=url)

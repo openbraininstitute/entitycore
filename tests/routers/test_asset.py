@@ -679,38 +679,78 @@ def test_get_deleted_entity_assets__admin(db, client_admin, entity, asset):
     assert data == []
 
 
-def test_download_entity_asset(client, entity, asset):
-    response = client.get(
-        f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+def test_download_entity_asset(clients, entity, asset):
+
+    response = assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=307,
+        follow_redirects=False,
+    )
+    expected_full_path = _get_expected_full_path(entity, path="morph.asc")
+    expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
+    assert response.next_request.url.path.endswith(expected_full_path)
+    assert expected_params.issubset(response.next_request.url.params)
+
+    # user 2 has no access to entity
+    assert_request(
+        clients.user_2.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=404,
         follow_redirects=False,
     )
 
-    assert response.status_code == 307, f"Failed to download asset: {response.text}"
+    # cheeky user cannot use admin endpoint
+    assert_request(
+        clients.user_1.get,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=403,
+    )
+
+    # admin cannot have access through regular endpoint
+    assert_request(
+        clients.admin.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=404,
+    )
+
+    # admin can use admin endpoint
+    response = assert_request(
+        clients.admin.get,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=307,
+        follow_redirects=False,
+    )
     expected_full_path = _get_expected_full_path(entity, path="morph.asc")
     expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
     assert response.next_request.url.path.endswith(expected_full_path)
     assert expected_params.issubset(response.next_request.url.params)
 
     # try to download an asset with non-existent entity id
-    response = client.get(f"{route(entity.type)}/{MISSING_ID}/assets/{asset.id}/download")
-    assert response.status_code == 404, f"Unexpected result: {response.text}"
-    error = ErrorResponse.model_validate(response.json())
+    data = assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{MISSING_ID}/assets/{asset.id}/download",
+        expected_status_code=404,
+    ).json()
+    error = ErrorResponse.model_validate(data)
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to download an asset with non-existent asset id
-    response = client.get(f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/download")
-    assert response.status_code == 404, f"Unexpected result: {response.text}"
-    error = ErrorResponse.model_validate(response.json())
+    data = assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/download",
+        expected_status_code=404,
+    ).json()
+    error = ErrorResponse.model_validate(data)
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
     # when downloading a single file asset_path should not be passed as a parameter
-    response = client.get(
-        f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+    assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
         params={"asset_path": "foo"},
         follow_redirects=False,
-    )
-    assert response.status_code == 409, (
-        f"Failed to forbid asset_path when downloading a file: {response.text}"
+        expected_status_code=409,
     )
 
 

@@ -1,5 +1,7 @@
 import uuid
 
+from starlette.responses import RedirectResponse
+
 from app.db.model import Asset, Entity
 from app.db.types import EntityType
 from app.db.utils import RESOURCE_TYPE_TO_CLASS
@@ -15,7 +17,9 @@ from app.schemas.asset import (
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+from app.service.asset import create_asset_download_redirect
 from app.utils.routers import entity_route_to_type, route_to_type
+from app.utils.s3 import StorageClientFactory
 
 
 def delete_one(
@@ -78,4 +82,43 @@ def get_entity_assets(
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         filter_joins=filter_joins,
+    )
+
+
+def download_entity_asset(
+    repos: RepositoryGroup,
+    storage_client_factory: StorageClientFactory,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    asset_path: str | None = None,
+) -> RedirectResponse:
+    """Download an asset associated with a specific entity.
+
+    This endpoint returns a temporary download link (via HTTP redirect) to the
+    requested asset file.
+
+    Availability:
+    - Only assets with status `CREATED` can be downloaded.
+    - If the asset is in `UPLOADING` status, the request will return
+      HTTP 409 (Conflict) because the asset is not yet complete.
+
+    Directory assets:
+    - If the asset represents a directory, you must provide the `asset_path`
+      query parameter specifying the relative path of the file inside the directory.
+    - If `asset_path` is missing for a directory asset, the request will fail
+      with HTTP 409.
+    - If `asset_path` is provided for a non-directory asset, the request will
+      fail with HTTP 409.
+    """
+    asset = get_entity_asset(
+        repos,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+    return create_asset_download_redirect(
+        asset=asset,
+        storage_client_factory=storage_client_factory,
+        asset_path=asset_path,
     )

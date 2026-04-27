@@ -5,6 +5,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
+    MEModel,
     Person,
     SingleNeuronSynaptome,
     SingleNeuronSynaptomeSimulation,
@@ -146,11 +147,13 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[SingleNeuronSynaptomeSimulationRead]:
     synaptome_alias = aliased(SingleNeuronSynaptome, flat=True)
+    me_model_alias = aliased(MEModel, flat=True)
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
     aliases = {
         SingleNeuronSynaptome: synaptome_alias,
+        MEModel: me_model_alias,
         Agent: {
             "contribution": agent_alias,
         },
@@ -159,12 +162,17 @@ def _read_many(
             "updated_by": updated_by_alias,
         },
     }
-    facet_keys = filter_keys = [
+    facet_keys = [
         "brain_region",
         "synaptome",
         "created_by",
         "updated_by",
         "contribution",
+    ]
+    filter_keys = [
+        *facet_keys,
+        "synaptome.me_model",
+        "synaptome.me_model.species",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=SingleNeuronSynaptomeSimulation,

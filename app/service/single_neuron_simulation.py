@@ -148,12 +148,16 @@ def _read_many(
             "updated_by": updated_by_alias,
         },
     }
-    facet_keys = filter_keys = [
+    facet_keys = [
         "brain_region",
         "me_model",
         "created_by",
         "updated_by",
         "contribution",
+    ]
+    filter_keys = [
+        *facet_keys,
+        "me_model.species",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=SingleNeuronSimulation,

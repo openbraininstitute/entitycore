@@ -150,7 +150,7 @@ def _read_many(
             "updated_by": updated_by_alias,
         },
     }
-    facet_keys = filter_keys = [
+    facet_keys = [
         "brain_region",
         "created_by",
         "updated_by",
@@ -158,6 +158,10 @@ def _read_many(
         "me_model",
         "me_model.etype",  # match NestedMEModelFilter.etype for filtering by me_model__etype__*
         "me_model.mtype",  # match NestedMEModelFilter.mtype for filtering by me_model__mtype__*
+    ]
+    filter_keys = [
+        *facet_keys,
+        "me_model.species",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=SingleNeuronSynaptome,

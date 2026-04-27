@@ -460,6 +460,9 @@ def test_sorting_filtering(client, faceted_ids):
         data = req({"brain_region__acronym": "", "order_by": ordering_field})
         assert len(data) == 0
 
+        data = req({"me_model__species__name": "Test Species", "order_by": ordering_field})
+        assert len(data) == n_models
+
         data = req({"ilike_search": "sim-desc*", "order_by": ordering_field})
         assert len(data) == n_models
 

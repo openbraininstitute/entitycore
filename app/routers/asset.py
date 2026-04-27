@@ -2,7 +2,6 @@
 
 import uuid
 from http import HTTPStatus
-from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Form, HTTPException, UploadFile, status
@@ -32,8 +31,6 @@ from app.utils.files import calculate_sha256_digest, get_content_type
 from app.utils.routers import entity_route_to_type
 from app.utils.s3 import (
     check_object,
-    generate_presigned_url,
-    sanitize_directory_traversal,
     upload_to_s3,
     validate_filename,
     validate_filesize,
@@ -253,50 +250,15 @@ def download_entity_asset(
     - If `asset_path` is provided for a non-directory asset, the request will
       fail with HTTP 409.
     """
-    asset = asset_service.get_entity_asset(
-        repos,
+    return asset_service.download_entity_asset(
+        repos=repos,
         user_context=user_context,
-        entity_type=entity_route_to_type(entity_route),
+        storage_client_factory=storage_client_factory,
+        entity_route=entity_route,
         entity_id=entity_id,
         asset_id=asset_id,
+        asset_path=asset_path,
     )
-    if asset.status == AssetStatus.UPLOADING:
-        raise ApiError(
-            message="Cannot download an uploading asset, because it is incomplete.",
-            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
-            http_status_code=HTTPStatus.CONFLICT,
-        )
-    if asset.is_directory:
-        if asset_path is None:
-            msg = "Missing required parameter for downloading a directory file: asset_path"
-            raise ApiError(
-                message=msg,
-                error_code=ApiErrorCode.ASSET_MISSING_PATH,
-                http_status_code=HTTPStatus.CONFLICT,
-            )
-        full_path = str(Path(asset.full_path, sanitize_directory_traversal(asset_path)))
-    else:
-        if asset_path:
-            msg = "asset_path is only applicable when asset is a directory"
-            raise ApiError(
-                message=msg,
-                error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
-                http_status_code=HTTPStatus.CONFLICT,
-            )
-        full_path = asset.full_path
-
-    storage = storages[asset.storage_type]
-    s3_client = storage_client_factory(storage)
-
-    url = generate_presigned_url(
-        s3_client=s3_client,
-        operation="get_object",
-        bucket_name=storage.bucket,
-        s3_key=full_path,
-    )
-    if not url:
-        raise HTTPException(status_code=500, detail="Failed to generate presigned url")
-    return RedirectResponse(url=url)
 
 
 @router.delete("/{entity_route}/{entity_id}/assets/{asset_id}")

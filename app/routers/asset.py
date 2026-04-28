@@ -358,7 +358,7 @@ def entity_asset_directory_upload(
 @router.get("/{entity_route}/{entity_id}/assets/{asset_id}/list")
 def entity_asset_directory_list(
     repos: RepoGroupDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,

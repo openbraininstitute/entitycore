@@ -129,6 +129,7 @@ class EntityType(StrEnum):
     single_neuron_simulation = auto()
     single_neuron_synaptome = auto()
     single_neuron_synaptome_simulation = auto()
+    simulatable_extracellular_recording_array = auto()
     subject = auto()
     validation_result = auto()
     circuit = auto()
@@ -442,6 +443,7 @@ class AssetLabel(StrEnum):
     skeletonization_config = auto()
     task_config = auto()
     lod_mesh_block = auto()
+    electrode_array_weight_matrix = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -800,6 +802,18 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             ),
         ],
     },
+    EntityType.simulatable_extracellular_recording_array: {
+        AssetLabel.electrode_array_weight_matrix: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description=(
+                    "File with matrix of N electrodes X M weights. "
+                    "Weights sum the activity of M compartments in the circuit."
+                ),
+            ),
+        ]
+    },
     EntityType.simulation: {
         AssetLabel.custom_node_sets: [
             LabelRequirements(
@@ -1115,3 +1129,10 @@ class TargetSimulator(StrEnum):
     coreneuron = "CORENEURON"
     learning_engine = "LearningEngine"
     brian2 = "Brian2"
+
+
+class ElectrodeType(StrEnum):
+    neuropixels_v1 = auto()
+    neuropixels_v2 = auto()
+    neuropixels_ultra = auto()
+    custom = auto()

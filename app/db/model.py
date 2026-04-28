@@ -55,6 +55,7 @@ from app.db.types import (
     ElectricalRecordingStimulusShape,
     ElectricalRecordingStimulusType,
     ElectricalRecordingType,
+    ElectrodeType,
     EMCellMeshGenerationMethod,
     EMCellMeshType,
     EntityType,
@@ -2338,6 +2339,18 @@ class TaskActivity(Activity, ExecutionActivityMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     task_activity_type: Mapped[TaskActivityType] = mapped_column(index=True)
+
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class SimulatableExtracellularRecordingArray(Entity, NameDescriptionVectorMixin):
+    __tablename__ = EntityType.simulatable_extracellular_recording_array
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+
+    electrode_type: Mapped[ElectrodeType]
+
+    circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.circuit}.id"))
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

@@ -1314,6 +1314,22 @@ def root_circuit(db, root_circuit_json_data, person_id):
 
 
 @pytest.fixture
+def public_root_circuit(db, root_circuit_json_data, person_id):
+    return add_db(
+        db,
+        Circuit(
+            **root_circuit_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+                "authorized_public": True,
+            }
+        ),
+    )
+
+
+@pytest.fixture
 def circuit_json_data(brain_atlas_id, root_circuit, subject_id, brain_region_id, license_id):
     return {
         "name": "my-circuit",

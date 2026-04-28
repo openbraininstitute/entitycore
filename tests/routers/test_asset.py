@@ -3,6 +3,7 @@ from http import HTTPStatus
 from unittest.mock import ANY, patch
 
 import pytest
+from fastapi import HTTPException
 from moto import mock_aws
 
 from app.config import settings, storages
@@ -11,6 +12,7 @@ from app.db.types import AssetLabel, EntityType, StorageType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
+from app.service import asset as asset_service
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
@@ -701,38 +703,78 @@ def test_get_deleted_entity_assets__admin(db, client_admin, entity, asset):
     assert data == []
 
 
-def test_download_entity_asset(client, entity, asset):
-    response = client.get(
-        f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+def test_download_entity_asset(clients, entity, asset):
+
+    response = assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=307,
+        follow_redirects=False,
+    )
+    expected_full_path = _get_expected_full_path(entity, path="morph.asc")
+    expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
+    assert response.next_request.url.path.endswith(expected_full_path)
+    assert expected_params.issubset(response.next_request.url.params)
+
+    # user 2 has no access to entity
+    assert_request(
+        clients.user_2.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=404,
         follow_redirects=False,
     )
 
-    assert response.status_code == 307, f"Failed to download asset: {response.text}"
+    # cheeky user cannot use admin endpoint
+    assert_request(
+        clients.user_1.get,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=403,
+    )
+
+    # admin cannot have access through regular endpoint
+    assert_request(
+        clients.admin.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=404,
+    )
+
+    # admin can use admin endpoint
+    response = assert_request(
+        clients.admin.get,
+        url=f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+        expected_status_code=307,
+        follow_redirects=False,
+    )
     expected_full_path = _get_expected_full_path(entity, path="morph.asc")
     expected_params = {"AWSAccessKeyId", "Signature", "Expires"}
     assert response.next_request.url.path.endswith(expected_full_path)
     assert expected_params.issubset(response.next_request.url.params)
 
     # try to download an asset with non-existent entity id
-    response = client.get(f"{route(entity.type)}/{MISSING_ID}/assets/{asset.id}/download")
-    assert response.status_code == 404, f"Unexpected result: {response.text}"
-    error = ErrorResponse.model_validate(response.json())
+    data = assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{MISSING_ID}/assets/{asset.id}/download",
+        expected_status_code=404,
+    ).json()
+    error = ErrorResponse.model_validate(data)
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
     # try to download an asset with non-existent asset id
-    response = client.get(f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/download")
-    assert response.status_code == 404, f"Unexpected result: {response.text}"
-    error = ErrorResponse.model_validate(response.json())
+    data = assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/download",
+        expected_status_code=404,
+    ).json()
+    error = ErrorResponse.model_validate(data)
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
     # when downloading a single file asset_path should not be passed as a parameter
-    response = client.get(
-        f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+    assert_request(
+        clients.user_1.get,
+        url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
         params={"asset_path": "foo"},
         follow_redirects=False,
-    )
-    assert response.status_code == 409, (
-        f"Failed to forbid asset_path when downloading a file: {response.text}"
+        expected_status_code=409,
     )
 
 
@@ -1622,3 +1664,46 @@ def test_complete_entity_asset_upload_inconsistent_size(db, client, entity, s3, 
         url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}",
     ).json()
     assert asset_data["status"] == "uploading"
+
+
+def test_download_entity_asset_presigned_url_generation_failure(client, entity, asset):
+    with patch("app.service.asset.generate_presigned_url", return_value=None):
+        response = client.get(
+            f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+            follow_redirects=False,
+        )
+    assert response.status_code == 500
+    assert response.json() == {
+        "details": "Failed to generate presigned url",
+        "error_code": "GENERIC_ERROR",
+        "message": "HTTP error",
+    }
+
+
+def test_upload_entity_asset_directory_presigned_url_generation_failure(client, root_circuit):
+    with patch("app.service.asset.generate_presigned_url", return_value=None):
+        response = client.post(
+            f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/upload",
+            json={
+                "files": ["morphology/cell1.swc"],
+                "meta": None,
+                "label": "sonata_circuit",
+                "directory_name": "test-presign-failure",
+            },
+        )
+    assert response.status_code == 422
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL
+
+
+def test_delete_asset_storage_object_s3_failure(asset):
+    with (
+        patch("app.service.asset.delete_from_s3", return_value=False),
+        pytest.raises(HTTPException) as exc,
+    ):
+        asset_service.delete_asset_storage_object(
+            asset=asset,
+            storage_client_factory=lambda _storage: object(),
+        )
+    assert exc.value.status_code == 500
+    assert exc.value.detail == "Failed to delete object"

@@ -173,6 +173,28 @@ def asset_directory(db, root_circuit, person_id) -> Asset:
     return asset
 
 
+@pytest.fixture
+def private_asset_directory(db, circuit, person_id) -> Asset:
+    s3_path = _get_expected_full_path(entity=circuit, path="my-directory")
+    asset = Asset(
+        path="my-directory",
+        full_path=s3_path,
+        status="created",
+        is_directory=True,
+        content_type="application/vnd.directory",
+        size=0,
+        sha256_digest=None,
+        meta={},
+        entity_id=circuit.id,
+        created_by_id=person_id,
+        updated_by_id=person_id,
+        label="sonata_circuit",
+        storage_type=StorageType.aws_s3_internal,
+    )
+    add_db(db, asset)
+    return asset
+
+
 def test_upload_entity_asset(client, entity, monkeypatch):
     response = _upload_entity_asset(
         client,
@@ -1084,37 +1106,69 @@ def test_upload_entity_asset_directory(client, root_circuit):
     ]
 
 
-def test_list_entity_asset_directory(client, root_circuit, asset_directory):
-    entity_id = root_circuit.id
+def test_list_entity_asset_directory(
+    clients, root_circuit, circuit, private_asset_directory, asset_directory
+):
     entity_type = route(root_circuit.type)
+    fake_files = {
+        "morphology/cell1.swc": {
+            "name": "morphology/cell1.swc",
+            "size": 12345,
+            "last_modified": "2024-01-15T10:30:00Z",
+        },
+        "morphology/cell2.swc": {
+            "name": "morphology/cell2.swc",
+            "size": 23456,
+            "last_modified": "2024-01-15T10:35:00Z",
+        },
+        "metadata/info.json": {
+            "name": "metadata/info.json",
+            "size": 1024,
+            "last_modified": "2024-01-15T10:40:00Z",
+        },
+    }
 
     with patch("app.service.asset.list_directory_with_details") as mock_list_directory:
-        fake_files = {
-            "morphology/cell1.swc": {
-                "name": "morphology/cell1.swc",
-                "size": 12345,
-                "last_modified": "2024-01-15T10:30:00Z",
-            },
-            "morphology/cell2.swc": {
-                "name": "morphology/cell2.swc",
-                "size": 23456,
-                "last_modified": "2024-01-15T10:35:00Z",
-            },
-            "metadata/info.json": {
-                "name": "metadata/info.json",
-                "size": 1024,
-                "last_modified": "2024-01-15T10:40:00Z",
-            },
-        }
         mock_list_directory.return_value = fake_files
 
-        response = client.get(f"{entity_type}/{entity_id}/assets/{asset_directory.id}/list")
+        data = assert_request(
+            clients.user_1.get,
+            url=f"{entity_type}/{circuit.id}/assets/{private_asset_directory.id}/list",
+        ).json()
 
-    assert response.status_code == 200
-    data = response.json()
+        assert "files" in data
+        assert data["files"] == fake_files
 
-    assert "files" in data
-    assert data["files"] == fake_files
+    with patch("app.service.asset.list_directory_with_details") as mock_list_directory:
+        mock_list_directory.return_value = fake_files
+
+        # user 2 cannot acces the private directory of user 1
+        data = assert_request(
+            clients.user_2.get,
+            url=f"{entity_type}/{circuit.id}/assets/{private_asset_directory.id}/list",
+            expected_status_code=404,
+        ).json()
+
+        # only if public
+        data = assert_request(
+            clients.user_2.get,
+            url=f"{entity_type}/{root_circuit.id}/assets/{asset_directory.id}/list",
+        ).json()
+
+        assert "files" in data
+        assert data["files"] == fake_files
+
+    with patch("app.service.asset.list_directory_with_details") as mock_list_directory:
+        mock_list_directory.return_value = fake_files
+
+        # when no project the user can access public directories
+        data = assert_request(
+            clients.no_project.get,
+            url=f"{entity_type}/{root_circuit.id}/assets/{asset_directory.id}/list",
+        ).json()
+
+        assert "files" in data
+        assert data["files"] == fake_files
 
 
 def test_list_entity_asset_directory_failures(client, entity, asset):
@@ -1142,7 +1196,7 @@ def test_list_entity_asset_directory_failures(client, entity, asset):
     ("client_fixture", "expected_status", "expected_error"),
     [
         ("client_user_2", 404, ApiErrorCode.ENTITY_NOT_FOUND),
-        ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+        ("client_no_project", 404, ApiErrorCode.ENTITY_NOT_FOUND),
     ],
 )
 def test_list_entity_asset_directory_non_authorized(

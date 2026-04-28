@@ -1,7 +1,6 @@
 import uuid
 from http import HTTPStatus
 from pathlib import Path
-from typing import cast
 
 from fastapi import HTTPException
 from pydantic.networks import AnyUrl
@@ -349,15 +348,16 @@ def entity_asset_upload_directory(
 
 def list_directory(
     repos: RepositoryGroup,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
     storage_client_factory: StorageClientFactory,
 ) -> DetailedFileList:
+
     asset = get_entity_asset(
         repos,
-        user_context=cast("UserContext", user_context),
+        user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
         asset_id=asset_id,

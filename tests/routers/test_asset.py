@@ -3,6 +3,7 @@ from http import HTTPStatus
 from unittest.mock import ANY, patch
 
 import pytest
+from fastapi import HTTPException
 from moto import mock_aws
 
 from app.config import settings, storages
@@ -11,6 +12,7 @@ from app.db.types import AssetLabel, EntityType, StorageType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
+from app.service import asset as asset_service
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
@@ -1662,3 +1664,46 @@ def test_complete_entity_asset_upload_inconsistent_size(db, client, entity, s3, 
         url=f"{route(entity.type)}/{entity.id}/assets/{data['id']}",
     ).json()
     assert asset_data["status"] == "uploading"
+
+
+def test_download_entity_asset_presigned_url_generation_failure(client, entity, asset):
+    with patch("app.service.asset.generate_presigned_url", return_value=None):
+        response = client.get(
+            f"{route(entity.type)}/{entity.id}/assets/{asset.id}/download",
+            follow_redirects=False,
+        )
+    assert response.status_code == 500
+    assert response.json() == {
+        "details": "Failed to generate presigned url",
+        "error_code": "GENERIC_ERROR",
+        "message": "HTTP error",
+    }
+
+
+def test_upload_entity_asset_directory_presigned_url_generation_failure(client, root_circuit):
+    with patch("app.service.asset.generate_presigned_url", return_value=None):
+        response = client.post(
+            f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/upload",
+            json={
+                "files": ["morphology/cell1.swc"],
+                "meta": None,
+                "label": "sonata_circuit",
+                "directory_name": "test-presign-failure",
+            },
+        )
+    assert response.status_code == 422
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL
+
+
+def test_delete_asset_storage_object_s3_failure(asset):
+    with (
+        patch("app.service.asset.delete_from_s3", return_value=False),
+        pytest.raises(HTTPException) as exc,
+    ):
+        asset_service.delete_asset_storage_object(
+            asset=asset,
+            storage_client_factory=lambda _storage: object(),
+        )
+    assert exc.value.status_code == 500
+    assert exc.value.detail == "Failed to delete object"

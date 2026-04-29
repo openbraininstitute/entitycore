@@ -418,7 +418,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     db_model_instance = update_model(
         model=db_model_instance,
         data=json_model.model_dump(
-            exclude=set(nested_relationships) if nested_relationships else None
+            exclude_unset=True, exclude=set(nested_relationships) if nested_relationships else None
         ),
     )
 
@@ -518,7 +518,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
         exclude_unset=True,
         exclude_none=True,
         exclude=set(nested_relationships),
-        exclude_defaults=True,  # ignore NOT_SET default values
+        exclude_defaults=True,
     )
 
     for key, value in update_data.items():

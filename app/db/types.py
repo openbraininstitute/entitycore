@@ -160,6 +160,10 @@ class TaskConfigType(StrEnum):
     ion_channel_simulation__config = auto()
     em_synapse_mapping__campaign = auto()
     em_synapse_mapping__config = auto()
+    aind_ephys_preprocessing__campaign = auto()
+    aind_ephys_preprocessing__config = auto()
+    aind_ephys_spikesorting__campaign = auto()
+    aind_ephys_spikesorting__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -177,6 +181,10 @@ class TaskActivityType(StrEnum):
     ion_channel_simulation__execution = auto()
     em_synapse_mapping__config_generation = auto()
     em_synapse_mapping__execution = auto()
+    aind_ephys_preprocessing__config_generation = auto()
+    aind_ephys_preprocessing__execution = auto()
+    aind_ephys_spikesorting__config_generation = auto()
+    aind_ephys_spikesorting__execution = auto()
 
 
 class AgentType(StrEnum):

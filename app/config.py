@@ -85,7 +85,7 @@ class Settings(BaseSettings):
 
     DB_POOL_SIZE: int = 30
     DB_POOL_PRE_PING: bool = False
-    DB_MAX_OVERFLOW: int = 0
+    DB_MAX_OVERFLOW: int = 10
 
     OPENAI_API_KEY: SecretStr | None = None
 

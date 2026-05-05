@@ -12,7 +12,6 @@ from app.db.auth import select_unauthorized_entities
 from app.db.model import Identifiable, Person
 from app.queries.types import NestedRelationships
 from app.schemas.auth import UserContext, UserProfile
-from app.schemas.utils import NOT_SET
 from app.utils.uuid import create_uuid
 
 
@@ -97,13 +96,13 @@ def create_associations_to_entities(
         HTTPException: If any of the associated entities are not public or not in the same project,
             or if trying to update associations when it's not allowed.
     """
-    # map relationship keys to lists of entity IDs to associate, ignoring NOT_SET values
+    # map relationship keys to lists of entity IDs to associate
     nested_relationship_ids: dict[str, list[uuid.UUID]] = cast(
         "dict[str, list[uuid.UUID]]",
         {
             relationship_key: relationship["nested_id_getter"](items=items)  # type: ignore[misc]
             for relationship_key, relationship in nested_relationships.items()
-            if (items := getattr(json_model, relationship_key, NOT_SET)) != NOT_SET
+            if (items := getattr(json_model, relationship_key, None)) is not None
         },
     )
 

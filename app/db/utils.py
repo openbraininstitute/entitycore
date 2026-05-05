@@ -18,7 +18,6 @@ from app.db.model import (
 )
 from app.db.types import CellMorphologyGenerationType, EntityType, ResourceType
 from app.logger import L
-from app.schemas.utils import NOT_SET
 
 PublishableBaseModel = Activity | Entity | ETypeClassification | MTypeClassification
 
@@ -149,12 +148,9 @@ def update_model[T: DeclarativeBase](model: T, data: dict) -> T:
     """Update a database model from a dict, in-place.
 
     Nested objects are fully replaced, if specified in the given data.
-    Attributes set to the sentinel NOT_SET are ignored.
     Unknown attibutes are ignored.
     """
     model_cls = model.__class__
-    # ignore attributes with NOT_SET sentinel
-    data = {key: value for key, value in data.items() if value != NOT_SET}
     model_kwargs = _model_kwargs(model_cls=model_cls, data=data)
     for key, value in model_kwargs.items():
         setattr(model, key, value)

@@ -104,6 +104,8 @@ def _upload_entity_asset(
     content_type,
     expected_status=None,
     filepath=FILE_EXAMPLE_PATH,
+    *,
+    admin: bool = False,
 ):
     with filepath.open("rb") as f:
         files = {
@@ -117,6 +119,7 @@ def _upload_entity_asset(
             files=files,
             label=label,
             expected_status=expected_status,
+            admin=admin,
         )
 
 
@@ -197,9 +200,9 @@ def private_asset_directory(db, circuit, person_id) -> Asset:
     return asset
 
 
-def test_upload_entity_asset(client, entity, monkeypatch):
+def test_upload_entity_asset(clients, entity, monkeypatch):
     response = _upload_entity_asset(
-        client,
+        clients.user_1,
         entity_type=entity.type,
         entity_id=entity.id,
         label="morphology",
@@ -226,7 +229,7 @@ def test_upload_entity_asset(client, entity, monkeypatch):
 
     # try to upload again the same file with the same path
     response = _upload_entity_asset(
-        client,
+        clients.user_1,
         entity_type=entity.type,
         entity_id=entity.id,
         label="morphology",
@@ -239,7 +242,7 @@ def test_upload_entity_asset(client, entity, monkeypatch):
 
     # try to upload to a non-existent entity id
     response = _upload_entity_asset(
-        client,
+        clients.user_1,
         entity_type=entity.type,
         entity_id=MISSING_ID,
         label="morphology",
@@ -252,7 +255,7 @@ def test_upload_entity_asset(client, entity, monkeypatch):
 
     # try to upload to valid entity id, but different entity type
     response = _upload_entity_asset(
-        client,
+        clients.user_1,
         entity_type=EntityType[DIFFERENT_ENTITY_TYPE],
         entity_id=entity.id,
         label="morphology",
@@ -265,7 +268,7 @@ def test_upload_entity_asset(client, entity, monkeypatch):
 
     # try to upload a file w/ a full path
     response = _upload_entity_asset(
-        client,
+        clients.user_1,
         entity_type=entity.type,
         entity_id=entity.id,
         file_upload_name="a/b/c.asc",
@@ -278,7 +281,7 @@ def test_upload_entity_asset(client, entity, monkeypatch):
 
     # try to upload a file w/ an invalid content type
     response = _upload_entity_asset(
-        client,
+        clients.user_1,
         entity_type=entity.type,
         entity_id=entity.id,
         label="morphology",
@@ -291,7 +294,7 @@ def test_upload_entity_asset(client, entity, monkeypatch):
 
     # upload an empty file
     response = _upload_entity_asset(
-        client,
+        clients.user_1,
         entity_type=entity.type,
         entity_id=entity.id,
         label="morphology",
@@ -321,7 +324,7 @@ def test_upload_entity_asset(client, entity, monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(settings, "API_ASSET_POST_MAX_SIZE", 1)
         response = _upload_entity_asset(
-            client,
+            clients.user_1,
             entity_type=entity.type,
             entity_id=entity.id,
             label="morphology",
@@ -333,6 +336,54 @@ def test_upload_entity_asset(client, entity, monkeypatch):
         )
         error = ErrorResponse.model_validate(response.json())
         assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
+
+    # try upload a file as admin in user route without context
+    response = _upload_entity_asset(
+        clients.admin,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+    )
+    assert response.status_code == 403, f"asset creation didn't fail as expected: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.NOT_AUTHORIZED
+
+    # try upload file as admin in admin route without context
+    response = _upload_entity_asset(
+        clients.admin,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+        admin=True,
+    )
+    assert response.status_code == 403, f"asset creation didn't fail as expected: {response.text}"
+
+    # try upload file as user in admin route
+    response = _upload_entity_asset(
+        clients.user_1,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.asc",
+        content_type="application/asc",
+        admin=True,
+    )
+    assert response.status_code == 403, f"asset creation didn't fail as expected: {response.text}"
+
+    # try upload file as admin in admin route with context
+    response = _upload_entity_asset(
+        clients.admin_with_project,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="morph.h5",
+        content_type="application/x-hdf5",
+    )
+    assert response.status_code == 201, f"Failed to create asset: {response.text}"
 
 
 @pytest.mark.parametrize(

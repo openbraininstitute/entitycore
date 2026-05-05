@@ -19,7 +19,7 @@ from app.schemas.base import (
     NameDescriptionMixin,
 )
 from app.schemas.types import SerializableHttpUrl
-from app.schemas.utils import NOT_SET, make_update_schema
+from app.schemas.utils import make_update_schema
 
 
 class CommonReadMixin(
@@ -325,5 +325,6 @@ class CellMorphologyProtocolUserUpdateAdapter(BaseModel):
         """Return the correct instance of the protocol."""
         model = cls._adapter.validate_python(obj, *args, **kwargs)
         # generation_type was needed only as a discriminator. It should not be updated.
-        model.generation_type = NOT_SET
+        model.generation_type = None
+        model.model_fields_set.discard("generation_type")  # make it unset
         return model

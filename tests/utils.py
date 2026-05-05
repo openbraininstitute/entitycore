@@ -879,6 +879,8 @@ def upload_entity_asset(
     files: dict[str, tuple],
     label: str,
     expected_status: int | None = 201,
+    *,
+    admin: bool = False,
 ):
     """Attach a file to an entity
 
@@ -886,7 +888,12 @@ def upload_entity_asset(
     """
     assert label
     data = {"label": label}
-    response = client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)
+    if admin:
+        response = client.post(
+            f"/admin{route(entity_type)}/{entity_id}/assets", files=files, data=data
+        )
+    else:
+        response = client.post(f"{route(entity_type)}/{entity_id}/assets", files=files, data=data)
     if expected_status:
         assert response.status_code == expected_status
     return response

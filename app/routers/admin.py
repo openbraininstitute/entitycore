@@ -1,11 +1,12 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Form, Query, UploadFile, status
 from starlette.responses import RedirectResponse
 
 from app.config import storages
-from app.db.types import StorageType
+from app.db.types import AssetLabel, StorageType
+from app.dependencies.auth import AdminContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
@@ -121,6 +122,30 @@ def download_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
         asset_path=asset_path,
+    )
+
+
+@router.post("/{entity_route}/{entity_id}/assets", status_code=status.HTTP_201_CREATED)
+def upload_entity_asset(
+    *,
+    repos: RepoGroupDep,
+    user_context: AdminContextWithProjectIdDep,
+    storage_client_factory: StorageClientFactoryDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    file: UploadFile,
+    label: Annotated[AssetLabel, Form()],
+    meta: Annotated[dict | None, Form()] = None,
+) -> AssetRead:
+    return admin_service.upload_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        storage_client_factory=storage_client_factory,
+        entity_route=entity_route,
+        entity_id=entity_id,
+        file=file,
+        label=label,
+        meta=meta,
     )
 
 

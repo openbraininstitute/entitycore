@@ -164,6 +164,8 @@ class TaskConfigType(StrEnum):
     aind_ephys_preprocessing__config = auto()
     aind_ephys_spikesorting__campaign = auto()
     aind_ephys_spikesorting__config = auto()
+    create_silico_extracellular_array__campaign = auto()
+    create_silico_extracellular_array__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -185,6 +187,8 @@ class TaskActivityType(StrEnum):
     aind_ephys_preprocessing__execution = auto()
     aind_ephys_spikesorting__config_generation = auto()
     aind_ephys_spikesorting__execution = auto()
+    create_silico_extracellular_array__config_generation = auto()
+    create_silico_extracellular_array__execution = auto()
 
 
 class AgentType(StrEnum):

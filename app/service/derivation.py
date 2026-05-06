@@ -28,7 +28,7 @@ from app.schemas.types import ListResponse
 from app.utils.routers import entity_route_to_type
 
 
-def _read_many(
+def _read_many_from(
     *,
     user_context: UserContextDep,
     db: SessionDep,
@@ -88,7 +88,67 @@ def _read_many(
     )
 
 
-def read_many(
+def _read_many_to(
+    *,
+    user_context: UserContextDep,
+    db: SessionDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    derivation_type: DerivationType,
+    pagination_request: PaginationQuery,
+    entity_filter: BasicEntityFilterDep,
+    check_authorized_project: bool,
+) -> ListResponse[BasicEntityRead]:
+    """Return a list of basic entities generated from the specified entity.
+
+    Only the generated entities that are accessible by the user are returned.
+    """
+    generated_db_model_class = Entity
+    used_alias = aliased(Entity, flat=True, name="used_alias")
+    entity_type = entity_route_to_type(entity_route)
+    used_db_model_class = ENTITY_TYPE_TO_CLASS[entity_type]
+
+    # ensure that the requested entity is readable
+    if check_authorized_project:
+        _ = get_readable_entity(
+            db,
+            db_model_class=used_db_model_class,
+            entity_id=entity_id,
+            project_id=user_context.project_id,
+        )
+
+    # always needed regardless of the filter, so it cannot go to filter_keys
+    apply_filter_query_operations = lambda q: (
+        q.join(Derivation, generated_db_model_class.id == Derivation.generated_id)
+        .join(used_alias, Derivation.used_id == used_alias.id)
+        .where(
+            used_alias.id == entity_id,
+            used_alias.type == entity_type,
+            Derivation.derivation_type == derivation_type,
+        )
+    )
+
+    name_to_facet_query_params = filter_joins = None
+    return router_read_many(
+        db=db,
+        db_model_class=generated_db_model_class,
+        authorized_project_id=user_context.project_id,
+        with_search=None,
+        with_in_brain_region=None,
+        facets=None,
+        aliases={},
+        apply_filter_query_operations=apply_filter_query_operations,
+        apply_data_query_operations=None,
+        pagination_request=pagination_request,
+        response_schema_class=BasicEntityRead,
+        name_to_facet_query_params=name_to_facet_query_params,
+        filter_model=entity_filter,
+        filter_joins=filter_joins,
+        check_authorized_project=check_authorized_project,
+    )
+
+
+def read_many_from(
     *,
     user_context: UserContextDep,
     db: SessionDep,
@@ -98,7 +158,7 @@ def read_many(
     pagination_request: PaginationQuery,
     entity_filter: BasicEntityFilterDep,
 ) -> ListResponse[BasicEntityRead]:
-    return _read_many(
+    return _read_many_from(
         user_context=user_context,
         db=db,
         entity_id=entity_id,
@@ -110,7 +170,7 @@ def read_many(
     )
 
 
-def admin_read_many(
+def admin_read_many_from(
     *,
     user_context: AdminContextDep,
     db: SessionDep,
@@ -120,7 +180,51 @@ def admin_read_many(
     pagination_request: PaginationQuery,
     entity_filter: BasicEntityFilterDep,
 ) -> ListResponse[BasicEntityRead]:
-    return _read_many(
+    return _read_many_from(
+        user_context=user_context,
+        db=db,
+        entity_id=entity_id,
+        entity_route=entity_route,
+        derivation_type=derivation_type,
+        pagination_request=pagination_request,
+        entity_filter=entity_filter,
+        check_authorized_project=False,
+    )
+
+
+def read_many_to(
+    *,
+    user_context: UserContextDep,
+    db: SessionDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    derivation_type: DerivationType,
+    pagination_request: PaginationQuery,
+    entity_filter: BasicEntityFilterDep,
+) -> ListResponse[BasicEntityRead]:
+    return _read_many_to(
+        user_context=user_context,
+        db=db,
+        entity_id=entity_id,
+        entity_route=entity_route,
+        derivation_type=derivation_type,
+        pagination_request=pagination_request,
+        entity_filter=entity_filter,
+        check_authorized_project=True,
+    )
+
+
+def admin_read_many_to(
+    *,
+    user_context: AdminContextDep,
+    db: SessionDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    derivation_type: DerivationType,
+    pagination_request: PaginationQuery,
+    entity_filter: BasicEntityFilterDep,
+) -> ListResponse[BasicEntityRead]:
+    return _read_many_to(
         user_context=user_context,
         db=db,
         entity_id=entity_id,

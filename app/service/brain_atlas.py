@@ -47,7 +47,8 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[BrainAtlasRead]:
     aliases: Aliases = {}
-    facet_keys = filter_keys = [
+    facet_keys = []
+    filter_keys = [
         "species",
         "strain",
     ]
@@ -65,7 +66,7 @@ def _read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=None,
         apply_data_query_operations=_load_brain_atlas,
         pagination_request=pagination_request,

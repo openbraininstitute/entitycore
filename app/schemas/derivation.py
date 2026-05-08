@@ -14,11 +14,11 @@ class DerivationCreate(DerivationBase):
     used_id: uuid.UUID
     generated_id: uuid.UUID
     derivation_type: DerivationType
-    name: str | None = None
+    label: str | None = None
 
 
 class DerivationRead(DerivationBase):
     used: BasicEntityRead
     generated: BasicEntityRead
     derivation_type: DerivationType
-    name: str | None = None
+    label: str | None = None

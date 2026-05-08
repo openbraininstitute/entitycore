@@ -1,8 +1,8 @@
-"""Add name column to derivation and emodel_circuit DerivationType
+"""Add label column to derivation and emodel_circuit DerivationType
 
-Revision ID: 92d1f0c96bfd
+Revision ID: 1caa2fc3d44e
 Revises: c8cdf20bbb0d
-Create Date: 2026-05-08 04:34:23.000000
+Create Date: 2026-05-08 06:30:47.000000
 
 """
 
@@ -15,15 +15,15 @@ from alembic_postgresql_enum import TableReference
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "92d1f0c96bfd"
+revision: str = "1caa2fc3d44e"
 down_revision: Union[str, None] = "c8cdf20bbb0d"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Add nullable name column to derivation table.
-    op.add_column("derivation", sa.Column("name", sa.String(), nullable=True))
+    # Add nullable label column to derivation table.
+    op.add_column("derivation", sa.Column("label", sa.String(), nullable=True))
 
     # Extend DerivationType enum with emodel_circuit.
     op.sync_enum_values(
@@ -51,4 +51,4 @@ def downgrade() -> None:
         ],
         enum_values_to_rename=[],
     )
-    op.drop_column("derivation", "name")
+    op.drop_column("derivation", "label")

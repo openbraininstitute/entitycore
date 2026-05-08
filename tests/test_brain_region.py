@@ -468,3 +468,27 @@ def test_InBrainRegionDep():
             endpoints.add(route.path)
 
     assert endpoints == set()
+
+
+def test_filtering(client, client_admin, json_data, species_id):
+    utils.assert_request(client_admin.post, url=ROUTE, json=json_data).json()
+
+    data = utils.assert_request(
+        client.get, url=f"{ROUTE}", params={"species__id": species_id}
+    ).json()
+    assert len(data["data"]) == 1
+
+    data = utils.assert_request(
+        client.get, url=f"{ROUTE}", params={"strain__id": utils.MISSING_ID}
+    ).json()
+    assert len(data["data"]) == 0
+
+    data = utils.assert_request(
+        client.get,
+        url=f"{ROUTE}",
+        params={
+            "species__id": species_id,
+            "strain__id": utils.MISSING_ID,
+        },
+    ).json()
+    assert len(data["data"]) == 0

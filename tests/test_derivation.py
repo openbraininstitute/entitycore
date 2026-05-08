@@ -139,6 +139,7 @@ def test_get_derived_from(
 @pytest.mark.parametrize(
     "derivation_type",
     [
+        "circuit_customization",
         "circuit_extraction",
         "circuit_rewiring",
         "emodel_circuit",
@@ -184,6 +185,26 @@ def test_create_emodel_circuit_with_label(client, root_circuit, circuit):
         "generated": {"type": "circuit", "id": str(circuit.id)},
         "derivation_type": "emodel_circuit",
         "label": "hoc:cADpyr_L5TPC",
+    }
+
+
+def test_create_circuit_customization_with_label(client, root_circuit, circuit):
+    """Derive a circuit from another by customizing components, with a label for the type."""
+    data = assert_request(
+        client.post,
+        url="/derivation",
+        json={
+            "used_id": str(root_circuit.id),
+            "generated_id": str(circuit.id),
+            "derivation_type": "circuit_customization",
+            "label": "synaptic_modification",
+        },
+    ).json()
+    assert data == {
+        "used": {"type": "circuit", "id": str(root_circuit.id)},
+        "generated": {"type": "circuit", "id": str(circuit.id)},
+        "derivation_type": "circuit_customization",
+        "label": "synaptic_modification",
     }
 
 

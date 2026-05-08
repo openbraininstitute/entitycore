@@ -141,6 +141,7 @@ def test_get_derived_from(
     [
         "circuit_extraction",
         "circuit_rewiring",
+        "emodel_circuit",
         "unspecified",
     ],
 )
@@ -158,6 +159,31 @@ def test_create_one(client, derivation_type, root_circuit, circuit):
         "used": {"type": "circuit", "id": str(root_circuit.id)},
         "generated": {"type": "circuit", "id": str(circuit.id)},
         "derivation_type": derivation_type,
+        "name": None,
+    }
+
+
+def test_create_emodel_circuit_with_name(client, root_circuit, circuit):
+    """Link an emodel (used) to a circuit (generated) with the SONATA model_template label.
+
+    The ``used_id`` should be an EModel id in real usage; here we reuse a circuit fixture
+    since the generic /derivation endpoint does not constrain the entity types.
+    """
+    data = assert_request(
+        client.post,
+        url="/derivation",
+        json={
+            "used_id": str(root_circuit.id),
+            "generated_id": str(circuit.id),
+            "derivation_type": "emodel_circuit",
+            "name": "hoc:cADpyr_L5TPC",
+        },
+    ).json()
+    assert data == {
+        "used": {"type": "circuit", "id": str(root_circuit.id)},
+        "generated": {"type": "circuit", "id": str(circuit.id)},
+        "derivation_type": "emodel_circuit",
+        "name": "hoc:cADpyr_L5TPC",
     }
 
 

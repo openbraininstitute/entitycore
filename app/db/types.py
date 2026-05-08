@@ -252,11 +252,16 @@ class DerivationType(StrEnum):
          a circuit.
         circuit_rewiring: Indicates that the entity was derived by rewiring the connectivity of
           a circuit.
+        emodel_circuit: Indicates that an emodel (used) was assigned to neurons of a circuit
+          (generated). The optional ``name`` field on the derivation carries the SONATA
+          ``model_template`` entry, by convention ``hoc:<template_name>``
+          (e.g. ``hoc:cADpyr_L5TPC``, ``hoc:bAC_L23BC``).
         unspecified: Indicates a derivation that does not require a specific type.
     """
 
     circuit_extraction = auto()
     circuit_rewiring = auto()
+    emodel_circuit = auto()
     unspecified = auto()
 
 

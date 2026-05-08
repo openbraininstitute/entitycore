@@ -129,3 +129,16 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
 
 def test_pagination(client, create_id):
     check_pagination(ROUTE, client, create_id)
+
+
+@pytest.mark.usefixtures("model")
+def test_filtering(client, brain_atlas_id, brain_region_id):
+    data = assert_request(
+        client.get, url=f"{ROUTE}", params={"brain_atlas_id": brain_atlas_id}
+    ).json()
+    assert len(data["data"]) == 1
+
+    data = assert_request(
+        client.get, url=f"{ROUTE}", params={"brain_region_id": brain_region_id}
+    ).json()
+    assert len(data["data"]) == 1

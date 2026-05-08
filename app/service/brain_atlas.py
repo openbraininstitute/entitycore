@@ -1,4 +1,5 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
@@ -11,6 +12,7 @@ from app.dependencies.common import (
 )
 from app.dependencies.db import SessionDep
 from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
+from app.queries.factory import query_params_factory
 from app.schemas.brain_atlas import (
     BrainAtlasAdminUpdate,
     BrainAtlasCreate,
@@ -20,6 +22,9 @@ from app.schemas.brain_atlas import (
 from app.schemas.brain_atlas_region import BrainAtlasRegionRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load_brain_atlas(query: sa.Select):
@@ -41,6 +46,19 @@ def _read_many(
     filter_model: BrainAtlasFilterDep,
     check_authorized_project: bool,
 ) -> ListResponse[BrainAtlasRead]:
+    aliases: Aliases = {}
+    facet_keys = []
+    filter_keys = [
+        "species",
+        "strain",
+    ]
+    name_to_facet_query_params, filter_joins = query_params_factory(
+        db_model_class=BrainAtlas,
+        facet_keys=facet_keys,
+        filter_keys=filter_keys,
+        aliases=aliases,
+    )
+
     return app.queries.common.router_read_many(
         db=db,
         db_model_class=BrainAtlas,
@@ -48,13 +66,14 @@ def _read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=None,
         apply_data_query_operations=_load_brain_atlas,
         pagination_request=pagination_request,
         response_schema_class=BrainAtlasRead,
-        name_to_facet_query_params=None,
+        name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
+        filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
     )
 

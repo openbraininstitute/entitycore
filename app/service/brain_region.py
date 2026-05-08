@@ -1,7 +1,8 @@
 import uuid
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
 from app.db.model import BrainRegion, BrainRegionHierarchy, Species, Strain
@@ -14,6 +15,9 @@ from app.schemas.brain_region import BrainRegionAdminUpdate, BrainRegionCreate, 
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 from app.utils.embedding import generate_embedding
+
+if TYPE_CHECKING:
+    from app.filters.base import Aliases
 
 
 def _load(select: sa.Select):
@@ -32,13 +36,21 @@ def read_many(
     semantic_search: str | None = None,
 ) -> ListResponse[BrainRegionRead]:
     db_model_class = BrainRegion
+    brh_species_alias = aliased(BrainRegionHierarchy, flat=True, name="brh_species")
+    brh_strain_alias = aliased(BrainRegionHierarchy, flat=True, name="brh_strain")
+    aliases: Aliases = {
+        BrainRegionHierarchy: {
+            "species": brh_species_alias,
+            "strain": brh_strain_alias,
+        },
+    }
     filter_joins = {
         "species": lambda q: q.join(
-            BrainRegionHierarchy, db_model_class.hierarchy_id == BrainRegionHierarchy.id
-        ).join(Species, BrainRegionHierarchy.species_id == Species.id),
+            brh_species_alias, db_model_class.hierarchy_id == brh_species_alias.id
+        ).join(Species, brh_species_alias.species_id == Species.id),
         "strain": lambda q: q.join(
-            BrainRegionHierarchy, db_model_class.hierarchy_id == BrainRegionHierarchy.id
-        ).join(Strain, BrainRegionHierarchy.strain_id == Species.id),
+            brh_strain_alias, db_model_class.hierarchy_id == brh_strain_alias.id
+        ).join(Strain, brh_strain_alias.strain_id == Strain.id),
     }
 
     return app.queries.common.router_read_many(
@@ -48,7 +60,7 @@ def read_many(
         with_search=None,
         with_in_brain_region=None,
         facets=None,
-        aliases=None,
+        aliases=aliases,
         apply_filter_query_operations=None,
         apply_data_query_operations=_load,
         pagination_request=pagination_request,

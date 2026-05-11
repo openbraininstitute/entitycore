@@ -1289,7 +1289,7 @@ def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_
         "subject_id": str(subject_id),
         "build_category": "em_reconstruction",
         "authorized_project_id": PROJECT_ID,
-        "authorized_public": True,
+        "authorized_public": False,
         "created_by_id": str(person_id),
         "updated_by_id": str(person_id),
         "brain_region_id": str(brain_region_id),

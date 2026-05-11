@@ -1,6 +1,6 @@
 import pytest
 
-from app.db.model import Derivation
+from app.db.model import Circuit, Derivation
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 
@@ -8,43 +8,66 @@ from tests.utils import (
     PROJECT_ID,
     UNRELATED_PROJECT_ID,
     add_all_db,
+    add_db,
     assert_request,
     assert_response,
-    create_electrical_cell_recording_id,
 )
 
 
+def _add_source_circuit(db, root_circuit_json_data, person_id, name):
+    return add_db(
+        db,
+        Circuit(
+            **root_circuit_json_data
+            | {
+                "name": name,
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_project_id": PROJECT_ID,
+                "authorized_public": True,
+            }
+        ),
+    )
+
+
 def test_get_derived_from(
-    db, clients, emodel_id, public_emodel_id, electrical_cell_recording_json_data
+    db,
+    clients,
+    person_id,
+    public_root_circuit,
+    root_circuit,
+    root_circuit_json_data,
 ):
-    # create two emodels, one with derivations and one without
-    trace_ids = [
-        create_electrical_cell_recording_id(
-            clients.user_1, json_data=electrical_cell_recording_json_data | {"name": f"name-{i}"}
-        )
+    # Create source circuits (used) for the typed derivations.
+    # Source/target circuits use circuit_extraction / circuit_rewiring
+    # (circuit -> circuit), and a single unspecified derivation goes to a
+    # private target. Direct DB inserts via add_all_db bypass the create-time
+    # type validator, but the data still satisfies it for consistency.
+    source_ids = [
+        _add_source_circuit(db, root_circuit_json_data, person_id, f"source-{i}").id
         for i in range(6)
     ]
     derivations = (
         [
             Derivation(
-                used_id=ecr_id,
-                generated_id=public_emodel_id,
+                used_id=src_id,
+                generated_id=public_root_circuit.id,
                 derivation_type="circuit_extraction",
             )
-            for ecr_id in trace_ids[:3]
+            for src_id in source_ids[:3]
         ]
         + [
             Derivation(
-                used_id=ecr_id,
-                generated_id=public_emodel_id,
+                used_id=src_id,
+                generated_id=public_root_circuit.id,
                 derivation_type="circuit_rewiring",
             )
-            for ecr_id in trace_ids[3:5]
+            for src_id in source_ids[3:5]
         ]
         + [
             Derivation(
-                used_id=trace_ids[5],
-                generated_id=emodel_id,  # private
+                used_id=source_ids[5],
+                generated_id=root_circuit.id,  # private
                 derivation_type="unspecified",
             )
         ]
@@ -52,44 +75,44 @@ def test_get_derived_from(
     add_all_db(db, derivations)
 
     response = clients.user_1.get(
-        url=f"/emodel/{public_emodel_id}/derived-from",
+        url=f"/circuit/{public_root_circuit.id}/derived-from",
         params={"derivation_type": "circuit_extraction"},
     )
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 3
-    assert [d["id"] for d in data] == [str(id_) for id_ in reversed(trace_ids[:3])]
-    assert all(d["type"] == "electrical_cell_recording" for d in data)
+    assert [d["id"] for d in data] == [str(id_) for id_ in reversed(source_ids[:3])]
+    assert all(d["type"] == "circuit" for d in data)
 
     response = clients.user_1.get(
-        url=f"/emodel/{public_emodel_id}/derived-from",
+        url=f"/circuit/{public_root_circuit.id}/derived-from",
         params={"derivation_type": "circuit_rewiring"},
     )
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 2
-    assert [d["id"] for d in data] == [str(id_) for id_ in reversed(trace_ids[3:5])]
-    assert all(d["type"] == "electrical_cell_recording" for d in data)
+    assert [d["id"] for d in data] == [str(id_) for id_ in reversed(source_ids[3:5])]
+    assert all(d["type"] == "circuit" for d in data)
 
     response = clients.user_1.get(
-        url=f"/emodel/{emodel_id}/derived-from",
+        url=f"/circuit/{root_circuit.id}/derived-from",
         params={"derivation_type": "unspecified"},
     )
     assert_response(response, 200)
     data = response.json()["data"]
     assert len(data) == 1
-    assert data[0]["id"] == str(trace_ids[5])
-    assert data[0]["type"] == "electrical_cell_recording"
+    assert data[0]["id"] == str(source_ids[5])
+    assert data[0]["type"] == "circuit"
 
     # Test error not derivation_type param
-    response = clients.user_1.get(url=f"/emodel/{public_emodel_id}/derived-from")
+    response = clients.user_1.get(url=f"/circuit/{public_root_circuit.id}/derived-from")
     assert_response(response, 422)
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.INVALID_REQUEST
 
     # Test error invalid derivation_type param
     response = clients.user_1.get(
-        url=f"/emodel/{public_emodel_id}/derived-from",
+        url=f"/circuit/{public_root_circuit.id}/derived-from",
         params={"derivation_type": "invalid_type"},
     )
     assert_response(response, 422)
@@ -98,7 +121,7 @@ def test_get_derived_from(
 
     # Test empty result
     response = clients.user_1.get(
-        url=f"/emodel/{public_emodel_id}/derived-from",
+        url=f"/circuit/{public_root_circuit.id}/derived-from",
         params={"derivation_type": "unspecified"},
     )
     assert_response(response, 200)
@@ -107,7 +130,7 @@ def test_get_derived_from(
 
     # Test private unreadable entity
     response = clients.user_2.get(
-        url=f"/emodel/{emodel_id}/derived-from",
+        url=f"/circuit/{root_circuit.id}/derived-from",
         params={"derivation_type": "unspecified"},
     )
     assert_response(response, 404)
@@ -115,7 +138,7 @@ def test_get_derived_from(
 
     # Test non existing entity
     response = clients.user_2.get(
-        url="/emodel/00000000-0000-0000-0000-000000000000/derived-from",
+        url="/circuit/00000000-0000-0000-0000-000000000000/derived-from",
         params={"derivation_type": "unspecified"},
     )
     assert_response(response, 404)
@@ -123,14 +146,14 @@ def test_get_derived_from(
 
     data = assert_request(
         clients.admin.get,
-        url=f"/admin/emodel/{public_emodel_id}/derived-from",
+        url=f"/admin/circuit/{public_root_circuit.id}/derived-from",
         params={"derivation_type": "circuit_extraction"},
     ).json()["data"]
     assert len(data) == 3
 
     data = assert_request(
         clients.admin.get,
-        url=f"/admin/emodel/{emodel_id}/derived-from",
+        url=f"/admin/circuit/{root_circuit.id}/derived-from",
         params={"derivation_type": "unspecified"},
     ).json()["data"]
     assert len(data) == 1
@@ -142,11 +165,15 @@ def test_get_derived_from(
         "circuit_customization",
         "circuit_extraction",
         "circuit_rewiring",
-        "emodel_circuit",
         "unspecified",
     ],
 )
 def test_create_one(client, derivation_type, root_circuit, circuit):
+    """Create derivations between two circuits (covered by validation rules).
+
+    ``emodel_circuit`` is excluded here because it requires used=emodel,
+    generated=circuit; it is exercised in ``test_create_emodel_circuit_with_label``.
+    """
     data = assert_request(
         client.post,
         url="/derivation",
@@ -226,6 +253,44 @@ def test_create_invalid_label_for_derivation_type(
             "generated_id": str(circuit.id),
             "derivation_type": derivation_type,
             "label": label,
+        },
+        expected_status_code=422,
+    ).json()
+    assert data["error_code"] == "INVALID_REQUEST"
+
+
+@pytest.mark.parametrize(
+    ("derivation_type", "use_emodel_as_used", "use_emodel_as_generated"),
+    [
+        # circuit-only types reject emodel as the used entity
+        ("circuit_extraction", True, False),
+        ("circuit_rewiring", True, False),
+        ("circuit_customization", True, False),
+        # emodel_circuit rejects circuit as used
+        ("emodel_circuit", False, False),
+        # emodel_circuit rejects emodel as generated
+        ("emodel_circuit", True, True),
+    ],
+)
+def test_create_invalid_entity_types_for_derivation_type(
+    client,
+    emodel_id,
+    public_emodel_id,
+    root_circuit,
+    circuit,
+    derivation_type,
+    use_emodel_as_used,
+    use_emodel_as_generated,
+):
+    used_id = str(emodel_id) if use_emodel_as_used else str(root_circuit.id)
+    generated_id = str(public_emodel_id) if use_emodel_as_generated else str(circuit.id)
+    data = assert_request(
+        client.post,
+        url="/derivation",
+        json={
+            "used_id": used_id,
+            "generated_id": generated_id,
+            "derivation_type": derivation_type,
         },
         expected_status_code=422,
     ).json()

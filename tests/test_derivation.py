@@ -164,24 +164,20 @@ def test_create_one(client, derivation_type, root_circuit, circuit):
     }
 
 
-def test_create_emodel_circuit_with_label(client, root_circuit, circuit):
-    """Link an emodel (used) to a circuit (generated) with the SONATA model_template label.
-
-    The ``used_id`` should be an EModel id in real usage; here we reuse a circuit fixture
-    since the generic /derivation endpoint does not constrain the entity types.
-    """
+def test_create_emodel_circuit_with_label(client, emodel_id, circuit):
+    """Link an emodel (used) to a circuit (generated) with the SONATA model_template label."""
     data = assert_request(
         client.post,
         url="/derivation",
         json={
-            "used_id": str(root_circuit.id),
+            "used_id": str(emodel_id),
             "generated_id": str(circuit.id),
             "derivation_type": "emodel_circuit",
             "label": "hoc:cADpyr_L5TPC",
         },
     ).json()
     assert data == {
-        "used": {"type": "circuit", "id": str(root_circuit.id)},
+        "used": {"type": "emodel", "id": str(emodel_id)},
         "generated": {"type": "circuit", "id": str(circuit.id)},
         "derivation_type": "emodel_circuit",
         "label": "hoc:cADpyr_L5TPC",
@@ -206,6 +202,34 @@ def test_create_circuit_customization_with_label(client, root_circuit, circuit):
         "derivation_type": "circuit_customization",
         "label": "synaptic_modification",
     }
+
+
+@pytest.mark.parametrize(
+    ("derivation_type", "label"),
+    [
+        ("emodel_circuit", "cADpyr_L5TPC"),  # missing hoc: prefix
+        ("emodel_circuit", "hoc:"),  # empty template name
+        ("emodel_circuit", "nml:cADpyr_L5TPC"),  # wrong prefix
+        ("circuit_customization", "unknown_modification"),
+        ("circuit_customization", ""),
+    ],
+)
+def test_create_invalid_label_for_derivation_type(
+    client, emodel_id, circuit, derivation_type, label
+):
+    used_id = emodel_id if derivation_type == "emodel_circuit" else str(circuit.id)
+    data = assert_request(
+        client.post,
+        url="/derivation",
+        json={
+            "used_id": str(used_id),
+            "generated_id": str(circuit.id),
+            "derivation_type": derivation_type,
+            "label": label,
+        },
+        expected_status_code=422,
+    ).json()
+    assert data["error_code"] == "INVALID_REQUEST"
 
 
 def test_create_invalid_data(client, root_circuit, circuit):

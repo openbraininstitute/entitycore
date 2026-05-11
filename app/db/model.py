@@ -1671,7 +1671,7 @@ class Derivation(Base):
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id], passive_deletes=True)
     derivation_type: Mapped[DerivationType]
-    label: Mapped[str | None] = mapped_column(nullable=True)
+    label: Mapped[str | None]
 
 
 class ScientificArtifactPublicationLink(Identifiable):

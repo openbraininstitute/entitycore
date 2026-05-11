@@ -250,7 +250,7 @@ class DerivationType(StrEnum):
     Attributes:
         circuit_customization: Indicates that a circuit entity was derived from another circuit by
           customizing certain components. The optional ``label`` field specifies the type of
-          customization, such as ``synaptic_modification``, ``new_emodels``,
+          customization, such as ``synaptic_modification``, ``emodel_addition``,
           ``emodel_modification``, ``population_modification``.
         circuit_extraction: Indicates that the entity was derived by extracting a set of nodes from
          a circuit.

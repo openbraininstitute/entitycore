@@ -248,15 +248,25 @@ class DerivationType(StrEnum):
     """Represents the type of derivation relationship between two entities.
 
     Attributes:
+        circuit_customization: Indicates that a circuit entity was derived from another circuit by
+          customizing certain components. The optional ``label`` field specifies the type of
+          customization, such as ``synaptic_modification``, ``emodel_addition``,
+          ``emodel_modification``, ``population_modification``.
         circuit_extraction: Indicates that the entity was derived by extracting a set of nodes from
          a circuit.
         circuit_rewiring: Indicates that the entity was derived by rewiring the connectivity of
           a circuit.
+        emodel_circuit: Indicates that an emodel (used) was assigned to neurons of a circuit
+          (generated). The optional ``label`` field on the derivation carries the SONATA
+          ``model_template`` entry, by convention ``hoc:<template_name>``
+          (e.g. ``hoc:cADpyr_L5TPC``, ``hoc:bAC_L23BC``).
         unspecified: Indicates a derivation that does not require a specific type.
     """
 
+    circuit_customization = auto()
     circuit_extraction = auto()
     circuit_rewiring = auto()
+    emodel_circuit = auto()
     unspecified = auto()
 
 

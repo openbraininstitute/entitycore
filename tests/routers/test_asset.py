@@ -3,7 +3,6 @@ from http import HTTPStatus
 from unittest.mock import ANY, patch
 
 import pytest
-from fastapi import HTTPException
 from moto import mock_aws
 
 from app.config import settings, storages
@@ -12,7 +11,6 @@ from app.db.types import AssetLabel, EntityType, StorageType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
 from app.schemas.asset import AssetRead
-from app.service import asset as asset_service
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
@@ -287,7 +285,8 @@ def test_upload_entity_asset(client, entity, monkeypatch):
     )
     assert response.status_code == 422, f"Asset creation didn't fail as expected: {response.text}"
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_SCHEMA
+    assert "Value error, morphology implies one of the following content-types" in error.details[0]
 
     # upload an empty file
     response = _upload_entity_asset(
@@ -513,17 +512,14 @@ def test_register_entity_asset_not_found(client, entity):
 
 
 @pytest.mark.parametrize(
-    "full_path",
+    ("full_path", "expected_error"),
     [
-        "/path/to/test.swc",
-        "path/to/test.swc/",
-        "/path/to/test.swc/",
-        "/path/to//test.swc",
-        "/path/to/./test.swc",
-        "/path/to/../test.swc",
+        ("/test.swc", "Absolute paths are forbidden"),
+        ("", "Empty paths are forbidden"),
+        ("path/to/../test.swc", "Parent traversal is forbidden"),
     ],
 )
-def test_register_entity_asset_with_invalid_full_path(client, entity, full_path):
+def test_register_entity_asset_with_invalid_full_path(client, entity, full_path, expected_error):
     response = assert_request(
         client.post,
         url=f"{route(entity.type)}/{entity.id}/assets/register",
@@ -542,10 +538,7 @@ def test_register_entity_asset_with_invalid_full_path(client, entity, full_path)
         "error_code": "INVALID_REQUEST",
         "message": "Validation error",
     }
-    assert response.json()["details"][0]["msg"] == (
-        "Value error, Invalid full path: cannot be empty, start or end with '/', "
-        "and the path components cannot be empty, '.' or '..'"
-    )
+    assert response.json()["details"][0]["msg"] == f"Value error, {expected_error}"
 
 
 @pytest.mark.parametrize(
@@ -650,57 +643,6 @@ def test_get_entity_assets(client, entity, asset):
     assert response.status_code == 404, f"Unexpected result: {response.text}"
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
-
-
-def test_get_deleted_entity_assets__admin(db, client_admin, entity, asset):
-    """Test that a service admin can fetch marked as deleted assets."""
-
-    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
-
-    assert response.status_code == 200, f"Failed to get asset: {response.text}"
-    data = response.json()["data"]
-
-    expected_full_path = _get_expected_full_path(entity, path="morph.asc")
-
-    expected_asset_payload = {
-        "id": str(asset.id),
-        "path": "morph.asc",
-        "full_path": expected_full_path,
-        "is_directory": False,
-        "content_type": "application/asc",
-        "size": FILE_EXAMPLE_SIZE,
-        "sha256_digest": FILE_EXAMPLE_DIGEST,
-        "meta": {},
-        "status": "created",
-        "label": "morphology",
-        "storage_type": StorageType.aws_s3_internal,
-    }
-
-    assert data == [expected_asset_payload]
-
-    # mark as deleted
-    asset = db.get(Asset, asset.id)
-    asset.status = "deleted"
-    db.commit()
-
-    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}")
-    assert response.status_code == 200, f"Failed to delete asset: {response.text}"
-    assert response.json() == expected_asset_payload | {"status": "deleted"}
-
-    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
-    assert response.status_code == 200, f"Failed to get asset: {response.text}"
-    data = response.json()["data"]
-
-    assert data == [expected_asset_payload | {"status": "deleted"}]
-
-    # delete completely as admin
-    response = client_admin.delete(f"/admin{route(entity.type)}/{entity.id}/assets/{asset.id}")
-    assert response.status_code == 200, f"Failed to delete asset: {response.text}"
-
-    response = client_admin.get(f"/admin{route(entity.type)}/{entity.id}/assets")
-    assert response.status_code == 200, f"Failed to get asset: {response.text}"
-    data = response.json()["data"]
-    assert data == []
 
 
 def test_download_entity_asset(clients, entity, asset):
@@ -916,7 +858,7 @@ def test_delete_entity_asset__authorization__admin(
 def test_delete_entity_asset__authorization__user_own(
     clients, create_entity_asset, is_public, expected_status_code, expected_error
 ):
-    """Test project member may deleted their own private assets."""
+    """Test project member may delete their own private assets."""
     entity_id, entity_type, asset_id = create_entity_asset(
         clients.user_3, authorized_public=is_public
     )
@@ -999,7 +941,7 @@ def test_upload_delete_upload_entity_asset(client, entity):
     data = response.json()
     asset1 = AssetRead.model_validate(data)
 
-    # test that the deleted assets are filtered out
+    # test that the deleted assets are not returned
     response = client.get(f"{route(entity.type)}/{entity.id}/assets")
 
     assert response.status_code == 200, f"Failed to get assest: {response.text}"
@@ -1119,8 +1061,10 @@ def test_upload_entity_asset_directory(client, root_circuit):
             json={"files": [], "meta": None, "label": label, "directory_name": "test2"},
         )
         assert response.status_code == 422
+        error = ErrorResponse.model_validate(response.json())
+        assert error.details[0]["type"] == "too_short"
 
-    duplicate_path = ["../../../etc/passwd", "valid/path/../../../etc/passwd"]
+    duplicate_path = ["path/to/file", "path/to/file"]
     with mock_aws():
         response = client.post(
             f"{entity_type}/{entity_id}/assets/directory/upload",
@@ -1128,23 +1072,30 @@ def test_upload_entity_asset_directory(client, root_circuit):
         )
     assert response.status_code == 422
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert error.details[0]["msg"] == "Value error, Filenames must be unique within the directory."
 
     invalid_files = [
         "/absolute/path/file.txt",
         "../../../etc/passwd",
         "valid/path/../../../etc/groups",
+        ".",
+        "",
     ]
     with mock_aws():
         response = client.post(
             f"{entity_type}/{entity_id}/assets/directory/upload",
             json={"files": invalid_files, "meta": None, "label": label, "directory_name": "test4"},
         )
-    assert response.status_code == 200
-    assert list(response.json()["files"]) == [
-        "absolute/path/file.txt",
-        "etc/passwd",
-        "etc/groups",
+    assert response.status_code == 422
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert [d["msg"] for d in error.details] == [
+        "Value error, Absolute paths are forbidden",
+        "Value error, Parent traversal is forbidden",
+        "Value error, Parent traversal is forbidden",
+        "Value error, Empty paths are forbidden",
+        "Value error, Empty paths are forbidden",
     ]
 
 
@@ -1413,8 +1364,8 @@ def test_initiate_entity_asset_upload_invalid_filesize(client, entity):
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_FILE
-    assert f"bigger than {max_size}" in error.message
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert error.details[0]["msg"] == f"Input should be less than {max_size}"
 
 
 def test_initiate_entity_asset_upload_invalid_filename(client, entity):
@@ -1428,8 +1379,9 @@ def test_initiate_entity_asset_upload_invalid_filename(client, entity):
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
-    assert "Invalid file name" in error.message
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert error.message == "Validation error"
+    assert error.details[0]["msg"] == "Value error, Expected a valid file or directory name"
 
     # Test with invalid filename (absolute path)
     response = assert_request(
@@ -1439,7 +1391,9 @@ def test_initiate_entity_asset_upload_invalid_filename(client, entity):
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_PATH
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert error.message == "Validation error"
+    assert error.details[0]["msg"] == "Value error, Expected a valid file or directory name"
 
 
 def test_initiate_entity_asset_upload_invalid_content_type(client, entity):
@@ -1452,8 +1406,8 @@ def test_initiate_entity_asset_upload_invalid_content_type(client, entity):
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
-    assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
-    assert "Invalid content type" in error.message
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_SCHEMA
+    assert "Value error, morphology implies one of the following content-types" in error.details[0]
 
 
 def test_initiate_entity_asset_upload_duplicate(client, entity):
@@ -1694,16 +1648,3 @@ def test_upload_entity_asset_directory_presigned_url_generation_failure(client, 
     assert response.status_code == 422
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL
-
-
-def test_delete_asset_storage_object_s3_failure(asset):
-    with (
-        patch("app.service.asset.delete_from_s3", return_value=False),
-        pytest.raises(HTTPException) as exc,
-    ):
-        asset_service.delete_asset_storage_object(
-            asset=asset,
-            storage_client_factory=lambda _storage: object(),
-        )
-    assert exc.value.status_code == 500
-    assert exc.value.detail == "Failed to delete object"

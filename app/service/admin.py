@@ -47,7 +47,6 @@ def get_entity_asset(
             entity_type=entity_type,
             entity_id=entity_id,
             asset_id=asset_id,
-            include_deleted=True,
         )
     return AssetRead.model_validate(asset)
 

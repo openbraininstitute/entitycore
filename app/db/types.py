@@ -285,7 +285,6 @@ class AnnotationBodyType(StrEnum):
 class AssetStatus(StrEnum):
     CREATED = auto()
     UPLOADING = auto()
-    DELETED = auto()
 
 
 class ValidationStatus(StrEnum):
@@ -410,11 +409,13 @@ class ContentType(StrEnum):
     webp = "image/webp"
     ipynb = "application/x-ipynb+json"
     zip = "application/zip"
+    other = "application/octet-stream"
 
 
 class AssetLabel(StrEnum):
     """See docs/asset-labels.md."""
 
+    directory_child = auto()
     morphology = auto()
     morphology_with_spines = auto()
     cell_composition_summary = auto()
@@ -498,6 +499,7 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.webp: (".webp",),
     ContentType.ipynb: (".ipynb",),
     ContentType.zip: (".zip",),
+    ContentType.other: (),
 }
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[

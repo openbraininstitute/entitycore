@@ -590,7 +590,8 @@ class Entity(LegacyMixin, Identifiable):
         "Asset",
         uselist=True,
         primaryjoin=lambda: sa.and_(
-            Entity.id == Asset.entity_id, Asset.status != AssetStatus.DELETED
+            Entity.id == Asset.entity_id,
+            Asset.parent_id.is_(None),  # exclude children
         ),
         cascade="all, delete-orphan",  # triggers ORM cascade for events
         passive_deletes=False,
@@ -1433,7 +1434,7 @@ class Asset(Identifiable):
     """Asset table."""
 
     __tablename__ = "asset"
-    status: Mapped[AssetStatus] = mapped_column()  # TODO: Remove if postgresql_where below removed
+    status: Mapped[AssetStatus]
     path: Mapped[str]  # relative path
     full_path: Mapped[str]  # full path on S3
     is_directory: Mapped[bool]
@@ -1442,7 +1443,7 @@ class Asset(Identifiable):
     )
     size: Mapped[BIGINT]
     sha256_digest: Mapped[bytes | None] = mapped_column(LargeBinary(32))
-    meta: Mapped[JSON_DICT]  # not used yet. can be useful?
+    meta: Mapped[JSON_DICT]
     label: Mapped[AssetLabel]
     entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id"),  # Asset deletion cascades through ORM app.db.events
@@ -1450,22 +1451,19 @@ class Asset(Identifiable):
     )
     storage_type: Mapped[StorageType]
     upload_meta: Mapped[JSON_DICT | None]
+    # parent_id should be set only for files that are children of a directory asset
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("asset.id"), index=True)
 
-    # partial unique index
+    children: Mapped[list["Asset"]] = relationship(
+        foreign_keys=[parent_id],
+        cascade="all, delete-orphan",  # triggers ORM cascade for events
+        passive_deletes=False,
+        lazy="selectin",
+    )
+
     __table_args__ = (
-        Index(
-            "ix_asset_full_path",
-            "full_path",
-            unique=True,
-            postgresql_where=(status != AssetStatus.DELETED.name),
-        ),
-        Index(
-            "uq_asset_entity_id_path",
-            "path",
-            "entity_id",
-            unique=True,
-            postgresql_where=(status != AssetStatus.DELETED.name),
-        ),
+        Index("ix_asset_full_path", "full_path", unique=True),
+        Index("uq_asset_entity_id_path", "path", "entity_id", unique=True),
     )
 
 

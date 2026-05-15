@@ -21,7 +21,7 @@ from types_boto3_s3.type_defs import (
 from app.config import StorageUnion, settings, storages
 from app.db.types import EntityType, StorageType
 from app.logger import L
-from app.schemas.asset import validate_path
+from app.schemas.asset import validate_path_component
 from app.schemas.publish import MoveDirectoryResult, MoveFileResult
 from app.utils.common import clip
 
@@ -74,16 +74,12 @@ def convert_s3_path_visibility(s3_path: str, *, public: bool) -> str:
     return new_prefix + s3_path.removeprefix(old_prefix)
 
 
-def validate_filename(filename: str) -> bool:
+def validate_filename(filename: str | Path) -> bool:
     try:
-        validate_path(filename)
+        validate_path_component(Path(filename))
     except ValueError:
         return False
     return True
-
-
-def sanitize_directory_traversal(filename: str | Path) -> Path:
-    return Path(os.path.normpath("/" / Path(filename))).relative_to("/")
 
 
 def validate_filesize(filesize: int) -> bool:

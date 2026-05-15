@@ -13,8 +13,11 @@ router = APIRouter(
     tags=["derivation"],
 )
 
-router.get("/{entity_route}/{entity_id}/derived-from")(service.read_many)
-admin_router.get("/{entity_route}/{entity_id}/derived-from")(service.admin_read_many)
+router.get("/{entity_route}/{entity_id}/derived-from")(service.read_many_from)
+admin_router.get("/{entity_route}/{entity_id}/derived-from")(service.admin_read_many_from)
+
+router.get("/{entity_route}/{entity_id}/derived-to")(service.read_many_to)
+admin_router.get("/{entity_route}/{entity_id}/derived-to")(service.admin_read_many_to)
 
 delete_one = router.delete(f"/{ROUTE}")(service.delete_one)
 create_one = router.post(f"/{ROUTE}")(service.create_one)

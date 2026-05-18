@@ -1,6 +1,7 @@
 import io
 from http import HTTPStatus
 from unittest.mock import ANY, patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 from moto import mock_aws
@@ -10,7 +11,7 @@ from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, EntityType, StorageType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
-from app.schemas.asset import AssetRead
+from app.schemas.asset import AssetRead, MultipartDirectoryAssetAndPresignedURLS
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
@@ -1678,6 +1679,11 @@ def _multipart_directory_json_data(
     }
 
 
+def _extract_upload_id(url):
+    """Extract and return uploadId from a presigned url, only for tests."""
+    return parse_qs(urlparse(url).query)["uploadId"][0]
+
+
 def test_multipart_directory_upload(db, client, root_circuit, s3, s3_internal_bucket):
     """Test initiating, uploading parts, and completing a multipart directory upload."""
     entity_type = route(root_circuit.type)
@@ -1724,16 +1730,19 @@ def test_multipart_directory_upload(db, client, root_circuit, s3, s3_internal_bu
         assert file_asset["upload_meta"] is not None
         assert len(file_asset["upload_meta"]["parts"]) == 3
 
+    initiated = MultipartDirectoryAssetAndPresignedURLS.model_validate(data)
+
     # Upload parts for each file
-    part_size = file_assets[0]["upload_meta"]["part_size"]
-    for file_asset in file_assets:
-        upload_id = db.get(Asset, file_asset["id"]).upload_meta["upload_id"]
-        for part in file_asset["upload_meta"]["parts"]:
+    for file_asset in initiated.files:
+        assert file_asset.upload_meta
+        part_size = file_asset.upload_meta.part_size
+        for part in file_asset.upload_meta.parts:
+            upload_id = _extract_upload_id(part.url)
             s3.upload_part(
                 Bucket=s3_internal_bucket,
-                Key=file_asset["full_path"],
+                Key=file_asset.full_path,
                 UploadId=upload_id,
-                PartNumber=part["part_number"],
+                PartNumber=part.part_number,
                 Body=b"x" * part_size,
             )
 

@@ -49,8 +49,8 @@ def create_one(
     user_context: UserContextWithProjectIdDep,
 ) -> MTypeClassificationRead:
     stmt = constrain_to_readable_entities(
-        sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.entity_id),
-        user_context.project_id,
+        query=sa.select(sa.func.count(Entity.id)).where(Entity.id == json_model.entity_id),
+        project_id=user_context.project_id,
     )
     if db.execute(stmt).scalar_one() == 0:
         L.warning("Attempting to create an annotation for an entity inaccessible to user")

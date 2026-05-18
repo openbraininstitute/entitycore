@@ -106,7 +106,7 @@ def read_many(
     pagination_request: PaginationQuery,
 ) -> ListResponse[MeasurementAnnotationRead]:
     apply_filter_query_operations = lambda q: constrain_to_readable_entities(
-        q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
+        query=q.join(Entity, Entity.id == MeasurementAnnotation.entity_id),
         project_id=user_context.project_id,
     )
     facet_keys = []
@@ -185,7 +185,7 @@ def read_one(
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_to_readable_entities(q, project_id=user_context.project_id)
+        q = constrain_to_readable_entities(query=q, project_id=user_context.project_id)
         return _load_from_db(q=q)
 
     return router_read_one(
@@ -226,7 +226,7 @@ def create_one(
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_entity_query_to_project(q, project_id=user_context.project_id)
+        q = constrain_entity_query_to_project(query=q, project_id=user_context.project_id)
         return _load_from_db(q=q)
 
     _entity = get_writable_entity(
@@ -253,7 +253,7 @@ def delete_one(
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_entity_query_to_project(q, project_id=user_context.project_id)
+        q = constrain_entity_query_to_project(query=q, project_id=user_context.project_id)
         return _load_from_db(q=q)
 
     one = router_read_one(
@@ -281,7 +281,9 @@ def update_one(
     def apply_operations(q):
         entity_alias = aliased(Entity)
         q = q.join(entity_alias, entity_alias.id == MeasurementAnnotation.entity_id)
-        q = constrain_to_writable_entities(q, user_context, db_model_class=entity_alias)
+        q = constrain_to_writable_entities(
+            query=q, user_context=user_context, db_model_class=entity_alias
+        )
         return _load_from_db_with_entity(q=q)
 
     return router_update_one(

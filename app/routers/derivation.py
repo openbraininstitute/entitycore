@@ -4,17 +4,17 @@ from fastapi import APIRouter
 
 import app.service.derivation as service
 from app.routers.admin import router as admin_router
+from app.routers.common import create_user_router, register_default_admin_routes
 from app.routers.types import AssociationRoute
 
 ROUTE = AssociationRoute.derivation
 
-router = APIRouter(
+router = create_user_router(route=ROUTE, service=service)
+register_default_admin_routes(router=admin_router, service=service, route=ROUTE)
+
+from_router = APIRouter(
     prefix="",
-    tags=["derivation"],
+    tags=[ROUTE],
 )
-
-router.get("/{entity_route}/{entity_id}/derived-from")(service.read_many)
-admin_router.get("/{entity_route}/{entity_id}/derived-from")(service.admin_read_many)
-
-delete_one = router.delete(f"/{ROUTE}")(service.delete_one)
-create_one = router.post(f"/{ROUTE}")(service.create_one)
+from_router.get("/{entity_route}/{entity_id}/derived-from")(service.read_many_from_entity)
+admin_router.get("/{entity_route}/{entity_id}/derived-from")(service.admin_read_many_from_entity)

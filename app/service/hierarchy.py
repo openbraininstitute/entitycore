@@ -36,7 +36,7 @@ def _load_nodes(
     )
     # needed to consider as root also the children with private parents in a different project
     matching_derivation_for_root = constrain_to_readable_entities(
-        matching_derivation_for_root, project_id=project_id, db_model_class=root_parent
+        query=matching_derivation_for_root, project_id=project_id, db_model_class=root_parent
     )
     query_roots = (
         sa.select(
@@ -50,7 +50,7 @@ def _load_nodes(
         .order_by(*order_by)
     )
     query_roots = constrain_to_readable_entities(
-        query_roots, project_id=project_id, db_model_class=root
+        query=query_roots, project_id=project_id, db_model_class=root
     )
     query_children = (
         sa.select(
@@ -67,10 +67,10 @@ def _load_nodes(
         .order_by(*order_by)
     )
     query_children = constrain_to_readable_entities(
-        query_children, project_id=project_id, db_model_class=parent
+        query=query_children, project_id=project_id, db_model_class=parent
     )
     query_children = constrain_to_readable_entities(
-        query_children, project_id=project_id, db_model_class=child
+        query=query_children, project_id=project_id, db_model_class=child
     )
     query = query_roots.union_all(query_children)
 

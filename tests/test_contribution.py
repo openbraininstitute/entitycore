@@ -97,6 +97,12 @@ def test_create_contribution(
     ]
 
 
+def test_admin_read_one(client, client_admin, json_data):
+    contribution_id = assert_request(client.post, url=ROUTE, json=json_data).json()["id"]
+    data = assert_request(client_admin.get, url=f"{ADMIN_ROUTE}/{contribution_id}").json()
+    assert data["id"] == contribution_id
+
+
 def test_update_one(clients, json_data, organization_id, person_id):
 
     data = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()

@@ -147,7 +147,7 @@ def _read_many(
 
     if check_authorized_project:
         filter_query = lambda q: constrain_to_readable_entities(
-            base_join_query(q),
+            query=base_join_query(q),
             project_id=user_context.project_id,
             db_model_class=scientific_artifact_alias,
         )

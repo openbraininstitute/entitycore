@@ -4,7 +4,9 @@ import uuid
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from app.db.types import DerivationType
-from app.schemas.base import BasicEntityRead
+from app.schemas.agent import CreatedByUpdatedByMixin
+from app.schemas.base import BasicEntityRead, CreationMixin, IdentifiableMixin
+from app.schemas.utils import make_update_schema
 
 # Allowed label values per derivation type.
 # - emodel_circuit: SONATA ``model_template`` entry, by convention ``hoc:<template_name>``.
@@ -55,7 +57,15 @@ class DerivationCreate(DerivationBase):
         return self
 
 
-class DerivationRead(DerivationBase):
+DerivationUserUpdate = make_update_schema(DerivationCreate, "DerivationUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
+DerivationAdminUpdate = make_update_schema(
+    DerivationCreate,
+    "DerivationAdminUpdate",
+    excluded_fields=set(),
+)  # pyright: ignore [reportInvalidTypeForm]
+
+
+class DerivationRead(DerivationBase, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
     used: BasicEntityRead
     generated: BasicEntityRead
     derivation_type: DerivationType

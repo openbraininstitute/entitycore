@@ -84,7 +84,7 @@ def count_entities_by_type(
                 sa.func.count(entity_class.id).label("count"),
             )
             q = constrain_to_readable_entities(
-                q, project_id=user_context.project_id, db_model_class=entity_class
+                query=q, project_id=user_context.project_id, db_model_class=entity_class
             )
             q = q.join(brain_region_cte, entity_class.brain_region_id == brain_region_cte.c.id)  # type: ignore[reportAttributeAccessIssue]
 
@@ -100,7 +100,7 @@ def count_entities_by_type(
             Entity.type.label("type"), sa.func.count(Entity.id).label("count")
         ).select_from(Entity)
         query = constrain_to_readable_entities(
-            query, project_id=user_context.project_id, db_model_class=Entity
+            query=query, project_id=user_context.project_id, db_model_class=Entity
         )
         query = query.where(Entity.type.in_(entity_types))
         query = query.group_by(Entity.type)

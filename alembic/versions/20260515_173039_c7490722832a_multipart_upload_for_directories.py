@@ -142,6 +142,7 @@ def upgrade() -> None:
         enum_values_to_rename=[],
     )
 
+
 def downgrade() -> None:
     op.sync_enum_values(
         enum_schema="public",

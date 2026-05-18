@@ -1648,3 +1648,316 @@ def test_upload_entity_asset_directory_presigned_url_generation_failure(client, 
     assert response.status_code == 422
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL
+
+
+def _multipart_directory_json_data(
+    directory_name="my-dir",
+    label="sonata_circuit",
+    files=None,
+):
+    if files is None:
+        files = [
+            {
+                "filename": "morphology/cell1.swc",
+                "filesize": 3 * 5 * 1024**2,
+                "sha256_digest": "a" * 64,
+                "preferred_part_count": 3,
+            },
+            {
+                "filename": "morphology/cell2.swc",
+                "filesize": 3 * 5 * 1024**2,
+                "sha256_digest": "b" * 64,
+                "preferred_part_count": 3,
+            },
+        ]
+    return {
+        "directory_name": directory_name,
+        "label": label,
+        "meta": {"key": "value"},
+        "files": files,
+    }
+
+
+def test_multipart_directory_upload(db, client, root_circuit, s3, s3_internal_bucket):
+    """Test initiating, uploading parts, and completing a multipart directory upload."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+    filesize = 3 * 5 * 1024**2
+
+    json_data = _multipart_directory_json_data(
+        files=[
+            {
+                "filename": "data/file1.bin",
+                "filesize": filesize,
+                "sha256_digest": "a" * 64,
+                "preferred_part_count": 3,
+            },
+            {
+                "filename": "data/file2.bin",
+                "filesize": filesize,
+                "sha256_digest": "b" * 64,
+                "preferred_part_count": 3,
+            },
+        ]
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    assert "asset" in data
+    assert "files" in data
+
+    parent_asset = data["asset"]
+    assert parent_asset["is_directory"] is True
+    assert parent_asset["status"] == "uploading"
+    assert parent_asset["label"] == "sonata_circuit"
+    assert parent_asset["meta"] == {"key": "value"}
+
+    file_assets = data["files"]
+    assert len(file_assets) == 2
+
+    for file_asset in file_assets:
+        assert file_asset["status"] == "uploading"
+        assert file_asset["upload_meta"] is not None
+        assert len(file_asset["upload_meta"]["parts"]) == 3
+
+    # Upload parts for each file
+    part_size = file_assets[0]["upload_meta"]["part_size"]
+    for file_asset in file_assets:
+        upload_id = db.get(Asset, file_asset["id"]).upload_meta["upload_id"]
+        for part in file_asset["upload_meta"]["parts"]:
+            s3.upload_part(
+                Bucket=s3_internal_bucket,
+                Key=file_asset["full_path"],
+                UploadId=upload_id,
+                PartNumber=part["part_number"],
+                Body=b"x" * part_size,
+            )
+
+    # Complete the directory upload
+    completed = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_asset['id']}/directory/multipart-upload/complete",
+    ).json()
+
+    assert completed["status"] == "created"
+    assert completed["is_directory"] is True
+
+    # Verify parent asset is listed (children are not)
+    assets_response = assert_request(
+        client.get,
+        url=f"{entity_type}/{entity_id}/assets",
+    ).json()
+    asset_ids = [a["id"] for a in assets_response["data"]]
+    assert parent_asset["id"] in asset_ids
+    for file_asset in file_assets:
+        assert file_asset["id"] not in asset_ids
+
+
+def test_multipart_directory_upload_entity_not_found(client, root_circuit):
+    """Test initiate multipart directory upload with non-existent entity."""
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{MISSING_ID}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(),
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
+def test_multipart_directory_upload_duplicate(client, root_circuit):
+    """Test initiate multipart directory upload with duplicate directory name."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="dup-dir"),
+    )
+
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="dup-dir"),
+        expected_status_code=409,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_DUPLICATED
+
+
+def test_multipart_directory_upload_invalid_directory_name(client, root_circuit):
+    """Test initiate multipart directory upload with invalid directory names."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    # nested directory name
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="nested/dir"),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+
+
+def test_multipart_directory_upload_empty_files(client, root_circuit):
+    """Test initiate multipart directory upload with empty files list."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(files=[]),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.details[0]["type"] == "too_short"
+
+
+def test_multipart_directory_upload_duplicate_filenames(client, root_circuit):
+    """Test initiate multipart directory upload with duplicate filenames."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    dup_files = [
+        {"filename": "same/file.bin", "filesize": 5 * 1024**2, "sha256_digest": "a" * 64},
+        {"filename": "same/file.bin", "filesize": 5 * 1024**2, "sha256_digest": "b" * 64},
+    ]
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(files=dup_files),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert "Filenames must be unique" in error.details[0]["msg"]
+
+
+def test_multipart_directory_upload_invalid_file_paths(client, root_circuit):
+    """Test initiate multipart directory upload with invalid file paths."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    invalid_files = [
+        {"filename": "/absolute/path.bin", "filesize": 5 * 1024**2, "sha256_digest": "a" * 64},
+    ]
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(files=invalid_files),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.INVALID_REQUEST
+    assert "Absolute paths are forbidden" in error.details[0]["msg"]
+
+
+@pytest.mark.parametrize(
+    ("client_fixture", "expected_status", "expected_error"),
+    [
+        ("client_user_2", 404, ApiErrorCode.ENTITY_NOT_FOUND),
+        ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
+    ],
+)
+def test_multipart_directory_upload_non_authorized(
+    request, client_fixture, expected_status, expected_error, root_circuit
+):
+    """Test initiate multipart directory upload with unauthorized user."""
+    client = request.getfixturevalue(client_fixture)
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(),
+        expected_status_code=expected_status,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == expected_error
+
+
+def test_complete_multipart_directory_upload_not_uploading(client, root_circuit, asset_directory):
+    """Test complete multipart directory upload when asset is not in uploading status."""
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/{asset_directory.id}/directory/multipart-upload/complete",
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_UPLOADING
+
+
+def test_complete_multipart_directory_upload_asset_not_found(client, root_circuit):
+    """Test complete multipart directory upload with non-existent asset."""
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/{MISSING_ID}/directory/multipart-upload/complete",
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
+
+
+def test_complete_multipart_directory_upload_entity_not_found(client, root_circuit):
+    """Test complete multipart directory upload with non-existent entity."""
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{MISSING_ID}/assets/{MISSING_ID}/directory/multipart-upload/complete",
+        expected_status_code=404,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
+def test_multipart_directory_upload_abort(db, client, circuit, s3, s3_internal_bucket):
+    """Test that deleting a directory asset aborts multipart uploads for children."""
+    entity_type = route(circuit.type)
+    entity_id = circuit.id
+    filesize = 3 * 5 * 1024**2
+
+    json_data = _multipart_directory_json_data(
+        directory_name="abort-dir",
+        files=[
+            {
+                "filename": "file.bin",
+                "filesize": filesize,
+                "sha256_digest": "a" * 64,
+                "preferred_part_count": 3,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+    child_asset = data["files"][0]
+    upload_id = db.get(Asset, child_asset["id"]).upload_meta["upload_id"]
+
+    # Verify multipart upload exists
+    assert s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
+
+    # Delete the parent directory asset
+    assert_request(
+        client.delete,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}",
+    )
+
+    # Verify parent and child are deleted
+    assert_request(
+        client.get,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}",
+        expected_status_code=404,
+    )
+
+    # Verify multipart upload was aborted
+    assert not s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)

@@ -1,6 +1,5 @@
 import io
 import math
-from pathlib import Path
 from unittest.mock import Mock
 
 import botocore.exceptions

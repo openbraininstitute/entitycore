@@ -225,7 +225,7 @@ class AssetsMixin(BaseModel):
     assets: list[AssetRead]
 
 
-class DirectoryUpload(BaseModel):
+class DirectoryUploadRequest(BaseModel):
     directory_name: Annotated[
         PathComponentStr,
         Field(
@@ -268,7 +268,7 @@ class AssetAndPresignedURLS(BaseModel):
     files: dict[Path, AnyUrl]
 
 
-class InitiateUploadRequest(BaseModel):
+class MultipartUploadInitiateRequest(BaseModel):
     filename: Annotated[
         PathComponentStr,
         Field(description="File name to be uploaded."),
@@ -297,7 +297,7 @@ class InitiateUploadRequest(BaseModel):
     )
 
 
-class NestedInitiateUploadRequest(BaseModel):
+class MultipartDirectoryFileRequest(BaseModel):
     filename: Annotated[
         RelativePathStr,
         Field(description="File name to be uploaded, relative to the base directory."),
@@ -326,10 +326,10 @@ class NestedInitiateUploadRequest(BaseModel):
     )
 
 
-class MultipartDirectoryUpload(BaseModel):
+class MultipartDirectoryUploadRequest(BaseModel):
     """Request schema for initiating a multipart directory upload.
 
-    Similar to DirectoryUpload schema, but with additional information for multipart uploads.
+    Similar to DirectoryUploadRequest schema, but with additional information for multipart uploads.
     """
 
     directory_name: Annotated[
@@ -339,7 +339,7 @@ class MultipartDirectoryUpload(BaseModel):
         ),
     ]
     files: Annotated[
-        list[NestedInitiateUploadRequest],
+        list[MultipartDirectoryFileRequest],
         Field(
             description="List of files to be uploaded inside the directory.",
             min_length=1,
@@ -358,7 +358,7 @@ class MultipartDirectoryUpload(BaseModel):
         return self
 
 
-class MultipartDirectoryAssetAndPresignedURLS(BaseModel):
+class MultipartDirectoryUploadResponse(BaseModel):
     """Response schema after initiating a multipart directory upload.
 
     Similar to AssetAndPresignedURLS schema, but with additional information for multipart uploads.

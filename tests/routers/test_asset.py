@@ -11,7 +11,7 @@ from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, EntityType, StorageType
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
-from app.schemas.asset import AssetRead, MultipartDirectoryAssetAndPresignedURLS
+from app.schemas.asset import AssetRead, MultipartDirectoryUploadResponse
 from app.utils.s3 import build_s3_path
 
 from tests.utils import (
@@ -1385,8 +1385,8 @@ def test_multipart_asset_upload_abort(db, client, entity, s3, s3_internal_bucket
     assert not s3_multipart_upload_exists(s3, upload_id, s3_internal_bucket)
 
 
-def test_initiate_entity_asset_upload_invalid_filesize(client, entity):
-    """Test initiate_entity_asset_upload with invalid filesize."""
+def test_entity_asset_multipart_upload_initiate__invalid_filesize(client, entity):
+    """Test entity_asset_multipart_upload_initiate with invalid filesize."""
     # Test with filesize exceeding max
     max_size = settings.S3_MULTIPART_UPLOAD_MAX_SIZE
     response = assert_request(
@@ -1400,8 +1400,8 @@ def test_initiate_entity_asset_upload_invalid_filesize(client, entity):
     assert error.details[0]["msg"] == f"Input should be less than {max_size}"
 
 
-def test_initiate_entity_asset_upload_invalid_filename(client, entity):
-    """Test initiate_entity_asset_upload with invalid filename."""
+def test_entity_asset_multipart_upload_initiate__invalid_filename(client, entity):
+    """Test entity_asset_multipart_upload_initiate with invalid filename."""
     # Test with invalid filename (path traversal)
 
     response = assert_request(
@@ -1428,8 +1428,8 @@ def test_initiate_entity_asset_upload_invalid_filename(client, entity):
     assert error.details[0]["msg"] == "Value error, Expected a valid file or directory name"
 
 
-def test_initiate_entity_asset_upload_invalid_content_type(client, entity):
-    """Test initiate_entity_asset_upload with invalid content type."""
+def test_entity_asset_multipart_upload_initiate__invalid_content_type(client, entity):
+    """Test entity_asset_multipart_upload_initiate with invalid content type."""
     # Test with invalid content type
     response = assert_request(
         client.post,
@@ -1442,8 +1442,8 @@ def test_initiate_entity_asset_upload_invalid_content_type(client, entity):
     assert "Value error, morphology implies one of the following content-types" in error.details[0]
 
 
-def test_initiate_entity_asset_upload_duplicate(client, entity):
-    """Test initiate_entity_asset_upload with duplicate asset."""
+def test_entity_asset_multipart_upload_initiate__duplicate(client, entity):
+    """Test entity_asset_multipart_upload_initiate with duplicate asset."""
     # Create first upload
     assert_request(
         client.post,
@@ -1462,8 +1462,8 @@ def test_initiate_entity_asset_upload_duplicate(client, entity):
     assert error.error_code == ApiErrorCode.ASSET_DUPLICATED
 
 
-def test_initiate_entity_asset_upload_entity_not_found(client, entity):
-    """Test initiate_entity_asset_upload with non-existent entity."""
+def test_entity_asset_multipart_upload_initiate__entity_not_found(client, entity):
+    """Test entity_asset_multipart_upload_initiate with non-existent entity."""
     response = assert_request(
         client.post,
         url=f"{route(entity.type)}/{MISSING_ID}/assets/multipart-upload/initiate",
@@ -1481,10 +1481,10 @@ def test_initiate_entity_asset_upload_entity_not_found(client, entity):
         ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
     ],
 )
-def test_initiate_entity_asset_upload_non_authorized(
+def test_entity_asset_multipart_upload_initiate__non_authorized(
     request, client_fixture, expected_status, expected_error, entity
 ):
-    """Test initiate_entity_asset_upload with unauthorized user."""
+    """Test entity_asset_multipart_upload_initiate with unauthorized user."""
     client = request.getfixturevalue(client_fixture)
     response = assert_request(
         client.post,
@@ -1496,8 +1496,8 @@ def test_initiate_entity_asset_upload_non_authorized(
     assert error.error_code == expected_error
 
 
-def test_complete_entity_asset_upload_asset_not_found(client, entity):
-    """Test complete_entity_asset_upload with non-existent asset."""
+def test_entity_asset_multipart_upload_complete__asset_not_found(client, entity):
+    """Test entity_asset_multipart_upload_complete with non-existent asset."""
     response = assert_request(
         client.post,
         url=f"{route(entity.type)}/{entity.id}/assets/{MISSING_ID}/multipart-upload/complete",
@@ -1507,8 +1507,8 @@ def test_complete_entity_asset_upload_asset_not_found(client, entity):
     assert error.error_code == ApiErrorCode.ASSET_NOT_FOUND
 
 
-def test_complete_entity_asset_upload_entity_not_found(client, entity, uploading_asset):
-    """Test complete_entity_asset_upload with non-existent entity."""
+def test_entity_asset_multipart_upload_complete__entity_not_found(client, entity, uploading_asset):
+    """Test entity_asset_multipart_upload_complete with non-existent entity."""
     response = assert_request(
         client.post,
         url=f"{route(entity.type)}/{MISSING_ID}/assets/{uploading_asset.id}/multipart-upload/complete",
@@ -1518,8 +1518,8 @@ def test_complete_entity_asset_upload_entity_not_found(client, entity, uploading
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
 
 
-def test_complete_entity_asset_upload_not_uploading(client, entity, asset):
-    """Test complete_entity_asset_upload when asset is not in uploading status."""
+def test_entity_asset_multipart_upload_complete__not_uploading(client, entity, asset):
+    """Test entity_asset_multipart_upload_complete when asset is not in uploading status."""
     data = assert_request(
         client.post,
         url=f"{route(entity.type)}/{entity.id}/assets/{asset.id}/multipart-upload/complete",
@@ -1537,10 +1537,10 @@ def test_complete_entity_asset_upload_not_uploading(client, entity, asset):
         ("client_no_project", 403, ApiErrorCode.NOT_AUTHORIZED),
     ],
 )
-def test_complete_entity_asset_upload_non_authorized(
+def test_entity_asset_multipart_upload_complete__non_authorized(
     request, client_fixture, expected_status, expected_error, entity, uploading_asset
 ):
-    """Test complete_entity_asset_upload with unauthorized user."""
+    """Test entity_asset_multipart_upload_complete with unauthorized user."""
     client = request.getfixturevalue(client_fixture)
     data = assert_request(
         client.post,
@@ -1551,8 +1551,10 @@ def test_complete_entity_asset_upload_non_authorized(
     assert error.error_code == expected_error
 
 
-def test_complete_entity_asset_upload_incomplete(db, client, entity, s3, s3_internal_bucket):
-    """Test complete_entity_asset_upload when upload is incomplete."""
+def test_entity_asset_multipart_upload_complete__incomplete(
+    db, client, entity, s3, s3_internal_bucket
+):
+    """Test entity_asset_multipart_upload_complete when upload is incomplete."""
     filesize = 3 * 5 * 1024**2
 
     # Initiate upload
@@ -1604,8 +1606,10 @@ def test_complete_entity_asset_upload_incomplete(db, client, entity, s3, s3_inte
     assert data["status"] == "created"
 
 
-def test_complete_entity_asset_upload_inconsistent_size(db, client, entity, s3, s3_internal_bucket):
-    """Test complete_entity_asset_upload when total uploaded size does not match expected size."""
+def test_entity_asset_multipart_upload_complete__inconsistent_size(
+    db, client, entity, s3, s3_internal_bucket
+):
+    """Test entity_asset_multipart_upload_complete when uploaded size doesn't match expected."""
     # Expected filesize declared during initiation
     declared_filesize = 3 * 5 * 1024**2  # ~75MB
 
@@ -1761,7 +1765,7 @@ def test_multipart_directory_upload(client, root_circuit, s3, s3_internal_bucket
         assert file_asset["upload_meta"] is not None
         assert len(file_asset["upload_meta"]["parts"]) == 3
 
-    initiated = MultipartDirectoryAssetAndPresignedURLS.model_validate(data)
+    initiated = MultipartDirectoryUploadResponse.model_validate(data)
 
     # Upload parts for each file
     for file_asset in initiated.files:

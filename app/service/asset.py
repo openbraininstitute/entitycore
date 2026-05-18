@@ -25,9 +25,9 @@ from app.schemas.asset import (
     AssetRead,
     AssetReadWithUploadMeta,
     DetailedFileList,
-    DirectoryUpload,
-    MultipartDirectoryAssetAndPresignedURLS,
-    MultipartDirectoryUpload,
+    DirectoryUploadRequest,
+    MultipartDirectoryUploadRequest,
+    MultipartDirectoryUploadResponse,
     ToUploadPart,
     UploadMeta,
     UploadMetaRead,
@@ -399,14 +399,14 @@ def delete_asset_unverified(
     return AssetRead.model_validate(asset)
 
 
-def entity_asset_upload_directory(
+def entity_asset_directory_upload(
     repos: RepositoryGroup,
     user_context: UserContextWithProjectId,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     s3_client: S3Client,
     storage: StorageUnion,
-    files: DirectoryUpload,
+    files: DirectoryUploadRequest,
 ) -> tuple[AssetRead, dict[Path, AnyUrl]]:
     entity = entity_service.get_writable_entity(
         repos,
@@ -491,7 +491,7 @@ def list_directory(
     return DetailedFileList.model_validate({"files": ret})
 
 
-def entity_asset_upload_initiate(
+def entity_asset_multipart_upload_initiate(
     *,
     repos: RepositoryGroup,
     entity_type: EntityType,
@@ -564,7 +564,7 @@ def entity_asset_upload_initiate(
     )
 
 
-def entity_asset_upload_complete(
+def entity_asset_multipart_upload_complete(
     *,
     repos: RepositoryGroup,
     user_context: UserContextWithProjectId,
@@ -726,7 +726,7 @@ def create_asset_download_redirect(
     return RedirectResponse(url=url)
 
 
-def initiate_multipart_entity_asset_directory_upload(
+def entity_asset_directory_multipart_upload_initiate(
     *,
     repos: RepositoryGroup,
     user_context: UserContextWithProjectId,
@@ -734,8 +734,8 @@ def initiate_multipart_entity_asset_directory_upload(
     entity_id: uuid.UUID,
     s3_client: S3Client,
     storage: StorageUnion,
-    json_model: MultipartDirectoryUpload,
-) -> MultipartDirectoryAssetAndPresignedURLS:
+    json_model: MultipartDirectoryUploadRequest,
+) -> MultipartDirectoryUploadResponse:
     """Initiate a multipart upload for each file in a directory asset.
 
     Return presigned urls for all parts.
@@ -788,7 +788,7 @@ def initiate_multipart_entity_asset_directory_upload(
         # create presigned urls using the part count hint and filesize
         # asset schemas is updated with the upload metadata
         # Note: User already authorized when creating the asset
-        asset_read_with_upload_meta = entity_asset_upload_initiate(
+        asset_read_with_upload_meta = entity_asset_multipart_upload_initiate(
             repos=repos,
             s3_client=s3_client,
             entity_type=entity_type,
@@ -801,13 +801,13 @@ def initiate_multipart_entity_asset_directory_upload(
             preferred_part_count=initiate_payload.preferred_part_count,
         )
         asset_read_with_upload_meta_list.append(asset_read_with_upload_meta)
-    return MultipartDirectoryAssetAndPresignedURLS(
+    return MultipartDirectoryUploadResponse(
         asset=parent,
         files=asset_read_with_upload_meta_list,
     )
 
 
-def complete_multipart_entity_asset_directory_upload(
+def entity_asset_directory_multipart_upload_complete(
     *,
     repos: RepositoryGroup,
     user_context: UserContextWithProjectId,
@@ -835,7 +835,7 @@ def complete_multipart_entity_asset_directory_upload(
         if child.status == AssetStatus.CREATED:
             L.debug("Child asset upload already completed, skipping completion for id {}", child.id)
             continue
-        entity_asset_upload_complete(
+        entity_asset_multipart_upload_complete(
             repos=repos,
             user_context=user_context,
             entity_type=entity_type,

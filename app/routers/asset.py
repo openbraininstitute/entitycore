@@ -22,10 +22,10 @@ from app.schemas.asset import (
     AssetReadWithUploadMeta,
     AssetRegister,
     DetailedFileList,
-    DirectoryUpload,
-    InitiateUploadRequest,
-    MultipartDirectoryAssetAndPresignedURLS,
-    MultipartDirectoryUpload,
+    DirectoryUploadRequest,
+    MultipartDirectoryUploadRequest,
+    MultipartDirectoryUploadResponse,
+    MultipartUploadInitiateRequest,
 )
 from app.schemas.types import ListResponse
 from app.service import asset as asset_service
@@ -249,12 +249,12 @@ def entity_asset_directory_upload(
     storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
-    files: DirectoryUpload,
+    files: DirectoryUploadRequest,
 ) -> AssetAndPresignedURLS:
     """Given a list of full paths, return a dictionary of presigned URLS for uploading."""
     storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
     s3_client = storage_client_factory(storage)
-    model, urls = asset_service.entity_asset_upload_directory(
+    model, urls = asset_service.entity_asset_directory_upload(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
@@ -288,13 +288,13 @@ def entity_asset_directory_list(
 
 
 @router.post("/{entity_route}/{entity_id}/assets/multipart-upload/initiate")
-def initiate_entity_asset_upload(
+def entity_asset_multipart_upload_initiate(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
     user_context: UserContextWithProjectIdDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
-    json_model: InitiateUploadRequest,
+    json_model: MultipartUploadInitiateRequest,
 ) -> AssetReadWithUploadMeta:
     """Start a multipart upload for a file asset associated with an entity.
 
@@ -372,7 +372,7 @@ def initiate_entity_asset_upload(
     # create presigned urls using the part count hint and filesize
     # asset schemas is updated with the upload metadata
     # Note: User already authorized when creating the asset
-    asset_read = asset_service.entity_asset_upload_initiate(
+    asset_read = asset_service.entity_asset_multipart_upload_initiate(
         repos=repos,
         s3_client=s3_client,
         entity_type=entity_type,
@@ -389,7 +389,7 @@ def initiate_entity_asset_upload(
 
 
 @router.post("/{entity_route}/{entity_id}/assets/{asset_id}/multipart-upload/complete")
-def complete_entity_asset_upload(
+def entity_asset_multipart_upload_complete(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
     user_context: UserContextWithProjectIdDep,
@@ -421,7 +421,7 @@ def complete_entity_asset_upload(
     """
     storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
 
-    return asset_service.entity_asset_upload_complete(
+    return asset_service.entity_asset_multipart_upload_complete(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
@@ -433,20 +433,20 @@ def complete_entity_asset_upload(
 
 
 @router.post("/{entity_route}/{entity_id}/assets/directory/multipart-upload/initiate")
-def initiate_multipart_entity_asset_directory_upload(
+def entity_asset_directory_multipart_upload_initiate(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
     user_context: UserContextWithProjectIdDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
-    json_model: MultipartDirectoryUpload,
-) -> MultipartDirectoryAssetAndPresignedURLS:
+    json_model: MultipartDirectoryUploadRequest,
+) -> MultipartDirectoryUploadResponse:
     """Initiate a multipart upload for directories."""
     storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
     s3_client = storage_client_factory(storage)
     entity_type = entity_route_to_type(entity_route)
 
-    return asset_service.initiate_multipart_entity_asset_directory_upload(
+    return asset_service.entity_asset_directory_multipart_upload_initiate(
         repos=repos,
         user_context=user_context,
         s3_client=s3_client,
@@ -458,7 +458,7 @@ def initiate_multipart_entity_asset_directory_upload(
 
 
 @router.post("/{entity_route}/{entity_id}/assets/{asset_id}/directory/multipart-upload/complete")
-def complete_multipart_entity_asset_directory_upload(
+def entity_asset_directory_multipart_upload_complete(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
     user_context: UserContextWithProjectIdDep,
@@ -468,7 +468,7 @@ def complete_multipart_entity_asset_directory_upload(
 ) -> AssetRead:
     storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
 
-    return asset_service.complete_multipart_entity_asset_directory_upload(
+    return asset_service.entity_asset_directory_multipart_upload_complete(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),

@@ -5,11 +5,13 @@ from fastapi import UploadFile
 
 from app.db.types import ContentType
 from app.logger import L
-from app.schemas.asset import InitiateUploadRequest, NestedInitiateUploadRequest
+from app.schemas.asset import MultipartDirectoryFileRequest, MultipartUploadInitiateRequest
 
 
 def get_content_type(
-    file: UploadFile | InitiateUploadRequest | NestedInitiateUploadRequest, *, verbose: bool = True
+    file: UploadFile | MultipartUploadInitiateRequest | MultipartDirectoryFileRequest,
+    *,
+    verbose: bool = True,
 ) -> ContentType:
     """Return the file content-type.
 

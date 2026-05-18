@@ -3,7 +3,9 @@ from unittest.mock import Mock
 import pytest
 
 import app.schemas.asset as test_module
-from app.db.types import ContentType, LabelRequirements
+from app.db.types import AssetLabel, ContentType, EntityType, LabelRequirements, StorageType
+from app.schemas.asset import AssetCreate
+from app.utils.uuid import create_uuid
 
 
 def test__raise_on_label_requirement():
@@ -65,6 +67,14 @@ def test__raise_on_label_requirement():
         asset,
         [LabelRequirements(content_type=ContentType.jpg, is_directory=False)],
     )
+
+    # suffix mismatch: content type matches requirement but suffix doesn't
+    asset = Mock(is_directory=False, content_type="image/jpeg", path="foo/bar/baz.png")
+    with pytest.raises(ValueError, match=r"Suffix for content-type .* does not match .png"):
+        test_module._raise_on_label_requirement(
+            asset,
+            [LabelRequirements(content_type=ContentType.jpg, is_directory=False)],
+        )
 
 
 @pytest.mark.parametrize(
@@ -130,3 +140,46 @@ def test_validate_path_component_str(input_path, expected):
 def test_validate_path_component_str_raises(input_path, expected_error):
     with pytest.raises(ValueError, match=expected_error):
         test_module.validate_path_component_str(input_path)
+
+
+def test_asset_create_directory_child_without_parent_id():
+    """directory_child label requires parent_id."""
+    agent_id = create_uuid()
+    with pytest.raises(ValueError, match="Directory child assets must have a parent_id"):
+        AssetCreate(
+            path="dir/file.bin",
+            full_path="vlab/proj/dir/file.bin",
+            is_directory=False,
+            content_type=ContentType.other,
+            size=100,
+            sha256_digest="a" * 64,
+            meta={},
+            label=AssetLabel.directory_child,
+            storage_type=StorageType.aws_s3_internal,
+            entity_type=EntityType.circuit,
+            parent_id=None,
+            created_by_id=agent_id,
+            updated_by_id=agent_id,
+        )
+
+
+def test_asset_create_directory_with_parent_id():
+    """Directory assets cannot have a parent_id."""
+    agent_id = create_uuid()
+    parent_id = create_uuid()
+    with pytest.raises(ValueError, match="Directories assets cannot have a parent_id"):
+        AssetCreate(
+            path="my-dir",
+            full_path="vlab/proj/my-dir",
+            is_directory=True,
+            content_type=ContentType.directory,
+            size=-1,
+            sha256_digest=None,
+            meta={},
+            label=AssetLabel.directory_child,
+            storage_type=StorageType.aws_s3_internal,
+            entity_type=EntityType.circuit,
+            parent_id=parent_id,
+            created_by_id=agent_id,
+            updated_by_id=agent_id,
+        )

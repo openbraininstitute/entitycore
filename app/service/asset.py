@@ -832,7 +832,7 @@ def complete_multipart_entity_asset_directory_upload(
             http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
     for child in asset_db.children:
-        if asset_db.status == AssetStatus.CREATED:
+        if child.status == AssetStatus.CREATED:
             L.debug("Child asset upload already completed, skipping completion for id {}", child.id)
             continue
         entity_asset_upload_complete(

@@ -416,6 +416,37 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
     }
 
 
+def test_upload_entity_asset_invalid_content_type(client, entity):
+    """Test upload with a file whose extension maps to an unsupported content type."""
+    response = _upload_entity_asset(
+        client,
+        entity_type=entity.type,
+        entity_id=entity.id,
+        label="morphology",
+        file_upload_name="data.xyz",
+        content_type="chemical/x-xyz",
+    )
+    assert response.status_code == 422
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_INVALID_CONTENT_TYPE
+    assert "Invalid content type" in error.message
+
+
+def test_upload_entity_asset_s3_failure(client, entity):
+    """Test upload when S3 upload fails."""
+    with patch("app.service.asset.upload_to_s3", return_value=False):
+        response = _upload_entity_asset(
+            client,
+            entity_type=entity.type,
+            entity_id=entity.id,
+            label="morphology",
+            file_upload_name="morph.asc",
+            content_type="application/asc",
+        )
+    assert response.status_code == 500
+    assert response.json()["details"] == "Failed to upload object"
+
+
 @pytest.fixture
 def s3_file(s3):
     storage_type = StorageType.aws_s3_open
@@ -1684,7 +1715,7 @@ def _extract_upload_id(url):
     return parse_qs(urlparse(url).query)["uploadId"][0]
 
 
-def test_multipart_directory_upload(db, client, root_circuit, s3, s3_internal_bucket):
+def test_multipart_directory_upload(client, root_circuit, s3, s3_internal_bucket):
     """Test initiating, uploading parts, and completing a multipart directory upload."""
     entity_type = route(root_circuit.type)
     entity_id = root_circuit.id
@@ -1922,6 +1953,69 @@ def test_complete_multipart_directory_upload_entity_not_found(client, root_circu
     )
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ENTITY_NOT_FOUND
+
+
+def test_complete_multipart_directory_upload_partial_already_completed(
+    db, client, root_circuit, s3, s3_internal_bucket
+):
+    """Test completing a directory upload when one child is already completed."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+    filesize = 3 * 5 * 1024**2
+
+    json_data = _multipart_directory_json_data(
+        directory_name="partial-dir",
+        files=[
+            {
+                "filename": "file1.bin",
+                "filesize": filesize,
+                "sha256_digest": "a" * 64,
+                "preferred_part_count": 3,
+            },
+            {
+                "filename": "file2.bin",
+                "filesize": filesize,
+                "sha256_digest": "b" * 64,
+                "preferred_part_count": 3,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+    file_assets = data["files"]
+
+    # Upload parts for both files
+    part_size = file_assets[0]["upload_meta"]["part_size"]
+    for file_asset in file_assets:
+        upload_id = db.get(Asset, file_asset["id"]).upload_meta["upload_id"]
+        for part in file_asset["upload_meta"]["parts"]:
+            s3.upload_part(
+                Bucket=s3_internal_bucket,
+                Key=file_asset["full_path"],
+                UploadId=upload_id,
+                PartNumber=part["part_number"],
+                Body=b"x" * part_size,
+            )
+
+    # Manually complete the first child via the single-file complete endpoint
+    assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{file_assets[0]['id']}/multipart-upload/complete",
+    )
+
+    # Now complete the directory — first child should be skipped
+    completed = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",
+    ).json()
+
+    assert completed["status"] == "created"
 
 
 def test_multipart_directory_upload_abort(db, client, circuit, s3, s3_internal_bucket):

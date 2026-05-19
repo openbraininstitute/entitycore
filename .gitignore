@@ -9,6 +9,7 @@ coverage.xml
 .vscode
 *.egg-info
 tmp
+temp/
 .DS_Store
 export.tar
 files.txt

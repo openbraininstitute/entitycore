@@ -7,7 +7,7 @@ from app.db.model import BrainAtlas, BrainAtlasRegion
 from app.db.types import EntityType, StorageType
 
 from . import utils
-from .utils import check_entity_read_many
+from .utils import MISSING_ID, assert_request, check_entity_read_many
 
 ROUTE = "/brain-atlas"
 ADMIN_ROUTE = "/admin/brain-atlas"
@@ -369,3 +369,32 @@ def test_authorization(client_user_1, client_user_2, client_no_project, json_dat
 
 def test_pagination(client, create_id):
     utils.check_pagination(ROUTE, client, create_id)
+
+
+@pytest.mark.usefixtures("model")
+def test_filtering(client, brain_region_hierarchy_id, species_id):
+    data = assert_request(
+        client.get, url=f"{ROUTE}", params={"hierarchy_id": brain_region_hierarchy_id}
+    ).json()
+    assert len(data["data"]) == 1
+
+    data = assert_request(
+        client.get, url=f"{ROUTE}", params={"species__name": "Test Species"}
+    ).json()
+    assert len(data["data"]) == 1
+
+    data = assert_request(client.get, url=f"{ROUTE}", params={"species__id": species_id}).json()
+    assert len(data["data"]) == 1
+
+    data = assert_request(client.get, url=f"{ROUTE}", params={"strain__id": MISSING_ID}).json()
+    assert len(data["data"]) == 0
+
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE}",
+        params={
+            "species__id": species_id,
+            "strain__id": MISSING_ID,
+        },
+    ).json()
+    assert len(data["data"]) == 0

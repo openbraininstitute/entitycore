@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from app.db.model import BrainAtlas, BrainAtlasRegion
@@ -15,6 +16,7 @@ class BrainAtlasFilter(
     ILikeSearchFilterMixin,
     CustomFilter,
 ):
+    hierarchy_id: uuid.UUID | None = None
     order_by: list[str] = ["name"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):
@@ -23,6 +25,10 @@ class BrainAtlasFilter(
 
 
 class BrainAtlasRegionFilter(EntityFilterMixin, CustomFilter):
+    is_leaf_region: bool | None = None
+    brain_atlas_id: uuid.UUID | None = None
+    brain_region_id: uuid.UUID | None = None
+
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

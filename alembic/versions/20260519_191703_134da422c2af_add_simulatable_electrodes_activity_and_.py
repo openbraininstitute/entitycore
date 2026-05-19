@@ -1,8 +1,8 @@
-"""Add create extracellular array activity and config types
+"""Add simulatable electrodes activity and config types
 
-Revision ID: 129ca3e7dc4e
-Revises: c8cdf20bbb0d
-Create Date: 2026-05-06 09:59:26.259018
+Revision ID: 134da422c2af
+Revises: b8ebf9a4e3da
+Create Date: 2026-05-19 19:17:03.622526
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "129ca3e7dc4e"
-down_revision: Union[str, None] = "c8cdf20bbb0d"
+revision: str = "134da422c2af"
+down_revision: Union[str, None] = "b8ebf9a4e3da"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -44,8 +44,8 @@ def upgrade() -> None:
             "aind_ephys_preprocessing__config",
             "aind_ephys_spikesorting__campaign",
             "aind_ephys_spikesorting__config",
-            "create_silico_extracellular_array__campaign",
-            "create_silico_extracellular_array__config",
+            "simulatable_extracellular_recording_array__campaign",
+            "simulatable_extracellular_recording_array__config",
         ],
         affected_columns=[
             TableReference(
@@ -74,8 +74,8 @@ def upgrade() -> None:
             "aind_ephys_preprocessing__execution",
             "aind_ephys_spikesorting__config_generation",
             "aind_ephys_spikesorting__execution",
-            "create_silico_extracellular_array__config_generation",
-            "create_silico_extracellular_array__execution",
+            "simulatable_extracellular_recording_array__config_generation",
+            "simulatable_extracellular_recording_array__execution",
         ],
         affected_columns=[
             TableReference(

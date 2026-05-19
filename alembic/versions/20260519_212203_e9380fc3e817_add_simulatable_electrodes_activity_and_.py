@@ -1,8 +1,8 @@
 """Add simulatable electrodes activity and config types
 
-Revision ID: 134da422c2af
+Revision ID: e9380fc3e817
 Revises: b8ebf9a4e3da
-Create Date: 2026-05-19 19:17:03.622526
+Create Date: 2026-05-19 21:22:03.693165
 
 """
 
@@ -16,7 +16,7 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "134da422c2af"
+revision: str = "e9380fc3e817"
 down_revision: Union[str, None] = "b8ebf9a4e3da"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -44,8 +44,8 @@ def upgrade() -> None:
             "aind_ephys_preprocessing__config",
             "aind_ephys_spikesorting__campaign",
             "aind_ephys_spikesorting__config",
-            "simulatable_extracellular_recording_array__campaign",
-            "simulatable_extracellular_recording_array__config",
+            "extracellular_recording_weights_calculation__campaign",
+            "extracellular_recording_weights_calculation__config",
         ],
         affected_columns=[
             TableReference(
@@ -74,8 +74,8 @@ def upgrade() -> None:
             "aind_ephys_preprocessing__execution",
             "aind_ephys_spikesorting__config_generation",
             "aind_ephys_spikesorting__execution",
-            "simulatable_extracellular_recording_array__config_generation",
-            "simulatable_extracellular_recording_array__execution",
+            "extracellular_recording_weights_calculation__config_generation",
+            "extracellular_recording_weights_calculation__execution",
         ],
         affected_columns=[
             TableReference(

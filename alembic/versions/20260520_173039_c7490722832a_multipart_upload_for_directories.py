@@ -1,8 +1,8 @@
 """Multipart upload for directories
 
 Revision ID: c7490722832a
-Revises: b8ebf9a4e3da
-Create Date: 2026-05-15 17:30:39.752334
+Revises: e9380fc3e817
+Create Date: 2026-05-20 17:30:39.752334
 
 """
 
@@ -18,7 +18,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "c7490722832a"
-down_revision: Union[str, None] = "b8ebf9a4e3da"
+down_revision: Union[str, None] = "e9380fc3e817"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

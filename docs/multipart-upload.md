@@ -109,7 +109,10 @@ POST /{entity_type}/{entity_id}/assets/{asset_id}/directory/multipart-upload/com
 - The `directory_name` must be a single path component (no nesting).
 - File paths within the directory are relative to the directory root and can be nested (e.g., `subdir/file.txt`).
 - Child assets use the label `directory_child` and are not returned in the entity's asset listing (only the parent directory is listed).
-- Content type restrictions are relaxed for directory children — if the content type cannot be determined from the extension, it falls back to `application/octet-stream`.
+- Content type restrictions are relaxed for directory children:
+    - if content_type is specified in the request, then it's preserved;
+    - if content_type isn't specified, then it's determined from the extension;
+    - if the resulting content_type isn't a valid `ContentType`, then it falls back to `application/octet-stream`.
 - Deleting the parent directory asset cascades to all children and aborts their multipart uploads.
 
 ### Cancellation

@@ -25,7 +25,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     # Purge assets in status DELETED
-    op.execute(text("""DELETE FROM asset WHERE status='DELETED'"""))
+    op.execute(text("DELETE FROM asset WHERE status='DELETED'"))
     # Add asset.parent_id
     op.add_column("asset", sa.Column("parent_id", sa.Uuid(), nullable=True))
     op.create_index(op.f("ix_asset_parent_id"), "asset", ["parent_id"], unique=False)

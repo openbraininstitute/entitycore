@@ -159,7 +159,7 @@ def create_entity_asset_unverified(  # noqa: PLR0913
 
     Args:
         repos: Repository group for database access.
-        user_context: User context for authorization and audit.
+        user_context: User context for authorization.
         entity: Entity object for full_path construction. The caller is responsible to verify
             that the user has the required write permissions to that entity.
         filename: Name of the file to be stored in the asset path.
@@ -239,7 +239,7 @@ def create_entity_asset(  # noqa: PLR0913
 
     Args:
         repos: Repository group for database access.
-        user_context: User context for authorization and audit.
+        user_context: User context for authorization.
         entity_type: Type of the entity the asset is associated with.
         entity_id: ID of the entity the asset is associated with.
         filename: Name of the file to be stored in the asset path.

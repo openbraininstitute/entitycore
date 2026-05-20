@@ -37,11 +37,12 @@ def delete_assets_from_storage(session: Session):
     to_delete: set[Asset] = session.info.pop(ASSETS_TO_DELETE_KEY, set())
     for asset in to_delete:
         if asset.is_directory:
-            # No need to delete a directory key from S3. However, if the files in a directory:
-            # - were uploaded with multipart-upload, they are registered in the database
-            #   and are going to be deleted automatically.
-            # - were uploaded directly with a presigned url, they aren't registered in the
-            #   database, so they aren't deleted yet.
+            # No need to delete the directory key from S3.
+            # However, the files in a directory:
+            # - are registered in the database and are going to be deleted automatically by
+            #   the event listener, if they were uploaded with multipart-upload;
+            # - aren't registered in the database and aren't deleted yet, if they were uploaded
+            #   directly using a simple a presigned url.
             #   See https://github.com/openbraininstitute/entitycore/issues/256.
             continue
         match asset.status:

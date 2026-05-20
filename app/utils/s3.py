@@ -337,7 +337,7 @@ def check_object(
     s3_key: str,
     is_directory: bool,
 ) -> dict:
-    """Check if an object exists in S3 and return its type."""
+    """Check if an object exists in S3 and return its type and size."""
     try:
         if is_directory:
             list_directory_with_details(
@@ -347,15 +347,17 @@ def check_object(
                 pagination_config={"MaxItems": 1, "PageSize": 1},
             )
             object_type = "directory"
+            size = None
         else:
-            s3_client.head_object(Bucket=bucket_name, Key=s3_key)
+            result = s3_client.head_object(Bucket=bucket_name, Key=s3_key)
             object_type = "file"
+            size = result.get("ContentLength")
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") in {"404", "403"}:
             # 404 = Not Found, 403 = Access Denied
             return {"exists": False}
         raise
-    return {"exists": True, "type": object_type}
+    return {"exists": True, "type": object_type, "size": size}
 
 
 def copy_file(

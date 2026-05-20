@@ -41,6 +41,7 @@ from app.utils.routers import entity_route_to_type
 from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
+    check_object,
     generate_presigned_url,
     list_directory_with_details,
     multipart_compute_upload_plan,
@@ -639,6 +640,127 @@ def entity_asset_multipart_upload_complete(
     return AssetRead.model_validate(asset_db)
 
 
+def entity_asset_empty_upload_initiate(
+    *,
+    repos: RepositoryGroup,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    s3_client: S3Client,
+) -> AssetReadWithUploadMeta:
+    """Initiate a multipart upload for an existing entity asset.
+
+    This function can be used to upload empty files, since it isn't possible with multipart upload.
+
+    The `upload_meta` in the db will contain:
+    `{"part_size": 0, "upload_id": "", "part_count": 0}`
+
+    The returned `upload_meta` will contain:
+    `{"part_size": 0, "parts": [{"part_number": 0, "url": "<presigned_url>"}]}`
+
+    In this way the client can process the presigned url in the same way as for multipart uploads.
+    """
+    with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
+        asset = repos.asset.get_entity_asset(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            asset_id=asset_id,
+        )
+
+    storage = storages[asset.storage_type]
+
+    upload_id = ""
+    asset.status = AssetStatus.UPLOADING
+    asset.upload_meta = UploadMeta(
+        upload_id=upload_id,
+        part_size=0,
+        part_count=0,
+    ).model_dump()
+    repos.db.flush()
+
+    url = generate_presigned_url(
+        s3_client=s3_client,
+        operation="put_object",
+        bucket_name=storage.bucket,
+        s3_key=asset.full_path,
+    )
+    if url is None:
+        raise ApiError(
+            message=f"Could not create presigned url for {asset.full_path}",
+            error_code=ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    parts = [ToUploadPart(part_number=0, url=url)]
+    base_asset_read = AssetRead.model_validate(asset)
+    upload_meta = UploadMetaRead(part_size=0, parts=parts)
+    return AssetReadWithUploadMeta.model_validate(
+        {**base_asset_read.model_dump(), "upload_meta": upload_meta.model_dump()}
+    )
+
+
+def entity_asset_empty_upload_complete(
+    *,
+    repos: RepositoryGroup,
+    user_context: UserContextWithProjectId,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    storage: StorageUnion,
+    s3_client: S3Client,
+) -> AssetRead:
+    """Complete a multipart upload for an existing entity asset."""
+    asset_db = get_writable_entity_db_asset(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+    upload_meta = UploadMeta.model_validate(asset_db.upload_meta) if asset_db.upload_meta else None
+
+    if asset_db.status != AssetStatus.UPLOADING or upload_meta is None:
+        raise ApiError(
+            message="Asset is not uploading. Operation cannot be performed.",
+            error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    # check that the file exists and is empty
+    try:
+        check_result = check_object(
+            s3_client,
+            bucket_name=storage.bucket,
+            s3_key=asset_db.full_path,
+            is_directory=False,
+        )
+    except Exception as e:
+        raise ApiError(
+            message="Failed to check object.",
+            error_code=ApiErrorCode.GENERIC_ERROR,
+            http_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+        ) from e
+
+    if check_result["exists"] is False:
+        raise ApiError(
+            message="Uploaded empty file not found.",
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+    if check_result["size"] != 0:
+        raise ApiError(
+            message=(
+                "Uploaded empty file does not match expected size. "
+                f"Expected: 0, Actual: {check_result['size']}"
+            ),
+            error_code=ApiErrorCode.ASSET_UPLOAD_INCONSISTENT_SIZE,
+            http_status_code=HTTPStatus.CONFLICT,
+        )
+
+    asset_db.status = AssetStatus.CREATED
+    repos.db.flush()
+    return AssetRead.model_validate(asset_db)
+
+
 def download_entity_asset(
     repos: RepositoryGroup,
     user_context: UserContext,
@@ -785,21 +907,31 @@ def entity_asset_directory_multipart_upload_initiate(
             status=AssetStatus.UPLOADING,
             parent_id=parent.id,
         )
-        # create presigned urls using the part count hint and filesize
-        # asset schemas is updated with the upload metadata
-        # Note: User already authorized when creating the asset
-        asset_read_with_upload_meta = entity_asset_multipart_upload_initiate(
-            repos=repos,
-            s3_client=s3_client,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            asset_id=asset_read.id,
-            bucket=storage.bucket,
-            s3_key=asset_read.full_path,
-            filesize=initiate_payload.filesize,
-            content_type=content_type,
-            preferred_part_count=initiate_payload.preferred_part_count,
-        )
+        if initiate_payload.filesize > 0:
+            # create presigned urls using the part count hint and filesize
+            # asset schemas is updated with the upload metadata
+            # Note: User already authorized when creating the asset
+            asset_read_with_upload_meta = entity_asset_multipart_upload_initiate(
+                repos=repos,
+                s3_client=s3_client,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                asset_id=asset_read.id,
+                bucket=storage.bucket,
+                s3_key=asset_read.full_path,
+                filesize=initiate_payload.filesize,
+                content_type=content_type,
+                preferred_part_count=initiate_payload.preferred_part_count,
+            )
+        else:
+            # create a simple presigned url for an empty file that cannot be uploaded with multipart
+            asset_read_with_upload_meta = entity_asset_empty_upload_initiate(
+                repos=repos,
+                s3_client=s3_client,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                asset_id=asset_read.id,
+            )
         asset_read_with_upload_meta_list.append(asset_read_with_upload_meta)
     return MultipartDirectoryUploadResponse(
         asset=parent,
@@ -835,16 +967,28 @@ def entity_asset_directory_multipart_upload_complete(
         if child.status == AssetStatus.CREATED:
             L.debug("Child asset upload already completed, skipping completion for id {}", child.id)
             continue
-        entity_asset_multipart_upload_complete(
-            repos=repos,
-            user_context=user_context,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            asset_id=child.id,
-            storage=storage,
-            s3_client=s3_client,
-        )
-        L.debug("Child asset upload completed for id {}", child.id)
+        if child.size > 0:
+            entity_asset_multipart_upload_complete(
+                repos=repos,
+                user_context=user_context,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                asset_id=child.id,
+                storage=storage,
+                s3_client=s3_client,
+            )
+            L.debug("Child asset upload completed for id {}", child.id)
+        else:
+            entity_asset_empty_upload_complete(
+                repos=repos,
+                user_context=user_context,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                asset_id=child.id,
+                storage=storage,
+                s3_client=s3_client,
+            )
+            L.debug("Empty child asset upload verified for id {}", child.id)
     asset_db.status = AssetStatus.CREATED
     repos.db.flush()
     return AssetRead.model_validate(asset_db)

@@ -2022,6 +2022,158 @@ def test_complete_multipart_directory_upload_partial_already_completed(
     assert completed["status"] == "created"
 
 
+def test_multipart_directory_upload_with_empty_files(client, root_circuit, s3, s3_internal_bucket):
+    """Test directory upload with a mix of regular and empty (zero-size) files."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+    filesize = 3 * 5 * 1024**2
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-with-empty",
+        files=[
+            {
+                "filename": "data/regular.bin",
+                "filesize": filesize,
+                "sha256_digest": "a" * 64,
+                "preferred_part_count": 3,
+            },
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": "b" * 64,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_asset = data["asset"]
+    file_assets = data["files"]
+    assert len(file_assets) == 2
+
+    # Regular file should have multipart upload metadata
+    regular_asset = file_assets[0]
+    assert regular_asset["upload_meta"]["part_size"] == 5 * 1024**2
+    assert len(regular_asset["upload_meta"]["parts"]) == 3
+
+    # Empty file should have put_object presigned URL with part_size=0 and part_number=0
+    empty_asset = file_assets[1]
+    assert empty_asset["upload_meta"]["part_size"] == 0
+    assert len(empty_asset["upload_meta"]["parts"]) == 1
+    assert empty_asset["upload_meta"]["parts"][0]["part_number"] == 0
+
+    initiated = MultipartDirectoryUploadResponse.model_validate(data)
+
+    # Upload parts for the regular file
+    regular = initiated.files[0]
+    assert regular.upload_meta
+    part_size = regular.upload_meta.part_size
+    for part in regular.upload_meta.parts:
+        upload_id = _extract_upload_id(part.url)
+        s3.upload_part(
+            Bucket=s3_internal_bucket,
+            Key=regular.full_path,
+            UploadId=upload_id,
+            PartNumber=part.part_number,
+            Body=b"x" * part_size,
+        )
+
+    # Upload the empty file using put_object
+    empty = initiated.files[1]
+    s3.put_object(Bucket=s3_internal_bucket, Key=empty.full_path, Body=b"")
+
+    # Complete the directory upload
+    completed = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_asset['id']}/directory/multipart-upload/complete",
+    ).json()
+
+    assert completed["status"] == "created"
+    assert completed["is_directory"] is True
+
+    # Verify the empty file exists in S3 with size 0
+    head = s3.head_object(Bucket=s3_internal_bucket, Key=empty.full_path)
+    assert head["ContentLength"] == 0
+
+
+def test_multipart_directory_upload_empty_file_not_uploaded(client, root_circuit):
+    """Test completing directory upload fails when empty file was not uploaded to S3."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-empty-missing",
+        files=[
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": "a" * 64,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+
+    # Do NOT upload the empty file — complete should fail
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",
+        expected_status_code=409,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCOMPLETE
+
+
+def test_multipart_directory_upload_empty_file_wrong_size(
+    client, root_circuit, s3, s3_internal_bucket
+):
+    """Test completing directory upload fails when file declared as empty has non-zero size."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-empty-wrong-size",
+        files=[
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": "a" * 64,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+    empty_asset = data["files"][0]
+
+    # Upload a non-empty file instead
+    s3.put_object(Bucket=s3_internal_bucket, Key=empty_asset["full_path"], Body=b"not empty")
+
+    # Complete should fail due to size mismatch
+    response = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",
+        expected_status_code=409,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_UPLOAD_INCONSISTENT_SIZE
+
+
 def test_multipart_directory_upload_abort(db, client, circuit, s3, s3_internal_bucket):
     """Test that deleting a directory asset aborts multipart uploads for children."""
     entity_type = route(circuit.type)

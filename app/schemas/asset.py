@@ -3,7 +3,15 @@ import uuid
 from pathlib import Path
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 from pydantic.networks import AnyUrl
 
 from app.config import settings, storages
@@ -67,6 +75,14 @@ def validate_path_component_str(s: str) -> str:
 
 PathComponentStr = Annotated[str, AfterValidator(validate_path_component_str)]
 RelativePathStr = Annotated[str, AfterValidator(validate_relative_path_str)]
+Sha256Digest = Annotated[
+    str,
+    Field(
+        description="SHA256 digest of the file content in hexadecimal format.",
+        pattern=r"^[a-fA-F0-9]{64}$",
+    ),
+    BeforeValidator(lambda x: x.hex() if isinstance(x, bytes) else x),  # convert bytes from db
+]
 
 
 class AssetBase(BaseModel):
@@ -86,14 +102,7 @@ class SizeAndDigestMixin(BaseModel):
     """Mixin with size and digest."""
 
     size: int
-    sha256_digest: str | None
-
-    @field_validator("sha256_digest", mode="before")
-    @classmethod
-    def convert_bytes_to_hex(cls, value: bytes | str | None) -> str | None:
-        if isinstance(value, bytes):
-            return value.hex()
-        return value  # fallback (str or None)
+    sha256_digest: Sha256Digest | None
 
 
 class AssetRead(AssetBase, SizeAndDigestMixin):
@@ -281,7 +290,7 @@ class MultipartUploadInitiateRequest(BaseModel):
             lt=settings.S3_MULTIPART_UPLOAD_MAX_SIZE,
         ),
     ]
-    sha256_digest: str
+    sha256_digest: Sha256Digest
     content_type: Annotated[
         ContentType | None,
         Field(
@@ -310,7 +319,7 @@ class MultipartDirectoryFileRequest(BaseModel):
             lt=settings.S3_MULTIPART_UPLOAD_MAX_SIZE,
         ),
     ]
-    sha256_digest: str | None = None
+    sha256_digest: Sha256Digest
     content_type: Annotated[
         ContentType | None,
         Field(

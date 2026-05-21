@@ -103,14 +103,14 @@ def constrain_to_accessible_entities[Q: Query | Select](
 ) -> Q:
     """Ensure a query is filtered to rows that are viewable by the user.
 
-    TODO: Consolidate with constrain_to_readable_entities and adapt read_many calls
+    TODO: Consolidate with constrain_to_readable_entities_by_project and adapt read_many calls
     """
     return query.where(
         is_public_or_in_projects(db_model_class, user_context.authorized_project_ids)
     )
 
 
-def constrain_to_readable_entities[Q: Query | Select](
+def constrain_to_readable_entities_by_project[Q: Query | Select](
     *,
     query: Q,
     project_id: UUID4 | None,

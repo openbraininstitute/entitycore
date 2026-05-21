@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import operators
 
 from app.db.auth import (
-    constrain_to_readable_entities,
+    constrain_to_readable_entities_by_project,
     constrain_to_writable_entities,
 )
 from app.db.model import Activity, Identifiable
@@ -69,7 +69,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        query = constrain_to_readable_entities(
+        query = constrain_to_readable_entities_by_project(
             query=query,
             project_id=user_context.project_id,
             db_model_class=id_model_class,
@@ -314,7 +314,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     if check_authorized_project and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        filter_query = constrain_to_readable_entities(
+        filter_query = constrain_to_readable_entities_by_project(
             query=filter_query,
             project_id=authorized_project_id,
             db_model_class=id_model_class,

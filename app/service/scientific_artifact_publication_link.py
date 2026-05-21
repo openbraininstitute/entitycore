@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.auth import (
-    constrain_to_readable_entities,
+    constrain_to_readable_entities_by_project,
 )
 from app.db.model import (
     Person,
@@ -146,7 +146,7 @@ def _read_many(
     )
 
     if check_authorized_project:
-        filter_query = lambda q: constrain_to_readable_entities(
+        filter_query = lambda q: constrain_to_readable_entities_by_project(
             query=base_join_query(q),
             project_id=user_context.project_id,
             db_model_class=scientific_artifact_alias,

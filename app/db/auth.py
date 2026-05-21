@@ -95,7 +95,7 @@ def constrain_to_writable_entities[Q: Query | Select](
     )
 
 
-def constrain_to_accessible_entities[Q: Query | Select](
+def constrain_to_readable_entities_by_context[Q: Query | Select](
     *,
     query: Q,
     user_context: UserContext,

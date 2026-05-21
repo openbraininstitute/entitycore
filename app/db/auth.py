@@ -39,7 +39,7 @@ def is_private(model: type[HasAuth]) -> SQLColumnExpression[bool]:
 
 
 def is_in_projects(model: type[HasAuth], project_ids: list[UUID4]) -> SQLColumnExpression[bool]:
-    return model.authorized_project_id.in_(project_ids)
+    return model.authorized_project_id.in_(project_ids) if project_ids else false()
 
 
 def is_public_or_in_projects(
@@ -48,14 +48,14 @@ def is_public_or_in_projects(
     return or_(is_public(model), is_in_projects(model, project_ids))
 
 
-def is_private_and_is_in_projects(
+def is_private_and_in_projects(
     model: type[HasAuth], project_ids: list[UUID4]
 ) -> SQLColumnExpression[bool]:
     return and_(is_private(model), is_in_projects(model, project_ids))
 
 
 def is_in_ids(model: type[HasId], ids: list[UUID4]) -> SQLColumnExpression[bool]:
-    return model.id.in_(ids)
+    return model.id.in_(ids) if ids else false()
 
 
 def is_writable_by_user(
@@ -67,7 +67,7 @@ def is_writable_by_user(
     if is_service_maintainer:
         return is_in_projects(model, project_ids)
 
-    return is_private_and_is_in_projects(model, project_ids)
+    return is_private_and_in_projects(model, project_ids)
 
 
 def constrain_to_writable_entities[Q: Query | Select](
@@ -130,7 +130,7 @@ def constrain_to_private_entities[Q: Query | Select](
     db_model_class: type[HasAuth] = Entity,
 ) -> Q:
     """Ensure a query is filtered to private rows that are viewable by the user."""
-    return query.where(is_private_and_is_in_projects(db_model_class, user_context.user_project_ids))
+    return query.where(is_private_and_in_projects(db_model_class, user_context.user_project_ids))
 
 
 def constrain_entity_query_to_project[Q: Query | Select | Delete](

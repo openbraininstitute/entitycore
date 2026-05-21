@@ -39,7 +39,7 @@ def upgrade() -> None:
             "id",
             sa.Uuid(),
             server_default=sa.text("gen_random_uuid()"),
-            nullable=True,
+            nullable=False,
         ),
     )
 
@@ -90,7 +90,6 @@ def upgrade() -> None:
     )
 
     # 5. Enforce NOT NULL now that all rows are populated.
-    op.alter_column("derivation", "id", existing_type=sa.Uuid(), nullable=False)
     op.alter_column("derivation", "created_by_id", existing_type=sa.Uuid(), nullable=False)
     op.alter_column("derivation", "updated_by_id", existing_type=sa.Uuid(), nullable=False)
 

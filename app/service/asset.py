@@ -1,18 +1,20 @@
 import uuid
 from http import HTTPStatus
 from pathlib import Path
+from typing import cast
 
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from pydantic.networks import AnyUrl
 from starlette.responses import RedirectResponse
 from types_boto3_s3 import S3Client
 
-from app.config import StorageUnion, storages
+from app.config import StorageUnion, settings, storages
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, StorageType
 from app.dependencies.common import PaginationQuery
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.filters.asset import AssetFilterDep
+from app.logger import L
 from app.queries import crud
 from app.queries.common import get_or_create_user_agent, router_read_many
 from app.queries.utils import is_user_authorized_for_deletion
@@ -23,19 +25,22 @@ from app.schemas.asset import (
     AssetRead,
     AssetReadWithUploadMeta,
     DetailedFileList,
-    DirectoryUpload,
+    DirectoryUploadRequest,
+    MultipartDirectoryUploadRequest,
+    MultipartDirectoryUploadResponse,
     ToUploadPart,
     UploadMeta,
     UploadMetaRead,
+    validate_relative_path,
 )
 from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.types import ListResponse
 from app.service import entity as entity_service
+from app.utils.files import calculate_sha256_digest, get_content_type
 from app.utils.routers import entity_route_to_type
 from app.utils.s3 import (
     StorageClientFactory,
     build_s3_path,
-    delete_from_s3,
     generate_presigned_url,
     list_directory_with_details,
     multipart_compute_upload_plan,
@@ -43,7 +48,9 @@ from app.utils.s3 import (
     multipart_upload_create_part_presigned_url,
     multipart_upload_initiate,
     multipart_upload_list_parts,
-    sanitize_directory_traversal,
+    upload_to_s3,
+    validate_filename,
+    validate_filesize,
 )
 
 
@@ -66,7 +73,7 @@ def get_entity_assets(
     )
     apply_filter_query_operations = lambda q: q.join(Entity, Entity.id == Asset.entity_id).where(
         Asset.entity_id == entity_id,
-        Asset.status != AssetStatus.DELETED,
+        Asset.parent_id.is_(None),
         Entity.type == entity_type.name,
     )
     name_to_facet_query_params = filter_joins = None
@@ -131,12 +138,11 @@ def get_writable_entity_db_asset(
     return asset
 
 
-def create_entity_asset(  # noqa: PLR0913
+def create_entity_asset_unverified(  # noqa: PLR0913
     repos: RepositoryGroup,
     *,
+    entity: Entity,
     user_context: UserContextWithProjectId,
-    entity_type: EntityType,
-    entity_id: uuid.UUID,
     filename: str,
     content_type: ContentType,
     size: int,
@@ -147,19 +153,33 @@ def create_entity_asset(  # noqa: PLR0913
     storage_type: StorageType,
     full_path: str | None = None,
     status: AssetStatus = AssetStatus.CREATED,
+    parent_id: uuid.UUID | None = None,
 ) -> AssetRead:
-    """Create an asset for an entity."""
-    entity = entity_service.get_writable_entity(
-        repos,
-        user_context=user_context,
-        entity_type=entity_type,
-        entity_id=entity_id,
-    )
+    """Create an asset for the specified entity object, that is assumed to be writable.
+
+    Args:
+        repos: Repository group for database access.
+        user_context: User context for authorization.
+        entity: Entity object for full_path construction. The caller is responsible to verify
+            that the user has the required write permissions to that entity.
+        filename: Name of the file to be stored in the asset path.
+        content_type: Content type of the asset.
+        size: Size of the asset in bytes.
+        sha256_digest: Optional sha256 digest of the asset content.
+        meta: Optional metadata dictionary to store additional information about the asset.
+        label: Label for categorizing the asset.
+        is_directory: Whether the asset represents a directory (True) or a file (False).
+        storage_type: The storage type where the asset will be stored.
+        full_path: Optional full path for the asset in storage. If not provided, it will be
+            automatically constructed based on conventions.
+        status: Initial status of the asset. Defaults to CREATED.
+        parent_id: Optional ID of the parent asset if this asset is a sub-path of a directory asset.
+    """
     full_path = full_path or build_s3_path(
         vlab_id=user_context.virtual_lab_id,
         proj_id=user_context.project_id,
-        entity_type=entity_type,
-        entity_id=entity_id,
+        entity_type=entity.type,
+        entity_id=entity.id,
         filename=filename,
         is_public=entity.authorized_public,
     )
@@ -178,8 +198,9 @@ def create_entity_asset(  # noqa: PLR0913
             sha256_digest=sha256_digest,
             meta=meta or {},
             label=label,
-            entity_type=entity_type,
+            entity_type=entity.type,
             storage_type=storage_type,
+            parent_id=parent_id,
             created_by_id=db_agent.id,
             updated_by_id=db_agent.id,
         )
@@ -189,11 +210,145 @@ def create_entity_asset(  # noqa: PLR0913
         error_code=ApiErrorCode.ASSET_DUPLICATED,
     ):
         asset_db = repos.asset.create_entity_asset(
-            entity_id=entity_id,
+            entity_id=entity.id,
             asset=asset_create,
             status=status,
         )
     return AssetRead.model_validate(asset_db)
+
+
+def create_entity_asset(  # noqa: PLR0913
+    repos: RepositoryGroup,
+    *,
+    user_context: UserContextWithProjectId,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    filename: str,
+    content_type: ContentType,
+    size: int,
+    sha256_digest: str | None,
+    meta: dict | None,
+    label: AssetLabel,
+    is_directory: bool,
+    storage_type: StorageType,
+    full_path: str | None = None,
+    status: AssetStatus = AssetStatus.CREATED,
+    parent_id: uuid.UUID | None = None,
+) -> AssetRead:
+    """Create an asset for the specified entity id and type.
+
+    Args:
+        repos: Repository group for database access.
+        user_context: User context for authorization.
+        entity_type: Type of the entity the asset is associated with.
+        entity_id: ID of the entity the asset is associated with.
+        filename: Name of the file to be stored in the asset path.
+        content_type: Content type of the asset.
+        size: Size of the asset in bytes.
+        sha256_digest: Optional sha256 digest of the asset content.
+        meta: Optional metadata dictionary to store additional information about the asset.
+        label: Label for categorizing the asset.
+        is_directory: Whether the asset represents a directory (True) or a file (False).
+        storage_type: The storage type where the asset will be stored.
+        full_path: Optional full path for the asset in storage. If not provided, it will be
+            automatically constructed based on conventions.
+        status: Initial status of the asset. Defaults to CREATED.
+        parent_id: Optional ID of the parent asset if this asset is a sub-path of a directory asset.
+    """
+    entity = entity_service.get_writable_entity(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    return create_entity_asset_unverified(
+        repos,
+        entity=entity,
+        user_context=user_context,
+        filename=filename,
+        content_type=content_type,
+        size=size,
+        sha256_digest=sha256_digest,
+        meta=meta,
+        label=label,
+        is_directory=is_directory,
+        storage_type=storage_type,
+        full_path=full_path,
+        status=status,
+        parent_id=parent_id,
+    )
+
+
+def validate_uploadfile_for_small_entity_post(file: UploadFile) -> ContentType:
+    """Validate size/name/content type for small file uploads."""
+    if file.size and not validate_filesize(file.size):
+        msg = f"File not allowed because bigger than {settings.API_ASSET_POST_MAX_SIZE}"
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_FILE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    if not file.filename or not validate_filename(file.filename):
+        msg = f"Invalid file name {file.filename!r}"
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_PATH,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    try:
+        return get_content_type(file)
+    except ValueError as e:
+        msg = (
+            f"Invalid content type for file {file.filename}. "
+            f"Supported content types: {sorted(c.value for c in ContentType)}.\n"
+            f"Exception: {e}"
+        )
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        ) from None
+
+
+def upload_entity_asset(
+    repos: RepositoryGroup,
+    *,
+    user_context: UserContextWithProjectId,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    storage_client_factory: StorageClientFactory,
+    file: UploadFile,
+    label: AssetLabel,
+    meta: dict | None = None,
+) -> AssetRead:
+    """Upload a small file asset for standard project-authorized users."""
+    storage = storages[StorageType.aws_s3_internal]
+    s3_client = storage_client_factory(storage)
+    content_type = validate_uploadfile_for_small_entity_post(file)
+    sha256_digest = calculate_sha256_digest(file)
+    asset_read = create_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        filename=cast("str", file.filename),
+        content_type=content_type,
+        size=file.size or 0,
+        sha256_digest=sha256_digest,
+        meta=meta,
+        label=label,
+        is_directory=False,
+        storage_type=storage.type,
+    )
+    if not upload_to_s3(
+        s3_client,
+        file_obj=file.file,
+        bucket_name=storage.bucket,
+        s3_key=asset_read.full_path,
+    ):
+        raise HTTPException(status_code=500, detail="Failed to upload object")
+    return asset_read
 
 
 def delete_entity_asset(
@@ -203,7 +358,7 @@ def delete_entity_asset(
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
 ) -> AssetRead:
-    """Delete or mark an entity asset as deleted."""
+    """Delete an asset from the db."""
     entity = crud.get_identifiable_one(
         db=repos.db,
         db_model_class=Entity,
@@ -218,17 +373,23 @@ def delete_entity_asset(
         )
 
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
-        asset = delete_asset(repos, entity_type, entity_id, asset_id)
+        asset = delete_asset_unverified(repos, entity_type, entity_id, asset_id)
     return AssetRead.model_validate(asset)
 
 
-def delete_asset(
+def delete_asset_unverified(
     repos: RepositoryGroup,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
 ) -> AssetRead:
-    """Delete asset and associated s3 file."""
+    """Delete an asset from the db withouth checking authorization.
+
+    In case of directory asset with children registered in the db, they are deleted on cascade.
+    Asset storage object is deleted via `app.db.events`.
+    """
+    # TODO: Only directories registered with multipart upload have the children in the db, but
+    # all cases should be handled. See https://github.com/openbraininstitute/entitycore/issues/256
     with ensure_result(f"Asset {asset_id} not found", error_code=ApiErrorCode.ASSET_NOT_FOUND):
         asset = repos.asset.delete_entity_asset(
             entity_type=entity_type,
@@ -238,41 +399,15 @@ def delete_asset(
     return AssetRead.model_validate(asset)
 
 
-def delete_asset_storage_object(asset: AssetRead, storage_client_factory: StorageClientFactory):
-    """Delete asset storage object."""
-    # TODO: Handle directories. See https://github.com/openbraininstitute/entitycore/issues/256
-    storage = storages[asset.storage_type]
-    # delete the file from S3 only if not using an open data storage
-    if not storage.is_open:
-        s3_client = storage_client_factory(storage)
-        if not delete_from_s3(s3_client, bucket_name=storage.bucket, s3_key=asset.full_path):
-            raise HTTPException(status_code=500, detail="Failed to delete object")
-
-
-def entity_asset_upload_directory(
+def entity_asset_directory_upload(
     repos: RepositoryGroup,
     user_context: UserContextWithProjectId,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     s3_client: S3Client,
     storage: StorageUnion,
-    files: DirectoryUpload,
+    files: DirectoryUploadRequest,
 ) -> tuple[AssetRead, dict[Path, AnyUrl]]:
-    if not files.files:
-        raise ApiError(
-            message="`files` is empty",
-            error_code=ApiErrorCode.ASSET_MISSING_PATH,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    paths = [sanitize_directory_traversal(f) for f in files.files]
-
-    if len(set(paths)) != len(paths):
-        raise ApiError(
-            message="Duplicate file paths",
-            error_code=ApiErrorCode.ASSET_INVALID_PATH,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-
     entity = entity_service.get_writable_entity(
         repos,
         user_context=user_context,
@@ -280,53 +415,28 @@ def entity_asset_upload_directory(
         entity_id=entity_id,
     )
 
-    full_path = build_s3_path(
-        vlab_id=user_context.virtual_lab_id,
-        proj_id=user_context.project_id,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        filename=files.directory_name,
-        is_public=entity.authorized_public,
+    asset_read = create_entity_asset_unverified(
+        repos,
+        entity=entity,
+        user_context=user_context,
+        filename=str(files.directory_name),
+        content_type=ContentType.directory,
+        size=-1,
+        sha256_digest=None,
+        meta=files.meta,
+        label=files.label,
+        is_directory=True,
+        storage_type=storage.type,
     )
 
-    db_agent = get_or_create_user_agent(repos.db, user_profile=user_context.profile)
-
-    with ensure_valid_schema(
-        "Asset schema is invalid", error_code=ApiErrorCode.ASSET_INVALID_SCHEMA
-    ):
-        asset_create = AssetCreate(
-            path=str(files.directory_name),
-            full_path=full_path,
-            is_directory=True,
-            content_type=ContentType.directory,
-            size=-1,
-            sha256_digest=None,
-            meta=files.meta or {},
-            label=files.label,
-            entity_type=entity_type,
-            storage_type=storage.type,
-            created_by_id=db_agent.id,
-            updated_by_id=db_agent.id,
-        )
-
-    with ensure_uniqueness(
-        f"Asset with path {asset_create.path!r} and "
-        f"full_path {asset_create.full_path!r} already exists",
-        error_code=ApiErrorCode.ASSET_DUPLICATED,
-    ):
-        asset_db = repos.asset.create_entity_asset(
-            entity_id=entity_id,
-            asset=asset_create,
-        )
-
     urls: dict[Path, AnyUrl] = {}
-    for f in paths:
+    for path in [Path(f) for f in files.files]:
         full_path = build_s3_path(
             vlab_id=user_context.virtual_lab_id,
             proj_id=user_context.project_id,
             entity_type=entity_type,
             entity_id=entity_id,
-            filename=files.directory_name / f,
+            filename=files.directory_name / path,
             is_public=entity.authorized_public,
         )
         url = generate_presigned_url(
@@ -337,14 +447,14 @@ def entity_asset_upload_directory(
         )
         if url is None:
             raise ApiError(
-                message=f"Could not create presigned url for {f}",
+                message=f"Could not create presigned url for {path}",
                 error_code=ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL,
                 http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             )
 
-        urls[f] = AnyUrl(url)
+        urls[path] = AnyUrl(url)
 
-    return AssetRead.model_validate(asset_db), urls
+    return asset_read, urls
 
 
 def list_directory(
@@ -381,7 +491,7 @@ def list_directory(
     return DetailedFileList.model_validate({"files": ret})
 
 
-def entity_asset_upload_initiate(
+def entity_asset_multipart_upload_initiate(
     *,
     repos: RepositoryGroup,
     entity_type: EntityType,
@@ -454,7 +564,7 @@ def entity_asset_upload_initiate(
     )
 
 
-def entity_asset_upload_complete(
+def entity_asset_multipart_upload_complete(
     *,
     repos: RepositoryGroup,
     user_context: UserContextWithProjectId,
@@ -464,16 +574,7 @@ def entity_asset_upload_complete(
     storage: StorageUnion,
     s3_client: S3Client,
 ) -> AssetRead:
-    """Initiate a multipart file upload for an existing entity asset.
-
-    This function prepares and starts a multipart upload to S3 for the specified
-    asset and returns the asset metadata along with upload details (e.g., upload ID,
-    part size configuration).
-
-    It is intended to be called immediately after the asset record has been
-    created in the router. Because of that, it does not perform any additional
-    existence or permission checks.
-    """
+    """Complete a multipart upload for an existing entity asset."""
     asset_db = get_writable_entity_db_asset(
         repos,
         user_context=user_context,
@@ -518,7 +619,7 @@ def entity_asset_upload_complete(
     if upload_size != upload_expected_size:
         raise ApiError(
             message=(
-                "Total from multipart upload parts sizes does not match expected size."
+                "Total from multipart upload parts sizes does not match expected size. "
                 f"Expected: {upload_expected_size}, Actual: {upload_size}"
             ),
             error_code=ApiErrorCode.ASSET_UPLOAD_INCONSISTENT_SIZE,
@@ -600,7 +701,7 @@ def create_asset_download_redirect(
                 error_code=ApiErrorCode.ASSET_MISSING_PATH,
                 http_status_code=HTTPStatus.CONFLICT,
             )
-        full_path = str(Path(asset.full_path, sanitize_directory_traversal(asset_path)))
+        full_path = str(asset.full_path / validate_relative_path(Path(asset_path)))
     else:
         if asset_path:
             msg = "asset_path is only applicable when asset is a directory"
@@ -609,7 +710,7 @@ def create_asset_download_redirect(
                 error_code=ApiErrorCode.ASSET_NOT_A_DIRECTORY,
                 http_status_code=HTTPStatus.CONFLICT,
             )
-        full_path = asset.full_path
+        full_path = str(asset.full_path)
 
     storage = storages[asset.storage_type]
     s3_client = storage_client_factory(storage)
@@ -623,3 +724,127 @@ def create_asset_download_redirect(
     if not url:
         raise HTTPException(status_code=500, detail="Failed to generate presigned url")
     return RedirectResponse(url=url)
+
+
+def entity_asset_directory_multipart_upload_initiate(
+    *,
+    repos: RepositoryGroup,
+    user_context: UserContextWithProjectId,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    s3_client: S3Client,
+    storage: StorageUnion,
+    json_model: MultipartDirectoryUploadRequest,
+) -> MultipartDirectoryUploadResponse:
+    """Initiate a multipart upload for each file in a directory asset.
+
+    Return presigned urls for all parts.
+    """
+    entity = entity_service.get_writable_entity(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    # create asset to fail early if full path already in progress or registered
+    parent = create_entity_asset_unverified(
+        repos=repos,
+        entity=entity,
+        user_context=user_context,
+        filename=json_model.directory_name,
+        content_type=ContentType.directory,
+        size=-1,  # no size
+        sha256_digest=None,
+        meta=json_model.meta,
+        label=json_model.label,
+        is_directory=True,
+        storage_type=storage.type,
+        status=AssetStatus.UPLOADING,
+        parent_id=None,
+    )
+    asset_read_with_upload_meta_list: list[AssetReadWithUploadMeta] = []
+    for initiate_payload in json_model.files:
+        try:
+            content_type = get_content_type(initiate_payload, verbose=False)
+        except ValueError:
+            # fallback to generic content-type, as there aren't restrictions for directory content
+            content_type = ContentType.other
+        # create the asset entry in the db for each file
+        asset_read = create_entity_asset_unverified(
+            repos=repos,
+            user_context=user_context,
+            entity=entity,
+            filename=str(Path(json_model.directory_name, initiate_payload.filename)),
+            content_type=content_type,
+            size=initiate_payload.filesize,
+            sha256_digest=initiate_payload.sha256_digest,
+            meta=None,
+            label=initiate_payload.label,  # same as json_model.label
+            is_directory=False,
+            storage_type=storage.type,
+            status=AssetStatus.UPLOADING,
+            parent_id=parent.id,
+        )
+        # create presigned urls using the part count hint and filesize
+        # asset schemas is updated with the upload metadata
+        # Note: User already authorized when creating the asset
+        asset_read_with_upload_meta = entity_asset_multipart_upload_initiate(
+            repos=repos,
+            s3_client=s3_client,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            asset_id=asset_read.id,
+            bucket=storage.bucket,
+            s3_key=asset_read.full_path,
+            filesize=initiate_payload.filesize,
+            content_type=content_type,
+            preferred_part_count=initiate_payload.preferred_part_count,
+        )
+        asset_read_with_upload_meta_list.append(asset_read_with_upload_meta)
+    return MultipartDirectoryUploadResponse(
+        asset=parent,
+        files=asset_read_with_upload_meta_list,
+    )
+
+
+def entity_asset_directory_multipart_upload_complete(
+    *,
+    repos: RepositoryGroup,
+    user_context: UserContextWithProjectId,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    storage: StorageUnion,
+    s3_client: S3Client,
+) -> AssetRead:
+    """Complete a multipart upload for an existing directory asset."""
+    asset_db = get_writable_entity_db_asset(
+        repos,
+        user_context=user_context,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        asset_id=asset_id,
+    )
+    if asset_db.status != AssetStatus.UPLOADING:
+        raise ApiError(
+            message="Directory asset is not uploading. Operation cannot be performed.",
+            error_code=ApiErrorCode.ASSET_NOT_UPLOADING,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+    for child in asset_db.children:
+        if child.status == AssetStatus.CREATED:
+            L.debug("Child asset upload already completed, skipping completion for id {}", child.id)
+            continue
+        entity_asset_multipart_upload_complete(
+            repos=repos,
+            user_context=user_context,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            asset_id=child.id,
+            storage=storage,
+            s3_client=s3_client,
+        )
+        L.debug("Child asset upload completed for id {}", child.id)
+    asset_db.status = AssetStatus.CREATED
+    repos.db.flush()
+    return AssetRead.model_validate(asset_db)

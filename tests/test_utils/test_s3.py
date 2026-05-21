@@ -1,6 +1,5 @@
 import io
 import math
-from pathlib import Path
 from unittest.mock import Mock
 
 import botocore.exceptions
@@ -59,34 +58,6 @@ def test_build_s3_path_public():
     assert result == (
         f"public/{VIRTUAL_LAB_ID}/{PROJECT_ID}/assets/cell_morphology/{entity_id}/a/b/c.txt"
     )
-
-
-def test_sanitize_directory_traversal():
-    safe_paths = [
-        ("foo.txt", "foo.txt"),
-        ("sub/foo.txt", "sub/foo.txt"),
-        ("deep/nested/folder/foo.txt", "deep/nested/folder/foo.txt"),
-        ("./current_dir_file.txt", "current_dir_file.txt"),
-        ("folder/../folder/file.txt", "folder/file.txt"),
-    ]
-    for p0, p1 in safe_paths:
-        assert test_module.sanitize_directory_traversal(p0) == Path(p1)
-
-    attack_paths = [
-        ("../etc/passwd", "etc/passwd"),
-        ("../../etc/passwd", "etc/passwd"),
-        ("../../../etc/passwd", "etc/passwd"),
-        ("../../../../../../../../etc/passwd", "etc/passwd"),
-        ("./../../../etc/passwd", "etc/passwd"),
-        ("folder/../../../../../../etc/passwd", "etc/passwd"),
-        ("../", ""),
-        ("/var/www/files/../../../etc/passwd", "etc/passwd"),
-        (".../.../etc/passwd", ".../.../etc/passwd"),  # Triple dots
-        # ("..%2F..%2Fetc%2Fpasswd",  # URL encoded
-        # ("..%252F..%252Fetc%252Fpasswd",  # Double URL encoded
-    ]
-    for p0, p1 in attack_paths:
-        assert test_module.sanitize_directory_traversal(p0) == Path(p1), f"`{p0}` failed"
 
 
 @pytest.mark.parametrize(

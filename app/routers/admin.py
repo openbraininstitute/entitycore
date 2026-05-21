@@ -77,7 +77,7 @@ def delete_entity_asset(
     The asset record is not deleted from the database, but its status is changed.
     The file is actually deleted from S3, unless it's stored in open data storage.
     """
-    asset = asset_service.delete_asset(
+    asset = asset_service.delete_asset_unverified(
         repos,
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,

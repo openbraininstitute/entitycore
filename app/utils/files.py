@@ -5,10 +5,14 @@ from fastapi import UploadFile
 
 from app.db.types import ContentType
 from app.logger import L
-from app.schemas.asset import InitiateUploadRequest
+from app.schemas.asset import MultipartDirectoryFileRequest, MultipartUploadInitiateRequest
 
 
-def get_content_type(file: UploadFile | InitiateUploadRequest) -> ContentType:
+def get_content_type(
+    file: UploadFile | MultipartUploadInitiateRequest | MultipartDirectoryFileRequest,
+    *,
+    verbose: bool = True,
+) -> ContentType:
     """Return the file content-type.
 
     In case of discrepancy with the original content-type, the discrepancy is just logged.
@@ -22,7 +26,7 @@ def get_content_type(file: UploadFile | InitiateUploadRequest) -> ContentType:
     (guessed_content_type, _content_encoding) = mimetypes.guess_type(
         file.filename or "", strict=False
     )
-    if original_content_type != guessed_content_type:
+    if verbose and original_content_type != guessed_content_type:
         L.info(
             "File content type mismatch for {}: original={}, guessed={}",
             file.filename,

@@ -22,18 +22,18 @@ from app.schemas.asset import (
     AssetReadWithUploadMeta,
     AssetRegister,
     DetailedFileList,
-    DirectoryUpload,
-    InitiateUploadRequest,
+    DirectoryUploadRequest,
+    MultipartDirectoryUploadRequest,
+    MultipartDirectoryUploadResponse,
+    MultipartUploadInitiateRequest,
 )
 from app.schemas.types import ListResponse
 from app.service import asset as asset_service
-from app.utils.files import calculate_sha256_digest, get_content_type
+from app.utils.files import get_content_type
 from app.utils.routers import entity_route_to_type
 from app.utils.s3 import (
     check_object,
-    upload_to_s3,
     validate_filename,
-    validate_filesize,
     validate_multipart_filesize,
 )
 
@@ -109,60 +109,16 @@ def upload_entity_asset(
 
     To be used only for small files.
     """
-    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
-    s3_client = storage_client_factory(storage)
-    if file.size and not validate_filesize(file.size):
-        msg = f"File not allowed because bigger than {settings.API_ASSET_POST_MAX_SIZE}"
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_INVALID_FILE,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    if not file.filename or not validate_filename(file.filename):
-        msg = f"Invalid file name {file.filename!r}"
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_INVALID_PATH,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-
-    try:
-        content_type = get_content_type(file)
-    except ValueError as e:
-        msg = (
-            f"Invalid content type for file {file.filename}. "
-            f"Supported content types: {sorted(c.value for c in ContentType)}.\n"
-            f"Exception: {e}"
-        )
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        ) from None
-
-    sha256_digest = calculate_sha256_digest(file)
-    asset_read = asset_service.create_entity_asset(
+    return asset_service.upload_entity_asset(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
-        filename=file.filename,
-        content_type=content_type,
-        size=file.size or 0,
-        sha256_digest=sha256_digest,
-        meta=meta,
+        storage_client_factory=storage_client_factory,
+        file=file,
         label=label,
-        is_directory=False,
-        storage_type=storage.type,
+        meta=meta,
     )
-    if not upload_to_s3(
-        s3_client,
-        file_obj=file.file,
-        bucket_name=storage.bucket,
-        s3_key=asset_read.full_path,
-    ):
-        raise HTTPException(status_code=500, detail="Failed to upload object")
-    return asset_read
 
 
 @router.post("/{entity_route}/{entity_id}/assets/register", status_code=status.HTTP_201_CREATED)
@@ -293,19 +249,12 @@ def entity_asset_directory_upload(
     storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
-    files: DirectoryUpload,
+    files: DirectoryUploadRequest,
 ) -> AssetAndPresignedURLS:
     """Given a list of full paths, return a dictionary of presigned URLS for uploading."""
     storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
     s3_client = storage_client_factory(storage)
-    if not files.directory_name or not validate_filename(str(files.directory_name)):
-        msg = f"Invalid directory_name {files.directory_name!r}"
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_INVALID_PATH,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-    model, urls = asset_service.entity_asset_upload_directory(
+    model, urls = asset_service.entity_asset_directory_upload(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
@@ -339,13 +288,13 @@ def entity_asset_directory_list(
 
 
 @router.post("/{entity_route}/{entity_id}/assets/multipart-upload/initiate")
-def initiate_entity_asset_upload(
+def entity_asset_multipart_upload_initiate(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
     user_context: UserContextWithProjectIdDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
-    json_model: InitiateUploadRequest,
+    json_model: MultipartUploadInitiateRequest,
 ) -> AssetReadWithUploadMeta:
     """Start a multipart upload for a file asset associated with an entity.
 
@@ -423,7 +372,7 @@ def initiate_entity_asset_upload(
     # create presigned urls using the part count hint and filesize
     # asset schemas is updated with the upload metadata
     # Note: User already authorized when creating the asset
-    asset_read = asset_service.entity_asset_upload_initiate(
+    asset_read = asset_service.entity_asset_multipart_upload_initiate(
         repos=repos,
         s3_client=s3_client,
         entity_type=entity_type,
@@ -440,7 +389,7 @@ def initiate_entity_asset_upload(
 
 
 @router.post("/{entity_route}/{entity_id}/assets/{asset_id}/multipart-upload/complete")
-def complete_entity_asset_upload(
+def entity_asset_multipart_upload_complete(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
     user_context: UserContextWithProjectIdDep,
@@ -472,7 +421,54 @@ def complete_entity_asset_upload(
     """
     storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
 
-    return asset_service.entity_asset_upload_complete(
+    return asset_service.entity_asset_multipart_upload_complete(
+        repos=repos,
+        user_context=user_context,
+        entity_type=entity_route_to_type(entity_route),
+        entity_id=entity_id,
+        asset_id=asset_id,
+        storage=storage,
+        s3_client=storage_client_factory(storage),
+    )
+
+
+@router.post("/{entity_route}/{entity_id}/assets/directory/multipart-upload/initiate")
+def entity_asset_directory_multipart_upload_initiate(
+    repos: RepoGroupDep,
+    storage_client_factory: StorageClientFactoryDep,
+    user_context: UserContextWithProjectIdDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    json_model: MultipartDirectoryUploadRequest,
+) -> MultipartDirectoryUploadResponse:
+    """Initiate a multipart upload for directories."""
+    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+    s3_client = storage_client_factory(storage)
+    entity_type = entity_route_to_type(entity_route)
+
+    return asset_service.entity_asset_directory_multipart_upload_initiate(
+        repos=repos,
+        user_context=user_context,
+        s3_client=s3_client,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        storage=storage,
+        json_model=json_model,
+    )
+
+
+@router.post("/{entity_route}/{entity_id}/assets/{asset_id}/directory/multipart-upload/complete")
+def entity_asset_directory_multipart_upload_complete(
+    repos: RepoGroupDep,
+    storage_client_factory: StorageClientFactoryDep,
+    user_context: UserContextWithProjectIdDep,
+    entity_route: EntityRoute,
+    entity_id: uuid.UUID,
+    asset_id: uuid.UUID,
+) -> AssetRead:
+    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
+
+    return asset_service.entity_asset_directory_multipart_upload_complete(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),

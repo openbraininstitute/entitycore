@@ -38,6 +38,8 @@ EMPTY_FILE_PATH = TEST_DATA_DIR / "empty.txt"
 EMPTY_FILE_DIGEST = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 EMPTY_FILE_SIZE = 0
 
+DUMMY_DIGEST = "a" * 64
+
 
 def _get_expected_full_path(entity, path):
     return build_s3_path(
@@ -143,7 +145,7 @@ def uploading_asset(client, entity) -> AssetRead:
         json={
             "filename": "foo.swc",
             "filesize": 3 * 5 * 1024**2,
-            "sha256_digest": "e3b7c1f0a9d4b8e6f2c0a5d9e1b4c8f6a0d3e7b2c9f4a6d8e5b1c0f9a2",
+            "sha256_digest": DUMMY_DIGEST,
             "preferred_part_count": 3,
             "label": "morphology",
             "content_type": "application/swc",
@@ -1242,7 +1244,7 @@ def _multipart_json_data(
     return {
         "filename": filename,
         "filesize": filesize,
-        "sha256_digest": "e3b7c1f0a9d4b8e6f2c0a5d9e1b4c8f6a0d3e7b2c9f4a6d8e5b1c0f9a2",
+        "sha256_digest": DUMMY_DIGEST,
         "preferred_part_count": 3,
         "label": "morphology",
         "content_type": content_type,
@@ -1696,13 +1698,13 @@ def _multipart_directory_json_data(
             {
                 "filename": "morphology/cell1.swc",
                 "filesize": 3 * 5 * 1024**2,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
                 "preferred_part_count": 3,
             },
             {
                 "filename": "morphology/cell2.swc",
                 "filesize": 3 * 5 * 1024**2,
-                "sha256_digest": "b" * 64,
+                "sha256_digest": DUMMY_DIGEST,
                 "preferred_part_count": 3,
             },
         ]
@@ -1730,13 +1732,13 @@ def test_multipart_directory_upload(client, root_circuit, s3, s3_internal_bucket
             {
                 "filename": "data/file1.bin",
                 "filesize": filesize,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
                 "preferred_part_count": 3,
             },
             {
                 "filename": "data/file2.bin",
                 "filesize": filesize,
-                "sha256_digest": "b" * 64,
+                "sha256_digest": DUMMY_DIGEST,
                 "preferred_part_count": 3,
             },
         ]
@@ -1871,8 +1873,8 @@ def test_multipart_directory_upload_duplicate_filenames(client, root_circuit):
     entity_id = root_circuit.id
 
     dup_files = [
-        {"filename": "same/file.bin", "filesize": 5 * 1024**2, "sha256_digest": "a" * 64},
-        {"filename": "same/file.bin", "filesize": 5 * 1024**2, "sha256_digest": "b" * 64},
+        {"filename": "same/file.bin", "filesize": 5 * 1024**2, "sha256_digest": DUMMY_DIGEST},
+        {"filename": "same/file.bin", "filesize": 5 * 1024**2, "sha256_digest": DUMMY_DIGEST},
     ]
     response = assert_request(
         client.post,
@@ -1891,7 +1893,7 @@ def test_multipart_directory_upload_invalid_file_paths(client, root_circuit):
     entity_id = root_circuit.id
 
     invalid_files = [
-        {"filename": "/absolute/path.bin", "filesize": 5 * 1024**2, "sha256_digest": "a" * 64},
+        {"filename": "/absolute/path.bin", "filesize": 5 * 1024**2, "sha256_digest": DUMMY_DIGEST},
     ]
     response = assert_request(
         client.post,
@@ -1973,13 +1975,13 @@ def test_complete_multipart_directory_upload_partial_already_completed(
             {
                 "filename": "file1.bin",
                 "filesize": filesize,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
                 "preferred_part_count": 3,
             },
             {
                 "filename": "file2.bin",
                 "filesize": filesize,
-                "sha256_digest": "b" * 64,
+                "sha256_digest": DUMMY_DIGEST,
                 "preferred_part_count": 3,
             },
         ],
@@ -2034,13 +2036,13 @@ def test_multipart_directory_upload_with_empty_files(client, root_circuit, s3, s
             {
                 "filename": "data/regular.bin",
                 "filesize": filesize,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
                 "preferred_part_count": 3,
             },
             {
                 "filename": "data/empty.bin",
                 "filesize": 0,
-                "sha256_digest": "b" * 64,
+                "sha256_digest": DUMMY_DIGEST,
             },
         ],
     )
@@ -2111,7 +2113,7 @@ def test_multipart_directory_upload_empty_file_presigned_url_failure(client, roo
             {
                 "filename": "data/empty.bin",
                 "filesize": 0,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
             },
         ],
     )
@@ -2138,7 +2140,7 @@ def test_multipart_directory_upload_empty_file_check_object_error(client, root_c
             {
                 "filename": "data/empty.bin",
                 "filesize": 0,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
             },
         ],
     )
@@ -2172,7 +2174,7 @@ def test_multipart_directory_upload_empty_file_not_uploaded(client, root_circuit
             {
                 "filename": "data/empty.bin",
                 "filesize": 0,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
             },
         ],
     )
@@ -2208,7 +2210,7 @@ def test_multipart_directory_upload_empty_file_wrong_size(
             {
                 "filename": "data/empty.bin",
                 "filesize": 0,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
             },
         ],
     )
@@ -2247,7 +2249,7 @@ def test_multipart_directory_upload_abort(db, client, circuit, s3, s3_internal_b
             {
                 "filename": "file.bin",
                 "filesize": filesize,
-                "sha256_digest": "a" * 64,
+                "sha256_digest": DUMMY_DIGEST,
                 "preferred_part_count": 3,
             },
         ],

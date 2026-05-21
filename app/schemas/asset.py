@@ -79,7 +79,7 @@ Sha256Digest = Annotated[
     str,
     Field(
         description="SHA256 digest of the file content in hexadecimal format.",
-        pattern=r"^[a-f0-9]{64}$",
+        pattern=r"^[a-fA-F0-9]{64}$",
     ),
     BeforeValidator(lambda x: x.hex() if isinstance(x, bytes) else x),  # convert bytes from db
 ]

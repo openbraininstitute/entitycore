@@ -545,12 +545,14 @@ def test_update_one(db, clients, root_circuit, circuit, person_id):
         url=f"{ROUTE}/{did}",
         json={"derivation_type": DerivationType.unspecified.value, "label": "label-u1"},
     ).json()
-    assert data["derivation_type"] == DerivationType.unspecified
+
+    # derivation_type is excluded from updates
+    assert data["derivation_type"] == DerivationType.circuit_extraction
     assert data["label"] == "label-u1"
     assert data["updated_by"]["id"] == str(person_id)
 
     data = assert_request(clients.user_1.get, url=f"{ROUTE}/{did}").json()
-    assert data["derivation_type"] == DerivationType.unspecified
+    assert data["derivation_type"] == DerivationType.circuit_extraction
     assert data["label"] == "label-u1"
 
     # admin on regular route: no project context -> 404
@@ -575,11 +577,13 @@ def test_update_one(db, clients, root_circuit, circuit, person_id):
         },
     ).json()
     assert data["label"] == "label-admin"
-    assert data["derivation_type"] == DerivationType.circuit_rewiring
+
+    # excluded attribute
+    assert data["derivation_type"] == DerivationType.circuit_extraction
 
     data = assert_request(clients.user_1.get, url=f"{ROUTE}/{did}").json()
     assert data["label"] == "label-admin"
-    assert data["derivation_type"] == DerivationType.circuit_rewiring
+    assert data["derivation_type"] == DerivationType.circuit_extraction
 
     # patching with an unknown id -> 404 for both regular and admin routes
     assert_request(

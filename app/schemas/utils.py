@@ -2,17 +2,17 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, create_model
 
-EXCLUDED_FIELDS = {
+DEFAULT_EXCLUDED_FIELDS = {
     "authorized_public",
 }
-PRESERVED_FIELDS = set()
+DEFAULT_PRESERVED_FIELDS = set()
 
 
 def make_update_schema(
     schema: type[BaseModel],
     new_schema_name: str | None = None,
-    excluded_fields: set = EXCLUDED_FIELDS,
-    preserved_fields: set = PRESERVED_FIELDS,
+    excluded_fields: set = DEFAULT_EXCLUDED_FIELDS,
+    preserved_fields: set = DEFAULT_PRESERVED_FIELDS,
 ):
     """Create a new pydantic schema from current schema where all fields are optional.
 

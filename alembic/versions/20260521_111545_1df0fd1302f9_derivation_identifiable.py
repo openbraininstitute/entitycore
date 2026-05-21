@@ -74,14 +74,14 @@ def upgrade() -> None:
     #    non-empty but ``agent`` is empty, the migration will fail at the NOT NULL alter
     #    below with a clear error, since we cannot synthesise a valid agent here.
     op.execute(
-        """
+        f"""
         UPDATE derivation
         SET created_by_id = sub.agent_id,
             updated_by_id = sub.agent_id
         FROM (
             SELECT id AS agent_id
             FROM agent
-            WHERE pref_label = 'OBI'
+            WHERE pref_label = '{OBI_ADMIN_PREF_LABEL}'
             LIMIT 1
         ) AS sub
         WHERE derivation.created_by_id IS NULL

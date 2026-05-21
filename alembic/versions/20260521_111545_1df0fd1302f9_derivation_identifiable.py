@@ -101,7 +101,7 @@ def upgrade() -> None:
     op.drop_constraint(op.f("pk_derivation"), "derivation", type_="primary")
     op.create_primary_key(op.f("pk_derivation"), "derivation", ["id"])
 
-    # 8. Indexes and foreign keys, identical to the auto-generated layout.
+    # 8. Indexes, unique constraints and foreign keys, identical to the auto-generated layout.
     op.create_index(
         op.f("ix_derivation_created_by_id"), "derivation", ["created_by_id"], unique=False
     )
@@ -115,7 +115,15 @@ def upgrade() -> None:
         op.f("ix_derivation_updated_by_id"), "derivation", ["updated_by_id"], unique=False
     )
     op.create_index(op.f("ix_derivation_used_id"), "derivation", ["used_id"], unique=False)
-    op.create_index(op.f("ix_derivation_derivation_type"), "derivation", ["derivation_type"], unique=False)
+    op.create_index(
+        op.f("ix_derivation_derivation_type"), "derivation", ["derivation_type"], unique=False
+    )
+    op.create_unique_constraint(
+        "uq_used_id_generated_id_derivation_type",
+        "derivation",
+        ["used_id", "generated_id", "derivation_type"],
+    )
+
     op.create_foreign_key(
         op.f("fk_derivation_created_by_id_agent"),
         "derivation",
@@ -141,6 +149,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_derivation_creation_date"), table_name="derivation")
     op.drop_index(op.f("ix_derivation_created_by_id"), table_name="derivation")
     op.drop_index(op.f("ix_derivation_derivation_type"), table_name="derivation")
+    op.drop_constraint("uq_used_id_generated_id_derivation_type", "derivation", type_="unique")
 
     # Restore the old composite primary key on (used_id, generated_id). This will fail if
     # the table contains duplicate (used_id, generated_id) pairs that became possible after

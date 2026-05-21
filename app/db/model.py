@@ -1671,6 +1671,15 @@ class Derivation(Identifiable):
     derivation_type: Mapped[DerivationType] = mapped_column(index=True)
     label: Mapped[str | None]
 
+    __table_args__ = (
+        UniqueConstraint(
+            "used_id",
+            "generated_id",
+            "derivation_type",
+            name="uq_used_id_generated_id_derivation_type",
+        ),
+    )
+
 
 class ScientificArtifactPublicationLink(Identifiable):
     """Represents the association between a scientific artifact and a publication in the database.

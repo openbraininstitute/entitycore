@@ -2100,6 +2100,67 @@ def test_multipart_directory_upload_with_empty_files(client, root_circuit, s3, s
     assert head["ContentLength"] == 0
 
 
+def test_multipart_directory_upload_empty_file_presigned_url_failure(client, root_circuit):
+    """Test that initiate fails when presigned URL generation fails for empty file."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-empty-presign-fail",
+        files=[
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": "a" * 64,
+            },
+        ],
+    )
+
+    with patch("app.service.asset.generate_presigned_url", return_value=None):
+        response = assert_request(
+            client.post,
+            url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+            json=json_data,
+            expected_status_code=422,
+        )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.S3_CANNOT_CREATE_PRESIGNED_URL
+
+
+def test_multipart_directory_upload_empty_file_check_object_error(client, root_circuit):
+    """Test that complete fails when check_object raises an exception for empty file."""
+    entity_type = route(root_circuit.type)
+    entity_id = root_circuit.id
+
+    json_data = _multipart_directory_json_data(
+        directory_name="dir-empty-check-err",
+        files=[
+            {
+                "filename": "data/empty.bin",
+                "filesize": 0,
+                "sha256_digest": "a" * 64,
+            },
+        ],
+    )
+
+    data = assert_request(
+        client.post,
+        url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
+        json=json_data,
+    ).json()
+
+    parent_id = data["asset"]["id"]
+
+    with patch("app.service.asset.check_object", side_effect=RuntimeError("S3 error")):
+        response = assert_request(
+            client.post,
+            url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",
+            expected_status_code=500,
+        )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.GENERIC_ERROR
+
+
 def test_multipart_directory_upload_empty_file_not_uploaded(client, root_circuit):
     """Test completing directory upload fails when empty file was not uploaded to S3."""
     entity_type = route(root_circuit.type)

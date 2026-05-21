@@ -342,7 +342,12 @@ def check_object(
     s3_key: str,
     is_directory: bool,
 ) -> CheckObjectResult:
-    """Check if an object exists in S3 and return its type and size."""
+    """Check whether an object of the given type exists in S3.
+
+    Returns a dict with:
+        exists: True if the object of the given type exists, False otherwise.
+        size: the object size in bytes if it exists and is a file, None otherwise.
+    """
     size = None
     try:
         if is_directory:

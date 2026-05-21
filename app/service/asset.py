@@ -740,7 +740,7 @@ def entity_asset_empty_upload_complete(
             http_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
         ) from e
 
-    if check_result["exists"] is False:
+    if not check_result["exists"]:
         raise ApiError(
             message="Uploaded empty file not found.",
             error_code=ApiErrorCode.ASSET_UPLOAD_INCOMPLETE,

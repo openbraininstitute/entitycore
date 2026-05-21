@@ -148,7 +148,7 @@ def register_entity_asset(
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to check object") from e
 
-    if check_result["exists"] is False:
+    if not check_result["exists"]:
         raise ApiError(
             message="Object does not exist in S3",
             error_code=ApiErrorCode.ASSET_NOT_FOUND,

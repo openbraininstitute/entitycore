@@ -2,7 +2,7 @@ import math
 import os
 import uuid
 from pathlib import Path
-from typing import IO, Protocol
+from typing import IO, Protocol, TypedDict
 from urllib.parse import urlparse, urlunparse
 from uuid import UUID
 
@@ -27,6 +27,11 @@ from app.utils.common import clip
 
 PUBLIC_ASSET_PREFIX = "public/"
 PRIVATE_ASSET_PREFIX = "private/"
+
+
+class CheckObjectResult(TypedDict):
+    exists: bool
+    size: int | None
 
 
 class StorageClientFactory(Protocol):
@@ -336,8 +341,9 @@ def check_object(
     bucket_name: str,
     s3_key: str,
     is_directory: bool,
-) -> dict:
+) -> CheckObjectResult:
     """Check if an object exists in S3 and return its type and size."""
+    size = None
     try:
         if is_directory:
             list_directory_with_details(
@@ -346,18 +352,15 @@ def check_object(
                 prefix=s3_key,
                 pagination_config={"MaxItems": 1, "PageSize": 1},
             )
-            object_type = "directory"
-            size = None
         else:
             result = s3_client.head_object(Bucket=bucket_name, Key=s3_key)
-            object_type = "file"
             size = result.get("ContentLength")
     except ClientError as e:
         if e.response.get("Error", {}).get("Code") in {"404", "403"}:
             # 404 = Not Found, 403 = Access Denied
-            return {"exists": False}
+            return {"exists": False, "size": size}
         raise
-    return {"exists": True, "type": object_type, "size": size}
+    return {"exists": True, "size": size}
 
 
 def copy_file(

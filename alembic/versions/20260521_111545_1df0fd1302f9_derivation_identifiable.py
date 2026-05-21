@@ -115,6 +115,7 @@ def upgrade() -> None:
         op.f("ix_derivation_updated_by_id"), "derivation", ["updated_by_id"], unique=False
     )
     op.create_index(op.f("ix_derivation_used_id"), "derivation", ["used_id"], unique=False)
+    op.create_index(op.f("ix_derivation_derivation_type"), "derivation", ["derivation_type"], unique=False)
     op.create_foreign_key(
         op.f("fk_derivation_created_by_id_agent"),
         "derivation",
@@ -139,6 +140,7 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_derivation_generated_id"), table_name="derivation")
     op.drop_index(op.f("ix_derivation_creation_date"), table_name="derivation")
     op.drop_index(op.f("ix_derivation_created_by_id"), table_name="derivation")
+    op.drop_index(op.f("ix_derivation_derivation_type"), table_name="derivation")
 
     # Restore the old composite primary key on (used_id, generated_id). This will fail if
     # the table contains duplicate (used_id, generated_id) pairs that became possible after

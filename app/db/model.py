@@ -1668,7 +1668,7 @@ class Derivation(Identifiable):
     )
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id], passive_deletes=True)
-    derivation_type: Mapped[DerivationType]
+    derivation_type: Mapped[DerivationType] = mapped_column(index=True)
     label: Mapped[str | None]
 
 

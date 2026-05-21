@@ -377,7 +377,11 @@ def delete_one(
     db: SessionDep,
     id_: uuid.UUID,
 ) -> DeleteResponse:
-    query = _load(sa.select(Derivation).where(Derivation.id == id_))
+    query = (
+        sa.select(Derivation)
+        .where(Derivation.id == id_)
+        .options(joinedload(Derivation.generated), raiseload("*"))
+    )
 
     with ensure_result(error_message="Derivation not found"):
         derivation = db.execute(query).unique().scalar_one()

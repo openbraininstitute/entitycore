@@ -151,9 +151,6 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_derivation_derivation_type"), table_name="derivation")
     op.drop_constraint("uq_used_id_generated_id_derivation_type", "derivation", type_="unique")
 
-    # Restore the old composite primary key on (used_id, generated_id). This will fail if
-    # the table contains duplicate (used_id, generated_id) pairs that became possible after
-    # the upgrade; such rows must be reconciled manually before downgrading.
     op.drop_constraint(op.f("pk_derivation"), "derivation", type_="primary")
     op.create_primary_key(op.f("pk_derivation"), "derivation", ["used_id", "generated_id"])
 

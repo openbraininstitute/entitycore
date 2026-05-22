@@ -49,10 +49,10 @@ if TYPE_CHECKING:
 
 def _load(query: sa.Select):
     return query.options(
-        joinedload(Derivation.used),
-        joinedload(Derivation.generated),
-        joinedload(Derivation.created_by),
-        joinedload(Derivation.updated_by),
+        joinedload(Derivation.used, innerjoin=True),
+        joinedload(Derivation.generated, innerjoin=True),
+        joinedload(Derivation.created_by, innerjoin=True),
+        joinedload(Derivation.updated_by, innerjoin=True),
         raiseload("*"),
     )
 
@@ -380,7 +380,7 @@ def delete_one(
     query = (
         sa.select(Derivation)
         .where(Derivation.id == id_)
-        .options(joinedload(Derivation.generated), raiseload("*"))
+        .options(joinedload(Derivation.generated, innerjoin=True), raiseload("*"))
     )
 
     with ensure_result(error_message="Derivation not found"):

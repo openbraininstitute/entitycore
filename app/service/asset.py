@@ -66,7 +66,7 @@ def get_entity_assets(
     """Return the list of assets associated with a specific entity."""
     db_model_class = Asset
     entity_type = entity_route_to_type(entity_route)
-    _ = entity_service.get_readable_entity(
+    _ = entity_service.get_readable_entity_by_context(
         repos,
         user_context=user_context,
         entity_type=entity_type,
@@ -104,7 +104,7 @@ def get_entity_asset(
     asset_id: uuid.UUID,
 ) -> AssetRead:
     """Return an asset associated with a specific entity."""
-    _ = entity_service.get_readable_entity(
+    _ = entity_service.get_readable_entity_by_context(
         repos,
         user_context=user_context,
         entity_type=entity_type,

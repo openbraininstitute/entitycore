@@ -19,7 +19,7 @@ from app.schemas.auth import UserContext, UserContextWithProjectId
 from app.schemas.entity import EntityCountRead, EntityRead
 
 
-def get_readable_entity(
+def get_readable_entity_by_context(
     repos: RepositoryGroup,
     *,
     user_context: UserContext,
@@ -27,11 +27,11 @@ def get_readable_entity(
     entity_id: uuid.UUID,
 ) -> Entity:
     db_model_class = ENTITY_TYPE_TO_CLASS[entity_type]
-    return app.queries.entity.get_readable_entity(
+    return app.queries.entity.get_readable_entity_by_context(
         db=repos.db,
         db_model_class=db_model_class,
         entity_id=entity_id,
-        project_id=user_context.project_id,
+        user_context=user_context,
     )
 
 

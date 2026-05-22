@@ -124,7 +124,7 @@ def read_many(
     return router_read_many(
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # validated with apply_filter_query_operations
+        user_context=None,  # validated with apply_filter_query_operations
         with_search=None,
         with_in_brain_region=None,
         facets=None,
@@ -163,7 +163,7 @@ def admin_read_many(
     return router_read_many(
         db=db,
         db_model_class=MeasurementAnnotation,
-        authorized_project_id=None,  # validated with apply_filter_query_operations
+        user_context=None,  # validated with apply_filter_query_operations
         with_search=None,
         with_in_brain_region=None,
         facets=None,

@@ -145,7 +145,7 @@ def _read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ETypeClassificationRead,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
         with_in_brain_region=None,
         check_authorized_project=check_authorized_project,

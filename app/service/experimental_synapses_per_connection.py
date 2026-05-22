@@ -149,7 +149,7 @@ def _read_many(
         apply_data_query_operations=_load,
         pagination_request=pagination_request,
         response_schema_class=ExperimentalSynapsesPerConnectionRead,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
     )

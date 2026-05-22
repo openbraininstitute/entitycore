@@ -182,7 +182,7 @@ def _read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=SingleNeuronSynaptomeRead,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
     )

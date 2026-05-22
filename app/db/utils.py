@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
 
+from app.db.auth import HasAuth
 from app.db.model import (
     Activity,
     Base,
@@ -187,9 +188,9 @@ def has_project_id_in_columns(db_model_class) -> bool:
     return "authorized_project_id" in db_model_class.__mapper__.columns
 
 
-def get_declaring_class[I: Identifiable](
-    db_model_class: type[I], column_name: str
-) -> type[I] | None:
+def get_declaring_class(
+    db_model_class: type[Identifiable], column_name: str
+) -> type[HasAuth] | None:
     """Return the class that has a table with project id or None."""
     if not has_project_id_in_columns(db_model_class):
         return None

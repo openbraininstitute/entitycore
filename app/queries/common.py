@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import operators
 
 from app.db.auth import (
-    constrain_to_readable_entities,
+    constrain_to_readable_entities_by_project,
     constrain_to_writable_entities,
 )
 from app.db.model import Activity, Identifiable
@@ -69,7 +69,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        query = constrain_to_readable_entities(
+        query = constrain_to_readable_entities_by_project(
             query=query,
             project_id=user_context.project_id,
             db_model_class=id_model_class,
@@ -314,8 +314,8 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     if check_authorized_project and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        filter_query = constrain_to_readable_entities(
-            filter_query,
+        filter_query = constrain_to_readable_entities_by_project(
+            query=filter_query,
             project_id=authorized_project_id,
             db_model_class=id_model_class,
         )
@@ -408,7 +408,19 @@ def router_update_one[T: BaseModel, I: Identifiable](
     )
     if check_authorized_project:
         id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
-        query = constrain_to_writable_entities(query, user_context, db_model_class=id_model_class)
+
+        if id_model_class is None:
+            raise ApiError(
+                message=f"No authorized_project_id found for {db_model_class} or upstream.",
+                error_code=ApiErrorCode.GENERIC_ERROR,
+                http_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+
+        query = constrain_to_writable_entities(
+            query=query,
+            user_context=user_context,
+            db_model_class=id_model_class,
+        )
     if apply_operations:
         query = apply_operations(query)
 
@@ -505,8 +517,18 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if check_authorized_project:
         id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
+
+        if id_model_class is None:
+            raise ApiError(
+                message=f"No authorized_project_id found for {db_model_class} or upstream.",
+                error_code=ApiErrorCode.GENERIC_ERROR,
+                http_status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+
         query = constrain_to_writable_entities(
-            query, user_context=user_context, db_model_class=id_model_class
+            query=query,
+            user_context=user_context,
+            db_model_class=id_model_class,
         )
     if apply_operations:
         query = apply_operations(query)

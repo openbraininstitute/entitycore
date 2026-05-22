@@ -199,6 +199,17 @@ class UserContext(UserContextBase):
         return [g.project_id for g in self.user_project_groups]
 
     @property
+    def authorized_project_ids(self) -> list[UUID]:
+        """Project ids in effect for authorization.
+
+        A request-bound project_id (e.g. from a header) takes precedence
+        over the projects derived from Keycloak groups.
+        """
+        if self.project_id:
+            return [self.project_id]
+        return self.user_project_ids
+
+    @property
     def member_project_ids(self) -> set[UUID]:
         """Return the project ids for which the user is a member."""
         return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.member}
@@ -214,3 +225,8 @@ class UserContextWithProjectId(UserContextBase):
 
     virtual_lab_id: UUID
     project_id: UUID
+
+    @property
+    def authorized_project_ids(self) -> list[UUID]:
+        """Project ids in effect for authorization (always the bound project)."""
+        return [self.project_id]

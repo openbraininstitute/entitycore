@@ -115,7 +115,7 @@ def create_associations_to_entities(
     # the associated entities should be public, or in the same given project
     if (
         unaccessible_entities := db.execute(
-            select_unauthorized_entities(associated_ids, project_id)
+            select_unauthorized_entities(ids=associated_ids, project_id=project_id)
         )
         .scalars()
         .all()

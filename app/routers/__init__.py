@@ -113,6 +113,7 @@ authenticated_routers = [
     consortium.router,
     contribution.router,
     derivation.router,
+    derivation.from_router,
     electrical_cell_recording.router,
     electrical_recording_stimulus.router,
     em_cell_mesh.router,

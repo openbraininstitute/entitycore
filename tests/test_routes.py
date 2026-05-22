@@ -128,7 +128,7 @@ def test_entity_route_methods(entity_routes):
         "entity_asset_directory_upload",
         "get_entity_asset",
         "get_entity_assets",
-        "read_many_derivation",
+        "read_many_from_entity_derivation",
         "register_entity_asset",
         "upload_entity_asset",
     }

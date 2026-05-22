@@ -1660,16 +1660,25 @@ class Calibration(Activity):
     }
 
 
-class Derivation(Base):
+class Derivation(Identifiable):
     __tablename__ = AssociationType.derivation.value
-    used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    used_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), index=True)
     generated_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("entity.id", ondelete="CASCADE"), primary_key=True
+        ForeignKey("entity.id", ondelete="CASCADE"), index=True
     )
     used: Mapped["Entity"] = relationship(foreign_keys=[used_id])
     generated: Mapped["Entity"] = relationship(foreign_keys=[generated_id], passive_deletes=True)
-    derivation_type: Mapped[DerivationType]
+    derivation_type: Mapped[DerivationType] = mapped_column(index=True)
     label: Mapped[str | None]
+
+    __table_args__ = (
+        UniqueConstraint(
+            "used_id",
+            "generated_id",
+            "derivation_type",
+            name="uq_used_id_generated_id_derivation_type",
+        ),
+    )
 
 
 class ScientificArtifactPublicationLink(Identifiable):

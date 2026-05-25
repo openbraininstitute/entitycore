@@ -53,6 +53,24 @@ def get_writable_entity(
     )
 
 
+def get_writable_entity_by_context(
+    repos: RepositoryGroup,
+    *,
+    user_context: UserContext,
+    entity_type: EntityType,
+    entity_id: uuid.UUID,
+    for_update: bool = False,
+) -> Entity:
+    db_model_class = ENTITY_TYPE_TO_CLASS[entity_type]
+    return app.queries.entity.get_writable_entity_by_context(
+        db=repos.db,
+        db_model_class=db_model_class,
+        entity_id=entity_id,
+        user_context=user_context,
+        for_update=for_update,
+    )
+
+
 def count_entities_by_type(
     *,
     user_context: UserContext,

@@ -33,7 +33,7 @@ from app.schemas.asset import (
     UploadMetaRead,
     validate_relative_path,
 )
-from app.schemas.auth import UserContext, UserContextWithProjectId
+from app.schemas.auth import UserContext, UserProfile
 from app.schemas.types import ListResponse
 from app.service import entity as entity_service
 from app.utils.files import calculate_sha256_digest, get_content_type
@@ -119,13 +119,13 @@ def get_entity_asset(
 
 def get_writable_entity_db_asset(
     repos: RepositoryGroup,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
 ) -> Asset:
     """Return an asset associated with a specific entity."""
-    _ = entity_service.get_writable_entity(
+    _ = entity_service.get_writable_entity_by_context(
         repos,
         user_context=user_context,
         entity_type=entity_type,
@@ -143,7 +143,8 @@ def create_entity_asset_unverified(  # noqa: PLR0913
     repos: RepositoryGroup,
     *,
     entity: Entity,
-    user_context: UserContextWithProjectId,
+    user_profile: UserProfile,
+    virtual_lab_id: uuid.UUID,
     filename: str,
     content_type: ContentType,
     size: int,
@@ -160,7 +161,6 @@ def create_entity_asset_unverified(  # noqa: PLR0913
 
     Args:
         repos: Repository group for database access.
-        user_context: User context for authorization.
         entity: Entity object for full_path construction. The caller is responsible to verify
             that the user has the required write permissions to that entity.
         filename: Name of the file to be stored in the asset path.
@@ -175,17 +175,19 @@ def create_entity_asset_unverified(  # noqa: PLR0913
             automatically constructed based on conventions.
         status: Initial status of the asset. Defaults to CREATED.
         parent_id: Optional ID of the parent asset if this asset is a sub-path of a directory asset.
+        user_profile: The user's profile
+        virtual_lab_id: The id of the virtual lab to construct the s3 path from
     """
     full_path = full_path or build_s3_path(
-        vlab_id=user_context.virtual_lab_id,
-        proj_id=user_context.project_id,
+        vlab_id=virtual_lab_id,
+        proj_id=entity.authorized_project_id,
         entity_type=entity.type,
         entity_id=entity.id,
         filename=filename,
         is_public=entity.authorized_public,
     )
 
-    db_agent = get_or_create_user_agent(repos.db, user_profile=user_context.profile)
+    db_agent = get_or_create_user_agent(repos.db, user_profile=user_profile)
 
     with ensure_valid_schema(
         "Asset schema is invalid", error_code=ApiErrorCode.ASSET_INVALID_SCHEMA
@@ -221,7 +223,7 @@ def create_entity_asset_unverified(  # noqa: PLR0913
 def create_entity_asset(  # noqa: PLR0913
     repos: RepositoryGroup,
     *,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     filename: str,
@@ -256,16 +258,25 @@ def create_entity_asset(  # noqa: PLR0913
         status: Initial status of the asset. Defaults to CREATED.
         parent_id: Optional ID of the parent asset if this asset is a sub-path of a directory asset.
     """
-    entity = entity_service.get_writable_entity(
+    entity = entity_service.get_writable_entity_by_context(
         repos,
         user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )
+    virtual_lab_id = user_context.find_virtual_lab_from_project_id(
+        project_id=entity.authorized_project_id
+    )
+    if virtual_lab_id is None:
+        msg = "Virtual lab id not found from project id in user groups."
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     return create_entity_asset_unverified(
         repos,
         entity=entity,
-        user_context=user_context,
         filename=filename,
         content_type=content_type,
         size=size,
@@ -277,6 +288,8 @@ def create_entity_asset(  # noqa: PLR0913
         full_path=full_path,
         status=status,
         parent_id=parent_id,
+        user_profile=user_context.profile,
+        virtual_lab_id=virtual_lab_id,
     )
 
 
@@ -315,7 +328,7 @@ def validate_uploadfile_for_small_entity_post(file: UploadFile) -> ContentType:
 def upload_entity_asset(
     repos: RepositoryGroup,
     *,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     storage_client_factory: StorageClientFactory,
@@ -402,24 +415,32 @@ def delete_asset_unverified(
 
 def entity_asset_directory_upload(
     repos: RepositoryGroup,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     s3_client: S3Client,
     storage: StorageUnion,
     files: DirectoryUploadRequest,
 ) -> tuple[AssetRead, dict[Path, AnyUrl]]:
-    entity = entity_service.get_writable_entity(
+    entity = entity_service.get_writable_entity_by_context(
         repos,
         user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )
-
+    virtual_lab_id = user_context.find_virtual_lab_from_project_id(
+        project_id=entity.authorized_project_id
+    )
+    if virtual_lab_id is None:
+        msg = "Virtual lab id not found from project id in user groups."
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     asset_read = create_entity_asset_unverified(
         repos,
         entity=entity,
-        user_context=user_context,
         filename=str(files.directory_name),
         content_type=ContentType.directory,
         size=-1,
@@ -428,13 +449,15 @@ def entity_asset_directory_upload(
         label=files.label,
         is_directory=True,
         storage_type=storage.type,
+        virtual_lab_id=virtual_lab_id,
+        user_profile=user_context.profile,
     )
 
     urls: dict[Path, AnyUrl] = {}
     for path in [Path(f) for f in files.files]:
         full_path = build_s3_path(
-            vlab_id=user_context.virtual_lab_id,
-            proj_id=user_context.project_id,
+            vlab_id=virtual_lab_id,
+            proj_id=entity.authorized_project_id,
             entity_type=entity_type,
             entity_id=entity_id,
             filename=files.directory_name / path,
@@ -568,7 +591,7 @@ def entity_asset_multipart_upload_initiate(
 def entity_asset_multipart_upload_complete(
     *,
     repos: RepositoryGroup,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -701,7 +724,7 @@ def entity_asset_empty_upload_initiate(
 def entity_asset_empty_upload_complete(
     *,
     repos: RepositoryGroup,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -851,7 +874,7 @@ def create_asset_download_redirect(
 def entity_asset_directory_multipart_upload_initiate(
     *,
     repos: RepositoryGroup,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     s3_client: S3Client,
@@ -862,17 +885,26 @@ def entity_asset_directory_multipart_upload_initiate(
 
     Return presigned urls for all parts.
     """
-    entity = entity_service.get_writable_entity(
+    entity = entity_service.get_writable_entity_by_context(
         repos,
         user_context=user_context,
         entity_type=entity_type,
         entity_id=entity_id,
     )
+    virtual_lab_id = user_context.find_virtual_lab_from_project_id(
+        project_id=entity.authorized_project_id
+    )
+    if virtual_lab_id is None:
+        msg = "Virtual lab id not found from project id in user groups."
+        raise ApiError(
+            message=msg,
+            error_code=ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
     # create asset to fail early if full path already in progress or registered
     parent = create_entity_asset_unverified(
         repos=repos,
         entity=entity,
-        user_context=user_context,
         filename=json_model.directory_name,
         content_type=ContentType.directory,
         size=-1,  # no size
@@ -883,6 +915,8 @@ def entity_asset_directory_multipart_upload_initiate(
         storage_type=storage.type,
         status=AssetStatus.UPLOADING,
         parent_id=None,
+        virtual_lab_id=virtual_lab_id,
+        user_profile=user_context.profile,
     )
     asset_read_with_upload_meta_list: list[AssetReadWithUploadMeta] = []
     for initiate_payload in json_model.files:
@@ -894,7 +928,6 @@ def entity_asset_directory_multipart_upload_initiate(
         # create the asset entry in the db for each file
         asset_read = create_entity_asset_unverified(
             repos=repos,
-            user_context=user_context,
             entity=entity,
             filename=str(Path(json_model.directory_name, initiate_payload.filename)),
             content_type=content_type,
@@ -906,6 +939,8 @@ def entity_asset_directory_multipart_upload_initiate(
             storage_type=storage.type,
             status=AssetStatus.UPLOADING,
             parent_id=parent.id,
+            user_profile=user_context.profile,
+            virtual_lab_id=virtual_lab_id,
         )
         if initiate_payload.filesize > 0:
             # create presigned urls using the part count hint and filesize
@@ -942,7 +977,7 @@ def entity_asset_directory_multipart_upload_initiate(
 def entity_asset_directory_multipart_upload_complete(
     *,
     repos: RepositoryGroup,
-    user_context: UserContextWithProjectId,
+    user_context: UserContext,
     entity_type: EntityType,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,

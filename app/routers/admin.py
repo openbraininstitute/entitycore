@@ -1,14 +1,16 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Form, Query, UploadFile, status
 from starlette.responses import RedirectResponse
 
 from app.config import storages
-from app.db.types import StorageType
+from app.db.types import AssetLabel, StorageType
+from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
+from app.dependencies.virtual_lab_api import AdminVirtualLabClientDep
 from app.filters.asset import AssetFilterDep
 from app.routers.types import EntityRoute
 from app.schemas.asset import (
@@ -121,6 +123,32 @@ def download_entity_asset(
         entity_id=entity_id,
         asset_id=asset_id,
         asset_path=asset_path,
+    )
+
+
+@router.post("/{entity_route}/{entity_id}/assets", status_code=status.HTTP_201_CREATED)
+def upload_entity_asset(
+    *,
+    repos: RepoGroupDep,
+    entity_route: EntityRoute,
+    storage_client_factory: StorageClientFactoryDep,
+    user_context: AdminContextDep,
+    virtual_lab_client: AdminVirtualLabClientDep,
+    entity_id: uuid.UUID,
+    file: UploadFile,
+    label: Annotated[AssetLabel, Form()],
+    meta: Annotated[dict | None, Form()] = None,
+) -> AssetRead:
+    return admin_service.upload_entity_asset(
+        repos=repos,
+        user_context=user_context,
+        storage_client_factory=storage_client_factory,
+        entity_id=entity_id,
+        entity_type=entity_route_to_type(entity_route),
+        file=file,
+        label=label,
+        meta=meta,
+        virtual_lab_client=virtual_lab_client,
     )
 
 

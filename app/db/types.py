@@ -271,6 +271,7 @@ class DerivationType(StrEnum):
     circuit_extraction = auto()
     circuit_rewiring = auto()
     emodel_circuit = auto()
+    em_dense_reconstruction_dataset_cell_morphology = auto()
     unspecified = auto()
 
 

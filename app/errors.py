@@ -49,6 +49,7 @@ class ApiErrorCode(UpperStrEnum):
     ASSET_UPLOAD_INCOMPLETE = auto()
     ASSET_UPLOAD_INCONSISTENT_SIZE = auto()
     ASSET_NOT_UPLOADING = auto()
+    ASSET_VIRTUAL_LAB_ID_NOT_FOUND = auto()
     ION_NAME_NOT_FOUND = auto()
     S3_CANNOT_CREATE_PRESIGNED_URL = auto()
     OPENAI_API_KEY_MISSING = auto()

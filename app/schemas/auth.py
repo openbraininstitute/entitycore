@@ -219,6 +219,13 @@ class UserContext(UserContextBase):
         """Return the project ids for which the user is an admin."""
         return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.admin}
 
+    def find_virtual_lab_from_project_id(self, project_id: UUID) -> UUID | None:
+        """Return virtual lab id from project id."""
+        for group in self.user_project_groups:
+            if group.project_id == project_id:
+                return group.virtual_lab_id
+        return None
+
 
 class UserContextWithProjectId(UserContextBase):
     """User Context with valid virtual_lab_id and project_id."""

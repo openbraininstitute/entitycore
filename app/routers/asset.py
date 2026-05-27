@@ -9,7 +9,7 @@ from starlette.responses import RedirectResponse
 
 from app.config import settings, storages
 from app.db.types import AssetLabel, AssetStatus, ContentType, StorageType
-from app.dependencies.auth import UserContextDep, UserContextWithProjectIdDep
+from app.dependencies.auth import UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import StorageClientFactoryDep
@@ -97,7 +97,7 @@ def get_entity_asset(
 def upload_entity_asset(
     *,
     repos: RepoGroupDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
@@ -125,7 +125,7 @@ def upload_entity_asset(
 def register_entity_asset(
     *,
     repos: RepoGroupDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
@@ -245,7 +245,7 @@ def delete_entity_asset(
 @router.post("/{entity_route}/{entity_id}/assets/directory/upload")
 def entity_asset_directory_upload(
     repos: RepoGroupDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     storage_client_factory: StorageClientFactoryDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
@@ -291,7 +291,7 @@ def entity_asset_directory_list(
 def entity_asset_multipart_upload_initiate(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     json_model: MultipartUploadInitiateRequest,
@@ -392,7 +392,7 @@ def entity_asset_multipart_upload_initiate(
 def entity_asset_multipart_upload_complete(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,
@@ -436,7 +436,7 @@ def entity_asset_multipart_upload_complete(
 def entity_asset_directory_multipart_upload_initiate(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     json_model: MultipartDirectoryUploadRequest,
@@ -461,7 +461,7 @@ def entity_asset_directory_multipart_upload_initiate(
 def entity_asset_directory_multipart_upload_complete(
     repos: RepoGroupDep,
     storage_client_factory: StorageClientFactoryDep,
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     entity_route: EntityRoute,
     entity_id: uuid.UUID,
     asset_id: uuid.UUID,

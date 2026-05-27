@@ -1,25 +1,39 @@
 import uuid
+from typing import cast
 
+from fastapi import HTTPException, UploadFile
 from starlette.responses import RedirectResponse
 
+from app.config import storages
 from app.db.model import Asset, Entity
-from app.db.types import EntityType
-from app.db.utils import RESOURCE_TYPE_TO_CLASS
+from app.db.types import AssetLabel, EntityType, StorageType
+from app.db.utils import ENTITY_TYPE_TO_CLASS, RESOURCE_TYPE_TO_CLASS
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
+from app.dependencies.virtual_lab_api import AdminVirtualLabClient
 from app.errors import ApiErrorCode, ensure_result
 from app.filters.asset import AssetFilterDep
+from app.queries import crud
 from app.queries.common import router_admin_delete_one, router_read_many
 from app.repository.group import RepositoryGroup
 from app.routers.types import EntityRoute, ResourceRoute
 from app.schemas.asset import (
     AssetRead,
 )
+from app.schemas.auth import UserContext
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
-from app.service.asset import create_asset_download_redirect
+from app.service.asset import (
+    create_asset_download_redirect,
+    create_entity_asset_unverified,
+    validate_uploadfile_for_small_entity_post,
+)
+from app.utils.files import calculate_sha256_digest
 from app.utils.routers import entity_route_to_type, route_to_type
-from app.utils.s3 import StorageClientFactory
+from app.utils.s3 import (
+    StorageClientFactory,
+    upload_to_s3,
+)
 
 
 def delete_one(
@@ -121,3 +135,51 @@ def download_entity_asset(
         storage_client_factory=storage_client_factory,
         asset_path=asset_path,
     )
+
+
+def upload_entity_asset(
+    repos: RepositoryGroup,
+    user_context: UserContext,
+    virtual_lab_client: AdminVirtualLabClient,
+    storage_client_factory: StorageClientFactory,
+    entity_id: uuid.UUID,
+    entity_type: EntityType,
+    file: UploadFile,
+    label: AssetLabel,
+    meta: dict | None = None,
+) -> AssetRead:
+    """Upload an asset through admin flow."""
+    storage = storages[StorageType.aws_s3_internal]
+    s3_client = storage_client_factory(storage)
+    content_type = validate_uploadfile_for_small_entity_post(file)
+    sha256_digest = calculate_sha256_digest(file)
+    entity = crud.get_identifiable_one(
+        db=repos.db,
+        db_model_class=ENTITY_TYPE_TO_CLASS[entity_type],
+        id_=entity_id,
+    )
+    vlab_proj_mapping = virtual_lab_client.get_virtual_lab_by_project(
+        project_id=entity.authorized_project_id
+    )
+    asset_read = create_entity_asset_unverified(
+        repos,
+        entity=entity,
+        filename=cast("str", file.filename),
+        content_type=content_type,
+        size=file.size or 0,
+        sha256_digest=sha256_digest,
+        meta=meta,
+        label=label,
+        is_directory=False,
+        storage_type=storage.type,
+        user_profile=user_context.profile,
+        virtual_lab_id=vlab_proj_mapping.virtual_lab_id,
+    )
+    if not upload_to_s3(
+        s3_client,
+        file_obj=file.file,
+        bucket_name=storage.bucket,
+        s3_key=asset_read.full_path,
+    ):
+        raise HTTPException(status_code=500, detail="Failed to upload object")
+    return asset_read

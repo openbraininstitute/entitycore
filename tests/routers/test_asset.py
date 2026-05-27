@@ -2144,7 +2144,9 @@ def test_multipart_directory_upload_virtual_lab_id_not_found(client, root_circui
     response = assert_request(
         client.post,
         url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
-        json=_multipart_directory_json_data(directory_name="missing-vlab-multipart-directory-upload"),
+        json=_multipart_directory_json_data(
+            directory_name="missing-vlab-multipart-directory-upload"
+        ),
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())
@@ -2162,7 +2164,9 @@ def test_complete_multipart_directory_upload_not_uploading(client, root_circuit,
     assert error.error_code == ApiErrorCode.ASSET_NOT_UPLOADING
 
 
-def test_complete_multipart_directory_upload_empty_child_without_upload_meta(db, client, root_circuit):
+def test_complete_multipart_directory_upload_empty_child_without_upload_meta(
+    db, client, root_circuit
+):
     parent = add_db(
         db,
         Asset(
@@ -2185,7 +2189,9 @@ def test_complete_multipart_directory_upload_empty_child_without_upload_meta(db,
         db,
         Asset(
             path="missing-empty-meta-dir/empty.txt",
-            full_path=_get_expected_full_path(entity=root_circuit, path="missing-empty-meta-dir/empty.txt"),
+            full_path=_get_expected_full_path(
+                entity=root_circuit, path="missing-empty-meta-dir/empty.txt"
+            ),
             status="uploading",
             is_directory=False,
             content_type=ContentType.text,

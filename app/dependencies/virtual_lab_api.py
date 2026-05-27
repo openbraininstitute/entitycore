@@ -4,13 +4,13 @@ from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials
 
 from app.config import settings
-from app.dependencies.auth import AdminContextDep
+from app.dependencies.auth import AdminContextDep, AuthHeader
 from app.utils.virtual_lab import AdminVirtualLabClient
 
 
 def get_admin_virtual_lab_client(
     _user_context: AdminContextDep,
-    token: HTTPAuthorizationCredentials,
+    token: Annotated[HTTPAuthorizationCredentials, Depends(AuthHeader)],
 ) -> AdminVirtualLabClient:
     """Return admin client for virtual lab api.
 

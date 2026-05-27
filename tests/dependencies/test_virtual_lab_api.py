@@ -13,7 +13,7 @@ from app.config import settings
 from app.dependencies import virtual_lab_api as test_module
 from app.errors import ApiError, ApiErrorCode
 from app.schemas.virtual_lab import ProjectVirtualLabMapping
-from app.utils.virtual_lab import AdminVirtualLabClient
+from app.utils.virtual_lab import AdminVirtualLabClient, VirtualLabClient
 
 from tests.utils import PROJECT_ID, TOKEN_ADMIN, VIRTUAL_LAB_ID
 
@@ -45,6 +45,12 @@ def _mapping_response_json(
             "virtual_lab_id": str(virtual_lab_id),
         },
     }
+
+
+def test_virtual_lab_client_initialization(virtual_lab_api_url):
+    client = VirtualLabClient(base_url=virtual_lab_api_url, token="user-token")  # noqa: S106
+    assert str(client._http_client.base_url) == virtual_lab_api_url
+    assert client._http_client.headers["Authorization"] == "Bearer user-token"
 
 
 def test_get_admin_virtual_lab_client_uses_settings_and_token(

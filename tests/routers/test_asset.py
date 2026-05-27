@@ -9,7 +9,7 @@ from moto import mock_aws
 
 from app.config import settings, storages
 from app.db.model import Asset, Entity
-from app.db.types import AssetLabel, EntityType, StorageType
+from app.db.types import AssetLabel, ContentType, EntityType, StorageType
 from app.dependencies import auth
 from app.errors import ApiErrorCode
 from app.schemas.api import ErrorResponse
@@ -519,6 +519,32 @@ def test_upload_entity_asset_virtual_lab_id_not_found(client, entity, monkeypatc
         expected_status=None,
     )
     assert response.status_code == 422, f"Unexpected response: {response.text}"
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND
+
+
+def test_upload_entity_asset_directory_virtual_lab_id_not_found(client, root_circuit, monkeypatch):
+    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+        return UserContext(
+            profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
+            expiration=None,
+            is_authorized=True,
+            project_id=UUID(PROJECT_ID),
+            user_project_groups=[],
+        )
+
+    monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/upload",
+        json={
+            "files": ["morphology/cell1.swc"],
+            "meta": None,
+            "label": "sonata_circuit",
+            "directory_name": "missing-vlab-directory-upload",
+        },
+        expected_status_code=422,
+    )
     error = ErrorResponse.model_validate(response.json())
     assert error.error_code == ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND
 
@@ -2104,11 +2130,80 @@ def test_multipart_directory_upload_non_authorized(
     assert error.error_code == expected_error
 
 
+def test_multipart_directory_upload_virtual_lab_id_not_found(client, root_circuit, monkeypatch):
+    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+        return UserContext(
+            profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
+            expiration=None,
+            is_authorized=True,
+            project_id=UUID(PROJECT_ID),
+            user_project_groups=[],
+        )
+
+    monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/directory/multipart-upload/initiate",
+        json=_multipart_directory_json_data(directory_name="missing-vlab-multipart-directory-upload"),
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_VIRTUAL_LAB_ID_NOT_FOUND
+
+
 def test_complete_multipart_directory_upload_not_uploading(client, root_circuit, asset_directory):
     """Test complete multipart directory upload when asset is not in uploading status."""
     response = assert_request(
         client.post,
         url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/{asset_directory.id}/directory/multipart-upload/complete",
+        expected_status_code=422,
+    )
+    error = ErrorResponse.model_validate(response.json())
+    assert error.error_code == ApiErrorCode.ASSET_NOT_UPLOADING
+
+
+def test_complete_multipart_directory_upload_empty_child_without_upload_meta(db, client, root_circuit):
+    parent = add_db(
+        db,
+        Asset(
+            path="missing-empty-meta-dir",
+            full_path=_get_expected_full_path(entity=root_circuit, path="missing-empty-meta-dir"),
+            status="uploading",
+            is_directory=True,
+            content_type="application/vnd.directory",
+            size=-1,
+            sha256_digest=None,
+            meta={},
+            entity_id=root_circuit.id,
+            created_by_id=root_circuit.created_by_id,
+            updated_by_id=root_circuit.updated_by_id,
+            label="sonata_circuit",
+            storage_type=StorageType.aws_s3_internal,
+        ),
+    )
+    _ = add_db(
+        db,
+        Asset(
+            path="missing-empty-meta-dir/empty.txt",
+            full_path=_get_expected_full_path(entity=root_circuit, path="missing-empty-meta-dir/empty.txt"),
+            status="uploading",
+            is_directory=False,
+            content_type=ContentType.text,
+            size=0,
+            sha256_digest=None,
+            upload_meta=None,
+            meta={},
+            entity_id=root_circuit.id,
+            parent_id=parent.id,
+            created_by_id=root_circuit.created_by_id,
+            updated_by_id=root_circuit.updated_by_id,
+            label="directory_child",
+            storage_type=StorageType.aws_s3_internal,
+        ),
+    )
+    response = assert_request(
+        client.post,
+        url=f"{route(root_circuit.type)}/{root_circuit.id}/assets/{parent.id}/directory/multipart-upload/complete",
         expected_status_code=422,
     )
     error = ErrorResponse.model_validate(response.json())

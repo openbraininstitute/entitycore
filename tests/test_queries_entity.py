@@ -3,9 +3,12 @@ from uuid import UUID
 import pytest
 
 from app.db.model import Circuit
+from app.db.types import EntityType
 from app.errors import ApiError, ApiErrorCode
 from app.queries.entity import get_writable_entity, get_writable_entity_by_context
+from app.repository.group import RepositoryGroup
 from app.schemas.auth import UserContext, UserProfile
+from app.service import entity as entity_service
 
 from tests.utils import PROJECT_ID, UNRELATED_PROJECT_ID, USER_SUB_ID_1, VIRTUAL_LAB_ID
 
@@ -91,3 +94,15 @@ def test_find_virtual_lab_from_project_id_without_groups():
         user_project_groups=[],
     )
     assert user_context.find_virtual_lab_from_project_id(UUID(PROJECT_ID)) is None
+
+
+def test_service_get_writable_entity(db, circuit, user_context_user_1):
+    repos = RepositoryGroup(db)
+    entity = entity_service.get_writable_entity(
+        repos,
+        user_context=user_context_user_1,
+        entity_type=EntityType.circuit,
+        entity_id=circuit.id,
+        for_update=True,
+    )
+    assert entity.id == circuit.id

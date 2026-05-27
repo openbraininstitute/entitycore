@@ -3,7 +3,12 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, RelationshipProperty
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    InstrumentedAttribute,
+    RelationshipProperty,
+    class_mapper,
+)
 
 from app.db.auth import HasAuth
 from app.db.model import (
@@ -195,11 +200,4 @@ def get_declaring_class(
     if not has_project_id_in_columns(db_model_class):
         return None
 
-    declaring_table = db_model_class.__mapper__.columns[column_name].table
-
-    # Iterate all mappers registered with the Base registry
-    for mapper in db_model_class.registry.mappers:
-        if mapper.local_table is declaring_table:
-            return mapper.class_
-
-    return None
+    return class_mapper(db_model_class).get_property(column_name).parent.class_

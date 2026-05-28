@@ -116,7 +116,7 @@ def read_many(
         aliases=aliases,
         pagination_request=pagination_request,
         response_schema_class=ExternalUrlRead,
-        authorized_project_id=None,
+        user_context=None,
         filter_joins=filter_joins,
     )
 

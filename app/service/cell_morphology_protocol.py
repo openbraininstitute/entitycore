@@ -133,7 +133,7 @@ def _read_many(
     return router_read_many(
         db=db,
         db_model_class=CellMorphologyProtocol,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         with_search=None,
         with_in_brain_region=None,
         facets=with_facets,

@@ -8,7 +8,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload
 import app.queries.common
 from app.db.auth import (
     constrain_entity_query_to_project,
-    constrain_to_readable_entities_by_project,
+    constrain_to_readable_entities_by_context,
     constrain_to_writable_entities,
 )
 from app.db.model import Agent, Contribution, Entity, Person
@@ -79,8 +79,8 @@ def _read_many(
         aliases=aliases,
     )
     if check_authorized_project:
-        filter_query = lambda q: constrain_to_readable_entities_by_project(
-            query=_load(q), project_id=user_context.project_id
+        filter_query = lambda q: constrain_to_readable_entities_by_context(
+            query=_load(q), user_context=user_context
         )
     else:
         filter_query = _load
@@ -98,7 +98,7 @@ def _read_many(
         response_schema_class=ContributionRead,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
-        authorized_project_id=user_context.project_id,
+        user_context=None,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
     )
@@ -145,8 +145,8 @@ def read_one(
         db_model_class=Contribution,
         user_context=None,
         response_schema_class=ContributionRead,
-        apply_operations=lambda q: constrain_to_readable_entities_by_project(
-            query=_load(q), project_id=user_context.project_id
+        apply_operations=lambda q: constrain_to_readable_entities_by_context(
+            query=_load(q), user_context=user_context
         ),
     )
 

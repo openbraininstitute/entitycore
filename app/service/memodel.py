@@ -211,7 +211,7 @@ def _read_many(
     return router_read_many(
         db=db,
         db_model_class=MEModel,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         with_search=search,
         with_in_brain_region=in_brain_region,
         facets=facets,

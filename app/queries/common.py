@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import operators
 
 from app.db.auth import (
-    constrain_to_readable_entities_by_project,
+    constrain_to_readable_entities_by_context,
     constrain_to_writable_entities,
 )
 from app.db.model import Activity, Identifiable
@@ -69,9 +69,9 @@ def router_read_one[T: BaseModel, I: Identifiable](
     if user_context and (
         id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
     ):
-        query = constrain_to_readable_entities_by_project(
+        query = constrain_to_readable_entities_by_context(
             query=query,
-            project_id=user_context.project_id,
+            user_context=user_context,
             db_model_class=id_model_class,
         )
     if apply_operations:
@@ -269,7 +269,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     *,
     db: Session,
     db_model_class: type[I],
-    authorized_project_id: uuid.UUID | None,
+    user_context: UserContext | None,
     with_search: Search[I] | None,
     with_in_brain_region: InBrainRegionQuery | None,
     facets: WithFacets | None,
@@ -289,7 +289,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     Args:
         db: database session.
         db_model_class: database model class.
-        authorized_project_id: project id for filtering the resources.
+        user_context: user context for filtering readable resources.
         with_search: search query (str).
         with_in_brain_region: enable family queries based on BrainRegion
         facets: facet query (bool).
@@ -311,12 +311,14 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     """
     filter_query = sa.select(db_model_class)
 
-    if check_authorized_project and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+    if (
+        user_context
+        and check_authorized_project
+        and (id_model_class := get_declaring_class(db_model_class, "authorized_project_id"))
     ):
-        filter_query = constrain_to_readable_entities_by_project(
+        filter_query = constrain_to_readable_entities_by_context(
             query=filter_query,
-            project_id=authorized_project_id,
+            user_context=user_context,
             db_model_class=id_model_class,
         )
 

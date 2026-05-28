@@ -23,7 +23,7 @@ def read_many(
     return router_read_many(
         db=db,
         db_model_class=License,
-        authorized_project_id=None,
+        user_context=None,
         with_search=None,
         with_in_brain_region=None,
         facets=None,

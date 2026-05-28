@@ -130,7 +130,7 @@ def _read_many(
     return router_read_many(
         db=db,
         db_model_class=EMCellMesh,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         with_search=with_search,
         with_in_brain_region=in_brain_region,
         facets=facets,

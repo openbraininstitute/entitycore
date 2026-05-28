@@ -2,7 +2,7 @@
 
 import uuid
 from http import HTTPStatus
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
@@ -27,7 +27,11 @@ from app.queries.common import (
     router_read_one,
     router_update_one,
 )
-from app.queries.entity import get_accessible_entity, get_writable_entity
+from app.queries.entity import (
+    get_readable_entity_by_context,
+    get_readable_entity_by_project,
+    get_writable_entity,
+)
 from app.queries.factory import query_params_factory
 from app.queries.utils import is_user_authorized_for_deletion
 from app.routers.types import EntityRoute
@@ -44,7 +48,6 @@ from app.utils.routers import entity_route_to_type
 
 if TYPE_CHECKING:
     from app.filters.base import Aliases
-    from app.schemas.auth import UserContext
 
 
 def _load(query: sa.Select):
@@ -98,7 +101,7 @@ def _read_many(
     return router_read_many(
         db=db,
         db_model_class=Derivation,
-        authorized_project_id=user_context.project_id,
+        user_context=None,  # Already filtered above
         with_search=None,
         with_in_brain_region=None,
         facets=None,
@@ -253,7 +256,7 @@ def _read_many_from_entity(
 
     # ensure that the requested entity is readable
     if check_authorized_project:
-        _ = get_accessible_entity(
+        _ = get_readable_entity_by_context(
             db,
             db_model_class=generated_db_model_class,
             entity_id=entity_id,
@@ -275,7 +278,7 @@ def _read_many_from_entity(
     return router_read_many(
         db=db,
         db_model_class=used_db_model_class,
-        authorized_project_id=user_context.project_id,
+        user_context=user_context,
         with_search=None,
         with_in_brain_region=None,
         facets=None,
@@ -349,11 +352,11 @@ def create_one(
 
     See also https://github.com/openbraininstitute/entitycore/issues/427
     """
-    _used_entity = get_accessible_entity(
+    _used_entity = get_readable_entity_by_project(
         db,
         Entity,
         json_model.used_id,
-        user_context=cast("UserContext", user_context),
+        project_id=user_context.project_id,
     )
     _generated_entity = get_writable_entity(
         db,

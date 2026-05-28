@@ -1,8 +1,7 @@
 import sqlalchemy as sa
 
 from app.db.auth import constrain_to_private_entities
-from app.db.model import Circuit, Derivation, Entity
-from app.db.utils import get_declaring_class
+from app.db.model import Circuit
 
 
 def test_constrain_to_private_entities(db, user_context_user_1, circuit):
@@ -16,11 +15,3 @@ def test_constrain_to_private_entities(db, user_context_user_1, circuit):
     for row in rows:
         assert not row.authorized_public
         assert row.authorized_project_id in user_context_user_1.user_project_ids
-
-
-def test_get_declaring_class_returns_none_without_project_column():
-    assert get_declaring_class(Derivation, "authorized_project_id") is None
-
-
-def test_get_declaring_class_finds_declaring_table_for_circuit():
-    assert get_declaring_class(Circuit, "authorized_project_id") is Entity

@@ -34,7 +34,7 @@ def test_router_update_raises_without_authorized_project_column(db, user_context
 
 def test_router_update_activity_raises_without_authorized_project_column(db, user_context_user_1):
     with (
-        patch("app.queries.common.get_declaring_class", return_value=None),
+        patch("app.queries.common.get_authorized_project_id_declaring_class", return_value=None),
         pytest.raises(ApiError) as excinfo,
     ):
         router_update_activity_one(

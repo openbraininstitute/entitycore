@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi_filter import with_prefix
@@ -21,6 +22,8 @@ class NestedSimulationResultFilter(IdFilterMixin, NameFilterMixin, CustomFilter)
 class SimulationResultFilter(
     EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter
 ):
+    simulation_id: uuid.UUID | None = None
+    simulation_id__in: list[uuid.UUID] | None = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

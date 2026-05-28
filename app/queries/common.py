@@ -11,7 +11,11 @@ from app.db.auth import (
     constrain_to_writable_entities,
 )
 from app.db.model import Activity, Identifiable
-from app.db.utils import get_declaring_class, load_db_model_from_pydantic, update_model
+from app.db.utils import (
+    get_authorized_project_id_declaring_class,
+    load_db_model_from_pydantic,
+    update_model,
+)
 from app.dependencies.common import (
     FacetQueryParams,
     InBrainRegionQuery,
@@ -67,7 +71,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     """
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if user_context and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+        id_model_class := get_authorized_project_id_declaring_class(db_model_class)
     ):
         query = constrain_to_readable_entities_by_project(
             query=query,
@@ -169,7 +173,7 @@ def router_create_one[T: BaseModel, I: Identifiable](
 
     project_id = (
         user_context.project_id
-        if get_declaring_class(db_model_class, "authorized_project_id")
+        if get_authorized_project_id_declaring_class(db_model_class)
         else None
     )
 
@@ -312,7 +316,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     filter_query = sa.select(db_model_class)
 
     if check_authorized_project and (
-        id_model_class := get_declaring_class(db_model_class, "authorized_project_id")
+        id_model_class := get_authorized_project_id_declaring_class(db_model_class)
     ):
         filter_query = constrain_to_readable_entities_by_project(
             query=filter_query,
@@ -407,7 +411,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
         sa.select(db_model_class).where(db_model_class.id == id_).with_for_update(of=db_model_class)
     )
     if check_authorized_project:
-        id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
+        id_model_class = get_authorized_project_id_declaring_class(db_model_class)
 
         if id_model_class is None:
             raise ApiError(
@@ -516,7 +520,7 @@ def router_update_activity_one[T: BaseModel, I: Activity](
     nested_relationships = NESTED_RELATIONSHIPS_MAP[Activity]
     query = sa.select(db_model_class).where(db_model_class.id == id_)
     if check_authorized_project:
-        id_model_class = get_declaring_class(db_model_class, "authorized_project_id")
+        id_model_class = get_authorized_project_id_declaring_class(db_model_class)
 
         if id_model_class is None:
             raise ApiError(

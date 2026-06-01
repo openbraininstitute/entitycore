@@ -196,6 +196,7 @@ def user_verified(
             expiration=None,
             is_authorized=True,
             is_service_admin=True,
+            is_service_maintainer=True,
             virtual_lab_id=project_context.virtual_lab_id,
             project_id=project_context.project_id,
         )

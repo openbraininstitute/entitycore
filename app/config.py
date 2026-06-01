@@ -73,7 +73,7 @@ class Settings(BaseSettings):
 
     API_ASSET_POST_MAX_SIZE: int = 150 * MB
     PAGINATION_DEFAULT_PAGE_SIZE: int = 30
-    PAGINATION_MAX_PAGE_SIZE: int = 200
+    PAGINATION_MAX_PAGE_SIZE: int = 1000
 
     DB_ENGINE: str = "postgresql+psycopg2"
     DB_USER: str = "entitycore"

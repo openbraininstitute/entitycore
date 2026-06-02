@@ -79,6 +79,45 @@ def _update_measurement_label_ids(
     return measurement_annotation
 
 
+def _update_measurement_label_ids_on_update(
+    db: SessionDep,
+    id_: uuid.UUID,
+    measurement_annotation: MeasurementAnnotationUserUpdate,
+) -> MeasurementAnnotationUserUpdate:
+    if measurement_annotation.measurement_kinds is None:
+        return measurement_annotation
+
+    entity_type = measurement_annotation.entity_type
+    if entity_type is None:
+        query = sa.select(MeasurementAnnotation.entity_type).where(MeasurementAnnotation.id == id_)
+        entity_type = db.execute(query).scalar_one_or_none()
+        if entity_type is None:
+            raise ApiError(
+                message=f"MeasurementAnnotation {id_} not found",
+                error_code=ApiErrorCode.ENTITY_NOT_FOUND,
+                http_status_code=HTTPStatus.NOT_FOUND,
+            )
+
+    labels = {kind.pref_label for kind in measurement_annotation.measurement_kinds}
+    query = sa.select(MeasurementLabel.pref_label, MeasurementLabel.id).where(
+        MeasurementLabel.entity_type == entity_type,
+    )
+    allowed_labels = {row.pref_label: row.id for row in db.execute(query)}
+    if invalid_labels := labels.difference(allowed_labels):
+        raise ApiError(
+            message=f"Invalid measurement labels for entity type {entity_type}",
+            error_code=ApiErrorCode.INVALID_REQUEST,
+            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            details={
+                "invalid_labels": sorted(invalid_labels),
+                "allowed_labels": sorted(allowed_labels),
+            },
+        )
+    for measurement_kind in measurement_annotation.measurement_kinds:
+        measurement_kind.measurement_label_id = allowed_labels[measurement_kind.pref_label]
+    return measurement_annotation
+
+
 def _load_from_db(q: sa.Select) -> sa.Select:
     return q.options(
         selectinload(MeasurementAnnotation.measurement_kinds).options(
@@ -280,7 +319,10 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: MeasurementAnnotationUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: Annotated[
+        MeasurementAnnotationUserUpdate,
+        Depends(_update_measurement_label_ids_on_update),
+    ],
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         entity_alias = aliased(Entity)
@@ -306,7 +348,10 @@ def admin_update_one(
     user_context: AdminContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: MeasurementAnnotationAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+    json_model: Annotated[
+        MeasurementAnnotationAdminUpdate,
+        Depends(_update_measurement_label_ids_on_update),
+    ],
 ) -> MeasurementAnnotationRead:
     def apply_operations(q):
         entity_alias = aliased(Entity)

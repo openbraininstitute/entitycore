@@ -185,7 +185,14 @@ def test_read_many(
     }
 
 
-def test_update_one(clients, json_data, subject_id, brain_region_id, cell_morphology_protocol_id):
+def test_update_one(
+    clients,
+    json_data,
+    subject_id,
+    brain_region_id,
+    cell_morphology_protocol_id,
+    measurement_labels,
+):
     old_morph_id = json_data["entity_id"]
 
     new_morph_id = create_cell_morphology_id(
@@ -197,6 +204,29 @@ def test_update_one(clients, json_data, subject_id, brain_region_id, cell_morpho
     )
 
     model_id = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()["id"]
+
+    patch_data = {
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[1],
+                "structural_domain": "soma",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm²",
+                        "value": 101.1,
+                    },
+                ],
+            }
+        ],
+    }
+    data = assert_request(clients.user_1.patch, url=f"{ROUTE}/{model_id}", json=patch_data).json()
+    assert len(data["measurement_kinds"]) == 1
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[1]
+    assert (
+        data["measurement_kinds"][0]["measurement_items"]
+        == patch_data["measurement_kinds"][0]["measurement_items"]
+    )
 
     patch_data = {
         "entity_id": str(new_morph_id),
@@ -224,6 +254,33 @@ def test_update_one(clients, json_data, subject_id, brain_region_id, cell_morpho
         clients.admin.patch, url=f"{ADMIN_ROUTE}/{model_id}", json=patch_data
     ).json()
     assert data["entity_id"] == patch_data["entity_id"]
+
+    admin_measurement_kinds_patch_data = {
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[0],
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "median",
+                        "unit": "μm",
+                        "value": 202.2,
+                    },
+                ],
+            }
+        ],
+    }
+    data = assert_request(
+        clients.admin.patch,
+        url=f"{ADMIN_ROUTE}/{model_id}",
+        json=admin_measurement_kinds_patch_data,
+    ).json()
+    assert len(data["measurement_kinds"]) == 1
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[0]
+    assert (
+        data["measurement_kinds"][0]["measurement_items"]
+        == (admin_measurement_kinds_patch_data["measurement_kinds"][0]["measurement_items"])
+    )
 
 
 def _get_request_payload_1(entity_id, labels):

@@ -7,7 +7,6 @@ from pydantic.json_schema import SkipJsonSchema
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
 from app.schemas.base import CreationMixin, IdentifiableMixin
-from app.schemas.utils import make_update_schema
 
 
 class MeasurementItem(BaseModel):
@@ -48,13 +47,12 @@ class MeasurementAnnotationCreate(MeasurementAnnotationBase):
     measurement_kinds: Sequence[MeasurementKindCreate]
 
 
-MeasurementAnnotationUserUpdate = make_update_schema(
-    MeasurementAnnotationCreate,
-    "MeasurementAnnotationUserUpdate",
-)  # pyright : ignore [reportInvalidTypeForm]
+class MeasurementAnnotationUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    entity_id: uuid.UUID | None = None
+    entity_type: MeasurableEntityType | None = None
+    measurement_kinds: Sequence[MeasurementKindCreate] | None = None
 
-MeasurementAnnotationAdminUpdate = make_update_schema(
-    MeasurementAnnotationCreate,
-    "MeasurementAnnotationAdminUpdate",
-    excluded_fields=set(),
-)  # pyright : ignore [reportInvalidTypeForm]
+
+MeasurementAnnotationUserUpdate = MeasurementAnnotationUpdate
+MeasurementAnnotationAdminUpdate = MeasurementAnnotationUpdate

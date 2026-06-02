@@ -514,3 +514,63 @@ def test_authorization(
     data = response.json()["data"]
     assert len(data) == 1
     assert data[0]["id"] == measurement_annotation_id_public
+
+
+def test_delete_one_authorization_and_response(
+    clients, subject_id, brain_region_id, measurement_labels, cell_morphology_protocol_id
+):
+    # user_1 creates one private and one public annotation
+    private_morphology_id = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
+        authorized_public=False,
+    )
+    public_morphology_id = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
+        authorized_public=True,
+    )
+
+    private_annotation_id = assert_request(
+        clients.user_1.post,
+        url=ROUTE,
+        json=_get_request_payload_1(entity_id=private_morphology_id, labels=measurement_labels),
+    ).json()["id"]
+    public_annotation_id = assert_request(
+        clients.user_1.post,
+        url=ROUTE,
+        json=_get_request_payload_1(entity_id=public_morphology_id, labels=measurement_labels),
+    ).json()["id"]
+
+    # unauthorized clients are forbidden to delete
+    for client in (clients.user_2, clients.no_project):
+        data = assert_request(
+            client.delete,
+            url=f"{ROUTE}/{private_annotation_id}",
+            expected_status_code=403,
+        ).json()
+        assert data["error_code"] == "ENTITY_FORBIDDEN"
+
+    # owner can delete private annotation and gets DeleteResponse payload
+    data = assert_request(clients.user_1.delete, url=f"{ROUTE}/{private_annotation_id}").json()
+    assert data == {"id": private_annotation_id}
+
+    data = assert_request(
+        clients.user_1.get,
+        url=f"{ROUTE}/{private_annotation_id}",
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # public annotations cannot be deleted from regular route by non-admin clients
+    for client in (clients.user_1, clients.user_2, clients.no_project):
+        data = assert_request(
+            client.delete,
+            url=f"{ROUTE}/{public_annotation_id}",
+            expected_status_code=403,
+        ).json()
+        assert data["error_code"] == "ENTITY_FORBIDDEN"

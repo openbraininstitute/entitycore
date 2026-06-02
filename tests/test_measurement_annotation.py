@@ -185,7 +185,14 @@ def test_read_many(
     }
 
 
-def test_update_one(clients, json_data, subject_id, brain_region_id, cell_morphology_protocol_id):
+def test_update_one(
+    clients,
+    json_data,
+    subject_id,
+    brain_region_id,
+    cell_morphology_protocol_id,
+    measurement_labels,
+):
     old_morph_id = json_data["entity_id"]
 
     new_morph_id = create_cell_morphology_id(
@@ -197,6 +204,49 @@ def test_update_one(clients, json_data, subject_id, brain_region_id, cell_morpho
     )
 
     model_id = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()["id"]
+
+    patch_data = {
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[1],
+                "structural_domain": "soma",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm²",
+                        "value": 101.1,
+                    },
+                ],
+            }
+        ],
+    }
+    data = assert_request(clients.user_1.patch, url=f"{ROUTE}/{model_id}", json=patch_data).json()
+    assert len(data["measurement_kinds"]) == 1
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[1]
+    assert (
+        data["measurement_kinds"][0]["measurement_items"]
+        == patch_data["measurement_kinds"][0]["measurement_items"]
+    )
+
+    patch_data = {
+        "entity_type": ENTITY_TYPE,
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[0],
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm",
+                        "value": 88.8,
+                    }
+                ],
+            }
+        ],
+    }
+    data = assert_request(clients.user_1.patch, url=f"{ROUTE}/{model_id}", json=patch_data).json()
+    assert data["entity_type"] == patch_data["entity_type"]
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[0]
 
     patch_data = {
         "entity_id": str(new_morph_id),
@@ -224,6 +274,33 @@ def test_update_one(clients, json_data, subject_id, brain_region_id, cell_morpho
         clients.admin.patch, url=f"{ADMIN_ROUTE}/{model_id}", json=patch_data
     ).json()
     assert data["entity_id"] == patch_data["entity_id"]
+
+    admin_measurement_kinds_patch_data = {
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[1],
+                "structural_domain": "soma",
+                "measurement_items": [
+                    {
+                        "name": "median",
+                        "unit": "μm²",
+                        "value": 202.2,
+                    },
+                ],
+            }
+        ],
+    }
+    data = assert_request(
+        clients.admin.patch,
+        url=f"{ADMIN_ROUTE}/{model_id}",
+        json=admin_measurement_kinds_patch_data,
+    ).json()
+    assert len(data["measurement_kinds"]) == 1
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[1]
+    assert (
+        data["measurement_kinds"][0]["measurement_items"]
+        == (admin_measurement_kinds_patch_data["measurement_kinds"][0]["measurement_items"])
+    )
 
 
 def _get_request_payload_1(entity_id, labels):
@@ -437,6 +514,32 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
+def test_update_missing_with_measurement_kinds(clients):
+    missing_id = "00000000-0000-0000-0000-000000000000"
+    patch_data = {
+        "measurement_kinds": [
+            {
+                "pref_label": "pref_label_missing",
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm",
+                        "value": 1.0,
+                    }
+                ],
+            }
+        ]
+    }
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{ROUTE}/{missing_id}",
+        json=patch_data,
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+
 def test_authorization(
     client_user_1,
     client_user_2,
@@ -574,3 +677,116 @@ def test_delete_one_authorization_and_response(
             expected_status_code=403,
         ).json()
         assert data["error_code"] == "ENTITY_FORBIDDEN"
+
+
+def test_update_authorization_patterns_with_measurement_kinds(
+    clients, subject_id, brain_region_id, measurement_labels, cell_morphology_protocol_id
+):
+    private_morphology_id = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
+        authorized_public=False,
+    )
+    public_morphology_id = create_cell_morphology_id(
+        clients.user_1,
+        subject_id=subject_id,
+        brain_region_id=brain_region_id,
+        cell_morphology_protocol_id=cell_morphology_protocol_id,
+        authorized_public=True,
+    )
+
+    private_annotation_id = assert_request(
+        clients.user_1.post,
+        url=ROUTE,
+        json=_get_request_payload_1(entity_id=private_morphology_id, labels=measurement_labels),
+    ).json()["id"]
+    public_annotation_id = assert_request(
+        clients.user_1.post,
+        url=ROUTE,
+        json=_get_request_payload_1(entity_id=public_morphology_id, labels=measurement_labels),
+    ).json()["id"]
+
+    update_payload = {
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[0],
+                "structural_domain": "soma",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm²",
+                        "value": 303.3,
+                    }
+                ],
+            }
+        ]
+    }
+
+    # user route: owner can update private only
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{ROUTE}/{private_annotation_id}",
+        json=update_payload,
+    ).json()
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[0]
+
+    # user route: private of another project and public annotations are not writable
+    for annotation_id in (private_annotation_id, public_annotation_id):
+        for client in (clients.user_2, clients.no_project):
+            data = assert_request(
+                client.patch,
+                url=f"{ROUTE}/{annotation_id}",
+                json=update_payload,
+                expected_status_code=404,
+            ).json()
+            assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{ROUTE}/{public_annotation_id}",
+        json=update_payload,
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
+
+    # admin route: only admin can patch
+    admin_update_payload = {
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[1],
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "median",
+                        "unit": "μm",
+                        "value": 404.4,
+                    }
+                ],
+            }
+        ]
+    }
+
+    for client in (clients.user_1, clients.user_2, clients.no_project):
+        data = assert_request(
+            client.patch,
+            url=f"{ADMIN_ROUTE}/{private_annotation_id}",
+            json=admin_update_payload,
+            expected_status_code=403,
+        ).json()
+        assert data["message"] == "Service admin role required"
+
+    data = assert_request(
+        clients.admin.patch,
+        url=f"{ADMIN_ROUTE}/{private_annotation_id}",
+        json=admin_update_payload,
+    ).json()
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[1]
+
+    data = assert_request(
+        clients.admin.patch,
+        url=f"{ADMIN_ROUTE}/{public_annotation_id}",
+        json=admin_update_payload,
+    ).json()
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[1]

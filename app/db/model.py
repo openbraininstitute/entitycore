@@ -897,7 +897,10 @@ class MeasurementAnnotation(LegacyMixin, Identifiable):
         passive_deletes=True,
     )
     measurement_kinds: Mapped[list["MeasurementKind"]] = relationship(
-        back_populates="measurement_annotation", passive_deletes=True
+        back_populates="measurement_annotation",
+        passive_deletes=True,
+        cascade="all, delete-orphan",
+        single_parent=True,
     )
 
     @hybrid_property
@@ -962,7 +965,10 @@ class MeasurementKind(Base):
         passive_deletes=True,
     )
     measurement_items: Mapped[list["MeasurementItem"]] = relationship(
-        back_populates="measurement_kind", passive_deletes=True
+        back_populates="measurement_kind",
+        passive_deletes=True,
+        cascade="all, delete-orphan",
+        single_parent=True,
     )
 
     @hybrid_property

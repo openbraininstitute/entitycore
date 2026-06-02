@@ -229,6 +229,26 @@ def test_update_one(
     )
 
     patch_data = {
+        "entity_type": ENTITY_TYPE,
+        "measurement_kinds": [
+            {
+                "pref_label": measurement_labels[0],
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm",
+                        "value": 88.8,
+                    }
+                ],
+            }
+        ],
+    }
+    data = assert_request(clients.user_1.patch, url=f"{ROUTE}/{model_id}", json=patch_data).json()
+    assert data["entity_type"] == patch_data["entity_type"]
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[0]
+
+    patch_data = {
         "entity_id": str(new_morph_id),
     }
     data = assert_request(clients.user_1.patch, url=f"{ROUTE}/{model_id}", json=patch_data).json()
@@ -258,12 +278,12 @@ def test_update_one(
     admin_measurement_kinds_patch_data = {
         "measurement_kinds": [
             {
-                "pref_label": measurement_labels[0],
-                "structural_domain": "axon",
+                "pref_label": measurement_labels[1],
+                "structural_domain": "soma",
                 "measurement_items": [
                     {
                         "name": "median",
-                        "unit": "μm",
+                        "unit": "μm²",
                         "value": 202.2,
                     },
                 ],
@@ -276,7 +296,7 @@ def test_update_one(
         json=admin_measurement_kinds_patch_data,
     ).json()
     assert len(data["measurement_kinds"]) == 1
-    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[0]
+    assert data["measurement_kinds"][0]["pref_label"] == measurement_labels[1]
     assert (
         data["measurement_kinds"][0]["measurement_items"]
         == (admin_measurement_kinds_patch_data["measurement_kinds"][0]["measurement_items"])
@@ -492,6 +512,32 @@ def test_create_and_retrieve(
 
 def test_missing(client):
     check_missing(ROUTE, client)
+
+
+def test_update_missing_with_measurement_kinds(clients):
+    missing_id = "00000000-0000-0000-0000-000000000000"
+    patch_data = {
+        "measurement_kinds": [
+            {
+                "pref_label": "pref_label_missing",
+                "structural_domain": "axon",
+                "measurement_items": [
+                    {
+                        "name": "mean",
+                        "unit": "μm",
+                        "value": 1.0,
+                    }
+                ],
+            }
+        ]
+    }
+    data = assert_request(
+        clients.user_1.patch,
+        url=f"{ROUTE}/{missing_id}",
+        json=patch_data,
+        expected_status_code=404,
+    ).json()
+    assert data["error_code"] == "ENTITY_NOT_FOUND"
 
 
 def test_authorization(

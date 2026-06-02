@@ -26,12 +26,12 @@ from app.db.utils import MEASURABLE_ENTITIES
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
-from app.errors import ApiError, ApiErrorCode
+from app.errors import ApiError, ApiErrorCode, ensure_result
 from app.filters.measurement_annotation import (
     MeasurementAnnotationFilterDep,
 )
+from app.queries import crud
 from app.queries.common import (
-    router_admin_delete_one,
     router_create_one,
     router_read_many,
     router_read_one,
@@ -39,12 +39,14 @@ from app.queries.common import (
 )
 from app.queries.entity import get_writable_entity
 from app.queries.factory import query_params_factory
+from app.queries.utils import is_user_authorized_for_deletion
 from app.schemas.measurement_annotation import (
     MeasurementAnnotationAdminUpdate,
     MeasurementAnnotationCreate,
     MeasurementAnnotationRead,
     MeasurementAnnotationUserUpdate,
 )
+from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 
@@ -247,29 +249,31 @@ def create_one(
 
 
 def delete_one(
-    user_context: UserContextWithProjectIdDep,
+    user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> MeasurementAnnotationRead:
-    def apply_operations(q):
-        q = q.join(Entity, Entity.id == MeasurementAnnotation.entity_id)
-        q = constrain_entity_query_to_project(query=q, project_id=user_context.project_id)
-        return _load_from_db(q=q)
+) -> DeleteResponse:
 
-    one = router_read_one(
-        id_=id_,
-        db=db,
-        db_model_class=MeasurementAnnotation,
-        user_context=None,  # validated with apply_operations
-        response_schema_class=MeasurementAnnotationRead,
-        apply_operations=apply_operations,
+    query = (
+        sa.select(MeasurementAnnotation)
+        .where(MeasurementAnnotation.id == id_)
+        .options(selectinload(MeasurementAnnotation.entity), raiseload("*"))
     )
-    router_admin_delete_one(
-        id_=id_,
-        db=db,
-        db_model_class=MeasurementAnnotation,
-    )
-    return one
+
+    with ensure_result(error_message="MeasurementAnnotation not found"):
+        annotation = db.execute(query).unique().scalar_one()
+
+    # use entity's authorized_project_id for authorization
+    if not is_user_authorized_for_deletion(db, user_context, annotation.entity):
+        raise ApiError(
+            message="User is not authorized to access resource.",
+            error_code=ApiErrorCode.ENTITY_FORBIDDEN,
+            http_status_code=HTTPStatus.FORBIDDEN,
+        )
+
+    crud.delete_one(db=db, row=annotation)
+
+    return DeleteResponse(id=id_)
 
 
 def update_one(

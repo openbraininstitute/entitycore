@@ -352,7 +352,7 @@ def test_create_and_retrieve(
     response = client.delete(f"{ROUTE}/{measurement_annotation_id_1}")
     assert_response(response, expected_status_code=200)
     data = response.json()
-    assert data == expected_payload_1
+    assert data["id"] == expected_payload_1["id"]
 
     # create a 2nd annotation
     request_payload_2 = _get_request_payload_2(entity_id=morphology_id, labels=measurement_labels)

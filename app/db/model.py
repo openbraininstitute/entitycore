@@ -1616,8 +1616,7 @@ class GenericResult(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.generic_result.value
 
     # Identity sharing with the absolute entity super-table
-    id = sa.Column(sa.UUID(as_uuid=True), sa.ForeignKey("entity.id"), primary_key=True)
-
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     # The Discriminator column
     result_type = sa.Column(sa.String(50), nullable=False)
 

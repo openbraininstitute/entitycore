@@ -26,7 +26,7 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.Generic_result import (
+from app.schemas.generic_result import (
     GenericResultAdminUpdate,
     GenericResultCreate,
     GenericResultRead,

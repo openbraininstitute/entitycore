@@ -435,6 +435,7 @@ class AssetLabel(StrEnum):
     circuit_figures = auto()
     circuit_analysis_data = auto()
     circuit_connectivity_matrices = auto()
+    generic_result = auto()
     nwb = auto()
     neuron_hoc = auto()
     emodel_optimization_output = auto()
@@ -888,7 +889,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         ],
     },
     EntityType.generic_result: {
-        AssetLabel.other: [
+        AssetLabel.generic_result: [
             LabelRequirements(
                 content_type=ContentType.other,
                 is_directory=False,

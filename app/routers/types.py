@@ -28,6 +28,7 @@ class EntityRoute(HyphenStrEnum):
     ion_channel_recording = auto()
     memodel = auto()
     memodel_calibration_result = auto()
+    generic_result = auto()
     simulation = auto()
     simulation_campaign = auto()
     simulation_result = auto()

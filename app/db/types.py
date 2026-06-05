@@ -1,3 +1,4 @@
+# app/db/types.py
 from enum import StrEnum, auto
 from typing import Annotated, Any, TypedDict
 
@@ -115,6 +116,7 @@ class EntityType(StrEnum):
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     external_url = auto()
+    generic_result = auto()
     ion_channel_model = auto()
     ion_channel_modeling_campaign = auto()
     ion_channel_modeling_config = auto()
@@ -882,6 +884,15 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.json,
                 is_directory=False,
                 description="Summary of generated campaign listing all created simulation configs.",
+            )
+        ],
+    },
+    EntityType.generic_result: {
+        AssetLabel.other: [
+            LabelRequirements(
+                content_type=ContentType.other,
+                is_directory=False,
+                description="Generic result asset.",
             )
         ],
     },

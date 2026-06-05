@@ -1,3 +1,4 @@
+# app/db/model.py
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar
@@ -1609,6 +1610,24 @@ class SimulationExecution(Activity, ExecutionActivityMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class GenericResult(Entity, NameDescriptionVectorMixin):
+    __tablename__ = EntityType.generic_result.value
+
+    # Identity sharing with the absolute entity super-table
+    id = sa.Column(sa.UUID(as_uuid=True), sa.ForeignKey("entity.id"), primary_key=True)
+
+    # The Discriminator column
+    result_type = sa.Column(sa.String(50), nullable=False)
+
+    # Flexible JSON field used when no specific database columns are necessary
+    data_payload = sa.Column(sa.JSON, nullable=True, default=dict)
+
+    __mapper_args__ = {  # noqa: RUF012
+        "polymorphic_on": result_type,
+        "polymorphic_identity": "generic_result",  # Default identity fallback
+    }
 
 
 class SimulationResult(Entity, NameDescriptionVectorMixin):

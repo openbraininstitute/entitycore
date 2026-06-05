@@ -1,8 +1,8 @@
 """generic_result
 
-Revision ID: <generate_a_new_hex_id>
-Revises: f11898868755
-Create Date: 2025-06-05 <current_time>
+Revision ID: a3f9c12b4e81
+Revises: 0c555bea9437
+Create Date: 2025-06-05 14:30:22
 
 """
 
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 import app.db.types
 
 revision: str = "a3f9c12b4e81"
-down_revision: Union[str, None] = "38e60731b8fc"
+down_revision: Union[str, None] = "0c555bea9437"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

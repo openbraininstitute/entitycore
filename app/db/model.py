@@ -377,6 +377,14 @@ class Usage(Base):
     """
 
     __tablename__ = "usage"
+    __table_args__ = (
+        Index(
+            "ix_usage_activity_entity",
+            "usage_activity_id",
+            "usage_entity_id",
+            postgresql_concurrently=True,
+        ),
+    )
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id"),
         primary_key=True,
@@ -400,6 +408,14 @@ class Generation(Base):
     """
 
     __tablename__ = "generation"
+    __table_args__ = (
+        Index(
+            "ix_generation_activity_entity",
+            "generation_activity_id",
+            "generation_entity_id",
+            postgresql_concurrently=True,
+        ),
+    )
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,

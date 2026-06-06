@@ -20,7 +20,6 @@ from app.config import storages
 from app.db.model import (
     Agent,
     AnalysisNotebookEnvironment,
-    GenericResult,
     AnalysisNotebookResult,
     AnalysisNotebookTemplate,
     Base,
@@ -35,6 +34,7 @@ from app.db.model import (
     ETypeClass,
     ETypeClassification,
     ExternalUrl,
+    GenericResult,
     IonChannel,
     IonChannelModel,
     MEModel,

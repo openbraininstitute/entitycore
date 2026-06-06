@@ -38,7 +38,7 @@ def upgrade() -> None:
         postgresql_using="gin",
     )
     op.create_index(op.f("ix_generic_result_name"), "generic_result", ["name"], unique=False)
-
+    op.execute("ALTER TYPE entitytype ADD VALUE IF NOT EXISTS 'generic_result'")
 
 def downgrade() -> None:
     op.drop_index(op.f("ix_generic_result_name"), table_name="generic_result")

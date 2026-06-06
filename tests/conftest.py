@@ -20,6 +20,7 @@ from app.config import storages
 from app.db.model import (
     Agent,
     AnalysisNotebookEnvironment,
+    GenericResult,
     AnalysisNotebookResult,
     AnalysisNotebookTemplate,
     Base,
@@ -1540,6 +1541,39 @@ def public_simulation_result(db, public_simulation_result_json_data, person_id):
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_public": True,
+                "authorized_project_id": PROJECT_ID,
+            },
+        ),
+    )
+
+
+@pytest.fixture
+def generic_result_json_data():
+    return {
+        "name": "generic-result",
+        "description": "generic-result-description",
+    }
+
+
+@pytest.fixture
+def public_generic_result_json_data():
+    return {
+        "name": "generic-result",
+        "description": "generic-result-description",
+        "authorized_public": True,
+    }
+
+
+@pytest.fixture
+def generic_result(db, generic_result_json_data, person_id):
+    return add_db(
+        db,
+        GenericResult(
+            **generic_result_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": False,
                 "authorized_project_id": PROJECT_ID,
             },
         ),

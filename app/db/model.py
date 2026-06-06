@@ -1625,7 +1625,7 @@ class GenericResult(Entity, NameDescriptionVectorMixin):
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_on": result_type,
-        "polymorphic_identity": "generic_result",  # Default identity fallback
+        "polymorphic_identity": EntityType.generic_result.value,
     }
 
 

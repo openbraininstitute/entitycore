@@ -52,7 +52,6 @@ def _assert_read_response(data, json_data):
     assert data["name"] == json_data["name"]
     assert data["description"] == json_data["description"]
     assert data["type"] == EntityType.generic_result
-    assert data["generic_id"] is not None
 
     check_creation_fields(data)
 

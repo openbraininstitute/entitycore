@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
+from app.db.types import GenericResultType
 from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
@@ -23,7 +24,7 @@ class GenericResultBase(BaseModel, NameDescriptionMixin):
 
 class GenericResultCreate(GenericResultBase, AuthorizationOptionalPublicMixin):
     data_payload: dict[str, Any] = {}
-    result_type: str = "generic_result"
+    result_type: GenericResultType = GenericResultType.generic_result
 
 
 GenericResultUserUpdate = make_update_schema(GenericResultCreate, "GenericResultUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
@@ -45,5 +46,5 @@ class GenericResultRead(
     CreationMixin,
     AuthorizationMixin,
 ):
-    result_type: str
-    data_payload: dict[str, Any] | None
+    result_type: GenericResultType
+    data_payload: dict[str, Any]

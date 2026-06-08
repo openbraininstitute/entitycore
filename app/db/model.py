@@ -62,6 +62,7 @@ from app.db.types import (
     EntityType,
     ExecutorType,
     ExternalSource,
+    GenericResultType,
     GlobalType,
     MeasurementStatistic,
     MeasurementUnit,
@@ -1616,8 +1617,10 @@ class GenericResult(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.generic_result.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    result_type = sa.Column(sa.String(50), nullable=False, default="generic_result")
-    data_payload = sa.Column(sa.JSON, nullable=True, default=dict)
+    result_type = sa.Column(
+        sa.Enum(GenericResultType), nullable=False, default=GenericResultType.generic_result
+    )
+    data_payload: Mapped[JSON_DICT] = mapped_column(default={}, nullable=False, server_default="{}")
 
     __mapper_args__ = {"polymorphic_identity": EntityType.generic_result.value}  # noqa: RUF012
 

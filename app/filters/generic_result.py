@@ -1,22 +1,14 @@
 # app/filters/generic_result
 from typing import Annotated
 
-from fastapi_filter import with_prefix
-
 from app.db.model import GenericResult
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import (
-    IdFilterMixin,
     ILikeSearchFilterMixin,
     NameFilterMixin,
 )
 from app.filters.entity import EntityFilterMixin
-
-
-class NestedGenericResultFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
-    class Constants(CustomFilter.Constants):
-        model = GenericResult
 
 
 class GenericResultFilter(EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter):
@@ -28,6 +20,3 @@ class GenericResultFilter(EntityFilterMixin, NameFilterMixin, ILikeSearchFilterM
 
 
 GenericResultFilterDep = Annotated[GenericResultFilter, FilterDepends(GenericResultFilter)]
-NestedGenericResultFilterDep = FilterDepends(
-    with_prefix("generic_result", NestedGenericResultFilter)
-)

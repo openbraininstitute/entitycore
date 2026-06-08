@@ -147,6 +147,10 @@ class EntityType(StrEnum):
     task_config = auto()
 
 
+class GenericResultType(StrEnum):
+    generic_result = auto()
+
+
 class TaskConfigType(StrEnum):
     """Task config types."""
 
@@ -888,15 +892,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             )
         ],
     },
-    EntityType.generic_result: {
-        AssetLabel.generic_result: [
-            LabelRequirements(
-                content_type=ContentType.other,
-                is_directory=False,
-                description="Generic result asset.",
-            )
-        ],
-    },
+    EntityType.generic_result: None,
     EntityType.simulation_result: {
         AssetLabel.spike_report: [
             LabelRequirements(

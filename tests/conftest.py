@@ -1719,6 +1719,7 @@ def analysis_notebook_template_json_data():
         "name": "analysis-notebook-template",
         "description": "analysis-notebook-template-description",
         "scale": "cellular",
+        "exercise_id": str(uuid.uuid4()),
         "specifications": {
             "python": {"version": ">=3.10"},
             "docker": {

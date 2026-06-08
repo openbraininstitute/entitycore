@@ -2146,6 +2146,8 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scale: Mapped[AnalysisScale]
     specifications: Mapped[JSON_DICT | None]
+    # not defined as ForeignKey: the exercise entity is owned by another service
+    exercise_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

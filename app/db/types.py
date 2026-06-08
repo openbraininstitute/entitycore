@@ -169,6 +169,7 @@ class TaskConfigType(StrEnum):
     mesh_lod_generation__campaign = auto()
     mesh_lod_generation__config = auto()
 
+
 class TaskActivityType(StrEnum):
     """Task activity types."""
 
@@ -192,6 +193,7 @@ class TaskActivityType(StrEnum):
     extracellular_recording_weights_calculation__execution = auto()
     mesh_lod_generation__config_generation = auto()
     mesh_lod_generation__execution = auto()
+
 
 class AgentType(StrEnum):
     """Agent types.

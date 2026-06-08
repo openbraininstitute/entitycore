@@ -1,7 +1,7 @@
 """add exercise_id to analysis notebook template
 
 Revision ID: 42973a8b6a14
-Revises: 847012281a17
+Revises: d29c78e4a615
 Create Date: 2026-06-08 14:48:10.628263
 
 """
@@ -17,7 +17,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "42973a8b6a14"
-down_revision: Union[str, None] = "847012281a17"
+down_revision: Union[str, None] = "d29c78e4a615"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -605,9 +605,8 @@ class Entity(LegacyMixin, Identifiable):
             return (
                 Index(
                     "ix_entity_public_creation_date_id",
-                    "creation_date",
+                    sa.literal_column("creation_date DESC"),
                     "id",
-                    postgresql_ops={"creation_date": "DESC"},
                     postgresql_where=sa.text("authorized_public = true"),
                 ),
                 *args,

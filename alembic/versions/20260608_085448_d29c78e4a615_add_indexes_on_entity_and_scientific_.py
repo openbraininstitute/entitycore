@@ -26,9 +26,8 @@ def upgrade() -> None:
     op.create_index(
         "ix_entity_public_creation_date_id",
         "entity",
-        ["creation_date", "id"],
+        [sa.literal_column("creation_date DESC"), "id"],
         unique=False,
-        postgresql_ops={"creation_date": "DESC"},
         postgresql_where=sa.text("authorized_public = true"),
     )
     op.create_index(
@@ -51,7 +50,6 @@ def downgrade() -> None:
     op.drop_index(
         "ix_entity_public_creation_date_id",
         table_name="entity",
-        postgresql_ops={"creation_date": "DESC"},
         postgresql_where=sa.text("authorized_public = true"),
     )
     op.execute(

@@ -382,7 +382,6 @@ class Usage(Base):
             "ix_usage_activity_entity",
             "usage_activity_id",
             "usage_entity_id",
-            postgresql_concurrently=True,
         ),
     )
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
@@ -413,7 +412,6 @@ class Generation(Base):
             "ix_generation_activity_entity",
             "generation_activity_id",
             "generation_entity_id",
-            postgresql_concurrently=True,
         ),
     )
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
@@ -611,7 +609,6 @@ class Entity(LegacyMixin, Identifiable):
                     "id",
                     postgresql_ops={"creation_date": "DESC"},
                     postgresql_where=sa.text("authorized_public = true"),
-                    postgresql_concurrently=True,
                 ),
                 *args,
             )
@@ -736,7 +733,6 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
                     "ix_scientific_artifact_brain_region_id_id",
                     "brain_region_id",
                     "id",
-                    postgresql_concurrently=True,
                 ),
                 *args,
             )

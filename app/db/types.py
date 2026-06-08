@@ -172,8 +172,8 @@ class TaskConfigType(StrEnum):
     efeature_extraction__config = auto()
     emodel_optimization__campaign = auto()
     emodel_optimization__config = auto()
-    optimized_emodel_analysis_validation_export__campaign = auto()
-    optimized_emodel_analysis_validation_export__config = auto()
+    optimized_emodel_analysis_validation__campaign = auto()
+    optimized_emodel_analysis_validation__config = auto()
     circuit_synaptic_physiology_assignment__campaign = auto()
     circuit_synaptic_physiology_assignment__config = auto()
 
@@ -205,8 +205,8 @@ class TaskActivityType(StrEnum):
     efeature_extraction__execution = auto()
     emodel_optimization__config_generation = auto()
     emodel_optimization__execution = auto()
-    optimized_emodel_analysis_validation_export__config_generation = auto()
-    optimized_emodel_analysis_validation_export__execution = auto()
+    optimized_emodel_analysis_validation__config_generation = auto()
+    optimized_emodel_analysis_validation__execution = auto()
     circuit_synaptic_physiology_assignment__config_generation = auto()
     circuit_synaptic_physiology_assignment__execution = auto()
 

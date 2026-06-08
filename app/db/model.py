@@ -2134,6 +2134,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
         scale: The overall scale of the analysis in the notebook. Used for filtering.
         specifications: Definitions of required python version and inputs,
             with schema AnalysisNotebookTemplateSpecifications.
+        exercise_id: Maps the notebook to an exercise in OBI Grading service.
 
     Assets:
         - a .ipynb file.
@@ -2146,6 +2147,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scale: Mapped[AnalysisScale]
     specifications: Mapped[JSON_DICT | None]
+    exercise_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

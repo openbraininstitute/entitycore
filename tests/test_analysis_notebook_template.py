@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 
 from app.db.model import AnalysisNotebookTemplate
@@ -52,6 +54,7 @@ def _assert_read_response(data, json_data):
         data["specifications"]["docker"]["image_repository"]
         == json_data["specifications"]["docker"]["image_repository"]
     )
+    assert data["exercise_id"] == json_data["exercise_id"]
     assert "contributions" in data
 
     check_creation_fields(data)
@@ -102,6 +105,36 @@ def test_read_many_2(clients, json_data):
         clients=clients,
         json_data=json_data,
     )
+
+
+def test_filter_by_exercise_id(client, json_data):
+    exercise_a = str(uuid.uuid4())
+    exercise_b = str(uuid.uuid4())
+    exercise_c = str(uuid.uuid4())
+
+    id_a1 = assert_request(
+        client.post, url=ROUTE, json=json_data | {"name": "a1", "exercise_id": exercise_a}
+    ).json()["id"]
+    id_a2 = assert_request(
+        client.post, url=ROUTE, json=json_data | {"name": "a2", "exercise_id": exercise_a}
+    ).json()["id"]
+    id_b = assert_request(
+        client.post, url=ROUTE, json=json_data | {"name": "b", "exercise_id": exercise_b}
+    ).json()["id"]
+    assert_request(client.post, url=ROUTE, json=json_data | {"name": "none", "exercise_id": None})
+
+    data = assert_request(client.get, url=ROUTE, params={"exercise_id": exercise_a}).json()["data"]
+    assert {d["id"] for d in data} == {id_a1, id_a2}
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"exercise_id__in": [exercise_a, exercise_b]}
+    ).json()["data"]
+    assert {d["id"] for d in data} == {id_a1, id_a2, id_b}
+
+    data = assert_request(client.get, url=ROUTE, params={"exercise_id__in": [exercise_c]}).json()[
+        "data"
+    ]
+    assert data == []
 
 
 def test_delete_one(db, clients, json_data):

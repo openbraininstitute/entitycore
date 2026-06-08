@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from app.db.model import AnalysisNotebookTemplate
@@ -19,6 +20,8 @@ class NestedAnalysisNotebookTemplateFilter(IdFilterMixin, NameFilterMixin, Custo
 class AnalysisNotebookTemplateFilter(
     EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter
 ):
+    exercise_id: uuid.UUID | None = None
+    exercise_id__in: list[uuid.UUID] | None = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

@@ -23,26 +23,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.get_context().autocommit_block():
-        op.create_index(
-            "ix_generation_activity_entity",
-            "generation",
-            ["generation_activity_id", "generation_entity_id"],
-            unique=False,
-            postgresql_concurrently=True,
-        )
-        op.create_index(
-            "ix_usage_activity_entity",
-            "usage",
-            ["usage_activity_id", "usage_entity_id"],
-            unique=False,
-            postgresql_concurrently=True,
-        )
+    op.create_index(
+        "ix_generation_activity_entity",
+        "generation",
+        ["generation_activity_id", "generation_entity_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_usage_activity_entity",
+        "usage",
+        ["usage_activity_id", "usage_entity_id"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:
-    with op.get_context().autocommit_block():
-        op.drop_index("ix_usage_activity_entity", table_name="usage", postgresql_concurrently=True)
-        op.drop_index(
-            "ix_generation_activity_entity", table_name="generation", postgresql_concurrently=True
-        )
+    op.drop_index("ix_usage_activity_entity", table_name="usage")
+    op.drop_index("ix_generation_activity_entity", table_name="generation")

@@ -23,23 +23,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    with op.get_context().autocommit_block():
-        op.create_index(
-            "ix_entity_public_creation_date_id",
-            "entity",
-            ["creation_date", "id"],
-            unique=False,
-            postgresql_ops={"creation_date": "DESC"},
-            postgresql_where=sa.text("authorized_public = true"),
-            postgresql_concurrently=True,
-        )
-        op.create_index(
-            "ix_scientific_artifact_brain_region_id_id",
-            "scientific_artifact",
-            ["brain_region_id", "id"],
-            unique=False,
-            postgresql_concurrently=True,
-        )
+    op.create_index(
+        "ix_entity_public_creation_date_id",
+        "entity",
+        [sa.literal_column("creation_date DESC"), "id"],
+        unique=False,
+        postgresql_where=sa.text("authorized_public = true"),
+    )
+    op.create_index(
+        "ix_scientific_artifact_brain_region_id_id",
+        "scientific_artifact",
+        ["brain_region_id", "id"],
+        unique=False,
+    )
     op.execute(
         "ALTER TABLE cell_morphology_protocol ALTER COLUMN generation_type SET STATISTICS 500"
     )
@@ -47,19 +43,15 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    with op.get_context().autocommit_block():
-        op.drop_index(
-            "ix_scientific_artifact_brain_region_id_id",
-            table_name="scientific_artifact",
-            postgresql_concurrently=True,
-        )
-        op.drop_index(
-            "ix_entity_public_creation_date_id",
-            table_name="entity",
-            postgresql_ops={"creation_date": "DESC"},
-            postgresql_where=sa.text("authorized_public = true"),
-            postgresql_concurrently=True,
-        )
+    op.drop_index(
+        "ix_scientific_artifact_brain_region_id_id",
+        table_name="scientific_artifact",
+    )
+    op.drop_index(
+        "ix_entity_public_creation_date_id",
+        table_name="entity",
+        postgresql_where=sa.text("authorized_public = true"),
+    )
     op.execute(
         "ALTER TABLE cell_morphology_protocol ALTER COLUMN generation_type SET STATISTICS -1"
     )

@@ -896,7 +896,14 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             )
         ],
     },
-    EntityType.generic_result: None,
+    EntityType.generic_result: {
+        label: [
+            LabelRequirements(content_type=None, is_directory=False),
+            LabelRequirements(content_type=None, is_directory=True),
+        ]
+        for label in AssetLabel
+        if label != AssetLabel.directory_child
+    },
     EntityType.simulation_result: {
         AssetLabel.spike_report: [
             LabelRequirements(

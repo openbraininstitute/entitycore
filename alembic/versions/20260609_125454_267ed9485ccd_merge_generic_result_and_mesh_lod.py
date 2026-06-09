@@ -1,8 +1,8 @@
-"""merge_heads
+"""merge_generic_result_and_mesh_lod
 
-Revision ID: 96b2b5af4950
-Revises: 42973a8b6a14, 9fcb70c868ab
-Create Date: 2026-06-09 07:38:49.560254
+Revision ID: 267ed9485ccd
+Revises: a3f9c12b4e81, 42973a8b6a14
+Create Date: 2026-06-09 12:54:54.735072
 
 """
 
@@ -16,8 +16,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "96b2b5af4950"
-down_revision: Union[str, None] = ("42973a8b6a14", "9fcb70c868ab")
+revision: str = "267ed9485ccd"
+down_revision: Union[str, None] = ("a3f9c12b4e81", "42973a8b6a14")
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

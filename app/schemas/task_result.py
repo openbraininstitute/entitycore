@@ -24,7 +24,7 @@ class TaskResultBase(BaseModel, NameDescriptionMixin):
 
 class TaskResultCreate(TaskResultBase, AuthorizationOptionalPublicMixin):
     data_payload: dict[str, Any] = {}
-    result_type: TaskResultType = TaskResultType.task_result
+    task_result_type: TaskResultType = TaskResultType.task_result
 
 
 TaskResultUserUpdate = make_update_schema(TaskResultCreate, "TaskResultUserUpdate")  # pyright: ignore [reportInvalidTypeForm]
@@ -46,5 +46,5 @@ class TaskResultRead(
     CreationMixin,
     AuthorizationMixin,
 ):
-    result_type: TaskResultType
+    task_result_type: TaskResultType
     data_payload: dict[str, Any]

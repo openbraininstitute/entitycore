@@ -22,18 +22,18 @@ ADMIN_ROUTE = "/admin/task-result"
 
 @pytest.fixture
 def json_data(task_result_json_data):
-    return task_result_json_data | {"result_type": "task_result"}
+    return task_result_json_data | {"task_result_type": "task_result"}
 
 
 @pytest.fixture
 def public_json_data(public_task_result_json_data):
-    return public_task_result_json_data | {"result_type": "task_result"}
+    return public_task_result_json_data | {"task_result_type": "task_result"}
 
 
 @pytest.fixture
 def model(task_result):
-    if hasattr(task_result, "result_type") and task_result.result_type is None:
-        task_result.result_type = "task_result"
+    if hasattr(task_result, "task_result_type") and task_result.task_result_type is None:
+        task_result.task_result_type = "task_result"
     return task_result
 
 
@@ -118,7 +118,7 @@ def models(db, json_data, person_id):
             **json_data
             | {
                 "name": f"s-{i}",
-                "result_type": "task_result",
+                "task_result_type": "task_result",
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,

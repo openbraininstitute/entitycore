@@ -138,7 +138,7 @@ def test_filtering(client, models):
     data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == 3
 
-    data = req({"name__like": "s-%"})
+    data = req({"name__ilike": "s-%"})
     assert len(data) == 3
 
     data = req({"name": "s-0"})

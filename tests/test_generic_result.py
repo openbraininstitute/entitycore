@@ -22,18 +22,18 @@ ADMIN_ROUTE = "/admin/generic-result"
 
 @pytest.fixture
 def json_data(generic_result_json_data):
-    return generic_result_json_data | {"result_type": "validation_type"}
+    return generic_result_json_data | {"result_type": "generic_result"}
 
 
 @pytest.fixture
 def public_json_data(public_generic_result_json_data):
-    return public_generic_result_json_data | {"result_type": "validation_type"}
+    return public_generic_result_json_data | {"result_type": "generic_result"}
 
 
 @pytest.fixture
 def model(generic_result):
     if hasattr(generic_result, "result_type") and generic_result.result_type is None:
-        generic_result.result_type = "validation_type"
+        generic_result.result_type = "generic_result"
     return generic_result
 
 
@@ -118,7 +118,7 @@ def models(db, json_data, person_id):
             **json_data
             | {
                 "name": f"s-{i}",
-                "result_type": "validation_type",
+                "result_type": "generic_result",
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,

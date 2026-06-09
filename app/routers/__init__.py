@@ -39,7 +39,6 @@ from app.routers import (
     experimental_neuron_density,
     experimental_synapses_per_connection,
     external_url,
-    task_result,
     ion_channel,
     ion_channel_model,
     ion_channel_modeling_campaign,
@@ -79,6 +78,7 @@ from app.routers import (
     subject,
     task_activity,
     task_config,
+    task_result,
     validation,
     validation_result,
 )

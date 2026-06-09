@@ -34,7 +34,6 @@ from app.db.model import (
     ETypeClass,
     ETypeClassification,
     ExternalUrl,
-    TaskResult,
     IonChannel,
     IonChannelModel,
     MEModel,
@@ -49,6 +48,7 @@ from app.db.model import (
     SimulationCampaign,
     SimulationResult,
     Subject,
+    TaskResult,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.db.types import CellMorphologyGenerationType, EntityType, StorageType, TargetSimulator

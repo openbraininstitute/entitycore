@@ -7,8 +7,8 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
-    TaskResult,
     Person,
+    TaskResult,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
@@ -26,13 +26,13 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
+from app.schemas.routers import DeleteResponse
 from app.schemas.task_result import (
     TaskResultAdminUpdate,
     TaskResultCreate,
     TaskResultRead,
     TaskResultUserUpdate,
 )
-from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
 
 if TYPE_CHECKING:

@@ -61,7 +61,6 @@ from app.db.types import (
     EntityType,
     ExecutorType,
     ExternalSource,
-    TaskResultType,
     GlobalType,
     MeasurementStatistic,
     MeasurementUnit,
@@ -77,6 +76,7 @@ from app.db.types import (
     TargetSimulator,
     TaskActivityType,
     TaskConfigType,
+    TaskResultType,
     ValidationStatus,
 )
 from app.schemas.publication import Author

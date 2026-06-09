@@ -17,7 +17,7 @@ import app.db.types
 
 # revision identifiers, used by Alembic.
 revision: str = "22ff1f757742"
-down_revision: Union[str, None] = "0c555bea9437"
+down_revision: Union[str, None] = "42973a8b6a14"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

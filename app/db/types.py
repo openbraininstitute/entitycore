@@ -174,6 +174,14 @@ class TaskConfigType(StrEnum):
     extracellular_recording_weights_calculation__config = auto()
     mesh_lod_generation__campaign = auto()
     mesh_lod_generation__config = auto()
+    efeature_extraction__campaign = auto()
+    efeature_extraction__config = auto()
+    emodel_optimization__campaign = auto()
+    emodel_optimization__config = auto()
+    optimized_emodel_analysis_validation__campaign = auto()
+    optimized_emodel_analysis_validation__config = auto()
+    circuit_synaptic_physiology_assignment__campaign = auto()
+    circuit_synaptic_physiology_assignment__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -199,6 +207,14 @@ class TaskActivityType(StrEnum):
     extracellular_recording_weights_calculation__execution = auto()
     mesh_lod_generation__config_generation = auto()
     mesh_lod_generation__execution = auto()
+    efeature_extraction__config_generation = auto()
+    efeature_extraction__execution = auto()
+    emodel_optimization__config_generation = auto()
+    emodel_optimization__execution = auto()
+    optimized_emodel_analysis_validation__config_generation = auto()
+    optimized_emodel_analysis_validation__execution = auto()
+    circuit_synaptic_physiology_assignment__config_generation = auto()
+    circuit_synaptic_physiology_assignment__execution = auto()
 
 
 class AgentType(StrEnum):

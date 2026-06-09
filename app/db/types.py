@@ -172,6 +172,8 @@ class TaskConfigType(StrEnum):
     aind_ephys_spikesorting__config = auto()
     extracellular_recording_weights_calculation__campaign = auto()
     extracellular_recording_weights_calculation__config = auto()
+    mesh_lod_generation__campaign = auto()
+    mesh_lod_generation__config = auto()
 
 
 class TaskActivityType(StrEnum):
@@ -195,6 +197,8 @@ class TaskActivityType(StrEnum):
     aind_ephys_spikesorting__execution = auto()
     extracellular_recording_weights_calculation__config_generation = auto()
     extracellular_recording_weights_calculation__execution = auto()
+    mesh_lod_generation__config_generation = auto()
+    mesh_lod_generation__execution = auto()
 
 
 class AgentType(StrEnum):

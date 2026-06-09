@@ -379,6 +379,13 @@ class Usage(Base):
     """
 
     __tablename__ = "usage"
+    __table_args__ = (
+        Index(
+            "ix_usage_activity_entity",
+            "usage_activity_id",
+            "usage_entity_id",
+        ),
+    )
     usage_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id"),
         primary_key=True,
@@ -402,6 +409,13 @@ class Generation(Base):
     """
 
     __tablename__ = "generation"
+    __table_args__ = (
+        Index(
+            "ix_generation_activity_entity",
+            "generation_activity_id",
+            "generation_entity_id",
+        ),
+    )
     generation_entity_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("entity.id", ondelete="CASCADE"),
         primary_key=True,
@@ -585,6 +599,22 @@ class Entity(LegacyMixin, Identifiable):
     authorized_project_id: Mapped[uuid.UUID]
     authorized_public: Mapped[bool] = mapped_column(default=False)
 
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        args = getattr(super(), "__table_args__", ()) or ()
+        if cls.__tablename__ == "entity":
+            return (
+                Index(
+                    "ix_entity_public_creation_date_id",
+                    sa.literal_column("creation_date DESC"),
+                    "id",
+                    postgresql_where=sa.text("authorized_public = true"),
+                ),
+                *args,
+            )
+        return args
+
     contributions: Mapped[list["Contribution"]] = relationship(
         "Contribution", uselist=True, passive_deletes=True, back_populates="entity"
     )
@@ -693,6 +723,21 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        args = getattr(super(), "__table_args__", ()) or ()
+        if cls.__tablename__ == EntityType.scientific_artifact.value:
+            return (
+                Index(
+                    "ix_scientific_artifact_brain_region_id_id",
+                    "brain_region_id",
+                    "id",
+                ),
+                *args,
+            )
+        return args
 
 
 class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
@@ -2102,6 +2147,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
         scale: The overall scale of the analysis in the notebook. Used for filtering.
         specifications: Definitions of required python version and inputs,
             with schema AnalysisNotebookTemplateSpecifications.
+        exercise_id: Maps the notebook to an exercise in OBI Grading service.
 
     Assets:
         - a .ipynb file.
@@ -2114,6 +2160,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     scale: Mapped[AnalysisScale]
     specifications: Mapped[JSON_DICT | None]
+    exercise_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

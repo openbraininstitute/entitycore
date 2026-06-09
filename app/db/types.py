@@ -149,6 +149,20 @@ class EntityType(StrEnum):
 
 class TaskResultType(StrEnum):
     task_result = auto()
+    circuit_simulation__result = auto()
+    circuit_extraction__circuit = auto()
+    ion_channel_modeling__result = auto()
+    skeletonization__morphology = auto()
+    ion_channel_simulation__result = auto()
+    em_synapse_mapping__result = auto()
+    aind_ephys_preprocessing__result = auto()
+    aind_ephys_spikesorting__result = auto()
+    extracellular_recording_weights_calculation__result = auto()
+    mesh_lod_generation__result = auto()
+    efeature_extraction__result = auto()
+    emodel_optimization__result = auto()
+    optimized_emodel_analysis_validation__result = auto()
+    circuit_synaptic_physiology_assignment__result = auto()
 
 
 class TaskConfigType(StrEnum):

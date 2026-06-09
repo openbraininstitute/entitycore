@@ -903,7 +903,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
         ]
         for label in AssetLabel
         if label != AssetLabel.directory_child
-    },
+    }, #permissive labelling allowed
     EntityType.simulation_result: {
         AssetLabel.spike_report: [
             LabelRequirements(

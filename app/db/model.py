@@ -1661,7 +1661,7 @@ class TaskResult(Entity, NameDescriptionVectorMixin):
     __tablename__ = EntityType.task_result.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    result_type: Mapped[TaskResultType]
+    task_result_type: Mapped[TaskResultType]
     data_payload: Mapped[JSON_DICT] = mapped_column(default={}, nullable=False, server_default="{}")
 
     __mapper_args__ = {"polymorphic_identity": EntityType.task_result.value}  # noqa: RUF012

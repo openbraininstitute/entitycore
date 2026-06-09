@@ -1902,6 +1902,12 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
 
     # calibration_data (multiple entities): ...
 
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls):  # noqa: D105, PLW3201
+        args = getattr(super(), "__table_args__", ()) or ()
+        return (Index("ix_circuit_scale_id", "scale", "id"), *args)
+
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 

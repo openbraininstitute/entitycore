@@ -1,4 +1,4 @@
-# app/service/generic_result.py
+# app/service/task_result.py
 import uuid
 from typing import TYPE_CHECKING
 
@@ -7,7 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
-    GenericResult,
+    TaskResult,
     Person,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -17,7 +17,7 @@ from app.dependencies.common import (
     SearchDep,
 )
 from app.dependencies.db import SessionDep
-from app.filters.generic_result import GenericResultFilterDep
+from app.filters.task_result import TaskResultFilterDep
 from app.queries.common import (
     router_create_one,
     router_read_many,
@@ -26,11 +26,11 @@ from app.queries.common import (
     router_user_delete_one,
 )
 from app.queries.factory import query_params_factory
-from app.schemas.generic_result import (
-    GenericResultAdminUpdate,
-    GenericResultCreate,
-    GenericResultRead,
-    GenericResultUserUpdate,
+from app.schemas.task_result import (
+    TaskResultAdminUpdate,
+    TaskResultCreate,
+    TaskResultRead,
+    TaskResultUserUpdate,
 )
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
@@ -41,9 +41,9 @@ if TYPE_CHECKING:
 
 def _load(query: sa.Select):
     return query.options(
-        joinedload(GenericResult.created_by),
-        joinedload(GenericResult.updated_by),
-        selectinload(GenericResult.assets),
+        joinedload(TaskResult.created_by),
+        joinedload(TaskResult.updated_by),
+        selectinload(TaskResult.assets),
         raiseload("*"),
     )
 
@@ -52,13 +52,13 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> GenericResultRead:
+) -> TaskResultRead:
     return router_read_one(
         db=db,
         id_=id_,
-        db_model_class=GenericResult,
+        db_model_class=TaskResult,
         user_context=user_context,
-        response_schema_class=GenericResultRead,
+        response_schema_class=TaskResultRead,
         apply_operations=_load,
     )
 
@@ -66,28 +66,28 @@ def read_one(
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-) -> GenericResultRead:
+) -> TaskResultRead:
     return router_read_one(
         db=db,
         id_=id_,
-        db_model_class=GenericResult,
+        db_model_class=TaskResult,
         user_context=None,
-        response_schema_class=GenericResultRead,
+        response_schema_class=TaskResultRead,
         apply_operations=_load,
     )
 
 
 def create_one(
     db: SessionDep,
-    json_model: GenericResultCreate,
+    json_model: TaskResultCreate,
     user_context: UserContextWithProjectIdDep,
-) -> GenericResultRead:
+) -> TaskResultRead:
     return router_create_one(
         db=db,
         json_model=json_model,
         user_context=user_context,
-        db_model_class=GenericResult,
-        response_schema_class=GenericResultRead,
+        db_model_class=TaskResult,
+        response_schema_class=TaskResultRead,
         apply_operations=_load,
     )
 
@@ -96,15 +96,15 @@ def update_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: GenericResultUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> GenericResultRead:
+    json_model: TaskResultUserUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> TaskResultRead:
     return router_update_one(
         id_=id_,
         db=db,
-        db_model_class=GenericResult,
+        db_model_class=TaskResult,
         user_context=user_context,
         json_model=json_model,
-        response_schema_class=GenericResultRead,
+        response_schema_class=TaskResultRead,
         apply_operations=_load,
         check_authorized_project=True,
     )
@@ -114,15 +114,15 @@ def admin_update_one(
     user_context: AdminContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-    json_model: GenericResultAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
-) -> GenericResultRead:
+    json_model: TaskResultAdminUpdate,  # pyright: ignore [reportInvalidTypeForm]
+) -> TaskResultRead:
     return router_update_one(
         id_=id_,
         db=db,
-        db_model_class=GenericResult,
+        db_model_class=TaskResult,
         user_context=user_context,
         json_model=json_model,
-        response_schema_class=GenericResultRead,
+        response_schema_class=TaskResultRead,
         apply_operations=_load,
         check_authorized_project=False,
     )
@@ -133,11 +133,11 @@ def _read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: GenericResultFilterDep,
+    filter_model: TaskResultFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
     check_authorized_project: bool,
-) -> ListResponse[GenericResultRead]:
+) -> ListResponse[TaskResultRead]:
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
@@ -157,7 +157,7 @@ def _read_many(
         "contribution",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
-        db_model_class=GenericResult,
+        db_model_class=TaskResult,
         facet_keys=facet_keys,
         filter_keys=filter_keys,
         aliases=aliases,
@@ -165,7 +165,7 @@ def _read_many(
     return router_read_many(
         db=db,
         filter_model=filter_model,
-        db_model_class=GenericResult,
+        db_model_class=TaskResult,
         with_search=with_search,
         with_in_brain_region=None,
         facets=facets,
@@ -174,7 +174,7 @@ def _read_many(
         apply_data_query_operations=_load,
         aliases=aliases,
         pagination_request=pagination_request,
-        response_schema_class=GenericResultRead,
+        response_schema_class=TaskResultRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
@@ -185,10 +185,10 @@ def read_many(
     user_context: UserContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: GenericResultFilterDep,
+    filter_model: TaskResultFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-) -> ListResponse[GenericResultRead]:
+) -> ListResponse[TaskResultRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -204,10 +204,10 @@ def admin_read_many(
     user_context: AdminContextDep,
     db: SessionDep,
     pagination_request: PaginationQuery,
-    filter_model: GenericResultFilterDep,
+    filter_model: TaskResultFilterDep,
     with_search: SearchDep,
     facets: FacetsDep,
-) -> ListResponse[GenericResultRead]:
+) -> ListResponse[TaskResultRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -227,6 +227,6 @@ def delete_one(
     return router_user_delete_one(
         id_=id_,
         db=db,
-        db_model_class=GenericResult,
+        db_model_class=TaskResult,
         user_context=user_context,
     )

@@ -34,7 +34,7 @@ from app.db.model import (
     ETypeClass,
     ETypeClassification,
     ExternalUrl,
-    GenericResult,
+    TaskResult,
     IonChannel,
     IonChannelModel,
     MEModel,
@@ -1548,28 +1548,28 @@ def public_simulation_result(db, public_simulation_result_json_data, person_id):
 
 
 @pytest.fixture
-def generic_result_json_data():
+def task_result_json_data():
     return {
-        "name": "generic-result",
-        "description": "generic-result-description",
+        "name": "task-result",
+        "description": "task-result-description",
     }
 
 
 @pytest.fixture
-def public_generic_result_json_data():
+def public_task_result_json_data():
     return {
-        "name": "generic-result",
-        "description": "generic-result-description",
+        "name": "task-result",
+        "description": "task-result-description",
         "authorized_public": True,
     }
 
 
 @pytest.fixture
-def generic_result(db, generic_result_json_data, person_id):
+def task_result(db, task_result_json_data, person_id):
     return add_db(
         db,
-        GenericResult(
-            **generic_result_json_data
+        TaskResult(
+            **task_result_json_data
             | {
                 "created_by_id": person_id,
                 "updated_by_id": person_id,

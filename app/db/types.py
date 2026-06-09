@@ -116,7 +116,7 @@ class EntityType(StrEnum):
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     external_url = auto()
-    generic_result = auto()
+    task_result = auto()
     ion_channel_model = auto()
     ion_channel_modeling_campaign = auto()
     ion_channel_modeling_config = auto()
@@ -147,8 +147,8 @@ class EntityType(StrEnum):
     task_config = auto()
 
 
-class GenericResultType(StrEnum):
-    generic_result = auto()
+class TaskResultType(StrEnum):
+    task_result = auto()
 
 
 class TaskConfigType(StrEnum):
@@ -459,7 +459,7 @@ class AssetLabel(StrEnum):
     circuit_figures = auto()
     circuit_analysis_data = auto()
     circuit_connectivity_matrices = auto()
-    generic_result = auto()
+    task_result = auto()
     nwb = auto()
     neuron_hoc = auto()
     emodel_optimization_output = auto()
@@ -912,7 +912,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             )
         ],
     },
-    EntityType.generic_result: {
+    EntityType.task_result: {
         label: [
             LabelRequirements(content_type=None, is_directory=False),
             LabelRequirements(content_type=None, is_directory=True),

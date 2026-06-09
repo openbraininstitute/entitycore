@@ -61,7 +61,7 @@ from app.db.types import (
     EntityType,
     ExecutorType,
     ExternalSource,
-    GenericResultType,
+    TaskResultType,
     GlobalType,
     MeasurementStatistic,
     MeasurementUnit,
@@ -1657,14 +1657,14 @@ class SimulationExecution(Activity, ExecutionActivityMixin):
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 
 
-class GenericResult(Entity, NameDescriptionVectorMixin):
-    __tablename__ = EntityType.generic_result.value
+class TaskResult(Entity, NameDescriptionVectorMixin):
+    __tablename__ = EntityType.task_result.value
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    result_type: Mapped[GenericResultType]
+    result_type: Mapped[TaskResultType]
     data_payload: Mapped[JSON_DICT] = mapped_column(default={}, nullable=False, server_default="{}")
 
-    __mapper_args__ = {"polymorphic_identity": EntityType.generic_result.value}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": EntityType.task_result.value}  # noqa: RUF012
 
 
 class SimulationResult(Entity, NameDescriptionVectorMixin):

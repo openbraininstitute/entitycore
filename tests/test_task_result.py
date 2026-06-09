@@ -1,6 +1,6 @@
 import pytest
 
-from app.db.model import GenericResult
+from app.db.model import TaskResult
 from app.db.types import EntityType
 
 from .utils import (
@@ -16,25 +16,25 @@ from .utils import (
     check_pagination,
 )
 
-ROUTE = "generic-result"
-ADMIN_ROUTE = "/admin/generic-result"
+ROUTE = "task-result"
+ADMIN_ROUTE = "/admin/task-result"
 
 
 @pytest.fixture
-def json_data(generic_result_json_data):
-    return generic_result_json_data | {"result_type": "generic_result"}
+def json_data(task_result_json_data):
+    return task_result_json_data | {"result_type": "task_result"}
 
 
 @pytest.fixture
-def public_json_data(public_generic_result_json_data):
-    return public_generic_result_json_data | {"result_type": "generic_result"}
+def public_json_data(public_task_result_json_data):
+    return public_task_result_json_data | {"result_type": "task_result"}
 
 
 @pytest.fixture
-def model(generic_result):
-    if hasattr(generic_result, "result_type") and generic_result.result_type is None:
-        generic_result.result_type = "generic_result"
-    return generic_result
+def model(task_result):
+    if hasattr(task_result, "result_type") and task_result.result_type is None:
+        task_result.result_type = "task_result"
+    return task_result
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def _assert_read_response(data, json_data):
     assert "assets" in data
     assert data["name"] == json_data["name"]
     assert data["description"] == json_data["description"]
-    assert data["type"] == EntityType.generic_result
+    assert data["type"] == EntityType.task_result
 
     check_creation_fields(data)
 
@@ -91,10 +91,10 @@ def test_user_delete_one(client, db, model):
         db,
         model,
         expected_counts_before={
-            GenericResult: 1,
+            TaskResult: 1,
         },
         expected_counts_after={
-            GenericResult: 0,
+            TaskResult: 0,
         },
     )
 
@@ -114,11 +114,11 @@ def test_pagination(client, create_id):
 @pytest.fixture
 def models(db, json_data, person_id):
     objs = [
-        GenericResult(
+        TaskResult(
             **json_data
             | {
                 "name": f"s-{i}",
-                "result_type": "generic_result",
+                "result_type": "task_result",
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,

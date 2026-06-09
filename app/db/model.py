@@ -1,4 +1,3 @@
-#app/db/model.py
 import uuid
 from datetime import datetime, timedelta
 from typing import ClassVar

@@ -1,5 +1,6 @@
 import uuid
 from enum import StrEnum
+from typing import cast
 
 from pydantic import BaseModel
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -21,8 +22,17 @@ from app.db.model import (
     LocationMixin,
     MeasurableEntityMixin,
     MTypeClassification,
+    TaskResult,
 )
-from app.db.types import CellMorphologyGenerationType, EntityType, ResourceType
+from app.db.types import (
+    ALLOWED_ASSET_LABELS_PER_ENTITY,
+    ALLOWED_ASSET_LABELS_PER_TASK_RESULT,
+    AssetLabel,
+    CellMorphologyGenerationType,
+    EntityType,
+    LabelRequirements,
+    ResourceType,
+)
 from app.logger import L
 
 PublishableBaseModel = Activity | Entity | ETypeClassification | MTypeClassification
@@ -201,3 +211,9 @@ def get_authorized_project_id_declaring_class(
         return None
 
     return class_mapper(db_model_class).get_property("authorized_project_id").parent.class_
+
+
+def allowed_asset_labels_for(entity: Entity) -> dict[AssetLabel, list[LabelRequirements]] | None:
+    if entity.type == EntityType.task_result:
+        return ALLOWED_ASSET_LABELS_PER_TASK_RESULT.get(cast("TaskResult", entity).task_result_type)
+    return ALLOWED_ASSET_LABELS_PER_ENTITY.get(entity.type)

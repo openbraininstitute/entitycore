@@ -1,7 +1,7 @@
 import pytest
 
 from app.db.model import TaskResult
-from app.db.types import EntityType
+from app.db.types import EntityType, TaskResultType
 
 from .utils import (
     PROJECT_ID,
@@ -9,9 +9,10 @@ from .utils import (
     add_all_db,
     assert_request,
     check_authorization,
-    check_creation_fields,
     check_entity_delete_one,
     check_entity_read_many,
+    check_entity_read_response,
+    check_entity_update_one,
     check_missing,
     check_pagination,
 )
@@ -22,18 +23,18 @@ ADMIN_ROUTE = "/admin/task-result"
 
 @pytest.fixture
 def json_data(task_result_json_data):
-    return task_result_json_data | {"task_result_type": "task_result"}
+    return task_result_json_data | {"task_result_type": TaskResultType.circuit_extraction__circuit}
 
 
 @pytest.fixture
 def public_json_data(public_task_result_json_data):
-    return public_task_result_json_data | {"task_result_type": "task_result"}
+    return public_task_result_json_data | {
+        "task_result_type": TaskResultType.circuit_extraction__circuit
+    }
 
 
 @pytest.fixture
 def model(task_result):
-    if hasattr(task_result, "task_result_type") and task_result.task_result_type is None:
-        task_result.task_result_type = "task_result"
     return task_result
 
 
@@ -46,15 +47,7 @@ def create_id(client, json_data):
 
 
 def _assert_read_response(data, json_data):
-    assert "id" in data
-    assert "authorized_public" in data
-    assert "authorized_project_id" in data
-    assert "assets" in data
-    assert data["name"] == json_data["name"]
-    assert data["description"] == json_data["description"]
-    assert data["type"] == EntityType.task_result
-
-    check_creation_fields(data)
+    check_entity_read_response(data, json_data, EntityType.task_result)
 
 
 def test_user_create_one(client, json_data):
@@ -74,22 +67,36 @@ def test_admin_read_one(client_admin, model, json_data):
     _assert_read_response(data, json_data)
 
 
-def test_read_many_1(client, model, json_data):
-    check_entity_read_many(ROUTE, client, model, lambda d: _assert_read_response(d, json_data))
+def test_read_many_1(clients, json_data):
+    check_entity_read_many(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+    )
 
 
-def test_user_update_one(client, model, json_data):
-    update_data = {"name": "new-name"}
-    data = assert_request(client.put, url=f"{ROUTE}/{model.id}", json=update_data).json()
-    _assert_read_response(data, json_data | update_data)
+def test_update_one(clients, json_data):
+    check_entity_update_one(
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
+        patch_payload={
+            "name": "name",
+            "description": "description",
+        },
+        optional_payload={},
+    )
 
 
-def test_user_delete_one(client, db, model):
+def test_user_delete_one(clients, db, json_data):
     check_entity_delete_one(
-        ROUTE,
-        client,
-        db,
-        model,
+        db=db,
+        route=ROUTE,
+        admin_route=ADMIN_ROUTE,
+        clients=clients,
+        json_data=json_data,
         expected_counts_before={
             TaskResult: 1,
         },
@@ -118,7 +125,7 @@ def models(db, json_data, person_id):
             **json_data
             | {
                 "name": f"s-{i}",
-                "task_result_type": "task_result",
+                "task_result_type": TaskResultType.circuit_extraction__circuit,
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_project_id": PROJECT_ID,
@@ -134,6 +141,9 @@ def test_filtering(client, models):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
     assert models is not None
+
+    data = req({"task_result_type": TaskResultType.circuit_extraction__circuit})
+    assert len(data) == len(models)
 
     data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == 3

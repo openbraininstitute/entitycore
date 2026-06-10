@@ -3,8 +3,15 @@ from unittest.mock import Mock
 import pytest
 
 import app.schemas.asset as test_module
-from app.db.types import AssetLabel, ContentType, EntityType, LabelRequirements, StorageType
-from app.schemas.asset import AssetCreate
+from app.db.types import (
+    ALLOWED_ASSET_LABELS_PER_ENTITY,
+    AssetLabel,
+    ContentType,
+    EntityType,
+    LabelRequirements,
+    StorageType,
+)
+from app.schemas.asset import AssetCreate, validate_asset_label
 from app.utils.uuid import create_uuid
 
 
@@ -142,25 +149,40 @@ def test_validate_path_component_str_raises(input_path, expected_error):
         test_module.validate_path_component_str(input_path)
 
 
+def test_validate_asset_label_uses_allowed_labels_override():
+    asset = Mock(
+        label=AssetLabel.morphology,
+        entity_type=EntityType.cell_morphology,
+        parent_id=None,
+        is_directory=False,
+        content_type=ContentType.asc,
+        path="foo.asc",
+    )
+    allowed = {AssetLabel.cell_composition_summary: []}
+    with pytest.raises(ValueError, match="is not allowed for entity type"):
+        validate_asset_label(asset, allowed)
+
+
 def test_asset_create_directory_child_without_parent_id():
     """directory_child label requires parent_id."""
     agent_id = create_uuid()
+    asset = AssetCreate(
+        path="dir/file.bin",
+        full_path="vlab/proj/dir/file.bin",
+        is_directory=False,
+        content_type=ContentType.other,
+        size=100,
+        sha256_digest="a" * 64,
+        meta={},
+        label=AssetLabel.directory_child,
+        storage_type=StorageType.aws_s3_internal,
+        entity_type=EntityType.circuit,
+        parent_id=None,
+        created_by_id=agent_id,
+        updated_by_id=agent_id,
+    )
     with pytest.raises(ValueError, match="Directory child assets must have a parent_id"):
-        AssetCreate(
-            path="dir/file.bin",
-            full_path="vlab/proj/dir/file.bin",
-            is_directory=False,
-            content_type=ContentType.other,
-            size=100,
-            sha256_digest="a" * 64,
-            meta={},
-            label=AssetLabel.directory_child,
-            storage_type=StorageType.aws_s3_internal,
-            entity_type=EntityType.circuit,
-            parent_id=None,
-            created_by_id=agent_id,
-            updated_by_id=agent_id,
-        )
+        validate_asset_label(asset, ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit])
 
 
 def test_asset_create_directory_with_parent_id():

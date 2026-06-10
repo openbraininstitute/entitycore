@@ -51,7 +51,13 @@ from app.db.model import (
     TaskResult,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
-from app.db.types import CellMorphologyGenerationType, EntityType, StorageType, TargetSimulator
+from app.db.types import (
+    CellMorphologyGenerationType,
+    EntityType,
+    StorageType,
+    TargetSimulator,
+    TaskResultType,
+)
 from app.dependencies import auth
 from app.logger import configure_logging
 from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
@@ -1552,6 +1558,7 @@ def task_result_json_data():
     return {
         "name": "task-result",
         "description": "task-result-description",
+        "task_result_type": TaskResultType.circuit_extraction__circuit,
     }
 
 

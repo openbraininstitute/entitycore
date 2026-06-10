@@ -7,6 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
+    Contribution,
     Person,
     TaskResult,
 )
@@ -44,6 +45,10 @@ def _load(query: sa.Select):
         joinedload(TaskResult.created_by),
         joinedload(TaskResult.updated_by),
         selectinload(TaskResult.assets),
+        selectinload(TaskResult.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 

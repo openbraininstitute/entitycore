@@ -11,6 +11,7 @@ from types_boto3_s3 import S3Client
 from app.config import StorageUnion, settings, storages
 from app.db.model import Asset, Entity
 from app.db.types import AssetLabel, AssetStatus, ContentType, EntityType, StorageType
+from app.db.utils import allowed_asset_labels_for
 from app.dependencies.common import PaginationQuery
 from app.errors import ApiError, ApiErrorCode, ensure_result, ensure_uniqueness, ensure_valid_schema
 from app.filters.asset import AssetFilterDep
@@ -31,6 +32,7 @@ from app.schemas.asset import (
     ToUploadPart,
     UploadMeta,
     UploadMetaRead,
+    validate_asset_label,
     validate_relative_path,
 )
 from app.schemas.auth import UserContext, UserProfile
@@ -206,6 +208,10 @@ def create_entity_asset_unverified(  # noqa: PLR0913
             parent_id=parent_id,
             created_by_id=db_agent.id,
             updated_by_id=db_agent.id,
+        )
+        validate_asset_label(
+            asset_create,
+            allowed_asset_labels_for(entity),
         )
     with ensure_uniqueness(
         f"Asset with path {asset_create.path!r} and "

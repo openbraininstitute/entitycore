@@ -1,4 +1,5 @@
 # app/db/types.py
+
 from enum import StrEnum, auto
 from typing import Annotated, Any, TypedDict
 
@@ -112,11 +113,11 @@ class EntityType(StrEnum):
     electrical_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
+    task_result = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
     external_url = auto()
-    task_result = auto()
     ion_channel_model = auto()
     ion_channel_modeling_campaign = auto()
     ion_channel_modeling_config = auto()
@@ -148,7 +149,20 @@ class EntityType(StrEnum):
 
 
 class TaskResultType(StrEnum):
-    task_result = auto()
+    circuit_simulation__result = auto()
+    circuit_extraction__circuit = auto()
+    ion_channel_modeling__result = auto()
+    skeletonization__morphology = auto()
+    ion_channel_simulation__result = auto()
+    em_synapse_mapping__result = auto()
+    aind_ephys_preprocessing__result = auto()
+    aind_ephys_spikesorting__result = auto()
+    extracellular_recording_weights_calculation__result = auto()
+    mesh_lod_generation__result = auto()
+    efeature_extraction__result = auto()
+    emodel_optimization__result = auto()
+    optimized_emodel_analysis_validation__result = auto()
+    circuit_synaptic_physiology_assignment__result = auto()
 
 
 class TaskConfigType(StrEnum):
@@ -534,6 +548,7 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.other: (),
 }
 
+
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType, dict[AssetLabel, list[LabelRequirements]] | None
 ] = {
@@ -912,14 +927,6 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             )
         ],
     },
-    EntityType.task_result: {
-        label: [
-            LabelRequirements(content_type=None, is_directory=False),
-            LabelRequirements(content_type=None, is_directory=True),
-        ]
-        for label in AssetLabel
-        if label != AssetLabel.directory_child
-    },  # permissive labelling allowed
     EntityType.simulation_result: {
         AssetLabel.spike_report: [
             LabelRequirements(
@@ -1060,6 +1067,25 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
 }
 ALLOWED_ASSET_LABELS_PER_ENTITY |= {
     k: None for k in EntityType if k not in ALLOWED_ASSET_LABELS_PER_ENTITY
+}
+
+ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
+    TaskResultType.circuit_simulation__result: None,
+    TaskResultType.circuit_extraction__circuit: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit],
+    TaskResultType.ion_channel_modeling__result: None,
+    TaskResultType.skeletonization__morphology: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.cell_morphology
+    ],
+    TaskResultType.ion_channel_simulation__result: None,
+    TaskResultType.em_synapse_mapping__result: None,
+    TaskResultType.aind_ephys_preprocessing__result: None,
+    TaskResultType.aind_ephys_spikesorting__result: None,
+    TaskResultType.extracellular_recording_weights_calculation__result: None,
+    TaskResultType.mesh_lod_generation__result: None,
+    TaskResultType.efeature_extraction__result: None,
+    TaskResultType.emodel_optimization__result: None,
+    TaskResultType.optimized_emodel_analysis_validation__result: None,
+    TaskResultType.circuit_synaptic_physiology_assignment__result: None,
 }
 
 

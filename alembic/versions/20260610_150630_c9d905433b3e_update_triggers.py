@@ -1,8 +1,8 @@
 """Update triggers
 
-Revision ID: 5d87fcf4de50
-Revises: ca1bc36a998f
-Create Date: 2026-06-09 16:43:42.179081
+Revision ID: c9d905433b3e
+Revises: e3ccf18151c5
+Create Date: 2026-06-10 15:06:30.792840
 
 """
 
@@ -17,8 +17,8 @@ from sqlalchemy import Text
 import app.db.types
 
 # revision identifiers, used by Alembic.
-revision: str = "5d87fcf4de50"
-down_revision: Union[str, None] = "ca1bc36a998f"
+revision: str = "c9d905433b3e"
+down_revision: Union[str, None] = "e3ccf18151c5"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

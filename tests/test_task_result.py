@@ -1,7 +1,17 @@
+from uuid import UUID
+
 import pytest
 
 from app.db.model import TaskResult
-from app.db.types import EntityType, TaskResultType
+from app.db.types import (
+    ALLOWED_ASSET_LABELS_PER_TASK_RESULT,
+    CONTENT_TYPE_TO_SUFFIX,
+    AssetLabel,
+    EntityType,
+    LabelRequirements,
+    TaskResultType,
+)
+from app.db.utils import allowed_asset_labels_for
 
 from .utils import (
     PROJECT_ID,
@@ -15,6 +25,7 @@ from .utils import (
     check_entity_update_one,
     check_missing,
     check_pagination,
+    upload_entity_asset,
 )
 
 ROUTE = "task-result"
@@ -157,3 +168,86 @@ def test_filtering(client, models):
 
     data = req({"name": "s-none"})
     assert len(data) == 0
+
+
+def _example_file_upload(
+    allowed: dict[AssetLabel, list[LabelRequirements]],
+) -> tuple[AssetLabel, str, bytes, str]:
+    for label, requirements in allowed.items():
+        for requirement in requirements:
+            if requirement.is_directory:
+                continue
+            suffix = CONTENT_TYPE_TO_SUFFIX[requirement.content_type][0]
+            filename = f"file{suffix}"
+            return label, filename, b"content", requirement.content_type.value
+    msg = "No file-based upload example found in allowed asset labels"
+    raise ValueError(msg)
+
+
+def _pick_invalid_label(allowed: dict[AssetLabel, list[LabelRequirements]]) -> AssetLabel:
+    for candidate in AssetLabel:
+        if candidate not in allowed and candidate != AssetLabel.directory_child:
+            return candidate
+    msg = "Expected at least one asset label to be disallowed"
+    raise ValueError(msg)
+
+
+@pytest.mark.parametrize("task_result_type", TaskResultType)
+def test_allowed_asset_upload_per_task_result_type(
+    client, db, task_result_json_data, task_result_type
+):
+    allowed = ALLOWED_ASSET_LABELS_PER_TASK_RESULT[task_result_type]
+
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=task_result_json_data | {"task_result_type": task_result_type},
+    ).json()
+    entity_id = UUID(data["id"])
+
+    entity = db.get(TaskResult, entity_id)
+    assert allowed_asset_labels_for(entity) == allowed
+
+    if allowed is None:
+        response = upload_entity_asset(
+            client,
+            EntityType.task_result,
+            entity_id,
+            files={"file": ("morph.asc", b"content", "application/asc")},
+            label=AssetLabel.morphology.value,
+            expected_status=None,
+        )
+        assert response.status_code == 422
+        assert response.json() == {
+            "error_code": "ASSET_INVALID_SCHEMA",
+            "message": "Asset schema is invalid",
+            "details": [
+                (
+                    "Value error, There are no allowed asset labels defined for "
+                    f"'{EntityType.task_result}'"
+                )
+            ],
+        }
+        return
+
+    label, filename, content, content_type = _example_file_upload(allowed)
+    upload_entity_asset(
+        client,
+        EntityType.task_result,
+        entity_id,
+        files={"file": (filename, content, content_type)},
+        label=label.value,
+    )
+
+    invalid_label = _pick_invalid_label(allowed)
+    response = upload_entity_asset(
+        client,
+        EntityType.task_result,
+        entity_id,
+        files={"file": ("morph.asc", b"content", "application/asc")},
+        label=invalid_label.value,
+        expected_status=None,
+    )
+    assert response.status_code == 422
+    assert response.json()["error_code"] == "ASSET_INVALID_SCHEMA"
+    assert any("is not allowed for entity type" in detail for detail in response.json()["details"])

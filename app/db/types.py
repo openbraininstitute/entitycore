@@ -1070,21 +1070,33 @@ ALLOWED_ASSET_LABELS_PER_ENTITY |= {
 }
 
 ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
-    TaskResultType.circuit_simulation__result: None,
+    TaskResultType.circuit_simulation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.simulation_result
+    ],
     TaskResultType.circuit_extraction__circuit: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit],
-    TaskResultType.ion_channel_modeling__result: None,
+    TaskResultType.ion_channel_modeling__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.ion_channel_modeling_campaign
+    ],
     TaskResultType.skeletonization__morphology: ALLOWED_ASSET_LABELS_PER_ENTITY[
         EntityType.cell_morphology
     ],
-    TaskResultType.ion_channel_simulation__result: None,
+    TaskResultType.ion_channel_simulation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.simulation_result
+    ],
     TaskResultType.em_synapse_mapping__result: None,
     TaskResultType.aind_ephys_preprocessing__result: None,
     TaskResultType.aind_ephys_spikesorting__result: None,
-    TaskResultType.extracellular_recording_weights_calculation__result: None,
-    TaskResultType.mesh_lod_generation__result: None,
+    TaskResultType.extracellular_recording_weights_calculation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[  # noqa: E501
+        EntityType.simulatable_extracellular_recording_array
+    ],
+    TaskResultType.mesh_lod_generation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.em_cell_mesh
+    ],
     TaskResultType.efeature_extraction__result: None,
-    TaskResultType.emodel_optimization__result: None,
-    TaskResultType.optimized_emodel_analysis_validation__result: None,
+    TaskResultType.emodel_optimization__result: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.emodel],
+    TaskResultType.optimized_emodel_analysis_validation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.validation_result
+    ],
     TaskResultType.circuit_synaptic_physiology_assignment__result: None,
 }
 

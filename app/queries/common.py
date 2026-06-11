@@ -220,6 +220,13 @@ def router_create_one[T: BaseModel, I: Identifiable](
     return response_schema_class.model_validate(db_model_instance)
 
 
+def _sort_is_creation_date_first(filter_model: CustomFilter) -> bool:
+    """Return True if the primary sort is creation_date DESC (or no explicit sort)."""
+    if not filter_model.ordering_values:
+        return True
+    return filter_model.ordering_values[0].lstrip("+") == "-creation_date"
+
+
 def _with_subquery[I: Identifiable](
     data_query: sa.Select[tuple[I]],
     db_model_class: type[I],
@@ -338,15 +345,29 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     if with_in_brain_region:
         filter_query = with_in_brain_region(filter_query, db_model_class)
 
+    candidate_cte = with_in_brain_region.candidate_cte if with_in_brain_region else None
     ensure_stable_sorting = [db_model_class.creation_date.desc(), db_model_class.id]
 
-    data_query = (
-        filter_model.sort(filter_query, aliases=aliases)
-        .order_by(*ensure_stable_sorting)
-        .with_only_columns(db_model_class)
-        .offset(pagination_request.offset)
-        .limit(pagination_request.page_size)
-    )
+    sorted_filter_query = filter_model.sort(filter_query, aliases=aliases)
+
+    if candidate_cte is not None and _sort_is_creation_date_first(filter_model):
+        # Primary sort is creation_date: drive ordering from the small materialized CTE
+        # instead of the entity creation_date index, forcing the planner to start from
+        # the filtered set rather than scanning all public entities.
+        data_query = (
+            sorted_filter_query.order_by(None)
+            .order_by(candidate_cte.c.creation_date.desc(), candidate_cte.c.id)
+            .with_only_columns(db_model_class)
+            .offset(pagination_request.offset)
+            .limit(pagination_request.page_size)
+        )
+    else:
+        data_query = (
+            sorted_filter_query.order_by(*ensure_stable_sorting)
+            .with_only_columns(db_model_class)
+            .offset(pagination_request.offset)
+            .limit(pagination_request.page_size)
+        )
 
     # Add semantic similarity ordering if embedding is provided and model has embedding field
     if embedding is not None and hasattr(db_model_class, "embedding"):

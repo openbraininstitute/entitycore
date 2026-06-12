@@ -422,7 +422,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
     )
     assert response.status_code == 422, "Assel label was not rejected as not present in AssetLabel."
 
-    monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", {})
+    monkeypatch.setattr("app.db.utils.ALLOWED_ASSET_LABELS_PER_ENTITY", {})
 
     response = _upload_entity_asset(
         client,
@@ -441,7 +441,7 @@ def test_upload_entity_asset__label(monkeypatch, client, entity):
 
     required = {EntityType.cell_morphology: {AssetLabel.cell_composition_summary: None}}
 
-    monkeypatch.setattr("app.schemas.asset.ALLOWED_ASSET_LABELS_PER_ENTITY", required)
+    monkeypatch.setattr("app.db.utils.ALLOWED_ASSET_LABELS_PER_ENTITY", required)
 
     response = _upload_entity_asset(
         client,

@@ -76,6 +76,7 @@ from app.db.types import (
     TargetSimulator,
     TaskActivityType,
     TaskConfigType,
+    TaskResultType,
     ValidationStatus,
 )
 from app.schemas.publication import Author
@@ -1654,6 +1655,16 @@ class SimulationExecution(Activity, ExecutionActivityMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+
+
+class TaskResult(Entity, NameDescriptionVectorMixin):
+    __tablename__ = EntityType.task_result.value
+
+    id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
+    task_result_type: Mapped[TaskResultType]
+    data_payload: Mapped[JSON_DICT] = mapped_column(default={}, nullable=False, server_default="{}")
+
+    __mapper_args__ = {"polymorphic_identity": EntityType.task_result.value}  # noqa: RUF012
 
 
 class SimulationResult(Entity, NameDescriptionVectorMixin):

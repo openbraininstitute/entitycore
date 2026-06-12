@@ -16,7 +16,6 @@ from pydantic.networks import AnyUrl
 
 from app.config import settings, storages
 from app.db.types import (
-    ALLOWED_ASSET_LABELS_PER_ENTITY,
     CONTENT_TYPE_TO_SUFFIX,
     AssetLabel,
     AssetStatus,
@@ -136,6 +135,48 @@ class AssetReadWithUploadMeta(AssetRead):
     upload_meta: UploadMetaRead | None = None
 
 
+class AssetCreate(AssetBase, SizeAndDigestMixin):
+    """Asset model for creation."""
+
+    entity_type: EntityType
+    parent_id: uuid.UUID | None
+    created_by_id: uuid.UUID
+    updated_by_id: uuid.UUID
+
+    @model_validator(mode="after")
+    def ensure_parent_id_consistency(self):
+        """Ensure consistency of parent_id."""
+        if self.is_directory is True and self.parent_id is not None:
+            msg = "Directories assets cannot have a parent_id"
+            raise ValueError(msg)
+        return self
+
+
+def validate_asset_label(
+    asset: AssetCreate,
+    allowed_labels: dict[AssetLabel, list[LabelRequirements]] | None,
+) -> None:
+    """Validate an asset label and its requirements against an allowed-label map."""
+    if allowed_labels is None:
+        msg = f"There are no allowed asset labels defined for '{asset.entity_type}'"
+        raise ValueError(msg)
+
+    if asset.label == AssetLabel.directory_child:
+        if asset.parent_id is None:
+            msg = "Directory child assets must have a parent_id"
+            raise ValueError(msg)
+        return
+
+    if asset.label not in allowed_labels:
+        msg = (
+            f"Asset label '{asset.label}' is not allowed for entity type '{asset.entity_type}'. "
+            f"Allowed asset labels: {sorted(label.value for label in allowed_labels)}"
+        )
+        raise ValueError(msg)
+
+    _raise_on_label_requirement(asset, allowed_labels[asset.label])
+
+
 def _raise_on_label_requirement(asset: AssetBase, label_reqs: list[LabelRequirements]) -> None:
     content_type_success = [
         label_req.content_type == asset.content_type
@@ -173,49 +214,6 @@ def _raise_on_label_requirement(asset: AssetBase, label_reqs: list[LabelRequirem
 
     if suffix_errors:
         raise ValueError(suffix_errors[0])
-
-
-class AssetCreate(AssetBase, SizeAndDigestMixin):
-    """Asset model for creation."""
-
-    entity_type: EntityType
-    parent_id: uuid.UUID | None
-    created_by_id: uuid.UUID
-    updated_by_id: uuid.UUID
-
-    @model_validator(mode="after")
-    def ensure_entity_type_label_consistency(self):
-        """Asset label must be within the allowed labels for the entity_type."""
-        allowed_asset_labels = ALLOWED_ASSET_LABELS_PER_ENTITY.get(self.entity_type, None)
-
-        if allowed_asset_labels is None:
-            msg = f"There are no allowed asset labels defined for '{self.entity_type}'"
-            raise ValueError(msg)
-
-        if self.label == AssetLabel.directory_child:
-            if self.parent_id is None:
-                msg = "Directory child assets must have a parent_id"
-                raise ValueError(msg)
-            return self  # skip validation for directory_child
-
-        if self.label not in allowed_asset_labels:
-            msg = (
-                f"Asset label '{self.label}' is not allowed for entity type '{self.entity_type}'. "
-                f"Allowed asset labels: {sorted(label.value for label in allowed_asset_labels)}"
-            )
-            raise ValueError(msg)
-
-        _raise_on_label_requirement(self, allowed_asset_labels[self.label])
-
-        return self
-
-    @model_validator(mode="after")
-    def ensure_parent_id_consistency(self):
-        """Ensure consistency of parent_id."""
-        if self.is_directory is True and self.parent_id is not None:
-            msg = "Directories assets cannot have a parent_id"
-            raise ValueError(msg)
-        return self
 
 
 class AssetRegister(AssetBase):

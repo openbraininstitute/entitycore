@@ -48,9 +48,16 @@ from app.db.model import (
     SimulationCampaign,
     SimulationResult,
     Subject,
+    TaskResult,
 )
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
-from app.db.types import CellMorphologyGenerationType, EntityType, StorageType, TargetSimulator
+from app.db.types import (
+    CellMorphologyGenerationType,
+    EntityType,
+    StorageType,
+    TargetSimulator,
+    TaskResultType,
+)
 from app.dependencies import auth
 from app.logger import configure_logging
 from app.schemas.auth import UserContext, UserProfile, UserProjectGroup
@@ -1540,6 +1547,40 @@ def public_simulation_result(db, public_simulation_result_json_data, person_id):
                 "created_by_id": person_id,
                 "updated_by_id": person_id,
                 "authorized_public": True,
+                "authorized_project_id": PROJECT_ID,
+            },
+        ),
+    )
+
+
+@pytest.fixture
+def task_result_json_data():
+    return {
+        "name": "task-result",
+        "description": "task-result-description",
+        "task_result_type": TaskResultType.circuit_extraction__circuit,
+    }
+
+
+@pytest.fixture
+def public_task_result_json_data():
+    return {
+        "name": "task-result",
+        "description": "task-result-description",
+        "authorized_public": True,
+    }
+
+
+@pytest.fixture
+def task_result(db, task_result_json_data, person_id):
+    return add_db(
+        db,
+        TaskResult(
+            **task_result_json_data
+            | {
+                "created_by_id": person_id,
+                "updated_by_id": person_id,
+                "authorized_public": False,
                 "authorized_project_id": PROJECT_ID,
             },
         ),

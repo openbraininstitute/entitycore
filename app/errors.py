@@ -159,9 +159,15 @@ def ensure_valid_schema(
     try:
         yield
     except ValidationError as err:
-        raise ApiError(
-            message=error_message,
-            error_code=error_code,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-            details=[e["msg"] for e in err.errors()],
-        ) from None  # do not include the original exception because the wrapper is sufficient
+        details = [e["msg"] for e in err.errors()]
+    except ValueError as err:
+        details = [f"Value error, {err}"]
+    else:
+        return
+
+    raise ApiError(
+        message=error_message,
+        error_code=error_code,
+        http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        details=details,
+    ) from None  # do not include the original exception because the wrapper is sufficient

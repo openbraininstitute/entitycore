@@ -1,3 +1,4 @@
+# app/routers/__init__.py
 """Web api."""
 
 from fastapi import APIRouter, Depends
@@ -77,6 +78,7 @@ from app.routers import (
     subject,
     task_activity,
     task_config,
+    task_result,
     validation,
     validation_result,
 )
@@ -126,6 +128,7 @@ authenticated_routers = [
     experimental_neuron_density.router,
     experimental_synapses_per_connection.router,
     external_url.router,
+    task_result.router,
     ion_channel.router,
     ion_channel_model.router,
     ion_channel_modeling_campaign.router,

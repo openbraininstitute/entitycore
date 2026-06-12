@@ -1,3 +1,5 @@
+# app/db/types.py
+
 from enum import StrEnum, auto
 from typing import Annotated, Any, TypedDict
 
@@ -111,6 +113,7 @@ class EntityType(StrEnum):
     electrical_recording = auto()
     electrical_recording_stimulus = auto()
     emodel = auto()
+    task_result = auto()
     experimental_bouton_density = auto()
     experimental_neuron_density = auto()
     experimental_synapses_per_connection = auto()
@@ -143,6 +146,23 @@ class EntityType(StrEnum):
     skeletonization_config = auto()
     skeletonization_campaign = auto()
     task_config = auto()
+
+
+class TaskResultType(StrEnum):
+    circuit_simulation__result = auto()
+    circuit_extraction__circuit = auto()
+    ion_channel_modeling__result = auto()
+    skeletonization__morphology = auto()
+    ion_channel_simulation__result = auto()
+    em_synapse_mapping__result = auto()
+    aind_ephys_preprocessing__result = auto()
+    aind_ephys_spikesorting__result = auto()
+    extracellular_recording_weights_calculation__result = auto()
+    mesh_lod_generation__result = auto()
+    efeature_extraction__result = auto()
+    emodel_optimization__result = auto()
+    optimized_emodel_analysis_validation__result = auto()
+    circuit_synaptic_physiology_assignment__result = auto()
 
 
 class TaskConfigType(StrEnum):
@@ -453,6 +473,7 @@ class AssetLabel(StrEnum):
     circuit_figures = auto()
     circuit_analysis_data = auto()
     circuit_connectivity_matrices = auto()
+    task_result = auto()
     nwb = auto()
     neuron_hoc = auto()
     emodel_optimization_output = auto()
@@ -526,6 +547,7 @@ CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
     ContentType.zip: (".zip",),
     ContentType.other: (),
 }
+
 
 ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
     EntityType, dict[AssetLabel, list[LabelRequirements]] | None
@@ -1045,6 +1067,37 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
 }
 ALLOWED_ASSET_LABELS_PER_ENTITY |= {
     k: None for k in EntityType if k not in ALLOWED_ASSET_LABELS_PER_ENTITY
+}
+
+ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
+    TaskResultType.circuit_simulation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.simulation_result
+    ],
+    TaskResultType.circuit_extraction__circuit: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit],
+    TaskResultType.ion_channel_modeling__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.ion_channel_modeling_campaign
+    ],
+    TaskResultType.skeletonization__morphology: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.cell_morphology
+    ],
+    TaskResultType.ion_channel_simulation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.simulation_result
+    ],
+    TaskResultType.em_synapse_mapping__result: None,
+    TaskResultType.aind_ephys_preprocessing__result: None,
+    TaskResultType.aind_ephys_spikesorting__result: None,
+    TaskResultType.extracellular_recording_weights_calculation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[  # noqa: E501
+        EntityType.simulatable_extracellular_recording_array
+    ],
+    TaskResultType.mesh_lod_generation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.em_cell_mesh
+    ],
+    TaskResultType.efeature_extraction__result: None,
+    TaskResultType.emodel_optimization__result: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.emodel],
+    TaskResultType.optimized_emodel_analysis_validation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
+        EntityType.validation_result
+    ],
+    TaskResultType.circuit_synaptic_physiology_assignment__result: None,
 }
 
 

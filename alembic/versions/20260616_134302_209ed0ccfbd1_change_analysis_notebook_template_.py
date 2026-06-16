@@ -12,9 +12,6 @@ from alembic import op
 import sqlalchemy as sa
 
 
-from sqlalchemy import Text
-import app.db.types
-
 # revision identifiers, used by Alembic.
 revision: str = "209ed0ccfbd1"
 down_revision: Union[str, None] = "c9d905433b3e"
@@ -34,6 +31,16 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    conn = op.get_bind()
+    bad = conn.execute(
+        sa.text(
+            "SELECT COUNT(*) FROM analysis_notebook_template "
+            "WHERE exercise_id IS NOT NULL AND exercise_id !~* "
+            "'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'"
+        )
+    ).scalar()
+    if bad:
+        raise RuntimeError(f"Cannot downgrade: {bad} exercise_id value(s) are not valid UUIDs")
     op.alter_column(
         "analysis_notebook_template",
         "exercise_id",

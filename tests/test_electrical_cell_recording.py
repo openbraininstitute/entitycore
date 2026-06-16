@@ -406,6 +406,11 @@ def test_filtering(client, models):
     data = assert_request(client.get, url=ROUTE).json()["data"]
     assert len(data) == len(recordings)
 
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(recordings)
+
     data = assert_request(
         client.get, url=ROUTE, params=f"subject__species__id={species[1].id}"
     ).json()["data"]
@@ -592,7 +597,7 @@ def test_sorting(client, models):
     assert [d["etypes"][0]["pref_label"] for d in data] == [f"e{i}" for i in range(6)][::-1]
 
 
-def test_sorting_and_filtering(client, models):  # noqa: ARG001
+def test_sorting_and_filtering(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -637,6 +642,9 @@ def test_sorting_and_filtering(client, models):  # noqa: ARG001
         "acronym-2",
         "acronym-1",
     ]
+
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(models[-1])
 
 
 def test_ilike_search(client, models):

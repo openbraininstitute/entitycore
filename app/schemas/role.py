@@ -1,23 +1,18 @@
-from pydantic import BaseModel, ConfigDict
-
-from app.schemas.base import (
-    CreationMixin,
-    IdentifiableMixin,
-)
+from app.schemas.base import Schema
+from app.schemas.identifiable import IdentifiableCreate, NestedIdentifiableRead
 from app.schemas.utils import make_update_schema
 
 
-class RoleBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class RoleBase(Schema):
     name: str
     role_id: str
 
 
-class RoleCreate(RoleBase):
+class RoleCreate(RoleBase, IdentifiableCreate):
     pass
 
 
-class RoleRead(RoleBase, CreationMixin, IdentifiableMixin):
+class RoleRead(RoleBase, NestedIdentifiableRead):
     pass
 
 

@@ -203,6 +203,8 @@ def test_brain_region_id(db, client, client_admin, person_id, species_id):
         "id": ANY,
         "name": "Test Species",
         "taxonomy_id": "12345",
+        "creation_date": ANY,
+        "update_date": ANY,
     }
 
     assert response["data"] == [

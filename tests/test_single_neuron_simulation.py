@@ -480,3 +480,5 @@ def test_sorting_filtering(client, faceted_ids):
 
         data = req({"ilike_search": "sim-1", "order_by": ordering_field})
         assert len(data) == 1
+        data = req({"lifecycle_status": "active"})
+        assert len(data) == n_models

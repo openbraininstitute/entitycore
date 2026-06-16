@@ -387,6 +387,11 @@ def test_filtering(client, models):
         "test_organization_1"
     ] * 3
 
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(densities)
+
 
 def test_sorting(client, models):
     models = models[-1]
@@ -549,6 +554,9 @@ def test_sorting_and_filtering(client, models):
         "acronym-2",
         "acronym-1",
     ]
+
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(models)
 
 
 def test_measurement_sorting(client, models):

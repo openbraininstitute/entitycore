@@ -9,7 +9,7 @@ from app.db.model import (
     TaskConfig,
     Usage,
 )
-from app.db.types import ActivityType, ExecutorType
+from app.db.types import ActivityType, EntityType, ExecutorType
 
 from .utils import (
     PROJECT_ID,
@@ -23,6 +23,7 @@ from .utils import (
     check_activity_update_one__fail_if_generated_ids_unauthorized,
     check_creation_fields,
     check_missing,
+    check_nested_entity_read_response,
     check_pagination,
     create_cell_morphology_id,
 )
@@ -67,22 +68,24 @@ def _assert_read_response(data, json_data, *, empty_ids=False):
         assert len(data["used"]) == 0
         assert len(data["generated"]) == 0
     else:
-        assert data["used"] == [
-            {
-                "id": json_data["used_ids"][0],
-                "type": "task_config",
-                "authorized_project_id": PROJECT_ID,
-                "authorized_public": False,
-            }
-        ]
-        assert data["generated"] == [
-            {
-                "id": json_data["generated_ids"][0],
-                "type": "cell_morphology",
-                "authorized_project_id": PROJECT_ID,
-                "authorized_public": False,
-            }
-        ]
+        assert len(data["used"]) == 1
+        check_nested_entity_read_response(
+            data=data["used"][0],
+            json_data={},
+            expected_entity_id=json_data["used_ids"][0],
+            expected_entity_type=str(EntityType.task_config),
+            expected_authorized_project_id=PROJECT_ID,
+            expected_authorized_public=False,
+        )
+        assert len(data["generated"]) == 1
+        check_nested_entity_read_response(
+            data=data["generated"][0],
+            json_data={},
+            expected_entity_id=json_data["generated_ids"][0],
+            expected_entity_type=str(EntityType.cell_morphology),
+            expected_authorized_project_id=PROJECT_ID,
+            expected_authorized_public=False,
+        )
     check_creation_fields(data)
     assert DateTimeAdapter.validate_python(data["start_time"]) == DateTimeAdapter.validate_python(
         json_data["start_time"]

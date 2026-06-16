@@ -6,7 +6,7 @@ import pytest
 
 from app.config import settings
 from app.db.model import Derivation
-from app.db.types import DerivationType
+from app.db.types import DerivationType, EntityType
 from app.errors import ApiErrorCode
 from app.filters.derivation import DerivationFilter
 from app.queries.utils import is_user_authorized_for_deletion
@@ -22,6 +22,7 @@ from tests.utils import (
     assert_request,
     assert_response,
     check_creation_fields,
+    check_nested_entity_read_response,
     check_sort_by_field,
     create_electrical_cell_recording_id,
     create_person,
@@ -247,8 +248,22 @@ def test_read_one(db, client, root_circuit, circuit, person_id):
 
     data = assert_request(client.get, url=f"{ROUTE}/{derivation.id}").json()
     assert data["id"] == str(derivation.id)
-    assert data["used"] == {"id": str(root_circuit.id), "type": "circuit"}
-    assert data["generated"] == {"id": str(circuit.id), "type": "circuit"}
+    check_nested_entity_read_response(
+        data=data["used"],
+        json_data={},
+        expected_entity_id=str(root_circuit.id),
+        expected_entity_type=str(EntityType.circuit),
+        expected_authorized_project_id=PROJECT_ID,
+        expected_authorized_public=True,
+    )
+    check_nested_entity_read_response(
+        data=data["generated"],
+        json_data={},
+        expected_entity_id=str(circuit.id),
+        expected_entity_type=str(EntityType.circuit),
+        expected_authorized_project_id=PROJECT_ID,
+        expected_authorized_public=False,
+    )
     assert data["derivation_type"] == DerivationType.circuit_extraction
     assert data["label"] is None
     check_creation_fields(data)
@@ -620,17 +635,29 @@ def test_create_one(client, derivation_type, root_circuit, circuit):
             "derivation_type": derivation_type,
         },
     ).json()
-    assert data == {
-        "id": ANY,
-        "used": {"type": "circuit", "id": str(root_circuit.id)},
-        "generated": {"type": "circuit", "id": str(circuit.id)},
-        "derivation_type": derivation_type,
-        "label": None,
-        "created_by": ANY,
-        "updated_by": ANY,
-        "creation_date": ANY,
-        "update_date": ANY,
-    }
+    assert data["id"] == ANY
+    check_nested_entity_read_response(
+        data=data["used"],
+        json_data={},
+        expected_entity_id=str(root_circuit.id),
+        expected_entity_type=str(EntityType.circuit),
+        expected_authorized_project_id=PROJECT_ID,
+        expected_authorized_public=True,
+    )
+    check_nested_entity_read_response(
+        data=data["generated"],
+        json_data={},
+        expected_entity_id=str(circuit.id),
+        expected_entity_type=str(EntityType.circuit),
+        expected_authorized_project_id=PROJECT_ID,
+        expected_authorized_public=False,
+    )
+    assert data["derivation_type"] == str(derivation_type)
+    assert data["label"] is None
+    assert data["created_by"] == ANY
+    assert data["updated_by"] == ANY
+    assert data["creation_date"] == ANY
+    assert data["update_date"] == ANY
     check_creation_fields(data)
 
 
@@ -673,8 +700,22 @@ def test_create_emodel_circuit_with_label(client, emodel_id, circuit):
             "label": "hoc:cADpyr_L5TPC",
         },
     ).json()
-    assert data["used"] == {"type": "emodel", "id": str(emodel_id)}
-    assert data["generated"] == {"type": "circuit", "id": str(circuit.id)}
+    check_nested_entity_read_response(
+        data=data["used"],
+        json_data={},
+        expected_entity_id=str(emodel_id),
+        expected_entity_type=str(EntityType.emodel),
+        expected_authorized_project_id=PROJECT_ID,
+        expected_authorized_public=False,
+    )
+    check_nested_entity_read_response(
+        data=data["generated"],
+        json_data={},
+        expected_entity_id=str(circuit.id),
+        expected_entity_type=str(EntityType.circuit),
+        expected_authorized_project_id=PROJECT_ID,
+        expected_authorized_public=False,
+    )
     assert data["derivation_type"] == str(DerivationType.emodel_circuit)
     assert data["label"] == "hoc:cADpyr_L5TPC"
 
@@ -691,8 +732,23 @@ def test_create_circuit_customization_with_label(client, root_circuit, circuit):
             "label": "synaptic_modification",
         },
     ).json()
-    assert data["used"] == {"type": "circuit", "id": str(root_circuit.id)}
-    assert data["generated"] == {"type": "circuit", "id": str(circuit.id)}
+
+    check_nested_entity_read_response(
+        data=data["used"],
+        json_data={},
+        expected_entity_id=str(root_circuit.id),
+        expected_entity_type=str(EntityType.circuit),
+        expected_authorized_project_id=PROJECT_ID,
+        expected_authorized_public=True,
+    )
+    check_nested_entity_read_response(
+        data=data["generated"],
+        json_data={},
+        expected_entity_id=str(circuit.id),
+        expected_entity_type=str(EntityType.circuit),
+        expected_authorized_project_id=PROJECT_ID,
+        expected_authorized_public=False,
+    )
     assert data["derivation_type"] == str(DerivationType.circuit_customization)
     assert data["label"] == "synaptic_modification"
 

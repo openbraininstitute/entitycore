@@ -58,7 +58,11 @@ def create_id(client, json_data):
 
 
 def _assert_read_response(data, json_data):
-    check_entity_read_response(data, json_data, EntityType.task_result)
+    check_entity_read_response(
+        data=data,
+        json_data=json_data,
+        expected_entity_type=EntityType.task_result,
+    )
 
 
 def test_user_create_one(client, json_data):
@@ -168,6 +172,14 @@ def test_filtering(client, models):
 
     data = req({"name": "s-none"})
     assert len(data) == 0
+
+    data = req(
+        {
+            "lifecycle_status": "active",
+            "task_result_type": TaskResultType.circuit_extraction__circuit,
+        }
+    )
+    assert len(data) == len(models)
 
 
 def _example_file_upload(

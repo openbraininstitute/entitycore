@@ -1,16 +1,12 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import CircuitBuildCategory, CircuitScale, TargetSimulator
 from app.schemas.base import NameDescriptionMixin
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.utils import make_update_schema
 
 
-class CircuitBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
-
+class CircuitBaseMixin(NameDescriptionMixin):
     has_morphologies: bool = False
     has_point_neurons: bool = False
     has_electrical_cell_models: bool = False
@@ -28,11 +24,11 @@ class CircuitBase(BaseModel, NameDescriptionMixin):
     target_simulator: TargetSimulator = TargetSimulator.neuron
 
 
-class CircuitRead(CircuitBase, ScientificArtifactRead):
+class CircuitRead(CircuitBaseMixin, ScientificArtifactRead):
     pass
 
 
-class CircuitCreate(CircuitBase, ScientificArtifactCreate):
+class CircuitCreate(CircuitBaseMixin, ScientificArtifactCreate):
     pass
 
 

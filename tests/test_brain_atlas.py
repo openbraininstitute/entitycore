@@ -116,6 +116,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             "id": species_id,
             "name": "Test Species",
             "taxonomy_id": "12345",
+            "creation_date": ANY,
+            "update_date": ANY,
         },
         "strain": None,
         "update_date": ANY,
@@ -123,6 +125,9 @@ def test_brain_atlas(db, client, species_id, person_id):
         "updated_by": ANY,
         "authorized_project_id": utils.PROJECT_ID,
         "authorized_public": True,
+        "lifecycle_status": "active",
+        "type": "brain_atlas",
+        "contributions": [],
     }
 
     response = client.get(ROUTE)
@@ -194,6 +199,9 @@ def test_brain_atlas(db, client, species_id, person_id):
             "updated_by": ANY,
             "update_date": ANY,
             "volume": None,
+            "lifecycle_status": "active",
+            "type": "brain_atlas_region",
+            "contributions": [],
         },
         {
             "assets": [expected_asset],
@@ -208,6 +216,9 @@ def test_brain_atlas(db, client, species_id, person_id):
             "updated_by": ANY,
             "update_date": ANY,
             "volume": None,
+            "lifecycle_status": "active",
+            "type": "brain_atlas_region",
+            "contributions": [],
         },
         {
             "assets": [expected_asset],
@@ -222,6 +233,9 @@ def test_brain_atlas(db, client, species_id, person_id):
             "updated_by": ANY,
             "update_date": ANY,
             "volume": 15.0,
+            "lifecycle_status": "active",
+            "type": "brain_atlas_region",
+            "contributions": [],
         },
         {
             "assets": [expected_asset],
@@ -236,6 +250,9 @@ def test_brain_atlas(db, client, species_id, person_id):
             "updated_by": ANY,
             "update_date": ANY,
             "volume": 10.0,
+            "lifecycle_status": "active",
+            "type": "brain_atlas_region",
+            "contributions": [],
         },
     ]
 
@@ -261,6 +278,9 @@ def test_brain_atlas(db, client, species_id, person_id):
         "updated_by": ANY,
         "update_date": ANY,
         "volume": None,
+        "lifecycle_status": "active",
+        "type": "brain_atlas_region",
+        "contributions": [],
     }
 
 
@@ -398,3 +418,10 @@ def test_filtering(client, brain_region_hierarchy_id, species_id):
         },
     ).json()
     assert len(data["data"]) == 0
+
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE}",
+        params={"lifecycle_status": "active", "hierarchy_id": brain_region_hierarchy_id},
+    ).json()
+    assert len(data["data"]) == 1

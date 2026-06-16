@@ -1,26 +1,17 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
 
-class SimulationResultBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class SimulationResultBaseMixin(NameDescriptionMixin):
     simulation_id: uuid.UUID
 
 
-class SimulationResultCreate(SimulationResultBase, AuthorizationOptionalPublicMixin):
+class SimulationResultCreate(SimulationResultBaseMixin, EntityCreate):
     pass
 
 
@@ -34,15 +25,12 @@ SimulationResultAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedSimulationResultRead(SimulationResultBase, EntityTypeMixin, IdentifiableMixin):
+class NestedSimulationResultRead(SimulationResultBaseMixin, NestedEntityRead):
     pass
 
 
 class SimulationResultRead(
-    NestedSimulationResultRead,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    AuthorizationMixin,
+    SimulationResultBaseMixin,
+    EntityRead,
 ):
     pass

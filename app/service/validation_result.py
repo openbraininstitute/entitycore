@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Person, Subject, ValidationResult
+from app.db.model import Contribution, Person, Subject, ValidationResult
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -40,6 +40,10 @@ def _load(query: sa.Select):
         joinedload(ValidationResult.created_by),
         joinedload(ValidationResult.updated_by),
         selectinload(ValidationResult.assets),
+        selectinload(ValidationResult.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 

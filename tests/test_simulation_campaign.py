@@ -170,6 +170,17 @@ def test_filtering(client, models, simulation_json_data, person_id):
     ).json()["data"]
     assert len(data) == len(models) + 1  # + 1 for root circuit
 
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "lifecycle_status": "active",
+            "created_by__sub_id": USER_SUB_ID_1,
+            "updated_by__sub_id": USER_SUB_ID_1,
+        },
+    ).json()["data"]
+    assert len(data) == len(models) + 1
+
 
 @pytest.fixture
 def multiple_circuits(db, brain_atlas_id, subject_id, brain_region_id, license_id, person_id):

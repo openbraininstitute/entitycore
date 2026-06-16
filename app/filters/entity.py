@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi_filter import with_prefix
 
 from app.db.model import Entity
-from app.db.types import EntityType
+from app.db.types import EntityLifecycleStatus, EntityType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import AuthorizedFilterMixin, CreationFilterMixin, IdFilterMixin
@@ -44,4 +44,4 @@ class EntityFilterMixin(
     CreationFilterMixin,
     ContributionFilterMixin,
 ):
-    pass
+    lifecycle_status: EntityLifecycleStatus | None = None

@@ -3,7 +3,7 @@ import uuid
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Agent, MEModel, Person, SingleNeuronSimulation
+from app.db.model import Agent, Contribution, MEModel, Person, SingleNeuronSimulation
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -39,6 +39,10 @@ def _load(query: sa.Select):
         joinedload(SingleNeuronSimulation.created_by),
         joinedload(SingleNeuronSimulation.updated_by),
         selectinload(SingleNeuronSimulation.assets),
+        selectinload(SingleNeuronSimulation.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 

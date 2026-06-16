@@ -1,31 +1,21 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
 from app.schemas.brain_region import BrainRegionReadMixin
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.me_model import NestedMEModel
 from app.schemas.utils import make_update_schema
 
 
-class SingleNeuronSynaptomeBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class SingleNeuronSynaptomeBaseMixin(NameDescriptionMixin):
     seed: int
 
 
 class SingleNeuronSynaptomeCreate(
-    SingleNeuronSynaptomeBase,
-    AuthorizationOptionalPublicMixin,
+    SingleNeuronSynaptomeBaseMixin,
+    EntityCreate,
 ):
     me_model_id: uuid.UUID
     brain_region_id: uuid.UUID
@@ -42,19 +32,13 @@ SingleNeuronSynaptomeAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedSynaptome(SingleNeuronSynaptomeBase, CreationMixin, IdentifiableMixin):
+class NestedSynaptome(SingleNeuronSynaptomeBaseMixin, NestedEntityRead):
     pass
 
 
 class SingleNeuronSynaptomeRead(
-    SingleNeuronSynaptomeBase,
-    AuthorizationMixin,
-    IdentifiableMixin,
-    CreationMixin,
-    ContributionReadWithoutEntityMixin,
-    EntityTypeMixin,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
+    SingleNeuronSynaptomeBaseMixin,
+    EntityRead,
     BrainRegionReadMixin,
 ):
     me_model: NestedMEModel

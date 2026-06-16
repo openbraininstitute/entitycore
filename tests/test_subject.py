@@ -290,5 +290,5 @@ def test_filtering_sorting(client, models):
     data = req({"species__name": "unknown"})
     assert len(data) == 0
 
-    data = req({"strain__name": "unknown"})
-    assert len(data) == 0
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(models)

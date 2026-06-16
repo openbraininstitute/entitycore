@@ -4,11 +4,7 @@ from typing import TYPE_CHECKING
 import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import (
-    Agent,
-    BrainAtlasRegion as Model,
-    Person,
-)
+from app.db.model import Agent, BrainAtlasRegion as Model, Contribution, Person
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
@@ -38,6 +34,10 @@ def _load(query: sa.Select):
     return query.options(
         joinedload(Model.created_by),
         joinedload(Model.updated_by),
+        selectinload(Model.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         selectinload(Model.assets),
         raiseload("*"),
     )

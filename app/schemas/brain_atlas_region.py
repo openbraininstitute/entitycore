@@ -2,15 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
-from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    IdentifiableMixin,
-)
-from app.schemas.brain_region import BrainRegionCreateMixin
+from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.utils import make_update_schema
 
 
@@ -26,19 +18,14 @@ class BrainAtlasRegionBase(BaseModel):
 
 class BrainAtlasRegionCreate(
     BrainAtlasRegionBase,
-    BrainRegionCreateMixin,
-    AuthorizationOptionalPublicMixin,
+    EntityCreate,
 ):
     pass
 
 
 class BrainAtlasRegionRead(
     BrainAtlasRegionBase,
-    AssetsMixin,
-    AuthorizationMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    IdentifiableMixin,
+    EntityRead,
 ):
     pass
 

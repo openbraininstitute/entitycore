@@ -1,14 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
-from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
-)
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.types import RuntimeInfo
 from app.schemas.utils import make_update_schema
 
@@ -20,7 +12,7 @@ class AnalysisNotebookEnvironmentBase(BaseModel):
 
 class AnalysisNotebookEnvironmentCreate(
     AnalysisNotebookEnvironmentBase,
-    AuthorizationOptionalPublicMixin,
+    EntityCreate,
 ):
     pass
 
@@ -37,17 +29,13 @@ AnalysisNotebookEnvironmentAdminUpdate = make_update_schema(
 
 class NestedAnalysisNotebookEnvironmentRead(
     AnalysisNotebookEnvironmentBase,
-    EntityTypeMixin,
-    IdentifiableMixin,
+    NestedEntityRead,
 ):
     pass
 
 
 class AnalysisNotebookEnvironmentRead(
-    NestedAnalysisNotebookEnvironmentRead,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    AuthorizationMixin,
+    AnalysisNotebookEnvironmentBase,
+    EntityRead,
 ):
     pass

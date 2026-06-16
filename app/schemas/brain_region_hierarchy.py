@@ -1,27 +1,23 @@
-from pydantic import BaseModel, ConfigDict
-
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.base import Schema
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead
 from app.schemas.species import SpeciesStrainCreateMixin, SpeciesStrainReadMixin
 from app.schemas.utils import make_update_schema
 
 
-class BrainRegionHierarchyBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class BrainRegionHierarchyBase(Schema):
     name: str
 
 
-class BrainRegionHierarchyCreate(BrainRegionHierarchyBase, SpeciesStrainCreateMixin):
+class BrainRegionHierarchyCreate(
+    BrainRegionHierarchyBase, SpeciesStrainCreateMixin, IdentifiableCreate
+):
     pass
 
 
 class BrainRegionHierarchyRead(
     BrainRegionHierarchyBase,
-    CreationMixin,
-    CreatedByUpdatedByMixin,
-    IdentifiableMixin,
     SpeciesStrainReadMixin,
+    IdentifiableRead,
 ):
     pass
 

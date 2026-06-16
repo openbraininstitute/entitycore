@@ -201,6 +201,11 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     ).json()["data"]
     assert len(data) == 1
 
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(models)
+
 
 def test_delete_one(db, clients, json_data):
 

@@ -106,6 +106,8 @@ def _assert_read_response(actual, expected):
         "created_by",
         "updated_by",
         "id",
+        "contributions",
+        "lifecycle_status",
     }
     assert ignored_keys.issubset(actual)
     actual = {k: v for k, v in actual.items() if k not in ignored_keys}
@@ -368,6 +370,11 @@ def test_filtering(client, models):
         params={"ilike_search": "*Placeholder*"},
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(models)
 
 
 def test_sorting(client, models):

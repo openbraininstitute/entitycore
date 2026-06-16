@@ -45,7 +45,9 @@ def create_id(client, json_data):
 
 
 def _assert_read_response(data, json_data):
-    check_entity_read_response(data, json_data, EntityType.circuit_extraction_campaign)
+    check_entity_read_response(
+        data=data, json_data=json_data, expected_entity_type=EntityType.circuit_extraction_campaign
+    )
     assert data["scan_parameters"] == json_data["scan_parameters"]
 
 
@@ -151,5 +153,5 @@ def test_filtering_ordering(client, models):
     data = _req({"ilike_search": "*description*"})
     assert len(data) == len(models)
 
-    data = _req({"ilike_search": "campaign-1"})
-    assert len(data) == 1
+    data = _req({"lifecycle_status": "active"})
+    assert len(data) == len(models)

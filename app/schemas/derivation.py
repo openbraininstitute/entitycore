@@ -1,11 +1,12 @@
 import re
 import uuid
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import model_validator
 
 from app.db.types import DerivationType
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.base import BasicEntityRead, CreationMixin, IdentifiableMixin
+from app.schemas.base import Schema
+from app.schemas.entity import NestedEntityRead
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead
 from app.schemas.utils import DEFAULT_EXCLUDED_FIELDS, make_update_schema
 
 # Allowed label values per derivation type.
@@ -22,11 +23,11 @@ _CIRCUIT_CUSTOMIZATION_LABELS = frozenset(
 )
 
 
-class DerivationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class DerivationBase(Schema):
+    pass
 
 
-class DerivationCreate(DerivationBase):
+class DerivationCreate(DerivationBase, IdentifiableCreate):
     used_id: uuid.UUID
     generated_id: uuid.UUID
     derivation_type: DerivationType
@@ -73,8 +74,8 @@ DerivationAdminUpdate = make_update_schema(
 )  # pyright: ignore [reportInvalidTypeForm]
 
 
-class DerivationRead(DerivationBase, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
-    used: BasicEntityRead
-    generated: BasicEntityRead
+class DerivationRead(DerivationBase, IdentifiableRead):
+    used: NestedEntityRead
+    generated: NestedEntityRead
     derivation_type: DerivationType
     label: str | None = None

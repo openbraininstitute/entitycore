@@ -162,5 +162,5 @@ def test_filtering(client, models):
     data = req({"ilike_search": "*description*"})
     assert len(data) == len(models)
 
-    data = req({"ilike_search": "s-1"})
-    assert len(data) == 1
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(models)

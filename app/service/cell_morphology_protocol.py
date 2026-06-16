@@ -3,15 +3,12 @@ from typing import TYPE_CHECKING, Annotated
 
 import sqlalchemy as sa
 from fastapi import Body
-from sqlalchemy.orm import (
-    aliased,
-    joinedload,
-    raiseload,
-)
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
     CellMorphologyProtocol,
+    Contribution,
     Person,
 )
 from app.db.utils import CELL_MORPHOLOGY_GENERATION_TYPE_TO_CLASS
@@ -46,6 +43,10 @@ def _load_from_db(query: sa.Select) -> sa.Select:
     return query.options(
         joinedload(CellMorphologyProtocol.created_by, innerjoin=True),
         joinedload(CellMorphologyProtocol.updated_by, innerjoin=True),
+        selectinload(CellMorphologyProtocol.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 

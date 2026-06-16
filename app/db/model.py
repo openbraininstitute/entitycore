@@ -58,6 +58,7 @@ from app.db.types import (
     ElectrodeType,
     EMCellMeshGenerationMethod,
     EMCellMeshType,
+    EntityLifecycleStatus,
     EntityType,
     ExecutorType,
     ExternalSource,
@@ -593,6 +594,11 @@ class Entity(LegacyMixin, Identifiable):
     __tablename__ = "entity"
 
     type: Mapped[EntityType]
+    lifecycle_status: Mapped[EntityLifecycleStatus] = mapped_column(
+        nullable=False,
+        default=EntityLifecycleStatus.active,
+        server_default=EntityLifecycleStatus.active,
+    )
     annotations = relationship("Annotation", back_populates="entity", passive_deletes=True)
 
     authorized_project_id: Mapped[uuid.UUID]

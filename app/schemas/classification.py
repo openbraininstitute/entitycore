@@ -1,44 +1,40 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    IdentifiableMixin,
+    Schema,
 )
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead
 
 
-class ClassificationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class ClassificationBase(Schema):
     entity_id: uuid.UUID
 
 
-class MTypeClassificationCreate(ClassificationBase, AuthorizationOptionalPublicMixin):
+class MTypeClassificationCreate(
+    ClassificationBase, AuthorizationOptionalPublicMixin, IdentifiableCreate
+):
     mtype_class_id: uuid.UUID
 
 
 class MTypeClassificationRead(
     ClassificationBase,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    IdentifiableMixin,
+    IdentifiableRead,
     AuthorizationMixin,
 ):
     mtype_class_id: uuid.UUID
 
 
-class ETypeClassificationCreate(ClassificationBase, AuthorizationOptionalPublicMixin):
+class ETypeClassificationCreate(
+    ClassificationBase, AuthorizationOptionalPublicMixin, IdentifiableCreate
+):
     etype_class_id: uuid.UUID
 
 
 class ETypeClassificationRead(
     ClassificationBase,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    IdentifiableMixin,
+    IdentifiableRead,
     AuthorizationMixin,
 ):
     etype_class_id: uuid.UUID

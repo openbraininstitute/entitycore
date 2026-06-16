@@ -1,5 +1,8 @@
 import uuid
 
+import sqlalchemy as sa
+from sqlalchemy.orm import joinedload, raiseload
+
 from app.db.model import License
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
@@ -12,9 +15,17 @@ from app.queries.common import (
     router_read_one,
     router_update_one,
 )
-from app.schemas.base import LicenseAdminUpdate, LicenseCreate, LicenseRead
+from app.schemas.license import LicenseAdminUpdate, LicenseCreate, LicenseRead
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse
+
+
+def _load(query: sa.Select):
+    return query.options(
+        joinedload(License.created_by, innerjoin=True),
+        joinedload(License.updated_by, innerjoin=True),
+        raiseload("*"),
+    )
 
 
 def read_many(
@@ -29,7 +40,7 @@ def read_many(
         facets=None,
         aliases=None,
         apply_filter_query_operations=None,
-        apply_data_query_operations=None,
+        apply_data_query_operations=_load,
         pagination_request=pagination_request,
         response_schema_class=LicenseRead,
         name_to_facet_query_params=None,
@@ -47,7 +58,7 @@ def read_one(id_: uuid.UUID, db: SessionDep) -> LicenseRead:
         db_model_class=License,
         user_context=None,
         response_schema_class=LicenseRead,
-        apply_operations=None,
+        apply_operations=_load,
     )
 
 

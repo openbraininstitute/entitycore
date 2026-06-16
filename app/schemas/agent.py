@@ -1,23 +1,20 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
+from app.db.types import AgentType
 from app.schemas.base import (
-    CreationMixin,
-    IdentifiableMixin,
-    make_update_schema,
+    Schema,
 )
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
+from app.schemas.utils import make_update_schema
 
 
-class PersonBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class PersonBase(Schema):
     given_name: str | None = None
     family_name: str | None = None
     pref_label: str
 
 
-class PersonCreate(PersonBase):
+class PersonCreate(PersonBase, IdentifiableCreate):
     legacy_id: str | None = None
 
 
@@ -28,28 +25,27 @@ PersonAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedPersonRead(PersonBase, IdentifiableMixin):
-    type: str
+class NestedPersonRead(PersonBase, NestedIdentifiableRead):
+    type: AgentType
     sub_id: uuid.UUID | None
 
 
-class CreatedByUpdatedByMixin(BaseModel):
+class CreatedByUpdatedByMixin(Schema):
     created_by: NestedPersonRead
     updated_by: NestedPersonRead
 
 
-class PersonRead(NestedPersonRead, CreationMixin, CreatedByUpdatedByMixin):
-    pass
+class PersonRead(PersonBase, IdentifiableRead):
+    type: AgentType
+    sub_id: uuid.UUID | None
 
 
-class OrganizationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class OrganizationBase(Schema):
     pref_label: str
     alternative_name: str | None = None
 
 
-class OrganizationCreate(OrganizationBase):
+class OrganizationCreate(OrganizationBase, IdentifiableCreate):
     legacy_id: str | None = None
 
 
@@ -60,24 +56,23 @@ OrganizationAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedOrganizationRead(OrganizationBase, IdentifiableMixin):
-    type: str
+class NestedOrganizationRead(OrganizationBase, NestedIdentifiableRead):
+    type: AgentType
 
 
 class OrganizationRead(
-    NestedOrganizationRead, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
+    OrganizationBase,
+    IdentifiableRead,
 ):
-    pass
+    type: AgentType
 
 
-class ConsortiumBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class ConsortiumBase(Schema):
     pref_label: str
     alternative_name: str | None = None
 
 
-class ConsortiumCreate(ConsortiumBase):
+class ConsortiumCreate(ConsortiumBase, IdentifiableCreate):
     legacy_id: str | None = None
 
 
@@ -88,14 +83,15 @@ ConsortiumAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedConsortiumRead(ConsortiumBase, IdentifiableMixin):
-    type: str
+class NestedConsortiumRead(ConsortiumBase, NestedIdentifiableRead):
+    type: AgentType
 
 
 class ConsortiumRead(
-    NestedConsortiumRead, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin
+    ConsortiumBase,
+    IdentifiableRead,
 ):
-    pass
+    type: AgentType
 
 
 type AgentRead = NestedPersonRead | NestedOrganizationRead | NestedConsortiumRead

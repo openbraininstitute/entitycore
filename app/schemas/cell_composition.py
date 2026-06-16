@@ -1,30 +1,21 @@
-from pydantic import BaseModel
-
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
 from app.schemas.brain_region import BrainRegionCreateMixin, BrainRegionReadMixin
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.species import SpeciesStrainCreateMixin, SpeciesStrainReadMixin
 from app.schemas.utils import make_update_schema
 
 
-class CellCompositionBase(BaseModel, NameDescriptionMixin):
+class CellCompositionBaseMixin(NameDescriptionMixin):
     pass
 
 
 class CellCompositionCreate(
-    CellCompositionBase,
-    AuthorizationOptionalPublicMixin,
+    CellCompositionBaseMixin,
     BrainRegionCreateMixin,
     SpeciesStrainCreateMixin,
+    EntityCreate,
 ):
     pass
 
@@ -38,15 +29,9 @@ CellCompositionAdminUpdate = make_update_schema(
 
 
 class CellCompositionRead(
-    CellCompositionBase,
-    CreationMixin,
-    AuthorizationMixin,
-    IdentifiableMixin,
-    EntityTypeMixin,
+    CellCompositionBaseMixin,
     BrainRegionReadMixin,
-    CreatedByUpdatedByMixin,
-    ContributionReadWithoutEntityMixin,
-    AssetsMixin,
     SpeciesStrainReadMixin,
+    EntityRead,
 ):
     pass

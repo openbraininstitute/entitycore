@@ -1115,7 +1115,10 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
             LabelRequirements(
                 content_type=ContentType.directory,
                 is_directory=True,
-                description="Directory of per-protocol/per-feature PDF extraction figures with manifest.json.",
+                description=(
+                    "Directory of per-protocol/per-feature PDF extraction"
+                    " figures with manifest.json."
+                ),
             ),
         ],
         AssetLabel.efeature_extraction_cells: [

@@ -1,4 +1,3 @@
-import uuid
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -42,7 +41,7 @@ class AnalysisNotebookTemplateBase(BaseModel, NameDescriptionMixin):
     model_config = ConfigDict(from_attributes=True)
     specifications: AnalysisNotebookTemplateSpecifications | None = None
     scale: AnalysisScale
-    exercise_id: uuid.UUID | None = None
+    exercise_id: Annotated[str | None, Field(min_length=1, max_length=255)] = None
 
 
 class AnalysisNotebookTemplateCreate(

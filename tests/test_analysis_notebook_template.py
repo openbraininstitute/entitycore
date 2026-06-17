@@ -1,5 +1,3 @@
-import uuid
-
 import pytest
 
 from app.db.model import AnalysisNotebookTemplate
@@ -108,9 +106,9 @@ def test_read_many_2(clients, json_data):
 
 
 def test_filter_by_exercise_id(client, json_data):
-    exercise_a = str(uuid.uuid4())
-    exercise_b = str(uuid.uuid4())
-    exercise_c = str(uuid.uuid4())
+    exercise_a = "exercise-101"
+    exercise_b = "physiology_basics"
+    exercise_c = "no-such-exercise"
 
     id_a1 = assert_request(
         client.post, url=ROUTE, json=json_data | {"name": "a1", "exercise_id": exercise_a}
@@ -135,6 +133,16 @@ def test_filter_by_exercise_id(client, json_data):
         "data"
     ]
     assert data == []
+
+
+@pytest.mark.parametrize("exercise_id", ["", "x" * 256])
+def test_exercise_id_invalid(client, json_data, exercise_id):
+    assert_request(
+        client.post,
+        url=ROUTE,
+        json=json_data | {"exercise_id": exercise_id},
+        expected_status_code=422,
+    )
 
 
 def test_delete_one(db, clients, json_data):

@@ -510,7 +510,6 @@ class AssetLabel(StrEnum):
     lod_mesh_block = auto()
     electrode_array_weight_matrix = auto()
     efeature_extraction_features = auto()
-    efeature_extraction_recipe = auto()
     efeature_extraction_figures = auto()
     efeature_extraction_cells = auto()
 
@@ -1102,13 +1101,6 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
                 content_type=ContentType.json,
                 is_directory=False,
                 description="Extracted e-features JSON (FitnessCalculatorConfiguration).",
-            ),
-        ],
-        AssetLabel.efeature_extraction_recipe: [
-            LabelRequirements(
-                content_type=ContentType.json,
-                is_directory=False,
-                description="BluePyEModel recipes.json used during extraction.",
             ),
         ],
         AssetLabel.efeature_extraction_figures: [

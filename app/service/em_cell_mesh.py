@@ -112,6 +112,7 @@ def _read_many(
         "updated_by",
         "em_dense_reconstruction_dataset",
         "mtype",
+        "release_version",
     ]
     filter_keys = [
         "subject",

@@ -99,6 +99,7 @@ def models(db, json_data, person_id):
                     "name": f"mesh-{i}",
                     "description": f"desc-{i}",
                     "level_of_detail": i,
+                    "release_version": i,
                     "dense_reconstruction_cell_id": i,
                     "mesh_type": ["static", "dynamic"][i % 2],
                     "created_by_id": person_id,
@@ -185,7 +186,22 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
             },
         ],
         "mtype": [],
+        "release_version": [
+            {
+                "count": 1,
+                "id": 0,
+                "label": "0",
+                "type": "release_version",
+            },
+        ],
     }
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"release_version__in": [1, 2]},
+    ).json()["data"]
+    assert sorted(d["release_version"] for d in data) == [1, 2]
 
     data = assert_request(
         client.get,

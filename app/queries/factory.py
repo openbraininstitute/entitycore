@@ -1,5 +1,6 @@
 from typing import Any, cast
 
+import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeBase
 
 from app.db.model import (
@@ -9,6 +10,7 @@ from app.db.model import (
     CellMorphologyProtocol,
     Circuit,
     Contribution,
+    EMCellMesh,
     EMDenseReconstructionDataset,
     EModel,
     Entity,
@@ -153,6 +155,10 @@ def query_params_factory[I: Identifiable](
             "id": em_dense_reconstruction_dataset_alias.id,
             "label": em_dense_reconstruction_dataset_alias.name,
         },
+        "release_version": {
+            "id": EMCellMesh.release_version,
+            "label": sa.cast(EMCellMesh.release_version, sa.String),
+        },
         "ion_channel_model": {
             "id": ion_channel_model_alias.id,
             "label": ion_channel_model_alias.name,
@@ -282,6 +288,8 @@ def query_params_factory[I: Identifiable](
             em_dense_reconstruction_dataset_alias.id
             == db_model_class.em_dense_reconstruction_dataset_id,
         ),
+        # release_version is a scalar column on the base table; no join needed.
+        "release_version": lambda q: q,
         "ion_channel_model": lambda q: q.outerjoin(
             IonChannelModelToEModel,
             db_model_class.id == IonChannelModelToEModel.emodel_id,

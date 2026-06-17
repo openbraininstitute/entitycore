@@ -509,6 +509,10 @@ class AssetLabel(StrEnum):
     task_config = auto()
     lod_mesh_block = auto()
     electrode_array_weight_matrix = auto()
+    efeature_extraction_features = auto()
+    efeature_extraction_recipe = auto()
+    efeature_extraction_figures = auto()
+    efeature_extraction_cells = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -1092,7 +1096,36 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
     TaskResultType.mesh_lod_generation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
         EntityType.em_cell_mesh
     ],
-    TaskResultType.efeature_extraction__result: None,
+    TaskResultType.efeature_extraction__result: {
+        AssetLabel.efeature_extraction_features: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="Extracted e-features JSON (FitnessCalculatorConfiguration).",
+            ),
+        ],
+        AssetLabel.efeature_extraction_recipe: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="BluePyEModel recipes.json used during extraction.",
+            ),
+        ],
+        AssetLabel.efeature_extraction_figures: [
+            LabelRequirements(
+                content_type=ContentType.directory,
+                is_directory=True,
+                description="Directory of per-protocol/per-feature PDF extraction figures with manifest.json.",
+            ),
+        ],
+        AssetLabel.efeature_extraction_cells: [
+            LabelRequirements(
+                content_type=ContentType.other,
+                is_directory=False,
+                description="BluePyEfe cells pickle (optional, for later conversion to HDF5).",
+            ),
+        ],
+    },
     TaskResultType.emodel_optimization__result: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.emodel],
     TaskResultType.optimized_emodel_analysis_validation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
         EntityType.validation_result

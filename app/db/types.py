@@ -162,6 +162,7 @@ class TaskResultType(StrEnum):
     efeature_extraction__result = auto()
     emodel_optimization__result = auto()
     optimized_emodel_analysis_validation__result = auto()
+    emodel_export__result = auto()
     circuit_synaptic_physiology_assignment__result = auto()
 
 
@@ -192,6 +193,8 @@ class TaskConfigType(StrEnum):
     efeature_extraction__config = auto()
     emodel_optimization__campaign = auto()
     emodel_optimization__config = auto()
+    emodel_export__campaign = auto()
+    emodel_export__config = auto()
     optimized_emodel_analysis_validation__campaign = auto()
     optimized_emodel_analysis_validation__config = auto()
     circuit_synaptic_physiology_assignment__campaign = auto()
@@ -513,6 +516,12 @@ class AssetLabel(StrEnum):
     efeature_extraction_figures = auto()
     efeature_extraction_cells = auto()
     efeature_extraction_protocols = auto()
+    emodel_optimisation_checkpoint = auto()
+    emodel_validation_figures = auto()
+    emodel_validation_summary = auto()
+    emodel_export_hoc = auto()
+    emodel_export_morphology = auto()
+    emodel_export_parameters = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -1129,10 +1138,46 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
             ),
         ],
     },
-    TaskResultType.emodel_optimization__result: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.emodel],
-    TaskResultType.optimized_emodel_analysis_validation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
-        EntityType.validation_result
-    ],
+    TaskResultType.emodel_optimization__result: {
+        AssetLabel.emodel_optimisation_checkpoint: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="EModel optimisation output checkpoint.",
+            )
+        ]
+    },
+    TaskResultType.optimized_emodel_analysis_validation__result: {
+        AssetLabel.emodel_validation_figures: [
+            LabelRequirements(
+                content_type=ContentType.directory,
+                is_directory=True,
+                description=("Directory with emodel analysis figures."),
+            ),
+        ],
+        AssetLabel.emodel_validation_summary: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="EModel validation summary.",
+            ),
+        ],
+    },
+    TaskResultType.emodel_export__result: {
+        AssetLabel.emodel_export_hoc: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.emodel][
+            AssetLabel.neuron_hoc
+        ],
+        AssetLabel.emodel_export_morphology: ALLOWED_ASSET_LABELS_PER_ENTITY[
+            EntityType.cell_morphology
+        ][AssetLabel.morphology],
+        AssetLabel.emodel_export_parameters: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="EModel export output parameters.",
+            ),
+        ],
+    },
     TaskResultType.circuit_synaptic_physiology_assignment__result: None,
 }
 

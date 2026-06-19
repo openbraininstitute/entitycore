@@ -512,6 +512,7 @@ class AssetLabel(StrEnum):
     efeature_extraction_features = auto()
     efeature_extraction_figures = auto()
     efeature_extraction_cells = auto()
+    efeature_extraction_protocols = auto()
 
 
 class LabelRequirements(BaseModel):
@@ -1115,9 +1116,16 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
         ],
         AssetLabel.efeature_extraction_cells: [
             LabelRequirements(
-                content_type=ContentType.other,
+                content_type=ContentType.hdf5,
                 is_directory=False,
-                description="BluePyEfe cells pickle (optional, for later conversion to HDF5).",
+                description="BluePyEfe cells data as HDF5.",
+            ),
+        ],
+        AssetLabel.efeature_extraction_protocols: [
+            LabelRequirements(
+                content_type=ContentType.hdf5,
+                is_directory=False,
+                description="BluePyEfe protocols data as HDF5.",
             ),
         ],
     },

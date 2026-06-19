@@ -1116,14 +1116,14 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
         ],
         AssetLabel.efeature_extraction_cells: [
             LabelRequirements(
-                content_type=ContentType.hdf5,
+                content_type=ContentType.h5,
                 is_directory=False,
                 description="BluePyEfe cells data as HDF5.",
             ),
         ],
         AssetLabel.efeature_extraction_protocols: [
             LabelRequirements(
-                content_type=ContentType.hdf5,
+                content_type=ContentType.h5,
                 is_directory=False,
                 description="BluePyEfe protocols data as HDF5.",
             ),

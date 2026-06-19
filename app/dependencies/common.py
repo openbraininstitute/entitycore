@@ -5,7 +5,7 @@ from typing import Annotated, NotRequired, TypedDict
 import sqlalchemy as sa
 from fastapi import Depends, Query
 from fastapi.dependencies.models import Dependant
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
 from sqlalchemy.orm import DeclarativeBase, InstrumentedAttribute, Session
 from starlette.requests import Request
 
@@ -165,6 +165,12 @@ class InBrainRegionQuery(BaseModel):
     # Not using Annotated syntax because apparently not showing the deprecated flag in openapi
     within_brain_region_hierarchy_id: uuid.UUID | None = Field(Query(None, deprecated=True))
 
+    _candidate_cte: sa.CTE | None = PrivateAttr(default=None)
+
+    @property
+    def candidate_cte(self) -> sa.CTE | None:
+        return self._candidate_cte
+
     @model_validator(mode="after")
     def check_brain_region_id_and_direction(self):
         """Check within_brain_region_direction and within_brain_region_brain_region_id.
@@ -214,12 +220,13 @@ class InBrainRegionQuery(BaseModel):
         assert self.within_brain_region_brain_region_id  # noqa: S101
         assert self.within_brain_region_direction  # noqa: S101
 
-        return filter_by_region(
+        query, self._candidate_cte = filter_by_region(
             query=query,
             model=db_model_class,
             brain_region_id=self.within_brain_region_brain_region_id,
             direction=self.within_brain_region_direction,
         )
+        return query
 
 
 class DerivationQuery(BaseModel):

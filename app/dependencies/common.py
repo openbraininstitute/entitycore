@@ -66,7 +66,8 @@ def forbid_extra_query_params(
 
 class FacetQueryParams(TypedDict):
     id: InstrumentedAttribute[uuid.UUID] | InstrumentedAttribute[int]
-    label: InstrumentedAttribute[str]
+    # ColumnElement covers cast() expressions for facets on scalar base-table columns
+    label: InstrumentedAttribute[str] | sa.ColumnElement[str]
     type: NotRequired[InstrumentedAttribute[str]]
 
 

@@ -19,6 +19,7 @@ class EMCellMeshFilter(
     MeasurableFilterMixin,
 ):
     release_version: int | None = None
+    release_version__in: list[int] | None = None
     dense_reconstruction_cell_id: int | None = None
     level_of_detail: int | None = None
     mesh_type: EMCellMeshType | None = None

@@ -1,7 +1,5 @@
 import uuid
 
-from pydantic import BaseModel
-
 from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
 from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.utils import make_update_schema
@@ -19,20 +17,20 @@ class ValidationUserUpdate(ActivityUpdate):
     pass
 
 
-class ValidationResultBase(BaseModel):
+class ValidationResultBaseMixin:
     name: str
     passed: bool
     validated_entity_id: uuid.UUID
 
 
 class ValidationResultRead(
-    ValidationResultBase,
+    ValidationResultBaseMixin,
     EntityRead,
 ):
     pass
 
 
-class ValidationResultCreate(ValidationResultBase, EntityCreate):
+class ValidationResultCreate(ValidationResultBaseMixin, EntityCreate):
     pass
 
 

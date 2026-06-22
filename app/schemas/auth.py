@@ -5,17 +5,18 @@ from uuid import UUID
 
 import jwt
 from fastapi.security import HTTPAuthorizationCredentials
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict
 
 from app.errors import AuthErrorReason
 from app.logger import L
+from app.schemas.base import Schema
 
 PROJECT_REGEX = re.compile(
     r"^/proj/(?P<vlab>[0-9a-fA-F-]+)/(?P<proj>[0-9a-fA-F-]+)/(?P<role>admin|member)$"
 )
 
 
-class CacheKey(BaseModel):
+class CacheKey(Schema):
     """Cache key for UserContext."""
 
     model_config = ConfigDict(frozen=True)
@@ -25,7 +26,7 @@ class CacheKey(BaseModel):
     token_digest: str
 
 
-class UserInfoBase(BaseModel):
+class UserInfoBase(Schema):
     """Basic user info keycloak information."""
 
     sub: UUID
@@ -60,7 +61,7 @@ class UserProjectRole(StrEnum):
     member = auto()
 
 
-class UserProjectGroup(BaseModel):
+class UserProjectGroup(Schema):
     """Keycloak user group."""
 
     model_config = ConfigDict(frozen=True)
@@ -93,7 +94,7 @@ class UserInfoResponse(UserInfoBase):
     }
     """
 
-    groups: set[str] = set()
+    groups: set[str] = set()  # noqa: RUF012
 
     def is_service_admin(self, service_name: str) -> bool:
         """Return True if admin for the specified service."""
@@ -151,7 +152,7 @@ class UserInfoResponse(UserInfoBase):
         }
 
 
-class UserProfile(BaseModel):
+class UserProfile(Schema):
     """User profile representing a keycloak user."""
 
     name: str
@@ -176,7 +177,7 @@ class UserProfile(BaseModel):
         )
 
 
-class UserContextBase(BaseModel):
+class UserContextBase(Schema):
     model_config = ConfigDict(frozen=True, extra="forbid")
     profile: UserProfile
     expiration: float | None
@@ -191,7 +192,7 @@ class UserContext(UserContextBase):
 
     virtual_lab_id: UUID | None = None
     project_id: UUID | None = None
-    user_project_groups: list[UserProjectGroup] = []
+    user_project_groups: list[UserProjectGroup] = []  # noqa: RUF012
 
     @property
     def user_project_ids(self) -> list[UUID]:

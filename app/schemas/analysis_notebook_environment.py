@@ -1,17 +1,14 @@
-from pydantic import BaseModel, ConfigDict
-
 from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.types import RuntimeInfo
 from app.schemas.utils import make_update_schema
 
 
-class AnalysisNotebookEnvironmentBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class AnalysisNotebookEnvironmentBaseMixin:
     runtime_info: RuntimeInfo | None
 
 
 class AnalysisNotebookEnvironmentCreate(
-    AnalysisNotebookEnvironmentBase,
+    AnalysisNotebookEnvironmentBaseMixin,
     EntityCreate,
 ):
     pass
@@ -28,14 +25,14 @@ AnalysisNotebookEnvironmentAdminUpdate = make_update_schema(
 
 
 class NestedAnalysisNotebookEnvironmentRead(
-    AnalysisNotebookEnvironmentBase,
+    AnalysisNotebookEnvironmentBaseMixin,
     NestedEntityRead,
 ):
     pass
 
 
 class AnalysisNotebookEnvironmentRead(
-    AnalysisNotebookEnvironmentBase,
+    AnalysisNotebookEnvironmentBaseMixin,
     EntityRead,
 ):
     pass

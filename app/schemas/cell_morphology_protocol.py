@@ -1,6 +1,6 @@
 from typing import Annotated, Any, ClassVar, Literal
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import Field, TypeAdapter
 
 from app.db.types import (
     CellMorphologyGenerationType,
@@ -12,6 +12,7 @@ from app.db.types import (
 )
 from app.schemas.base import (
     NameDescriptionMixin,
+    Schema,
 )
 from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityBareRead
 from app.schemas.types import SerializableHttpUrl
@@ -290,7 +291,7 @@ CellMorphologyProtocolAdminUpdate = Annotated[
 ]
 
 
-class CellMorphologyProtocolReadAdapter(BaseModel):
+class CellMorphologyProtocolReadAdapter(Schema):
     """Polymorphic wrapper for CellMorphologyProtocolRead."""
 
     _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolRead)
@@ -301,7 +302,7 @@ class CellMorphologyProtocolReadAdapter(BaseModel):
         return cls._adapter.validate_python(obj, *args, **kwargs)
 
 
-class CellMorphologyProtocolUserUpdateAdapter(BaseModel):
+class CellMorphologyProtocolUserUpdateAdapter(Schema):
     """Polymorphic wrapper for CellMorphologyProtocolUpdate."""
 
     _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolUserUpdate)

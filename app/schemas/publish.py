@@ -1,18 +1,20 @@
 import uuid
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from app.schemas.base import Schema
 
 
-class MoveFileResult(BaseModel):
+class MoveFileResult(Schema):
     size: Annotated[int, Field(description="Size of the file")]
     error: str | None = None
 
 
-class MoveDirectoryResult(BaseModel):
+class MoveDirectoryResult(Schema):
     size: Annotated[int, Field(description="Size of moved files in the directory")] = 0
     file_count: Annotated[int, Field(description="Number of moved files in the directory")] = 0
-    errors: list[str] = []
+    errors: list[str] = []  # noqa: RUF012
 
     def update_from_file_result(self, file_result: MoveFileResult) -> None:
         self.size += file_result.size
@@ -21,11 +23,11 @@ class MoveDirectoryResult(BaseModel):
             self.errors.append(file_result.error)
 
 
-class MoveAssetsResult(BaseModel):
+class MoveAssetsResult(Schema):
     total_size: Annotated[int, Field(description="Total size of moved files")] = 0
     file_count: Annotated[int, Field(description="Number of moved files")] = 0
     asset_count: Annotated[int, Field(description="Number of updated assets")] = 0
-    errors: list[str] = []
+    errors: list[str] = []  # noqa: RUF012
 
     def update_from_file_result(self, file_result: MoveFileResult) -> None:
         self.total_size += file_result.size
@@ -41,7 +43,7 @@ class MoveAssetsResult(BaseModel):
         self.errors.extend(directory_result.errors)
 
 
-class ChangeProjectVisibilityResponse(BaseModel):
+class ChangeProjectVisibilityResponse(Schema):
     """Successful response to the publish or unpublish operation."""
 
     message: Annotated[str, Field(description="A human-readable message describing the result")]

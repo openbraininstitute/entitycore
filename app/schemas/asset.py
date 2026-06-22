@@ -5,9 +5,7 @@ from typing import Annotated, Literal
 
 from pydantic import (
     AfterValidator,
-    BaseModel,
     BeforeValidator,
-    ConfigDict,
     Field,
     field_validator,
     model_validator,
@@ -24,6 +22,7 @@ from app.db.types import (
     LabelRequirements,
     StorageType,
 )
+from app.schemas.base import Schema
 
 
 def validate_relative_path(path: Path) -> Path:
@@ -84,20 +83,19 @@ Sha256Digest = Annotated[
 ]
 
 
-class AssetBase(BaseModel):
+class AssetBase(Schema):
     """Asset model with common attributes."""
 
-    model_config = ConfigDict(from_attributes=True)
     path: RelativePathStr
     full_path: RelativePathStr
     is_directory: bool
     content_type: ContentType
-    meta: dict = {}
+    meta: dict = {}  # noqa: RUF012
     label: AssetLabel
     storage_type: StorageType
 
 
-class SizeAndDigestMixin(BaseModel):
+class SizeAndDigestMixin:
     """Mixin with size and digest."""
 
     size: int
@@ -111,12 +109,12 @@ class AssetRead(AssetBase, SizeAndDigestMixin):
     status: AssetStatus
 
 
-class ToUploadPart(BaseModel):
+class ToUploadPart(Schema):
     part_number: Annotated[int, Field(description="Index of this part in the multipart upload.")]
     url: Annotated[str, Field(description="Presigned url to upload file part.")]
 
 
-class UploadMeta(BaseModel):
+class UploadMeta(Schema):
     """Database schema."""
 
     upload_id: Annotated[str, Field(description="Unique ID for this multipart upload session.")]
@@ -124,7 +122,7 @@ class UploadMeta(BaseModel):
     part_count: Annotated[int, Field(description="Total number of parts.")]
 
 
-class UploadMetaRead(BaseModel):
+class UploadMetaRead(Schema):
     """Response schema."""
 
     parts: list[ToUploadPart]
@@ -228,11 +226,11 @@ class AssetRegister(AssetBase):
         return v
 
 
-class AssetsMixin(BaseModel):
+class AssetsMixin:
     assets: list[AssetRead]
 
 
-class DirectoryUploadRequest(BaseModel):
+class DirectoryUploadRequest(Schema):
     directory_name: Annotated[
         PathComponentStr,
         Field(
@@ -260,22 +258,22 @@ class DirectoryUploadRequest(BaseModel):
         return self
 
 
-class DetailedFile(BaseModel):
+class DetailedFile(Schema):
     name: str
     size: int
     last_modified: datetime.datetime
 
 
-class DetailedFileList(BaseModel):
+class DetailedFileList(Schema):
     files: dict[Path, DetailedFile]
 
 
-class AssetAndPresignedURLS(BaseModel):
+class AssetAndPresignedURLS(Schema):
     asset: AssetRead
     files: dict[Path, AnyUrl]
 
 
-class MultipartUploadInitiateRequest(BaseModel):
+class MultipartUploadInitiateRequest(Schema):
     filename: Annotated[
         PathComponentStr,
         Field(description="File name to be uploaded."),
@@ -304,7 +302,7 @@ class MultipartUploadInitiateRequest(BaseModel):
     )
 
 
-class MultipartDirectoryFileRequest(BaseModel):
+class MultipartDirectoryFileRequest(Schema):
     filename: Annotated[
         RelativePathStr,
         Field(description="File name to be uploaded, relative to the base directory."),
@@ -333,7 +331,7 @@ class MultipartDirectoryFileRequest(BaseModel):
     )
 
 
-class MultipartDirectoryUploadRequest(BaseModel):
+class MultipartDirectoryUploadRequest(Schema):
     """Request schema for initiating a multipart directory upload.
 
     Similar to DirectoryUploadRequest schema, but with additional information for multipart uploads.
@@ -365,7 +363,7 @@ class MultipartDirectoryUploadRequest(BaseModel):
         return self
 
 
-class MultipartDirectoryUploadResponse(BaseModel):
+class MultipartDirectoryUploadResponse(Schema):
     """Response schema after initiating a multipart directory upload.
 
     Similar to AssetAndPresignedURLS schema, but with additional information for multipart uploads.

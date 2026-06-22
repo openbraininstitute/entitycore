@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from pydantic import UUID4, BaseModel
+from typing import TYPE_CHECKING
 
-from app.schemas.base import Schema
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.role import RoleRead  # noqa: TC001
 from app.schemas.utils import make_update_schema
+
+if TYPE_CHECKING:
+    from pydantic import UUID4
 
 # LNMC contributions
 # Reconstructor full name,
@@ -14,11 +16,7 @@ from app.schemas.utils import make_update_schema
 # EPFL, Switzerland
 
 
-class ContributionBase(Schema):
-    pass
-
-
-class ContributionCreate(ContributionBase, IdentifiableCreate):
+class ContributionCreate(IdentifiableCreate):
     agent_id: UUID4
     role_id: UUID4
     entity_id: UUID4
@@ -32,21 +30,18 @@ ContributionAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedContributionRead(ContributionBase, NestedIdentifiableRead):
+class NestedContributionRead(NestedIdentifiableRead):
     agent: AgentRead
     role: RoleRead
 
 
-class ContributionRead(
-    ContributionBase,
-    IdentifiableRead,
-):
+class ContributionRead(IdentifiableRead):
     agent: AgentRead
     role: RoleRead
     entity: NestedEntityRead
 
 
-class ContributionReadWithoutEntityMixin(BaseModel):
+class ContributionReadWithoutEntityMixin:
     contributions: list[NestedContributionRead] | None
 
 

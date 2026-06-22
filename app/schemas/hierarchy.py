@@ -2,20 +2,19 @@
 
 import uuid
 
-from pydantic import BaseModel
-
 from app.db.types import DerivationType
+from app.schemas.base import Schema
 
 
-class HierarchyNode(BaseModel):
+class HierarchyNode(Schema):
     id: uuid.UUID
     name: str
     parent_id: uuid.UUID | None
-    children: list["HierarchyNode"] = []
+    children: list["HierarchyNode"] = []  # noqa: RUF012
     authorized_public: bool
     authorized_project_id: uuid.UUID
 
 
-class HierarchyTree(BaseModel):
+class HierarchyTree(Schema):
     derivation_type: DerivationType
     data: list[HierarchyNode]

@@ -1,14 +1,10 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.utils import make_update_schema
 
 
-class BrainAtlasRegionBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class BrainAtlasRegionBaseMixin:
     volume: float | None
     is_leaf_region: bool
 
@@ -17,14 +13,14 @@ class BrainAtlasRegionBase(BaseModel):
 
 
 class BrainAtlasRegionCreate(
-    BrainAtlasRegionBase,
+    BrainAtlasRegionBaseMixin,
     EntityCreate,
 ):
     pass
 
 
 class BrainAtlasRegionRead(
-    BrainAtlasRegionBase,
+    BrainAtlasRegionBaseMixin,
     EntityRead,
 ):
     pass

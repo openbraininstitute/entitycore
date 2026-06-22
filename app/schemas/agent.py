@@ -30,7 +30,7 @@ class NestedPersonRead(PersonBase, NestedIdentifiableRead):
     sub_id: uuid.UUID | None
 
 
-class CreatedByUpdatedByMixin(Schema):
+class CreatedByUpdatedByMixin:
     created_by: NestedPersonRead
     updated_by: NestedPersonRead
 

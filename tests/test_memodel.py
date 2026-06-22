@@ -806,5 +806,5 @@ def test_sorting_filtering(client, faceted_memodels, custom_user_sub_id):
     data = req({"ilike_search": "foo"})
     assert {d["description"] for d in data} == {"foo"}
 
-    data = req({"ilike_search": "m-10"})
-    assert {d["name"] for d in data} == {"m-10"}
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == n_models

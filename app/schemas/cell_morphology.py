@@ -1,7 +1,5 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import (
     PointLocationBase,
     RepairPipelineType,
@@ -14,8 +12,7 @@ from app.schemas.scientific_artifact import ScientificArtifactCreate, Scientific
 from app.schemas.utils import make_update_schema
 
 
-class CellMorphologyBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class CellMorphologyBaseMixin(NameDescriptionMixin):
     location: PointLocationBase | None
     legacy_id: list[str] | None = None
     has_segmented_spines: bool = False
@@ -23,7 +20,7 @@ class CellMorphologyBase(BaseModel, NameDescriptionMixin):
 
 
 class CellMorphologyCreate(
-    CellMorphologyBase,
+    CellMorphologyBaseMixin,
     ScientificArtifactCreate,
 ):
     subject_id: uuid.UUID
@@ -40,7 +37,7 @@ CellMorphologyAdminUpdate = make_update_schema(
 
 
 class CellMorphologyRead(
-    CellMorphologyBase,
+    CellMorphologyBaseMixin,
     ScientificArtifactRead,
 ):
     mtypes: list[MTypeClassRead] | None

@@ -1,16 +1,7 @@
 import uuid
 
-from pydantic import BaseModel
-
 from app.schemas.activity import ActivityCreate, ActivityRead, ActivityUpdate
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
-from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    IdentifiableMixin,
-)
+from app.schemas.entity import EntityCreate, EntityRead
 from app.schemas.utils import make_update_schema
 
 
@@ -26,24 +17,20 @@ class ValidationUserUpdate(ActivityUpdate):
     pass
 
 
-class ValidationResultBase(BaseModel):
+class ValidationResultBaseMixin:
     name: str
     passed: bool
     validated_entity_id: uuid.UUID
 
 
 class ValidationResultRead(
-    ValidationResultBase,
-    CreationMixin,
-    IdentifiableMixin,
-    CreatedByUpdatedByMixin,
-    AuthorizationMixin,
-    AssetsMixin,
+    ValidationResultBaseMixin,
+    EntityRead,
 ):
     pass
 
 
-class ValidationResultCreate(ValidationResultBase, AuthorizationOptionalPublicMixin):
+class ValidationResultCreate(ValidationResultBaseMixin, EntityCreate):
     pass
 
 

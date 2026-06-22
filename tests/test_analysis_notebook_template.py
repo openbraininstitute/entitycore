@@ -134,6 +134,11 @@ def test_filter_by_exercise_id(client, json_data):
     ]
     assert data == []
 
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == 4
+
 
 @pytest.mark.parametrize("exercise_id", ["", "x" * 256])
 def test_exercise_id_invalid(client, json_data, exercise_id):

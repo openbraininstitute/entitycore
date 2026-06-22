@@ -2,9 +2,9 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import MEModelCalibrationResult, Person, Subject
+from app.db.model import Agent, Contribution, MEModelCalibrationResult, Person
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     FacetsDep,
@@ -36,7 +36,13 @@ if TYPE_CHECKING:
 
 def _load(query: sa.Select):
     return query.options(
-        joinedload(Subject.species),
+        joinedload(MEModelCalibrationResult.created_by),
+        joinedload(MEModelCalibrationResult.updated_by),
+        selectinload(MEModelCalibrationResult.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
+        raiseload("*"),
     )
 
 
@@ -80,6 +86,7 @@ def create_one(
         db_model_class=MEModelCalibrationResult,
         json_model=json_model,
         response_schema_class=MEModelCalibrationResultRead,
+        apply_operations=_load,
     )
 
 
@@ -134,11 +141,11 @@ def _read_many(
             "created_by": aliased(Person, flat=True),
             "updated_by": aliased(Person, flat=True),
         },
+        Agent: {
+            "contribution": aliased(Agent, flat=True),
+        },
     }
-    filter_keys = [
-        "created_by",
-        "updated_by",
-    ]
+    filter_keys = ["created_by", "updated_by", "contribution"]
 
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=MEModelCalibrationResult,

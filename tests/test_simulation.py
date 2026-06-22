@@ -201,3 +201,13 @@ def test_filtering(client, models, simulation_campaign, circuit):
         params={"ilike_search": "circuit-1"},
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "lifecycle_status": "active",
+            "simulation_campaign_id": str(simulation_campaign.id),
+        },
+    ).json()["data"]
+    assert len(data) == len(models)

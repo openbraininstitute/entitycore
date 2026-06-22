@@ -1,6 +1,8 @@
 from typing import Annotated
 
-from pydantic import BaseModel, Field, create_model
+from pydantic import Field, create_model
+
+from app.schemas.base import Schema
 
 DEFAULT_EXCLUDED_FIELDS = {
     "authorized_public",
@@ -9,7 +11,7 @@ DEFAULT_PRESERVED_FIELDS = set()
 
 
 def make_update_schema(
-    schema: type[BaseModel],
+    schema: type[Schema],
     new_schema_name: str | None = None,
     excluded_fields: set = DEFAULT_EXCLUDED_FIELDS,
     preserved_fields: set = DEFAULT_PRESERVED_FIELDS,

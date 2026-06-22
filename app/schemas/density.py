@@ -1,29 +1,23 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import MeasurementStatistic, MeasurementUnit
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.annotation import ETypeClassRead, MTypeClassRead
-from app.schemas.asset import AssetRead
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
-    LicensedCreateMixin,
-    LicensedReadMixin,
     NameDescriptionMixin,
+    Schema,
 )
-from app.schemas.brain_region import BrainRegionReadMixin, NestedBrainRegionRead
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.subject import SubjectReadMixin
+from app.schemas.brain_region import (
+    BrainRegionCreateMixin,
+    BrainRegionReadMixin,
+    NestedBrainRegionRead,
+)
+from app.schemas.entity import EntityCreate, EntityRead
+from app.schemas.license import LicensedCreateMixin, LicensedReadMixin
+from app.schemas.subject import SubjectCreateMixin, SubjectReadMixin
 from app.schemas.utils import make_update_schema
 
 
-class MeasurementRecordBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class MeasurementRecordBase(Schema):
     name: MeasurementStatistic
     unit: MeasurementUnit
     value: float
@@ -37,33 +31,29 @@ class MeasurementRecordRead(MeasurementRecordBase):
     id: int
 
 
-class ExperimentalDensityBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class ExperimentalDensityBaseMixin(NameDescriptionMixin):
+    pass
 
 
 class ExperimentalDensityCreate(
-    ExperimentalDensityBase, LicensedCreateMixin, AuthorizationOptionalPublicMixin
+    ExperimentalDensityBaseMixin,
+    LicensedCreateMixin,
+    BrainRegionCreateMixin,
+    SubjectCreateMixin,
+    EntityCreate,
 ):
-    subject_id: uuid.UUID
-    brain_region_id: uuid.UUID
     legacy_id: str | None
     measurements: list[MeasurementRecordCreate]
 
 
 class ExperimentalDensityRead(
-    ExperimentalDensityBase,
-    CreationMixin,
-    IdentifiableMixin,
+    ExperimentalDensityBaseMixin,
+    EntityRead,
     LicensedReadMixin,
-    AuthorizationMixin,
-    EntityTypeMixin,
-    CreatedByUpdatedByMixin,
-    ContributionReadWithoutEntityMixin,
     SubjectReadMixin,
     BrainRegionReadMixin,
 ):
     measurements: list[MeasurementRecordRead]
-    assets: list[AssetRead]
 
 
 class ExperimentalNeuronDensityCreate(ExperimentalDensityCreate):

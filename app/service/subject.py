@@ -2,9 +2,9 @@ import uuid
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from sqlalchemy.orm import aliased, joinedload, raiseload
+from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
-from app.db.model import Person, Subject
+from app.db.model import Agent, Contribution, Person, Subject
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import FacetsDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
@@ -29,8 +29,12 @@ def _load(query: sa.Select):
     return query.options(
         joinedload(Subject.species),
         joinedload(Subject.strain),
-        joinedload(Subject.created_by),
-        joinedload(Subject.updated_by),
+        joinedload(Subject.created_by, innerjoin=True),
+        joinedload(Subject.updated_by, innerjoin=True),
+        selectinload(Subject.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 
@@ -126,10 +130,13 @@ def _read_many(
     check_authorized_project: bool,
 ) -> ListResponse[SubjectRead]:
     aliases: Aliases = {
+        Agent: {
+            "contribution": aliased(Agent, flat=True),
+        },
         Person: {
             "created_by": aliased(Person, flat=True),
             "updated_by": aliased(Person, flat=True),
-        }
+        },
     }
 
     facet_keys = filter_keys = [

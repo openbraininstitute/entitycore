@@ -1,29 +1,20 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import JSON_DICT
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
 from app.schemas.simulation import NestedSimulationRead
 from app.schemas.utils import make_update_schema
 
 
-class SimulationCampaignBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class SimulationCampaignBaseMixin(NameDescriptionMixin):
     scan_parameters: JSON_DICT
     entity_id: uuid.UUID
 
 
-class SimulationCampaignCreate(SimulationCampaignBase, AuthorizationOptionalPublicMixin):
+class SimulationCampaignCreate(SimulationCampaignBaseMixin, EntityCreate):
     pass
 
 
@@ -37,15 +28,12 @@ SimulationCampaignAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedSimulationCampaignRead(SimulationCampaignBase, EntityTypeMixin, IdentifiableMixin):
+class NestedSimulationCampaignRead(SimulationCampaignBaseMixin, NestedEntityRead):
     pass
 
 
 class SimulationCampaignRead(
-    NestedSimulationCampaignRead,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    AuthorizationMixin,
+    SimulationCampaignBaseMixin,
+    EntityRead,
 ):
     simulations: list[NestedSimulationRead]

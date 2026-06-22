@@ -56,6 +56,7 @@ def _assert_read_response(actual, expected):
         "type": EntityType.ion_channel_recording,
         "update_date": ANY,
         "updated_by": ANY,
+        "lifecycle_status": "active",
     } | {
         k: v
         for k, v in expected.items()
@@ -531,6 +532,11 @@ def test_filtering(client, models):
     data = assert_request(client.get, url=ROUTE, params={"ilike_search": "e-1"}).json()["data"]
     assert len(data) == 3
 
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(recordings)
+
 
 def test_sorting(client, models):
     _, _, recordings = models
@@ -625,7 +631,7 @@ def test_sorting(client, models):
     assert [d["brain_region"]["name"] for d in data] == [f"region-{i}" for i in [0, 1, 2, 3, 4, 5]]
 
 
-def test_sorting_and_filtering(client, models):  # noqa: ARG001
+def test_sorting_and_filtering(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -670,3 +676,6 @@ def test_sorting_and_filtering(client, models):  # noqa: ARG001
         "acronym-2",
         "acronym-1",
     ]
+
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(models[-1])

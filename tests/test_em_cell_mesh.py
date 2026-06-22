@@ -11,9 +11,9 @@ from .utils import (
     add_all_db,
     assert_request,
     check_authorization,
-    check_creation_fields,
     check_entity_delete_one,
     check_entity_read_many,
+    check_entity_read_response,
     check_missing,
     check_pagination,
 )
@@ -42,19 +42,22 @@ def create_id(client, json_data):
 
 
 def _assert_read_response(data, json_data):
-    assert "id" in data
-    assert "authorized_public" in data
-    assert "authorized_project_id" in data
-    assert "assets" in data
+    check_entity_read_response(
+        data=data,
+        json_data=json_data,
+        expected_entity_type=EntityType.em_cell_mesh,
+    )
     assert data["name"] == json_data["name"]
     assert data["description"] == json_data["description"]
-    assert data["type"] == EntityType.em_cell_mesh
-    assert data["em_dense_reconstruction_dataset"] == {
-        "id": json_data["em_dense_reconstruction_dataset_id"],
-        "type": EntityType.em_dense_reconstruction_dataset,
-    }
+    assert (
+        data["em_dense_reconstruction_dataset"]["id"]
+        == json_data["em_dense_reconstruction_dataset_id"]
+    )
+    assert (
+        data["em_dense_reconstruction_dataset"]["type"]
+        == EntityType.em_dense_reconstruction_dataset
+    )
     assert data["mtypes"] == []
-    check_creation_fields(data)
 
 
 def test_create_one(client, json_data):
@@ -225,6 +228,11 @@ def test_filtering(client, models, brain_region_id, species_id, strain_id):
     assert [d["dense_reconstruction_cell_id"] for d in data] == sorted(
         (d["dense_reconstruction_cell_id"] for d in data), reverse=True
     )
+
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(models)
 
 
 def test_read_many(clients, json_data):

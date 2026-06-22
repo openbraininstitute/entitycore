@@ -1,42 +1,38 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import ActivityStatus, ExecutorType
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
     ActivityTypeMixin,
     AuthorizationMixin,
     AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    IdentifiableMixin,
+    Schema,
 )
 from app.schemas.entity import NestedEntityRead
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 
 
-class ActivityBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class ActivityBase(Schema):
     start_time: datetime | None = None
     end_time: datetime | None = None
     status: ActivityStatus = ActivityStatus.done
 
 
-class NestedActivityRead(ActivityBase, ActivityTypeMixin, IdentifiableMixin):
+class NestedActivityRead(ActivityBase, ActivityTypeMixin, NestedIdentifiableRead):
     pass
 
 
-class ActivityRead(NestedActivityRead, CreatedByUpdatedByMixin, CreationMixin, AuthorizationMixin):
+class ActivityRead(ActivityBase, ActivityTypeMixin, AuthorizationMixin, IdentifiableRead):
     used: list[NestedEntityRead]
     generated: list[NestedEntityRead]
 
 
-class ActivityCreate(ActivityBase, AuthorizationOptionalPublicMixin):
-    used_ids: list[uuid.UUID] = []
-    generated_ids: list[uuid.UUID] = []
+class ActivityCreate(ActivityBase, IdentifiableCreate, AuthorizationOptionalPublicMixin):
+    used_ids: list[uuid.UUID] = []  # noqa: RUF012
+    generated_ids: list[uuid.UUID] = []  # noqa: RUF012
 
 
-class ActivityUpdate(BaseModel):
+class ActivityUpdate(Schema):
     start_time: datetime | None = None
     end_time: datetime | None = None
     generated_ids: list[uuid.UUID] | None = None

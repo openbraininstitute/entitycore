@@ -3,10 +3,11 @@ from enum import StrEnum
 from typing import Annotated
 
 import sqlalchemy as sa
-from pydantic import AnyUrl, BaseModel, ConfigDict, Field, HttpUrl, PlainSerializer, computed_field
+from pydantic import AnyUrl, Field, HttpUrl, PlainSerializer, computed_field
 from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
+from app.schemas.base import Schema
 
 
 class HeaderKey(StrEnum):
@@ -17,9 +18,7 @@ class HeaderKey(StrEnum):
     content_length = "Content-Length"
 
 
-class PaginationRequest(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class PaginationRequest(Schema):
     page: Annotated[int, Field(ge=1)] = 1
     page_size: Annotated[int, Field(ge=1, le=settings.PAGINATION_MAX_PAGE_SIZE)] = (
         settings.PAGINATION_DEFAULT_PAGE_SIZE
@@ -31,17 +30,13 @@ class PaginationRequest(BaseModel):
         return (self.page - 1) * self.page_size
 
 
-class PaginationResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class PaginationResponse(Schema):
     page: int
     page_size: int
     total_items: int
 
 
-class Facet(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class Facet(Schema):
     id: uuid.UUID | int  # int is for brain region
     label: str
     count: int
@@ -51,7 +46,7 @@ class Facet(BaseModel):
 type Facets = dict[str, list[Facet]]
 
 
-class ListResponse[M: BaseModel](BaseModel):
+class ListResponse[M: Schema](Schema):
     data: list[M]
     pagination: PaginationResponse
     facets: Facets | None = None
@@ -71,13 +66,13 @@ SerializableAnyUrl = Annotated[
 ]
 
 
-class PythonDependency(BaseModel):
+class PythonDependency(Schema):
     """Python dependency."""
 
     version: Annotated[str, Field(examples=[">=3.10,<3.12"])]
 
 
-class DockerDependency(BaseModel):
+class DockerDependency(Schema):
     """Docker dependency."""
 
     image_repository: Annotated[str, Field(examples=["openbraininstitute/obi-notebook-image"])]
@@ -92,7 +87,7 @@ class DockerDependency(BaseModel):
     docker_version: Annotated[str | None, Field(examples=[">=20.10,<29.0"])] = None
 
 
-class PythonRuntimeInfo(BaseModel):
+class PythonRuntimeInfo(Schema):
     """Python runtime information."""
 
     version: Annotated[
@@ -106,7 +101,7 @@ class PythonRuntimeInfo(BaseModel):
     ]
 
 
-class DockerRuntimeInfo(BaseModel):
+class DockerRuntimeInfo(Schema):
     """Docker runtime information."""
 
     image_repository: Annotated[str, Field(examples=["openbraininstitute/obi-notebook-image"])]
@@ -121,7 +116,7 @@ class DockerRuntimeInfo(BaseModel):
     docker_version: Annotated[str | None, Field(examples=["28.4.0"])] = None
 
 
-class OsRuntimeInfo(BaseModel):
+class OsRuntimeInfo(Schema):
     """OS runtime information."""
 
     system: Annotated[str, Field(description="Output of `platform.system()`", examples=["Linux"])]
@@ -147,7 +142,7 @@ class OsRuntimeInfo(BaseModel):
     ]
 
 
-class RuntimeInfo(BaseModel):
+class RuntimeInfo(Schema):
     """Runtime information."""
 
     schema_version: int = 1

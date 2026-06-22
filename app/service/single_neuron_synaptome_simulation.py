@@ -5,6 +5,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
+    Contribution,
     MEModel,
     Person,
     SingleNeuronSynaptome,
@@ -51,6 +52,10 @@ def _load(query: sa.Select):
         selectinload(SingleNeuronSynaptomeSimulation.assets),
         joinedload(SingleNeuronSynaptomeSimulation.created_by),
         joinedload(SingleNeuronSynaptomeSimulation.updated_by),
+        selectinload(SingleNeuronSynaptomeSimulation.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 

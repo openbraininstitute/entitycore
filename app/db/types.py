@@ -100,6 +100,11 @@ class StorageType(StrEnum):
     aws_s3_open = auto()
 
 
+class EntityLifecycleStatus(StrEnum):
+    draft = auto()
+    active = auto()
+
+
 class EntityType(StrEnum):
     """Entity types."""
 

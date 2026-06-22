@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import joinedload, raiseload, selectinload
 
 import app.queries.common
-from app.db.model import BrainAtlas, BrainAtlasRegion
+from app.db.model import BrainAtlas, BrainAtlasRegion, Contribution
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
     PaginationQuery,
@@ -34,6 +34,10 @@ def _load_brain_atlas(query: sa.Select):
         joinedload(BrainAtlas.species),
         joinedload(BrainAtlas.strain),
         selectinload(BrainAtlas.assets),
+        selectinload(BrainAtlas.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 

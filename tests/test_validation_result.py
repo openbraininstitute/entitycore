@@ -219,3 +219,14 @@ def test_filtering__many_entries(client, models, morphology_id, emodel_id):
         params={"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1},
     ).json()["data"]
     assert len(data) == len(models)
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "lifecycle_status": "active",
+            "created_by__sub_id": USER_SUB_ID_1,
+            "updated_by__sub_id": USER_SUB_ID_1,
+        },
+    ).json()["data"]
+    assert len(data) == len(models)

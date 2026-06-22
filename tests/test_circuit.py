@@ -382,3 +382,10 @@ def test_filtering(client, root_circuit, models):
         client.get, url=ROUTE, params={"target_simulator": TargetSimulator.neuron}
     ).json()["data"]
     assert len(data) == len(models)  # root is different than children
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"lifecycle_status": "active", "root_circuit_id": str(root_circuit.id)},
+    ).json()["data"]
+    assert len(data) == len(models)

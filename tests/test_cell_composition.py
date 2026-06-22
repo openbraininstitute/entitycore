@@ -49,7 +49,9 @@ def test_create_one(client, json_data):
 
 
 def _assert_read_response(data, json_data):
-    check_entity_read_response(data, json_data, EntityType.cell_composition)
+    check_entity_read_response(
+        data=data, json_data=json_data, expected_entity_type=EntityType.cell_composition
+    )
 
 
 def test_read_one(client, client_admin, cell_composition_id):
@@ -132,6 +134,11 @@ def test_filtering(client, db, brain_region_id, species_id, person_id):
         params={"ilike_search": "*composition-1"},
     ).json()["data"]
     assert len(data) == 1
+
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == 2
 
 
 def test_delete_one(db, clients, json_data):

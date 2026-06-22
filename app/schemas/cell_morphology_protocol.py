@@ -1,6 +1,6 @@
 from typing import Annotated, Any, ClassVar, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
+from pydantic import Field, TypeAdapter, field_validator
 
 from app.db.types import (
     CellMorphologyGenerationType,
@@ -10,25 +10,13 @@ from app.db.types import (
     SlicingDirectionType,
     StainingType,
 )
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
+    Schema,
 )
+from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityBareRead
 from app.schemas.types import SerializableHttpUrl
 from app.schemas.utils import make_update_schema
-
-
-class CommonReadMixin(
-    IdentifiableMixin,
-    CreationMixin,
-    CreatedByUpdatedByMixin,
-    AuthorizationMixin,
-):
-    """Common mixin for readable schemas."""
 
 
 class CellMorphologyProtocolMixin:
@@ -46,13 +34,20 @@ class CellMorphologyProtocolMixin:
 # Base Models
 
 
-class CellMorphologyProtocolBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
-    type: Literal[EntityType.cell_morphology_protocol] = EntityType.cell_morphology_protocol
+class CellMorphologyProtocolBaseMixin(NameDescriptionMixin):
+    type: EntityType = EntityType.cell_morphology_protocol
+
+    @field_validator("type")
+    @classmethod
+    def ensure_cell_morphology_protocol_type(cls, v: EntityType) -> EntityType:
+        if v is not EntityType.cell_morphology_protocol:
+            msg = "type must be cell_morphology_protocol"
+            raise ValueError(msg)
+        return v
 
 
 class DigitalReconstructionCellMorphologyProtocolBase(
-    CellMorphologyProtocolBase,
+    CellMorphologyProtocolBaseMixin,
     CellMorphologyProtocolMixin,
 ):
     """Experimental morphology method for capturing cell morphology data.
@@ -76,7 +71,7 @@ class DigitalReconstructionCellMorphologyProtocolBase(
 
 
 class ModifiedReconstructionCellMorphologyProtocolBase(
-    CellMorphologyProtocolBase,
+    CellMorphologyProtocolBaseMixin,
     CellMorphologyProtocolMixin,
 ):
     generation_type: Literal[CellMorphologyGenerationType.modified_reconstruction]
@@ -84,7 +79,7 @@ class ModifiedReconstructionCellMorphologyProtocolBase(
 
 
 class ComputationallySynthesizedCellMorphologyProtocolBase(
-    CellMorphologyProtocolBase,
+    CellMorphologyProtocolBaseMixin,
     CellMorphologyProtocolMixin,
 ):
     generation_type: Literal[CellMorphologyGenerationType.computationally_synthesized]
@@ -92,7 +87,7 @@ class ComputationallySynthesizedCellMorphologyProtocolBase(
 
 
 class PlaceholderCellMorphologyProtocolBase(
-    CellMorphologyProtocolBase,
+    CellMorphologyProtocolBaseMixin,
 ):
     generation_type: Literal[CellMorphologyGenerationType.placeholder]
 
@@ -101,29 +96,29 @@ class PlaceholderCellMorphologyProtocolBase(
 
 
 class DigitalReconstructionCellMorphologyProtocolCreate(
+    EntityCreate,
     DigitalReconstructionCellMorphologyProtocolBase,
-    AuthorizationOptionalPublicMixin,
 ):
     pass
 
 
 class ModifiedReconstructionCellMorphologyProtocolCreate(
+    EntityCreate,
     ModifiedReconstructionCellMorphologyProtocolBase,
-    AuthorizationOptionalPublicMixin,
 ):
     pass
 
 
 class ComputationallySynthesizedCellMorphologyProtocolCreate(
+    EntityCreate,
     ComputationallySynthesizedCellMorphologyProtocolBase,
-    AuthorizationOptionalPublicMixin,
 ):
     pass
 
 
 class PlaceholderCellMorphologyProtocolCreate(
+    EntityCreate,
     PlaceholderCellMorphologyProtocolBase,
-    AuthorizationOptionalPublicMixin,
 ):
     pass
 
@@ -203,29 +198,29 @@ PlaceholderCellMorphologyProtocolAdminUpdate = make_update_schema(
 
 
 class DigitalReconstructionCellMorphologyProtocolRead(
+    EntityReadWoutAssets,
     DigitalReconstructionCellMorphologyProtocolBase,
-    CommonReadMixin,
 ):
     pass
 
 
 class ModifiedReconstructionCellMorphologyProtocolRead(
+    EntityReadWoutAssets,
     ModifiedReconstructionCellMorphologyProtocolBase,
-    CommonReadMixin,
 ):
     pass
 
 
 class ComputationallySynthesizedCellMorphologyProtocolRead(
+    EntityReadWoutAssets,
     ComputationallySynthesizedCellMorphologyProtocolBase,
-    CommonReadMixin,
 ):
     pass
 
 
 class PlaceholderCellMorphologyProtocolRead(
+    EntityReadWoutAssets,
     PlaceholderCellMorphologyProtocolBase,
-    CommonReadMixin,
 ):
     pass
 
@@ -234,29 +229,29 @@ class PlaceholderCellMorphologyProtocolRead(
 
 
 class NestedDigitalReconstructionCellMorphologyProtocolRead(
+    NestedEntityBareRead,
     DigitalReconstructionCellMorphologyProtocolBase,
-    IdentifiableMixin,
 ):
     pass
 
 
 class NestedModifiedReconstructionCellMorphologyProtocolRead(
+    NestedEntityBareRead,
     ModifiedReconstructionCellMorphologyProtocolBase,
-    IdentifiableMixin,
 ):
     pass
 
 
 class NestedComputationallySynthesizedCellMorphologyProtocolRead(
+    NestedEntityBareRead,
     ComputationallySynthesizedCellMorphologyProtocolBase,
-    IdentifiableMixin,
 ):
     pass
 
 
 class NestedPlaceholderCellMorphologyProtocolRead(
+    NestedEntityBareRead,
     PlaceholderCellMorphologyProtocolBase,
-    IdentifiableMixin,
 ):
     pass
 
@@ -304,7 +299,7 @@ CellMorphologyProtocolAdminUpdate = Annotated[
 ]
 
 
-class CellMorphologyProtocolReadAdapter(BaseModel):
+class CellMorphologyProtocolReadAdapter(Schema):
     """Polymorphic wrapper for CellMorphologyProtocolRead."""
 
     _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolRead)
@@ -315,7 +310,7 @@ class CellMorphologyProtocolReadAdapter(BaseModel):
         return cls._adapter.validate_python(obj, *args, **kwargs)
 
 
-class CellMorphologyProtocolUserUpdateAdapter(BaseModel):
+class CellMorphologyProtocolUserUpdateAdapter(Schema):
     """Polymorphic wrapper for CellMorphologyProtocolUpdate."""
 
     _adapter: ClassVar[TypeAdapter] = TypeAdapter(CellMorphologyProtocolUserUpdate)

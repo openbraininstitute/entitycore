@@ -1,11 +1,10 @@
 import uuid
 from typing import Any
 
-from pydantic import BaseModel
-
 from app.db.types import EMCellMeshGenerationMethod, EMCellMeshType
 from app.schemas.annotation import MTypeClassRead
-from app.schemas.base import BasicEntityRead, NameDescriptionMixin
+from app.schemas.base import NameDescriptionMixin
+from app.schemas.entity import BasicEntityRead
 from app.schemas.measurement_annotation import MeasurementAnnotationRead
 from app.schemas.scientific_artifact import (
     NestedScientificArtifactRead,
@@ -15,7 +14,7 @@ from app.schemas.scientific_artifact import (
 from app.schemas.utils import make_update_schema
 
 
-class EMCellMeshBase(BaseModel, NameDescriptionMixin):
+class EMCellMeshBaseMixin(NameDescriptionMixin):
     release_version: int
     dense_reconstruction_cell_id: int
     generation_method: EMCellMeshGenerationMethod
@@ -25,14 +24,14 @@ class EMCellMeshBase(BaseModel, NameDescriptionMixin):
 
 
 class NestedEMCellMeshRead(
-    EMCellMeshBase,
+    EMCellMeshBaseMixin,
     NestedScientificArtifactRead,
 ):
     pass
 
 
 class EMCellMeshRead(
-    EMCellMeshBase,
+    EMCellMeshBaseMixin,
     ScientificArtifactRead,
 ):
     em_dense_reconstruction_dataset: BasicEntityRead
@@ -40,7 +39,7 @@ class EMCellMeshRead(
 
 
 class EMCellMeshCreate(
-    EMCellMeshBase,
+    EMCellMeshBaseMixin,
     ScientificArtifactCreate,
 ):
     em_dense_reconstruction_dataset_id: uuid.UUID

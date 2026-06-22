@@ -823,6 +823,11 @@ def test_filter(db, client, brain_region_id, person_id, subject_id, cell_morphol
     assert response.status_code == 200
     data = response.json()["data"]
     assert len(data) == 5
+
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == 5
     returned_ids = [item["id"] for item in data]
     assert set(returned_ids) == set(morphology_ids)
 

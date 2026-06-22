@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
 from app.db.types import (
     ElectricalRecordingOrigin,
@@ -18,8 +18,7 @@ from app.schemas.scientific_artifact import (
 from app.schemas.utils import make_update_schema
 
 
-class ElectricalCellRecordingBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class ElectricalCellRecordingBaseMixin(NameDescriptionMixin):
     ljp: Annotated[
         float,
         Field(
@@ -67,7 +66,7 @@ class ElectricalCellRecordingBase(BaseModel, NameDescriptionMixin):
     legacy_id: list[str] | None = None
 
 
-class ElectricalCellRecordingCreate(ElectricalCellRecordingBase, ScientificArtifactCreate):
+class ElectricalCellRecordingCreate(ElectricalCellRecordingBaseMixin, ScientificArtifactCreate):
     pass
 
 
@@ -84,7 +83,7 @@ ElectricalCellRecordingAdminUpdate = make_update_schema(
 
 
 class ElectricalCellRecordingRead(
-    ElectricalCellRecordingBase,
+    ElectricalCellRecordingBaseMixin,
     ScientificArtifactRead,
     ContributionReadWithoutEntityMixin,
 ):

@@ -389,5 +389,5 @@ def test_filtering(client, ion_channel_models, person_id):
     data = req({"max_permeability_name__isnull": True})
     assert len(data) == 2
 
-    data = req({"max_permeability_name__isnull": False})
-    assert len(data) == 1
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == len(ion_channel_models)

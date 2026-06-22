@@ -45,7 +45,7 @@ from app.db.model import (
     Strain,
     Subject,
 )
-from app.db.types import EntityType, ExecutorType, StorageType
+from app.db.types import EntityLifecycleStatus, EntityType, ExecutorType, StorageType
 from app.routers.asset import EntityRoute
 from app.utils.uuid import create_uuid
 
@@ -1271,15 +1271,51 @@ def _check_dict(actual_data, expected_data):
             )
 
 
-def check_entity_read_response(data, json_data, expected_entity_type):
-    assert "id" in data
-    assert "authorized_public" in data
-    assert "authorized_project_id" in data
+def check_nested_entity_read_response(
+    data,
+    json_data,
+    *,
+    expected_entity_type,
+    expected_entity_id: UUID = ANY,
+    expected_authorized_public: bool = ANY,
+    expected_authorized_project_id: UUID = ANY,
+    expected_lifecycle_status: EntityLifecycleStatus = ANY,
+):
+    assert data["id"] == expected_entity_id
+    assert data["authorized_public"] == expected_authorized_public
+    assert data["authorized_project_id"] == expected_authorized_project_id
+
+    if "name" in json_data:
+        assert data["name"] == json_data["name"]
+    if "description" in json_data:
+        assert data["description"] == json_data["description"]
+
+    assert data["type"] == expected_entity_type
+    assert data["lifecycle_status"] == expected_lifecycle_status
+
+
+def check_entity_read_response(
+    data,
+    json_data,
+    expected_entity_type,
+    *,
+    expected_entity_id: UUID = ANY,
+    expected_authorized_public: bool = ANY,
+    expected_authorized_project_id: UUID = ANY,
+    expected_lifecycle_status: EntityLifecycleStatus = ANY,
+):
+    check_nested_entity_read_response(
+        data=data,
+        json_data=json_data,
+        expected_entity_id=expected_entity_id,
+        expected_entity_type=expected_entity_type,
+        expected_authorized_public=expected_authorized_public,
+        expected_authorized_project_id=expected_authorized_project_id,
+        expected_lifecycle_status=expected_lifecycle_status,
+    )
+
     assert "assets" in data
     assert "contributions" in data
-    assert data["name"] == json_data["name"]
-    assert data["description"] == json_data["description"]
-    assert data["type"] == expected_entity_type
 
     check_creation_fields(data)
 

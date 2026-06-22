@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 import pytest
 
 from app.db.model import TaskConfig
@@ -52,7 +54,11 @@ def model_id(task_config_id):
 
 
 def _assert_read_response(data, json_data):
-    check_entity_read_response(data, json_data, EntityType.task_config)
+    check_entity_read_response(
+        data=data,
+        json_data=json_data,
+        expected_entity_type=EntityType.task_config,
+    )
     assert "inputs" in data
     assert "task_config_generator_id" in data
     assert data["meta"] == json_data["meta"]
@@ -86,6 +92,9 @@ def test_create_one_with_nested_relationships(
             "authorized_public": False,
             "id": inputs[0]["id"],
             "type": "em_cell_mesh",
+            "lifecycle_status": "active",
+            "creation_date": ANY,
+            "update_date": ANY,
         },
     ]
 
@@ -244,5 +253,5 @@ def test_filtering_ordering(client, models, public_campaign_id):
     data = _req({"ilike_search": "*description*"})
     assert len(data) == len(models)
 
-    data = _req({"ilike_search": "config-1"})
-    assert len(data) == 1
+    data = _req({"lifecycle_status": "active"})
+    assert len(data) == len(models)

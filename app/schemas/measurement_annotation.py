@@ -1,23 +1,21 @@
 import uuid
 from collections.abc import Sequence
 
-from pydantic import BaseModel, ConfigDict
 from pydantic.json_schema import SkipJsonSchema
 
 from app.db.types import MeasurementStatistic, MeasurementUnit, StructuralDomain
 from app.db.utils import MeasurableEntityType
-from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.base import Schema
+from app.schemas.identifiable import IdentifiableCreate, NestedIdentifiableRead
 
 
-class MeasurementItem(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class MeasurementItem(Schema):
     name: MeasurementStatistic | None
     unit: MeasurementUnit | None
     value: float | None
 
 
-class MeasurementKindBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class MeasurementKindBase(Schema):
     structural_domain: StructuralDomain
     measurement_items: list[MeasurementItem]
     pref_label: str
@@ -32,23 +30,21 @@ class MeasurementKindCreate(MeasurementKindBase):
     measurement_label_id: SkipJsonSchema[uuid.UUID | None] = None
 
 
-class MeasurementAnnotationBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class MeasurementAnnotationBase(Schema):
     entity_id: uuid.UUID
     entity_type: MeasurableEntityType
 
 
-class MeasurementAnnotationRead(MeasurementAnnotationBase, CreationMixin, IdentifiableMixin):
+class MeasurementAnnotationRead(MeasurementAnnotationBase, NestedIdentifiableRead):
     entity_type: MeasurableEntityType
     measurement_kinds: Sequence[MeasurementKindRead]
 
 
-class MeasurementAnnotationCreate(MeasurementAnnotationBase):
+class MeasurementAnnotationCreate(MeasurementAnnotationBase, IdentifiableCreate):
     measurement_kinds: Sequence[MeasurementKindCreate]
 
 
-class MeasurementAnnotationUpdate(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class MeasurementAnnotationUpdate(Schema):
     entity_id: uuid.UUID | None = None
     entity_type: MeasurableEntityType | None = None
     measurement_kinds: Sequence[MeasurementKindCreate] | None = None

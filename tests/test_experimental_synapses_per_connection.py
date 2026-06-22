@@ -303,6 +303,11 @@ def test_filtering__many_entries(client, models):
     n_expected = sum(1 for m in models if m["post_region"]["acronym"] == "post-r0")
     assert n_elements == n_expected
 
+    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
+        "data"
+    ]
+    assert len(data) == len(models)
+
 
 def test_facets(client, models):
     data = assert_request(
@@ -385,3 +390,5 @@ def test_sorting_and_filtering(client, models):
 
         data = req({"ilike_search": "s10"})
         assert len(data) == 1
+        data = req({"lifecycle_status": "active"})
+        assert len(data) == n_models

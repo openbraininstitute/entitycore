@@ -171,7 +171,7 @@ def models(db, json_data, person_id):
     return add_all_db(db, objs)
 
 
-def test_filtering(client, models, root_circuit):
+def test_filtering(client, models):
     def req(query):
         return assert_request(client.get, url=ROUTE, params=query).json()["data"]
 
@@ -187,5 +187,5 @@ def test_filtering(client, models, root_circuit):
     data = req({"electrode_type": ElectrodeType.custom})
     assert len(data) == len(models)
 
-    data = req({"circuit_id": str(root_circuit.id)})
+    data = req({"lifecycle_status": "active"})
     assert len(data) == len(models)

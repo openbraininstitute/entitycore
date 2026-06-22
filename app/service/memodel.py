@@ -83,8 +83,10 @@ def _load(select: Select):
         joinedload(MEModel.etypes),
         joinedload(MEModel.created_by),
         joinedload(MEModel.updated_by),
-        joinedload(MEModel.calibration_result).joinedload(MEModelCalibrationResult.created_by),
-        joinedload(MEModel.calibration_result).joinedload(MEModelCalibrationResult.updated_by),
+        joinedload(MEModel.calibration_result).options(
+            joinedload(MEModelCalibrationResult.created_by),
+            joinedload(MEModelCalibrationResult.updated_by),
+        ),
         raiseload("*"),
     )
 

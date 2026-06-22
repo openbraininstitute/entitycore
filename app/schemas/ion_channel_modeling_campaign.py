@@ -1,32 +1,22 @@
-from pydantic import BaseModel, ConfigDict
-
 from app.db.types import JSON_DICT
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.entity import NestedEntityCreate
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityCreate, NestedEntityRead
 from app.schemas.ion_channel_modeling_config import NestedIonChannelModelingConfigRead
 from app.schemas.ion_channel_recording import NestedIonChannelRecordingRead
 from app.schemas.utils import make_update_schema
 
 
-class IonChannelModelingCampaignBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class IonChannelModelingCampaignBaseMixin(NameDescriptionMixin):
     scan_parameters: JSON_DICT
 
 
 class IonChannelModelingCampaignCreate(
-    IonChannelModelingCampaignBase, AuthorizationOptionalPublicMixin
+    IonChannelModelingCampaignBaseMixin,
+    EntityCreate,
 ):
-    input_recordings: list[NestedEntityCreate] = []
+    input_recordings: list[NestedEntityCreate] = []  # noqa: RUF012
 
 
 IonChannelModelingCampaignUserUpdate = make_update_schema(
@@ -39,19 +29,13 @@ IonChannelModelingCampaignAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedIonChannelModelingCampaignRead(
-    IonChannelModelingCampaignBase, EntityTypeMixin, IdentifiableMixin
-):
+class NestedIonChannelModelingCampaignRead(IonChannelModelingCampaignBaseMixin, NestedEntityRead):
     pass
 
 
 class IonChannelModelingCampaignRead(
-    NestedIonChannelModelingCampaignRead,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    AuthorizationMixin,
-    ContributionReadWithoutEntityMixin,
+    IonChannelModelingCampaignBaseMixin,
+    EntityRead,
 ):
     input_recordings: list[NestedIonChannelRecordingRead]
     ion_channel_modeling_configs: list[NestedIonChannelModelingConfigRead]

@@ -142,3 +142,10 @@ def test_filtering(client, brain_atlas_id, brain_region_id):
         client.get, url=f"{ROUTE}", params={"brain_region_id": brain_region_id}
     ).json()
     assert len(data["data"]) == 1
+
+    data = assert_request(
+        client.get,
+        url=f"{ROUTE}",
+        params={"lifecycle_status": "active", "brain_atlas_id": brain_atlas_id},
+    ).json()
+    assert len(data["data"]) == 1

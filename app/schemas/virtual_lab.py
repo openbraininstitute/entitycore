@@ -1,8 +1,8 @@
 from uuid import UUID
 
-from pydantic import BaseModel
+from app.schemas.base import Schema
 
 
-class ProjectVirtualLabMapping(BaseModel):
+class ProjectVirtualLabMapping(Schema):
     project_id: UUID
     virtual_lab_id: UUID

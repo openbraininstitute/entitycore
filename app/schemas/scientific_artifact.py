@@ -1,27 +1,18 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
-    LicenseCreateMixin,
-    LicenseReadMixin,
+    Schema,
 )
 from app.schemas.brain_region import BrainRegionCreateMixin, BrainRegionReadMixin
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityRead
+from app.schemas.license import LicenseCreateMixin, LicenseReadMixin
 from app.schemas.subject import SubjectCreateMixin, SubjectReadMixin
 
 
-class ScientificArtifactBase(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class ScientificArtifactBase(Schema):
     experiment_date: Annotated[
         datetime | None,
         Field(description="Date of the experiment associated with the artifact."),
@@ -46,32 +37,27 @@ class ScientificArtifactBase(BaseModel):
 
 
 class NestedScientificArtifactRead(
+    NestedEntityRead,
     ScientificArtifactBase,
-    IdentifiableMixin,
-    EntityTypeMixin,
-    AuthorizationMixin,
 ):
     pass
 
 
 class ScientificArtifactRead(
-    NestedScientificArtifactRead,
+    EntityRead,
+    ScientificArtifactBase,
     SubjectReadMixin,
     BrainRegionReadMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
     LicenseReadMixin,
-    AssetsMixin,
-    ContributionReadWithoutEntityMixin,
 ):
     pass
 
 
 class ScientificArtifactCreate(
+    EntityCreate,
     ScientificArtifactBase,
     SubjectCreateMixin,
     BrainRegionCreateMixin,
     LicenseCreateMixin,
-    AuthorizationOptionalPublicMixin,
 ):
     pass

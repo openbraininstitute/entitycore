@@ -1,19 +1,20 @@
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
-
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.base import CreationMixin, IdentifiableMixin
+from app.schemas.base import Schema
+from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.utils import make_update_schema
 
 
-class SpeciesCreate(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class SpeciesBase(Schema):
     name: str
     taxonomy_id: str
 
 
-class SpeciesRead(SpeciesCreate, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
+class SpeciesCreate(SpeciesBase, IdentifiableCreate):
+    pass
+
+
+class SpeciesRead(SpeciesBase, IdentifiableRead):
     pass
 
 
@@ -24,18 +25,21 @@ SpeciesAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedSpeciesRead(SpeciesCreate, IdentifiableMixin):
+class NestedSpeciesRead(SpeciesBase, NestedIdentifiableRead):
     pass
 
 
-class StrainCreate(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+class StrainBase(Schema):
     name: str
     taxonomy_id: str
     species_id: UUID
 
 
-class StrainRead(StrainCreate, CreationMixin, CreatedByUpdatedByMixin, IdentifiableMixin):
+class StrainCreate(StrainBase, IdentifiableCreate):
+    pass
+
+
+class StrainRead(StrainBase, IdentifiableRead):
     pass
 
 
@@ -46,19 +50,15 @@ StrainAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedStrainRead(StrainCreate, IdentifiableMixin):
+class NestedStrainRead(StrainBase, NestedIdentifiableRead):
     pass
 
 
-class SpeciesStrainReadMixin(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class SpeciesStrainReadMixin(Schema):
     species: NestedSpeciesRead
     strain: NestedStrainRead | None = None
 
 
-class SpeciesStrainCreateMixin(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class SpeciesStrainCreateMixin(Schema):
     species_id: UUID
     strain_id: UUID | None = None

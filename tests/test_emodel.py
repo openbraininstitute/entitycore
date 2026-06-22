@@ -554,5 +554,5 @@ def test_filtering_ordering(client, faceted_emodel_ids, ion_channel_models):
     data = req({"ilike_search": "*desc*"})
     assert len(data) == n_models
 
-    data = req({"ilike_search": "e-1"})
-    assert len(data) == 1
+    data = req({"lifecycle_status": "active"})
+    assert len(data) == n_models

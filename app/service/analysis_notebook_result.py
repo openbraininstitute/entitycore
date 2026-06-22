@@ -7,6 +7,7 @@ from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 from app.db.model import (
     Agent,
     AnalysisNotebookResult,
+    Contribution,
     Person,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
@@ -39,6 +40,10 @@ def _load(query: sa.Select):
         joinedload(AnalysisNotebookResult.created_by),
         joinedload(AnalysisNotebookResult.updated_by),
         selectinload(AnalysisNotebookResult.assets),
+        selectinload(AnalysisNotebookResult.contributions).options(
+            selectinload(Contribution.agent),
+            selectinload(Contribution.role),
+        ),
         raiseload("*"),
     )
 

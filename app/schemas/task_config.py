@@ -1,36 +1,27 @@
 import uuid
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import Field
 
 from app.db.types import TaskConfigType
-from app.schemas.agent import CreatedByUpdatedByMixin
-from app.schemas.asset import AssetsMixin
 from app.schemas.base import (
-    AuthorizationMixin,
-    AuthorizationOptionalPublicMixin,
-    CreationMixin,
-    EntityTypeMixin,
-    IdentifiableMixin,
     NameDescriptionMixin,
 )
-from app.schemas.contribution import ContributionReadWithoutEntityMixin
-from app.schemas.entity import NestedEntityCreate, NestedEntityRead
+from app.schemas.entity import EntityCreate, EntityRead, NestedEntityCreate, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
 
-class TaskConfigBase(BaseModel, NameDescriptionMixin):
-    model_config = ConfigDict(from_attributes=True)
+class TaskConfigBaseMixin(NameDescriptionMixin):
     task_config_type: TaskConfigType
     meta: dict[str, Any]
     task_config_generator_id: uuid.UUID | None = None
 
 
-class TaskConfigCreate(TaskConfigBase, AuthorizationOptionalPublicMixin):
+class TaskConfigCreate(EntityCreate, TaskConfigBaseMixin):
     inputs: Annotated[
         list[NestedEntityCreate],
         Field(description="List of input entities (only ids)."),
-    ] = []
+    ] = []  # noqa: RUF012
 
 
 TaskConfigUserUpdate = make_update_schema(
@@ -45,19 +36,15 @@ TaskConfigAdminUpdate = make_update_schema(
 )  # pyright : ignore [reportInvalidTypeForm]
 
 
-class NestedTaskConfigRead(TaskConfigBase, EntityTypeMixin, IdentifiableMixin):
+class NestedTaskConfigRead(NestedEntityRead, TaskConfigBaseMixin):
     pass
 
 
 class TaskConfigRead(
-    NestedTaskConfigRead,
-    AssetsMixin,
-    CreatedByUpdatedByMixin,
-    CreationMixin,
-    AuthorizationMixin,
-    ContributionReadWithoutEntityMixin,
+    EntityRead,
+    TaskConfigBaseMixin,
 ):
     inputs: Annotated[
         list[NestedEntityRead],
         Field(description="List of input entities."),
-    ] = []
+    ] = []  # noqa: RUF012

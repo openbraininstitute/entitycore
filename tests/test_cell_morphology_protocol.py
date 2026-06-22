@@ -12,6 +12,7 @@ from app.db.model import (
 )
 from app.db.types import (
     CellMorphologyGenerationType,
+    EntityType,
     ModifiedMorphologyMethodType,
     SlicingDirectionType,
 )
@@ -96,6 +97,46 @@ def json_data_placeholder():
 def json_data(json_data_digital_reconstruction):
     # to be used when testing one type is enough
     return json_data_digital_reconstruction
+
+
+@pytest.mark.parametrize(
+    "json_data_fixture",
+    [
+        "json_data_digital_reconstruction",
+        "json_data_modified_reconstruction",
+        "json_data_computationally_synthesized",
+        "json_data_placeholder",
+    ],
+)
+def test_create_rejects_invalid_entity_type(request, client, json_data_fixture):
+    payload = request.getfixturevalue(json_data_fixture).copy()
+    payload.pop("type", None)
+    payload["type"] = EntityType.subject.value
+    data = assert_request(
+        client.post,
+        url=ROUTE,
+        json=payload,
+        expected_status_code=422,
+    ).json()
+    assert data["message"] == "Validation error"
+    assert any(
+        "type must be cell_morphology_protocol" in detail["msg"] for detail in data["details"]
+    )
+
+
+def test_create_accepts_explicit_entity_type(client, json_data_digital_reconstruction):
+    payload = json_data_digital_reconstruction.copy()
+    payload.pop("type", None)
+    payload["type"] = EntityType.cell_morphology_protocol.value
+    data = assert_request(client.post, url=ROUTE, json=payload).json()
+    assert data["type"] == EntityType.cell_morphology_protocol.value
+
+
+def test_create_omitted_type_returns_cell_morphology_protocol_type(client, json_data_placeholder):
+    payload = json_data_placeholder.copy()
+    payload.pop("type", None)
+    data = assert_request(client.post, url=ROUTE, json=payload).json()
+    assert data["type"] == EntityType.cell_morphology_protocol.value
 
 
 def _assert_read_response(actual, expected):

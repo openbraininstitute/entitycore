@@ -1,6 +1,6 @@
 from typing import Annotated, Any, ClassVar, Literal
 
-from pydantic import Field, TypeAdapter
+from pydantic import Field, TypeAdapter, field_validator
 
 from app.db.types import (
     CellMorphologyGenerationType,
@@ -36,6 +36,14 @@ class CellMorphologyProtocolMixin:
 
 class CellMorphologyProtocolBaseMixin(NameDescriptionMixin):
     type: EntityType = EntityType.cell_morphology_protocol
+
+    @field_validator("type")
+    @classmethod
+    def ensure_cell_morphology_protocol_type(cls, v: EntityType) -> EntityType:
+        if v is not EntityType.cell_morphology_protocol:
+            msg = "type must be cell_morphology_protocol"
+            raise ValueError(msg)
+        return v
 
 
 class DigitalReconstructionCellMorphologyProtocolBase(

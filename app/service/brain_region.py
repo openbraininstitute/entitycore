@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 import app.queries.common
-from app.db.model import BrainRegion, BrainRegionHierarchy, Person, Species, Strain
+from app.db.model import BrainRegion, BrainRegionHierarchy, Species, Strain
 from app.dependencies.auth import AdminContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import SessionDep
@@ -24,8 +24,6 @@ def _load(select: sa.Select):
     return select.options(
         joinedload(BrainRegion.species),
         joinedload(BrainRegion.strain),
-        joinedload(BrainRegion.created_by, innerjoin=True),
-        joinedload(BrainRegion.updated_by, innerjoin=True),
         raiseload("*"),
     )
 
@@ -40,16 +38,10 @@ def read_many(
     db_model_class = BrainRegion
     brh_species_alias = aliased(BrainRegionHierarchy, flat=True, name="brh_species")
     brh_strain_alias = aliased(BrainRegionHierarchy, flat=True, name="brh_strain")
-    created_by_alias = aliased(Person, flat=True)
-    updated_by_alias = aliased(Person, flat=True)
     aliases: Aliases = {
         BrainRegionHierarchy: {
             "species": brh_species_alias,
             "strain": brh_strain_alias,
-        },
-        Person: {
-            "created_by": created_by_alias,
-            "updated_by": updated_by_alias,
         },
     }
     filter_joins = {

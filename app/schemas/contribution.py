@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from uuid import UUID  # noqa: TC003
 
+# from uuid import UUID
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.role import RoleRead  # noqa: TC001
 from app.schemas.utils import make_update_schema
-
-if TYPE_CHECKING:
-    from pydantic import UUID4
 
 # LNMC contributions
 # Reconstructor full name,
@@ -17,9 +15,9 @@ if TYPE_CHECKING:
 
 
 class ContributionCreate(IdentifiableCreate):
-    agent_id: UUID4
-    role_id: UUID4
-    entity_id: UUID4
+    agent_id: UUID
+    role_id: UUID
+    entity_id: UUID
 
 
 ContributionUserUpdate = make_update_schema(ContributionCreate, "ContributionUserUpdate")  # pyright: ignore [reportInvalidTypeForm]

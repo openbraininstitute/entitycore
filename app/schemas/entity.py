@@ -1,8 +1,8 @@
 """Entity schemas."""
 
-import uuid
+from uuid import UUID
 
-from pydantic import UUID4, RootModel
+from pydantic import RootModel
 
 from app.db.types import EntityLifecycleStatus, EntityType
 from app.schemas.asset import AssetsMixin
@@ -11,7 +11,7 @@ from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, Neste
 
 
 class EntityBaseMixin:
-    authorized_project_id: UUID4
+    authorized_project_id: UUID
     authorized_public: bool
     lifecycle_status: EntityLifecycleStatus = EntityLifecycleStatus.active
 
@@ -19,13 +19,13 @@ class EntityBaseMixin:
 class NestedEntityCreate(Schema):
     """Entity model to be used for bare nested entities in create endpoints."""
 
-    id: uuid.UUID
+    id: UUID
 
 
 class NestedEntityBareRead(Schema):
     """Minimal nested entity reference with only id and type."""
 
-    id: uuid.UUID
+    id: UUID
     type: EntityType
 
 

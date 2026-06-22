@@ -95,7 +95,7 @@ class AssetBase(Schema):
     storage_type: StorageType
 
 
-class SizeAndDigestMixin:
+class SizeAndDigestMixin(Schema):
     """Mixin with size and digest."""
 
     size: int

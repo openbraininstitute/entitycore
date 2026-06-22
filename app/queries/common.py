@@ -43,11 +43,12 @@ from app.queries.utils import (
 )
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.auth import UserContext, UserContextWithProjectId
+from app.schemas.base import Schema
 from app.schemas.routers import DeleteResponse
 from app.schemas.types import ListResponse, PaginationResponse
 
 
-def router_read_one[T: BaseModel, I: Identifiable](
+def router_read_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
@@ -85,7 +86,7 @@ def router_read_one[T: BaseModel, I: Identifiable](
     return response_schema_class.model_validate(row)
 
 
-def router_create_activity_one[T: BaseModel, I: Activity](
+def router_create_activity_one[T: Schema, I: Activity](
     *,
     db: Session,
     db_model_class: type[I],
@@ -141,7 +142,7 @@ def router_create_activity_one[T: BaseModel, I: Activity](
     return response_schema_class.model_validate(db_model_instance)
 
 
-def router_create_one[T: BaseModel, I: Identifiable](
+def router_create_one[T: Schema, I: Identifiable](
     *,
     db: Session,
     db_model_class: type[I],
@@ -269,7 +270,7 @@ def _with_subquery[I: Identifiable](
     )
 
 
-def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
+def router_read_many[T: Schema, I: Identifiable](  # noqa: PLR0913
     *,
     db: Session,
     db_model_class: type[I],
@@ -395,7 +396,7 @@ def router_read_many[T: BaseModel, I: Identifiable](  # noqa: PLR0913
     )
 
 
-def router_update_one[T: BaseModel, I: Identifiable](
+def router_update_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
@@ -459,7 +460,7 @@ def router_update_one[T: BaseModel, I: Identifiable](
     return response_schema_class.model_validate(db_model_instance)
 
 
-def router_user_delete_one[T: BaseModel, I: Identifiable](
+def router_user_delete_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,
@@ -488,7 +489,7 @@ def router_user_delete_one[T: BaseModel, I: Identifiable](
     return DeleteResponse(id=id_)
 
 
-def router_admin_delete_one[T: BaseModel, I: Identifiable](
+def router_admin_delete_one[T: Schema, I: Identifiable](
     *,
     id_: uuid.UUID,
     db: Session,

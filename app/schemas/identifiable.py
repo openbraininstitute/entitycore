@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from pydantic import UUID4  # noqa: TC002
+from uuid import UUID  # noqa: TC003
 
 from app.schemas.base import Schema, TimestapMixin
 
 
 class NestedIdentifiableRead(Schema, TimestapMixin):
-    id: UUID4
+    id: UUID
 
 
 class IdentifiableCreate(Schema):

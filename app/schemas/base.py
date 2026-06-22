@@ -1,6 +1,7 @@
 from datetime import datetime
+from uuid import UUID
 
-from pydantic import UUID4, BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict
 
 from app.db.types import ActivityType
 
@@ -14,7 +15,7 @@ class ActivityTypeMixin:
 
 
 class AuthorizationMixin:
-    authorized_project_id: UUID4
+    authorized_project_id: UUID
     authorized_public: bool = False
 
 
@@ -23,8 +24,8 @@ class AuthorizationOptionalPublicMixin:
 
 
 class OptionalProjectContext(Schema):
-    virtual_lab_id: UUID4 | None = None
-    project_id: UUID4 | None = None
+    virtual_lab_id: UUID | None = None
+    project_id: UUID | None = None
 
 
 class NameDescriptionMixin:

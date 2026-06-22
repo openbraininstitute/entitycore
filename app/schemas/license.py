@@ -1,4 +1,4 @@
-from pydantic import UUID4, ConfigDict
+from uuid import UUID
 
 from app.schemas.base import NameDescriptionMixin, Schema
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
@@ -10,7 +10,6 @@ class LicenseBaseMixin(NameDescriptionMixin):
 
 
 class LicenseCreate(LicenseBaseMixin, IdentifiableCreate):
-    model_config = ConfigDict(from_attributes=True)
     label: str
 
 
@@ -34,11 +33,11 @@ class LicenseReadMixin:
 
 
 class LicenseCreateMixin:
-    license_id: UUID4 | None = None
+    license_id: UUID | None = None
 
 
 class LicensedCreateMixin(Schema):
-    license_id: UUID4 | None = None
+    license_id: UUID | None = None
 
 
 class LicensedReadMixin(Schema):

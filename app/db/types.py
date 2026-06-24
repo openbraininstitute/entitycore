@@ -1263,12 +1263,14 @@ class TargetSimulator(StrEnum):
     """Target simulator values as used in libsonata.
 
     See: https://sonata-extension.readthedocs.io/en/latest/sonata_config.html#target-simulator
+
+    Ensure the list is in alphabetical order to guarantee correct ordering.
     """
 
-    neuron = "NEURON"
+    brian2 = "Brian2"
     coreneuron = "CORENEURON"
     learning_engine = "LearningEngine"
-    brian2 = "Brian2"
+    neuron = "NEURON"
 
 
 class ElectrodeType(StrEnum):

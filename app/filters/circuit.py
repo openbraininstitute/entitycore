@@ -66,6 +66,7 @@ class CircuitFilter(
             "name",
             "scale",
             "build_category",
+            "target_simulator",
             "has_morphologies",
             "has_point_neurons",
             "has_electrical_cell_models",

@@ -1,7 +1,7 @@
 from typing import Any, cast
 
 import sqlalchemy as sa
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, aliased
 
 from app.db.model import (
     Agent,
@@ -48,6 +48,11 @@ from app.filters.base import Aliases
 from app.queries.types import ApplyOperations
 
 
+def _is_entity_model(db_model_class: Any) -> bool:
+    """Whether the model is an Entity subclass (kept separate to avoid narrowing the caller)."""
+    return isinstance(db_model_class, type) and issubclass(db_model_class, Entity)
+
+
 def query_params_factory[I: Identifiable](
     db_model_class: Any, facet_keys: list[str], filter_keys: list[str], aliases: Aliases
 ) -> tuple[dict[str, FacetQueryParams], dict[str, ApplyOperations[I]]]:
@@ -74,6 +79,18 @@ def query_params_factory[I: Identifiable](
             # Fetch alias by name or assign db_cls if the alias is not passed as not needed
             value = db_cls if name is None else value.get(name, db_cls)
         return cast("T", value)
+
+    # The generated_derivation / used_derivation filters are inherited by every entity filter
+    # (see app.filters.entity.EntityFilterMixin). For entity models, register a distinct pair of
+    # Derivation aliases in `aliases` (mutating the dict the caller also hands to router_read_many)
+    # so the join lambdas below and `filter_model.filter(...)` resolve the *same* alias objects,
+    # and so the two directions don't collide on a single un-aliased Derivation table.
+    is_entity_model = _is_entity_model(db_model_class)
+    if is_entity_model and Derivation not in aliases:
+        aliases[Derivation] = {
+            "generated_derivation": aliased(Derivation, flat=True),
+            "used_derivation": aliased(Derivation, flat=True),
+        }
 
     morphology_alias = _get_alias(CellMorphology)
     cell_morphology_protocol_alias = _get_alias(CellMorphologyProtocol)
@@ -339,5 +356,15 @@ def query_params_factory[I: Identifiable](
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}
-    filter_joins = {k: filter_joins[k] for k in filter_keys}
+    # Every entity query gets the derivation join lambdas appended (as left joins, so order is
+    # safe), regardless of whether the service listed them. They are applied only when the
+    # corresponding nested filter is actually set (see app.queries.filter.filter_from_db).
+    selected_filter_keys = list(filter_keys)
+    if is_entity_model:
+        selected_filter_keys += [
+            key
+            for key in ("generated_derivation", "used_derivation")
+            if key not in selected_filter_keys
+        ]
+    filter_joins = {k: filter_joins[k] for k in selected_filter_keys}
     return name_to_facet_query_params, filter_joins

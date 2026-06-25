@@ -461,14 +461,14 @@ def test_filter_by_derivation_type(db, client, root_circuit, circuit, public_cir
     # the derived children are not on the used side of these derivations
     assert ids({"used_derivation__derivation_type": "circuit_customization"}) == set()
 
-    # the filter alone does not add derivation columns to the response
+    # the filter alone does not load the derivation lists: they serialize as null
     data = assert_request(
         client.get,
         url=ROUTE,
         params={"generated_derivation__derivation_type": "circuit_extraction"},
     ).json()["data"]
-    assert "generated_derivations" not in data[0]
-    assert "used_derivations" not in data[0]
+    assert data[0]["generated_derivations"] is None
+    assert data[0]["used_derivations"] is None
 
 
 def test_filter_by_derivation_type_non_circuit_source(db, client, circuit, emodel_id, person_id):
@@ -501,10 +501,10 @@ def test_expand_derivations(db, client, root_circuit, circuit, person_id):
         data = assert_request(client.get, url=ROUTE, params=params or {}).json()["data"]
         return next(d for d in data if d["id"] == str(entity_id))
 
-    # no expand -> fields are absent entirely (no extra query, no null columns)
+    # no expand -> the derivation lists are not loaded and serialize as null
     child = get_by_id(circuit.id)
-    assert "generated_derivations" not in child
-    assert "used_derivations" not in child
+    assert child["generated_derivations"] is None
+    assert child["used_derivations"] is None
 
     # expand=generated_derivations -> populated on the child; other direction is null
     child = get_by_id(circuit.id, {"expand": "generated_derivations"})

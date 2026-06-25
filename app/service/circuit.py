@@ -1,22 +1,19 @@
 import uuid
-from enum import StrEnum, auto
-from functools import partial
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
-from fastapi import Query
 from sqlalchemy.orm import aliased, joinedload, raiseload, selectinload
 
 from app.db.model import (
     Agent,
     Circuit,
     Contribution,
-    Derivation,
     Person,
     Subject,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
+    ExpandDep,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -31,11 +28,11 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.circuit import (
     CircuitAdminUpdate,
     CircuitCreate,
-    CircuitExpandedRead,
     CircuitRead,
     CircuitUserUpdate,
 )
@@ -46,15 +43,8 @@ if TYPE_CHECKING:
     from app.filters.base import Aliases
 
 
-class ExpandableAttribute(StrEnum):
-    """Derivation lists that can be loaded on demand via the `expand` query param."""
-
-    generated_derivations = auto()
-    used_derivations = auto()
-
-
-def _load(query: sa.Select, *, expand: set[ExpandableAttribute] | None = None):
-    query = query.options(
+def _load(query: sa.Select):
+    return query.options(
         joinedload(Circuit.license),
         joinedload(Circuit.subject).options(
             joinedload(Subject.species),
@@ -70,21 +60,13 @@ def _load(query: sa.Select, *, expand: set[ExpandableAttribute] | None = None):
         selectinload(Circuit.assets),
         raiseload("*"),
     )
-    if expand and ExpandableAttribute.generated_derivations in expand:
-        query = query.options(
-            selectinload(Circuit.derivations_as_generated).joinedload(Derivation.used)
-        )
-    if expand and ExpandableAttribute.used_derivations in expand:
-        query = query.options(
-            selectinload(Circuit.derivations_as_used).joinedload(Derivation.generated)
-        )
-    return query
 
 
 def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> CircuitRead:
     return router_read_one(
         db=db,
@@ -93,12 +75,14 @@ def read_one(
         user_context=user_context,
         response_schema_class=CircuitRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> CircuitRead:
     return router_read_one(
         db=db,
@@ -107,6 +91,7 @@ def admin_read_one(
         user_context=None,
         response_schema_class=CircuitRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -170,15 +155,13 @@ def _read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: set[ExpandableAttribute] | None,
+    expand: set[EntityExpand] | None,
     check_authorized_project: bool,
-) -> ListResponse[CircuitRead | CircuitExpandedRead]:
+) -> ListResponse[CircuitRead]:
     subject_alias = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
     updated_by_alias = aliased(Person, flat=True)
-    generated_derivation_alias = aliased(Derivation, flat=True)
-    used_derivation_alias = aliased(Derivation, flat=True)
 
     aliases: Aliases = {
         Subject: subject_alias,
@@ -188,10 +171,6 @@ def _read_many(
         Person: {
             "created_by": created_by_alias,
             "updated_by": updated_by_alias,
-        },
-        Derivation: {
-            "generated_derivation": generated_derivation_alias,
-            "used_derivation": used_derivation_alias,
         },
     }
     facet_keys = [
@@ -205,8 +184,6 @@ def _read_many(
     filter_keys = [
         "subject",
         *facet_keys,
-        "generated_derivation",
-        "used_derivation",
     ]
     name_to_facet_query_params, filter_joins = query_params_factory(
         db_model_class=Circuit,
@@ -214,7 +191,6 @@ def _read_many(
         filter_keys=filter_keys,
         aliases=aliases,
     )
-    response_schema_class = CircuitExpandedRead if expand else CircuitRead
     return router_read_many(
         db=db,
         filter_model=filter_model,
@@ -224,13 +200,14 @@ def _read_many(
         facets=facets,
         name_to_facet_query_params=name_to_facet_query_params,
         apply_filter_query_operations=None,
-        apply_data_query_operations=partial(_load, expand=expand),
+        apply_data_query_operations=_load,
         aliases=aliases,
         pagination_request=pagination_request,
-        response_schema_class=response_schema_class,
+        response_schema_class=CircuitRead,
         authorized_project_id=user_context.project_id,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -242,8 +219,8 @@ def read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
-) -> ListResponse[CircuitRead | CircuitExpandedRead]:
+    expand: ExpandDep = None,
+) -> ListResponse[CircuitRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -265,8 +242,8 @@ def admin_read_many(
     with_search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
-) -> ListResponse[CircuitRead | CircuitExpandedRead]:
+    expand: ExpandDep = None,
+) -> ListResponse[CircuitRead]:
     return _read_many(
         user_context=user_context,
         db=db,

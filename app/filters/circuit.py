@@ -3,22 +3,12 @@ from typing import Annotated
 
 from fastapi_filter import with_prefix
 
-from app.db.model import Circuit, Derivation
-from app.db.types import CircuitBuildCategory, CircuitScale, DerivationType, TargetSimulator
+from app.db.model import Circuit
+from app.db.types import CircuitBuildCategory, CircuitScale, TargetSimulator
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import IdFilterMixin, ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.scientific_artifact import ScientificArtifactFilter
-
-
-class NestedDerivationFilter(CustomFilter):
-    """Filter circuits by derivation type, on either the generated or used side."""
-
-    derivation_type: DerivationType | None = None
-    derivation_type__in: list[DerivationType] | None = None
-
-    class Constants(CustomFilter.Constants):
-        model = Derivation
 
 
 class CircuitFilterMixin:
@@ -66,16 +56,8 @@ class CircuitFilter(
     number_connections__lte: int | None = None
     number_connections__gte: int | None = None
 
-    # derivations where the circuit is the generated (derived) entity: "how it was derived"
-    generated_derivation: Annotated[
-        NestedDerivationFilter | None,
-        FilterDepends(with_prefix("generated_derivation", NestedDerivationFilter)),
-    ] = None
-    # derivations where the circuit is the used (source) entity: "what was derived from it"
-    used_derivation: Annotated[
-        NestedDerivationFilter | None,
-        FilterDepends(with_prefix("used_derivation", NestedDerivationFilter)),
-    ] = None
+    # generated_derivation / used_derivation are inherited from EntityFilterMixin via
+    # ScientificArtifactFilter, so every entity filter exposes them.
 
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 

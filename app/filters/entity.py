@@ -1,13 +1,34 @@
+import uuid
 from typing import Annotated
 
 from fastapi_filter import with_prefix
 
-from app.db.model import Entity
-from app.db.types import EntityLifecycleStatus, EntityType
+from app.db.model import Derivation, Entity
+from app.db.types import DerivationType, EntityLifecycleStatus, EntityType
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import AuthorizedFilterMixin, CreationFilterMixin, IdFilterMixin
 from app.filters.person import CreatorFilterMixin
+
+
+class NestedDerivationFilter(CustomFilter):
+    """Filter entities by a related Derivation, on either the generated or used side.
+
+    Exposed on every entity filter as ``generated_derivation`` / ``used_derivation`` (see
+    EntityFilterMixin). Besides ``derivation_type``, the related-entity ids are filterable:
+    on ``generated_derivation`` the meaningful side is ``used_id`` ("derived from entity X"),
+    on ``used_derivation`` it is ``generated_id`` ("source of entity Y").
+    """
+
+    derivation_type: DerivationType | None = None
+    derivation_type__in: list[DerivationType] | None = None
+    used_id: uuid.UUID | None = None
+    used_id__in: list[uuid.UUID] | None = None
+    generated_id: uuid.UUID | None = None
+    generated_id__in: list[uuid.UUID] | None = None
+
+    class Constants(CustomFilter.Constants):
+        model = Derivation
 
 
 class BasicEntityFilter(CustomFilter):
@@ -45,3 +66,14 @@ class EntityFilterMixin(
     ContributionFilterMixin,
 ):
     lifecycle_status: EntityLifecycleStatus | None = None
+
+    # Derivations where this entity is the generated (derived) side: "how it was derived".
+    generated_derivation: Annotated[
+        NestedDerivationFilter | None,
+        FilterDepends(with_prefix("generated_derivation", NestedDerivationFilter)),
+    ] = None
+    # Derivations where this entity is the used (source) side: "what was derived from it".
+    used_derivation: Annotated[
+        NestedDerivationFilter | None,
+        FilterDepends(with_prefix("used_derivation", NestedDerivationFilter)),
+    ] = None

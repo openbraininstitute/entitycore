@@ -47,6 +47,9 @@ if TYPE_CHECKING:
 
 class Expandable(StrEnum):
     measurement_annotation = auto()
+    # Inherited entity-wide derivation expands; loaded centrally (see apply_derivation_expand).
+    generated_derivations = auto()
+    used_derivations = auto()
 
 
 def _load(q: Select[EMCellMesh], *, expand: set[Expandable] | None = None) -> Select[EMCellMesh]:
@@ -92,8 +95,9 @@ def _read_many(
     filter_model: EMCellMeshFilterDep,
     in_brain_region: InBrainRegionDep,
     facets: FacetsDep,
+    expand: set[Expandable] | None,
     check_authorized_project: bool,
-) -> ListResponse[EMCellMeshRead]:
+) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
     subject_alias = aliased(Subject, flat=True)
     em_dense_reconstruction_dataset_alias = aliased(EMDenseReconstructionDataset, flat=True)
     aliases: Aliases = {
@@ -128,6 +132,11 @@ def _read_many(
         filter_keys=filter_keys,
         aliases=aliases,
     )
+    response_schema_class = (
+        EMCellMeshAnnotationExpandedRead
+        if expand and Expandable.measurement_annotation in expand
+        else EMCellMeshRead
+    )
     return router_read_many(
         db=db,
         db_model_class=EMCellMesh,
@@ -136,14 +145,15 @@ def _read_many(
         with_in_brain_region=in_brain_region,
         facets=facets,
         aliases=aliases,
-        apply_data_query_operations=_load,
+        apply_data_query_operations=partial(_load, expand=expand),
         apply_filter_query_operations=None,
         pagination_request=pagination_request,
-        response_schema_class=EMCellMeshRead,
+        response_schema_class=response_schema_class,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -155,7 +165,8 @@ def read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[EMCellMeshRead]:
+    expand: Annotated[set[Expandable] | None, Query()] = None,
+) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -164,6 +175,7 @@ def read_many(
         with_search=with_search,
         facets=with_facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -176,7 +188,8 @@ def admin_read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[EMCellMeshRead]:
+    expand: Annotated[set[Expandable] | None, Query()] = None,
+) -> ListResponse[EMCellMeshRead | EMCellMeshAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -185,6 +198,7 @@ def admin_read_many(
         with_search=with_search,
         facets=with_facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=False,
     )
 
@@ -195,7 +209,11 @@ def read_one(
     id_: uuid.UUID,
     expand: Annotated[set[Expandable] | None, Query()] = None,
 ) -> EMCellMeshRead | EMCellMeshAnnotationExpandedRead:
-    response_schema_class = EMCellMeshAnnotationExpandedRead if expand else EMCellMeshRead
+    response_schema_class = (
+        EMCellMeshAnnotationExpandedRead
+        if expand and Expandable.measurement_annotation in expand
+        else EMCellMeshRead
+    )
     apply_operations = partial(_load, expand=expand)
     return router_read_one(
         id_=id_,
@@ -204,20 +222,29 @@ def read_one(
         user_context=user_context,
         response_schema_class=response_schema_class,
         apply_operations=apply_operations,
+        expand=expand,
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-) -> EMCellMeshRead:
+    expand: Annotated[set[Expandable] | None, Query()] = None,
+) -> EMCellMeshRead | EMCellMeshAnnotationExpandedRead:
+    response_schema_class = (
+        EMCellMeshAnnotationExpandedRead
+        if expand and Expandable.measurement_annotation in expand
+        else EMCellMeshRead
+    )
+    apply_operations = partial(_load, expand=expand)
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=EMCellMesh,
         user_context=None,
-        response_schema_class=EMCellMeshRead,
-        apply_operations=_load,
+        response_schema_class=response_schema_class,
+        apply_operations=apply_operations,
+        expand=expand,
     )
 
 

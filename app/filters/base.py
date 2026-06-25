@@ -240,7 +240,12 @@ class CustomFilter[T: DeclarativeBase](Filter):
             name: The name of the nested filtering field. It's possible to specify deeply nested
             filtering fields using the dot notation, e.g. "measurement_kind.pref_label".
         """
-        attr = attrgetter(name)(self)
+        try:
+            attr = attrgetter(name)(self)
+        except AttributeError:
+            # A join may be registered (e.g. the derivation joins, added for every entity model)
+            # without this filter declaring the matching field; treat it as not filtering.
+            return False
         # ignore nested filters because they are not valid fields
         return not isinstance(attr, CustomFilter) and attr is not None
 
@@ -251,7 +256,10 @@ class CustomFilter[T: DeclarativeBase](Filter):
             name: The name of the nested filter. It's possible to specify deeply nested filters
             using the dot notation, e.g. "measurement_annotation.measurement_kind".
         """
-        attr = attrgetter(name)(self)
+        try:
+            attr = attrgetter(name)(self)
+        except AttributeError:
+            return None
         if isinstance(attr, CustomFilter) and attr.has_filtering_fields():
             return attr
         return None

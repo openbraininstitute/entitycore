@@ -13,6 +13,7 @@ from app.db.types import DerivationType
 from app.errors import ApiError, ApiErrorCode
 from app.filters.base import CustomFilter
 from app.filters.brain_region import WithinBrainRegionDirection, filter_by_region
+from app.queries.expand import EntityExpand
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations
 from app.schemas.types import Facet, Facets, PaginationRequest
@@ -233,3 +234,5 @@ FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
 InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]
 DerivationQueryDep = Annotated[DerivationQuery, Depends()]
+# `?expand=generated_derivations&expand=used_derivations` — available on every entity read endpoint.
+ExpandDep = Annotated[set[EntityExpand] | None, Query()]

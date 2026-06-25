@@ -30,11 +30,6 @@ class NestedPersonRead(PersonBase, NestedIdentifiableRead):
     sub_id: uuid.UUID | None
 
 
-class CreatedByUpdatedByMixin:
-    created_by: NestedPersonRead
-    updated_by: NestedPersonRead
-
-
 class PersonRead(PersonBase, IdentifiableRead):
     type: AgentType
     sub_id: uuid.UUID | None

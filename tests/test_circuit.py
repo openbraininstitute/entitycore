@@ -564,3 +564,44 @@ def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_ci
     assert {d["id"] for d in data} == {str(circuit.id)}
     assert data[0]["generated_derivations"][0]["used"]["id"] == str(root_circuit.id)
     assert data[0]["used_derivations"] is None
+
+
+def test_derivation_filter_pagination_no_duplicates(
+    db, client, root_circuit, circuit, public_circuit, person_id
+):
+    """A circuit matching multiple derivation rows must not repeat across pages.
+
+    root_circuit is the `used` source of two extraction derivations, so the one-to-many
+    filter join yields two rows for it. Pagination must still treat it as a single circuit:
+    total_items counts distinct circuits and the duplicate join row must not spill it onto a
+    second page (regression for the derivation-filter pagination bug).
+    """
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_extraction,
+    )
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=public_circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_extraction,
+    )
+
+    params = {"used_derivation__derivation_type": "circuit_extraction"}
+
+    # only root_circuit is the `used` side of an extraction derivation, despite two join rows
+    first = assert_request(
+        client.get, url=ROUTE, params={**params, "page": 1, "page_size": 1}
+    ).json()
+    assert first["pagination"]["total_items"] == 1
+    assert [d["id"] for d in first["data"]] == [str(root_circuit.id)]
+
+    # the duplicate join row must not place root_circuit on a second page too
+    second = assert_request(
+        client.get, url=ROUTE, params={**params, "page": 2, "page_size": 1}
+    ).json()
+    assert second["data"] == []

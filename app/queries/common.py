@@ -253,7 +253,12 @@ def _with_subquery[I: Identifiable](
     select_cols = [db_model_class.id] + [
         element.label(label_name) for (label_name, element, _) in labeled_sort_columns
     ]
-    subq = data_query.with_only_columns(*select_cols).subquery()
+    # DISTINCT collapses the duplicate id rows that a one-to-many filter join produces
+    # (e.g. the derivation-type filters, where a circuit can match several Derivation rows).
+    # Without it, OFFSET/LIMIT would page over the duplicated rows while total_items uses
+    # count(distinct id), so a circuit could repeat across pages or be skipped. Every ORDER BY
+    # element is included in the select list above, so SELECT DISTINCT is always valid here.
+    subq = data_query.with_only_columns(*select_cols).distinct().subquery()
 
     outer_order_bys = []
     for label_name, _, modifier in labeled_sort_columns:

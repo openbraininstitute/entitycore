@@ -483,6 +483,7 @@ class AssetLabel(StrEnum):
     nwb = auto()
     neuron_hoc = auto()
     emodel_optimization_output = auto()
+    emodel_optimisation_checkpoint = auto()
     sonata_simulation_config = auto()
     simulation_generation_config = auto()
     ion_channel_modeling_generation_config = auto()
@@ -1135,7 +1136,15 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
             ),
         ],
     },
-    TaskResultType.emodel_optimization__result: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.emodel],
+    TaskResultType.emodel_optimization__result: {
+        AssetLabel.emodel_optimisation_checkpoint: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="EModel optimisation output checkpoint.",
+            )
+        ]
+    },
     TaskResultType.optimized_emodel_analysis_validation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
         EntityType.validation_result
     ],

@@ -1,7 +1,8 @@
 import uuid
 
-from app.db.types import CircuitBuildCategory, CircuitScale, TargetSimulator
-from app.schemas.base import NameDescriptionMixin
+from app.db.types import CircuitBuildCategory, CircuitScale, DerivationType, TargetSimulator
+from app.schemas.base import NameDescriptionMixin, Schema
+from app.schemas.entity import NestedEntityRead
 from app.schemas.scientific_artifact import ScientificArtifactCreate, ScientificArtifactRead
 from app.schemas.utils import make_update_schema
 
@@ -26,6 +27,32 @@ class CircuitBaseMixin(NameDescriptionMixin):
 
 class CircuitRead(CircuitBaseMixin, ScientificArtifactRead):
     pass
+
+
+class CircuitGeneratedDerivationRead(Schema):
+    """A derivation where the circuit is the generated (derived) entity."""
+
+    used: NestedEntityRead
+    derivation_type: DerivationType
+    label: str | None = None
+
+
+class CircuitUsedDerivationRead(Schema):
+    """A derivation where the circuit is the used (source) entity."""
+
+    generated: NestedEntityRead
+    derivation_type: DerivationType
+    label: str | None = None
+
+
+class CircuitExpandedRead(CircuitRead):
+    """Circuit read schema with on-demand derivation lists (see `expand` query param).
+
+    A direction that was not expanded serializes as ``null`` (load-aware property on the model).
+    """
+
+    generated_derivations: list[CircuitGeneratedDerivationRead] | None = None
+    used_derivations: list[CircuitUsedDerivationRead] | None = None
 
 
 class CircuitCreate(CircuitBaseMixin, ScientificArtifactCreate):

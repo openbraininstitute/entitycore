@@ -1919,6 +1919,39 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
 
     # calibration_data (multiple entities): ...
 
+    # View-only relationships to the Derivation rows that reference this circuit.
+    # They are loaded on demand (see app/service/circuit.py `expand`) and read through the
+    # load-aware properties below, so an un-expanded direction serializes as null instead of
+    # tripping `raiseload`.
+    derivations_as_generated: Mapped[list["Derivation"]] = relationship(
+        "Derivation",
+        primaryjoin=lambda: Circuit.id == Derivation.generated_id,
+        foreign_keys=lambda: [Derivation.generated_id],
+        viewonly=True,
+        overlaps="generated",
+    )
+    derivations_as_used: Mapped[list["Derivation"]] = relationship(
+        "Derivation",
+        primaryjoin=lambda: Circuit.id == Derivation.used_id,
+        foreign_keys=lambda: [Derivation.used_id],
+        viewonly=True,
+        overlaps="used",
+    )
+
+    @property
+    def generated_derivations(self) -> list["Derivation"] | None:
+        """Derivations where this circuit is the generated entity, or None if not expanded."""
+        if "derivations_as_generated" in sa.inspect(self).unloaded:
+            return None
+        return self.derivations_as_generated
+
+    @property
+    def used_derivations(self) -> list["Derivation"] | None:
+        """Derivations where this circuit is the used entity, or None if not expanded."""
+        if "derivations_as_used" in sa.inspect(self).unloaded:
+            return None
+        return self.derivations_as_used
+
     @declared_attr.directive
     @classmethod
     def __table_args__(cls):  # noqa: D105, PLW3201

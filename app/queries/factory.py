@@ -10,6 +10,7 @@ from app.db.model import (
     CellMorphologyProtocol,
     Circuit,
     Contribution,
+    Derivation,
     EMCellMesh,
     EMDenseReconstructionDataset,
     EModel,
@@ -94,6 +95,8 @@ def query_params_factory[I: Identifiable](
     used_alias = _get_alias(Entity, "used")
     generated_alias = _get_alias(Entity, "generated")
     circuit_alias = _get_alias(Circuit)
+    generated_derivation_alias = _get_alias(Derivation, "generated_derivation")
+    used_derivation_alias = _get_alias(Derivation, "used_derivation")
     ion_channel_alias = _get_alias(IonChannel)
     em_dense_reconstruction_dataset_alias = _get_alias(EMDenseReconstructionDataset)
     ion_channel_model_alias = _get_alias(IonChannelModel, "ion_channel_model")
@@ -273,6 +276,16 @@ def query_params_factory[I: Identifiable](
                 else db_model_class.circuit_id
             )
             == circuit_alias.id,
+        ),
+        # circuits filtered by derivation type on the generated (derived) side
+        "generated_derivation": lambda q: q.outerjoin(
+            generated_derivation_alias,
+            db_model_class.id == generated_derivation_alias.generated_id,
+        ),
+        # circuits filtered by derivation type on the used (source) side
+        "used_derivation": lambda q: q.outerjoin(
+            used_derivation_alias,
+            db_model_class.id == used_derivation_alias.used_id,
         ),
         "used": lambda q: q.outerjoin(
             Usage, db_model_class.id == Usage.usage_activity_id

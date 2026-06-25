@@ -1076,6 +1076,11 @@ class MeasurementKind(Base):
             "structural_domain",
             name=f"uq_{__tablename__}_measurement_annotation_id",
         ),
+        Index(
+            f"ix_{__tablename__}_annotation_id_structural_domain",
+            "measurement_annotation_id",
+            "structural_domain",
+        ),
     )
 
 
@@ -1097,6 +1102,12 @@ class MeasurementItem(Base):
             "measurement_kind_id",
             "name",
             name=f"uq_{__tablename__}_measurement_kind_id",
+        ),
+        Index(
+            f"ix_{__tablename__}_kind_id_name_value",
+            "measurement_kind_id",
+            "name",
+            "value",
         ),
     )
 

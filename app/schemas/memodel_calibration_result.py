@@ -1,6 +1,5 @@
 import uuid
 
-from app.schemas.agent import CreatedByUpdatedByMixin
 from app.schemas.entity import EntityCreate, EntityReadWoutAssets, NestedEntityRead
 from app.schemas.utils import make_update_schema
 
@@ -16,7 +15,6 @@ class MEModelCalibrationResultBaseMixin:
 
 class NestedMEModelCalibrationResultRead(
     MEModelCalibrationResultBaseMixin,
-    CreatedByUpdatedByMixin,
     NestedEntityRead,
 ):
     pass

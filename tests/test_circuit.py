@@ -10,6 +10,7 @@ from app.db.model import (
 from app.db.types import (
     CircuitBuildCategory,
     CircuitScale,
+    EntityLifecycleStatus,
     EntityType,
     ExternalSource,
     PublicationType,
@@ -65,6 +66,7 @@ def _assert_read_response(data, json_data):
     assert data["scale"] == json_data["scale"]
     assert data["authorized_public"] is json_data["authorized_public"]
     assert data["target_simulator"] == TargetSimulator.neuron
+    assert data["lifecycle_status"] == str(json_data["lifecycle_status"])
 
     check_creation_fields(data)
 
@@ -83,6 +85,7 @@ def test_update_one(clients, circuit_json_data):
         patch_payload={
             "name": "name",
             "description": "description",
+            "lifecycle_status": EntityLifecycleStatus.draft,
         },
         optional_payload={
             "number_connections": 750,

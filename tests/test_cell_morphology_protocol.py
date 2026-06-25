@@ -12,6 +12,7 @@ from app.db.model import (
 )
 from app.db.types import (
     CellMorphologyGenerationType,
+    EntityLifecycleStatus,
     EntityType,
     ModifiedMorphologyMethodType,
     SlicingDirectionType,
@@ -51,6 +52,7 @@ def json_data_digital_reconstruction():
             "protocol_document": "https://example.com",
             "slicing_direction": SlicingDirectionType.horizontal,
             "slicing_thickness": 200,
+            "lifecycle_status": EntityLifecycleStatus.draft,
         }
     ).model_dump(mode="json")
 
@@ -65,6 +67,7 @@ def json_data_modified_reconstruction():
             "protocol_document": "https://www.example.com",
             "protocol_design": CellMorphologyProtocolDesign.fluorophore,
             "method_type": ModifiedMorphologyMethodType.cloned,
+            "lifecycle_status": EntityLifecycleStatus.draft,
         }
     ).model_dump(mode="json")
 
@@ -78,6 +81,7 @@ def json_data_computationally_synthesized():
             "generation_type": CellMorphologyGenerationType.computationally_synthesized,
             "protocol_design": CellMorphologyProtocolDesign.electron_microscopy,
             "method_type": "free-text",
+            "lifecycle_status": EntityLifecycleStatus.draft,
         }
     ).model_dump(mode="json")
 
@@ -89,6 +93,7 @@ def json_data_placeholder():
             "name": "Placeholder Test",
             "description": "Description Test",
             "generation_type": CellMorphologyGenerationType.placeholder,
+            "lifecycle_status": EntityLifecycleStatus.draft,
         }
     ).model_dump(mode="json")
 
@@ -148,7 +153,6 @@ def _assert_read_response(actual, expected):
         "updated_by",
         "id",
         "contributions",
-        "lifecycle_status",
     }
     assert ignored_keys.issubset(actual)
     actual = {k: v for k, v in actual.items() if k not in ignored_keys}
@@ -412,9 +416,9 @@ def test_filtering(client, models):
     ).json()["data"]
     assert len(data) == 1
 
-    data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
-        "data"
-    ]
+    data = assert_request(
+        client.get, url=ROUTE, params={"lifecycle_status": EntityLifecycleStatus.draft}
+    ).json()["data"]
     assert len(data) == len(models)
 
 

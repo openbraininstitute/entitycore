@@ -142,8 +142,6 @@ class EntityType(StrEnum):
     subject = auto()
     validation_result = auto()
     circuit = auto()
-    circuit_extraction_campaign = auto()
-    circuit_extraction_config = auto()
     em_dense_reconstruction_dataset = auto()
     em_cell_mesh = auto()
     analysis_notebook_template = auto()
@@ -287,8 +285,6 @@ class ActivityType(StrEnum):
     analysis_notebook_execution = auto()
     ion_channel_modeling_execution = auto()
     ion_channel_modeling_config_generation = auto()
-    circuit_extraction_config_generation = auto()
-    circuit_extraction_execution = auto()
     skeletonization_execution = auto()
     skeletonization_config_generation = auto()
     task_activity = auto()
@@ -1030,24 +1026,6 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             ),
         ],
     },
-    EntityType.circuit_extraction_campaign: {
-        AssetLabel.campaign_generation_config: [
-            LabelRequirements(
-                content_type=ContentType.json,
-                is_directory=False,
-                description="Circuit extraction campaign configuration.",
-            )
-        ],
-    },
-    EntityType.circuit_extraction_config: {
-        AssetLabel.circuit_extraction_config: [
-            LabelRequirements(
-                content_type=ContentType.json,
-                is_directory=False,
-                description="Single circuit extraction configuration.",
-            )
-        ],
-    },
     EntityType.skeletonization_campaign: {
         AssetLabel.campaign_generation_config: [
             LabelRequirements(
@@ -1079,6 +1057,7 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
 ALLOWED_ASSET_LABELS_PER_ENTITY |= {
     k: None for k in EntityType if k not in ALLOWED_ASSET_LABELS_PER_ENTITY
 }
+
 
 ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
     TaskResultType.circuit_simulation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[

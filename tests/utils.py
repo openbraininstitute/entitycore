@@ -24,7 +24,6 @@ from app.db.model import (
     BrainRegion,
     BrainRegionHierarchy,
     CellMorphology,
-    CircuitExtractionCampaign,
     Contribution,
     DataMaturityAnnotationBody,
     ElectricalCellRecording,
@@ -96,7 +95,6 @@ ROUTES = {
     ElectricalCellRecording: "/electrical-cell-recording",
     IonChannelRecording: "/ion-channel-recording",
     IonChannelModelingCampaign: "/ion-channel-modeling-campaign",
-    CircuitExtractionCampaign: "/circuit-extraction-campaign",
     SkeletonizationCampaign: "/skeletonization-campaign",
     SkeletonizationConfig: "/skeletonization-config",
 }
@@ -298,25 +296,6 @@ def create_skeletonization_config_id(
 
     assert response.status_code == 200
     return response.json()["id"]
-
-
-def create_circuit_extraction_campaign_id(
-    client,
-    *,
-    name="Circuit extraction campaign",
-    description: str | None = None,
-    authorized_public: bool = False,
-):
-    return assert_request(
-        client.post,
-        url=ROUTES[CircuitExtractionCampaign],
-        json={
-            "name": name,
-            "description": description or name,
-            "authorized_public": authorized_public,
-            "scan_parameters": {"foo": "bar"},
-        },
-    ).json()["id"]
 
 
 def add_db(db, row):

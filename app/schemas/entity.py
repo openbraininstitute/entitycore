@@ -46,9 +46,6 @@ class EntityReadWoutAssets(
     """Entity model that includes created_by and updated_by information."""
 
     type: EntityType
-    authorized_public: bool
-    authorized_project_id: UUID
-    lifecycle_status: EntityLifecycleStatus
 
 
 class EntityRead(

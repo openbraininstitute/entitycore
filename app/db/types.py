@@ -103,6 +103,7 @@ class StorageType(StrEnum):
 class EntityLifecycleStatus(StrEnum):
     draft = auto()
     active = auto()
+    disqualified = auto()
 
 
 class EntityType(StrEnum):

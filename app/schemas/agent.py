@@ -30,11 +30,6 @@ class NestedPersonRead(PersonBase, NestedIdentifiableRead):
     sub_id: uuid.UUID | None
 
 
-class CreatedByUpdatedByMixin:
-    created_by: NestedPersonRead
-    updated_by: NestedPersonRead
-
-
 class PersonRead(PersonBase, IdentifiableRead):
     type: AgentType
     sub_id: uuid.UUID | None
@@ -42,7 +37,7 @@ class PersonRead(PersonBase, IdentifiableRead):
 
 class OrganizationBase(Schema):
     pref_label: str
-    alternative_name: str | None = None
+    alternative_name: str
 
 
 class OrganizationCreate(OrganizationBase, IdentifiableCreate):
@@ -69,7 +64,7 @@ class OrganizationRead(
 
 class ConsortiumBase(Schema):
     pref_label: str
-    alternative_name: str | None = None
+    alternative_name: str
 
 
 class ConsortiumCreate(ConsortiumBase, IdentifiableCreate):

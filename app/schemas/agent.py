@@ -42,7 +42,7 @@ class PersonRead(PersonBase, IdentifiableRead):
 
 class OrganizationBase(Schema):
     pref_label: str
-    alternative_name: str | None = None
+    alternative_name: str
 
 
 class OrganizationCreate(OrganizationBase, IdentifiableCreate):
@@ -69,7 +69,7 @@ class OrganizationRead(
 
 class ConsortiumBase(Schema):
     pref_label: str
-    alternative_name: str | None = None
+    alternative_name: str
 
 
 class ConsortiumCreate(ConsortiumBase, IdentifiableCreate):

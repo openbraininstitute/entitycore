@@ -10,7 +10,7 @@ from app.schemas.base import AuthorizationOptionalPublicMixin, Schema
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 
 
-class EntityBaseMixin:
+class EntityBaseReadMixin:
     authorized_project_id: UUID
     authorized_public: bool
     lifecycle_status: EntityLifecycleStatus
@@ -29,13 +29,10 @@ class NestedEntityBareRead(Schema):
     type: EntityType
 
 
-class NestedEntityRead(NestedIdentifiableRead):
+class NestedEntityRead(NestedIdentifiableRead, EntityBaseReadMixin):
     """Entity model to be used for bare nested entities in read endpoints."""
 
     type: EntityType
-    authorized_public: bool
-    authorized_project_id: UUID
-    lifecycle_status: EntityLifecycleStatus
 
 
 from app.schemas.contribution import ContributionReadWithoutEntityMixin  # noqa: E402
@@ -43,7 +40,7 @@ from app.schemas.contribution import ContributionReadWithoutEntityMixin  # noqa:
 
 class EntityReadWoutAssets(
     IdentifiableRead,
-    EntityBaseMixin,
+    EntityBaseReadMixin,
     ContributionReadWithoutEntityMixin,
 ):
     """Entity model that includes created_by and updated_by information."""
@@ -56,7 +53,7 @@ class EntityReadWoutAssets(
 
 class EntityRead(
     IdentifiableRead,
-    EntityBaseMixin,
+    EntityBaseReadMixin,
     AssetsMixin,
     ContributionReadWithoutEntityMixin,
 ):

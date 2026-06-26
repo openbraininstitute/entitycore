@@ -17,7 +17,6 @@ from sqlalchemy import (
     SQLColumnExpression,
     String,
     UniqueConstraint,
-    column_property,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
@@ -26,6 +25,7 @@ from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
     MappedColumn,
+    column_property,
     declared_attr,
     foreign,
     mapped_column,

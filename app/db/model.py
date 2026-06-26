@@ -2435,9 +2435,7 @@ class TaskActivity(Activity, ExecutionActivityMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     task_activity_type: Mapped[TaskActivityType] = mapped_column(index=True)
-    authorized_project_id: Mapped[uuid.UUID | None] = mapped_column(
-        index=True, nullable=True, use_existing_column=True
-    )
+    authorized_project_id: Mapped[uuid.UUID] = mapped_column(index=True)
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

@@ -53,6 +53,7 @@ from app.db.model import (
 from app.db.session import DatabaseSessionManager, configure_database_session_manager
 from app.db.types import (
     CellMorphologyGenerationType,
+    EntityLifecycleStatus,
     EntityType,
     StorageType,
     TargetSimulator,
@@ -1302,6 +1303,7 @@ def root_circuit_json_data(brain_atlas_id, subject_id, brain_region_id, license_
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
         "target_simulator": TargetSimulator.coreneuron,
+        "lifecycle_status": EntityLifecycleStatus.draft,
     }
 
 
@@ -1356,6 +1358,7 @@ def circuit_json_data(brain_atlas_id, root_circuit, subject_id, brain_region_id,
         "brain_region_id": str(brain_region_id),
         "license_id": str(license_id),
         "authorized_public": False,
+        "lifecycle_status": EntityLifecycleStatus.active,
     }
 
 

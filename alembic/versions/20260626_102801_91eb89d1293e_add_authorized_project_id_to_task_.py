@@ -44,4 +44,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index(op.f("ix_task_activity_authorized_project_id"), table_name="task_activity")
     op.drop_column("task_activity", "authorized_project_id")
-

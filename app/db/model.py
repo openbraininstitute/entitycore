@@ -17,6 +17,7 @@ from sqlalchemy import (
     SQLColumnExpression,
     String,
     UniqueConstraint,
+    column_property,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
@@ -2435,7 +2436,9 @@ class TaskActivity(Activity, ExecutionActivityMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     task_activity_type: Mapped[TaskActivityType] = mapped_column(index=True)
-    authorized_project_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    authorized_project_id: Mapped[uuid.UUID] = column_property(
+        mapped_column(sa.Column("authorized_project_id", sa.Uuid(), index=True))
+    )
 
     __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
 

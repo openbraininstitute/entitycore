@@ -536,6 +536,45 @@ def test_expand_derivations(db, client, root_circuit, circuit, person_id):
     assert len(parent["used_derivations"]) == 1
 
 
+def test_expand_derivations_read_one(db, client, client_admin, root_circuit, circuit, person_id):
+    """`expand` opts into derivation lists on the get-one endpoint too (user + admin)."""
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_extraction,
+        label="extracted",
+    )
+
+    # no expand -> derivation fields are absent entirely
+    data = assert_request(client.get, url=f"{ROUTE}/{circuit.id}").json()
+    assert "generated_derivations" not in data
+    assert "used_derivations" not in data
+
+    # expand=generated_derivations on the child -> populated; other direction is null
+    data = assert_request(
+        client.get, url=f"{ROUTE}/{circuit.id}", params={"expand": "generated_derivations"}
+    ).json()
+    assert data["used_derivations"] is None
+    assert len(data["generated_derivations"]) == 1
+    entry = data["generated_derivations"][0]
+    assert entry["used"]["id"] == str(root_circuit.id)
+    assert entry["used"]["type"] == EntityType.circuit
+    assert entry["derivation_type"] == DerivationType.circuit_extraction
+    assert entry["label"] == "extracted"
+
+    # the admin get-one endpoint supports expand too
+    data = assert_request(
+        client_admin.get,
+        url=f"{ADMIN_ROUTE}/{root_circuit.id}",
+        params={"expand": "used_derivations"},
+    ).json()
+    assert data["generated_derivations"] is None
+    assert len(data["used_derivations"]) == 1
+    assert data["used_derivations"][0]["generated"]["id"] == str(circuit.id)
+
+
 def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_circuit, person_id):
     """Filtering and expanding compose: filtered rows carry the expanded columns."""
     _add_derivation(

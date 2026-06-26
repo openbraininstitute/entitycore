@@ -85,28 +85,30 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
-) -> CircuitRead:
+    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+) -> CircuitRead | CircuitExpandedRead:
     return router_read_one(
         db=db,
         id_=id_,
         db_model_class=Circuit,
         user_context=user_context,
-        response_schema_class=CircuitRead,
-        apply_operations=_load,
+        response_schema_class=CircuitExpandedRead if expand else CircuitRead,
+        apply_operations=partial(_load, expand=expand),
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-) -> CircuitRead:
+    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+) -> CircuitRead | CircuitExpandedRead:
     return router_read_one(
         db=db,
         id_=id_,
         db_model_class=Circuit,
         user_context=None,
-        response_schema_class=CircuitRead,
-        apply_operations=_load,
+        response_schema_class=CircuitExpandedRead if expand else CircuitRead,
+        apply_operations=partial(_load, expand=expand),
     )
 
 

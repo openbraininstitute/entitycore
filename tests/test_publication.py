@@ -44,8 +44,13 @@ def model_id(publication):
     return publication.id
 
 
-def test_create_one(client_admin, json_data):
-    data = assert_request(client_admin.post, url=ROUTE, json=json_data).json()
+def test_create_one_admin(clients, json_data):
+    data = assert_request(clients.admin.post, url=ROUTE, json=json_data).json()
+    _assert_read_response(data, json_data)
+
+
+def test_create_one_user(clients, json_data):
+    data = assert_request(clients.user_1.post, url=ROUTE, json=json_data).json()
     _assert_read_response(data, json_data)
 
 

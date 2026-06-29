@@ -19,6 +19,7 @@ class CircuitFilterMixin:
     build_category__in: list[CircuitBuildCategory] | None = None
 
     target_simulator: TargetSimulator | None = None
+    target_simulator__in: list[TargetSimulator] | None = None
 
 
 class NestedCircuitFilter(

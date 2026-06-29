@@ -147,6 +147,7 @@ def models(db, person_id):
             Organization(
                 pref_label=f"org-{i}",
                 alternative_name=f"alt-{i}",
+                ror_id=["02rx3b187", "04wx1j267", None][i],
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -170,6 +171,14 @@ def test_filtering_sorting(client, models):
 
     data = req({"alternative_name": "alt-1", "order_by": "creation_date"})
     assert [d["alternative_name"] for d in data] == ["alt-1"]
+
+    data = req({"ror_id": "02rx3b187"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "org-0"
+
+    data = req({"ror_id__in": ["02rx3b187", "04wx1j267"]})
+    assert len(data) == 2
+    assert {d["pref_label"] for d in data} == {"org-0", "org-1"}
 
     data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models)

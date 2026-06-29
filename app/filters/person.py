@@ -16,6 +16,8 @@ class NestedPersonFilter(NestedAgentFilter):
     family_name__ilike: str | None = None
     sub_id: uuid.UUID | None = None
     sub_id__in: list[uuid.UUID] | None = None
+    orcid: str | None = None
+    orcid__in: list[str] | None = None
 
     class Constants(NestedAgentFilter.Constants):
         model = Person

@@ -208,6 +208,7 @@ def models(db, person_id):
                 given_name="John",
                 family_name="Smith",
                 pref_label="John Smith",
+                orcid="0000-0001-1111-1111",
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -215,6 +216,7 @@ def models(db, person_id):
                 given_name="john",
                 family_name="Cooper",
                 pref_label="John Cooper",
+                orcid="0000-0002-2222-2222",
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -244,6 +246,14 @@ def test_filtering(client, models):
 
     data = _req({"family_name__ilike": "Smith"})
     assert len(data) == 1
+
+    data = _req({"orcid": "0000-0001-1111-1111"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "John Smith"
+
+    data = _req({"orcid__in": ["0000-0001-1111-1111", "0000-0002-2222-2222"]})
+    assert len(data) == 2
+    assert {d["pref_label"] for d in data} == {"John Smith", "John Cooper"}
 
     data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models) + 1  # +1 for person_id

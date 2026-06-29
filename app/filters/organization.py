@@ -9,6 +9,9 @@ from app.filters.person import CreatorFilterMixin
 class OrganizationFilter(AgentFilter, CreatorFilterMixin):
     alternative_name: str | None = None
 
+    ror_id: str | None = None
+    ror_id__in: list[str] | None = None
+
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(AgentFilter.Constants):

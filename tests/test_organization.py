@@ -53,6 +53,48 @@ def test_create_organization(client, client_admin, json_data):
     assert data[0]["id"] == id_
     assert len(data) == 1
 
+    valid_ror_ids = [
+        ("02rx3b187", "02rx3b187"),
+        ("https://ror.org/04wx1j267", "04wx1j267"),
+    ]
+
+    for ror_id, expected in valid_ror_ids:
+        data = assert_request(
+            client_admin.post,
+            url=ROUTE,
+            json=json_data | {"ror_id": ror_id, "pref_label": f"org-{expected[-4:]}"},
+        ).json()
+        assert data["ror_id"] == expected
+
+    invalid_ror_ids = [
+        "1abc12345",
+        "02abc",
+        "invalid",
+    ]
+
+    for ror_id in invalid_ror_ids:
+        data = assert_request(
+            client_admin.post,
+            url=ROUTE,
+            json=json_data | {"ror_id": ror_id, "pref_label": f"org-{ror_id}"},
+            expected_status_code=422,
+        ).json()
+        assert data["message"] == "Validation error"
+
+    ror_id = "03nawhv71"
+    assert_request(
+        client_admin.post,
+        url=ROUTE,
+        json=json_data | {"ror_id": ror_id, "pref_label": "org-ror-dup-1"},
+    ).json()
+    data = assert_request(
+        client_admin.post,
+        url=ROUTE,
+        json=json_data | {"ror_id": ror_id, "pref_label": "org-ror-dup-2"},
+        expected_status_code=409,
+    ).json()
+    assert data["error_code"] == "ENTITY_DUPLICATED"
+
 
 def test_read_many(clients, json_data):
     check_global_read_many(

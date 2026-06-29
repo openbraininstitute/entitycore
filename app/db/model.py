@@ -6,7 +6,6 @@ import sqlalchemy as sa
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     BigInteger,
-    CheckConstraint,
     DateTime,
     Enum,
     ForeignKey,
@@ -334,16 +333,10 @@ class Person(Agent):
     family_name: Mapped[str | None]
     sub_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
 
-    orcid: Mapped[str] = mapped_column(String(19), nullable=True, unique=True, index=True)
-
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
-
-    __table_args__ = (
-        CheckConstraint(r"orcid ~ '^\d{4}-\d{4}-\d{4}-\d{4}$'", name="orcid_format_check"),
-    )
 
 
 class Organization(Agent):
@@ -353,19 +346,10 @@ class Organization(Agent):
     # what is the difference between name and label here ?
     alternative_name: Mapped[str]
 
-    ror_id: Mapped[str] = mapped_column(
-        String(9),
-        nullable=True,
-        unique=True,
-        index=True,
-    )
-
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
-
-    __table_args__ = (CheckConstraint(r"ror_id ~ '^0[a-z0-9]{8}$'", name="ror_format_check"),)
 
 
 class Consortium(Agent):

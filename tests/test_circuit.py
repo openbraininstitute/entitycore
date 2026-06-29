@@ -399,6 +399,16 @@ def test_filtering(client, root_circuit, models):
     data = assert_request(
         client.get,
         url=ROUTE,
+        params={
+            "root_circuit_id": str(root_circuit.id),
+            "target_simulator__in": [TargetSimulator.neuron, TargetSimulator.brian2],
+        },
+    ).json()["data"]
+    assert len(data) == 3  # NEURON x2 + Brian2 x1 among the children
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
         params={"lifecycle_status": "active", "root_circuit_id": str(root_circuit.id)},
     ).json()["data"]
     assert len(data) == len(models)

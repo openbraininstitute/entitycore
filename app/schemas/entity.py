@@ -59,8 +59,8 @@ class DerivationReadMixin:
     serializes as ``[]``.
     """
 
-    generated_derivations: list[GeneratedDerivationRead] | None = None
-    used_derivations: list[UsedDerivationRead] | None = None
+    generated_from_derivations: list[GeneratedDerivationRead] | None = None
+    used_by_derivations: list[UsedDerivationRead] | None = None
 
 
 from app.schemas.contribution import ContributionReadWithoutEntityMixin  # noqa: E402

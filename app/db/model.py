@@ -654,14 +654,14 @@ class Entity(LegacyMixin, Identifiable):
     )
 
     @property
-    def generated_derivations(self) -> list["Derivation"] | None:
+    def generated_from_derivations(self) -> list["Derivation"] | None:
         """Derivations where this entity is the generated entity, or None if not expanded."""
         if "derivations_as_generated" in sa.inspect(self).unloaded:
             return None
         return self.derivations_as_generated
 
     @property
-    def used_derivations(self) -> list["Derivation"] | None:
+    def used_by_derivations(self) -> list["Derivation"] | None:
         """Derivations where this entity is the used entity, or None if not expanded."""
         if "derivations_as_used" in sa.inspect(self).unloaded:
             return None

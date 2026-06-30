@@ -149,8 +149,8 @@ def _assert_read_response(actual, expected):
         "id",
         "contributions",
         "lifecycle_status",
-        "generated_derivations",
-        "used_derivations",
+        "generated_from_derivations",
+        "used_by_derivations",
     }
     assert ignored_keys.issubset(actual)
     actual = {k: v for k, v in actual.items() if k not in ignored_keys}

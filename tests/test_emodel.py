@@ -597,16 +597,16 @@ def test_derivation_filter_and_expand(db, client, create_emodel_ids, person_id):
 
     # default read: derivation lists are not loaded, serialize as null
     plain = assert_request(client.get, url=f"{ROUTE}/{generated_id}").json()
-    assert plain["generated_derivations"] is None
-    assert plain["used_derivations"] is None
+    assert plain["generated_from_derivations"] is None
+    assert plain["used_by_derivations"] is None
 
     # expand on read_one, per direction
     expanded = assert_request(
-        client.get, url=f"{ROUTE}/{generated_id}", params={"expand": "generated_derivations"}
+        client.get, url=f"{ROUTE}/{generated_id}", params={"expand": "generated_from_derivations"}
     ).json()
-    assert expanded["used_derivations"] is None
-    assert len(expanded["generated_derivations"]) == 1
-    entry = expanded["generated_derivations"][0]
+    assert expanded["used_by_derivations"] is None
+    assert len(expanded["generated_from_derivations"]) == 1
+    entry = expanded["generated_from_derivations"][0]
     assert entry["used"]["id"] == used_id
     assert entry["used"]["type"] == EntityType.emodel
     assert entry["derivation_type"] == DerivationType.circuit_extraction
@@ -616,10 +616,10 @@ def test_derivation_filter_and_expand(db, client, create_emodel_ids, person_id):
     src = next(
         d
         for d in assert_request(
-            client.get, url=ROUTE, params={"expand": "used_derivations"}
+            client.get, url=ROUTE, params={"expand": "used_by_derivations"}
         ).json()["data"]
         if d["id"] == used_id
     )
-    assert src["generated_derivations"] is None
-    assert len(src["used_derivations"]) == 1
-    assert src["used_derivations"][0]["generated"]["id"] == generated_id
+    assert src["generated_from_derivations"] is None
+    assert len(src["used_by_derivations"]) == 1
+    assert src["used_by_derivations"][0]["generated"]["id"] == generated_id

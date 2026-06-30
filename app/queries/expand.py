@@ -1,9 +1,10 @@
 """Shared, entity-wide `expand` support for on-demand derivation lists.
 
-Every entity read schema carries the load-aware ``generated_derivations`` / ``used_derivations``
-fields (see app.schemas.entity.DerivationReadMixin); they serialize as ``null`` unless the matching
-direction was eagerly loaded. This module centralizes the enum the read endpoints expose as the
-``expand`` query param and the loader options that populate the relationships.
+Every entity read schema carries the load-aware ``generated_from_derivations`` /
+``used_by_derivations`` fields (see app.schemas.entity.DerivationReadMixin); they serialize as
+``null`` unless the matching direction was eagerly loaded. This module centralizes the enum the
+read endpoints expose as the ``expand`` query param and the loader options that populate the
+relationships.
 """
 
 from collections.abc import Set as AbstractSet
@@ -18,8 +19,8 @@ from app.db.model import Derivation, Entity, Identifiable
 class EntityExpand(StrEnum):
     """Derivation lists that any entity endpoint can load on demand via ``?expand=``."""
 
-    generated_derivations = auto()
-    used_derivations = auto()
+    generated_from_derivations = auto()
+    used_by_derivations = auto()
 
 
 def apply_derivation_expand(
@@ -34,11 +35,11 @@ def apply_derivation_expand(
     """
     if not expand or not issubclass(db_model_class, Entity):
         return query
-    if EntityExpand.generated_derivations in expand:
+    if EntityExpand.generated_from_derivations in expand:
         query = query.options(
             selectinload(db_model_class.derivations_as_generated).joinedload(Derivation.used)
         )
-    if EntityExpand.used_derivations in expand:
+    if EntityExpand.used_by_derivations in expand:
         query = query.options(
             selectinload(db_model_class.derivations_as_used).joinedload(Derivation.generated)
         )

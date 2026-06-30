@@ -234,5 +234,6 @@ FacetsDep = Annotated[WithFacets, Depends()]
 SearchDep = Annotated[Search, Depends()]
 InBrainRegionDep = Annotated[InBrainRegionQuery, Depends()]
 DerivationQueryDep = Annotated[DerivationQuery, Depends()]
-# `?expand=generated_derivations&expand=used_derivations` — available on every entity read endpoint.
+# `?expand=generated_from_derivations&expand=used_by_derivations` — available on every entity
+# read endpoint.
 ExpandDep = Annotated[set[EntityExpand] | None, Query()]

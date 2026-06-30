@@ -56,8 +56,8 @@ if TYPE_CHECKING:
 class ExpandableAttribute(StrEnum):
     measurement_annotation = auto()
     # Inherited entity-wide derivation expands; loaded centrally (see apply_derivation_expand).
-    generated_derivations = auto()
-    used_derivations = auto()
+    generated_from_derivations = auto()
+    used_by_derivations = auto()
 
 
 def _load_from_db(query: sa.Select, *, expand: set[ExpandableAttribute] | None = None) -> sa.Select:

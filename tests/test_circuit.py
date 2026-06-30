@@ -467,8 +467,8 @@ def test_filter_by_derivation_type(db, client, root_circuit, circuit, public_cir
         url=ROUTE,
         params={"generated_derivation__derivation_type": "circuit_extraction"},
     ).json()["data"]
-    assert data[0]["generated_derivations"] is None
-    assert data[0]["used_derivations"] is None
+    assert data[0]["generated_from_derivations"] is None
+    assert data[0]["used_by_derivations"] is None
 
 
 def test_filter_by_derivation_type_non_circuit_source(db, client, circuit, emodel_id, person_id):
@@ -503,37 +503,37 @@ def test_expand_derivations(db, client, root_circuit, circuit, person_id):
 
     # no expand -> the derivation lists are not loaded and serialize as null
     child = get_by_id(circuit.id)
-    assert child["generated_derivations"] is None
-    assert child["used_derivations"] is None
+    assert child["generated_from_derivations"] is None
+    assert child["used_by_derivations"] is None
 
-    # expand=generated_derivations -> populated on the child; other direction is null
-    child = get_by_id(circuit.id, {"expand": "generated_derivations"})
-    assert child["used_derivations"] is None
-    assert len(child["generated_derivations"]) == 1
-    entry = child["generated_derivations"][0]
+    # expand=generated_from_derivations -> populated on the child; other direction is null
+    child = get_by_id(circuit.id, {"expand": "generated_from_derivations"})
+    assert child["used_by_derivations"] is None
+    assert len(child["generated_from_derivations"]) == 1
+    entry = child["generated_from_derivations"][0]
     assert entry["used"]["id"] == str(root_circuit.id)
     assert entry["used"]["type"] == EntityType.circuit
     assert entry["derivation_type"] == DerivationType.circuit_extraction
     assert entry["label"] == "extracted"
 
-    # expand=used_derivations -> populated on the parent; other direction is null
-    parent = get_by_id(root_circuit.id, {"expand": "used_derivations"})
-    assert parent["generated_derivations"] is None
-    assert len(parent["used_derivations"]) == 1
-    entry = parent["used_derivations"][0]
+    # expand=used_by_derivations -> populated on the parent; other direction is null
+    parent = get_by_id(root_circuit.id, {"expand": "used_by_derivations"})
+    assert parent["generated_from_derivations"] is None
+    assert len(parent["used_by_derivations"]) == 1
+    entry = parent["used_by_derivations"][0]
     assert entry["generated"]["id"] == str(circuit.id)
     assert entry["generated"]["type"] == EntityType.circuit
     assert entry["derivation_type"] == DerivationType.circuit_extraction
     assert entry["label"] == "extracted"
 
     # expand both -> a direction with no derivations is an empty list (not null)
-    params = {"expand": ["generated_derivations", "used_derivations"]}
+    params = {"expand": ["generated_from_derivations", "used_by_derivations"]}
     child = get_by_id(circuit.id, params)
     parent = get_by_id(root_circuit.id, params)
-    assert len(child["generated_derivations"]) == 1
-    assert child["used_derivations"] == []
-    assert parent["generated_derivations"] == []
-    assert len(parent["used_derivations"]) == 1
+    assert len(child["generated_from_derivations"]) == 1
+    assert child["used_by_derivations"] == []
+    assert parent["generated_from_derivations"] == []
+    assert len(parent["used_by_derivations"]) == 1
 
 
 def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_circuit, person_id):
@@ -558,12 +558,12 @@ def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_ci
         url=ROUTE,
         params={
             "generated_derivation__derivation_type": "circuit_extraction",
-            "expand": "generated_derivations",
+            "expand": "generated_from_derivations",
         },
     ).json()["data"]
     assert {d["id"] for d in data} == {str(circuit.id)}
-    assert data[0]["generated_derivations"][0]["used"]["id"] == str(root_circuit.id)
-    assert data[0]["used_derivations"] is None
+    assert data[0]["generated_from_derivations"][0]["used"]["id"] == str(root_circuit.id)
+    assert data[0]["used_by_derivations"] is None
 
 
 def test_derivation_filter_pagination_no_duplicates(

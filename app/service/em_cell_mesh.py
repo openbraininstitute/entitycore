@@ -48,8 +48,8 @@ if TYPE_CHECKING:
 class Expandable(StrEnum):
     measurement_annotation = auto()
     # Inherited entity-wide derivation expands; loaded centrally (see apply_derivation_expand).
-    generated_derivations = auto()
-    used_derivations = auto()
+    generated_from_derivations = auto()
+    used_by_derivations = auto()
 
 
 def _load(q: Select[EMCellMesh], *, expand: set[Expandable] | None = None) -> Select[EMCellMesh]:

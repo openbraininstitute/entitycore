@@ -56,9 +56,6 @@ class CircuitFilter(
     number_connections__lte: int | None = None
     number_connections__gte: int | None = None
 
-    # generated_derivation / used_derivation are inherited from EntityFilterMixin via
-    # ScientificArtifactFilter, so every entity filter exposes them.
-
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(ScientificArtifactFilter.Constants):

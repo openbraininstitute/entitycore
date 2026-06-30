@@ -57,8 +57,8 @@ def _assert_read_response(actual, expected):
         "update_date": ANY,
         "updated_by": ANY,
         "lifecycle_status": "active",
-        "generated_derivations": None,
-        "used_derivations": None,
+        "generated_from_derivations": None,
+        "used_by_derivations": None,
     } | {
         k: v
         for k, v in expected.items()

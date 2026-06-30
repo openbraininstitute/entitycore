@@ -58,7 +58,7 @@ ORCID = Annotated[str, AfterValidator(validate_orcid)]
 
 def _is_ror_valid_checksum(value: str) -> bool:
     # https://github.com/ror-community/ror-api/blob/bd040a0d2558a478c06a89118a29eeb9b6142710/rorapi/management/commands/generaterorid.py#L17
-    # https://github.com/jbittel/base32-crockford/blob/1OR_I021485b666ea6a562abd0a1ea6f7021188f/base32_crockford.py#L59
+    # https://github.com/jbittel/base32-crockford/blob/1ffb6021485b666ea6a562abd0a1ea6f7021188f/base32_crockford.py#L59
 
     ror_id = value[len(ROR_URL_PREFIX) :]
 

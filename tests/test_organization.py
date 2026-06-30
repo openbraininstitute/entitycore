@@ -68,13 +68,12 @@ def test_create_organization(client, client_admin, json_data):
         assert data["ror_id"] == ror_id
 
     invalid_ror_ids = [
-        "1abc12345",
-        "02abc",
-        "invalid",
-        "02mhbdp94",
+        "https://ror.org/1abc12345",
+        "https://ror.org/02abc",
+        "https://ror.org/invalid",
         "ror.org/02mhbdp94",
-        "04wx1j267",
-        "02rx3b180",
+        "https://ror.org/04wx1j267",
+        "https://ror.org/02rx3b180",
     ]
 
     for ror_id in invalid_ror_ids:

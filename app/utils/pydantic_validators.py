@@ -12,7 +12,7 @@ ROR_CROCKFORD_VALUES = {ch: index for index, ch in enumerate(ROR_CROCKFORD_ALPHA
 ROR_REGEX = re.compile(rf"^{re.escape(ROR_URL_PREFIX)}0[a-hj-km-np-tv-z0-9]{{6}}[0-9]{{2}}$")
 
 
-def _is_orcid_valid_checksum(value: str) -> str:
+def _is_orcid_valid_checksum(value: str) -> bool:
     """Generate check digit as per ISO 7064 11,2.
 
     See: https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier

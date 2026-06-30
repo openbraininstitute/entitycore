@@ -80,6 +80,17 @@ def test_read_one(client, model, json_data):
     assert data["measurement_annotation"] is None
 
 
+def test_admin_read_one(clients, model, json_data):
+    data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{model.id}").json()
+    _assert_read_response(data, json_data)
+
+    params = {"expand": "measurement_annotation"}
+    data = assert_request(clients.admin.get, url=f"{ADMIN_ROUTE}/{model.id}", params=params).json()
+    _assert_read_response(data, json_data)
+    assert "measurement_annotation" in data
+    assert data["measurement_annotation"] is None
+
+
 def test_missing(client):
     check_missing(ROUTE, client)
 

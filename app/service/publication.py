@@ -62,7 +62,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> PublicationRead:
 def create_one(
     db: SessionDep,
     json_model: PublicationCreate,
-    user_context: UserContextDep,
+    user_context: UserContextDep,  # See: https://github.com/openbraininstitute/obi-one/issues/867
 ) -> PublicationRead:
     return router_create_one(
         db=db,

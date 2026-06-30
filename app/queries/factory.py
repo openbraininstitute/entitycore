@@ -48,7 +48,7 @@ from app.filters.base import Aliases
 from app.queries.types import ApplyOperations
 
 
-def _is_entity_model(db_model_class: object) -> bool:
+def _is_entity_model(db_model_class: Any) -> bool:
     """Whether the model is an Entity subclass (kept separate to avoid narrowing the caller)."""
     return isinstance(db_model_class, type) and issubclass(db_model_class, Entity)
 

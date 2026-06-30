@@ -5,7 +5,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import aliased, joinedload, raiseload
 
 from app.db.model import Person, Publication
-from app.dependencies.auth import AdminContextDep
+from app.dependencies.auth import AdminContextDep, UserContextDep
 from app.dependencies.common import (
     FacetsDep,
     PaginationQuery,
@@ -62,7 +62,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> PublicationRead:
 def create_one(
     db: SessionDep,
     json_model: PublicationCreate,
-    user_context: AdminContextDep,
+    user_context: UserContextDep,  # See: https://github.com/openbraininstitute/obi-one/issues/867
 ) -> PublicationRead:
     return router_create_one(
         db=db,

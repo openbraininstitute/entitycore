@@ -5,8 +5,6 @@ from pydantic import AfterValidator
 
 ORCID_URL_PREFIX = "https://orcid.org/"
 ROR_URL_PREFIX = "https://ror.org/"
-ORCID_URL_LENGTH = len(ORCID_URL_PREFIX) + 19
-ROR_URL_LENGTH = len(ROR_URL_PREFIX) + 9
 
 ORCID_REGEX = re.compile(rf"^{re.escape(ORCID_URL_PREFIX)}\d{{4}}-\d{{4}}-\d{{4}}-\d{{3}}[\dXx]$")
 ROR_CROCKFORD_ALPHABET = "0123456789abcdefghjkmnpqrstvwxyz"

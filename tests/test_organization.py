@@ -54,22 +54,27 @@ def test_create_organization(client, client_admin, json_data):
     assert len(data) == 1
 
     valid_ror_ids = [
-        ("02rx3b187", "02rx3b187"),
-        ("https://ror.org/04wx1j267", "04wx1j267"),
+        "https://ror.org/02rx3b187",
+        "https://ror.org/02mhbdp94",
+        "https://ror.org/01an7q238",
     ]
 
-    for ror_id, expected in valid_ror_ids:
+    for ror_id in valid_ror_ids:
         data = assert_request(
             client_admin.post,
             url=ROUTE,
-            json=json_data | {"ror_id": ror_id, "pref_label": f"org-{expected[-4:]}"},
+            json=json_data | {"ror_id": ror_id, "pref_label": f"org-{ror_id[-4:]}"},
         ).json()
-        assert data["ror_id"] == expected
+        assert data["ror_id"] == ror_id
 
     invalid_ror_ids = [
         "1abc12345",
         "02abc",
         "invalid",
+        "02mhbdp94",
+        "ror.org/02mhbdp94",
+        "04wx1j267",
+        "02rx3b180",
     ]
 
     for ror_id in invalid_ror_ids:
@@ -81,7 +86,7 @@ def test_create_organization(client, client_admin, json_data):
         ).json()
         assert data["message"] == "Validation error"
 
-    ror_id = "03nawhv71"
+    ror_id = "https://ror.org/03nawhv43"
     assert_request(
         client_admin.post,
         url=ROUTE,
@@ -147,7 +152,7 @@ def models(db, person_id):
             Organization(
                 pref_label=f"org-{i}",
                 alternative_name=f"alt-{i}",
-                ror_id=["02rx3b187", "04wx1j267", None][i],
+                ror_id=["https://ror.org/02rx3b187", "https://ror.org/02mhbdp94", None][i],
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -172,11 +177,15 @@ def test_filtering_sorting(client, models):
     data = req({"alternative_name": "alt-1", "order_by": "creation_date"})
     assert [d["alternative_name"] for d in data] == ["alt-1"]
 
-    data = req({"ror_id": "02rx3b187"})
+    data = req({"ror_id": "https://ror.org/02rx3b187"})
     assert len(data) == 1
     assert data[0]["pref_label"] == "org-0"
 
-    data = req({"ror_id__in": ["02rx3b187", "04wx1j267"]})
+    data = req({"ror_id": "https://ror.org/02mhbdp94"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "org-1"
+
+    data = req({"ror_id__in": ["https://ror.org/02rx3b187", "https://ror.org/02mhbdp94"]})
     assert len(data) == 2
     assert {d["pref_label"] for d in data} == {"org-0", "org-1"}
 

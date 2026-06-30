@@ -80,22 +80,24 @@ def test_create_person(client, client_admin, json_data):
     assert sum(1 for d in data if d["sub_id"] is not None) == 1
 
     valid_orcids = [
-        ("0000-0002-1825-0097", "0000-0002-1825-0097"),
-        ("https://orcid.org/0000-0003-1234-5678", "0000-0003-1234-5678"),
+        "https://orcid.org/0000-0002-1825-0097",
+        "https://orcid.org/0000-0003-1234-5674",
     ]
 
-    for orcid, expected in valid_orcids:
+    for orcid in valid_orcids:
         data = assert_request(
             client_admin.post,
             url=ROUTE,
-            json=json_data | {"orcid": orcid, "pref_label": f"person-{expected[-4:]}"},
+            json=json_data | {"orcid": orcid, "pref_label": f"person-{orcid[-4:]}"},
         ).json()
-        assert data["orcid"] == expected
+        assert data["orcid"] == orcid
 
     invalid_orcids = [
         "invalid-orcid",
         "1234-5678",
         "abcd-efgh-ijkl-mnop",
+        "0000-0003-1234-5678",
+        "0000-0002-1825-0097",
     ]
 
     for orcid in invalid_orcids:
@@ -107,7 +109,7 @@ def test_create_person(client, client_admin, json_data):
         ).json()
         assert data["message"] == "Validation error"
 
-    orcid = "0000-0004-5678-9012"
+    orcid = "https://orcid.org/0000-0004-5678-9012"
     assert_request(
         client_admin.post,
         url=ROUTE,
@@ -208,7 +210,7 @@ def models(db, person_id):
                 given_name="John",
                 family_name="Smith",
                 pref_label="John Smith",
-                orcid="0000-0001-1111-1111",
+                orcid="https://orcid.org/0000-0001-1111-110X",
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -216,7 +218,7 @@ def models(db, person_id):
                 given_name="john",
                 family_name="Cooper",
                 pref_label="John Cooper",
-                orcid="0000-0002-2222-2222",
+                orcid="https://orcid.org/0000-0002-2222-2208",
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -247,11 +249,22 @@ def test_filtering(client, models):
     data = _req({"family_name__ilike": "Smith"})
     assert len(data) == 1
 
-    data = _req({"orcid": "0000-0001-1111-1111"})
+    data = _req({"orcid": "https://orcid.org/0000-0001-1111-110X"})
     assert len(data) == 1
     assert data[0]["pref_label"] == "John Smith"
 
-    data = _req({"orcid__in": ["0000-0001-1111-1111", "0000-0002-2222-2222"]})
+    data = _req({"orcid": "https://orcid.org/0000-0002-2222-2208"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "John Cooper"
+
+    data = _req(
+        {
+            "orcid__in": [
+                "https://orcid.org/0000-0001-1111-110X",
+                "https://orcid.org/0000-0002-2222-2208",
+            ]
+        }
+    )
     assert len(data) == 2
     assert {d["pref_label"] for d in data} == {"John Smith", "John Cooper"}
 

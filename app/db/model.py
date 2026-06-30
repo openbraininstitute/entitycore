@@ -333,7 +333,7 @@ class Person(Agent):
     family_name: Mapped[str | None]
     sub_id: Mapped[uuid.UUID | None] = mapped_column(unique=True, index=True)
 
-    orcid: Mapped[str] = mapped_column(String(19), nullable=True, unique=True, index=True)
+    orcid: Mapped[str | None] = mapped_column(String(37), unique=True, index=True)
 
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
@@ -348,9 +348,8 @@ class Organization(Agent):
     # what is the difference between name and label here ?
     alternative_name: Mapped[str]
 
-    ror_id: Mapped[str] = mapped_column(
-        String(9),
-        nullable=True,
+    ror_id: Mapped[str | None] = mapped_column(
+        String(25),
         unique=True,
         index=True,
     )

@@ -103,6 +103,7 @@ class StorageType(StrEnum):
 class EntityLifecycleStatus(StrEnum):
     draft = auto()
     active = auto()
+    disqualified = auto()
 
 
 class EntityType(StrEnum):
@@ -482,6 +483,7 @@ class AssetLabel(StrEnum):
     nwb = auto()
     neuron_hoc = auto()
     emodel_optimization_output = auto()
+    emodel_optimisation_checkpoint = auto()
     sonata_simulation_config = auto()
     simulation_generation_config = auto()
     ion_channel_modeling_generation_config = auto()
@@ -1134,7 +1136,15 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
             ),
         ],
     },
-    TaskResultType.emodel_optimization__result: ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.emodel],
+    TaskResultType.emodel_optimization__result: {
+        AssetLabel.emodel_optimisation_checkpoint: [
+            LabelRequirements(
+                content_type=ContentType.h5,
+                is_directory=False,
+                description="EModel optimisation output checkpoint.",
+            )
+        ]
+    },
     TaskResultType.optimized_emodel_analysis_validation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
         EntityType.validation_result
     ],
@@ -1262,12 +1272,14 @@ class TargetSimulator(StrEnum):
     """Target simulator values as used in libsonata.
 
     See: https://sonata-extension.readthedocs.io/en/latest/sonata_config.html#target-simulator
+
+    Ensure the list is in alphabetical order to guarantee correct ordering.
     """
 
-    neuron = "NEURON"
+    brian2 = "Brian2"
     coreneuron = "CORENEURON"
     learning_engine = "LearningEngine"
-    brian2 = "Brian2"
+    neuron = "NEURON"
 
 
 class ElectrodeType(StrEnum):

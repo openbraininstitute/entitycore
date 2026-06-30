@@ -19,6 +19,7 @@ class CircuitFilterMixin:
     build_category__in: list[CircuitBuildCategory] | None = None
 
     target_simulator: TargetSimulator | None = None
+    target_simulator__in: list[TargetSimulator] | None = None
 
 
 class NestedCircuitFilter(
@@ -66,6 +67,7 @@ class CircuitFilter(
             "name",
             "scale",
             "build_category",
+            "target_simulator",
             "has_morphologies",
             "has_point_neurons",
             "has_electrical_cell_models",

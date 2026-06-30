@@ -12,11 +12,13 @@ from app.db.types import (
     CircuitBuildCategory,
     CircuitScale,
     DerivationType,
+    EntityLifecycleStatus,
     EntityType,
     ExternalSource,
     PublicationType,
     TargetSimulator,
 )
+from app.filters.circuit import CircuitFilter
 
 from .utils import (
     PROJECT_ID,
@@ -67,6 +69,7 @@ def _assert_read_response(data, json_data):
     assert data["scale"] == json_data["scale"]
     assert data["authorized_public"] is json_data["authorized_public"]
     assert data["target_simulator"] == TargetSimulator.neuron
+    assert data["lifecycle_status"] == str(json_data["lifecycle_status"])
 
     check_creation_fields(data)
 
@@ -85,6 +88,7 @@ def test_update_one(clients, circuit_json_data):
         patch_payload={
             "name": "name",
             "description": "description",
+            "lifecycle_status": EntityLifecycleStatus.draft,
         },
         optional_payload={
             "number_connections": 750,
@@ -250,6 +254,14 @@ def models(db, circuit_json_data, person_id):
         CircuitBuildCategory.computational_model,
         CircuitBuildCategory.em_reconstruction,
     ]
+    target_simulators = [
+        TargetSimulator.neuron,
+        TargetSimulator.coreneuron,
+        TargetSimulator.learning_engine,
+        TargetSimulator.brian2,
+        TargetSimulator.neuron,
+        TargetSimulator.coreneuron,
+    ]
 
     db_circuits = [
         Circuit(
@@ -267,6 +279,7 @@ def models(db, circuit_json_data, person_id):
                     "number_connections": 100 * i + 1,
                     "scale": scale,
                     "build_category": category,
+                    "target_simulator": target_simulator,
                     "created_by_id": person_id,
                     "updated_by_id": person_id,
                     "authorized_project_id": PROJECT_ID,
@@ -274,8 +287,8 @@ def models(db, circuit_json_data, person_id):
                 }
             )
         )
-        for i, (bool_value, scale, category) in enumerate(
-            zip(booleans, scales, categories, strict=False)
+        for i, (bool_value, scale, category, target_simulator) in enumerate(
+            zip(booleans, scales, categories, target_simulators, strict=False)
         )
     ]
 
@@ -383,7 +396,17 @@ def test_filtering(client, root_circuit, models):
     data = assert_request(
         client.get, url=ROUTE, params={"target_simulator": TargetSimulator.neuron}
     ).json()["data"]
-    assert len(data) == len(models)  # root is different than children
+    assert len(data) == 2  # 2 of the 6 children use NEURON; root_circuit uses CORENEURON
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "root_circuit_id": str(root_circuit.id),
+            "target_simulator__in": [TargetSimulator.neuron, TargetSimulator.brian2],
+        },
+    ).json()["data"]
+    assert len(data) == 3  # NEURON x2 + Brian2 x1 among the children
 
     data = assert_request(
         client.get,
@@ -605,3 +628,31 @@ def test_derivation_filter_pagination_no_duplicates(
         client.get, url=ROUTE, params={**params, "page": 2, "page_size": 1}
     ).json()
     assert second["data"] == []
+
+
+def test_ordering(client, root_circuit, models):
+    base = {"root_circuit_id": str(root_circuit.id)}
+
+    def req(params):
+        return assert_request(client.get, url=ROUTE, params=base | params).json()["data"]
+
+    # Every whitelisted ordering field is accepted (ascending and descending) and preserves
+    # the row count. This also guards target_simulator, newly added to ordering_model_fields.
+    for field in CircuitFilter.Constants.ordering_model_fields:
+        for prefix in ("+", "-"):
+            data = req({"order_by": f"{prefix}{field}"})
+            assert len(data) == len(models), f"order_by={prefix}{field}"
+
+    # Spot-check the actual order on target_simulator. It is a native Postgres enum, so it
+    # sorts by enum definition order (NEURON, CORENEURON, LearningEngine, Brian2) rather than
+    # lexicographically; compare via each value's index in that order.
+    enum_order = list(TargetSimulator)
+
+    def order_indices(rows):
+        return [enum_order.index(TargetSimulator(row["target_simulator"])) for row in rows]
+
+    ascending = order_indices(req({"order_by": "target_simulator"}))
+    assert ascending == sorted(ascending)
+
+    descending = order_indices(req({"order_by": "-target_simulator"}))
+    assert descending == sorted(descending, reverse=True)

@@ -79,6 +79,50 @@ def test_create_person(client, client_admin, json_data):
     assert len(data) == 3
     assert sum(1 for d in data if d["sub_id"] is not None) == 1
 
+    valid_orcids = [
+        "https://orcid.org/0000-0002-1825-0097",
+        "https://orcid.org/0000-0003-1234-5674",
+    ]
+
+    for orcid in valid_orcids:
+        data = assert_request(
+            client_admin.post,
+            url=ROUTE,
+            json=json_data | {"orcid": orcid, "pref_label": f"person-{orcid[-4:]}"},
+        ).json()
+        assert data["orcid"] == orcid
+
+    invalid_orcids = [
+        "invalid-orcid",
+        "1234-5678",
+        "abcd-efgh-ijkl-mnop",
+        "0000-0003-1234-5678",
+        "0000-0002-1825-0097",
+    ]
+
+    for orcid in invalid_orcids:
+        data = assert_request(
+            client_admin.post,
+            url=ROUTE,
+            json=json_data | {"orcid": orcid, "pref_label": f"person-{orcid}"},
+            expected_status_code=422,
+        ).json()
+        assert data["message"] == "Validation error"
+
+    orcid = "https://orcid.org/0000-0004-5678-9012"
+    assert_request(
+        client_admin.post,
+        url=ROUTE,
+        json=json_data | {"orcid": orcid, "pref_label": "person-orcid-dup-1"},
+    ).json()
+    data = assert_request(
+        client_admin.post,
+        url=ROUTE,
+        json=json_data | {"orcid": orcid, "pref_label": "person-orcid-dup-2"},
+        expected_status_code=409,
+    ).json()
+    assert data["error_code"] == "ENTITY_DUPLICATED"
+
 
 def test_read_many(clients, json_data):
 
@@ -166,6 +210,7 @@ def models(db, person_id):
                 given_name="John",
                 family_name="Smith",
                 pref_label="John Smith",
+                orcid="https://orcid.org/0000-0001-1111-110X",
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -173,6 +218,7 @@ def models(db, person_id):
                 given_name="john",
                 family_name="Cooper",
                 pref_label="John Cooper",
+                orcid="https://orcid.org/0000-0002-2222-2208",
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -202,6 +248,25 @@ def test_filtering(client, models):
 
     data = _req({"family_name__ilike": "Smith"})
     assert len(data) == 1
+
+    data = _req({"orcid": "https://orcid.org/0000-0001-1111-110X"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "John Smith"
+
+    data = _req({"orcid": "https://orcid.org/0000-0002-2222-2208"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "John Cooper"
+
+    data = _req(
+        {
+            "orcid__in": [
+                "https://orcid.org/0000-0001-1111-110X",
+                "https://orcid.org/0000-0002-2222-2208",
+            ]
+        }
+    )
+    assert len(data) == 2
+    assert {d["pref_label"] for d in data} == {"John Smith", "John Cooper"}
 
     data = _req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models) + 1  # +1 for person_id

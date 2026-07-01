@@ -6,6 +6,7 @@ from app.schemas.base import (
 )
 from app.schemas.identifiable import IdentifiableCreate, IdentifiableRead, NestedIdentifiableRead
 from app.schemas.utils import make_update_schema
+from app.utils.pydantic_validators import ORCID, ROR_ID
 
 
 class PersonBase(Schema):
@@ -16,6 +17,7 @@ class PersonBase(Schema):
 
 class PersonCreate(PersonBase, IdentifiableCreate):
     legacy_id: str | None = None
+    orcid: ORCID | None = None
 
 
 PersonAdminUpdate = make_update_schema(
@@ -28,11 +30,13 @@ PersonAdminUpdate = make_update_schema(
 class NestedPersonRead(PersonBase, NestedIdentifiableRead):
     type: AgentType
     sub_id: uuid.UUID | None
+    orcid: ORCID | None
 
 
 class PersonRead(PersonBase, IdentifiableRead):
     type: AgentType
     sub_id: uuid.UUID | None
+    orcid: ORCID | None
 
 
 class OrganizationBase(Schema):
@@ -42,6 +46,7 @@ class OrganizationBase(Schema):
 
 class OrganizationCreate(OrganizationBase, IdentifiableCreate):
     legacy_id: str | None = None
+    ror_id: ROR_ID | None = None
 
 
 OrganizationAdminUpdate = make_update_schema(
@@ -53,6 +58,7 @@ OrganizationAdminUpdate = make_update_schema(
 
 class NestedOrganizationRead(OrganizationBase, NestedIdentifiableRead):
     type: AgentType
+    ror_id: ROR_ID | None
 
 
 class OrganizationRead(
@@ -60,6 +66,7 @@ class OrganizationRead(
     IdentifiableRead,
 ):
     type: AgentType
+    ror_id: ROR_ID | None
 
 
 class ConsortiumBase(Schema):

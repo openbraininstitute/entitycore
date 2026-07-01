@@ -2,6 +2,7 @@ import pytest
 
 from app.db.model import (
     Circuit,
+    Derivation,
     ExternalUrl,
     Publication,
     ScientificArtifactExternalUrlLink,
@@ -10,6 +11,7 @@ from app.db.model import (
 from app.db.types import (
     CircuitBuildCategory,
     CircuitScale,
+    DerivationType,
     EntityLifecycleStatus,
     EntityType,
     ExternalSource,
@@ -412,6 +414,220 @@ def test_filtering(client, root_circuit, models):
         params={"lifecycle_status": "active", "root_circuit_id": str(root_circuit.id)},
     ).json()["data"]
     assert len(data) == len(models)
+
+
+def _add_derivation(
+    db,
+    *,
+    used_id,
+    generated_id,
+    person_id,
+    derivation_type=DerivationType.circuit_extraction,
+    label=None,
+):
+    return add_db(
+        db,
+        Derivation(
+            used_id=used_id,
+            generated_id=generated_id,
+            derivation_type=derivation_type,
+            label=label,
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+
+
+def test_filter_by_derivation_type(db, client, root_circuit, circuit, public_circuit, person_id):
+    """Filter circuits by derivation type on both the generated and used sides."""
+    # circuit is derived from root_circuit via extraction; public_circuit via rewiring.
+    # => root_circuit is the `used` (source) side of both derivations.
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_extraction,
+    )
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=public_circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_rewiring,
+    )
+
+    def ids(params):
+        return {
+            d["id"] for d in assert_request(client.get, url=ROUTE, params=params).json()["data"]
+        }
+
+    # --- generated side: "how this circuit was derived"
+    assert ids({"generated_derivation__derivation_type": "circuit_extraction"}) == {str(circuit.id)}
+    assert ids({"generated_derivation__derivation_type": "circuit_rewiring"}) == {
+        str(public_circuit.id)
+    }
+    matched = ids(
+        {"generated_derivation__derivation_type__in": ["circuit_extraction", "circuit_rewiring"]}
+    )
+    assert matched == {str(circuit.id), str(public_circuit.id)}
+    # the underived root_circuit is not on the generated side of any derivation
+    assert str(root_circuit.id) not in matched
+    assert ids({"generated_derivation__derivation_type": "circuit_customization"}) == set()
+
+    # --- used side: "what was derived from this circuit"
+    assert ids({"used_derivation__derivation_type": "circuit_extraction"}) == {str(root_circuit.id)}
+    assert ids({"used_derivation__derivation_type": "circuit_rewiring"}) == {str(root_circuit.id)}
+    assert ids(
+        {"used_derivation__derivation_type__in": ["circuit_extraction", "circuit_rewiring"]}
+    ) == {str(root_circuit.id)}
+    # the derived children are not on the used side of these derivations
+    assert ids({"used_derivation__derivation_type": "circuit_customization"}) == set()
+
+    # the filter alone does not load the derivation lists: they serialize as null
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={"generated_derivation__derivation_type": "circuit_extraction"},
+    ).json()["data"]
+    assert data[0]["generated_from_derivations"] is None
+    assert data[0]["used_by_derivations"] is None
+
+
+def test_filter_by_derivation_type_non_circuit_source(db, client, circuit, emodel_id, person_id):
+    """The filter has no source-type restriction: an emodel->circuit derivation matches."""
+    _add_derivation(
+        db,
+        used_id=emodel_id,
+        generated_id=circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.emodel_circuit,
+    )
+    data = assert_request(
+        client.get, url=ROUTE, params={"generated_derivation__derivation_type": "emodel_circuit"}
+    ).json()["data"]
+    assert {d["id"] for d in data} == {str(circuit.id)}
+
+
+def test_expand_derivations(db, client, root_circuit, circuit, person_id):
+    """`expand` opts into derivation lists, per direction, independently."""
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_extraction,
+        label="extracted",
+    )
+
+    def get_by_id(entity_id, params=None):
+        data = assert_request(client.get, url=ROUTE, params=params or {}).json()["data"]
+        return next(d for d in data if d["id"] == str(entity_id))
+
+    # no expand -> the derivation lists are not loaded and serialize as null
+    child = get_by_id(circuit.id)
+    assert child["generated_from_derivations"] is None
+    assert child["used_by_derivations"] is None
+
+    # expand=generated_from_derivations -> populated on the child; other direction is null
+    child = get_by_id(circuit.id, {"expand": "generated_from_derivations"})
+    assert child["used_by_derivations"] is None
+    assert len(child["generated_from_derivations"]) == 1
+    entry = child["generated_from_derivations"][0]
+    assert entry["used"]["id"] == str(root_circuit.id)
+    assert entry["used"]["type"] == EntityType.circuit
+    assert entry["derivation_type"] == DerivationType.circuit_extraction
+    assert entry["label"] == "extracted"
+
+    # expand=used_by_derivations -> populated on the parent; other direction is null
+    parent = get_by_id(root_circuit.id, {"expand": "used_by_derivations"})
+    assert parent["generated_from_derivations"] is None
+    assert len(parent["used_by_derivations"]) == 1
+    entry = parent["used_by_derivations"][0]
+    assert entry["generated"]["id"] == str(circuit.id)
+    assert entry["generated"]["type"] == EntityType.circuit
+    assert entry["derivation_type"] == DerivationType.circuit_extraction
+    assert entry["label"] == "extracted"
+
+    # expand both -> a direction with no derivations is an empty list (not null)
+    params = {"expand": ["generated_from_derivations", "used_by_derivations"]}
+    child = get_by_id(circuit.id, params)
+    parent = get_by_id(root_circuit.id, params)
+    assert len(child["generated_from_derivations"]) == 1
+    assert child["used_by_derivations"] == []
+    assert parent["generated_from_derivations"] == []
+    assert len(parent["used_by_derivations"]) == 1
+
+
+def test_filter_and_expand_combined(db, client, root_circuit, circuit, public_circuit, person_id):
+    """Filtering and expanding compose: filtered rows carry the expanded columns."""
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_extraction,
+    )
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=public_circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_rewiring,
+    )
+
+    data = assert_request(
+        client.get,
+        url=ROUTE,
+        params={
+            "generated_derivation__derivation_type": "circuit_extraction",
+            "expand": "generated_from_derivations",
+        },
+    ).json()["data"]
+    assert {d["id"] for d in data} == {str(circuit.id)}
+    assert data[0]["generated_from_derivations"][0]["used"]["id"] == str(root_circuit.id)
+    assert data[0]["used_by_derivations"] is None
+
+
+def test_derivation_filter_pagination_no_duplicates(
+    db, client, root_circuit, circuit, public_circuit, person_id
+):
+    """A circuit matching multiple derivation rows must not repeat across pages.
+
+    root_circuit is the `used` source of two extraction derivations, so the one-to-many
+    filter join yields two rows for it. Pagination must still treat it as a single circuit:
+    total_items counts distinct circuits and the duplicate join row must not spill it onto a
+    second page (regression for the derivation-filter pagination bug).
+    """
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_extraction,
+    )
+    _add_derivation(
+        db,
+        used_id=root_circuit.id,
+        generated_id=public_circuit.id,
+        person_id=person_id,
+        derivation_type=DerivationType.circuit_extraction,
+    )
+
+    params = {"used_derivation__derivation_type": "circuit_extraction"}
+
+    # only root_circuit is the `used` side of an extraction derivation, despite two join rows
+    first = assert_request(
+        client.get, url=ROUTE, params={**params, "page": 1, "page_size": 1}
+    ).json()
+    assert first["pagination"]["total_items"] == 1
+    assert [d["id"] for d in first["data"]] == [str(root_circuit.id)]
+
+    # the duplicate join row must not place root_circuit on a second page too
+    second = assert_request(
+        client.get, url=ROUTE, params={**params, "page": 2, "page_size": 1}
+    ).json()
+    assert second["data"] == []
 
 
 def test_ordering(client, root_circuit, models):

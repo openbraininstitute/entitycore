@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Set as AbstractSet
 from http import HTTPStatus
 
 import sqlalchemy as sa
@@ -34,6 +35,7 @@ from app.errors import (
 from app.filters.base import Aliases, CustomFilter
 from app.queries import crud
 from app.queries.constants import NESTED_RELATIONSHIPS_MAP
+from app.queries.expand import apply_derivation_expand
 from app.queries.filter import filter_from_db
 from app.queries.types import ApplyOperations, SupportsModelValidate
 from app.queries.utils import (
@@ -56,6 +58,7 @@ def router_read_one[T: Schema, I: Identifiable](
     user_context: UserContext | None,
     response_schema_class: SupportsModelValidate[T],
     apply_operations: ApplyOperations[I] | None,
+    expand: AbstractSet[str] | None = None,
 ) -> T:
     """Read a model from the database.
 
@@ -66,6 +69,7 @@ def router_read_one[T: Schema, I: Identifiable](
         user_context: the user context with project id and user information.
         response_schema_class: Pydantic schema class for the returned data.
         apply_operations: transformer function that modifies the select query.
+        expand: optional set of derivation directions to eager-load (entity models only).
 
     Returns:
         the model data as a Pydantic model.
@@ -81,6 +85,7 @@ def router_read_one[T: Schema, I: Identifiable](
         )
     if apply_operations:
         query = apply_operations(query)
+    query = apply_derivation_expand(query, db_model_class, expand)
     with ensure_result(error_message=f"{db_model_class.__name__} not found"):
         row = db.execute(query).unique().scalar_one()
     return response_schema_class.model_validate(row)
@@ -253,7 +258,12 @@ def _with_subquery[I: Identifiable](
     select_cols = [db_model_class.id] + [
         element.label(label_name) for (label_name, element, _) in labeled_sort_columns
     ]
-    subq = data_query.with_only_columns(*select_cols).subquery()
+    # DISTINCT collapses the duplicate id rows that a one-to-many filter join produces
+    # (e.g. the derivation-type filters, where a circuit can match several Derivation rows).
+    # Without it, OFFSET/LIMIT would page over the duplicated rows while total_items uses
+    # count(distinct id), so a circuit could repeat across pages or be skipped. Every ORDER BY
+    # element is included in the select list above, so SELECT DISTINCT is always valid here.
+    subq = data_query.with_only_columns(*select_cols).distinct().subquery()
 
     outer_order_bys = []
     for label_name, _, modifier in labeled_sort_columns:
@@ -288,6 +298,7 @@ def router_read_many[T: Schema, I: Identifiable](  # noqa: PLR0913
     filter_joins: dict[str, ApplyOperations] | None = None,
     embedding: list[float] | None = None,
     check_authorized_project: bool = True,
+    expand: AbstractSet[str] | None = None,
 ) -> ListResponse[T]:
     """Read multiple models from the database.
 
@@ -310,6 +321,7 @@ def router_read_many[T: Schema, I: Identifiable](  # noqa: PLR0913
             - the keys in `name_to_facet_query_params`, for retrieving the facets.
         embedding: optional list of floats representing an embedding vector for semantic search.
         check_authorized_project: Whether to constrain or not to authorized entities
+        expand: optional set of derivation directions to eager-load (entity models only).
 
     Returns:
         the list of model data, pagination, and facets as a Pydantic model.
@@ -363,6 +375,8 @@ def router_read_many[T: Schema, I: Identifiable](  # noqa: PLR0913
     if apply_data_query_operations:
         data_query = _with_subquery(data_query=data_query, db_model_class=db_model_class)
         data_query = apply_data_query_operations(data_query)
+
+    data_query = apply_derivation_expand(data_query, db_model_class, expand)
 
     # unique is needed b/c it contains results that include joined eager loads against collections
     data = db.execute(data_query).scalars().unique()

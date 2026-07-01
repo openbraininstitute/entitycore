@@ -642,6 +642,39 @@ class Entity(LegacyMixin, Identifiable):
         passive_deletes=False,
     )
 
+    # View-only relationships to the Derivation rows that reference this entity.
+    # They are loaded on demand (see the `expand` query param) and read through the
+    # load-aware properties below, so an un-expanded direction serializes as null instead of
+    # tripping `raiseload`. Defined on Entity so every entity subclass inherits them.
+    derivations_as_generated: Mapped[list["Derivation"]] = relationship(
+        "Derivation",
+        primaryjoin=lambda: Entity.id == Derivation.generated_id,
+        foreign_keys=lambda: [Derivation.generated_id],
+        viewonly=True,
+        overlaps="generated",
+    )
+    derivations_as_used: Mapped[list["Derivation"]] = relationship(
+        "Derivation",
+        primaryjoin=lambda: Entity.id == Derivation.used_id,
+        foreign_keys=lambda: [Derivation.used_id],
+        viewonly=True,
+        overlaps="used",
+    )
+
+    @property
+    def generated_from_derivations(self) -> list["Derivation"] | None:
+        """Derivations where this entity is the generated entity, or None if not expanded."""
+        if "derivations_as_generated" in sa.inspect(self).unloaded:
+            return None
+        return self.derivations_as_generated
+
+    @property
+    def used_by_derivations(self) -> list["Derivation"] | None:
+        """Derivations where this entity is the used entity, or None if not expanded."""
+        if "derivations_as_used" in sa.inspect(self).unloaded:
+            return None
+        return self.derivations_as_used
+
     __mapper_args__ = {  # noqa: RUF012
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",

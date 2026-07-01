@@ -4,13 +4,14 @@ import uuid
 import pytest
 from fastapi.testclient import TestClient
 
-from app.db.model import EModel
-from app.db.types import EntityType
+from app.db.model import Derivation, EModel
+from app.db.types import DerivationType, EntityType
 
 from .conftest import CreateIds, EModelIds
 from .utils import (
     TEST_DATA_DIR,
     USER_SUB_ID_1,
+    add_db,
     assert_request,
     check_entity_delete_one,
     check_entity_read_many,
@@ -556,3 +557,69 @@ def test_filtering_ordering(client, faceted_emodel_ids, ion_channel_models):
 
     data = req({"lifecycle_status": "active"})
     assert len(data) == n_models
+
+
+def test_derivation_filter_and_expand(db, client, create_emodel_ids, person_id):
+    """Derivation filters + expand are inherited by every entity, here proven on /emodel.
+
+    Covers both directions, the derivation_type filter, the related-entity-id filter, and the
+    expand read lists on both read_many and read_one.
+    """
+    used_id, generated_id = create_emodel_ids(2)
+    add_db(
+        db,
+        Derivation(
+            used_id=uuid.UUID(used_id),
+            generated_id=uuid.UUID(generated_id),
+            derivation_type=DerivationType.circuit_extraction,
+            label="gen",
+            created_by_id=person_id,
+            updated_by_id=person_id,
+        ),
+    )
+
+    def ids(params):
+        return {
+            d["id"] for d in assert_request(client.get, url=ROUTE, params=params).json()["data"]
+        }
+
+    # filter by derivation_type, both directions (+ __in)
+    assert ids({"generated_derivation__derivation_type": "circuit_extraction"}) == {generated_id}
+    assert ids({"used_derivation__derivation_type": "circuit_extraction"}) == {used_id}
+    assert ids({"generated_derivation__derivation_type__in": ["circuit_extraction"]}) == {
+        generated_id
+    }
+
+    # filter by the related entity id (the added requirement), both directions (+ __in)
+    assert ids({"generated_derivation__used_id": used_id}) == {generated_id}
+    assert ids({"used_derivation__generated_id": generated_id}) == {used_id}
+    assert ids({"generated_derivation__used_id__in": [used_id]}) == {generated_id}
+
+    # default read: derivation lists are not loaded, serialize as null
+    plain = assert_request(client.get, url=f"{ROUTE}/{generated_id}").json()
+    assert plain["generated_from_derivations"] is None
+    assert plain["used_by_derivations"] is None
+
+    # expand on read_one, per direction
+    expanded = assert_request(
+        client.get, url=f"{ROUTE}/{generated_id}", params={"expand": "generated_from_derivations"}
+    ).json()
+    assert expanded["used_by_derivations"] is None
+    assert len(expanded["generated_from_derivations"]) == 1
+    entry = expanded["generated_from_derivations"][0]
+    assert entry["used"]["id"] == used_id
+    assert entry["used"]["type"] == EntityType.emodel
+    assert entry["derivation_type"] == DerivationType.circuit_extraction
+    assert entry["label"] == "gen"
+
+    # expand on read_many for the source side
+    src = next(
+        d
+        for d in assert_request(
+            client.get, url=ROUTE, params={"expand": "used_by_derivations"}
+        ).json()["data"]
+        if d["id"] == used_id
+    )
+    assert src["generated_from_derivations"] is None
+    assert len(src["used_by_derivations"]) == 1
+    assert src["used_by_derivations"][0]["generated"]["id"] == generated_id

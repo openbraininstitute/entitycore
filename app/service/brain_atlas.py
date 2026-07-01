@@ -8,10 +8,12 @@ import app.queries.common
 from app.db.model import BrainAtlas, BrainAtlasRegion, Contribution
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
+    ExpandDep,
     PaginationQuery,
 )
 from app.dependencies.db import SessionDep
 from app.filters.brain_atlas import BrainAtlasFilterDep, BrainAtlasRegionFilterDep
+from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.brain_atlas import (
     BrainAtlasAdminUpdate,
@@ -48,6 +50,7 @@ def _read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: BrainAtlasFilterDep,
+    expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[BrainAtlasRead]:
     aliases: Aliases = {}
@@ -79,6 +82,7 @@ def _read_many(
         filter_model=filter_model,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -87,12 +91,14 @@ def read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: BrainAtlasFilterDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[BrainAtlasRead]:
     return _read_many(
         user_context=user_context,
         db=db,
         pagination_request=pagination_request,
         filter_model=filter_model,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -102,17 +108,24 @@ def admin_read_many(
     db: SessionDep,
     pagination_request: PaginationQuery,
     filter_model: BrainAtlasFilterDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[BrainAtlasRead]:
     return _read_many(
         db=db,
         user_context=user_context,
         pagination_request=pagination_request,
         filter_model=filter_model,
+        expand=expand,
         check_authorized_project=False,
     )
 
 
-def read_one(user_context: UserContextDep, id_: uuid.UUID, db: SessionDep) -> BrainAtlasRead:
+def read_one(
+    user_context: UserContextDep,
+    id_: uuid.UUID,
+    db: SessionDep,
+    expand: ExpandDep = None,
+) -> BrainAtlasRead:
     return app.queries.common.router_read_one(
         id_=id_,
         db=db,
@@ -120,10 +133,11 @@ def read_one(user_context: UserContextDep, id_: uuid.UUID, db: SessionDep) -> Br
         user_context=user_context,
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
+        expand=expand,
     )
 
 
-def admin_read_one(db: SessionDep, id_: uuid.UUID) -> BrainAtlasRead:
+def admin_read_one(db: SessionDep, id_: uuid.UUID, expand: ExpandDep = None) -> BrainAtlasRead:
     return app.queries.common.router_read_one(
         id_=id_,
         db=db,
@@ -131,6 +145,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> BrainAtlasRead:
         user_context=None,
         response_schema_class=BrainAtlasRead,
         apply_operations=_load_brain_atlas,
+        expand=expand,
     )
 
 

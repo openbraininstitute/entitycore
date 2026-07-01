@@ -21,6 +21,7 @@ from app.db.model import (
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
 from app.dependencies.common import (
+    ExpandDep,
     FacetsDep,
     InBrainRegionDep,
     PaginationQuery,
@@ -35,6 +36,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.me_model import MEModelAdminUpdate, MEModelCreate, MEModelRead, MEModelUserUpdate
 from app.schemas.routers import DeleteResponse
@@ -91,7 +93,12 @@ def _load(select: Select):
     )
 
 
-def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> MEModelRead:
+def read_one(
+    db: SessionDep,
+    id_: uuid.UUID,
+    user_context: UserContextDep,
+    expand: ExpandDep = None,
+) -> MEModelRead:
     return router_read_one(
         id_=id_,
         db=db,
@@ -99,10 +106,11 @@ def read_one(db: SessionDep, id_: uuid.UUID, user_context: UserContextDep) -> ME
         user_context=user_context,
         response_schema_class=MEModelRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
-def admin_read_one(db: SessionDep, id_: uuid.UUID) -> MEModelRead:
+def admin_read_one(db: SessionDep, id_: uuid.UUID, expand: ExpandDep = None) -> MEModelRead:
     return router_read_one(
         id_=id_,
         db=db,
@@ -110,6 +118,7 @@ def admin_read_one(db: SessionDep, id_: uuid.UUID) -> MEModelRead:
         user_context=None,
         response_schema_class=MEModelRead,
         apply_operations=_load,
+        expand=expand,
     )
 
 
@@ -173,6 +182,7 @@ def _read_many(
     search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[MEModelRead]:
     morphology_alias = aliased(CellMorphology, flat=True)
@@ -226,6 +236,7 @@ def _read_many(
         filter_model=filter_model,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -237,6 +248,7 @@ def read_many(
     search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[MEModelRead]:
     return _read_many(
         user_context=user_context,
@@ -246,6 +258,7 @@ def read_many(
         search=search,
         facets=facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -258,6 +271,7 @@ def admin_read_many(
     search: SearchDep,
     facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[MEModelRead]:
     return _read_many(
         user_context=user_context,
@@ -267,6 +281,7 @@ def admin_read_many(
         search=search,
         facets=facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=False,
     )
 

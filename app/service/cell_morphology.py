@@ -55,6 +55,9 @@ if TYPE_CHECKING:
 
 class ExpandableAttribute(StrEnum):
     measurement_annotation = auto()
+    # Inherited entity-wide derivation expands; loaded centrally (see apply_derivation_expand).
+    generated_from_derivations = auto()
+    used_by_derivations = auto()
 
 
 def _load_from_db(query: sa.Select, *, expand: set[ExpandableAttribute] | None = None) -> sa.Select:
@@ -98,7 +101,11 @@ def read_one(
     id_: uuid.UUID,
     expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
 ) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
-    response_schema_class = CellMorphologyAnnotationExpandedRead if expand else CellMorphologyRead
+    response_schema_class = (
+        CellMorphologyAnnotationExpandedRead
+        if expand and ExpandableAttribute.measurement_annotation in expand
+        else CellMorphologyRead
+    )
     apply_operations = partial(_load_from_db, expand=expand)
     return router_read_one(
         id_=id_,
@@ -107,20 +114,29 @@ def read_one(
         user_context=user_context,
         response_schema_class=response_schema_class,
         apply_operations=apply_operations,
+        expand=expand,
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
-) -> CellMorphologyRead:
+    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+) -> CellMorphologyRead | CellMorphologyAnnotationExpandedRead:
+    response_schema_class = (
+        CellMorphologyAnnotationExpandedRead
+        if expand and ExpandableAttribute.measurement_annotation in expand
+        else CellMorphologyRead
+    )
+    apply_operations = partial(_load_from_db, expand=expand)
     return router_read_one(
         id_=id_,
         db=db,
         db_model_class=CellMorphology,
         user_context=None,
-        response_schema_class=CellMorphologyRead,
-        apply_operations=_load_from_db,
+        response_schema_class=response_schema_class,
+        apply_operations=apply_operations,
+        expand=expand,
     )
 
 
@@ -184,8 +200,9 @@ def _read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
+    expand: set[ExpandableAttribute] | None,
     check_authorized_project: bool,
-) -> ListResponse[CellMorphologyRead]:
+) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     subject_alias = aliased(Subject, flat=True)
     agent_alias = aliased(Agent, flat=True)
     created_by_alias = aliased(Person, flat=True)
@@ -226,6 +243,11 @@ def _read_many(
         filter_keys=filter_keys,
         aliases=aliases,
     )
+    response_schema_class = (
+        CellMorphologyAnnotationExpandedRead
+        if expand and ExpandableAttribute.measurement_annotation in expand
+        else CellMorphologyRead
+    )
     return router_read_many(
         db=db,
         db_model_class=CellMorphology,
@@ -235,13 +257,14 @@ def _read_many(
         facets=with_facets,
         aliases=aliases,
         apply_filter_query_operations=None,
-        apply_data_query_operations=_load_from_db,
+        apply_data_query_operations=partial(_load_from_db, expand=expand),
         pagination_request=pagination_request,
-        response_schema_class=CellMorphologyRead,
+        response_schema_class=response_schema_class,
         name_to_facet_query_params=name_to_facet_query_params,
         filter_model=filter_model,
         filter_joins=filter_joins,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -253,7 +276,8 @@ def read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[CellMorphologyRead]:
+    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -262,6 +286,7 @@ def read_many(
         with_search=with_search,
         with_facets=with_facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -274,7 +299,8 @@ def admin_read_many(
     with_search: SearchDep,
     with_facets: FacetsDep,
     in_brain_region: InBrainRegionDep,
-) -> ListResponse[CellMorphologyRead]:
+    expand: Annotated[set[ExpandableAttribute] | None, Query()] = None,
+) -> ListResponse[CellMorphologyRead | CellMorphologyAnnotationExpandedRead]:
     return _read_many(
         user_context=user_context,
         db=db,
@@ -283,6 +309,7 @@ def admin_read_many(
         with_search=with_search,
         with_facets=with_facets,
         in_brain_region=in_brain_region,
+        expand=expand,
         check_authorized_project=False,
     )
 

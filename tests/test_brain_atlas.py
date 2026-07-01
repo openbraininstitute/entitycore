@@ -128,6 +128,8 @@ def test_brain_atlas(db, client, species_id, person_id):
         "lifecycle_status": "active",
         "type": "brain_atlas",
         "contributions": [],
+        "generated_from_derivations": None,
+        "used_by_derivations": None,
     }
 
     response = client.get(ROUTE)
@@ -202,6 +204,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             "lifecycle_status": "active",
             "type": "brain_atlas_region",
             "contributions": [],
+            "generated_from_derivations": None,
+            "used_by_derivations": None,
         },
         {
             "assets": [expected_asset],
@@ -219,6 +223,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             "lifecycle_status": "active",
             "type": "brain_atlas_region",
             "contributions": [],
+            "generated_from_derivations": None,
+            "used_by_derivations": None,
         },
         {
             "assets": [expected_asset],
@@ -236,6 +242,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             "lifecycle_status": "active",
             "type": "brain_atlas_region",
             "contributions": [],
+            "generated_from_derivations": None,
+            "used_by_derivations": None,
         },
         {
             "assets": [expected_asset],
@@ -253,6 +261,8 @@ def test_brain_atlas(db, client, species_id, person_id):
             "lifecycle_status": "active",
             "type": "brain_atlas_region",
             "contributions": [],
+            "generated_from_derivations": None,
+            "used_by_derivations": None,
         },
     ]
 
@@ -281,6 +291,8 @@ def test_brain_atlas(db, client, species_id, person_id):
         "lifecycle_status": "active",
         "type": "brain_atlas_region",
         "contributions": [],
+        "generated_from_derivations": None,
+        "used_by_derivations": None,
     }
 
 

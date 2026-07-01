@@ -10,7 +10,7 @@ from app.db.model import (
     Person,
 )
 from app.dependencies.auth import AdminContextDep, UserContextDep, UserContextWithProjectIdDep
-from app.dependencies.common import PaginationQuery, SearchDep
+from app.dependencies.common import ExpandDep, PaginationQuery, SearchDep
 from app.dependencies.db import SessionDep
 from app.filters.cell_composition import CellCompositionFilterDep
 from app.queries.common import (
@@ -20,6 +20,7 @@ from app.queries.common import (
     router_update_one,
     router_user_delete_one,
 )
+from app.queries.expand import EntityExpand
 from app.queries.factory import query_params_factory
 from app.schemas.cell_composition import (
     CellCompositionAdminUpdate,
@@ -116,6 +117,7 @@ def read_one(
     user_context: UserContextDep,
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> CellCompositionRead:
     return router_read_one(
         db=db,
@@ -124,12 +126,14 @@ def read_one(
         user_context=user_context,
         response_schema_class=CellCompositionRead,
         apply_operations=_load_from_db,
+        expand=expand,
     )
 
 
 def admin_read_one(
     db: SessionDep,
     id_: uuid.UUID,
+    expand: ExpandDep = None,
 ) -> CellCompositionRead:
     return router_read_one(
         db=db,
@@ -138,6 +142,7 @@ def admin_read_one(
         user_context=None,
         response_schema_class=CellCompositionRead,
         apply_operations=_load_from_db,
+        expand=expand,
     )
 
 
@@ -148,6 +153,7 @@ def _read_many(
     pagination_request: PaginationQuery,
     filter_model: CellCompositionFilterDep,
     with_search: SearchDep,
+    expand: set[EntityExpand] | None,
     check_authorized_project: bool,
 ) -> ListResponse[CellCompositionRead]:
     aliases: Aliases = {
@@ -183,6 +189,7 @@ def _read_many(
         filter_joins=filter_joins,
         name_to_facet_query_params=name_to_facet_query_params,
         check_authorized_project=check_authorized_project,
+        expand=expand,
     )
 
 
@@ -192,6 +199,7 @@ def read_many(
     pagination_request: PaginationQuery,
     filter_model: CellCompositionFilterDep,
     with_search: SearchDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[CellCompositionRead]:
     return _read_many(
         user_context=user_context,
@@ -199,6 +207,7 @@ def read_many(
         pagination_request=pagination_request,
         filter_model=filter_model,
         with_search=with_search,
+        expand=expand,
         check_authorized_project=True,
     )
 
@@ -209,6 +218,7 @@ def admin_read_many(
     pagination_request: PaginationQuery,
     filter_model: CellCompositionFilterDep,
     with_search: SearchDep,
+    expand: ExpandDep = None,
 ) -> ListResponse[CellCompositionRead]:
     return _read_many(
         user_context=user_context,
@@ -216,5 +226,6 @@ def admin_read_many(
         pagination_request=pagination_request,
         filter_model=filter_model,
         with_search=with_search,
+        expand=expand,
         check_authorized_project=False,
     )

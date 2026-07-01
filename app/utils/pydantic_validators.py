@@ -33,8 +33,6 @@ def _is_orcid_valid_checksum(value: str) -> bool:
 
 
 def validate_orcid(value: str) -> str:
-    if value is None:
-        return value
 
     value = value.strip()
 

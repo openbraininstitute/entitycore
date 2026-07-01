@@ -23,10 +23,6 @@ def test_validate_orcid__valid(value: str, expected: str) -> None:
     assert ORCIDAdapter.validate_python(value) == expected
 
 
-def test_validate_orcid__none() -> None:
-    assert test_module.validate_orcid(None) is None
-
-
 @pytest.mark.parametrize(
     "value",
     [

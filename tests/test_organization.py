@@ -53,6 +53,52 @@ def test_create_organization(client, client_admin, json_data):
     assert data[0]["id"] == id_
     assert len(data) == 1
 
+    valid_ror_ids = [
+        "https://ror.org/02rx3b187",
+        "https://ror.org/02mhbdp94",
+        "https://ror.org/01an7q238",
+    ]
+
+    for ror_id in valid_ror_ids:
+        data = assert_request(
+            client_admin.post,
+            url=ROUTE,
+            json=json_data | {"ror_id": ror_id, "pref_label": f"org-{ror_id[-4:]}"},
+        ).json()
+        assert data["ror_id"] == ror_id
+
+    invalid_ror_ids = [
+        "https://ror.org/1abc12345",
+        "https://ror.org/02abc",
+        "https://ror.org/invalid",
+        "ror.org/02mhbdp94",
+        "https://ror.org/04wx1j267",
+        "https://ror.org/02rx3b180",
+    ]
+
+    for ror_id in invalid_ror_ids:
+        data = assert_request(
+            client_admin.post,
+            url=ROUTE,
+            json=json_data | {"ror_id": ror_id, "pref_label": f"org-{ror_id}"},
+            expected_status_code=422,
+        ).json()
+        assert data["message"] == "Validation error"
+
+    ror_id = "https://ror.org/03nawhv43"
+    assert_request(
+        client_admin.post,
+        url=ROUTE,
+        json=json_data | {"ror_id": ror_id, "pref_label": "org-ror-dup-1"},
+    ).json()
+    data = assert_request(
+        client_admin.post,
+        url=ROUTE,
+        json=json_data | {"ror_id": ror_id, "pref_label": "org-ror-dup-2"},
+        expected_status_code=409,
+    ).json()
+    assert data["error_code"] == "ENTITY_DUPLICATED"
+
 
 def test_read_many(clients, json_data):
     check_global_read_many(
@@ -105,6 +151,7 @@ def models(db, person_id):
             Organization(
                 pref_label=f"org-{i}",
                 alternative_name=f"alt-{i}",
+                ror_id=["https://ror.org/02rx3b187", "https://ror.org/02mhbdp94", None][i],
                 created_by_id=person_id,
                 updated_by_id=person_id,
             ),
@@ -128,6 +175,18 @@ def test_filtering_sorting(client, models):
 
     data = req({"alternative_name": "alt-1", "order_by": "creation_date"})
     assert [d["alternative_name"] for d in data] == ["alt-1"]
+
+    data = req({"ror_id": "https://ror.org/02rx3b187"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "org-0"
+
+    data = req({"ror_id": "https://ror.org/02mhbdp94"})
+    assert len(data) == 1
+    assert data[0]["pref_label"] == "org-1"
+
+    data = req({"ror_id__in": ["https://ror.org/02rx3b187", "https://ror.org/02mhbdp94"]})
+    assert len(data) == 2
+    assert {d["pref_label"] for d in data} == {"org-0", "org-1"}
 
     data = req({"created_by__sub_id": USER_SUB_ID_1, "updated_by__sub_id": USER_SUB_ID_1})
     assert len(data) == len(models)

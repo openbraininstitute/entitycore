@@ -52,7 +52,7 @@ def _assert_read_response(data, json_data):
         data["specifications"]["docker"]["image_repository"]
         == json_data["specifications"]["docker"]["image_repository"]
     )
-    assert data["exercise_id"] == json_data["exercise_id"]
+    assert data["assignment_id"] == json_data["assignment_id"]
     assert "contributions" in data
 
     check_creation_fields(data)
@@ -105,33 +105,35 @@ def test_read_many_2(clients, json_data):
     )
 
 
-def test_filter_by_exercise_id(client, json_data):
-    exercise_a = "exercise-101"
-    exercise_b = "physiology_basics"
-    exercise_c = "no-such-exercise"
+def test_filter_by_assignment_id(client, json_data):
+    assignment_a = "assignment-101"
+    assignment_b = "physiology_basics"
+    assignment_c = "no-such-assignment"
 
     id_a1 = assert_request(
-        client.post, url=ROUTE, json=json_data | {"name": "a1", "exercise_id": exercise_a}
+        client.post, url=ROUTE, json=json_data | {"name": "a1", "assignment_id": assignment_a}
     ).json()["id"]
     id_a2 = assert_request(
-        client.post, url=ROUTE, json=json_data | {"name": "a2", "exercise_id": exercise_a}
+        client.post, url=ROUTE, json=json_data | {"name": "a2", "assignment_id": assignment_a}
     ).json()["id"]
     id_b = assert_request(
-        client.post, url=ROUTE, json=json_data | {"name": "b", "exercise_id": exercise_b}
+        client.post, url=ROUTE, json=json_data | {"name": "b", "assignment_id": assignment_b}
     ).json()["id"]
-    assert_request(client.post, url=ROUTE, json=json_data | {"name": "none", "exercise_id": None})
+    assert_request(client.post, url=ROUTE, json=json_data | {"name": "none", "assignment_id": None})
 
-    data = assert_request(client.get, url=ROUTE, params={"exercise_id": exercise_a}).json()["data"]
+    data = assert_request(client.get, url=ROUTE, params={"assignment_id": assignment_a}).json()[
+        "data"
+    ]
     assert {d["id"] for d in data} == {id_a1, id_a2}
 
     data = assert_request(
-        client.get, url=ROUTE, params={"exercise_id__in": [exercise_a, exercise_b]}
+        client.get, url=ROUTE, params={"assignment_id__in": [assignment_a, assignment_b]}
     ).json()["data"]
     assert {d["id"] for d in data} == {id_a1, id_a2, id_b}
 
-    data = assert_request(client.get, url=ROUTE, params={"exercise_id__in": [exercise_c]}).json()[
-        "data"
-    ]
+    data = assert_request(
+        client.get, url=ROUTE, params={"assignment_id__in": [assignment_c]}
+    ).json()["data"]
     assert data == []
 
     data = assert_request(client.get, url=ROUTE, params={"lifecycle_status": "active"}).json()[
@@ -140,12 +142,12 @@ def test_filter_by_exercise_id(client, json_data):
     assert len(data) == 4
 
 
-@pytest.mark.parametrize("exercise_id", ["", "x" * 256])
-def test_exercise_id_invalid(client, json_data, exercise_id):
+@pytest.mark.parametrize("assignment_id", ["", "x" * 256])
+def test_assignment_id_invalid(client, json_data, assignment_id):
     assert_request(
         client.post,
         url=ROUTE,
-        json=json_data | {"exercise_id": exercise_id},
+        json=json_data | {"assignment_id": assignment_id},
         expected_status_code=422,
     )
 

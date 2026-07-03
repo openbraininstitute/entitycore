@@ -34,7 +34,7 @@ class AnalysisNotebookTemplateSpecifications(Schema):
 class AnalysisNotebookTemplateBaseMixin(NameDescriptionMixin):
     specifications: AnalysisNotebookTemplateSpecifications | None = None
     scale: AnalysisScale
-    exercise_id: Annotated[str | None, Field(min_length=1, max_length=255)] = None
+    assignment_id: Annotated[str | None, Field(min_length=1, max_length=255)] = None
 
 
 class AnalysisNotebookTemplateCreate(

@@ -19,8 +19,8 @@ class NestedAnalysisNotebookTemplateFilter(IdFilterMixin, NameFilterMixin, Custo
 class AnalysisNotebookTemplateFilter(
     EntityFilterMixin, NameFilterMixin, ILikeSearchFilterMixin, CustomFilter
 ):
-    exercise_id: str | None = None
-    exercise_id__in: list[str] | None = None
+    assignment_id: str | None = None
+    assignment_id__in: list[str] | None = None
     order_by: list[str] = ["-creation_date"]  # noqa: RUF012
 
     class Constants(CustomFilter.Constants):

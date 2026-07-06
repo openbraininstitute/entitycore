@@ -103,9 +103,7 @@ def upgrade() -> None:
             """
         )
     )
-    op.execute(
-        text(f"DELETE FROM activity WHERE type::text IN ({activity_types})")
-    )
+    op.execute(text(f"DELETE FROM activity WHERE type::text IN ({activity_types})"))
     op.execute(text(f"DELETE FROM entity WHERE type::text IN ({entity_types})"))
     op.sync_enum_values(
         enum_schema="public",

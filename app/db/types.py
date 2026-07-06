@@ -480,6 +480,8 @@ class AssetLabel(StrEnum):
     neuron_hoc = auto()
     emodel_optimization_output = auto()
     emodel_optimisation_checkpoint = auto()
+    emodel_analysis_figures = auto()
+    emodel_analysis_summary = auto()
     sonata_simulation_config = auto()
     simulation_generation_config = auto()
     ion_channel_modeling_generation_config = auto()
@@ -1122,7 +1124,21 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
                 is_directory=False,
                 description="EModel optimisation output checkpoint.",
             )
-        ]
+        ],
+        AssetLabel.emodel_analysis_figures: [
+            LabelRequirements(
+                content_type=ContentType.directory,
+                is_directory=True,
+                description="EModel analysis generated figures.",
+            )
+        ],
+        AssetLabel.emodel_analysis_summary: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="EModel analysis generated final.json output.",
+            )
+        ],
     },
     TaskResultType.optimized_emodel_analysis_validation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[
         EntityType.validation_result

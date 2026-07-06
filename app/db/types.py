@@ -481,7 +481,7 @@ class AssetLabel(StrEnum):
     emodel_optimization_output = auto()
     emodel_optimisation_checkpoint = auto()
     emodel_analysis_figures = auto()
-    emodel_analysis_output = auto()
+    emodel_analysis_summary = auto()
     sonata_simulation_config = auto()
     simulation_generation_config = auto()
     ion_channel_modeling_generation_config = auto()
@@ -1132,7 +1132,7 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
                 description="EModel analysis generated figures.",
             )
         ],
-        AssetLabel.emodel_analysis_output: [
+        AssetLabel.emodel_analysis_summary: [
             LabelRequirements(
                 content_type=ContentType.json,
                 is_directory=False,

@@ -13,8 +13,17 @@ import sqlalchemy as sa
 from alembic_postgresql_enum import TableReference
 from sqlalchemy.dialects import postgresql
 
-from sqlalchemy import Text
+from sqlalchemy import Text, text
 import app.db.types
+
+CIRCUIT_EXTRACTION_ACTIVITY_TYPES = (
+    "circuit_extraction_config_generation",
+    "circuit_extraction_execution",
+)
+CIRCUIT_EXTRACTION_ENTITY_TYPES = (
+    "circuit_extraction_campaign",
+    "circuit_extraction_config",
+)
 
 # revision identifiers, used by Alembic.
 revision: str = "bf0c7e45ce94"
@@ -46,6 +55,56 @@ def upgrade() -> None:
     )
     op.drop_table("circuit_extraction_campaign")
     op.drop_table("circuit_extraction_execution")
+    activity_types = ", ".join(f"'{value}'" for value in CIRCUIT_EXTRACTION_ACTIVITY_TYPES)
+    entity_types = ", ".join(f"'{value}'" for value in CIRCUIT_EXTRACTION_ENTITY_TYPES)
+    op.execute(
+        text(
+            f"""
+            DELETE FROM asset
+            WHERE entity_id IN (
+                SELECT id FROM entity WHERE type::text IN ({entity_types})
+            )
+            """
+        )
+    )
+    op.execute(
+        text(
+            f"""
+            DELETE FROM usage
+            WHERE usage_entity_id IN (
+                SELECT id FROM entity WHERE type::text IN ({entity_types})
+            )
+            OR usage_activity_id IN (
+                SELECT id FROM activity WHERE type::text IN ({activity_types})
+            )
+            """
+        )
+    )
+    op.execute(
+        text(
+            f"""
+            DELETE FROM generation
+            WHERE generation_entity_id IN (
+                SELECT id FROM entity WHERE type::text IN ({entity_types})
+            )
+            OR generation_activity_id IN (
+                SELECT id FROM activity WHERE type::text IN ({activity_types})
+            )
+            """
+        )
+    )
+    op.execute(
+        text(
+            f"""
+            DELETE FROM derivation
+            WHERE used_id IN (
+                SELECT id FROM entity WHERE type::text IN ({entity_types})
+            )
+            """
+        )
+    )
+    op.execute(text(f"DELETE FROM activity WHERE type::text IN ({activity_types})"))
+    op.execute(text(f"DELETE FROM entity WHERE type::text IN ({entity_types})"))
     op.sync_enum_values(
         enum_schema="public",
         enum_name="activitytype",

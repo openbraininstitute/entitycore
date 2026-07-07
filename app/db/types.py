@@ -514,6 +514,7 @@ class AssetLabel(StrEnum):
     task_config = auto()
     lod_mesh_block = auto()
     electrode_array_weight_matrix = auto()
+    electrode_array_image = auto()
     efeature_extraction_features = auto()
     efeature_extraction_figures = auto()
     efeature_extraction_cells = auto()
@@ -888,7 +889,16 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                     "Weights sum the activity of M compartments in the circuit."
                 ),
             ),
-        ]
+        ],
+        AssetLabel.electrode_array_image: [
+            LabelRequirements(
+                content_type=ContentType.png,
+                is_directory=False,
+                description=("Image representing the layout of the electrode array "
+                             "relative to the circuit."
+                ),
+            ),
+        ],
     },
     EntityType.simulation: {
         AssetLabel.custom_node_sets: [

@@ -478,6 +478,7 @@ class AssetLabel(StrEnum):
     task_result = auto()
     nwb = auto()
     neuron_hoc = auto()
+    electrode_locations = auto()
     emodel_optimization_output = auto()
     emodel_optimisation_checkpoint = auto()
     emodel_analysis_figures = auto()
@@ -894,10 +895,17 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
             LabelRequirements(
                 content_type=ContentType.png,
                 is_directory=False,
-                description=("Image representing the layout of the electrode array "
-                             "relative to the circuit."
+                description=(
+                    "Image representing the layout of the electrode array relative to the circuit."
                 ),
             ),
+        ],
+        AssetLabel.electrode_locations: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="File with electrode locations.",
+            )
         ],
     },
     EntityType.simulation: {

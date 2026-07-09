@@ -56,7 +56,7 @@ def virtual_lab_api_url(monkeypatch):
 @pytest.fixture
 def mock_virtual_lab_project_mapping(httpx_mock, virtual_lab_api_url):
     httpx_mock.add_response(
-        url=f"{virtual_lab_api_url}/projects/{PROJECT_ID}/virtual-lab",
+        url=f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab",
         json={
             "data": {
                 "project_id": PROJECT_ID,
@@ -600,7 +600,7 @@ def test_upload_entity_asset_admin_virtual_lab_api_failure(
     client_admin, entity, httpx_mock, virtual_lab_api_url
 ):
     httpx_mock.add_response(
-        url=f"{virtual_lab_api_url}/projects/{PROJECT_ID}/virtual-lab",
+        url=f"{virtual_lab_api_url}/virtual-labs/projects/{PROJECT_ID}/virtual-lab",
         status_code=HTTPStatus.NOT_FOUND,
     )
     with FILE_EXAMPLE_PATH.open("rb") as f:

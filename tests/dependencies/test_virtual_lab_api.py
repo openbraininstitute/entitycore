@@ -32,7 +32,7 @@ def admin_bearer_credentials():
 
 
 def _virtual_lab_project_url(base_url: str, project_id: UUID | str = PROJECT_ID) -> str:
-    return f"{base_url}/projects/{project_id}/virtual-lab"
+    return f"{base_url}/virtual-labs/projects/{project_id}/virtual-lab"
 
 
 def _mapping_response_json(
@@ -204,7 +204,7 @@ def test_admin_virtual_lab_client_direct_instantiation(
 ):
     project_id = UUID(PROJECT_ID)
     httpx_mock.add_response(
-        url=re.compile(rf"{re.escape(virtual_lab_api_url)}/projects/.+/virtual-lab"),
+        url=re.compile(rf"{re.escape(virtual_lab_api_url)}/virtual-labs/projects/.+/virtual-lab"),
         json=_mapping_response_json(project_id),
     )
 

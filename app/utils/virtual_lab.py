@@ -19,7 +19,7 @@ class VirtualLabClient:
 class AdminVirtualLabClient(VirtualLabClient):
     def get_virtual_lab_by_project(self, project_id: UUID) -> ProjectVirtualLabMapping:
         response = make_http_request(
-            url=f"/projects/{project_id}/virtual-lab",
+            url=f"/virtual-labs/projects/{project_id}/virtual-lab",
             http_client=self._http_client,
             method="GET",
         )

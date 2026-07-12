@@ -3,7 +3,7 @@
 from enum import StrEnum, auto
 from typing import Annotated, Any, TypedDict
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy import ARRAY, BigInteger
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import mapped_column
@@ -526,6 +526,13 @@ class LabelRequirements(BaseModel):
     content_type: ContentType | None
     is_directory: bool
     description: str = ""
+
+    @model_validator(mode="after")
+    def validate_directory_content_type(self):
+        if self.is_directory and self.content_type is not None:
+            msg = "content_type must be None when is_directory is True"
+            raise ValueError(msg)
+        return self
 
 
 CONTENT_TYPE_TO_SUFFIX: dict[ContentType, tuple[str, ...]] = {
@@ -1112,7 +1119,7 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
         ],
         AssetLabel.efeature_extraction_figures: [
             LabelRequirements(
-                content_type=ContentType.directory,
+                content_type=None,
                 is_directory=True,
                 description=(
                     "Directory of per-protocol/per-feature PDF extraction"
@@ -1145,7 +1152,7 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
         ],
         AssetLabel.emodel_analysis_figures: [
             LabelRequirements(
-                content_type=ContentType.directory,
+                content_type=None,
                 is_directory=True,
                 description="EModel analysis generated figures.",
             )

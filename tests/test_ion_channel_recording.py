@@ -681,3 +681,48 @@ def test_sorting_and_filtering(client, models):
 
     data = req({"lifecycle_status": "active"})
     assert len(data) == len(models[-1])
+
+
+def test_filtering_by_validation_result_passed(client, ion_channel_recording_json_data):
+    recording_passed_id = create_ion_channel_recording_id(
+        client, json_data=ion_channel_recording_json_data | {"name": "recording-passed"}
+    )
+    recording_failed_id = create_ion_channel_recording_id(
+        client, json_data=ion_channel_recording_json_data | {"name": "recording-failed"}
+    )
+    create_ion_channel_recording_id(
+        client, json_data=ion_channel_recording_json_data | {"name": "recording-no-validation"}
+    )
+
+    assert_request(
+        client.post,
+        url="/validation-result",
+        json={
+            "name": "validation-passed",
+            "passed": True,
+            "validated_entity_id": str(recording_passed_id),
+            "authorized_public": False,
+        },
+    )
+    assert_request(
+        client.post,
+        url="/validation-result",
+        json={
+            "name": "validation-failed",
+            "passed": False,
+            "validated_entity_id": str(recording_failed_id),
+            "authorized_public": False,
+        },
+    )
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"validationresult__passed": True}
+    ).json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == str(recording_passed_id)
+
+    data = assert_request(
+        client.get, url=ROUTE, params={"validationresult__passed": False}
+    ).json()["data"]
+    assert len(data) == 1
+    assert data[0]["id"] == str(recording_failed_id)

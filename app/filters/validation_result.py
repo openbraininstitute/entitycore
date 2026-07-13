@@ -1,11 +1,25 @@
 import uuid
 from typing import Annotated
 
+from fastapi_filter import with_prefix
+
 from app.db.model import ValidationResult
 from app.dependencies.filter import FilterDepends
 from app.filters.base import CustomFilter
 from app.filters.common import NameFilterMixin
 from app.filters.entity import EntityFilterMixin
+
+
+class NestedValidationResultFilter(CustomFilter):
+    passed: bool | None = None
+
+    class Constants(CustomFilter.Constants):
+        model = ValidationResult
+
+
+NestedValidationResultFilterDep = FilterDepends(
+    with_prefix("validationresult", NestedValidationResultFilter)
+)
 
 
 class ValidationResultFilter(

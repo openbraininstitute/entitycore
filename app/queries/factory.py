@@ -121,6 +121,7 @@ def query_params_factory[I: Identifiable](
     ion_channel_modeling_config_alias = _get_alias(IonChannelModelingConfig)
     skeletonization_config_alias = _get_alias(SkeletonizationConfig)
     task_config_alias = _get_alias(TaskConfig)
+    validation_result_alias = _get_alias(ValidationResult)
 
     measurement_mean_alias = _get_alias(Measurement, "measurement_mean")
     measurement_standard_error_alias = _get_alias(Measurement, "measurement_standard_error")
@@ -356,7 +357,8 @@ def query_params_factory[I: Identifiable](
             & (measurement_sample_size_alias.name == MeasurementStatistic.sample_size),
         ),
         "validation_result": lambda q: q.outerjoin(
-            ValidationResult, db_model_class.id == ValidationResult.validated_entity_id
+            validation_result_alias,
+            db_model_class.id == validation_result_alias.validated_entity_id,
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

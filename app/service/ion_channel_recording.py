@@ -156,6 +156,7 @@ def _read_many(
         "subject.species",
         "subject.strain",
         "ion_channel",
+        "validation__passed",
     ]
 
     name_to_facet_query_params, filter_joins = query_params_factory(

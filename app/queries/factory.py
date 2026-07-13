@@ -41,6 +41,7 @@ from app.db.model import (
     Subject,
     TaskConfig,
     Usage,
+    ValidationResult,
 )
 from app.db.types import MeasurementStatistic
 from app.dependencies.common import FacetQueryParams
@@ -353,6 +354,9 @@ def query_params_factory[I: Identifiable](
             measurement_sample_size_alias,
             (db_model_class.id == measurement_sample_size_alias.entity_id)
             & (measurement_sample_size_alias.name == MeasurementStatistic.sample_size),
+        ),
+        "validationresult": lambda q: q.outerjoin(
+            ValidationResult, db_model_class.id == ValidationResult.validated_entity_id
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

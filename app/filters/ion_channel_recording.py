@@ -21,7 +21,7 @@ class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILike
     temperature__lte: float | None = None
     temperature__gte: float | None = None
     ion_channel: Annotated[NestedIonChannelFilter | None, NestedIonChannelFilterDep] = None
-    validationresult: Annotated[
+    validation_result: Annotated[
         NestedValidationResultFilter | None, NestedValidationResultFilterDep
     ] = None
     cell_line: str | None = None

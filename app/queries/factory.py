@@ -355,7 +355,7 @@ def query_params_factory[I: Identifiable](
             (db_model_class.id == measurement_sample_size_alias.entity_id)
             & (measurement_sample_size_alias.name == MeasurementStatistic.sample_size),
         ),
-        "validationresult": lambda q: q.outerjoin(
+        "validation_result": lambda q: q.outerjoin(
             ValidationResult, db_model_class.id == ValidationResult.validated_entity_id
         ),
     }

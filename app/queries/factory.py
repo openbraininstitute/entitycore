@@ -121,7 +121,7 @@ def query_params_factory[I: Identifiable](
     ion_channel_modeling_config_alias = _get_alias(IonChannelModelingConfig)
     skeletonization_config_alias = _get_alias(SkeletonizationConfig)
     task_config_alias = _get_alias(TaskConfig)
-    validation_result_alias = _get_alias(ValidationResult)
+    validation_result_alias = _get_alias(ValidationResult, "validation_result")
 
     measurement_mean_alias = _get_alias(Measurement, "measurement_mean")
     measurement_standard_error_alias = _get_alias(Measurement, "measurement_standard_error")

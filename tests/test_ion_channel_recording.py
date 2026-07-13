@@ -715,14 +715,14 @@ def test_filtering_by_validation_result_passed(client, ion_channel_recording_jso
         },
     )
 
-    data = assert_request(
-        client.get, url=ROUTE, params={"validationresult__passed": True}
-    ).json()["data"]
+    data = assert_request(client.get, url=ROUTE, params={"validationresult__passed": True}).json()[
+        "data"
+    ]
     assert len(data) == 1
     assert data[0]["id"] == str(recording_passed_id)
 
-    data = assert_request(
-        client.get, url=ROUTE, params={"validationresult__passed": False}
-    ).json()["data"]
+    data = assert_request(client.get, url=ROUTE, params={"validationresult__passed": False}).json()[
+        "data"
+    ]
     assert len(data) == 1
     assert data[0]["id"] == str(recording_failed_id)

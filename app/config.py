@@ -33,8 +33,8 @@ class Settings(BaseSettings):
     DEPLOYMENT_ENV: Literal["local", "staging", "production"] = "local"
 
     SENTRY_DSN: str | None = None
-    SENTRY_TRACES_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 1
-    SENTRY_PROFILE_SESSION_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 1
+    SENTRY_TRACES_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 0.1
+    SENTRY_PROFILE_SESSION_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 0.1
 
     ROOT_PATH: str = ""
     CORS_ORIGINS: list[str] = ["*"]

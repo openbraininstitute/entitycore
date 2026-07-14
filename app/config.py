@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     SENTRY_DSN: str | None = None
     SENTRY_TRACES_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 0.1
-    SENTRY_PROFILE_SESSION_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 1
+    SENTRY_PROFILE_SESSION_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 1.0
 
     ROOT_PATH: str = ""
     CORS_ORIGINS: list[str] = ["*"]

@@ -15,6 +15,8 @@ Package manager: uv | Linter: ruff | Type checker: pyright | Line length: 100
 - `app/schemas/<entity>.py` — Pydantic request/response schemas
 - `app/service/<entity>.py` — business logic
 - `app/repository/<entity>.py` — DB queries
+- `app/filters/<entity>.py` — fastapi-filter definitions (query params, ordering, nested filters)
+- `app/filters/base.py` — `CustomFilter` base class (extends fastapi-filter with aliases, nested sort, ilike search)
 - `app/dependencies/` — FastAPI dependency injection
 - `tests/conftest.py` — shared fixtures
 - `tests/utils.py` — test helpers (assert_request, add_db, ClientProxy, check_* functions)
@@ -59,10 +61,11 @@ make migration MESSAGE="Add foo"          # create Alembic migration
 1. SQLAlchemy model → `app/db/model.py`
 2. Enum value → `app/db/types.py` (EntityType)
 3. Schema → `app/schemas/<entity>.py`
-4. Router → `app/routers/<entity>.py`
-5. Register router → `app/application.py`
-6. Migration → `make migration MESSAGE="Add <entity>"`
-7. Tests → `tests/test_<entity>.py`
+4. Filter → `app/filters/<entity>.py` (extend `CustomFilter`, add mixins for nested filtering)
+5. Router → `app/routers/<entity>.py`
+6. Register router → `app/application.py`
+7. Migration → `make migration MESSAGE="Add <entity>"`
+8. Tests → `tests/test_<entity>.py`
 
 ## Testing Rules
 

@@ -2395,7 +2395,7 @@ def test_multipart_directory_upload_empty_file_presigned_url_failure(client, roo
         ],
     )
 
-    with patch("app.service.asset.generate_presigned_url", return_value=None):
+    with patch("app.service.asset_helpers.generate_presigned_url", return_value=None):
         response = assert_request(
             client.post,
             url=f"{entity_type}/{entity_id}/assets/directory/multipart-upload/initiate",
@@ -2430,7 +2430,7 @@ def test_multipart_directory_upload_empty_file_check_object_error(client, root_c
 
     parent_id = data["asset"]["id"]
 
-    with patch("app.service.asset.check_object", side_effect=RuntimeError("S3 error")):
+    with patch("app.service.asset_helpers.check_object", side_effect=RuntimeError("S3 error")):
         response = assert_request(
             client.post,
             url=f"{entity_type}/{entity_id}/assets/{parent_id}/directory/multipart-upload/complete",

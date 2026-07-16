@@ -128,3 +128,8 @@ extract-traces:  ## Extract response payloads generated in unit tests
 
 update-asset-labels:  ## Update asset-labels.md
 	uv run ./scripts/generate_asset_labels_table.py -o ./docs/asset-labels.md
+
+sync-rules:  ## Sync .amazonq/rules into CLAUDE.md
+	echo '<!-- AUTO-GENERATED from .amazonq/rules/*.md — do not edit directly, run: make sync-rules -->' > CLAUDE.md
+	echo '' >> CLAUDE.md
+	cat .amazonq/rules/*.md >> CLAUDE.md

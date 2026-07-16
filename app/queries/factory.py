@@ -41,6 +41,7 @@ from app.db.model import (
     Subject,
     TaskConfig,
     Usage,
+    ValidationResult,
 )
 from app.db.types import MeasurementStatistic
 from app.dependencies.common import FacetQueryParams
@@ -120,6 +121,7 @@ def query_params_factory[I: Identifiable](
     ion_channel_modeling_config_alias = _get_alias(IonChannelModelingConfig)
     skeletonization_config_alias = _get_alias(SkeletonizationConfig)
     task_config_alias = _get_alias(TaskConfig)
+    validation_result_alias = _get_alias(ValidationResult, "validation_result")
 
     measurement_mean_alias = _get_alias(Measurement, "measurement_mean")
     measurement_standard_error_alias = _get_alias(Measurement, "measurement_standard_error")
@@ -353,6 +355,10 @@ def query_params_factory[I: Identifiable](
             measurement_sample_size_alias,
             (db_model_class.id == measurement_sample_size_alias.entity_id)
             & (measurement_sample_size_alias.name == MeasurementStatistic.sample_size),
+        ),
+        "validation_result": lambda q: q.outerjoin(
+            validation_result_alias,
+            db_model_class.id == validation_result_alias.validated_entity_id,
         ),
     }
     name_to_facet_query_params = {k: name_to_facet_query_params[k] for k in facet_keys}

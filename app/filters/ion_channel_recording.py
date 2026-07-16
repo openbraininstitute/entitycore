@@ -6,6 +6,10 @@ from app.dependencies.filter import FilterDepends
 from app.filters.common import ILikeSearchFilterMixin, NameFilterMixin
 from app.filters.ion_channel import NestedIonChannelFilter, NestedIonChannelFilterDep
 from app.filters.scientific_artifact import ScientificArtifactFilter
+from app.filters.validation_result import (
+    NestedValidationResultFilter,
+    NestedValidationResultFilterDep,
+)
 
 
 class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILikeSearchFilterMixin):
@@ -17,6 +21,9 @@ class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILike
     temperature__lte: float | None = None
     temperature__gte: float | None = None
     ion_channel: Annotated[NestedIonChannelFilter | None, NestedIonChannelFilterDep] = None
+    validation_result: Annotated[
+        NestedValidationResultFilter | None, NestedValidationResultFilterDep
+    ] = None
     cell_line: str | None = None
     cell_line__ilike: str | None = None
 

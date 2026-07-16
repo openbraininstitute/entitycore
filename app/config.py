@@ -1,7 +1,7 @@
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import quote
 
-from pydantic import PostgresDsn, SecretStr, field_validator, model_validator
+from pydantic import Field, PostgresDsn, SecretStr, field_validator, model_validator
 from pydantic_core.core_schema import ValidationInfo
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     COMMIT_SHA: str | None = None
 
     ENVIRONMENT: str | None = None
+    DEPLOYMENT_ENV: Literal["local", "staging", "production"] = "local"
+
+    SENTRY_DSN: str | None = None
+    SENTRY_TRACES_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 0.1
+    SENTRY_PROFILE_SESSION_SAMPLE_RATE: Annotated[float, Field(ge=0, le=1)] = 1.0
+
     ROOT_PATH: str = ""
     CORS_ORIGINS: list[str] = ["*"]
     CORS_ORIGIN_REGEX: str | None = None

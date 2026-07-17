@@ -42,7 +42,7 @@ def get_user(db: Session, subject_id: uuid.UUID) -> Person | None:
     return db.execute(query).scalars().first()
 
 
-def is_user_authorized_for_deletion(  # noqa: PLR0911
+def is_user_authorized_for_deletion(  # ruff:ignore[too-many-return-statements]
     db: Session, user_context: UserContext, obj: Identifiable
 ) -> bool:
     if settings.APP_DISABLE_AUTH:

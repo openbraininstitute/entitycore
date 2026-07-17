@@ -49,14 +49,14 @@ def delete_assets_from_storage(session: Session):
             case AssetStatus.UPLOADING:
                 try:
                     # An asset should not have both UPLOADING status and None upload_meta
-                    assert asset.upload_meta is not None  # noqa: S101
+                    assert asset.upload_meta is not None  # ruff:ignore[assert]
                     multipart_upload_abort(
                         upload_id=asset.upload_meta["upload_id"],
                         storage_type=asset.storage_type,
                         s3_key=asset.full_path,
                         storage_client_factory=get_s3_client,
                     )
-                except Exception:  # noqa: BLE001
+                except Exception:  # ruff:ignore[blind-except]
                     L.exception(
                         (
                             "Failed to abort multipart upload for Asset "
@@ -73,7 +73,7 @@ def delete_assets_from_storage(session: Session):
                         s3_key=asset.full_path,
                         storage_client_factory=get_s3_client,
                     )
-                except Exception:  # noqa: BLE001
+                except Exception:  # ruff:ignore[blind-except]
                     L.exception(
                         (
                             "Failed to delete storage object for Asset "

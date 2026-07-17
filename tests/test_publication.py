@@ -152,7 +152,7 @@ def test_missing(client):
     check_missing(ROUTE, client)
 
 
-def test_pagination(client, models):  # noqa: ARG001
+def test_pagination(client, models):  # ruff:ignore[unused-function-argument]
     data = assert_request(client.get, url=ROUTE, params={"page_size": 2}).json()
     assert "facets" in data
     assert "data" in data

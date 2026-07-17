@@ -19,10 +19,10 @@ class NestedSpeciesFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
 class SpeciesFilter(CreationFilterMixin, CreatorFilterMixin, NestedSpeciesFilter):
     """Full species filter."""
 
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]  # ruff:ignore[mutable-class-default]
 
     class Constants(NestedSpeciesFilter.Constants):
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
 
 
 SpeciesFilterDep = Annotated[SpeciesFilter, FilterDepends(SpeciesFilter)]
@@ -37,10 +37,10 @@ class NestedStrainFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
 class StrainFilter(CreationFilterMixin, CreatorFilterMixin, NestedStrainFilter):
     """Full strain filter."""
 
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]  # ruff:ignore[mutable-class-default]
 
     class Constants(NestedStrainFilter.Constants):
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
 
 
 StrainFilterDep = Annotated[StrainFilter, FilterDepends(StrainFilter)]

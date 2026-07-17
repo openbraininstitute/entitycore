@@ -541,7 +541,7 @@ def test_filter_memodel(client: TestClient, faceted_memodels: MEModels):
     assert all(d["emodel"]["name"] == "0" for d in data)
 
 
-def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # noqa: ARG001
+def test_memodel_search(client: TestClient, faceted_memodels: MEModels):  # ruff:ignore[unused-function-argument]
     response = client.get(
         ROUTE,
         params={"search": "foo"},

@@ -23,11 +23,11 @@ class DerivationFilter(IdFilterMixin, CreationFilterMixin, CreatorFilterMixin, C
     derivation_type: DerivationType | None = None
     label: str | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = Derivation
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "derivation_type",
             "label",

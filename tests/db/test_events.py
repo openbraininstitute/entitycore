@@ -191,7 +191,7 @@ def test_multiple_assets_s3_failure_does_not_break_transaction(
 
     try:
         db.commit()
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         pytest.fail("DB commit failed due to S3 deletion errors")
 
     assert mock_storage_delete.call_count == 2

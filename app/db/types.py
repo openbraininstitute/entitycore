@@ -70,7 +70,7 @@ class PointLocationType(TypeDecorator):
     impl = JSONB
     cache_ok = True
 
-    def process_bind_param(self, value, dialect):  # noqa: ARG002, PLR6301
+    def process_bind_param(self, value, dialect):  # ruff:ignore[unused-method-argument, no-self-use]
         if value is None:
             return None
 
@@ -79,7 +79,7 @@ class PointLocationType(TypeDecorator):
 
         return value.model_dump()
 
-    def process_result_value(self, value, dialect):  # noqa: ARG002, PLR6301
+    def process_result_value(self, value, dialect):  # ruff:ignore[unused-method-argument, no-self-use]
         if value is None:
             return None
 
@@ -1103,7 +1103,7 @@ ALLOWED_ASSET_LABELS_PER_TASK_RESULT = {
     TaskResultType.em_synapse_mapping__result: None,
     TaskResultType.aind_ephys_preprocessing__result: None,
     TaskResultType.aind_ephys_spikesorting__result: None,
-    TaskResultType.extracellular_recording_weights_calculation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[  # noqa: E501
+    TaskResultType.extracellular_recording_weights_calculation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[  # ruff:ignore[line-too-long]
         EntityType.simulatable_extracellular_recording_array
     ],
     TaskResultType.mesh_lod_generation__result: ALLOWED_ASSET_LABELS_PER_ENTITY[

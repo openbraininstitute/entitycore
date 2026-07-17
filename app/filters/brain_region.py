@@ -85,10 +85,10 @@ class NestedBrainRegionFilter(IdFilterMixin, NameFilterMixin, CustomFilter):
 
 
 class BrainRegionFilter(SpeciesFilterMixin, NestedBrainRegionFilter):
-    order_by: list[str] = ["name"]  # noqa: RUF012
+    order_by: list[str] = ["name"]  # ruff:ignore[mutable-class-default]
 
     class Constants(NestedBrainRegionFilter.Constants):
-        ordering_model_fields = ["name"]  # noqa: RUF012
+        ordering_model_fields = ["name"]  # ruff:ignore[mutable-class-default]
 
 
 BrainRegionFilterDep = Annotated[BrainRegionFilter, FilterDepends(BrainRegionFilter)]

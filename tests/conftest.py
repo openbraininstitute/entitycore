@@ -104,9 +104,9 @@ from .utils import (
 def _setup_env_variables():
     # Mock AWS Credentials for moto
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # noqa: S105
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"  # noqa: S105
-    os.environ["AWS_SESSION_TOKEN"] = "testing"  # noqa: S105
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"  # ruff:ignore[hardcoded-password-string]
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"  # ruff:ignore[hardcoded-password-string]
+    os.environ["AWS_SESSION_TOKEN"] = "testing"  # ruff:ignore[hardcoded-password-string]
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -346,7 +346,7 @@ def _override_check_user_info(
         (TOKEN_MAINTAINER_3, None): user_context_maintainer_3,
     }
 
-    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
         return mapping[token.credentials, project_context.project_id]
 
     monkeypatch.setattr(auth, "_check_user_info", mock_check_user_info)
@@ -356,7 +356,7 @@ def _override_check_user_info(
 def _override_embedding_generation(monkeypatch):
     """Mock the embedding generation to avoid making actual OpenAI API calls during tests."""
 
-    def mock_generate_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:  # noqa: ARG001
+    def mock_generate_embedding(text: str, model: str = "text-embedding-3-small") -> list[float]:  # ruff:ignore[unused-function-argument]
         """Return a fixed-size embedding vector filled with 0.1 values."""
         return [0.1] * EmbeddingMixin.SIZE
 

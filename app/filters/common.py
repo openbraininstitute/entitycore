@@ -83,11 +83,11 @@ class NestedMTypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
 
 
 class MTypeClassFilter(ILikeSearchFilterMixin, NestedMTypeClassFilter):
-    order_by: list[str] = ["pref_label"]  # noqa: RUF012
+    order_by: list[str] = ["pref_label"]  # ruff:ignore[mutable-class-default]
 
     class Constants(NestedMTypeClassFilter.Constants):
-        ordering_model_fields = ["pref_label"]  # noqa: RUF012
-        search_model_fields = ["pref_label", "alt_label"]  # noqa: RUF012
+        ordering_model_fields = ["pref_label"]  # ruff:ignore[mutable-class-default]
+        search_model_fields = ["pref_label", "alt_label"]  # ruff:ignore[mutable-class-default]
 
 
 class NestedETypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
@@ -96,11 +96,11 @@ class NestedETypeClassFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
 
 
 class ETypeClassFilter(ILikeSearchFilterMixin, NestedETypeClassFilter):
-    order_by: list[str] = ["pref_label"]  # noqa: RUF012
+    order_by: list[str] = ["pref_label"]  # ruff:ignore[mutable-class-default]
 
     class Constants(NestedETypeClassFilter.Constants):
-        ordering_model_fields = ["pref_label"]  # noqa: RUF012
-        search_model_fields = ["pref_label", "alt_label"]  # noqa: RUF012
+        ordering_model_fields = ["pref_label"]  # ruff:ignore[mutable-class-default]
+        search_model_fields = ["pref_label", "alt_label"]  # ruff:ignore[mutable-class-default]
 
 
 class NestedAgentFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
@@ -111,10 +111,10 @@ class NestedAgentFilter(IdFilterMixin, PrefLabelMixin, CustomFilter):
 
 
 class AgentFilter(NestedAgentFilter):
-    order_by: list[str] = ["pref_label"]  # noqa: RUF012
+    order_by: list[str] = ["pref_label"]  # ruff:ignore[mutable-class-default]
 
     class Constants(NestedAgentFilter.Constants):
-        ordering_model_fields = ["pref_label"]  # noqa: RUF012
+        ordering_model_fields = ["pref_label"]  # ruff:ignore[mutable-class-default]
 
 
 class CreationFilterMixin:

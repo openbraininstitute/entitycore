@@ -14,17 +14,17 @@ from app.schemas.utils import make_update_schema
 
 class UseIon(Schema):
     ion_name: str
-    read: list[str] = []  # noqa: RUF012
-    write: list[str] = []  # noqa: RUF012
+    read: list[str] = []  # ruff:ignore[mutable-class-default]
+    write: list[str] = []  # ruff:ignore[mutable-class-default]
     valence: int | None = None
     main_ion: bool | None = None
 
 
 class NeuronBlock(Schema):
     global_: list[dict[str, str | None]] = Field(default=[], alias="global")
-    range: list[dict[str, str | None]] = []  # noqa: RUF012
-    useion: list[UseIon] = []  # noqa: RUF012
-    nonspecific: list[dict[str, str | None]] = []  # noqa: RUF012
+    range: list[dict[str, str | None]] = []  # ruff:ignore[mutable-class-default]
+    useion: list[UseIon] = []  # ruff:ignore[mutable-class-default]
+    nonspecific: list[dict[str, str | None]] = []  # ruff:ignore[mutable-class-default]
 
 
 class IonChannelModelBaseMixin(NameDescriptionMixin):

@@ -141,7 +141,7 @@ def get_writable_entity_db_asset(
     return asset
 
 
-def create_entity_asset_unverified(  # noqa: PLR0913
+def create_entity_asset_unverified(  # ruff:ignore[too-many-arguments]
     repos: RepositoryGroup,
     *,
     entity: Entity,
@@ -226,7 +226,7 @@ def create_entity_asset_unverified(  # noqa: PLR0913
     return AssetRead.model_validate(asset_db)
 
 
-def create_entity_asset(  # noqa: PLR0913
+def create_entity_asset(  # ruff:ignore[too-many-arguments]
     repos: RepositoryGroup,
     *,
     user_context: UserContext,

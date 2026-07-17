@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from uuid import UUID  # noqa: TC003
+from uuid import UUID  # ruff:ignore[typing-only-standard-library-import]
 
 from app.schemas.base import Schema, TimestapMixin
 
@@ -18,6 +18,8 @@ class IdentifiableRead(NestedIdentifiableRead):
     updated_by: NestedPersonRead
 
 
-from app.schemas.agent import NestedPersonRead  # noqa: E402, TC001
+from app.schemas.agent import (  # ruff:ignore[module-import-not-at-top-of-file]
+    NestedPersonRead,  # ruff:ignore[typing-only-first-party-import]
+)
 
 IdentifiableRead.model_rebuild()

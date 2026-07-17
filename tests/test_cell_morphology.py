@@ -108,7 +108,7 @@ def test_create_one(
     response = client.get(ROUTE)
     assert response.status_code == 200, f"Failed to get cell morphologies: {response.text}"
     data = response.json()["data"]
-    assert data and all(item["type"] == EntityType.cell_morphology for item in data), (  # noqa: PT018
+    assert data and all(item["type"] == EntityType.cell_morphology for item in data), (  # ruff:ignore[pytest-composite-assertion]
         "One or more cell morphologies has incorrect type"
     )
     assert data[0]["created_by"]["id"] == data[0]["updated_by"]["id"]

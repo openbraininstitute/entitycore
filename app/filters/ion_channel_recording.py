@@ -27,11 +27,11 @@ class IonChannelRecordingFilter(ScientificArtifactFilter, NameFilterMixin, ILike
     cell_line: str | None = None
     cell_line__ilike: str | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(ScientificArtifactFilter.Constants):
         model = IonChannelRecording
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "name",

@@ -212,8 +212,8 @@ class InBrainRegionQuery(BaseModel):
             return query
 
         # this was already checked by model_validator; adding asserts so typing is happy
-        assert self.within_brain_region_brain_region_id  # noqa: S101
-        assert self.within_brain_region_direction  # noqa: S101
+        assert self.within_brain_region_brain_region_id  # ruff:ignore[assert]
+        assert self.within_brain_region_direction  # ruff:ignore[assert]
 
         return filter_by_region(
             query=query,

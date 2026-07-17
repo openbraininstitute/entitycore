@@ -34,11 +34,11 @@ class NestedDerivationFilter(CustomFilter):
 class BasicEntityFilter(CustomFilter):
     type: EntityType | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = Entity
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
 
 
 BasicEntityFilterDep = Annotated[BasicEntityFilter, FilterDepends(BasicEntityFilter)]
@@ -55,7 +55,9 @@ NestedEntityFilterDep = FilterDepends(with_prefix("entity", NestedEntityFilter))
 
 
 # Import after class definitions to avoid circular import
-from app.filters.contribution import ContributionFilterMixin  # noqa: E402
+from app.filters.contribution import (  # ruff:ignore[module-import-not-at-top-of-file]
+    ContributionFilterMixin,
+)
 
 
 class EntityFilterMixin(

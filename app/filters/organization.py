@@ -13,11 +13,11 @@ class OrganizationFilter(AgentFilter, CreatorFilterMixin):
     ror_id: ROR_ID | None = None
     ror_id__in: list[ROR_ID] | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(AgentFilter.Constants):
         model = Organization
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "pref_label",

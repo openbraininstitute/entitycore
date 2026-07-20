@@ -38,6 +38,13 @@ def test_allowed_asset_labels_for_non_resolved_entity():
     assert allowed == ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.circuit]
 
 
+def test_compartment_sets_asset_label_allowed_for_simulation():
+    allowed = ALLOWED_ASSET_LABELS_PER_ENTITY[EntityType.simulation]
+
+    assert AssetLabel.compartment_sets in allowed
+    assert allowed[AssetLabel.compartment_sets][0].content_type == "application/json"
+
+
 def test_validate_asset_label_rejects_label_not_allowed_for_task_result_type():
     asset = Mock(
         label=AssetLabel.morphology,

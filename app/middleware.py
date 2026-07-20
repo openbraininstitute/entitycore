@@ -18,7 +18,7 @@ RequestResponseEndpoint = Callable[[Request], Awaitable[Response]]
 class RequestContextMiddleware(BaseHTTPMiddleware):
     """Middleware to initialize request context and log access."""
 
-    async def dispatch(  # noqa: PLR6301
+    async def dispatch(  # ruff:ignore[no-self-use]
         self,
         request: Request,
         call_next: RequestResponseEndpoint,

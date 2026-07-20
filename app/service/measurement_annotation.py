@@ -182,7 +182,7 @@ def read_many(
 
 
 def admin_read_many(
-    user_context: AdminContextDep,  # noqa: ARG001
+    user_context: AdminContextDep,  # ruff:ignore[unused-function-argument]
     db: SessionDep,
     filter_model: MeasurementAnnotationFilterDep,
     pagination_request: PaginationQuery,

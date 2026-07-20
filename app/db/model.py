@@ -164,7 +164,7 @@ class NameDescriptionVectorMixin(Base):
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
         super_table_args = getattr(super(), "__table_args__", ())
         # add the index only to the same table where the Mixin is defined, not subclasses
         attr = getattr(cls, "description_vector", None)
@@ -263,7 +263,7 @@ class SpeciesMixin(Base):
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
         # ensure that species_id and strain.species_id are have the same value
         return (
             ForeignKeyConstraint(
@@ -319,7 +319,7 @@ class Agent(LegacyMixin, Identifiable):
     __tablename__ = "agent"
     type: Mapped[AgentType]
     pref_label: Mapped[str] = mapped_column(index=True)
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -335,7 +335,7 @@ class Person(Agent):
 
     orcid: Mapped[str | None] = mapped_column(String(37), unique=True, index=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
@@ -354,7 +354,7 @@ class Organization(Agent):
         index=True,
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
@@ -367,7 +367,7 @@ class Consortium(Agent):
     # what is the difference between name and label here ?
     alternative_name: Mapped[str]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_load": "selectin",
     }
@@ -474,7 +474,7 @@ class Activity(Identifiable):
         uselist=True,
         passive_deletes=True,  # rely on PostgreSQL ON DELETE CASCADE to remove association rows
     )
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -494,7 +494,7 @@ class ExecutionActivityMixin:
 class AnnotationBody(LegacyMixin, Identifiable):
     __tablename__ = "annotation_body"
     type: Mapped[AnnotationBodyType]
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -580,7 +580,7 @@ class DataMaturityAnnotationBody(AnnotationBody):
     __tablename__ = AnnotationBodyType.datamaturity_annotation_body.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("annotation_body.id"), primary_key=True)
     pref_label: Mapped[str] = mapped_column(unique=True, index=True)
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
     }
 
@@ -614,7 +614,7 @@ class Entity(LegacyMixin, Identifiable):
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
         args = getattr(super(), "__table_args__", ()) or ()
         if cls.__tablename__ == "entity":
             return (
@@ -675,7 +675,7 @@ class Entity(LegacyMixin, Identifiable):
             return None
         return self.derivations_as_used
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -691,7 +691,7 @@ class Subject(NameDescriptionVectorMixin, SpeciesMixin, Entity):
     sex: Mapped[Sex]
     weight: Mapped[float | None]  # in grams
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SubjectMixin:
@@ -765,14 +765,14 @@ class ScientificArtifact(Entity, SubjectMixin, LocationMixin, LicensedMixin):
     published_in: Mapped[str | None]
     notice_text: Mapped[str | None]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
         args = getattr(super(), "__table_args__", ()) or ()
         if cls.__tablename__ == EntityType.scientific_artifact.value:
             return (
@@ -805,7 +805,7 @@ class AnalysisSoftwareSourceCode(NameDescriptionVectorMixin, Entity):
     runtimePlatform: Mapped[str] = mapped_column(default="")
     version: Mapped[str] = mapped_column(default="")
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class Contribution(Identifiable):
@@ -856,7 +856,7 @@ class EModel(
         order_by="IonChannelModel.creation_date",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class MEModel(
@@ -885,7 +885,7 @@ class MEModel(
         lazy="joined",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class MeasurableEntityMixin:
@@ -909,7 +909,7 @@ class CellMorphologyProtocol(Entity, UniqueNameDescriptionVectorMixin):
     protocol_design: Mapped[CellMorphologyProtocolDesign | None]
     generation_type: Mapped[CellMorphologyGenerationType]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "generation_type",
         "with_polymorphic": "*",  # pull in automatically all the attributes of the subclasses
@@ -924,7 +924,7 @@ class DigitalReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
     tissue_shrinkage: Mapped[float | None]
     corrected_for_shrinkage: Mapped[bool | None]
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": CellMorphologyGenerationType.digital_reconstruction.value,
     }
 
@@ -932,7 +932,7 @@ class DigitalReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
 class ModifiedReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
     method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": CellMorphologyGenerationType.modified_reconstruction.value,
     }
 
@@ -940,13 +940,13 @@ class ModifiedReconstructionCellMorphologyProtocol(CellMorphologyProtocol):
 class ComputationallySynthesizedCellMorphologyProtocol(CellMorphologyProtocol):
     method_type: Mapped[str] = mapped_column(nullable=True, use_existing_column=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": CellMorphologyGenerationType.computationally_synthesized.value,
     }
 
 
 class PlaceholderCellMorphologyProtocol(CellMorphologyProtocol):
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": CellMorphologyGenerationType.placeholder.value,
     }
 
@@ -975,7 +975,7 @@ class CellMorphology(
 
     has_segmented_spines: Mapped[bool] = mapped_column(default=False, server_default="false")
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class MeasurementAnnotation(LegacyMixin, Identifiable):
@@ -1141,7 +1141,7 @@ class ElectricalRecordingStimulus(Entity, NameDescriptionVectorMixin):
         index=True,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ElectricalRecording(
@@ -1166,7 +1166,7 @@ class ElectricalRecording(
         passive_deletes=True,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ElectricalCellRecording(
@@ -1177,7 +1177,7 @@ class ElectricalCellRecording(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("electrical_recording.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class IonChannel(NameDescriptionVectorMixin, Identifiable):
@@ -1205,7 +1205,7 @@ class IonChannelRecording(
         foreign_keys=[ion_channel_id],
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -1216,7 +1216,7 @@ class SingleNeuronSynaptome(LocationMixin, NameDescriptionVectorMixin, Entity):
         ForeignKey(f"{EntityType.memodel}.id"), index=True
     )
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -1230,7 +1230,7 @@ class SingleNeuronSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
         ForeignKey(f"{EntityType.memodel}.id"), index=True
     )
     me_model = relationship("MEModel", uselist=False, foreign_keys=[me_model_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin, Entity):
@@ -1243,7 +1243,7 @@ class SingleNeuronSynaptomeSimulation(LocationMixin, NameDescriptionVectorMixin,
         ForeignKey(f"{EntityType.single_neuron_synaptome}.id"), index=True
     )
     synaptome = relationship("SingleNeuronSynaptome", uselist=False, foreign_keys=[synaptome_id])
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class Measurement(Base):
@@ -1296,7 +1296,7 @@ class ExperimentalNeuronDensity(
 ):
     __tablename__ = EntityType.experimental_neuron_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ExperimentalBoutonDensity(
@@ -1312,7 +1312,7 @@ class ExperimentalBoutonDensity(
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ExperimentalSynapsesPerConnection(
@@ -1339,7 +1339,7 @@ class ExperimentalSynapsesPerConnection(
     post_region_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_region.id"), index=True)
     post_region: Mapped[BrainRegion] = relationship(uselist=False, foreign_keys=[post_region_id])
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class Ion(Identifiable):
@@ -1349,7 +1349,7 @@ class Ion(Identifiable):
     ontology_id: Mapped[str | None] = mapped_column(nullable=True, unique=True, index=True)
 
     @validates("name")
-    def _normalize_name(self, key, value):  # noqa: PLR6301, ARG002
+    def _normalize_name(self, key, value):  # ruff:ignore[no-self-use, unused-method-argument]
         return value.lower() if value else value
 
 
@@ -1367,7 +1367,7 @@ class IonChannelModel(NameDescriptionVectorMixin, ScientificArtifact):
     conductance_name: Mapped[str | None]
     max_permeability_name: Mapped[str | None]
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class IonChannelModelToEModel(Base):
@@ -1432,7 +1432,7 @@ class IonChannelModelingCampaign(
         nullable=False,
         server_default="{}",
     )
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1462,7 +1462,7 @@ class IonChannelModelingConfig(Entity, NameDescriptionVectorMixin):
         server_default="{}",
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1481,7 +1481,7 @@ class IonChannelModelingExecution(Activity, ExecutionActivityMixin):
     __tablename__ = ActivityType.ion_channel_modeling_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class IonChannelModelingConfigGeneration(Activity):
@@ -1498,7 +1498,7 @@ class IonChannelModelingConfigGeneration(Activity):
     __tablename__ = ActivityType.ion_channel_modeling_config_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class ValidationResult(Entity):
@@ -1515,7 +1515,7 @@ class ValidationResult(Entity):
         foreign_keys=[validated_entity_id],
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1534,7 +1534,7 @@ class MEModelCalibrationResult(Entity):
         foreign_keys=[calibrated_entity_id],
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1582,7 +1582,7 @@ class METypeDensity(
 ):
     __tablename__ = EntityType.me_type_density.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
@@ -1594,7 +1594,7 @@ class BrainAtlas(NameDescriptionVectorMixin, SpeciesMixin, Entity):
         ForeignKey("brain_region_hierarchy.id"), index=True
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class BrainAtlasRegion(Entity, LocationMixin):
@@ -1609,13 +1609,13 @@ class BrainAtlasRegion(Entity, LocationMixin):
 
     brain_atlas_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("brain_atlas.id"), index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class CellComposition(NameDescriptionVectorMixin, LocationMixin, SpeciesMixin, Entity):
     __tablename__ = EntityType.cell_composition.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SimulationCampaign(
@@ -1648,7 +1648,7 @@ class SimulationCampaign(
         nullable=False,
         server_default="{}",
     )
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1694,7 +1694,7 @@ class Simulation(Entity, NameDescriptionVectorMixin):
         server_default="{}",
     )
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "inherit_condition": id == Entity.id,
     }
@@ -1712,7 +1712,7 @@ class SimulationExecution(Activity, ExecutionActivityMixin):
     __tablename__ = ActivityType.simulation_execution.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class TaskResult(Entity, NameDescriptionVectorMixin):
@@ -1722,7 +1722,7 @@ class TaskResult(Entity, NameDescriptionVectorMixin):
     task_result_type: Mapped[TaskResultType]
     data_payload: Mapped[JSON_DICT] = mapped_column(default={}, nullable=False, server_default="{}")
 
-    __mapper_args__ = {"polymorphic_identity": EntityType.task_result.value}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": EntityType.task_result.value}  # ruff:ignore[mutable-class-default]
 
 
 class SimulationResult(Entity, NameDescriptionVectorMixin):
@@ -1739,7 +1739,7 @@ class SimulationResult(Entity, NameDescriptionVectorMixin):
 
     simulation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("simulation.id"), index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SimulationGeneration(Activity):
@@ -1755,7 +1755,7 @@ class SimulationGeneration(Activity):
     __tablename__ = ActivityType.simulation_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class Validation(Activity):
@@ -1763,7 +1763,7 @@ class Validation(Activity):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -1774,7 +1774,7 @@ class Calibration(Activity):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {  # noqa: RUF012
+    __mapper_args__ = {  # ruff:ignore[mutable-class-default]
         "polymorphic_identity": __tablename__,
         "polymorphic_on": "type",
     }
@@ -1973,11 +1973,11 @@ class Circuit(ScientificArtifact, NameDescriptionVectorMixin):
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls):  # noqa: D105, PLW3201
+    def __table_args__(cls):  # ruff:ignore[undocumented-magic-method, bad-dunder-method-name]
         args = getattr(super(), "__table_args__", ()) or ()
         return (Index("ix_circuit_scale_id", "scale", "id"), *args)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixin):
@@ -2048,7 +2048,7 @@ class EMDenseReconstructionDataset(ScientificArtifact, NameDescriptionVectorMixi
     precomputed_mesh_url: Mapped[str | None]
     cell_identifying_property: Mapped[str | None]
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class EMCellMesh(
@@ -2095,7 +2095,7 @@ class EMCellMesh(
         uselist=False,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
@@ -2121,7 +2121,7 @@ class AnalysisNotebookTemplate(Entity, NameDescriptionVectorMixin):
     specifications: Mapped[JSON_DICT | None]
     assignment_id: Mapped[str | None] = mapped_column(String(255), index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookEnvironment(Entity):
@@ -2141,7 +2141,7 @@ class AnalysisNotebookEnvironment(Entity):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
     runtime_info: Mapped[JSON_DICT | None]
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookExecution(Activity, ExecutionActivityMixin):
@@ -2177,7 +2177,7 @@ class AnalysisNotebookExecution(Activity, ExecutionActivityMixin):
         uselist=False,
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
@@ -2198,7 +2198,7 @@ class AnalysisNotebookResult(Entity, NameDescriptionVectorMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("entity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class EmCellMeshToSkeletonizationCampaign(Base):
@@ -2244,7 +2244,7 @@ class SkeletonizationCampaign(
         uselist=True,
         foreign_keys="SkeletonizationConfig.skeletonization_campaign_id",
     )
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
@@ -2271,7 +2271,7 @@ class SkeletonizationConfig(Entity, NameDescriptionVectorMixin):
         ForeignKey(f"{EntityType.em_cell_mesh}.id"), index=True
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SkeletonizationConfigGeneration(Activity):
@@ -2289,7 +2289,7 @@ class SkeletonizationConfigGeneration(Activity):
     __tablename__ = ActivityType.skeletonization_config_generation.value
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SkeletonizationExecution(Activity, ExecutionActivityMixin):
@@ -2308,7 +2308,7 @@ class SkeletonizationExecution(Activity, ExecutionActivityMixin):
 
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class EntityToTaskConfig(Base):
@@ -2353,7 +2353,7 @@ class TaskConfig(NameDescriptionVectorMixin, Entity):
         secondary="entity__task_config",
     )
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class TaskActivity(Activity, ExecutionActivityMixin):
@@ -2374,7 +2374,7 @@ class TaskActivity(Activity, ExecutionActivityMixin):
     id: Mapped[uuid.UUID] = mapped_column(ForeignKey("activity.id"), primary_key=True)
     task_activity_type: Mapped[TaskActivityType] = mapped_column(index=True)
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 class SimulatableExtracellularRecordingArray(Entity, NameDescriptionVectorMixin):
@@ -2386,7 +2386,7 @@ class SimulatableExtracellularRecordingArray(Entity, NameDescriptionVectorMixin)
 
     circuit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(f"{EntityType.circuit}.id"))
 
-    __mapper_args__ = {"polymorphic_identity": __tablename__}  # noqa: RUF012
+    __mapper_args__ = {"polymorphic_identity": __tablename__}  # ruff:ignore[mutable-class-default]
 
 
 register_model_events()

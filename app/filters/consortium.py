@@ -9,11 +9,11 @@ from app.filters.person import CreatorFilterMixin
 class ConsortiumFilter(AgentFilter, CreatorFilterMixin):
     alternative_name: str | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(AgentFilter.Constants):
         model = Consortium
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
             "pref_label",

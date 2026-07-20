@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 import pytest
+from fastapi.routing import iter_route_contexts
 
 from app.application import app
 from app.routers.types import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
@@ -20,7 +21,7 @@ REGEX_PATTERN = re.compile(r"^/(?P<route>(?!\{)[a-z0-9-]+)(?=/|$)")
 
 
 @pytest.fixture(scope="module")
-def routes():  # noqa: C901
+def routes():  # ruff:ignore[complex-structure]
     def _route(is_admin, route):
         name = route.name
 
@@ -32,13 +33,15 @@ def routes():  # noqa: C901
 
         return Route(
             name=name,
-            path=route.path.replace("{entity_route}", route_name).replace("{route}", route_name),  # noqa: RUF027
+            path=route.path.replace("{entity_route}", route_name).replace("{route}", route_name),  # ruff:ignore[missing-f-string-syntax]
             method=next(iter(route.methods)),
         )
 
     groups = defaultdict(list)
-    for route in app.routes:
-        path = route.path
+    for route_context in iter_route_contexts(app.routes):
+        route = route_context.route
+        path = route_context.path
+        assert path is not None
 
         if path in {
             "/docs",
@@ -64,7 +67,7 @@ def routes():  # noqa: C901
             continue
 
         # expand all resource route paths
-        if "{route}" in path:  # noqa: RUF027
+        if "{route}" in path:  # ruff:ignore[missing-f-string-syntax]
             for route_name in ResourceRoute:
                 groups[str(route_name)].append(_route(is_admin, route))
             continue

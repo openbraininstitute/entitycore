@@ -18,7 +18,7 @@ class ScientificArtifactPublicationLinkFilter(
     CreatorFilterMixin,
     CustomFilter,
 ):
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     publication_type: PublicationType | None = None
 
@@ -34,7 +34,7 @@ class ScientificArtifactPublicationLinkFilter(
 
     class Constants(CustomFilter.Constants):
         model = ScientificArtifactPublicationLink
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "creation_date",
             "update_date",
         ]

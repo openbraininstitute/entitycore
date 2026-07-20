@@ -499,7 +499,7 @@ def test_upload_entity_asset_s3_failure(client, entity):
 def test_upload_entity_asset_virtual_lab_id_not_found(client, entity, monkeypatch):
     """User has project context but no virtual-lab mapping in Keycloak groups."""
 
-    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
         return UserContext(
             profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
             expiration=None,
@@ -524,7 +524,7 @@ def test_upload_entity_asset_virtual_lab_id_not_found(client, entity, monkeypatc
 
 
 def test_upload_entity_asset_directory_virtual_lab_id_not_found(client, root_circuit, monkeypatch):
-    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
         return UserContext(
             profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
             expiration=None,
@@ -2131,7 +2131,7 @@ def test_multipart_directory_upload_non_authorized(
 
 
 def test_multipart_directory_upload_virtual_lab_id_not_found(client, root_circuit, monkeypatch):
-    def mock_check_user_info(*, project_context, token, http_client):  # noqa: ARG001
+    def mock_check_user_info(*, project_context, token, http_client):  # ruff:ignore[unused-function-argument]
         return UserContext(
             profile=UserProfile(subject=UUID(USER_SUB_ID_1), name="User"),
             expiration=None,

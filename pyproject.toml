@@ -9,7 +9,7 @@ dependencies = [
     "alembic-utils>=0.8.6",
     "boto3>=1.36.3",
     "cachetools>=5.5.2",
-    "fastapi>=0.121",
+    "fastapi>=0.137.2",
     "fastapi-filter>=2.0.0",
     "starlette>=1.0.1",
     "httpx>=0.28.1",
@@ -69,38 +69,38 @@ include = [
 preview = true
 select = ["ALL"]
 ignore = [
-    "A005",    # Module is shadowing a Python builtin module
-    "ANN002",  # Missing type annotation for `*args`
-    "ANN003",  # Missing type annotation for `**kwargs`
-    "ANN401",  # Dynamically typed expressions (typing.Any) are disallowed
-    "COM812",  # Trailing comma (to have similar behavior to black)
-    "CPY001",  # Missing copyright notice at top of file
-    "ISC001",  # single line implicit string concatenation (disabling suggested by ruff formatter)
-    "N802",    # function name should be lowercase
-    "PLE1205", # Too many arguments for `logging` format string
-    "PLR0914", # Too many local vars
-    "RET504",  # Unnecessary assignment to `result` before `return` statement
-    "RUF029",  # Function is declared `async`, but doesn't `await` or use `async` features.
-    "RUF067",  # `__init__` module should only contain docstrings and re-exports
-    "S104",    # Possible binding to all interfaces
-    "FIX002",  # Line contains TODO, consider resolving the issue
+    "stdlib-module-shadowing",    # Module is shadowing a Python builtin module
+    "missing-type-args",  # Missing type annotation for `*args`
+    "missing-type-kwargs",  # Missing type annotation for `**kwargs`
+    "any-type",  # Dynamically typed expressions (typing.Any) are disallowed
+    "missing-trailing-comma",  # Trailing comma (to have similar behavior to black)
+    "missing-copyright-notice",  # Missing copyright notice at top of file
+    "single-line-implicit-string-concatenation",  # single line implicit string concatenation (disabling suggested by ruff formatter)
+    "invalid-function-name",    # function name should be lowercase
+    "logging-too-many-args", # Too many arguments for `logging` format string
+    "too-many-locals", # Too many local vars
+    "unnecessary-assign",  # Unnecessary assignment to `result` before `return` statement
+    "unused-async",  # Function is declared `async`, but doesn't `await` or use `async` features.
+    "non-empty-init-module",  # `__init__` module should only contain docstrings and re-exports
+    "hardcoded-bind-all-interfaces",    # Possible binding to all interfaces
+    "line-contains-todo",  # Line contains TODO, consider resolving the issue
     "TD",      # TODOs
-    "RET504",  # Unnecessary assignment to `query` before `return` statement
+    "unnecessary-assign",  # Unnecessary assignment to `query` before `return` statement
     ### TODO: remove rules temporarily ignored (lower priority)
-    "DOC201", # `return` is not documented in docstring
-    "DOC402", # `yield` is not documented in docstring
-    "DOC501", # Raised exception missing from docstring
+    "docstring-missing-returns", # `return` is not documented in docstring
+    "docstring-missing-yields", # `yield` is not documented in docstring
+    "docstring-missing-exception", # Raised exception missing from docstring
     ### TODO: remove additional rules temporarily ignored (higher priority)
     "ANN",    # All the annotations
-    "D100",   # Missing docstring in public module
-    "D101",   # Missing docstring in public class
-    "D102",   # Missing docstring in public method
-    "D103",   # Missing docstring in public function
-    "D104",   # Missing docstring in public package
-    "D106",   # Missing docstring in public nested class
-    "ERA001", # Found commented-out code
-    "N815",   # Variable in class scope should not be mixedCase
-    "E731",   # Do not assign a `lambda` expression, use a `def`
+    "undocumented-public-module",   # Missing docstring in public module
+    "undocumented-public-class",   # Missing docstring in public class
+    "undocumented-public-method",   # Missing docstring in public method
+    "undocumented-public-function",   # Missing docstring in public function
+    "undocumented-public-package",   # Missing docstring in public package
+    "undocumented-public-nested-class",   # Missing docstring in public nested class
+    "commented-out-code", # Found commented-out code
+    "mixed-case-variable-in-class-scope",   # Variable in class scope should not be mixedCase
+    "lambda-assignment",   # Do not assign a `lambda` expression, use a `def`
 ]
 
 [tool.ruff.lint.isort]
@@ -113,27 +113,27 @@ builtins-ignorelist = ["license"]
 [tool.ruff.lint.per-file-ignores]
 "alembic/**.py" = [
     "D",       # pydocstyle
-    "ERA001",  # Found commented-out code
-    "INP001",  # Missing `__init__.py`
-    "S101",    # Use of `assert` detected
-    "PLR0915", # Too many statements
-    "E501",    # Line too long
-    "PLR0914", # Too many local variables
+    "commented-out-code",  # Found commented-out code
+    "implicit-namespace-package",  # Missing `__init__.py`
+    "assert",    # Use of `assert` detected
+    "too-many-statements", # Too many statements
+    "line-too-long",    # Line too long
+    "too-many-locals", # Too many local variables
 ]
 "alembic/versions/*" = ["ALL"]
 "tests/**.py" = [
     "ANN",     # Missing type annotation
     "D",       # pydocstyle
-    "ERA001",  # Found commented-out code
-    "INP001",  # Missing `__init__.py`
-    "PLC2701", # Private name import from external module
-    "PLR0915", # Too many statements
-    "PLR2004", # magic value (constant) used in comparison (i.e. expected == 3)
-    "S101",    # Use of `assert` detected
-    "SLF001",  # private member access
+    "commented-out-code",  # Found commented-out code
+    "implicit-namespace-package",  # Missing `__init__.py`
+    "import-private-name", # Private name import from external module
+    "too-many-statements", # Too many statements
+    "magic-value-comparison", # magic value (constant) used in comparison (i.e. expected == 3)
+    "assert",    # Use of `assert` detected
+    "private-member-access",  # private member access
 ]
 "app/db/model.py" = [
-    "A003", # builtin-attribute-shadowing
+    "builtin-attribute-shadowing", # builtin-attribute-shadowing
 ]
 
 [tool.ruff.lint.pydocstyle]

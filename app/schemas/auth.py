@@ -49,7 +49,7 @@ class DecodedToken(UserInfoBase):
             # the signature can be ignored because the token will be validated with KeyCloak
             decoded = jwt.decode(token.credentials, options={"verify_signature": False})
             return cls.model_validate(decoded)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  # ruff:ignore[blind-except]
             L.info("Unable to decode token as JWT [{}]", e)
         return None
 
@@ -94,7 +94,7 @@ class UserInfoResponse(UserInfoBase):
     }
     """
 
-    groups: set[str] = set()  # noqa: RUF012
+    groups: set[str] = set()  # ruff:ignore[mutable-class-default]
 
     def is_service_admin(self, service_name: str) -> bool:
         """Return True if admin for the specified service."""
@@ -192,11 +192,11 @@ class UserContext(UserContextBase):
 
     virtual_lab_id: UUID | None = None
     project_id: UUID | None = None
-    user_project_groups: list[UserProjectGroup] = []  # noqa: RUF012
+    user_project_groups: list[UserProjectGroup] = []  # ruff:ignore[mutable-class-default]
 
     @property
     def user_project_ids(self) -> list[UUID]:
-        """Return all projects that the user has access to regardless of role."""
+        """All projects that the user has access to regardless of role."""
         return [g.project_id for g in self.user_project_groups]
 
     @property
@@ -212,12 +212,12 @@ class UserContext(UserContextBase):
 
     @property
     def member_project_ids(self) -> set[UUID]:
-        """Return the project ids for which the user is a member."""
+        """The project ids for which the user is a member."""
         return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.member}
 
     @property
     def admin_project_ids(self) -> set[UUID]:
-        """Return the project ids for which the user is an admin."""
+        """The project ids for which the user is an admin."""
         return {g.project_id for g in self.user_project_groups if g.role == UserProjectRole.admin}
 
     def find_virtual_lab_from_project_id(self, project_id: UUID) -> UUID | None:

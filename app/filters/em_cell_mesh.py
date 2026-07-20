@@ -34,11 +34,11 @@ class EMCellMeshFilter(
         ),
     ] = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(ScientificArtifactFilter.Constants):
         model = EMCellMesh
-        ordering_model_fields = [  # noqa: RUF012
+        ordering_model_fields = [  # ruff:ignore[mutable-class-default]
             "id",
             "creation_date",
             "update_date",

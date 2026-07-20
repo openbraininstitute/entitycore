@@ -25,11 +25,11 @@ class IonChannelModelingConfigFilter(
     ion_channel_modeling_campaign_id: uuid.UUID | None = None
     ion_channel_modeling_campaign_id__in: list[uuid.UUID] | None = None
 
-    order_by: list[str] = ["-creation_date"]  # noqa: RUF012
+    order_by: list[str] = ["-creation_date"]  # ruff:ignore[mutable-class-default]
 
     class Constants(CustomFilter.Constants):
         model = IonChannelModelingConfig
-        ordering_model_fields = ["creation_date", "update_date", "name"]  # noqa: RUF012
+        ordering_model_fields = ["creation_date", "update_date", "name"]  # ruff:ignore[mutable-class-default]
 
 
 IonChannelModelingConfigFilterDep = Annotated[

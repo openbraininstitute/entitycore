@@ -90,7 +90,7 @@ class AssetBase(Schema):
     full_path: RelativePathStr
     is_directory: bool
     content_type: ContentType
-    meta: dict = {}  # noqa: RUF012
+    meta: dict = {}  # ruff:ignore[mutable-class-default]
     label: AssetLabel
     storage_type: StorageType
 

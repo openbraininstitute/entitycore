@@ -57,13 +57,13 @@ USER_SUB_ID_1 = "00000000-0000-0000-0000-000000000001"
 USER_SUB_ID_2 = "00000000-0000-0000-0000-000000000002"
 USER_SUB_ID_3 = "00000000-0000-0000-0000-000000000002"
 
-TOKEN_ADMIN = "I'm admin"  # noqa: S105
-TOKEN_USER_1 = "I'm user 1"  # noqa: S105
-TOKEN_USER_2 = "I'm user 2"  # noqa: S105
-TOKEN_USER_3 = "I'm user 3"  # noqa: S105
-TOKEN_MAINTAINER_1 = "I'm maintainer 1"  # noqa: S105
-TOKEN_MAINTAINER_2 = "I'm maintainer 2"  # noqa: S105
-TOKEN_MAINTAINER_3 = "I'm maintainer 3"  # noqa: S105
+TOKEN_ADMIN = "I'm admin"  # ruff:ignore[hardcoded-password-string]
+TOKEN_USER_1 = "I'm user 1"  # ruff:ignore[hardcoded-password-string]
+TOKEN_USER_2 = "I'm user 2"  # ruff:ignore[hardcoded-password-string]
+TOKEN_USER_3 = "I'm user 3"  # ruff:ignore[hardcoded-password-string]
+TOKEN_MAINTAINER_1 = "I'm maintainer 1"  # ruff:ignore[hardcoded-password-string]
+TOKEN_MAINTAINER_2 = "I'm maintainer 2"  # ruff:ignore[hardcoded-password-string]
+TOKEN_MAINTAINER_3 = "I'm maintainer 3"  # ruff:ignore[hardcoded-password-string]
 
 AUTH_HEADER_ADMIN = {"Authorization": f"Bearer {TOKEN_ADMIN}"}
 AUTH_HEADER_USER_1 = {"Authorization": f"Bearer {TOKEN_USER_1}"}

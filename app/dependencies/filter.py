@@ -35,7 +35,7 @@ def FilterDepends(filter_model: type[BaseFilterModel], *, by_alias: bool = False
     the string be parsed and formatted as a list of <type>?)
     """
     fields = _list_to_query_fields(filter_model)
-    GeneratedFilter = create_model(filter_model.__class__.__name__, **fields)  # noqa: N806
+    GeneratedFilter = create_model(filter_model.__class__.__name__, **fields)  # ruff:ignore[non-lowercase-variable-in-function]
 
     class FilterWrapper(GeneratedFilter):  # type: ignore[misc,valid-type]
         def __new__(cls, *args, **kwargs):

@@ -16,7 +16,7 @@ class IonChannelModelingCampaignCreate(
     IonChannelModelingCampaignBaseMixin,
     EntityCreate,
 ):
-    input_recordings: list[NestedEntityCreate] = []  # noqa: RUF012
+    input_recordings: list[NestedEntityCreate] = []  # ruff:ignore[mutable-class-default]
 
 
 IonChannelModelingCampaignUserUpdate = make_update_schema(

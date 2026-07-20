@@ -15,7 +15,7 @@ class TaskResultBaseMixin(NameDescriptionMixin):
 
 
 class TaskResultCreate(TaskResultBaseMixin, EntityCreate):
-    data_payload: dict[str, Any] = {}  # noqa: RUF012
+    data_payload: dict[str, Any] = {}  # ruff:ignore[mutable-class-default]
     task_result_type: TaskResultType = TaskResultType.circuit_extraction__circuit
 
 

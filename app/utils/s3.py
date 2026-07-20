@@ -144,7 +144,7 @@ def upload_to_s3(
                 max_concurrency=settings.S3_MULTIPART_UPLOAD_MAX_CONCURRENCY,
             ),
         )
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while uploading file to s3://{}/{}", bucket_name, s3_key)
         return False
     L.info("File uploaded successfully to s3://{}/{}", bucket_name, s3_key)
@@ -161,7 +161,7 @@ def delete_from_s3(s3_client: S3Client, bucket_name: str, s3_key: str) -> bool:
     """
     try:
         response = s3_client.delete_object(Bucket=bucket_name, Key=s3_key)
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception("Error while deleting file from s3://{}/{}", bucket_name, s3_key)
         return False
     # if using versioning-enabled buckets, we could store the version id for recovery
@@ -206,7 +206,7 @@ def generate_presigned_url(
         if settings.S3_PRESIGNED_URL_NETLOC:
             parsed = urlparse(url)
             url = urlunparse(parsed._replace(netloc=settings.S3_PRESIGNED_URL_NETLOC))
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception("Error generating presigned URL for s3://{}/{}", bucket_name, s3_key)
     return url
 
@@ -325,7 +325,7 @@ def list_directory_with_details(
         if "Contents" not in page:
             continue
         for obj in page["Contents"]:
-            assert "Key" in obj and "Size" in obj and "LastModified" in obj  # noqa: PT018, S101
+            assert "Key" in obj and "Size" in obj and "LastModified" in obj  # ruff:ignore[pytest-composite-assertion, assert]
             name = str(Path(obj["Key"]).relative_to(prefix))
             files[name] = {
                 "name": name,
@@ -395,7 +395,7 @@ def copy_file(
                 max_concurrency=settings.S3_MULTIPART_COPY_MAX_CONCURRENCY,
             ),
         )
-    except Exception:  # noqa: BLE001
+    except Exception:  # ruff:ignore[blind-except]
         L.exception(
             "Error while copying file from s3://{}/{} to s3://{}/{}",
             src_bucket_name,

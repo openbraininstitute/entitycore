@@ -23,7 +23,7 @@ class InterceptHandler(logging.Handler):
     See https://github.com/Delgan/loguru#entirely-compatible-with-standard-logging.
     """
 
-    def emit(self, record: logging.LogRecord) -> None:  # noqa: PLR6301
+    def emit(self, record: logging.LogRecord) -> None:  # ruff:ignore[no-self-use]
         """Emit a log record."""
         # Get corresponding Loguru level if it exists.
         level: str | int

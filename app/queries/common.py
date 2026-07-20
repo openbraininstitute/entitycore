@@ -237,7 +237,7 @@ def _with_subquery[I: Identifiable](
     - using pagination and requesting a large offset, and
     - needing many columns for building the results, but not all of them are needed for filtering.
     """
-    order_by_clauses = data_query._order_by_clauses  # noqa: SLF001
+    order_by_clauses = data_query._order_by_clauses  # ruff:ignore[private-member-access]
     # dict of modifiers as found in UnaryExpression.
     modifiers = {
         operators.desc_op: lambda x: x.desc(),
@@ -280,7 +280,7 @@ def _with_subquery[I: Identifiable](
     )
 
 
-def router_read_many[T: Schema, I: Identifiable](  # noqa: PLR0913
+def router_read_many[T: Schema, I: Identifiable](  # ruff:ignore[too-many-arguments]
     *,
     db: Session,
     db_model_class: type[I],
@@ -364,7 +364,7 @@ def router_read_many[T: Schema, I: Identifiable](  # noqa: PLR0913
     # Add semantic similarity ordering if embedding is provided and model has embedding field
     if embedding is not None and hasattr(db_model_class, "embedding"):
         # Remove existing ordering clauses
-        data_query._order_by_clauses = ()  # noqa: SLF001
+        data_query._order_by_clauses = ()  # ruff:ignore[private-member-access]
 
         # Order by L2 distance first, then by ID to guarantee uniqueness
         data_query = data_query.order_by(

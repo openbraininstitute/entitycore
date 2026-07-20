@@ -28,7 +28,7 @@ class AnalysisNotebookTemplateSpecifications(Schema):
     schema_version: int = 1
     python: PythonDependency | None = None
     docker: DockerDependency | None = None
-    inputs: list[AnalysisNotebookTemplateInputType] = []  # noqa: RUF012
+    inputs: list[AnalysisNotebookTemplateInputType] = []  # ruff:ignore[mutable-class-default]
 
 
 class AnalysisNotebookTemplateBaseMixin(NameDescriptionMixin):

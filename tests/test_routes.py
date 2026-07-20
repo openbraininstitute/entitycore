@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 import pytest
+from fastapi.routing import iter_route_contexts
 
 from app.application import app
 from app.routers.types import ActivityRoute, EntityRoute, GlobalRoute, ResourceRoute
@@ -37,8 +38,10 @@ def routes():  # ruff:ignore[complex-structure]
         )
 
     groups = defaultdict(list)
-    for route in app.routes:
-        path = route.path
+    for route_context in iter_route_contexts(app.routes):
+        route = route_context.route
+        path = route_context.path
+        assert path is not None
 
         if path in {
             "/docs",

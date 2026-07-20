@@ -320,7 +320,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.36.3" },
     { name = "cachetools", specifier = ">=5.5.2" },
     { name = "click", specifier = ">=8.1.7" },
-    { name = "fastapi", specifier = ">=0.121" },
+    { name = "fastapi", specifier = ">=0.137.2" },
     { name = "fastapi-filter", specifier = ">=2.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "loguru", specifier = ">=0.7.3" },

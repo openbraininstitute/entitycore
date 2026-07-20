@@ -487,6 +487,7 @@ class AssetLabel(StrEnum):
     simulation_generation_config = auto()
     ion_channel_modeling_generation_config = auto()
     custom_node_sets = auto()
+    compartment_sets = auto()
     campaign_generation_config = auto()
     campaign_summary = auto()
     replay_spikes = auto()
@@ -921,6 +922,13 @@ ALLOWED_ASSET_LABELS_PER_ENTITY: dict[
                 content_type=ContentType.json,
                 is_directory=False,
                 description="Node set groups for regions, mtypes, etc.",
+            )
+        ],
+        AssetLabel.compartment_sets: [
+            LabelRequirements(
+                content_type=ContentType.json,
+                is_directory=False,
+                description="SONATA compartment sets for explicit morphology locations.",
             )
         ],
         AssetLabel.replay_spikes: [

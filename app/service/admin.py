@@ -161,7 +161,7 @@ def upload_entity_asset(
     vlab_proj_mapping = virtual_lab_client.get_virtual_lab_by_project(
         project_id=entity.authorized_project_id
     )
-    asset_read = create_entity_asset_unverified(
+    asset_db = create_entity_asset_unverified(
         repos,
         entity=entity,
         filename=cast("str", file.filename),
@@ -179,7 +179,7 @@ def upload_entity_asset(
         s3_client,
         file_obj=file.file,
         bucket_name=storage.bucket,
-        s3_key=asset_read.full_path,
+        s3_key=asset_db.full_path,
     ):
         raise HTTPException(status_code=500, detail="Failed to upload object")
-    return asset_read
+    return AssetRead.model_validate(asset_db)

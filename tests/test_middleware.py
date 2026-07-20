@@ -1,18 +1,69 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from unittest.mock import ANY
 
+import httpx
 import pytest
-from fastapi import Depends
+from fastapi import Depends, FastAPI
+from fastapi.testclient import TestClient
 
-from app.application import app
 from app.dependencies.auth import user_verified
 from app.logger import L
+from app.middleware import RequestContextMiddleware
 
-from tests.utils import ADMIN_SUB_ID
+from tests.utils import ADMIN_SUB_ID, AUTH_HEADER_ADMIN
+
+
+@asynccontextmanager
+async def _lifespan(_: FastAPI) -> AsyncIterator[dict]:
+    http_client = httpx.Client()
+    try:
+        yield {"http_client": http_client}
+    finally:
+        http_client.close()  # ruff:ignore[blocking-http-call-httpx-in-async-function]
+
+
+def _make_test_app() -> FastAPI:
+    test_app = FastAPI(lifespan=_lifespan)
+    test_app.add_middleware(RequestContextMiddleware)
+
+    @test_app.get("/test-authenticated-endpoint", dependencies=[Depends(user_verified)])
+    def authenticated_endpoint():
+        L.info("test message")
+        return {"ok": True}
+
+    @test_app.get("/test-public-endpoint")
+    def public_endpoint():
+        L.info("test message")
+        return {"ok": True}
+
+    @test_app.get("/test-error-endpoint")
+    def error_endpoint():
+        L.info("test message")
+        msg = "test error"
+        raise RuntimeError(msg)
+
+    return test_app
+
+
+@pytest.fixture
+def _test_client(_override_check_user_info):
+    with TestClient(_make_test_app(), raise_server_exceptions=False) as client:
+        yield client
+
+
+@pytest.fixture
+def client_no_auth(_test_client):
+    return _test_client
+
+
+@pytest.fixture
+def client_admin(_test_client):
+    return _test_client
 
 
 @pytest.fixture
 def logs():
-    """Fixture to capture logs."""
     logs = []
 
     def capture_sink(message):
@@ -23,65 +74,14 @@ def logs():
     L.remove(handler_id)
 
 
-@pytest.fixture(scope="session")
-def test_authenticated_endpoint() -> str:
-    """Fixture to add an authenticated test endpoint to the app.
-
-    Use the session scope because the endpoint isn't removed until the end of the tests.
-    """
-    path = "/test-authenticated-endpoint"
-
-    @app.get(path, dependencies=[Depends(user_verified)])
-    def test_endpoint():
-        L.info("test message")
-        return {"ok": True}
-
-    return path
-
-
-@pytest.fixture(scope="session")
-def test_public_endpoint() -> str:
-    """Fixture to add a public test endpoint to the app.
-
-    Use the session scope because the endpoint isn't removed until the end of the tests.
-    """
-    path = "/test-public-endpoint"
-
-    @app.get(path)
-    def test_endpoint():
-        L.info("test message")
-        return {"ok": True}
-
-    return path
-
-
-@pytest.fixture(scope="session")
-def test_error_endpoint() -> str:
-    """Fixture to add a test endpoint that raises an unhandled error.
-
-    Use the session scope because the endpoint isn't removed until the end of the tests.
-    """
-    path = "/test-error-endpoint"
-
-    @app.get(path)
-    def test_endpoint():
-        L.info("test message")
-        msg = "test error"
-        raise RuntimeError(msg)
-
-    return path
-
-
 def _filter_logs(logs, keys=("message", "extra")):
     return [{k: rec[k] for k in keys} for rec in logs]
 
 
-def test_authenticated_request_context(logs, client_admin, test_authenticated_endpoint):
-    """Test that the request context middleware adds user_id and request_id to logs."""
-    client = client_admin
-    endpoint = test_authenticated_endpoint
+def test_authenticated_request_context(logs, client_admin):
+    endpoint = "/test-authenticated-endpoint"
     headers = {"x-forwarded-for": "127.1.2.3"}
-    result = client.get(test_authenticated_endpoint, headers=headers)
+    result = client_admin.get(endpoint, headers=AUTH_HEADER_ADMIN | headers)
 
     assert result.status_code == 200
 
@@ -100,7 +100,6 @@ def test_authenticated_request_context(logs, client_admin, test_authenticated_en
                 "user_id": ADMIN_SUB_ID,
                 "request_id": ANY,
                 "serialized": ANY,
-                # only in the final log:
                 "method": "GET",
                 "url": f"http://testserver{endpoint}",
                 "route_template": endpoint,
@@ -117,12 +116,10 @@ def test_authenticated_request_context(logs, client_admin, test_authenticated_en
     assert _filter_logs(logs) == expected
 
 
-def test_public_request_context(logs, client_no_auth, test_public_endpoint):
-    """Test that the request context middleware adds request_id to logs."""
-    client = client_no_auth
-    endpoint = test_public_endpoint
+def test_public_request_context(logs, client_no_auth):
+    endpoint = "/test-public-endpoint"
     headers = {"x-forwarded-for": "127.1.2.3"}
-    result = client.get(endpoint, headers=headers)
+    result = client_no_auth.get(endpoint, headers=headers)
 
     assert result.status_code == 200
 
@@ -139,7 +136,6 @@ def test_public_request_context(logs, client_no_auth, test_public_endpoint):
             "extra": {
                 "request_id": ANY,
                 "serialized": ANY,
-                # only in the final log:
                 "method": "GET",
                 "url": f"http://testserver{endpoint}",
                 "route_template": endpoint,
@@ -156,13 +152,12 @@ def test_public_request_context(logs, client_no_auth, test_public_endpoint):
     assert _filter_logs(logs) == expected
 
 
-def test_error_request_context(logs, client_no_auth, test_error_endpoint):
-    """Test that the request context middleware handles errors."""
-    client = client_no_auth
-    endpoint = test_error_endpoint
+def test_error_request_context(logs, client_no_auth):
+    endpoint = "/test-error-endpoint"
     headers = {"x-forwarded-for": "127.1.2.3"}
-    with pytest.raises(RuntimeError, match="test error"):
-        client.get(endpoint, headers=headers)
+    result = client_no_auth.get(endpoint, headers=headers)
+
+    assert result.status_code == 500
 
     expected = [
         {
@@ -177,7 +172,6 @@ def test_error_request_context(logs, client_no_auth, test_error_endpoint):
             "extra": {
                 "request_id": ANY,
                 "serialized": ANY,
-                # only in the final log:
                 "method": "GET",
                 "url": f"http://testserver{endpoint}",
                 "status_code": 500,

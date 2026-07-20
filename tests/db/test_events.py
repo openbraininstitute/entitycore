@@ -6,7 +6,7 @@ from sqlalchemy.orm.session import object_session
 
 from app.db import events as test_module
 from app.db.model import Asset
-from app.db.types import StorageType
+from app.db.types import AssetStatus, StorageType
 
 from tests.utils import add_db
 
@@ -200,8 +200,8 @@ def test_multiple_assets_s3_failure_does_not_break_transaction(
 def test_partial_s3_failure_does_not_stop_others(db, asset1, asset2, mock_storage_delete):
     """Attempt deletion of all assets even if some S3 deletions fail."""
 
-    def side_effect(asset, _):
-        if asset.id == asset1.id:
+    def side_effect(*args, **kwargs):  # ruff:ignore[unused-function-argument]
+        if kwargs.get("s3_key") == asset1.full_path:
             msg = "S3 error"
             raise RuntimeError(msg)
 
@@ -213,6 +213,65 @@ def test_partial_s3_failure_does_not_stop_others(db, asset1, asset2, mock_storag
 
     # Both assets attempted
     assert mock_storage_delete.call_count == 2
+
+
+def test_delete_asset_from_storage__created_status(person_id, morphology_id):
+    """_delete_asset_from_storage calls delete_asset_storage_object for a non-uploading asset."""
+    asset = Asset(
+        path="foo",
+        full_path="/foo",
+        status=AssetStatus.CREATED,
+        is_directory=False,
+        content_type="application/swc",
+        size=0,
+        sha256_digest=None,
+        meta={},
+        entity_id=morphology_id,
+        created_by_id=person_id,
+        updated_by_id=person_id,
+        label="morphology",
+        storage_type=StorageType.aws_s3_internal,
+    )
+    storage_client_factory = Mock()
+    with patch("app.db.events.delete_asset_storage_object") as mock_delete:
+        test_module._delete_asset_from_storage(asset, storage_client_factory)
+
+    mock_delete.assert_called_once_with(
+        storage_type=asset.storage_type,
+        s3_key=asset.full_path,
+        storage_client_factory=storage_client_factory,
+    )
+
+
+def test_delete_asset_from_storage__uploading_status(person_id, morphology_id):
+    """_delete_asset_from_storage calls multipart_upload_abort for an uploading asset."""
+    upload_id = "test-upload-id"
+    asset = Asset(
+        path="foo",
+        full_path="/foo",
+        status=AssetStatus.UPLOADING,
+        upload_meta={"upload_id": upload_id},
+        is_directory=False,
+        content_type="application/swc",
+        size=0,
+        sha256_digest=None,
+        meta={},
+        entity_id=morphology_id,
+        created_by_id=person_id,
+        updated_by_id=person_id,
+        label="morphology",
+        storage_type=StorageType.aws_s3_internal,
+    )
+    storage_client_factory = Mock()
+    with patch("app.db.events.multipart_upload_abort") as mock_abort:
+        test_module._delete_asset_from_storage(asset, storage_client_factory)
+
+    mock_abort.assert_called_once_with(
+        upload_id=upload_id,
+        storage_type=asset.storage_type,
+        s3_key=asset.full_path,
+        storage_client_factory=storage_client_factory,
+    )
 
 
 @pytest.fixture

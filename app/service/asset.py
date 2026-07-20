@@ -729,7 +729,7 @@ def entity_asset_directory_multipart_upload_initiate(
     # Phase 2: initiate multipart uploads (in parallel)
     upload_metas: dict[uuid.UUID, UploadMeta] = {}
     if file_assets:
-        max_workers = min(settings.S3_DIRECTORY_UPLOAD_MAX_WORKERS, len(file_assets))
+        max_workers = min(settings.S3_MAX_WORKERS, len(file_assets))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
                 executor.submit(
@@ -787,7 +787,7 @@ def entity_asset_directory_multipart_upload_complete(
     pending_children = [child for child in asset_db.children if child.status != AssetStatus.CREATED]
 
     if pending_children:
-        max_workers = min(settings.S3_DIRECTORY_UPLOAD_MAX_WORKERS, len(pending_children))
+        max_workers = min(settings.S3_MAX_WORKERS, len(pending_children))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = [
                 executor.submit(

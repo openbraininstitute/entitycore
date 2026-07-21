@@ -127,11 +127,11 @@ def get_s3_client(storage: StorageUnion) -> S3Client:
         if storage.is_open:
             config = botocore.client.Config(
                 signature_version=botocore.UNSIGNED,
-                max_pool_connections=settings.S3_DIRECTORY_UPLOAD_MAX_WORKERS,
+                max_pool_connections=settings.S3_MAX_WORKERS,
             )
         else:
             config = botocore.client.Config(
-                max_pool_connections=settings.S3_DIRECTORY_UPLOAD_MAX_WORKERS,
+                max_pool_connections=settings.S3_MAX_WORKERS,
             )
         clients[storage.type] = boto3.session.Session().client(
             "s3", region_name=storage.region, config=config

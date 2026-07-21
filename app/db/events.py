@@ -1,13 +1,56 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.session import object_session
 
+from app.config import settings, storages
 from app.db.model import Asset
-from app.db.types import AssetStatus
+from app.db.types import AssetStatus, StorageType
 from app.logger import L
-from app.utils.s3 import delete_asset_storage_object, get_s3_client, multipart_upload_abort
+from app.utils.s3 import (
+    StorageClientFactory,
+    delete_asset_storage_object,
+    get_s3_client,
+    multipart_upload_abort,
+)
 
 ASSETS_TO_DELETE_KEY = "assets_to_delete_from_storage"
+
+
+def _delete_asset_from_storage(asset: Asset, storage_client_factory: StorageClientFactory) -> None:
+    match asset.status:
+        case AssetStatus.UPLOADING:
+            try:
+                # An asset should not have both UPLOADING status and None upload_meta
+                assert asset.upload_meta is not None  # ruff:ignore[assert]
+                multipart_upload_abort(
+                    upload_id=asset.upload_meta["upload_id"],
+                    storage_type=asset.storage_type,
+                    s3_key=asset.full_path,
+                    storage_client_factory=storage_client_factory,
+                )
+            except Exception:  # ruff:ignore[blind-except]
+                L.exception(
+                    "Failed to abort multipart upload for Asset id={} full_path={} storage_type={}",
+                    asset.id,
+                    asset.full_path,
+                    asset.storage_type,
+                )
+        case _:
+            try:
+                delete_asset_storage_object(
+                    storage_type=asset.storage_type,
+                    s3_key=asset.full_path,
+                    storage_client_factory=storage_client_factory,
+                )
+            except Exception:  # ruff:ignore[blind-except]
+                L.exception(
+                    "Failed to delete storage object for Asset id={} full_path={} storage_type={}",
+                    asset.id,
+                    asset.full_path,
+                    asset.storage_type,
+                )
 
 
 @event.listens_for(Asset, "before_delete")
@@ -35,54 +78,33 @@ def delete_assets_from_storage(session: Session):
     TODO: Add a cleanup function on a schedule that would remove s3 orphans from time to time.
     """
     to_delete: set[Asset] = session.info.pop(ASSETS_TO_DELETE_KEY, set())
-    for asset in to_delete:
-        if asset.is_directory:
-            # No need to delete the directory key from S3.
-            # However, the files in a directory:
-            # - are registered in the database and are going to be deleted automatically by
-            #   the event listener, if they were uploaded with multipart-upload;
-            # - aren't registered in the database and aren't deleted yet, if they were uploaded
-            #   directly using a simple a presigned url.
-            #   See https://github.com/openbraininstitute/entitycore/issues/256.
-            continue
-        match asset.status:
-            case AssetStatus.UPLOADING:
-                try:
-                    # An asset should not have both UPLOADING status and None upload_meta
-                    assert asset.upload_meta is not None  # ruff:ignore[assert]
-                    multipart_upload_abort(
-                        upload_id=asset.upload_meta["upload_id"],
-                        storage_type=asset.storage_type,
-                        s3_key=asset.full_path,
-                        storage_client_factory=get_s3_client,
-                    )
-                except Exception:  # ruff:ignore[blind-except]
-                    L.exception(
-                        (
-                            "Failed to abort multipart upload for Asset "
-                            "id={} full_path={} storage_type={}"
-                        ),
-                        asset.id,
-                        asset.full_path,
-                        asset.storage_type,
-                    )
-            case _:
-                try:
-                    delete_asset_storage_object(
-                        storage_type=asset.storage_type,
-                        s3_key=asset.full_path,
-                        storage_client_factory=get_s3_client,
-                    )
-                except Exception:  # ruff:ignore[blind-except]
-                    L.exception(
-                        (
-                            "Failed to delete storage object for Asset "
-                            "id={} full_path={} storage_type={}"
-                        ),
-                        asset.id,
-                        asset.full_path,
-                        asset.storage_type,
-                    )
+    # Ignore the directory assets because there is nothing to delete from S3.
+    # However, the files in a directory:
+    # - are registered in the database and are going to be deleted automatically by
+    #   the event listener, if they were uploaded with multipart-upload;
+    # - aren't registered in the database and aren't deleted yet, if they were uploaded
+    #   directly using a simple a presigned url.
+    #   See https://github.com/openbraininstitute/entitycore/issues/256.
+    assets = [asset for asset in to_delete if not asset.is_directory]
+    if not assets:
+        return
+
+    # Pre-instantiate one client per storage type so all threads share them.
+    storage_types: set[StorageType] = {asset.storage_type for asset in assets}
+    clients = {st: get_s3_client(storages[st]) for st in storage_types}
+
+    def storage_client_factory(storage):
+        return clients[storage.type]
+
+    max_workers = min(settings.S3_MAX_WORKERS, len(assets))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for future in as_completed(
+            [
+                executor.submit(_delete_asset_from_storage, asset, storage_client_factory)
+                for asset in assets
+            ]
+        ):
+            future.result()
 
 
 @event.listens_for(Session, "after_rollback")

@@ -300,3 +300,31 @@ def test_loguru_logging_on_s3_deletion_error(db, asset1, capture_loguru_messages
     assert "Failed to delete storage object" in log_msg
     assert str(asset1.id) in log_msg
     assert "Simulated S3 failure" in log_msg
+
+
+def test_loguru_logging_on_multipart_abort_error(person_id, morphology_id, capture_loguru_messages):
+    """Check that Loguru records the exception when multipart abort fails."""
+    asset = Asset(
+        path="foo",
+        full_path="/foo",
+        status=AssetStatus.UPLOADING,
+        upload_meta={"upload_id": "test-upload-id"},
+        is_directory=False,
+        content_type="application/swc",
+        size=0,
+        sha256_digest=None,
+        meta={},
+        entity_id=morphology_id,
+        created_by_id=person_id,
+        updated_by_id=person_id,
+        label="morphology",
+        storage_type=StorageType.aws_s3_internal,
+    )
+    with patch("app.db.events.multipart_upload_abort", side_effect=RuntimeError("abort failed")):
+        test_module._delete_asset_from_storage(asset, Mock())
+
+    assert len(capture_loguru_messages) == 1
+    log_msg = capture_loguru_messages[0]
+    assert "Failed to abort multipart upload" in log_msg
+    assert str(asset.id) in log_msg
+    assert "abort failed" in log_msg

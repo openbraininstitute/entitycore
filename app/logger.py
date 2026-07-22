@@ -1,6 +1,5 @@
 """Logger configuration."""
 
-import inspect
 import json
 import logging
 import sys
@@ -20,7 +19,11 @@ L = logger
 class InterceptHandler(logging.Handler):
     """Intercept standard logging messages toward Loguru sinks.
 
-    See https://github.com/Delgan/loguru#entirely-compatible-with-standard-logging.
+    Unlike the recipe at
+    https://github.com/Delgan/loguru#entirely-compatible-with-standard-logging,
+    the caller is read from the LogRecord instead of being re-derived by walking frames,
+    so caller attribution keeps working when the handler chain is patched
+    (e.g. by Sentry's LoggingIntegration).
     """
 
     def emit(self, record: logging.LogRecord) -> None:  # ruff:ignore[no-self-use]
@@ -32,13 +35,16 @@ class InterceptHandler(logging.Handler):
         except ValueError:
             level = record.levelno
 
-        # Find caller from where originated the logged message.
-        frame, depth = inspect.currentframe(), 0
-        while frame and (depth == 0 or frame.f_code.co_filename == logging.__file__):
-            frame = frame.f_back
-            depth += 1
-
-        L.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+        # Take the caller from the stdlib record, stamped via findCaller() before any
+        # handler runs. Walking frames here would instead pick up whatever patched the
+        # handler chain (e.g. Sentry's LoggingIntegration).
+        (
+            L.patch(
+                lambda r: r.update(name=record.name, function=record.funcName, line=record.lineno)
+            )
+            .opt(exception=record.exc_info)
+            .log(level, record.getMessage())
+        )
 
 
 def json_formatter(record: "loguru.Record") -> str:

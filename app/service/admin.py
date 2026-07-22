@@ -16,7 +16,6 @@ from app.filters.asset import AssetFilterDep
 from app.queries import crud
 from app.queries.common import router_admin_delete_one, router_read_many
 from app.repository.group import RepositoryGroup
-from app.routers.types import EntityRoute, ResourceRoute
 from app.schemas.asset import (
     AssetRead,
 )
@@ -28,6 +27,7 @@ from app.service.asset import (
     create_entity_asset_unverified,
     validate_uploadfile_for_small_entity_post,
 )
+from app.types import EntityRoute, ResourceRoute
 from app.utils.files import calculate_sha256_digest
 from app.utils.routers import entity_route_to_type, route_to_type
 from app.utils.s3 import (

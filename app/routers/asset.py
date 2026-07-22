@@ -1,21 +1,18 @@
 """Generic asset routes."""
 
 import uuid
-from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import APIRouter, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Form, UploadFile, status
 from starlette.responses import RedirectResponse
 
-from app.config import settings, storages
-from app.db.types import AssetLabel, AssetStatus, ContentType, StorageType
+from app.config import storages
+from app.db.types import AssetLabel, StorageType
 from app.dependencies.auth import UserContextDep
 from app.dependencies.common import PaginationQuery
 from app.dependencies.db import RepoGroupDep
 from app.dependencies.s3 import StorageClientFactoryDep
-from app.errors import ApiError, ApiErrorCode
 from app.filters.asset import AssetFilterDep
-from app.routers.types import EntityRoute
 from app.schemas.asset import (
     AssetAndPresignedURLS,
     AssetRead,
@@ -29,13 +26,8 @@ from app.schemas.asset import (
 )
 from app.schemas.types import ListResponse
 from app.service import asset as asset_service
-from app.utils.files import get_content_type
+from app.types import EntityRoute
 from app.utils.routers import entity_route_to_type
-from app.utils.s3 import (
-    check_object,
-    validate_filename,
-    validate_multipart_filesize,
-)
 
 router = APIRouter(
     prefix="",
@@ -135,47 +127,14 @@ def register_entity_asset(
 
     Only open data storage is supported for now.
     """
-    storage = storages[asset.storage_type]
-    s3_client = storage_client_factory(storage)
-
-    try:
-        check_result = check_object(
-            s3_client,
-            bucket_name=storage.bucket,
-            s3_key=asset.full_path,
-            is_directory=asset.is_directory,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to check object") from e
-
-    if not check_result["exists"]:
-        raise ApiError(
-            message="Object does not exist in S3",
-            error_code=ApiErrorCode.ASSET_NOT_FOUND,
-            http_status_code=HTTPStatus.CONFLICT,
-            details={
-                "bucket": storage.bucket,
-                "region": storage.region,
-                "s3_key": asset.full_path,
-            },
-        )
-
-    asset_read = asset_service.create_entity_asset(
+    return asset_service.register_entity_asset(
         repos=repos,
         user_context=user_context,
         entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
-        filename=asset.path,
-        content_type=asset.content_type,
-        size=-1,  # considered unknown for already existing assets
-        sha256_digest=None,  # considered unknown for already existing assets
-        meta=asset.meta,
-        label=asset.label,
-        is_directory=asset.is_directory,
-        storage_type=storage.type,
-        full_path=asset.full_path,
+        storage_client_factory=storage_client_factory,
+        asset=asset,
     )
-    return asset_read
 
 
 @router.get("/{entity_route}/{entity_id}/assets/{asset_id}/download")
@@ -317,75 +276,14 @@ def entity_asset_multipart_upload_initiate(
     - If you lose the presigned URLs and wish to cancel the upload, you must
       delete the asset manually using the delete asset endpoint.
     """
-    if not validate_multipart_filesize(json_model.filesize):
-        msg = f"File not allowed because bigger than {settings.S3_MULTIPART_UPLOAD_MAX_SIZE}"
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_INVALID_FILE,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-
-    if not validate_filename(json_model.filename):
-        msg = f"Invalid file name {json_model.filename!r}"
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_INVALID_PATH,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        )
-
-    try:
-        content_type = get_content_type(json_model)
-    except ValueError as e:
-        msg = (
-            f"Invalid content type for file {json_model.filename}. "
-            f"Supported content types: {sorted(c.value for c in ContentType)}.\n"
-            f"Exception: {e}"
-        )
-        raise ApiError(
-            message=msg,
-            error_code=ApiErrorCode.ASSET_INVALID_CONTENT_TYPE,
-            http_status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
-        ) from None
-
-    storage = storages[StorageType.aws_s3_internal]  # hardcoded for now
-    s3_client = storage_client_factory(storage)
-
-    entity_type = entity_route_to_type(entity_route)
-
-    # create asset to fail early if full path already in progress or registered
-    asset_read = asset_service.create_entity_asset(
+    return asset_service.multipart_upload_initiate(
         repos=repos,
         user_context=user_context,
-        entity_type=entity_type,
+        entity_type=entity_route_to_type(entity_route),
         entity_id=entity_id,
-        filename=json_model.filename,
-        content_type=content_type,
-        size=json_model.filesize,
-        sha256_digest=json_model.sha256_digest,
-        meta=None,
-        label=json_model.label,
-        is_directory=False,
-        storage_type=storage.type,
-        status=AssetStatus.UPLOADING,
+        storage_client_factory=storage_client_factory,
+        json_model=json_model,
     )
-
-    # create presigned urls using the part count hint and filesize
-    # asset schemas is updated with the upload metadata
-    # Note: User already authorized when creating the asset
-    asset_read = asset_service.entity_asset_multipart_upload_initiate(
-        repos=repos,
-        s3_client=s3_client,
-        entity_type=entity_type,
-        entity_id=entity_id,
-        asset_id=asset_read.id,
-        bucket=storage.bucket,
-        s3_key=asset_read.full_path,
-        filesize=json_model.filesize,
-        content_type=content_type,
-        preferred_part_count=json_model.preferred_part_count,
-    )
-
-    return asset_read
 
 
 @router.post("/{entity_route}/{entity_id}/assets/{asset_id}/multipart-upload/complete")

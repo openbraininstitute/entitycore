@@ -1,4 +1,4 @@
-from app.routers import types as test_module
+from app import types as test_module
 
 
 def test_routes_exist(client):

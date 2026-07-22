@@ -12,7 +12,6 @@ from app.dependencies.db import RepoGroupDep, SessionDep
 from app.dependencies.s3 import StorageClientFactoryDep
 from app.dependencies.virtual_lab_api import AdminVirtualLabClientDep
 from app.filters.asset import AssetFilterDep
-from app.routers.types import EntityRoute
 from app.schemas.asset import (
     AssetRead,
 )
@@ -23,6 +22,7 @@ from app.service import (
     asset as asset_service,
     publish as publish_service,
 )
+from app.types import EntityRoute
 from app.utils.routers import (
     entity_route_to_type,
 )
